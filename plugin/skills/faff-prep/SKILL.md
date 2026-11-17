@@ -8,9 +8,9 @@ judgement_seam: reconciliation, prep-architecture-trigger, park-reconsider-class
 
 > **Next step:** `/faff-graft ISSUE-XX` to start building
 
-Turn a vague ticket into something buildable. Prep does the thinking so you can just code.
+Turn a vague ticket into something buildable.
 
-Faff-prep is an **orchestrator** — it owns the issue tracker lifecycle and codebase exploration, but **always delegates spec production to the `spec` slot** (default `faffter-noon-spec`). It never drafts the spec body itself; its job is to explore, invoke the producer, gate on the result, and manage attachment.
+Faff-prep is an **orchestrator**: it owns tracker lifecycle and codebase exploration, **always delegates spec production to the `spec` slot** (default `faffter-noon-spec`), gates the result and manages attachment. It never drafts the spec body.
 
 **Methodology lens.** When a `methodology` slot is configured, prep appends a **`## Methodology critique`** block after the spec body (before any chaining gates), per gateway → **The `methodology` slot** (display convention).
 
@@ -27,13 +27,13 @@ slots:
   spec: superpowers:brainstorming   # optional override; unset → faffter-noon-spec
 ```
 
-Faff-prep invokes the configured/default `spec` skill with the issue context and explore findings, captures its output, and manages the issue tracker attachment. It does **not** carry a fallback copy of the spec arc — the default producer always exists, so there is no "inline" path to fall through to.
+Faff-prep passes issue context and explore findings to the configured/default `spec` skill, captures its output and manages tracker attachment. There is no inline spec fallback; the default producer always exists.
 
-**Producer requirements (the slot contract relies on):** the `spec` skill must (a) return a confidence self-rating (`confidence: high|medium|low`) at the end of its output, (b) produce decisions using the canonical markers defined in the gateway Spec-readiness contract, and (c) discharge its own quality bar — for `faffter-noon-spec` that's the clean-context self-review before it returns (see its `SKILL.md` → _Self-review before returning_). Faff-prep gates on the returned confidence rating; the markers let downstream sub-skills (`/faff-graft`, `/faff-beep-boop`) tell closed decisions from open punts without re-litigating them. A `spec` skill that genuinely can't self-rate is usable interactively but cannot be driven autonomously — configure a producer that can (the default does).
+**Producer requirements (the slot contract relies on):** the `spec` skill must return a final confidence self-rating (`confidence: high|medium|low`), use the gateway Spec-readiness decision markers, and discharge its own quality bar. For `faffter-noon-spec`, that includes clean-context self-review (its `SKILL.md` → _Self-review before returning_). Prep gates on confidence; downstream `/faff-graft` and `/faff-beep-boop` distinguish closed decisions from open punts by the markers. A producer unable to self-rate is usable interactively, never autonomously; configure one that can (the default does).
 
 ## Rendering
 
-All human-facing output this skill emits — the spec-attach **comment** and the park **comment**, plus any terminal summaries — passes through the configured `rendering_adaptor` normalise pass **before it is printed or written** (gateway → **Rendering**, Universal-routing rule). In particular, enumerable sets render as lists, never `·`/comma run-on paragraphs (the prose-skimmability rule), so descriptions and comments are as skimmable as terminal output. Carve-outs (skill source files, `.faff/` logs) are exempt.
+All human-facing output, including spec-attach and park **comments** and terminal summaries, passes through the configured `rendering_adaptor` normalise pass **before it is printed or written** (gateway → **Rendering**, Universal-routing rule). Enumerable sets render as lists, never `·`/comma run-on paragraphs. Skill source files and `.faff/` logs are exempt.
 
 ## What Prep Produces
 
@@ -42,7 +42,7 @@ A single artifact: the **spec**. It answers two questions:
 1. **What to build and why** — design decisions, architecture, interfaces, key technical choices with rationale
 2. **How do we know it's done** — acceptance criteria, concrete and testable
 
-The spec is a high-level design document. It does **not** contain implementation-level details like step-by-step code changes, TDD cycles, or exact commands. Those belong to the implementation phase, where the implementer can feed the spec into their own planning/execution workflow (e.g., `superpowers:writing-plans`, `superpowers:subagent-driven-development`, or direct implementation).
+The spec is high-level design, not step-by-step code changes, TDD cycles or exact commands. Implementation planning/execution belongs to the implementer (e.g., `superpowers:writing-plans`, `superpowers:subagent-driven-development`, or direct implementation).
 
 **Methodology critique block (rendered only when a `methodology` skill is configured).**
 
@@ -54,7 +54,7 @@ In autonomous prep (e.g. driven by `/faff-beep-boop`'s prep queue), the critique
 
 ## Spec contract
 
-Every spec faff-prep attaches (freshly produced by the `spec` slot, or refreshed) must satisfy the **fixed spec-readiness contract in the gateway** (_Spec readiness (fixed)_): the canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), the marker rules, the skimmable-not-coded writing style, the confidence line, and the provenance stamp. faff-prep passes this contract to the producer and **validates against it before attach via the consumer-fold below** (the `spec_adaptor` slot was retired — conformance is now producer-emitted + consumer-parsed). References to "_spec contract_" elsewhere in this skill mean the gateway spec-readiness contract.
+Every produced or refreshed spec must satisfy the **fixed spec-readiness contract in the gateway** (_Spec readiness (fixed)_): canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), marker rules, skimmable-not-coded style, confidence and provenance stamp. Pass the contract to the producer and **validate against it before attach via the consumer-fold below**. The retired `spec_adaptor` is replaced by producer-emitted, consumer-parsed conformance. Elsewhere, "_spec contract_" means this gateway contract.
 
 **Validation — the consumer-fold.** faff-prep is the consumer of the producer's `faff-contract:spec-readiness` block. `faff prep attach` runs the fold at stage: it locates the single block, parses it, adds `provenance_present` from the stamp it has just written, and runs the spec-readiness contract, the sole source of contract data. A producer that emitted no block yields `needs-judgement:no-readiness-block`: read the markers and confidence from the spec prose into extraction JSON (`{ confidence, decisions }`, the only surviving LLM seam), write it to a file, and stage again with `--extraction <file>`. Autonomous `invalid` → park; interactive `invalid` → add the missing markers and stage again.
 
@@ -87,9 +87,9 @@ faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff
 
 ## Spec-review gate (approach-critique consumer-fold)
 
-The confidence gate above asks *is the spec internally well-formed?*. This gate asks the orthogonal question *is the approach itself any good?* — sound architecture, safe, right-sized, verifiable. It is the judgement layer of the spec stage: catch a wrong approach while it is still just a spec, before any code exists. It runs **after** the spec is produced and confidence-rated and **before** the issue promotes to Todo, and it **composes** with the confidence gate — both must pass to admit, and neither overrides the other.
+The confidence gate checks internal well-formedness; this gate checks the approach: sound architecture, safety, right-sizing and verifiability. Run it **after** production and confidence rating, **before** promotion to Todo. It **composes** with confidence: both must pass, neither overrides the other.
 
-**Lens selection (the cost-gate, runs first).** Before invoking the producer, choose *which* of the four lenses fire and *how deep* (mode), so review cost is proportionate to the change rather than a flat four-lens (adversarial-at-L4) pass on every spec. This step is **advisory producer-input only** — it never touches the `spec-review-verdict` contract, introduces no new lens/severity/verdict, and gates nothing itself. Two halves:
+**Lens selection (the cost-gate, runs first).** Before producer invocation, select lenses and mode. This is **advisory producer-input only**: it never changes the `spec-review-verdict` contract, lens/severity/verdict vocabulary or admission gate. Two halves:
 
 1. **Classify the change-surface (prose, recall-biased).** Derive the surface from the spec's **declared** surface — its WHAT (named files / modules / subsystems), its `**Assumes:**`, and its Reference-context — **reusing the same already-shipped-scan surface-area extraction** the premise-supersede scan already runs (named paths, top-level module/dir names, named subsystems). Do **not** predict the build diff — pre-code diff inference is unreliable and circular. Map the extracted signals to surface tags from this vocabulary: `config`, `auth-security`, `data-schema`, `public-api`, `infra-deploy`, `ui`, `pure-logic`, `architecture-bearing`. Tune toward **recall** (over-include): a false positive costs one wasted lens-pass, a false negative skips a needed review. When the surface is mixed, uncertain, or yields no confident tag, pass **no tags** — the gate fails safe to all four.
 2. **Map to a `LensSelection` (deterministic CLI).** Shell `faff spec-review-lenses --tags <comma-joined tags> --level <level> --appetite <faff config get appetite>` (level is one of the four autonomy levels) (level is the runtime autonomy level; appetite from config). It returns `{ lenses, mode, rationale }` on stdout — the **sole** source of the selection (never hand-derive the lens-set). It is **safe-direction / additive-only**: only the `architectural` lens (or `methodology` where no tag adds it) is ever dropped, and only on a confidently-classified surface; **`infosec` + `QA` are sticky** (always fire at L1–L3); an unclassified or unrecognised surface fires **all four** (fail-safe); **L4** fires the full lens set and is never narrowed by appetite; `low`/`medium` appetite widens to all four. **`mode` follows whether an adversarial `spec_review` chain is configured — at every level, not only L4**: pass `--adversarial-configured yes|no` to state it, or omit it and the CLI resolves it from config. A configured adversarial occupant therefore runs per-lens refuters on an L3 drain rather than collapsing to the single-pass checklist its own SKILL says reduces it to the default. **At L4 an unconfigured chain FAILS CLOSED (exit 3) — treat it as needs-human, never as single-pass.** Pass `--level` as `L1`…`L4` exactly: an out-of-enum value is rejected (exit 2), never coerced. Carry the `rationale` into the spec-review log as the audit trail of signals→tags→fired lenses.
@@ -126,7 +126,7 @@ esac
 - **Exit 3** (nothing honourable — no PRD non-goals, no scoped precedent, no honourable tradeoff) → no `$scratch/ratified-scope.md`; every lens behaves exactly as today (no deferral). A legitimate empty set.
 - **Exit 2** (source unreadable — a FAILED read, not an empty one) → **route this round to `needs-human`**; do **not** dispatch with a fabricated empty block. This is the one tightening over the prior silent "no file, no deferral" behaviour: a failed read must never be indistinguishable from an empty set.
 
-**Ratified tracker-resolution fold — human resolutions posted in the tracker thread.** A human may settle a spec's open Punt/Assumes in the issue's tracker thread by posting a `## Decisions-register intent` comment (the interactive resolve flow writes it on confirm). That resolution lives only in the thread, so the design lenses never see it and re-litigate the settled call. At this **same per-round seam**, immediately **after** the `--assemble` block above, gather the ratified tracker resolutions and fold them — as inert DATA — into the block the lenses defer to. The fold is **prep-time visibility only**: `docs/decisions.md` stays the durable record `faff-graft` Step 4c materialises under human PR review, and the register is **never** written here.
+**Ratified tracker-resolution fold — human resolutions posted in the tracker thread.** At the **same per-round seam**, immediately **after** `--assemble`, gather human-settled Punt/Assumes resolutions posted as `## Decisions-register intent` comments and fold them as inert DATA into the lenses' deferral block. This is **prep-time visibility only**: never write `docs/decisions.md` here; `faff-graft` Step 4c materialises the durable register under human PR review.
 
 **Gather (path (a) only — marker-gated).** Reusing the enumerate-intent subroutine's fetch (a same-turn `list-comments` reuse, never a second round-trip), enumerate the issue's post-spec `## Decisions-register intent` comments, and for each: pipe its body to `faff decisions intent-status --file -` and **keep only `live`** (drop `superseded` / `not-intent`); **drop any whose author id equals the run automation identity** (the actor prep posts under — defence-in-depth beside the marker gate); take `topic` from the intent's heading topic and `resolved` from its `Chosen:` line. Build a `RatifiedTrackerResolution[]` — `{ topic, resolved, comment_id, author, ts, marker: "intent-live" }` — deduped by topic (latest `ts` wins) — as `$resolutions_json`. A free-form Resolution carrying **no** `## Decisions-register intent` marker is **not** gathered in v1 (the shared-token false-positive surface; see the security Punt in the spec). Git-only mode has no thread → the set is empty → the fold is a no-op.
 
@@ -160,7 +160,7 @@ esac
 
 ### Ratify a design-lens objection in place (interactive only)
 
-A design-lens objection has two paths today — loop the producer, or park on the cap ceiling. A third, **ratify**, lets a present human say "no, keep it" to an objection that attacks a *decision*, without either forcing a pointless revision loop or losing the fact that a human, not the producer, made that call. Offered **only** for a `major`/`minor` design-lens objection that names a specific already-`**Chosen:**` decision **and** passes the scope test below, and **only** in interactive mode.
+Interactive **ratify** lets a present human keep a decision instead of revising or parking on the cap ceiling. Offer it **only** for a `major`/`minor` design-lens objection naming a specific already-`**Chosen:**` decision **and** passing the scope test below, and **only** in interactive mode. The human, never the producer, settles that call.
 
 **The decision-vs-implementation scope test (runs before the offer fires).** An objection's `spec_anchor` names a section, not a decision, so naming a `**Chosen:**` line is necessary but not sufficient. Classify from the objection's own `claim`: does it argue against *the choice*, or against *a mechanism or detail of carrying the choice out*? Only a **decision-level** objection is ratifiable. One that is ambiguous between the two, or mixes both, is **not** offered ratify — it routes through `revise`/park exactly as an unclassifiable objection does today, because ratifying it risks silently suppressing the implementation half the design lenses promise to keep critiquing at full severity. These worked examples calibrate the test's two ends and its fail-safe middle; they do not replace it:
 
@@ -170,7 +170,7 @@ A design-lens objection has two paths today — loop the producer, or park on th
 | Implementation-level | "The chosen Postgres migration has no rollback path" (accepts the choice, attacks its execution) | no |
 | Ambiguous / mixed | "Postgres is fine, but this schema will lock the table under load" (decision-adjacent implementation critique) | no — fail-safe |
 
-This is a bounded LLM classification, not a deterministic parser: there is no closed-vocabulary oracle for "is this objection about the choice or its execution" the way the `spec_anchor` heading-slug rule is mechanical. The bound is that the failure direction is asymmetric and safety-biased — **ambiguous resolves to no ratify, never the reverse** — and the blast radius of a misclassification is one non-`critical` objection kept in the loop, never a defect shipping unexamined. The committed fixture set under the occupant's `eval/in-spec-ratification/` exercises the implementation-level and ambiguous cases, so the asymmetry is a checked property rather than a naming.
+This is LLM classification, not deterministic parsing like the `spec_anchor` heading-slug rule. **Ambiguous resolves to no ratify, never the reverse**: keep the non-`critical` objection in the loop rather than ship an unexamined defect. The occupant's `eval/in-spec-ratification/` fixtures cover implementation-level and ambiguous cases.
 
 ```
 PROCEDURE surface_design_lens_objection(objection, decision_line):
@@ -199,7 +199,7 @@ PROCEDURE surface_design_lens_objection(objection, decision_line):
 
 **Audit the utterance, not just its result.** The tracker comment the re-attach already posts carries the human's own words beside the resulting tag, so the tag's provenance is checkable against the thread rather than resting on trust in prep's mechanical-edit claim. The quote is **neutralised before it is written, never raw**: run it through the same structural-neutralisation transform `faff ratified-scope --fold-resolutions` applies to tracker values (newline collapse, secret-shaped-value redaction, imperative-sentence scrub — the identical function, reused, never reimplemented), then extract the shortest sentence that states the decision — never the full multi-paragraph turn — and hard-cap it at **200 characters**, truncating with `…` if that sentence is longer. The reconcile step's in-context judgement re-reads this quote later, so it must land there as inert, bounded DATA.
 
-**The tag survives the loop, and an autonomous refresh, by carry-forward.** A `revise` re-invocation carries every existing `(ratified: human)` tag forward verbatim: the producer receives the current spec text — tags included — as its base and is never asked to redraft from scratch mid-loop, the same narrowing-only-refresh discipline a scoped revision already uses. An **autonomous stale-refresh** preserves an already-present tag the same way: "never added on an autonomous dispatch" governs **new** tags, not inherited ones, and a refresh is a scoped annotation rather than a whole-cloth redraft. Neither rule says anything about a later, separate prep session's full redraft.
+**The tag survives the loop, and an autonomous refresh, by carry-forward.** A `revise` re-invocation uses the current spec, including every `(ratified: human)` tag verbatim, as its base; never request a scratch redraft mid-loop. An **autonomous stale-refresh** preserves inherited tags: "never added on an autonomous dispatch" forbids new tags, not existing ones. Both are scoped revisions; neither rule governs a later separate prep session's full redraft.
 
 **Anti-pattern:** offering ratify for a methodology-lens objection. A methodology `reject-approach` is a scope/sizing call routed to `/faff-plot`, never a loop-in-place revision — there is no single named `**Chosen:**` line to ratify against.
 
@@ -274,7 +274,7 @@ When the deadline fires with no verdict and no outage, interactive prep surfaces
 
 ## Spec quality bar (owned by the producer)
 
-The clean-context review of a freshly drafted spec — dispatching a fresh-context subagent to verify every claim against the codebase before the spec is trusted — is the **producer's** responsibility, not prep's. The gateway makes a delegated `spec` skill responsible for its own quality bar; the default producer discharges it via its own _Self-review before returning_ step (see `faffter-noon-spec/SKILL.md`), which runs for every fresh spec regardless of size, applies the same `blocker`/`major`/`minor` severities, and enforces the self-rating downgrade rule (≥1 blocker or ≥3 major → can't self-rate `high`). prep does not re-run that review — it trusts the producer's self-rating and the markers, then applies its own gates below.
+The **producer** owns fresh-spec clean-context review: a fresh-context subagent checks every claim against the codebase before trust. The default producer's _Self-review before returning_ (`faffter-noon-spec/SKILL.md`) runs for every fresh spec regardless of size, uses `blocker`/`major`/`minor`, and forbids self-rated `high` with ≥1 blocker or ≥3 major. Prep trusts the returned self-rating and markers, applies its own gates and never repeats that review.
 
 What prep still owns around the producer's output:
 
@@ -286,7 +286,7 @@ What prep still owns around the producer's output:
 
 ## Architecture proposal step (shared subroutine — conditional)
 
-Both spec-producing flows invoke this subroutine at the point named in their sections: interactive **Scenario A**, between Step 1 (explore) and Step 2 (spec dispatch); autonomous **Path 2 (fresh-spec)**, immediately before its spec-production step. It asks: *does this work need an architecture decided at all?* — and when it does, produces the proposal the spec will carry to every downstream consumer (the spec-review architectural lens and the holdout env step both read it **from the spec**, never out-of-band).
+Invoke this subroutine in interactive **Scenario A**, between explore Step 1 and spec dispatch Step 2, and autonomous **Path 2 (fresh-spec)** immediately before production. Decide whether architecture is needed; its proposal must reach downstream spec-review architectural and holdout env consumers **from the spec**, never out-of-band.
 
 1. **Trigger test (prose judgement, precision-biased).** Fire **only** when the issue + explore findings show **new-runnable-surface work** — a new runnable system, or a material change to the deployment shape (new service / app / deployable / datastore / runtime surface) — with **no established architecture to inherit**, **and** no current proposal already exists for the same system (a sibling spec in the same project already carrying a proposal block counts as existing — never dispatch a second proposer for one system). **Uncertain → do not fire**: skip, and prep proceeds exactly as today. This is deliberately the opposite bias from spec-review lens selection (recall-biased): a spurious proposal injects unfounded architecture prose into a spec, while a missed fire costs nothing beyond the status quo and is caught fail-closed by the downstream holdout gates.
 2. **On fire — dispatch the producer.** Resolve `faff config get slots.architecture`; validate a **foreign** (non-bundled) occupant per the slot-conformance rule (gateway → **Slot conformance validation**; a bundled `faffter-*` occupant is exempt); dispatch it with the issue/brief + explore findings, using the same transport as the adjacent spec-producer dispatch (gateway → **Sibling-skill invocation → Producer dispatch**, resolving the `architecture` dispatch lane when prep is top-level; in-context when prep is itself a subagent — single-level nesting). The occupant reads the infra profile itself.
@@ -296,7 +296,7 @@ Both spec-producing flows invoke this subroutine at the point named in their sec
 
 ## Decisions-register capture step (shared subroutine)
 
-Both interactive resolution sites invoke this subroutine immediately after a human closes out a Punt/Assumes marker: Scenario A Step 3's `resolve` branch, and Scenario B Step 2a's **Resolution** comment classification. It mirrors the ADR-promotion pattern above (prep records intent, graft materialises) — this is the register's capture half, never the consumption half (that's the gateway's resolve-attempt).
+Invoke immediately after human Punt/Assumes closure at Scenario A Step 3's `resolve` branch and Scenario B Step 2a's **Resolution** classification. Prep captures intent; graft materialises it. This is not the gateway resolve-attempt consumption step.
 
 1. **Offer.** After the human's resolution is folded into the spec, ask: *"Capture this as a decisions-register precedent? (y/n)"*
 2. **On yes:** draft the proposed entry — topic (the punt's short phrasing), `Chosen:`, `Rationale:`, `Scope:`, and suggested `Matches:` keys (the topic phrasing plus any close variants the human used) — and record it as a tracker comment headed `## Decisions-register intent`. Prep writes **no** repo files here — it stays tracker-only, exactly like `## ADR promotion intent`.
@@ -315,13 +315,13 @@ Ratified-by:  human
 Date:         <today>
 ```
 
-No `Matches:` field — a tradeoff is never fuzzy-matched (`faff decisions match` skips tradeoff entries by design). Follow-through is **identical** to the existing offer: a build that follows has `/faff-graft` Step 4c materialise the intent comment into `docs/decisions.md`; no build following surfaces the drafted text for the human to commit directly. On no: continue — no comment, no draft. No code change is needed to materialise it: Step 4c appends whichever fields the intent comment carries, the register derives `kind: "ratified_tradeoff"` from the lexical presence of a `Ratified-by:` field line, and the `faff decisions validate` Step 4c already runs applies the tradeoff validator unchanged.
+No `Matches:` field: `faff decisions match` skips tradeoffs. Follow the existing offer: a subsequent build has `/faff-graft` Step 4c materialise the comment in `docs/decisions.md`; without a build, surface the draft for human commit. On no: continue with no comment or draft. Step 4c appends the intent fields; lexical `Ratified-by:` yields `kind: "ratified_tradeoff"`, validated by its existing `faff decisions validate` call.
 
 **The autonomous resolve-attempt path (gateway) never runs this offer and never writes the register** — capture is human-confirmed only, at these two interactive sites, so every entry is human-authored by construction.
 
 ## Decisions-register reconcile step (shared subroutine)
 
-Sibling to the capture step above, closing the asymmetry with the ADR-promotion guard: `faff-graft` Step 4b/3b already re-checks an ADR-promotion intent for contradictions before materialising, and the register now has the same analogue — a revise loop or re-prep can change the design out from under an already-captured intent, and nothing else marks it stale. Invoked at each finalisation seam below, **after** the spec content is finalised (re-attached / reattached / replaced) and **before** the seam's own next-step offer continues. This is earlier surfacing, not the sole guard — `faff-graft` Step 4c re-checks again at materialise time as the backstop for any path that skips this pass (e.g. a mid-build respec).
+Run at each finalisation seam below, **after** finalising the spec (re-attached / reattached / replaced) and **before** its next-step offer. A revision may invalidate captured intent; reconcile it here. This is not the sole guard: `faff-graft` Step 4c re-checks at materialisation, including paths that skip this pass (e.g. mid-build respec), as its Step 4b/3b ADR-promotion guard does for ADR intent.
 
 1. **Enumerate.** Fetch every `## Decisions-register intent` comment on the issue (a single tracker list-comments call; reuse a same-turn comment fetch — e.g. Scenario B Step 2a's — instead of a second round-trip). For each, pipe the comment body to `faff decisions intent-status --file -` and **skip** any it reports `superseded` (nothing to re-check) or `not-intent` (not a register intent).
 2. **Re-check each live intent** (in-context LLM judgement, the sole judgement step here — mirrors the ADR `detect_contradictions` seam): does the just-finalised spec still support this intent's `topic`/`Chosen`/`Scope`?
@@ -339,7 +339,7 @@ Sibling to the capture step above, closing the asymmetry with the ADR-promotion 
 
 ### Phase 1: Prep (issue tracker only)
 
-During prep, the spec lives **only on the issue tracker** as a comment. Nothing is committed to the repo. This means:
+During prep, the spec lives **only on the issue tracker** as a comment; commit nothing to the repo. This allows:
 - No noisy commits, PRs, or CI runs for planning work
 - The spec can be revised and replaced freely
 - If the session crashes, the spec is preserved on the issue
@@ -370,13 +370,13 @@ This keeps the delegated skill unchanged — it doesn't need to know about faff.
 
 ### Opening: state the issue outline (both scenarios)
 
-Before Step 1 of **either** scenario — and before any exploration narration — prep's **first output** is a short, skimmable outline of the issue, so a reader who isn't already holding the ticket in their head can follow what's being prepped. Keep it to ~3 lines:
+Before Step 1 of **either** scenario and any exploration narration, prep's **first output** is a skimmable issue outline of ~3 lines:
 
 - the **synthesis gloss** — the plain-English one-liner for the issue (defined in the sibling gateway → **Rendering → `rendering_adaptor`** (synthesis gloss); not redefined here);
 - the issue's current **status**;
 - a one-line **what it's about**.
 
-Do **not** include an acceptance-criteria count here — fresh prep hasn't explored yet, so the ACs aren't known at the opening. This outline routes through the configured `rendering_adaptor` like all other prep output (see **Rendering** above), so it renders skimmably for free. **Interactive:** it is the first thing shown to the user. **Autonomous:** prep never prints to a human, so the outline opens the prep log (`.faff/.../prep.md`) instead of a chat message. This is the quick orient-the-reader opener; Scenario B's fuller **Step 3: Brief the user** still runs after its freshness checks.
+Do **not** include an acceptance-criteria count here; fresh prep has not explored yet. Route through the configured `rendering_adaptor` (see **Rendering**). **Interactive:** show it first. **Autonomous:** open `.faff/.../prep.md` with it instead of printing to a human. Scenario B's fuller **Step 3: Brief the user** still follows freshness checks.
 
 ### Scenario A: Fresh prep (no existing spec)
 
@@ -399,7 +399,7 @@ The explore subagent's dispatch resolves the `prep_explore` dispatch lane (gatew
 - **Substantially delivered** — surface the matched surface area and at least one cited Done ticket ID, then apply the **Interactive park resolution (surface, don't settle)** rule: require an explicit human choice of **scrap** (on confirm, close the issue as superseded, citing the Done tickets — never auto-close), **narrow** (continue to Step 2 on the reduced scope), or **proceed** (continue to Step 2 unchanged).
 - **Partially delivered** — surface the finding + cited Done IDs with a narrow-to-the-delta recommendation, offering the same scrap / narrow / proceed choice.
 
-A narrow or proceed choice carries the findings section forward into the Step-2 spec. This is the interactive third call site of the subroutine below, alongside autonomous Path 1 / Path 2 — the same scan, never a second one; only the disposition differs (human-confirm here, auto-park there).
+Carry the findings into the Step-2 spec on narrow or proceed. Use the same shared scan as autonomous Path 1 / Path 2, never a second scan; this interactive site requires human confirmation instead of auto-parking.
 
 **Step 2: Spec** (delegated to the `spec` slot)
 
@@ -414,7 +414,7 @@ A narrow or proceed choice carries the findings section forward into the Step-2 
 - If there are open questions, note them and leave the issue in backlog
 - If clean (spec-review `approve` + confidence gate), **move the issue to Todo** — it's prepped and ready to be picked up
 
-**ADR promotion.** After the spec is attached, run the ADR promotion step — a tail step that never blocks prep and writes **no** repo files (prep stays tracker-only; the ADR is materialised later by `/faff-graft`, which owns the feature branch, so it ships in the PR with the code):
+**ADR promotion.** After attach, run this non-blocking tail step. Prep writes **no** repo files; `/faff-graft` materialises the ADR on its feature branch so it ships with the code:
 
 1. Resolve `mode := faff config get adr.mode` (default `offer`). If `off` → skip.
 2. **Candidates** = the spec's `**Chosen:**` decisions that are *architecturally significant* — cross-slice and durable (constrains future slices), not local. v1 does **not** auto-classify; surface only decisions the spec already frames as significant. If none → skip.
@@ -512,7 +512,7 @@ Two allowed auto-spec paths. Both invoke the shared subroutine documented immedi
 
 ### Shared subroutine: already-shipped scan + premise-superseded gate
 
-Both autonomous paths, plus interactive Scenario A's Step 1c, invoke this subroutine at the explicit step boundary documented in their sections. The subroutine asks: *given Done sibling tickets in the same project, is this ticket's premise still load-bearing?* The answer routes down park / narrow / proceed — each caller supplies its own surface-area source (a produced spec autonomously, explore findings + issue interactively) and its own disposition per outcome (auto-park autonomously, human-confirm interactively per Scenario A's Step 1c above).
+Both autonomous paths and interactive Scenario A Step 1c invoke this shared scan at their documented boundaries. Test whether Done siblings in the same project supersede the premise. Callers supply the surface (produced spec autonomously, issue + explore findings interactively) and disposition (auto-park autonomously, human-confirm interactively).
 
 **1. Already-shipped scan.** Four steps:
 
@@ -529,9 +529,9 @@ Surface-area extraction is heuristic. Tune toward **recall** — false positives
 - **Partially delivered** — some of the premise is covered, but a real delta remains. → **Narrow** the spec to that delta, calling out what's already done (in the `## Already shipped against this surface` section) so the implementer doesn't redo it. The narrow is then handled **per the calling path**: a fresh-spec caller (Path 2) re-invokes the producer on the narrowed scope, so its clean-context self-review fires on the narrowed spec; a stale-refresh caller (Path 1) refreshes the already-vetted spec in place, so the self-review is **exempted** (a scoped reduction, not a whole-cloth redraft, matching the producer's own _Self-review before returning_ → _When NOT to run_ narrowing exemption). If the narrowing crosses architectural lines (the remaining delta needs a different module structure than the original spec assumed), **park** under the architectural-change rule instead of reattaching. Either way the cited Done tickets are the audit trail; continue the rest of the path on the narrowed scope.
 - **Premise still holds** — no substantial coverage by Done work. → **Proceed** unchanged. The `## Already shipped against this surface` section may still appear with related-but-not-superseding findings as reader context.
 
-The substantial / partial / not-at-all judgement is the prep agent's call, backed by the explicit audit trail (the cited Done tickets and matched surface area) so a reviewer can check the call.
+Prep judges substantial / partial / no coverage, backed by cited Done tickets and matched surface area for review.
 
-**Orthogonal to the existing confidence gate.** This gate fires *before* the confidence + marker validation gate at the end of Path 2 below (the `confidence: high / medium / low` bullets). Both gates must pass for the spec to attach. They evaluate different signals at different points — the premise gate asks "is the spec's motivation still load-bearing?", the confidence gate asks "is the spec internally well-formed?". Neither subsumes the other.
+**Orthogonal to the existing confidence gate.** Run this before Path 2's final confidence + marker validation (`confidence: high / medium / low`). Both must pass before attach: premise validity and spec well-formedness are separate checks.
 
 **Park-protocol compatibility.** `premise-superseded` parks apply the standard `faff-parked` label per the shared park protocol below. Downstream surfacers (`/faff-wtf`, `/faff-beep-boop`) carry the cause string transparently — no special handling there.
 
@@ -604,7 +604,7 @@ Return to caller one of:
 - `parked` — see park cause in log (low confidence, contract violation, or architectural change needed)
 - `errored` — something went wrong (MCP failure, unexpected state); treated as park for purposes of the run
 
-**Self-verify before an attach-expecting return (the belt; the caller's ground-truth reconciliation is the braces regardless).** Before returning `refreshed` / `promoted` / `promoted-needs-review` — the outcomes above that assert a spec was attached — self-check `faff prepcheck --issue <ISSUE> --json`. If `state != "attached"`, the attach chain did not actually complete: do not emit the false success. Retry the attach **once** inline (stage → post → confirm), then re-check. Still not `attached` → downgrade the return to `errored`, so the caller's reconciliation recovers rather than trusting the claim. The attach check is a precondition of the *return value*, not only turn completion.
+**Self-verify before an attach-expecting return (the belt; the caller's ground-truth reconciliation is the braces regardless).** Before `refreshed` / `promoted` / `promoted-needs-review`, run `faff prepcheck --issue <ISSUE> --json`. If `state != "attached"`, do not return success: retry attach **once** (stage → post → confirm), then re-check. Still not `attached` → return `errored`. The attach check is a precondition of the *return value*, not only turn completion.
 
 ## Notes
 

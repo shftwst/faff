@@ -1,0 +1,22 @@
+{
+  "check": "rule-inventory-corrected-anchors",
+  "command": [
+    "/usr/local/bin/node",
+    "plugin/skills/faff/bin/faff",
+    "rule-inventory",
+    "check",
+    "--base",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "--json"
+  ],
+  "cwd": "/var/tmp/faff-kernel-core-contracts-v3-integration",
+  "exit_code": 0,
+  "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v3-private-rule-inventory-corrected-20261117T041715Z.txt",
+  "sha256": "4df1a4aee64f790ca9e023791228df85cc5912872be034f3444ff8f9fc07f020",
+  "started_utc": "2026-11-17T04:16:54.003164+00:00",
+  "finished_utc": "2026-11-17T04:16:57.667638+00:00",
+  "result": "pass",
+  "uncovered": 0,
+  "row_errors": 0,
+  "blocks_deleted": 673
+}

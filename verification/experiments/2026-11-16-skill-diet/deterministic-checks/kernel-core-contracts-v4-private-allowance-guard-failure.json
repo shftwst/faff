@@ -1,0 +1,11 @@
+{
+  "status": "mechanical-guard-failure-preserved",
+  "intermediate_private_commit": "733f2ae865388227cdd69c5ea67c73a8fd39c51a",
+  "error": "AssertionError: (70811, 70812)",
+  "cause": "Guard compared exact V4 bytes with private V3 allowance rather than original source baseline. The shell continued to the source-only private commit after the Python assertion.",
+  "source_bytes": 70812,
+  "allowance_before_fix": 70811,
+  "original_allowance": 84072,
+  "tests_or_lint_run_on_intermediate": false,
+  "repair": "Set only the existing kernel allowance to exact70812; this still lowers the original84072 baseline."
+}

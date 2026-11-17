@@ -1,0 +1,562 @@
+TAP version 13
+# Subtest: --describe (unnamed) lists all 22 dispatcher-known contracts, one line each, exit 0
+ok 1 - --describe (unnamed) lists all 22 dispatcher-known contracts, one line each, exit 0
+  ---
+  duration_ms: 46.522362
+  type: 'test'
+  ...
+# Subtest: <name> --describe renders markdown enumerating every described enum value verbatim, exit 0
+ok 2 - <name> --describe renders markdown enumerating every described enum value verbatim, exit 0
+  ---
+  duration_ms: 41.1293
+  type: 'test'
+  ...
+# Subtest: <name> --describe --json parses and values[*].semantics keys equal the enum exactly
+ok 3 - <name> --describe --json parses and values[*].semantics keys equal the enum exactly
+  ---
+  duration_ms: 40.875343
+  type: 'test'
+  ...
+# Subtest: every dispatcher-known contract's --describe completes without reading stdin (no tty hang)
+ok 4 - every dispatcher-known contract's --describe completes without reading stdin (no tty hang)
+  ---
+  duration_ms: 1035.083974
+  type: 'test'
+  ...
+# Subtest: --json without --describe is a usage error (exit 2)
+ok 5 - --json without --describe is a usage error (exit 2)
+  ---
+  duration_ms: 34.614909
+  type: 'test'
+  ...
+# Subtest: --describe --in FILE is a usage error (exit 2)
+ok 6 - --describe --in FILE is a usage error (exit 2)
+  ---
+  duration_ms: 36.598276
+  type: 'test'
+  ...
+# Subtest: --selftest precedence is unchanged (fires before --describe)
+ok 7 - --selftest precedence is unchanged (fires before --describe)
+  ---
+  duration_ms: 38.903976
+  type: 'test'
+  ...
+# Subtest: unknown <name> --describe exits 2 naming the known set
+ok 8 - unknown <name> --describe exits 2 naming the known set
+  ---
+  duration_ms: 35.220573
+  type: 'test'
+  ...
+# Subtest: the validation path is byte-identical to today for a golden case (describe never touches it)
+ok 9 - the validation path is byte-identical to today for a golden case (describe never touches it)
+  ---
+  duration_ms: 36.545401
+  type: 'test'
+  ...
+# Subtest: selftest FAILs when a describe entry's semantics is missing a key for an enum value
+ok 10 - selftest FAILs when a describe entry's semantics is missing a key for an enum value
+  ---
+  duration_ms: 2.369865
+  type: 'test'
+  ...
+# Subtest: selftest FAILs when a describe entry's purpose is empty
+ok 11 - selftest FAILs when a describe entry's purpose is empty
+  ---
+  duration_ms: 0.366749
+  type: 'test'
+  ...
+# Subtest: unnamed --selftest still runs the describe checks for all 22 and stays green on shipped data
+ok 12 - unnamed --selftest still runs the describe checks for all 22 and stays green on shipped data
+  ---
+  duration_ms: 61.453014
+  type: 'test'
+  ...
+# Subtest: contract spec-readiness — valid (golden)
+ok 13 - contract spec-readiness — valid (golden)
+  ---
+  duration_ms: 44.824535
+  type: 'test'
+  ...
+# Subtest: contract spec-readiness — fail-loud-bad-confidence (golden)
+ok 14 - contract spec-readiness — fail-loud-bad-confidence (golden)
+  ---
+  duration_ms: 39.794764
+  type: 'test'
+  ...
+# Subtest: contract review-verdict — valid (golden)
+ok 15 - contract review-verdict — valid (golden)
+  ---
+  duration_ms: 38.248394
+  type: 'test'
+  ...
+# Subtest: contract review-verdict — boundary-coerce-needs-human (golden)
+ok 16 - contract review-verdict — boundary-coerce-needs-human (golden)
+  ---
+  duration_ms: 54.055625
+  type: 'test'
+  ...
+# Subtest: contract review-verdict — unavailable-bare-conformant (golden)
+ok 17 - contract review-verdict — unavailable-bare-conformant (golden)
+  ---
+  duration_ms: 52.84913
+  type: 'test'
+  ...
+# Subtest: contract review-verdict — unavailable-with-well-formed-finding-conformant (golden)
+ok 18 - contract review-verdict — unavailable-with-well-formed-finding-conformant (golden)
+  ---
+  duration_ms: 40.494844
+  type: 'test'
+  ...
+# Subtest: contract review-verdict — unavailable-with-malformed-finding-still-flagged (golden)
+ok 19 - contract review-verdict — unavailable-with-malformed-finding-still-flagged (golden)
+  ---
+  duration_ms: 41.300008
+  type: 'test'
+  ...
+# Subtest: contract integrity-floor — review-unavailable-refuses (golden)
+ok 20 - contract integrity-floor — review-unavailable-refuses (golden)
+  ---
+  duration_ms: 38.561227
+  type: 'test'
+  ...
+# Subtest: contract delivery-outcome — valid (golden)
+ok 21 - contract delivery-outcome — valid (golden)
+  ---
+  duration_ms: 40.198762
+  type: 'test'
+  ...
+# Subtest: contract delivery-outcome — boundary-coerce-failed (golden)
+ok 22 - contract delivery-outcome — boundary-coerce-failed (golden)
+  ---
+  duration_ms: 40.147845
+  type: 'test'
+  ...
+# Subtest: contract automation-routing — valid (golden)
+ok 23 - contract automation-routing — valid (golden)
+  ---
+  duration_ms: 38.473519
+  type: 'test'
+  ...
+# Subtest: contract automation-routing — fail-loud-no-verdict (golden)
+ok 24 - contract automation-routing — fail-loud-no-verdict (golden)
+  ---
+  duration_ms: 43.958498
+  type: 'test'
+  ...
+# Subtest: contract quality-gates — valid-pass (golden)
+ok 25 - contract quality-gates — valid-pass (golden)
+  ---
+  duration_ms: 41.356549
+  type: 'test'
+  ...
+# Subtest: contract quality-gates — coerce-malformed-signal-to-needs-human (golden)
+ok 26 - contract quality-gates — coerce-malformed-signal-to-needs-human (golden)
+  ---
+  duration_ms: 38.695976
+  type: 'test'
+  ...
+# Subtest: contract quality-gates — fail-loud-non-object (golden)
+ok 27 - contract quality-gates — fail-loud-non-object (golden)
+  ---
+  duration_ms: 39.446057
+  type: 'test'
+  ...
+# Subtest: contract prd-readiness — valid-admissible (golden)
+ok 28 - contract prd-readiness — valid-admissible (golden)
+  ---
+  duration_ms: 36.787233
+  type: 'test'
+  ...
+# Subtest: contract prd-readiness — valid-not-ready (golden)
+ok 29 - contract prd-readiness — valid-not-ready (golden)
+  ---
+  duration_ms: 37.224648
+  type: 'test'
+  ...
+# Subtest: contract prd-readiness — out-of-set-reason-normalised-to-other (golden)
+ok 30 - contract prd-readiness — out-of-set-reason-normalised-to-other (golden)
+  ---
+  duration_ms: 35.533488
+  type: 'test'
+  ...
+# Subtest: contract prd-readiness — admissible-but-unverifiable (golden)
+ok 31 - contract prd-readiness — admissible-but-unverifiable (golden)
+  ---
+  duration_ms: 37.664147
+  type: 'test'
+  ...
+# Subtest: contract prd-readiness — fail-loud-bad-verdict (golden)
+ok 32 - contract prd-readiness — fail-loud-bad-verdict (golden)
+  ---
+  duration_ms: 37.133524
+  type: 'test'
+  ...
+# Subtest: contract prdr-admission — conformant-admit (golden)
+ok 33 - contract prdr-admission — conformant-admit (golden)
+  ---
+  duration_ms: 38.15052
+  type: 'test'
+  ...
+# Subtest: contract prdr-admission — admit-violates-two-gate-constraint (golden)
+ok 34 - contract prdr-admission — admit-violates-two-gate-constraint (golden)
+  ---
+  duration_ms: 36.819442
+  type: 'test'
+  ...
+# Subtest: contract prdr-admission — fail-loud-bad-disposition (golden)
+ok 35 - contract prdr-admission — fail-loud-bad-disposition (golden)
+  ---
+  duration_ms: 36.288777
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — conformant-admit (golden)
+ok 36 - contract prdr-yagni — conformant-admit (golden)
+  ---
+  duration_ms: 36.50986
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — conformant-reject-no-trace (golden)
+ok 37 - contract prdr-yagni — conformant-reject-no-trace (golden)
+  ---
+  duration_ms: 35.888278
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — admit-violates-conservative-constraint (golden)
+ok 38 - contract prdr-yagni — admit-violates-conservative-constraint (golden)
+  ---
+  duration_ms: 37.651271
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — conformant-under-citation-admit (golden)
+ok 39 - contract prdr-yagni — conformant-under-citation-admit (golden)
+  ---
+  duration_ms: 35.690279
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — over-scope-admit-flagged-non-conformant (golden)
+ok 40 - contract prdr-yagni — over-scope-admit-flagged-non-conformant (golden)
+  ---
+  duration_ms: 35.935695
+  type: 'test'
+  ...
+# Subtest: contract prdr-yagni — fail-loud-bad-proposal-verdict (golden)
+ok 41 - contract prdr-yagni — fail-loud-bad-proposal-verdict (golden)
+  ---
+  duration_ms: 35.259031
+  type: 'test'
+  ...
+# Subtest: contract prd-coverage — conformant-satisfied (golden)
+ok 42 - contract prd-coverage — conformant-satisfied (golden)
+  ---
+  duration_ms: 36.770067
+  type: 'test'
+  ...
+# Subtest: contract prd-coverage — conformant-uncovered-lower-violation (golden)
+ok 43 - contract prd-coverage — conformant-uncovered-lower-violation (golden)
+  ---
+  duration_ms: 36.204153
+  type: 'test'
+  ...
+# Subtest: contract prd-coverage — conformant-conservative-unverified-dod (golden)
+ok 44 - contract prd-coverage — conformant-conservative-unverified-dod (golden)
+  ---
+  duration_ms: 36.546567
+  type: 'test'
+  ...
+# Subtest: contract prd-coverage — nonconformant-satisfied-while-uncovered (golden)
+ok 45 - contract prd-coverage — nonconformant-satisfied-while-uncovered (golden)
+  ---
+  duration_ms: 36.113819
+  type: 'test'
+  ...
+# Subtest: contract prd-coverage — fail-loud-non-object (golden)
+ok 46 - contract prd-coverage — fail-loud-non-object (golden)
+  ---
+  duration_ms: 36.298277
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — conformant-approve (golden)
+ok 47 - contract spec-review-verdict — conformant-approve (golden)
+  ---
+  duration_ms: 36.441568
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — conformant-reject-approach (golden)
+ok 48 - contract spec-review-verdict — conformant-reject-approach (golden)
+  ---
+  duration_ms: 35.90332
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — non-approve-no-objections (golden)
+ok 49 - contract spec-review-verdict — non-approve-no-objections (golden)
+  ---
+  duration_ms: 37.342565
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — approve-with-objections (golden)
+ok 50 - contract spec-review-verdict — approve-with-objections (golden)
+  ---
+  duration_ms: 37.138982
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — bad-lens (golden)
+ok 51 - contract spec-review-verdict — bad-lens (golden)
+  ---
+  duration_ms: 36.083736
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — conformant-triple-plus-anchor (golden)
+ok 52 - contract spec-review-verdict — conformant-triple-plus-anchor (golden)
+  ---
+  duration_ms: 36.506318
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — legacy-no-anchor-unchanged (golden)
+ok 53 - contract spec-review-verdict — legacy-no-anchor-unchanged (golden)
+  ---
+  duration_ms: 34.768283
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — fail-loud-bad-verdict (golden)
+ok 54 - contract spec-review-verdict — fail-loud-bad-verdict (golden)
+  ---
+  duration_ms: 34.021036
+  type: 'test'
+  ...
+# Subtest: contract spec-review-verdict — fail-loud-non-object (golden)
+ok 55 - contract spec-review-verdict — fail-loud-non-object (golden)
+  ---
+  duration_ms: 35.030657
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — conformant-build (golden)
+ok 56 - contract architecture-proposal — conformant-build (golden)
+  ---
+  duration_ms: 34.817908
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — conformant-buy (golden)
+ok 57 - contract architecture-proposal — conformant-buy (golden)
+  ---
+  duration_ms: 36.132194
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — empty-chosen-architecture (golden)
+ok 58 - contract architecture-proposal — empty-chosen-architecture (golden)
+  ---
+  duration_ms: 36.349694
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — bad-recommendation (golden)
+ok 59 - contract architecture-proposal — bad-recommendation (golden)
+  ---
+  duration_ms: 34.790658
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — malformed-adr-candidate (golden)
+ok 60 - contract architecture-proposal — malformed-adr-candidate (golden)
+  ---
+  duration_ms: 35.288573
+  type: 'test'
+  ...
+# Subtest: contract architecture-proposal — fail-loud-non-object (golden)
+ok 61 - contract architecture-proposal — fail-loud-non-object (golden)
+  ---
+  duration_ms: 34.650284
+  type: 'test'
+  ...
+# Subtest: contract env-handle — conformant-ready (golden)
+ok 62 - contract env-handle — conformant-ready (golden)
+  ---
+  duration_ms: 37.922146
+  type: 'test'
+  ...
+# Subtest: contract env-handle — provisioning-not-ready (golden)
+ok 63 - contract env-handle — provisioning-not-ready (golden)
+  ---
+  duration_ms: 35.92882
+  type: 'test'
+  ...
+# Subtest: contract env-handle — ready-missing-endpoint (golden)
+ok 64 - contract env-handle — ready-missing-endpoint (golden)
+  ---
+  duration_ms: 35.137198
+  type: 'test'
+  ...
+# Subtest: contract env-handle — fail-loud-non-object (golden)
+ok 65 - contract env-handle — fail-loud-non-object (golden)
+  ---
+  duration_ms: 34.589117
+  type: 'test'
+  ...
+# Subtest: contract holdout-verdict — conformant-meets-spec (golden)
+ok 66 - contract holdout-verdict — conformant-meets-spec (golden)
+  ---
+  duration_ms: 36.806567
+  type: 'test'
+  ...
+# Subtest: contract holdout-verdict — conformant-needs-human-prose (golden)
+ok 67 - contract holdout-verdict — conformant-needs-human-prose (golden)
+  ---
+  duration_ms: 34.500868
+  type: 'test'
+  ...
+# Subtest: contract holdout-verdict — code-blind-false-violation (golden)
+ok 68 - contract holdout-verdict — code-blind-false-violation (golden)
+  ---
+  duration_ms: 35.629696
+  type: 'test'
+  ...
+# Subtest: contract holdout-verdict — fail-loud-non-object (golden)
+ok 69 - contract holdout-verdict — fail-loud-non-object (golden)
+  ---
+  duration_ms: 34.20541
+  type: 'test'
+  ...
+# Subtest: contract post-merge-verification — valid-verified-ok (golden)
+ok 70 - contract post-merge-verification — valid-verified-ok (golden)
+  ---
+  duration_ms: 35.393989
+  type: 'test'
+  ...
+# Subtest: contract post-merge-verification — valid-unverified-no-rung (golden)
+ok 71 - contract post-merge-verification — valid-unverified-no-rung (golden)
+  ---
+  duration_ms: 35.251031
+  type: 'test'
+  ...
+# Subtest: contract post-merge-verification — coerce-malformed-verdict-to-unverified (golden)
+ok 72 - contract post-merge-verification — coerce-malformed-verdict-to-unverified (golden)
+  ---
+  duration_ms: 36.968649
+  type: 'test'
+  ...
+# Subtest: contract post-merge-verification — fail-loud-non-object (golden)
+ok 73 - contract post-merge-verification — fail-loud-non-object (golden)
+  ---
+  duration_ms: 35.295239
+  type: 'test'
+  ...
+# Subtest: contract l4-topology-envelope — container-create-accepted-root-admit (golden)
+ok 74 - contract l4-topology-envelope — container-create-accepted-root-admit (golden)
+  ---
+  duration_ms: 35.301947
+  type: 'test'
+  ...
+# Subtest: contract l4-topology-envelope — container-create-signal-false-gated (golden)
+ok 75 - contract l4-topology-envelope — container-create-signal-false-gated (golden)
+  ---
+  duration_ms: 34.695533
+  type: 'test'
+  ...
+# Subtest: contract l4-topology-envelope — fail-loud-missing-contained-under-accepted-prd (golden)
+ok 76 - contract l4-topology-envelope — fail-loud-missing-contained-under-accepted-prd (golden)
+  ---
+  duration_ms: 35.780987
+  type: 'test'
+  ...
+# Subtest: contract run-trigger — conformant-plan-coverage-thin (golden)
+ok 77 - contract run-trigger — conformant-plan-coverage-thin (golden)
+  ---
+  duration_ms: 35.218032
+  type: 'test'
+  ...
+# Subtest: contract run-trigger — conformant-refuse-self-directed (golden)
+ok 78 - contract run-trigger — conformant-refuse-self-directed (golden)
+  ---
+  duration_ms: 34.903574
+  type: 'test'
+  ...
+# Subtest: contract run-trigger — reject-hand-altered-drain-on-plan-signals (golden)
+ok 79 - contract run-trigger — reject-hand-altered-drain-on-plan-signals (golden)
+  ---
+  duration_ms: 37.27244
+  type: 'test'
+  ...
+# Subtest: contract run-trigger — fail-loud-non-object (golden)
+ok 80 - contract run-trigger — fail-loud-non-object (golden)
+  ---
+  duration_ms: 33.676495
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — affirm-conformant (golden)
+ok 81 - contract spec-judge-verdict — affirm-conformant (golden)
+  ---
+  duration_ms: 35.064531
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — uphold-conformant (golden)
+ok 82 - contract spec-judge-verdict — uphold-conformant (golden)
+  ---
+  duration_ms: 36.230152
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — affirm-with-correction-nonconformant (golden)
+ok 83 - contract spec-judge-verdict — affirm-with-correction-nonconformant (golden)
+  ---
+  duration_ms: 33.95562
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — uphold-missing-correction-nonconformant (golden)
+ok 84 - contract spec-judge-verdict — uphold-missing-correction-nonconformant (golden)
+  ---
+  duration_ms: 38.571102
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — uphold-short-verification-nonconformant (golden)
+ok 85 - contract spec-judge-verdict — uphold-short-verification-nonconformant (golden)
+  ---
+  duration_ms: 35.587988
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — synthesize-conformant (golden)
+ok 86 - contract spec-judge-verdict — synthesize-conformant (golden)
+  ---
+  duration_ms: 36.537735
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — synthesize-empty-sources-nonconformant (golden)
+ok 87 - contract spec-judge-verdict — synthesize-empty-sources-nonconformant (golden)
+  ---
+  duration_ms: 36.835317
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — synthesize-source-outside-ab-nonconformant (golden)
+ok 88 - contract spec-judge-verdict — synthesize-source-outside-ab-nonconformant (golden)
+  ---
+  duration_ms: 35.767904
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — prd-boundary-conformant (golden)
+ok 89 - contract spec-judge-verdict — prd-boundary-conformant (golden)
+  ---
+  duration_ms: 36.556901
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — prd-boundary-empty-citation-nonconformant (golden)
+ok 90 - contract spec-judge-verdict — prd-boundary-empty-citation-nonconformant (golden)
+  ---
+  duration_ms: 35.42753
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — echoed-bad-lens-nonconformant (golden)
+ok 91 - contract spec-judge-verdict — echoed-bad-lens-nonconformant (golden)
+  ---
+  duration_ms: 36.863192
+  type: 'test'
+  ...
+# Subtest: contract spec-judge-verdict — out-of-enum-outcome-fail-loud (golden)
+ok 92 - contract spec-judge-verdict — out-of-enum-outcome-fail-loud (golden)
+  ---
+  duration_ms: 34.257701
+  type: 'test'
+  ...
+1..92
+# tests 92
+# suites 0
+# pass 92
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3020.264164

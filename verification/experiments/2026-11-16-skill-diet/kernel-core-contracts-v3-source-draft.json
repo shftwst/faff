@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "status": "source-draft-uninstalled-unmeasured",
+  "source": "plugin/skills/faff/references/kernel.md",
+  "baseline": "baseline/kernel-core-contracts-v1.md",
+  "candidate": "candidates/kernel-core-contracts-v3-draft.md",
+  "baseline_sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+  "candidate_sha256": "a12ed2bb9a58cab911996e92ddb49fe1fe71ef8c62ca86fede4ecf3d016910ac",
+  "before_bytes": 84072,
+  "after_bytes": 70811,
+  "before_estimated_tokens": 20857,
+  "after_estimated_tokens": 17604,
+  "potential_saved_bytes": 13261,
+  "potential_saved_estimated_tokens": 3253,
+  "validator_lines": 435,
+  "outside_region_unchanged": true,
+  "limitations": [
+    "No source acceptance or model measurement.",
+    "No new mandatory reads; existing Configuration cut remains byte-identical.",
+    "V1 review blockers corrected by exact marker restoration and whitespace-only reflow; final source review pending."
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "Mechanical formatting of a new uninstalled draft only. No wording, literal, rule, cap or required-read changes; no full tests or model calls.",
+  "source": {
+    "path": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v2-draft.md",
+    "sha256": "9aa6802169c058fb0b675e5a8e6635cee5bb9462f1836827a418129ebbc6fb81",
+    "bytes": 70841,
+    "lines": 479
+  },
+  "draft": {
+    "path": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v3-draft.md",
+    "sha256": "a12ed2bb9a58cab911996e92ddb49fe1fe71ef8c62ca86fede4ecf3d016910ac",
+    "bytes": 70811,
+    "lines": 435
+  },
+  "transformation": {
+    "adjacent_plain_prose_merges": 14,
+    "blank_lines_removed": 16,
+    "blank_removals_after_ATX_headings": 10,
+    "blank_removals_before_ATX_headings": 6,
+    "tables_converted": 0,
+    "lines_saved": 44,
+    "bytes_saved": 30
+  },
+  "protected_prefix": {
+    "ending_before": "## Core contracts and adaptor slots",
+    "bytes": 55064,
+    "source_sha256": "a927ba190f1cf16fffff18ca5a1f96cc1c5c4c3801723332e76893c27bfad5bd",
+    "draft_sha256": "a927ba190f1cf16fffff18ca5a1f96cc1c5c4c3801723332e76893c27bfad5bd"
+  },
+  "content_differences": {
+    "ordered_word_count": 9800,
+    "added_words": [],
+    "removed_words": [],
+    "ordered_word_sequence_sha256": "eaa416874c1eca992b0fffd0fe593b2ba7585a2469b60904070f0d493570bbab",
+    "ordered_code_literal_count": 604,
+    "changed_code_literals": [],
+    "headings_changed": [],
+    "table_labels_or_values_changed": [],
+    "all_non_whitespace_content_identical": true
+  },
+  "validation": {
+    "checks": {
+      "prefix_bytes_equal": true,
+      "ordered_words_equal": true,
+      "all_non_whitespace_bytes_equal": true,
+      "ordered_code_literals_equal": true,
+      "heading_lines_equal": true,
+      "table_lines_equal": true,
+      "table_blank_boundaries_preserved": true,
+      "canonical_punt_exact": true,
+      "line_cap": true,
+      "plain_paragraph_cap": true,
+      "changed_tail_paragraph_cap": true,
+      "inline_enum": true
+    },
+    "kernel_line_cap": 435,
+    "inline_enum_findings": [],
+    "changed_tail_longest_plain_paragraph_words": 191,
+    "unchanged_prefix_advisories": [
+      {
+        "line": 301,
+        "words": 546,
+        "kind": "advisory-bold-lead-bullet",
+        "protected_prefix": true
+      }
+    ],
+    "method": "Pure exported validate-adapters line-cap/paragraph predicates and lintInlineEnumRestatement, plus direct byte/ordered-token/literal/table comparison. No installed source changes or full test run."
+  }
+}

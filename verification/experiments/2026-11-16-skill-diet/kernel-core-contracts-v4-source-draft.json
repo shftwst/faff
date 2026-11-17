@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "status": "source-draft-uninstalled-unmeasured",
+  "parent": "candidates/kernel-core-contracts-v3-draft.md",
+  "parent_sha256": "a12ed2bb9a58cab911996e92ddb49fe1fe71ef8c62ca86fede4ecf3d016910ac",
+  "candidate": "candidates/kernel-core-contracts-v4-draft.md",
+  "candidate_sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9",
+  "change": "Replace the newly introduced unreferenced ATX heading with a bold paragraph lead. Common contract-consumption instructions remain verbatim under the existing conformance section; no new rule or mandatory read. Resolves the gateway-usage missing heading registration without claiming new judgement coverage.",
+  "limits": [
+    "V3 installed lint failure preserved.",
+    "Independent source confirmation and private installed checks required; no model acceptance."
+  ]
+}

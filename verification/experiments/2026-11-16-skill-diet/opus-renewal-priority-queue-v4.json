@@ -1,0 +1,273 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T01:46:26.644993+00:00",
+  "status": "prepared-not-launched",
+  "purpose": "Targeted intended-daily-driver confirmation of cuts accepted on GPT. The model calibration cannot establish Opus parity for different producer tasks.",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "queue": [
+    {
+      "priority": 1,
+      "skill": "Default code reviewer",
+      "reason": "Judgement about blockers and uncertainty feeds merge eligibility.",
+      "reference_baseline_plan": "review-producer-astra-v3-baseline-plan.json",
+      "reference_candidate_plan": "review-producer-astra-v4-candidate-plan.json",
+      "bindings": [
+        {
+          "path": "review-producer-astra-v3-baseline-plan.json",
+          "sha256": "27f3dedbd413e3c3fc6dee9da4689dd15b22d0058ff2001e0cbec45752d84f17"
+        },
+        {
+          "path": "review-producer-astra-v4-candidate-plan.json",
+          "sha256": "5d4549c0540bafa703c5defa2974dde7553b3b2c9bdf147c08779948a4235f4d"
+        },
+        {
+          "path": "review-producer-astra-v4-final-qualification.json",
+          "sha256": "08e3429082185e06cd0592c53fbf4321757cb43ba30714115543f2e2ec058d49"
+        },
+        {
+          "path": "workflow-fixtures/review-producer-v2.json",
+          "sha256": "990f01b2cee0d7fb91404c38b15f63626630ae0906325faab0f39ef4062b2a90"
+        }
+      ],
+      "samples_per_arm": 5,
+      "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+      "policy_paths": [
+        "baseline/review-producer-with-context.md",
+        "candidates/review-producer-v3-with-context.md"
+      ],
+      "status": "pending-Claude-allowance-renewal"
+    },
+    {
+      "priority": 2,
+      "skill": "Default spec reviewer",
+      "reason": "Judgement determines revise, approach rejection and human escalation.",
+      "reference_baseline_plan": "spec-review-producer-sol-v1-baseline-plan.json",
+      "reference_candidate_plan": "spec-review-producer-sol-v1-candidate-plan.json",
+      "bindings": [
+        {
+          "path": "spec-review-producer-sol-v1-baseline-plan.json",
+          "sha256": "709a3fe087256f35b482761031f9730381863ba0c883ed21748dd1c02b1817a0"
+        },
+        {
+          "path": "spec-review-producer-sol-v1-candidate-plan.json",
+          "sha256": "19450b1ca29061dcc35256506d5ade7fdb9f1255e4f1a098180b9b0b7150ffea"
+        },
+        {
+          "path": "spec-review-producer-sol-v1-final-qualification.json",
+          "sha256": "1283a923777d620b30e1346905d4cacfb4563543a2f0d979ea4e99d241c0cca4"
+        },
+        {
+          "path": "workflow-fixtures/spec-review-producer.json",
+          "sha256": "c1b59e4f6f9355e3d447baaec14bed80d6a37d6ae61eb4df155e41ec39d51972"
+        }
+      ],
+      "samples_per_arm": 5,
+      "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+      "policy_paths": [
+        "baseline/spec-review-producer-with-context.md",
+        "candidates/spec-review-producer-v1-with-context.md"
+      ],
+      "status": "pending-Claude-allowance-renewal"
+    },
+    {
+      "priority": 3,
+      "skill": "PRD producer",
+      "reason": "Check intended-driver extraction and preserve actual run-start consumption.",
+      "reference_baseline_plan": "prd-producer-astra-v2-baseline-plan.json",
+      "reference_candidate_plan": "prd-producer-astra-v2-candidate-plan.json",
+      "bindings": [
+        {
+          "path": "prd-producer-astra-v2-baseline-plan.json",
+          "sha256": "c8dea8cb8e6de9ee86ee543b81db8d410c14189a42999acfadcdd77f9ae6a72e"
+        },
+        {
+          "path": "prd-producer-astra-v2-candidate-plan.json",
+          "sha256": "97b5184170b946899e09623b7026aba938e2e4ffca04bfd1a991e52ccd66874f"
+        },
+        {
+          "path": "prd-producer-astra-v2-final-qualification.json",
+          "sha256": "c654efeb307245d0ae454741e9df664f4664a9b0574f07e3c46cd2c0a793cbc0"
+        },
+        {
+          "path": "workflow-fixtures/prd-producer.json",
+          "sha256": "a6b623e579b307694ad10946c5990048bc6a02e72358350da25bee83ad91544e"
+        }
+      ],
+      "samples_per_arm": 5,
+      "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+      "policy_paths": [
+        "baseline/prd-producer-with-context.md",
+        "candidates/prd-producer-v1-with-context.md"
+      ],
+      "status": "pending-Claude-allowance-renewal"
+    },
+    {
+      "priority": 4,
+      "skill": "Focus report",
+      "reason": "Check retained offers, empty automation headers and queue partitions on Opus.",
+      "reference_baseline_plan": "wtf-format-sol-v1-baseline-plan.json",
+      "reference_candidate_plan": "wtf-format-sol-v3-candidate-plan.json",
+      "bindings": [
+        {
+          "path": "wtf-format-sol-v1-baseline-plan.json",
+          "sha256": "44e6f78668efb93ce02e6b6393b0d0529bc7a94afe06662864ac9532962db65e"
+        },
+        {
+          "path": "wtf-format-sol-v3-candidate-plan.json",
+          "sha256": "5b1aa68d0be3711182a7f5f4f6b0bb4cf4793f576e2f086dd1a83a0f797c7e0e"
+        },
+        {
+          "path": "wtf-format-sol-v3-final-qualification.json",
+          "sha256": "f6414c7d97e6eb9c3de72d5d894d978f3ba1bbd6d3e991ea5eef9d693288b7ae"
+        },
+        {
+          "path": "workflow-fixtures/wtf-format.json",
+          "sha256": "c253d413ce6dadae1db1e9bee52e05971b2dffa96599a968b65d53c5b4d90acd"
+        }
+      ],
+      "samples_per_arm": 5,
+      "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+      "policy_paths": [
+        "baseline/wtf-format-with-context.md",
+        "candidates/wtf-format-v5-with-context.md"
+      ],
+      "status": "pending-Claude-allowance-renewal"
+    },
+    {
+      "priority": 5,
+      "skill": "Intake producer",
+      "reason": "Final briefs preserve unresolved questions, constraints, dependencies and methodology ownership. Confirm the intended daily driver after GPT-only qualification.",
+      "reference_baseline_plan": "intake-brief-astra-medium-v1-baseline-plan.json",
+      "reference_candidate_plan": "intake-brief-astra-medium-v1-candidate-assessed-plan.json",
+      "bindings": [
+        {
+          "path": "intake-brief-astra-medium-v1-baseline-plan.json",
+          "sha256": "bbc79ba4d74e5fe21c9eaf47dbef5fe7c28220d635415dcee039b7e0b10687c9"
+        },
+        {
+          "path": "intake-brief-astra-medium-v1-candidate-assessed-plan.json",
+          "sha256": "9a3cee352b1a53b201796e8c0992fde999a742da5f0ee7f1aba5c41e5a9e2d42"
+        },
+        {
+          "path": "intake-astra-medium-v1-final-qualification.json",
+          "sha256": "0a4948f04586c1f1c32cc5893d3179d87966ff53fff6d2aa4264155c35edd6c6"
+        },
+        {
+          "path": "intake-astra-medium-v1-question-correction.json",
+          "sha256": "32a5651fd5358e47fb35d5142a8ed4638d247d8fc0b2feb7ed271355fb8608b6"
+        },
+        {
+          "path": "workflow-fixtures/intake-brief-v2.json",
+          "sha256": "d64ac66570717a333c6a7350d947a035d3a5f0372d028003092cc0c304ea91d3"
+        }
+      ],
+      "samples_per_arm": 5,
+      "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+      "policy_paths": [
+        "baseline/intake-brief-with-context.md",
+        "candidates/intake-brief-v1-with-context.md"
+      ],
+      "status": "pending-Claude-allowance-renewal"
+    },
+    {
+      "priority": 6,
+      "skill": "Beep-boop reporting",
+      "reason": "Confirm intended-driver preservation of facts, command invocation, final publication and continuation/refusal after the GPT-qualified reporting cut.",
+      "reference_baseline_plan": "beep-reporting-mcp-v1-baseline-plan.json",
+      "reference_candidate_plan": "beep-reporting-mcp-v1-assessed-candidate-plan.json",
+      "bindings": [
+        {
+          "path": "beep-reporting-mcp-v1-baseline-plan.json",
+          "sha256": "8ce3a0631cfa6aa74faed7797cdb6ee4c52ed79905041e21b72de4d51eb0a764"
+        },
+        {
+          "path": "beep-reporting-mcp-v1-assessed-continuation-plan.json",
+          "sha256": "971526263cb86a1ba19a14d12086b033adffb66a141d187db5af0f6be8b2230c"
+        },
+        {
+          "path": "beep-reporting-mcp-v1-assessed-candidate-plan.json",
+          "sha256": "8838fb5ad0f8e3fc390950a3cfc0afd9baddf178e56e3615fa73b13e1118368c"
+        },
+        {
+          "path": "beep-reporting-mcp-v1-final-qualification.json",
+          "sha256": "84817cb65c0946867ea087bc08f0818fc2a3b279267e9de5590976e1009f5b6e"
+        },
+        {
+          "path": "beep-reporting-mcp-v1-draft-assessment-registration.json",
+          "sha256": "b5e445f3e1d1a7ca2cf20bedce8360456762aee83ceb6e58276e63ea79c5f197"
+        },
+        {
+          "path": "assess-reporting-drafts-v1.mjs",
+          "sha256": "f1dc98f052da42022faf2aa72ff0f926c725e44d5513d7f33bc1f20fd374afd1"
+        },
+        {
+          "path": "workflow-fixtures/beep-reporting-v1.json",
+          "sha256": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3"
+        }
+      ],
+      "samples_per_arm": 5,
+      "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+      "policy_paths": [
+        "baseline/beep-reporting-with-context.md",
+        "candidates/beep-reporting-v1-with-context.md"
+      ],
+      "status": "pending-Claude-allowance-renewal",
+      "assessment_note": "Retain original raw scores and unused-draft overhead. The GPT assessment was frozen post-hoc after baseline2; future Opus plans must declare the same assessment before launch and still report raw results. Provider transport/native verification must be separately qualified."
+    },
+    {
+      "priority": 7,
+      "skill": "Run ledger and events",
+      "reason": "Confirm intended-driver ledger authority, event boundaries and actual persisted-state consumers after GPT-only qualification.",
+      "reference_baseline_plan": "beep-ledger-mcp-v3-baseline-plan.json",
+      "reference_candidate_plan": "beep-ledger-mcp-v3-candidate-plan.json",
+      "bindings": [
+        {
+          "path": "beep-ledger-mcp-v3-baseline-plan.json",
+          "sha256": "327f78ed794ccdad62b8f4f2c1d20ae85d107c58389ad12728c40acd9ef8186c"
+        },
+        {
+          "path": "beep-ledger-mcp-v3-candidate-plan.json",
+          "sha256": "0678f6f9450366c71a6cf137cf01f01a3c571642382fc57bca923e700b2eadb4"
+        },
+        {
+          "path": "beep-ledger-mcp-v3-final-qualification.json",
+          "sha256": "46f2b73ad6f530e60b1a38b2d971ca17b38968d161ff580e5341612ff4896cad"
+        },
+        {
+          "path": "workflow-fixtures/beep-ledger-v3.json",
+          "sha256": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c"
+        },
+        {
+          "path": "workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+          "sha256": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5"
+        }
+      ],
+      "samples_per_arm": 5,
+      "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+      "policy_paths": [
+        "baseline/beep-ledger-v2-with-context.md",
+        "candidates/beep-ledger-v2-with-context.md"
+      ],
+      "status": "pending-Claude-allowance-renewal",
+      "launch_prerequisite": "Preregister and validate Claude-native structured transport and context before launch. This prepared queue is not an executable Claude plan."
+    }
+  ],
+  "rules": [
+    "No Claude invocation or paid credit activation before allowance is available.",
+    "Create fresh Opus plans and unique sample directories, binding actual CLI/model/context at launch. The listed GPT plans identify unchanged policies/fixtures; do not run them as if they were already Opus plans.",
+    "Use five samples per arm for an Opus-qualified claim. Smaller probes may find defects but cannot replace the registered full comparison.",
+    "Preserve automatic/native failures, manual reviews and actual consumer replays. Never pool cross-provider samples.",
+    "Keep all provider-specific results separate; the current accepted source tally remains backed by its existing GPT qualification.",
+    "Existing Opus-qualified gateway, adversarial, rendering, thematic, kernel and catalogue work does not need blanket repetition merely because a stand-in was tested."
+  ],
+  "limits": [
+    "This is a prepared priority queue, not a scheduled run or claim that Claude allowance has renewed.",
+    "Full nlspec, architecture and other pending source cuts remain excluded; each needs its own complete qualifying treatment before any savings count."
+  ],
+  "supersedes": {
+    "path": "opus-renewal-priority-queue-v3.json",
+    "sha256": "bc9ec690d8f5959e189feeb1340649ec57f25aaa7c84349b32475b199734f634"
+  },
+  "planned_model_samples": 70
+}

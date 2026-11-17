@@ -1687,17 +1687,45 @@
       "effort": "medium",
       "source_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
       "before_commit": "3e285c199e7866a0a837e5067c90560f2c299810"
+    },
+    {
+      "skill": "faff-beep-boop ledger/events",
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "status": "qualified-bounded-ledger-event-producer-consumer",
+      "before": {
+        "path": "plugin/skills/faff-beep-boop/SKILL.md",
+        "bytes": 156107,
+        "characters": 154752,
+        "estimated_tokens": 38688,
+        "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+      },
+      "after": {
+        "path": "plugin/skills/faff-beep-boop/SKILL.md",
+        "bytes": 149485,
+        "characters": 148250,
+        "estimated_tokens": 37063,
+        "sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe"
+      },
+      "bytes_saved": 6622,
+      "estimated_tokens_saved": 1625,
+      "mandatory_dependencies_added": [],
+      "qualification": "beep-ledger-mcp-v3-final-qualification.json",
+      "source_review": "beep-ledger-v2-source-review.json",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "source_commit": "0188ce71c3c1b4262b31fda5f143e871143ae570",
+      "before_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae"
     }
   ],
   "source_total": {
     "before_bytes": 1369435,
-    "after_bytes": 1258806,
+    "after_bytes": 1252184,
     "before_estimated_tokens": 339279,
-    "after_estimated_tokens": 312036
+    "after_estimated_tokens": 310411
   },
   "load_manifest": "load-manifest.json",
   "baseline_loads": "baseline/loads.json",
-  "latest_loads": "beep-reporting-mcp-v1-after-loads.json",
+  "latest_loads": "beep-ledger-mcp-v3-after-loads.json",
   "pending_slices": [
     {
       "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
@@ -1725,5 +1753,5 @@
       "status": "Held: Astra baseline passes functional checks but fails the literal native-path rule. Candidate unmeasured; source unchanged and savings excluded."
     }
   ],
-  "latest_source": "beep-reporting-mcp-v1-after-source.json"
+  "latest_source": "beep-ledger-mcp-v3-after-source.json"
 }

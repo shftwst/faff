@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "source_commit": "0188ce71c3c1b4262b31fda5f143e871143ae570",
+  "source_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+  "checker_sha256": "e5e66072d49b1af2a80ab0512d7ed4870191f4548cb29d5466752e02c0bbd0a9",
+  "test_files_sha256": {
+    "test/control-parity-ledger.test.mjs": "19bd406ff1a816e6596741f8e2db1ace7eb37250b622685f9c5697c72867c576",
+    "test/control-parity-ledger-v2.test.mjs": "5edd682e4b1acce3d9dd5437fb52265f396d5092effb772bb80ab3d93fc3b30c",
+    "test/control-parity-ledger-replay.test.mjs": "a424252651653fc7d7f69b1326110b22b076c554252a0fec197ee5b3e14d4390",
+    "test/run-summary.test.mjs": "2193d8f97cdb74610509ee6d42183c7f982872e95614c9fdbf2f45320d5def91",
+    "test/run-ledger-serialiser.test.mjs": "708bc94e3cb6ee6a09a0e7dcb08ccbbb8191113b0eb226a7d1412d7174f6818f",
+    "test/events.test.mjs": "50ce7e5b0e306a09762896624c5dfa24069d0bc1f8fe3f965c8bf2c4baed67f1"
+  },
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=4",
+        "test/control-parity-ledger.test.mjs",
+        "test/control-parity-ledger-v2.test.mjs",
+        "test/control-parity-ledger-replay.test.mjs",
+        "test/run-summary.test.mjs",
+        "test/run-ledger-serialiser.test.mjs",
+        "test/events.test.mjs"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-ledger-mcp-v3-main-tests.txt",
+      "sha256": "7db3606008eba4da53d2b8a276f0824de59b4c1ffcdd742285c71247a0456d4e"
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-ledger-mcp-v3-main-adapter-lint.txt",
+      "sha256": "fe64e7c7e129f03531e7a640d40ec41fe5b9434e6d7caf7c54e3d980fac79994"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-ledger-mcp-v3-main-rule-inventory.txt",
+      "sha256": "7b9af22f72b98f92170bfa8358000c34b1db0e6595d7208730fb603a99ca090e"
+    }
+  ]
+}

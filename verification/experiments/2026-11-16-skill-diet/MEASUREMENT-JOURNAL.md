@@ -541,3 +541,11 @@ Prepared one separate Astra-medium V3 comparison with unchanged source, correcte
 The future V5 measurement runner preserves the serial V4 per-sample procedure while scheduling five independent originals together. A phase failure keeps all originals and blocks the next arm. Four node tests and five concurrent deterministic MCP/CLI preflights pass (355 calls); independent review confirms isolation and failure retention. Concurrent model-service behaviour remains unverified. Current Astra V3 stays on its frozen serial V4 plan.
 
 Two root-authored drafts have independent source reviews, without installation, model qualification or counted savings: Guarantees 7,044 to 3,985 bytes (3,059 potential) on the pending ledger base; authoring-adaptors 12,321 to 8,945 bytes (3,376 potential), with unchanged fixed table/scaffold/frontmatter. Coverage plans and inherited ambiguities are recorded. Current accepted totals remain unchanged.
+
+## Ledger/events accepted on the complete Astra comparison
+
+Source commit `0188ce71c3c1b4262b31fda5f143e871143ae570` applies the exact independently reviewed ledger V2 source after the complete registered V3 pair passes. Each arm passes 15 execution cases, 55 decisions and five native audits. Actual-output reviews pass 3,395 baseline and 3,396 candidate binding checks, with no additional detail claims. All exact restored ledger/event states consume correctly, including runcheck and summary. Held Sol V1 and V2 failures remain unchanged and unpooled.
+
+The final qualifier reruns both full arm gates and binds the exact installed source to 181 tests, adapter lint and cumulative rule inventory. The independent final audit repeats these checks, guards 1,659 inputs and independently recounts every source file and declared load set. It passes at the unchanged source commit. The slice saves 6,622 bytes / 1,625 estimated tokens. Cumulative savings are 117,251 bytes / 28,868 tokens, with no added mandatory reads. The new V4 Opus queue has 70 prepared samples across seven GPT-qualified cuts; no Claude run was launched.
+
+Limits remain bounded producer/consumer fidelity, with controlled observations, transcript counts and external summary dependencies. No model-run lifecycle closure, full unattended loop, live review/landing/filing, hosted publication or provider-wide equivalence is claimed.

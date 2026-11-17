@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "status": "baseline-started-candidate-unlaunched",
+  "started_at": "2026-11-17T04:09:08.988617+00:00",
+  "root_commit": "21819138a9dc2acbd7a1789eac28a57b9ebb9add",
+  "runner": "run-mcp-workflow-samples-v4.py",
+  "plan": "graft-checkpoints-mcp-v3-baseline-plan.json",
+  "plan_sha256": "ed9c94c2e778bdc0976aa6a175e067d3b9ff6bd616c6444cede895a3eebdaf36",
+  "exec_session": 99522,
+  "policy": "Five original serial baseline samples required; first raw/native failure stops remaining. Candidate requires complete baseline raw/native/manual acceptance. No retries or replacement."
+}

@@ -1,0 +1,76 @@
+TAP version 13
+# Subtest: graft Step 10 + default ship producer contain no direct `gh pr merge` command (routes through merge-gate)
+ok 1 - graft Step 10 + default ship producer contain no direct `gh pr merge` command (routes through merge-gate)
+  ---
+  duration_ms: 1.230163
+  type: 'test'
+  ...
+# Subtest: faff-prep/SKILL.md: the round call checks churn and prep parks on its action
+ok 2 - faff-prep/SKILL.md: the round call checks churn and prep parks on its action
+  ---
+  duration_ms: 1.121789
+  type: 'test'
+  ...
+# Subtest: faff-prep/SKILL.md: Park causes names the round call's churn cause
+ok 3 - faff-prep/SKILL.md: Park causes names the round call's churn cause
+  ---
+  duration_ms: 0.426707
+  type: 'test'
+  ...
+# Subtest: faff-prep/SKILL.md: the count-cap and convergence yield run inside `spec-review round`
+ok 4 - faff-prep/SKILL.md: the count-cap and convergence yield run inside `spec-review round`
+  ---
+  duration_ms: 0.33329
+  type: 'test'
+  ...
+# Subtest: faff-prep/SKILL.md: the convergence yield runs inside `spec-review round` and prep routes on its action
+ok 5 - faff-prep/SKILL.md: the convergence yield runs inside `spec-review round` and prep routes on its action
+  ---
+  duration_ms: 8.118481
+  type: 'test'
+  ...
+# Subtest: drift guard: faff-prep/SKILL.md's gate counts the cap through `spec-review round`, never a bare integer
+ok 6 - drift guard: faff-prep/SKILL.md's gate counts the cap through `spec-review round`, never a bare integer
+  ---
+  duration_ms: 0.890497
+  type: 'test'
+  ...
+# Subtest: prep SKILL resolves the scratch dir via `spec-review-dir` and hands it to `spec-review round`
+ok 7 - prep SKILL resolves the scratch dir via `spec-review-dir` and hands it to `spec-review round`
+  ---
+  duration_ms: 2.116245
+  type: 'test'
+  ...
+# Subtest: prep SKILL governs the window through `spec-review round --served`, never a hand-derived swap comparison
+ok 8 - prep SKILL governs the window through `spec-review round --served`, never a hand-derived swap comparison
+  ---
+  duration_ms: 0.588999
+  type: 'test'
+  ...
+# Subtest: prep SKILL asserts the governance step ran: the round call fails safe on a missing governance-<n>.json
+ok 9 - prep SKILL asserts the governance step ran: the round call fails safe on a missing governance-<n>.json
+  ---
+  duration_ms: 0.401208
+  type: 'test'
+  ...
+# Subtest: prep SKILL bounds churn to the window: the round call compares against the previous round in the window
+ok 10 - prep SKILL bounds churn to the window: the round call compares against the previous round in the window
+  ---
+  duration_ms: 0.364666
+  type: 'test'
+  ...
+# Subtest: faff-prep/SKILL.md: the loop resolves the window + round number through `spec-review round`
+ok 11 - faff-prep/SKILL.md: the loop resolves the window + round number through `spec-review round`
+  ---
+  duration_ms: 2.261453
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 116.720101

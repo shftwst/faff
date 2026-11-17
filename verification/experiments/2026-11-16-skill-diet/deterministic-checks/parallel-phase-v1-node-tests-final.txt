@@ -1,0 +1,34 @@
+TAP version 13
+# Subtest: test_all_five_start_concurrently_and_each_runs_once
+ok 1 - test_all_five_start_concurrently_and_each_runs_once
+  ---
+  duration_ms: 30.15566
+  type: 'test'
+  ...
+# Subtest: test_failure_preserves_all_original_results_and_never_retries
+ok 2 - test_failure_preserves_all_original_results_and_never_retries
+  ---
+  duration_ms: 27.982747
+  type: 'test'
+  ...
+# Subtest: test_invalid_phase_launches_nothing
+ok 3 - test_invalid_phase_launches_nothing
+  ---
+  duration_ms: 24.678294
+  type: 'test'
+  ...
+# Subtest: test_system_exit_is_a_retained_sample_failure
+ok 4 - test_system_exit_is_a_retained_sample_failure
+  ---
+  duration_ms: 24.871793
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 136.591989

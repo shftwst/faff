@@ -1,0 +1,28 @@
+TAP version 13
+# Subtest: test_all_five_start_concurrently_and_each_runs_once
+ok 1 - test_all_five_start_concurrently_and_each_runs_once
+  ---
+  duration_ms: 30.091782
+  type: 'test'
+  ...
+# Subtest: test_failure_preserves_all_original_results_and_never_retries
+ok 2 - test_failure_preserves_all_original_results_and_never_retries
+  ---
+  duration_ms: 25.033291
+  type: 'test'
+  ...
+# Subtest: test_invalid_phase_launches_nothing
+ok 3 - test_invalid_phase_launches_nothing
+  ---
+  duration_ms: 25.736539
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 109.450064

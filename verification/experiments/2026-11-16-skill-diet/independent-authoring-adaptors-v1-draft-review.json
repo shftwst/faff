@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only semantic draft reviewer",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "source-review-pass-unmeasured-uninstalled-excluded",
+  "bindings": [
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "sha256": "74251c96bb33e9b5f15f370f994256a0ed25a588cd7a186ecca80d13eed98ae0",
+      "bytes": 12321
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/authoring-adaptors-v1.md",
+      "sha256": "74251c96bb33e9b5f15f370f994256a0ed25a588cd7a186ecca80d13eed98ae0",
+      "bytes": 12321
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/authoring-adaptors-v1-draft.md",
+      "sha256": "617f0aab22190f136c44782942a954fea7be659e33c03238200253a7a31c1a88",
+      "bytes": 8945
+    }
+  ],
+  "baseline_exact_current_source": true,
+  "potential_byte_savings": 3376,
+  "source_bytes": 12321,
+  "candidate_bytes": 8945,
+  "new_mandatory_reads": [],
+  "unchanged_boundaries": {
+    "frontmatter": true,
+    "fixed_slot_contract_table_and_rendering_exception": true,
+    "author_face_scaffold_and_fill_instructions": true
+  },
+  "finding_history": [
+    {
+      "id": "concurrency-serialisation-narrowing",
+      "initial": "Checklist5 changed generic serialises to serialises dependencies, potentially omitting shared-surface collision serialisation.",
+      "resolution": "Current draft restores generic serialises and separately requires dependency blockers merged. Fixed table, gateway authority and worktree isolation remain.",
+      "status": "resolved-before-measurement"
+    }
+  ],
+  "requirements_reviewed": [
+    {
+      "area": "Author/Validate authority",
+      "result": "Scaffold and audit only, no gateway contract edits; author/CI/runtime uses retained."
+    },
+    {
+      "area": "Contract loading",
+      "result": "Standalone author/validator reads kernel first then touched build/l4/methodology/review references; delegated ambient and standalone refer-back obligations retained."
+    },
+    {
+      "area": "Foreign runtime gate",
+      "result": "Configured non-REGISTRY occupants must Validate before first use; failure parks/surfaces. Bundled defaults and non-default alternatives exempt through predicate, not assumed from arbitrary name prefix."
+    },
+    {
+      "area": "Checklist1-4",
+      "result": "Name slot/contract, ambient+standalone note, non-normative recaps with gateway wins and no fixed vocabulary/classes/verdict/named-output changes retained."
+    },
+    {
+      "area": "Checklist5",
+      "result": "Adaptor define+validate; producer emit block or native-tool wrapper; ship gate-passed only and three outcomes; methodology required outputs plus optional degradation; concurrency all-partition/serialisation/blocker-merged/ledger/merge-floor/worktree obligations retained."
+    },
+    {
+      "area": "Checklist6-7",
+      "result": "Acting slots use suite appetite. Adaptors do not sequence/park/write tracker, producers do not manage backlog, fixed consumer owns gates and sequence."
+    },
+    {
+      "area": "Checklist8",
+      "result": "judgement_seam owned KIND or deterministic none; alternate mirrors sibling; grader/case/registry obligation in same change; baseline human step never demanded by lint retained."
+    },
+    {
+      "area": "Validate output",
+      "result": "Pass only with no checklist violation. Missing refer-back, authoritative recap or redefinition is fail, not warning; violations identify item/location/problem/fix."
+    },
+    {
+      "area": "Structural versus semantic",
+      "result": "Shipped default lint and --configured slot-derived structural preflight remain distinct; neither substitutes for semantic Validate or third-party audit."
+    }
+  ],
+  "inherited_ambiguities_preserved": [
+    "Generic refer-back statements coexist with rendering_adaptor exemption; explicit table/checklist exception remains. Do not invent a rendering refer-back failure oracle.",
+    "Intake has no fixed contract in table while generic producer checklist says emit contract block; do not resolve this through compression or require an invented intake contract.",
+    "Advanced/outside-day-to-day description coexists with mandatory runtime foreign validation; runtime rule remains explicit.",
+    "Unchanged author scaffold omits producers internal-contract heading yet carries generic refer-back text; avoid turning skeleton formatting ambiguity into a new exact-output requirement.",
+    "Fixed slot table is unchanged and is not expanded to cover every newer slot or all current concurrency obligations; authoritative gateway references still govern."
+  ],
+  "bounded_measurement_recommendation": {
+    "author_outputs": [
+      "Routing adaptor skeleton with slot/contract, ambient/standalone loading, non-normative recap, define/validate and lane limits.",
+      "Native review-producer fused wrapper plus a supplied-native-result example rendered as a real review-verdict contract, never inventing another state.",
+      "Methodology or concurrency skeleton covering named outputs/action obligations and shared authority; choose a declared seam fixture with supplied existing KIND or asserted-deterministic none."
+    ],
+    "audit_outputs": "Actual structured pass/fail violation reports over prebuilt fixtures: one missing item per checklist area, valid rendering exemption, authoritative recap, extra fixed state, missing required methodology output, lane violation, custom appetite level and seam declaration/registration defect. Judge meanings, not exact prose.",
+    "real_consumers": [
+      "Persist actual authored SKILL.md files and run pinned validate-adapters --configured --root <isolated-root> --skills-dir <fixture-skills>; seed complete supporting metadata using existing validate-adapters test fixtures.",
+      "Run --is-bundled against real REGISTRY default/alternative and foreign or lookalike names; validate runtime decision separately without claiming full caller execution.",
+      "Run real contract validation on emitted native-wrapper example. This demonstrates contract production/consumption, not executing an arbitrary generated wrapper implementation.",
+      "Preflight a structurally conformant but semantically wrong fixture to demonstrate lint pass does not substitute for semantic Validate. A missing-skill warning/exit0 is never an authored-output pass."
+    ],
+    "reuse": [
+      "Existing rendering-artifact/MCP persisted-output harness",
+      "test/validate-adapters.test.mjs and focused validation suites",
+      "test/seam-registry.test.mjs",
+      "Existing real faff contract consumers"
+    ],
+    "negative_checks": [
+      "Omitted author output, unknown slot/state and malformed emitted contract",
+      "Missing refer-back/non-normative markers versus explicit rendering exemption",
+      "Missing/duplicate required methodology outputs or wrong slot-derived lint profile",
+      "Claiming semantic conformance solely from structural exit0",
+      "Foreign runtime validation skipped or bundled exemption based only on name prefix",
+      "Missing seam/case/registry obligation, invented human baseline value",
+      "Wrong violation location, unsupported violation or absent fix"
+    ]
+  },
+  "limits": [
+    "Draft source review only, not qualification, source acceptance, installation or counted savings.",
+    "No tests or models launched for this source review; proposed fixtures/consumer setup must be independently preflighted before freezing measurement.",
+    "Actual output/manual semantic checks remain necessary; structural lint cannot establish full semantics, generated implementation correctness or runtime integration.",
+    "Do not silently fix inherited ambiguities or expand their oracle requirements.",
+    "No installed skill or existing ledger frozen input changed by this review."
+  ]
+}

@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"id":"event-ownership","value":{"caller_fields":["phase","type","issue","data"],"order_by":"seq","caller_supplies_ledger_hash":false}}}

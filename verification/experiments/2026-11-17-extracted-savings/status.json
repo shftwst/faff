@@ -126,5 +126,37 @@
     "No raw runs, harness or bulk evidence imported into implementation branches.",
     "Optional documentation, tests and rule inventories are not runtime prompt savings.",
     "#1203 remains draft; other implemented or held cuts are not promoted by these extractions."
+  ],
+  "next_candidates_not_counted": [
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "qualified_candidate": "kernel-v1.md",
+      "qualified_sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+      "main_bytes": 94998,
+      "historical_candidate_bytes": 84072,
+      "nominal_saving_bytes": 10926,
+      "integration_note": "Qualified configuration slice only. Main removed420bytes in a non-overlapping provider edit; preserve it. Do not extract the held core-contract rewrite.",
+      "qualification_commit": "d4c11473f64f93da4287af48282393eb21c126d5"
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "qualified_candidate": "rendering-v2.md",
+      "qualified_sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4",
+      "main_bytes": 21133,
+      "historical_candidate_bytes": 11288,
+      "nominal_saving_bytes": 9845,
+      "integration_note": "Overlaps recent paragraph edits. Reconcile rather than replacing blindly; remeasure final source.",
+      "qualification_commit": "dfbf747ee28f399d569b0299dd10b999b8dafcb4"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "qualified_candidate": "thematic-v1.md",
+      "qualified_sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f",
+      "main_bytes": 32157,
+      "historical_candidate_bytes": 29418,
+      "nominal_saving_bytes": 2739,
+      "integration_note": "Overlaps recent paragraph edits. Preserve precise unmet-unpark and nearest-met-DoD wording; remeasure final source.",
+      "qualification_commit": "3ff076dffacd0dae430dde4364d13a8714939da7"
+    }
   ]
 }

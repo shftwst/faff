@@ -1,0 +1,130 @@
+{
+  "schema": 1,
+  "base": "831d5dff883595820fef57bb2446574a2d42a8aa",
+  "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
+  "pre_quick_pass_main": {
+    "files": 41,
+    "bytes": 1372081,
+    "estimated_tokens": 339929
+  },
+  "current_main": {
+    "files": 41,
+    "bytes": 1330031,
+    "estimated_tokens": 329603
+  },
+  "landed_savings": {
+    "bytes": 42050,
+    "estimated_tokens": 10326
+  },
+  "pending_extractions": [
+    {
+      "skill": "adversarial-review",
+      "pr": "https://github.com/shftwst/faff/pull/1207",
+      "head": "f02bf14a342f33acd76aebf2c8ba9c2191f23243",
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "before": {
+        "bytes": 74289,
+        "estimated_tokens": 18424,
+        "sha256": "0de5a11e79587f8accd7012939483455e16e20ebd62de328ca45ca7626447456"
+      },
+      "after": {
+        "bytes": 22259,
+        "estimated_tokens": 5565,
+        "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba"
+      },
+      "saved": {
+        "bytes": 52030,
+        "estimated_tokens": 12859
+      },
+      "historical_fidelity": {
+        "model": "claude-opus-5-5",
+        "runs_per_arm": 5,
+        "raw_before": {
+          "passed": 49,
+          "total": 50
+        },
+        "raw_after": {
+          "passed": 49,
+          "total": 50
+        },
+        "assessed_before": {
+          "passed": 50,
+          "total": 50
+        },
+        "assessed_after": {
+          "passed": 50,
+          "total": 50
+        },
+        "candidate_native_clean": 2,
+        "candidate_native_with_retained_output_probe_diagnostic": 3,
+        "qualification_commit": "c064ac450e66d422f16a94b375b316fcf06f2c9a",
+        "scope": "Bounded control flow with controlled provider responses and stub primary reviewer; not full workflow or statistical equivalence"
+      },
+      "local_checks": {
+        "tests_passed": 651,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass"
+      },
+      "new_model_samples": 0,
+      "status": "open-pr-not-landed"
+    },
+    {
+      "skill": "gateway",
+      "pr": "https://github.com/shftwst/faff/pull/1208",
+      "head": "1bed13590310c0a2b4fbebbee955d756b069cce8",
+      "path": "plugin/skills/faff/SKILL.md",
+      "before": {
+        "bytes": 12984,
+        "estimated_tokens": 3222,
+        "sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d"
+      },
+      "after": {
+        "bytes": 5832,
+        "estimated_tokens": 1458,
+        "sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2"
+      },
+      "saved": {
+        "bytes": 7152,
+        "estimated_tokens": 1764
+      },
+      "historical_fidelity": {
+        "model": "claude-opus-5-5",
+        "runs_per_arm": 5,
+        "before": {
+          "passed": 25,
+          "total": 25
+        },
+        "after": {
+          "passed": 25,
+          "total": 25
+        },
+        "native_audit": "pass",
+        "normalised_effects_and_final_states_equal": true,
+        "results_commit": "66b85ceadbce5613cd1b02507830c89cb7026216",
+        "native_review_commit": "ef1419b46fed9ff779322efe7e2d43123135e3aa",
+        "scope": "First-run and dispatch boundary with downstream skill stubs; not full downstream workflow or statistical equivalence"
+      },
+      "local_checks": {
+        "tests_passed": 10,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass"
+      },
+      "new_model_samples": 0,
+      "status": "open-pr-not-landed"
+    }
+  ],
+  "pending_savings": {
+    "bytes": 59182,
+    "estimated_tokens": 14623
+  },
+  "projected_after_both_prs": {
+    "bytes": 1270849,
+    "estimated_tokens": 314980
+  },
+  "limits": [
+    "These PRs have not merged. Historical measured source is exact; existing current-main helper checks supplement historical evidence.",
+    "No raw runs, harness or bulk evidence imported into implementation branches.",
+    "Optional documentation, tests and rule inventories are not runtime prompt savings.",
+    "#1203 remains draft; other implemented or held cuts are not promoted by these extractions."
+  ]
+}

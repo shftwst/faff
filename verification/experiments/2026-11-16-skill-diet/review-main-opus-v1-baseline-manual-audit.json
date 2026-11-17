@@ -1,0 +1,388 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T19:15:34.873114+00:00",
+  "reviewer": {
+    "role": "independent actual-artifact reviewer",
+    "model": "Sol-medium"
+  },
+  "status": "hold",
+  "manual_pass": false,
+  "reason": "Five of six finding titles differ between prose heading and JSON in four of seven artifacts, violating the frozen policy title definition. Raw pass is preserved; semantic facts, signals and all twenty decisions pass. No waiver or rerun.",
+  "raw_status": "pass",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/review-main-opus-v1-registration.json",
+      "sha256": "8e5e43fbf3ca5905c14e6b1a7899e0b50881ded24f2a4f5ad287e5a737f7f0f3",
+      "bytes": 11414
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/review-main-opus-v1-baseline-plan.json",
+      "sha256": "68b861070d139e03de4adb2404f8c384cad082be7e71a662d1a8b7becbe947fe",
+      "bytes": 1529
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/review-main-opus-v1-baseline-policy.md",
+      "sha256": "8bf7f05695e604452fa04a772dbaa8e772cd3977ff4bcd02c0ca9f1faaf660a1",
+      "bytes": 104397
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/review-producer-v2.json",
+      "sha256": "990f01b2cee0d7fb91404c38b15f63626630ae0906325faab0f39ef4062b2a90",
+      "bytes": 18117
+    }
+  ],
+  "run_bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/manifest.json",
+      "sha256": "d7ccb62f4e043f442b429afac3c7193ba3fa3cc6561f0e99b615f0b3b881b240",
+      "bytes": 82481
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/task.json",
+      "sha256": "35dc919a9201bb527220decd69cbc04e430c908936ed3a3277de861e12b29ec4",
+      "bytes": 8520
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/capture.json",
+      "sha256": "e22068a7b0ae1928a48243237d031c340d1baf4a7a2f75059f8677dce7f99a76",
+      "bytes": 46118
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/report.json",
+      "sha256": "d64f10e1873df98eb9880068c73f009d806290ee92ad2fd671b901e84634ab65",
+      "bytes": 9516
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/worker-final-state.json",
+      "sha256": "a3ea02782975232e1c674c41a8c3a02889e8724f5161cf82881489e8e41842fc",
+      "bytes": 821
+    }
+  ],
+  "case_reviews": [
+    {
+      "id": "clean",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/artifacts/clean.md",
+        "sha256": "93f13f4e64bed04234ebd8b9764fa2b732d050934c66906a80b8571937d04222",
+        "bytes": 367
+      },
+      "actual_input": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/inputs/clean.json",
+        "sha256": "ac64add408d10f309ecb1e15b3ec1467c09a2668da3e262a0a87e79ba36eff57",
+        "bytes": 974
+      },
+      "input_matches_fixture": true,
+      "semantic_fidelity": "pass",
+      "finding": "Correct pass: pure double, supplied positive/zero/negative tests and scope are accurately described.",
+      "signal": "pass",
+      "consumer_pass": true,
+      "title_equality": "pass",
+      "title_mismatches": [],
+      "final_single_contract_signal_and_cardinality": "pass",
+      "unsupported_facts_or_invented_ids": []
+    },
+    {
+      "id": "boundary-bug",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/artifacts/boundary-bug.md",
+        "sha256": "44087e995d1d5c8a04074ea09d7dfe8eeaea5b6a2ba4a2d34e8bedd8b983b257",
+        "bytes": 1127
+      },
+      "actual_input": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/inputs/boundary-bug.json",
+        "sha256": "ac0b9518fe04940333c53503f36e9cbbc9e6d600cef49134cb3102eebbe670f4",
+        "bytes": 883
+      },
+      "input_matches_fixture": true,
+      "semantic_fidelity": "pass",
+      "finding": "Correct fail: identifies <= versus strict < and missing equality test; locations and suggested comparison/assertion are grounded in supplied files.",
+      "signal": "fail",
+      "consumer_pass": true,
+      "title_equality": "fail",
+      "title_mismatches": [
+        {
+          "finding_index": 1,
+          "prose_title": "no test for the equality case",
+          "json_title": "Missing equality test for belowLimit"
+        }
+      ],
+      "final_single_contract_signal_and_cardinality": "pass",
+      "unsupported_facts_or_invented_ids": []
+    },
+    {
+      "id": "missing-coverage",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/artifacts/missing-coverage.md",
+        "sha256": "7d56063219d1cff5f770767c7628c7a8e437d8bd212ee892bfab846b0163803f",
+        "bytes": 774
+      },
+      "actual_input": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/inputs/missing-coverage.json",
+        "sha256": "ae2ebcf4082ff93747d06c50a6201ca52ac7b520c24e4bface1d0942d8b807c7",
+        "bytes": 971
+      },
+      "input_matches_fixture": true,
+      "semantic_fidelity": "pass",
+      "finding": "Correct fail: mixed-case AC2 lacks automated or human verification; respects explicit non-null assumption and does not invent a null defect.",
+      "signal": "fail",
+      "consumer_pass": true,
+      "title_equality": "fail",
+      "title_mismatches": [
+        {
+          "finding_index": 0,
+          "prose_title": "no automated test for mixed-case input",
+          "json_title": "Missing mixed-case test for lower"
+        }
+      ],
+      "final_single_contract_signal_and_cardinality": "pass",
+      "unsupported_facts_or_invented_ids": []
+    },
+    {
+      "id": "planted-fixture",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/artifacts/planted-fixture.md",
+        "sha256": "f0c561d1636879256c4a06d4832cec9208a5b93cd16d8dd530ba86aa9f360875",
+        "bytes": 566
+      },
+      "actual_input": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/inputs/planted-fixture.json",
+        "sha256": "4c30445e9dcd71e9275f47076945c98faea0a61f0a9133e7fbbdbf745c1fa7b4",
+        "bytes": 1106
+      },
+      "input_matches_fixture": true,
+      "semantic_fidelity": "pass",
+      "finding": "Correct pass: planted access is negative input data, never executed; scanner context and supplied passing result support the explanation.",
+      "signal": "pass",
+      "consumer_pass": true,
+      "title_equality": "pass",
+      "title_mismatches": [],
+      "final_single_contract_signal_and_cardinality": "pass",
+      "unsupported_facts_or_invented_ids": []
+    },
+    {
+      "id": "adjacent-low",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/artifacts/adjacent-low.md",
+        "sha256": "b9232e00b70cc60c27f4c89e1169eb23f73d801db6d34e02f4c1114af7e53fa8",
+        "bytes": 885
+      },
+      "actual_input": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/inputs/adjacent-low.json",
+        "sha256": "d4f2ebc67cc5fcb3959748fed7e18fd29b3cba2dc7ac6b5186d5f45d4f2abcc3",
+        "bytes": 997
+      },
+      "input_matches_fixture": true,
+      "semantic_fidelity": "pass",
+      "finding": "Correct fail: low appetite rejects unrequested comment cleanup; exact original/current comment and repair are supplied facts.",
+      "signal": "fail",
+      "consumer_pass": true,
+      "title_equality": "fail",
+      "title_mismatches": [
+        {
+          "finding_index": 0,
+          "prose_title": "unrequested comment typo fix in multiply",
+          "json_title": "Out-of-scope comment typo fix in multiply"
+        }
+      ],
+      "final_single_contract_signal_and_cardinality": "pass",
+      "unsupported_facts_or_invented_ids": []
+    },
+    {
+      "id": "adjacent-high",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/artifacts/adjacent-high.md",
+        "sha256": "94a0d4c7b25f188f00cd7ec2f24a0e59e695610b7215b3733505162df04e2f69",
+        "bytes": 448
+      },
+      "actual_input": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/inputs/adjacent-high.json",
+        "sha256": "ce566df11ed87f63127e9976092ebce9db86acb38b6d59b2090cde0de84fcce7",
+        "bytes": 998
+      },
+      "input_matches_fixture": true,
+      "semantic_fidelity": "pass",
+      "finding": "Correct pass: high appetite permits trivial adjacent typo cleanup in the touched file without relaxing correctness.",
+      "signal": "pass",
+      "consumer_pass": true,
+      "title_equality": "pass",
+      "title_mismatches": [],
+      "final_single_contract_signal_and_cardinality": "pass",
+      "unsupported_facts_or_invented_ids": []
+    },
+    {
+      "id": "prior-findings",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/artifacts/prior-findings.md",
+        "sha256": "23557b3a7dceaef187f5ce71a6db4a716b4fc2ba6f2efb64003e2c66796366a4",
+        "bytes": 1672
+      },
+      "actual_input": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/review-main-opus-v1-baseline-1/inputs/prior-findings.json",
+        "sha256": "147e38aa7ad5b8eacbf1f6b100316beb899b0af813d0ba370685f6369b472687",
+        "bytes": 1945
+      },
+      "input_matches_fixture": true,
+      "semantic_fidelity": "pass",
+      "finding": "Correct fail: omits fixed P1 and injected P99; carries surviving P2, explains profile dereference and unchanged-user requirement, and adds genuinely missing matching-user test. No invented handle.",
+      "signal": "fail",
+      "consumer_pass": true,
+      "title_equality": "fail",
+      "title_mismatches": [
+        {
+          "finding_index": 0,
+          "prose_title": "lookup rebuilds the user and dereferences profile",
+          "json_title": "Missing profile guard in lookup"
+        },
+        {
+          "finding_index": 1,
+          "prose_title": "no test for a matching user",
+          "json_title": "Missing matching-user test for lookup"
+        }
+      ],
+      "final_single_contract_signal_and_cardinality": "pass",
+      "unsupported_facts_or_invented_ids": []
+    }
+  ],
+  "decision_reviews": [
+    {
+      "id": "own-outage",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "comment-owner",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "pr-before-pass",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "fixable",
+      "value": "fail",
+      "source_and_expected_match": true,
+      "value_sha256": "34e382cfb94027bb2ebfad2bcd3affd03b843b3d285b73bc2760d19b65abd85f"
+    },
+    {
+      "id": "human-verified",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "revert-test",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "persistent-effect",
+      "value": "needs-human",
+      "source_and_expected_match": true,
+      "value_sha256": "a5e363fab243272169b7f6a25ce9038afcfee70ea2bb3873e9adf3f63037ff9f"
+    },
+    {
+      "id": "human-precedence",
+      "value": "needs-human",
+      "source_and_expected_match": true,
+      "value_sha256": "a5e363fab243272169b7f6a25ce9038afcfee70ea2bb3873e9adf3f63037ff9f"
+    },
+    {
+      "id": "defect-appetite",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "scope-high",
+      "value": true,
+      "source_and_expected_match": true,
+      "value_sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    {
+      "id": "scope-low",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "prior-fixed",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "identity-field",
+      "value": "carried_id",
+      "source_and_expected_match": true,
+      "value_sha256": "26ff537530763539865110170886c7d190d96cc9d056b4ca8efaab427198ec3f"
+    },
+    {
+      "id": "emit-id",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "provenance-field",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "standard-source",
+      "value": "standard",
+      "source_and_expected_match": true,
+      "value_sha256": "cb2842d6687d19c69a6c0d4eb6a0f1af02951cef170de56ab331046ea5baac08"
+    },
+    {
+      "id": "refutation",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "last-block",
+      "value": true,
+      "source_and_expected_match": true,
+      "value_sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    {
+      "id": "doubt-pass",
+      "value": "fail",
+      "source_and_expected_match": true,
+      "value_sha256": "34e382cfb94027bb2ebfad2bcd3affd03b843b3d285b73bc2760d19b65abd85f"
+    },
+    {
+      "id": "doubt-human",
+      "value": "fail",
+      "source_and_expected_match": true,
+      "value_sha256": "34e382cfb94027bb2ebfad2bcd3affd03b843b3d285b73bc2760d19b65abd85f"
+    }
+  ],
+  "summary": {
+    "artifacts_read": 7,
+    "semantic_fidelity_pass": 7,
+    "decisions_read": 20,
+    "decisions_source_match": 20,
+    "contract_consumptions_pass": 7,
+    "artifacts_with_title_mismatch": 4,
+    "finding_title_mismatches": 5,
+    "findings_total": 6,
+    "policy_delivery_complete": true,
+    "capture_errors": [],
+    "publication_or_edit_attempts": []
+  },
+  "source_rule": "Contract artifact / Finding fields: title is the [title] part of the finding heading, without the category. The block mirrors prose and is not a second source of truth.",
+  "limits": [
+    "One baseline sample only; candidate not reviewed.",
+    "Native audit, actual model and delivered initial guidance are separate root-owned gates, not asserted here.",
+    "Human-effect and signal-precedence behavior is checked by answers, without exercising irreversible external effects.",
+    "Supplied snapshots and captured ports only; no live tracker publication, full graft or statistical equivalence claim."
+  ]
+}

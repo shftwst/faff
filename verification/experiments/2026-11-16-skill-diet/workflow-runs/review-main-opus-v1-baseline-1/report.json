@@ -1,0 +1,390 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 54,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 104397,
+    "utf16_characters": 103600,
+    "sha256": "8bf7f05695e604452fa04a772dbaa8e772cd3977ff4bcd02c0ca9f1faaf660a1",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "2f5f8bbc6956df5e7e181d7bf3e32a9661a0b9a2593901fbde7b90a747671ceb"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6016,
+        "sha256": "459066a82f9477a7d55b6a0f0ab691cfc9e2b2aeef4b67f03f8690b5cd1f6d6f"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6002,
+        "sha256": "fc6d733febb430a489457efc908f5caada826b7bc3bde5bbd016da5b31b5e231"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "6eecae0f560906a9bb4a1bc578c8df4119dfe70ca8698afa4713bd148d5c698c"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "ef55f2e4101c5b4c3e47a3eef4746840d3d6afbe3f8b23f897ce9df322d9ee65"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6039,
+        "sha256": "f7806e7892fc3f05efdc6bf7261c114db1a470b66dee2572a2cb20f0edb01d4f"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "8ed72102419c4b41948f36ac27985c6bd6f7e89208ac55ee1f93847e9b45009f"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "be03ff939732675ae7ca3435ff3882623934cdae63393e10f579542483278487"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "8f191163b39a157bcfc9c6465be466a29498c2e7e55464433278fd22fbab37a0"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "7e6a748eb960c29debbec1d6c113cc0db309a16e82d1772499bd545226725e48"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "0c2eeab10860b2c7451c531092fc6dce78345508b9955fd1ba6bd2f554231ec3"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "098df230a0f7c51f317e832e506b1d810ddd4f89637ad3076e39a86d0d12679f"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "50df0c8fe6f93c57f4d222d949a3452085416b4a9ae86979ee58693f357216ef"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6063,
+        "sha256": "b16b6c5d13957b6fa4a8d29b545884ae470c2f420cbc45a2e5d05676af433064"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6042,
+        "sha256": "e175237753cea922966fb8bf8243169d773279ecf8a606a285170c18feb2ff00"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6034,
+        "sha256": "d5abcb8c149f8f927c89e2ca716253ce907ff44ac71122b8cca040e1136777cb"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "b62b53b7cd5c86975212cf04779df03eceda4f2f4468019a55b4ffa6e05a3be5"
+      },
+      {
+        "offset": 102000,
+        "end": 103600,
+        "characters": 1600,
+        "bytes": 1616,
+        "sha256": "b4ce86eb74d07e9de3d10a67b798e358805acf9bf1c5a0fca2b02aeb6d28e230"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "clean",
+        "kind": "review-artifact",
+        "pass": true,
+        "problems": [],
+        "signal": "pass",
+        "consumer_results": [
+          {
+            "id": "review-verdict",
+            "pass": true,
+            "signal": "pass"
+          }
+        ]
+      },
+      {
+        "id": "boundary-bug",
+        "kind": "review-artifact",
+        "pass": true,
+        "problems": [],
+        "signal": "fail",
+        "consumer_results": [
+          {
+            "id": "review-verdict",
+            "pass": true,
+            "signal": "fail"
+          }
+        ]
+      },
+      {
+        "id": "missing-coverage",
+        "kind": "review-artifact",
+        "pass": true,
+        "problems": [],
+        "signal": "fail",
+        "consumer_results": [
+          {
+            "id": "review-verdict",
+            "pass": true,
+            "signal": "fail"
+          }
+        ]
+      },
+      {
+        "id": "planted-fixture",
+        "kind": "review-artifact",
+        "pass": true,
+        "problems": [],
+        "signal": "pass",
+        "consumer_results": [
+          {
+            "id": "review-verdict",
+            "pass": true,
+            "signal": "pass"
+          }
+        ]
+      },
+      {
+        "id": "adjacent-low",
+        "kind": "review-artifact",
+        "pass": true,
+        "problems": [],
+        "signal": "fail",
+        "consumer_results": [
+          {
+            "id": "review-verdict",
+            "pass": true,
+            "signal": "fail"
+          }
+        ]
+      },
+      {
+        "id": "adjacent-high",
+        "kind": "review-artifact",
+        "pass": true,
+        "problems": [],
+        "signal": "pass",
+        "consumer_results": [
+          {
+            "id": "review-verdict",
+            "pass": true,
+            "signal": "pass"
+          }
+        ]
+      },
+      {
+        "id": "prior-findings",
+        "kind": "review-artifact",
+        "pass": true,
+        "problems": [],
+        "signal": "fail",
+        "consumer_results": [
+          {
+            "id": "review-verdict",
+            "pass": true,
+            "signal": "fail"
+          }
+        ]
+      },
+      {
+        "id": "own-outage",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "comment-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "pr-before-pass",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "fixable",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "fail"
+      },
+      {
+        "id": "human-verified",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "revert-test",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "persistent-effect",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "needs-human"
+      },
+      {
+        "id": "human-precedence",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "needs-human"
+      },
+      {
+        "id": "defect-appetite",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "scope-high",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "scope-low",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "prior-fixed",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "identity-field",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "carried_id"
+      },
+      {
+        "id": "emit-id",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "provenance-field",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "standard-source",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "standard"
+      },
+      {
+        "id": "refutation",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "last-block",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "doubt-pass",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "fail"
+      },
+      {
+        "id": "doubt-human",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "fail"
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Bounded default-review producer execution against complete caller-supplied code/spec/test snapshots, persisted prose plus JSON, and actual review-verdict contract consumption. No code changes, tracker comments, PR creation or full graft execution. The human-judgement pass is retained verbatim and checked by separate decisions, not claimed as executed irreversible behaviour.",
+  "accounting": "unmetered"
+}

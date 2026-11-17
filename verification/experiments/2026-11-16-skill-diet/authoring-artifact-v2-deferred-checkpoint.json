@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "status": "deferred-unregistered-development",
+  "reason": "Prioritise larger remaining skill bodies after operator concern about compute spent relative to accepted savings. No further dedicated authoring harness work or model calls scheduled.",
+  "tests": {
+    "passed": 17,
+    "failed": 0,
+    "path": "deterministic-checks/authoring-artifact-v2-draft-tests.txt",
+    "sha256": "3602d1fd25b9c9864c986e168705a725301d9d72d0b09bf0a4dc86fd35c58578"
+  },
+  "files": {
+    "eval/control-parity/authoring-artifact.mjs": "d6b3b233e811506e69d81312c4da85ff3d8b0d1ee26c25f0d3a20cb4fafaa8b8",
+    "test/control-parity-authoring.test.mjs": "93c8d896f6caef79cce44ed9102b7c4bda11dc20cc5c2f0d181ea8a1ca5b1b2c",
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/authoring-adaptors-v1-draft.json": "ee88132b590250433ad9e4623a5dc4d58bdc31636728f1aec251178ff3c1c08b"
+  },
+  "completed": [
+    "Actual structural inspection port with isolated canonical config and overlay",
+    "Actual fixed review-contract consumption for the generated example",
+    "Fixture corrections for autonomous-mode gate, canonical pointers and methodology obligations"
+  ],
+  "remaining": [
+    "Independent review of extended helper and corrected fixture",
+    "Full actual-artifact replay and semantic manual gate",
+    "Registered comparison and source integration"
+  ],
+  "source_installed": false,
+  "model_measurement_launched": false,
+  "savings_counted": false,
+  "prior_review": "independent-authoring-artifact-v1-draft-review.json",
+  "prior_review_applies_to": "Earlier development bytes committed at e4afbf21, not the extended helper in this checkpoint"
+}

@@ -27,7 +27,9 @@ Reporting remains accepted at `c742d56b`, saving 1,454 bytes / 356 tokens. Basel
 - Architecture MCP: all 20 proposals / 50 decisions passed raw/manual review, but the fifth baseline crossed UTC midnight and received a runtime date update, failing the frozen native bar. Native 4/5; no waiver, replacement, candidate or saving.
 - Map: required order / gate-fireability failures. Full nlspec: native/artifact/consumer failures. ADR/agile/routing: semantic or stability failures. All pending savings remain excluded.
 
-## Next cuts
+## Next cuts, largest bodies first
+
+Authoring-adaptors is deferred after the operator raised compute-to-savings concerns. Preserve its draft and tests; do not spend more on a dedicated harness for its prospective 828 tokens.
 
 Authoring-adaptors draft: `candidates/authoring-adaptors-v1-draft.md`, baseline `baseline/authoring-adaptors-v1.md`, potential 3,376 bytes / 828 tokens. Fixed slot table, scaffold and frontmatter remain unchanged; independent source review passes. Unmeasured and uninstalled.
 
@@ -45,4 +47,10 @@ Future parallel runner V5 is qualified for fresh registered phases by `mcp-paral
 
 Opus queue V4 has seventy prepared samples across seven GPT-qualified cuts. It has not launched. Create and validate fresh Claude-native plans/transport/context only after allowance is available. Earlier queues remain frozen.
 
-Do not stage `__pycache__`, unrelated `challenge-calibration-preflight-v1`, active model directories or pending manual aggregates. No model workers are currently active. Final ledger proof and accounting are committed at `ecdbda03`; push this checkpoint with the separate unregistered authoring-harness draft.
+Do not stage `__pycache__`, unrelated `challenge-calibration-preflight-v1`, active model directories or pending manual aggregates. No model workers are currently active. Final ledger proof and accounting are committed at `ecdbda03` and pushed through `e4afbf21`; PR body reflects the qualified ledger reduction.
+
+Current priority: larger coherent batches in the biggest remaining files, reusing existing consumers and measurement infrastructure. Sol agents are mechanically indexing the five largest remaining bundles and mapping a combined graft gates/evidence/return cut to existing proofs. Root handles source edits and design. Preserve parity checks, but amortise a complete registered comparison across a worthwhile batch rather than constructing a new adapter for each small cut.
+
+`original-skill-ranking-2026-11-17.json` records the requested original-size ranking and accepted coverage: twelve body/reference cuts span ten skills; twenty others have description-only edits; jot and prep remain unchanged after restored description trials. Graft, prep and tidy bodies are essentially untouched.
+
+Authoring development checkpoint V2 adds real review-example consumption and has seventeen passing tests. It is unregistered, unmeasured and not source acceptance. The old V1 independent review applies only to earlier bytes. `authoring-artifact-v2-deferred-checkpoint.json` records exact current draft hashes and remaining work.

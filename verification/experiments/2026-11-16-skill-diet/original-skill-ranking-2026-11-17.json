@@ -1,0 +1,268 @@
+{
+  "baseline": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "basis": "SKILL.md plus its owned references/*.md; shared reference files counted once under faff; not expanded invocation loads",
+  "rows": [
+    {
+      "rank": 1,
+      "skill": "faff",
+      "original_bytes": 274250,
+      "original_estimated_tokens": 67984,
+      "accepted_bytes_saved": 18498,
+      "status": "Accepted body: Gateway + kernel configuration"
+    },
+    {
+      "rank": 2,
+      "skill": "faff-graft",
+      "original_bytes": 178859,
+      "original_estimated_tokens": 44349,
+      "accepted_bytes_saved": 82,
+      "status": "Description only"
+    },
+    {
+      "rank": 3,
+      "skill": "faff-beep-boop",
+      "original_bytes": 157720,
+      "original_estimated_tokens": 39083,
+      "accepted_bytes_saved": 8235,
+      "status": "Accepted body: Reporting + ledger/events; Guarantees draft"
+    },
+    {
+      "rank": 4,
+      "skill": "faff-prep",
+      "original_bytes": 104335,
+      "original_estimated_tokens": 25883,
+      "accepted_bytes_saved": 0,
+      "status": "Unchanged"
+    },
+    {
+      "rank": 5,
+      "skill": "faff-tidy",
+      "original_bytes": 76181,
+      "original_estimated_tokens": 18866,
+      "accepted_bytes_saved": 153,
+      "status": "Description only"
+    },
+    {
+      "rank": 6,
+      "skill": "faffter-dark-adversarial-review",
+      "original_bytes": 74897,
+      "original_estimated_tokens": 18574,
+      "accepted_bytes_saved": 52638,
+      "status": "Accepted body: Broad skill rewrite"
+    },
+    {
+      "rank": 7,
+      "skill": "faff-plot",
+      "original_bytes": 45906,
+      "original_estimated_tokens": 11342,
+      "accepted_bytes_saved": 326,
+      "status": "Description only"
+    },
+    {
+      "rank": 8,
+      "skill": "faffter-dark-methodology-agile-delivery",
+      "original_bytes": 45057,
+      "original_estimated_tokens": 11165,
+      "accepted_bytes_saved": 110,
+      "status": "Description only; body attempt held"
+    },
+    {
+      "rank": 9,
+      "skill": "faffter-dark-spec-review",
+      "original_bytes": 40715,
+      "original_estimated_tokens": 10117,
+      "accepted_bytes_saved": 219,
+      "status": "Description only"
+    },
+    {
+      "rank": 10,
+      "skill": "faffter-noon-methodology-thematic",
+      "original_bytes": 35118,
+      "original_estimated_tokens": 8672,
+      "accepted_bytes_saved": 5700,
+      "status": "Accepted body: Selected methodology sections"
+    },
+    {
+      "rank": 11,
+      "skill": "faff-wtf",
+      "original_bytes": 31551,
+      "original_estimated_tokens": 7806,
+      "accepted_bytes_saved": 4399,
+      "status": "Accepted body: Output Format + Notes"
+    },
+    {
+      "rank": 12,
+      "skill": "faffter-dark-concurrency-parallel",
+      "original_bytes": 25766,
+      "original_estimated_tokens": 6386,
+      "accepted_bytes_saved": 101,
+      "status": "Description only"
+    },
+    {
+      "rank": 13,
+      "skill": "faff-map",
+      "original_bytes": 24782,
+      "original_estimated_tokens": 6049,
+      "accepted_bytes_saved": 247,
+      "status": "Description only; body attempt held"
+    },
+    {
+      "rank": 14,
+      "skill": "faffidavit-rendering",
+      "original_bytes": 24639,
+      "original_estimated_tokens": 6040,
+      "accepted_bytes_saved": 13351,
+      "status": "Accepted body: Rendering guidance"
+    },
+    {
+      "rank": 15,
+      "skill": "faff-jot",
+      "original_bytes": 23456,
+      "original_estimated_tokens": 5804,
+      "accepted_bytes_saved": 0,
+      "status": "Unchanged"
+    },
+    {
+      "rank": 16,
+      "skill": "faff-onboard",
+      "original_bytes": 23185,
+      "original_estimated_tokens": 5733,
+      "accepted_bytes_saved": 146,
+      "status": "Description only"
+    },
+    {
+      "rank": 17,
+      "skill": "faffter-dark-nlspec",
+      "original_bytes": 18823,
+      "original_estimated_tokens": 4671,
+      "accepted_bytes_saved": 4,
+      "status": "Description only; body attempt held"
+    },
+    {
+      "rank": 18,
+      "skill": "faffter-noon-concurrency-sequential",
+      "original_bytes": 18605,
+      "original_estimated_tokens": 4613,
+      "accepted_bytes_saved": 93,
+      "status": "Description only"
+    },
+    {
+      "rank": 19,
+      "skill": "faffter-noon-spec",
+      "original_bytes": 17919,
+      "original_estimated_tokens": 4444,
+      "accepted_bytes_saved": 72,
+      "status": "Description only"
+    },
+    {
+      "rank": 20,
+      "skill": "faffter-noon-evaluate",
+      "original_bytes": 16192,
+      "original_estimated_tokens": 4024,
+      "accepted_bytes_saved": 253,
+      "status": "Description only"
+    },
+    {
+      "rank": 21,
+      "skill": "faffter-noon-ship",
+      "original_bytes": 14189,
+      "original_estimated_tokens": 3521,
+      "accepted_bytes_saved": 162,
+      "status": "Description only"
+    },
+    {
+      "rank": 22,
+      "skill": "faffter-noon-review",
+      "original_bytes": 13503,
+      "original_estimated_tokens": 3351,
+      "accepted_bytes_saved": 5458,
+      "status": "Accepted body: Producer guidance"
+    },
+    {
+      "rank": 23,
+      "skill": "faffter-dark-authoring-adaptors",
+      "original_bytes": 12540,
+      "original_estimated_tokens": 3108,
+      "accepted_bytes_saved": 219,
+      "status": "Description only; body draft in progress"
+    },
+    {
+      "rank": 24,
+      "skill": "faffter-noon-env-compose",
+      "original_bytes": 12443,
+      "original_estimated_tokens": 3095,
+      "accepted_bytes_saved": 211,
+      "status": "Description only"
+    },
+    {
+      "rank": 25,
+      "skill": "faffidavit-routing",
+      "original_bytes": 11236,
+      "original_estimated_tokens": 2783,
+      "accepted_bytes_saved": 92,
+      "status": "Description only; body attempt held"
+    },
+    {
+      "rank": 26,
+      "skill": "faffter-noon-env-code-interface",
+      "original_bytes": 9862,
+      "original_estimated_tokens": 2454,
+      "accepted_bytes_saved": 260,
+      "status": "Description only"
+    },
+    {
+      "rank": 27,
+      "skill": "faffter-noon-spec-review",
+      "original_bytes": 9605,
+      "original_estimated_tokens": 2381,
+      "accepted_bytes_saved": 1550,
+      "status": "Accepted body: Producer guidance"
+    },
+    {
+      "rank": 28,
+      "skill": "faffter-noon-intake",
+      "original_bytes": 7715,
+      "original_estimated_tokens": 1913,
+      "accepted_bytes_saved": 2026,
+      "status": "Accepted body: Brief output guidance"
+    },
+    {
+      "rank": 29,
+      "skill": "faffter-noon-transport-private-network",
+      "original_bytes": 6442,
+      "original_estimated_tokens": 1602,
+      "accepted_bytes_saved": 192,
+      "status": "Description only"
+    },
+    {
+      "rank": 30,
+      "skill": "faffter-noon-architecture",
+      "original_bytes": 4967,
+      "original_estimated_tokens": 1236,
+      "accepted_bytes_saved": 180,
+      "status": "Description only; body attempt held"
+    },
+    {
+      "rank": 31,
+      "skill": "faffter-noon-prd",
+      "original_bytes": 4517,
+      "original_estimated_tokens": 1123,
+      "accepted_bytes_saved": 2052,
+      "status": "Accepted body: Producer guidance"
+    },
+    {
+      "rank": 32,
+      "skill": "faffter-noon-adr",
+      "original_bytes": 4460,
+      "original_estimated_tokens": 1107,
+      "accepted_bytes_saved": 222,
+      "status": "Description only; body attempt held"
+    }
+  ],
+  "accepted_source_commit": "0188ce71c3c1b4262b31fda5f143e871143ae570",
+  "recorded_utc": "2026-11-17",
+  "body_or_reference_skills": 10,
+  "description_only_skills": 20,
+  "unchanged_skills": 2,
+  "note": "Held body drafts do not count as accepted body edits. Jot/prep description trials were restored. Twelve accepted body/reference slices span ten skill bundles."
+}

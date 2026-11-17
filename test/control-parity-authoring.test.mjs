@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
-import { createAuthoringEnvironment, gradeAuthoringCapture, inspectAuthoredSkill } from '../eval/control-parity/authoring-artifact.mjs';
+import { createAuthoringEnvironment, gradeAuthoringCapture, inspectAuthoredSkill, readReviewExample, reviewExampleConforms } from '../eval/control-parity/authoring-artifact.mjs';
 import { sha256 } from '../eval/control-parity/schema.mjs';
 
 const binding = { root: resolve(import.meta.dirname, '..'), entry: 'plugin/skills/faff/bin/faff' };
@@ -76,4 +76,38 @@ test('inspection cannot precede an authored output or repeat', async t => {
   await env.call('inspect_skill', { case_id: 'validate' });
   await assert.rejects(env.call('inspect_skill', { case_id: 'validate' }), /duplicate/);
   assert.equal(env.capture().errors.length, 2);
+});
+
+const example = '```faff-contract:review-verdict\n{"signal":"pass","findings":[]}\n```\n';
+const reviewExpected = { expected_signal: 'pass', expected_findings: [] };
+
+test('the real fixed-contract consumer admits the exact converted review example', () => {
+  const result = inspectAuthoredSkill(binding, 'review', example, { reviewExample: true });
+  assert.equal(result.configured.exit_code, 0);
+  assert.equal(reviewExampleConforms(result.review_example, reviewExpected, example), true);
+  assert.equal(result.review_example.consumer.stdin, readReviewExample(example).input);
+});
+
+test('structural review success cannot admit an invented verdict', () => {
+  const invalid = example.replace('"pass"', '"approved-with-risk"');
+  const result = inspectAuthoredSkill(binding, 'review', invalid, { reviewExample: true });
+  assert.equal(result.configured.exit_code, 0);
+  assert.equal(result.review_example.consumer.exit_code, 1);
+  assert.equal(reviewExampleConforms(result.review_example, reviewExpected, invalid), false);
+});
+
+test('missing, duplicate and malformed example blocks fail closed', () => {
+  for (const text of ['', example + example, example.replace('"pass"', 'pass')]) {
+    const result = inspectAuthoredSkill(binding, 'review', text || 'faff-contract:review-verdict', { reviewExample: true });
+    assert.equal(result.review_example.parsed.status, 'fail');
+    assert.equal(result.review_example.consumer, null);
+  }
+});
+
+test('a conformant consumer result for different example bytes is rejected', () => {
+  const result = inspectAuthoredSkill(binding, 'review', example, { reviewExample: true });
+  const changed = example.replace('"pass"', '"fail"');
+  assert.equal(reviewExampleConforms(result.review_example, reviewExpected, changed), false);
+  result.review_example.consumer.stdin = '{}';
+  assert.equal(reviewExampleConforms(result.review_example, reviewExpected, example), false);
 });

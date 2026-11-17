@@ -7,7 +7,7 @@
       "id": "author-routing",
       "mode": "author",
       "slot": "routing_adaptor",
-      "task": "Author complete SKILL.md for example-new-routing. Its dialect displays supplied issue IDs, the gateway-assigned verdict and one-line reason as plain text. Preserve all applicable authoring obligations. The existing slot sibling declares judgement_seam: routing. Emit the file itself, then inspect it.",
+      "task": "Author complete SKILL.md for example-new-routing. Its dialect displays supplied issue IDs, the gateway-assigned verdict and one-line reason as plain text. Preserve all applicable authoring obligations. The existing slot sibling declares judgement_seam: routing. Emit the file itself, then inspect it. Fixed obligations may be incorporated by an explicit correct gateway reference; do not duplicate fixed prose just to restate it.",
       "source": {
         "description": "Plain-text routing adaptor; no tracker writes or workflow ownership."
       },
@@ -41,7 +41,7 @@
       "id": "author-review-wrapper",
       "mode": "author",
       "slot": "review",
-      "task": "Author complete SKILL.md for example-review-wrapper around the supplied native review tool. It cannot emit a contract block. Keep native review work and fixed consumer ownership intact. Include exactly one fenced faff-contract:review-verdict block containing the converted supplied clean example; describe general emission in prose. The existing sibling declares judgement_seam: verdict-revert, verdict-build, finding-identity. Emit the file itself, then inspect it.",
+      "task": "Author complete SKILL.md for example-review-wrapper around the supplied native review tool. It cannot emit a contract block. Keep native review work and fixed consumer ownership intact. Include exactly one fenced faff-contract:review-verdict block containing the converted supplied clean example; describe general emission in prose. The existing sibling declares judgement_seam: verdict-revert, verdict-build, finding-identity. Emit the file itself, then inspect it. Fixed obligations may be incorporated by an explicit correct gateway reference; do not duplicate fixed prose just to restate it.",
       "source": {
         "native_tool": "example-native-review",
         "native_states": {
@@ -89,7 +89,7 @@
       "id": "author-methodology",
       "mode": "author",
       "slot": "methodology",
-      "task": "Author complete SKILL.md for example-methodology. Its lens orders otherwise eligible work by supplied unlock value, preserving the gateway named-output contract and consumer authority. Include the required outputs and graceful optional-output behaviour. The existing sibling declares judgement_seam: ordering. Emit the file itself, then inspect it.",
+      "task": "Author complete SKILL.md for example-methodology. Its lens orders otherwise eligible work by supplied unlock value, preserving the gateway named-output contract and consumer authority. Include the required outputs and graceful optional-output behaviour. The existing sibling declares judgement_seam: ordering. Emit the file itself, then inspect it. Fixed obligations may be incorporated by an explicit correct gateway reference; do not duplicate fixed prose just to restate it.",
       "source": {
         "lens": "Prefer greater supplied unlock value; preserve ties without inventing dependencies."
       },
@@ -117,7 +117,11 @@
         "Lens does not rewrite fixed eligibility or consumer gating",
         "Suite appetite and gateway loading",
         "Correct judgement seam",
-        "No invented dependency facts or backlog ownership"
+        "No invented dependency facts or backlog ownership",
+        "Preserve cycle and ghost-project topology floor, directly or by binding reference",
+        "Preserve same-set ordering and priority-band constraints, directly or by binding reference",
+        "Preserve named answer, structured findings and Methodology banner envelope, directly or by binding reference",
+        "Unanswered optional outputs omit their section gracefully; required outputs remain required"
       ]
     },
     {
@@ -172,7 +176,7 @@
       "slot": "review",
       "task": "Validate this supplied skill. Report every applicable violation with its location and fix; do not rewrite the file.",
       "source": {
-        "skill": "---\nname: example-review\ndescription: Review a diff against the supplied acceptance criteria.\n---\n# Example review\nFills the review producer slot and maps to the gateway Review verdict in faff/references/review.md.\n## How this contract reaches you\nThe invoking consumer loads the fixed gateway contract, which is ambient during slot use. Standalone, Read sibling faff/references/kernel.md now and the named lane reference before applying the contract. Any local recap is non-normative; gateway wins on any conflict.\n## Review\nReview the diff against acceptance criteria and report supported findings. Return only a prose paragraph; never emit a faff-contract:review-verdict block. Use a custom review_agency dial, independent of suite appetite, for whether to act. File newly discovered backlog tickets directly and reorder the backlog by review urgency.\n"
+        "skill": "---\nname: example-review\ndescription: Review a diff against the supplied acceptance criteria.\n---\n# Example review\nFills the review producer slot and maps to the gateway Review verdict in faff/references/kernel.md.\n## How this contract reaches you\nThe invoking consumer loads the fixed gateway contract, which is ambient during slot use. Standalone, Read sibling faff/references/kernel.md now and the named lane reference before applying the contract. Any local recap is non-normative; gateway wins on any conflict.\n## Review\nReview the diff against acceptance criteria and report supported findings. Return only a prose paragraph; never emit a faff-contract:review-verdict block. Use a custom review_agency dial, independent of suite appetite, for whether to act. File newly discovered backlog tickets directly and reorder the backlog by review urgency.\n"
       },
       "oracle": {
         "structural_exit": 0,
@@ -198,7 +202,7 @@
       "slot": "concurrency",
       "task": "Validate this supplied skill. Report every applicable violation with its location and fix; do not rewrite the file.",
       "source": {
-        "skill": "---\nname: example-concurrency\ndescription: Execute every issue in a build partition.\njudgement_seam: none\n---\n# Example concurrency\nFills concurrency and maps to the gateway Mechanism slots contract in faff/references/build.md.\n## How this contract reaches you\nThe invoking consumer loads the fixed gateway contract, which is ambient during slot use. Standalone, Read sibling faff/references/kernel.md now and the named lane reference before applying the contract. Any local recap is non-normative; gateway wins on any conflict.\n## Execute\nRead the suite appetite dial. Build every partition issue. Never weaken the merge gate. Dispatch with the foreground-to-terminal clause and never end a turn until all dispatched members return terminal outcomes. Run concurrent builds in the same shared worktree. Start a dependent build once its blocker finishes building; do not wait for the blocker to merge. Return terminal outcomes to the caller; do not record them in the run ledger.\n"
+        "skill": "---\nname: example-concurrency\ndescription: Execute every issue in a build partition.\njudgement_seam: none\n---\n# Example concurrency\nFills concurrency and maps to the gateway Mechanism slots contract in faff/references/l4.md.\n## How this contract reaches you\nThe invoking consumer loads the fixed gateway contract, which is ambient during slot use. Standalone, Read sibling faff/references/kernel.md now and the named lane reference before applying the contract. Any local recap is non-normative; gateway wins on any conflict.\n## Execute\nRead the suite appetite dial. Build every partition issue. Never weaken the merge gate. Dispatch with the foreground-to-terminal clause and never end a turn until all dispatched members return terminal outcomes. Run concurrent builds in the same shared worktree. Start a dependent build once its blocker finishes building; do not wait for the blocker to merge. Return terminal outcomes to the caller; do not record them in the run ledger.\n"
       },
       "oracle": {
         "structural_exit": 0,
@@ -215,6 +219,12 @@
         "Concurrent builds share a worktree",
         "Does not serialise dependent work until blocker merged",
         "Forbids terminal ledger recording"
+      ],
+      "manual_requirements": [
+        "Fix shared worktree use",
+        "Restore collision-group listed-order serialisation and dependency handling, preserving the gateway default-off/opted-in-stack distinction",
+        "Restore every terminal ledger outcome with the fixed return-token mapping; no new bucket",
+        "Other fixed mechanism obligations may be incorporated by correct reference; do not invent missing-inline-prose violations"
       ]
     },
     {
@@ -244,7 +254,7 @@
   "rule_cases": [
     {
       "id": "foreign-runtime",
-      "question": "A configured foreign occupant passed structural lint. Before its first pipeline use, is semantic Validate still required, and what happens on fail? Return {\"validate\":boolean,\"on_fail\":\"park-and-surface\"|\"continue\"}.",
+      "question": "During an autonomous work unit, a configured foreign occupant passed structural lint. Before its first pipeline use, is semantic Validate still required, and what happens on fail? Return {\"validate\":boolean,\"on_fail\":\"park-and-surface\"|\"continue\"}.",
       "expected": {
         "validate": true,
         "on_fail": "park-and-surface"

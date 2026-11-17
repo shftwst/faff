@@ -1,0 +1,103 @@
+{
+  "source_commit": "3754eb4ab5a1e70766329fe7fa7af8ac341b9d58",
+  "baseline_commit": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+  "tests": {
+    "command": [
+      "node",
+      "--test",
+      "test/onboard-local.test.mjs",
+      "test/prdr-loop-admit.test.mjs",
+      "test/run-start-wiring.test.mjs",
+      "test/prose-size.test.mjs",
+      "test/eval-cli-driver.test.mjs"
+    ],
+    "environment": {
+      "GIT_CONFIG_COUNT": "1",
+      "GIT_CONFIG_KEY_0": "commit.gpgsign",
+      "GIT_CONFIG_VALUE_0": "false",
+      "TMPDIR": "/var/tmp"
+    },
+    "exit_code": 0,
+    "tests": 143,
+    "pass": 143,
+    "fail": 0,
+    "skipped": 0
+  },
+  "adapter_lint": {
+    "command": [
+      "node",
+      "plugin/skills/faff/bin/faff",
+      "validate-adapters"
+    ],
+    "exit_code": 0,
+    "result": "pass"
+  },
+  "rule_inventory": {
+    "command": [
+      "node",
+      "plugin/skills/faff/bin/faff",
+      "rule-inventory",
+      "check",
+      "--base",
+      "bf839cfcc13194df284296ababd8966bd9f2ab62",
+      "--json"
+    ],
+    "exit_code": 0,
+    "result": "pass",
+    "blocks_deleted": 92,
+    "uncovered": 0,
+    "row_errors": 0
+  },
+  "review_findings": 6,
+  "review_findings_resolved": 6,
+  "model_runs": 0,
+  "fidelity_limit": "Source review and existing deterministic tests; no full model behavioural parity claim.",
+  "evidence_commit": "1258d5ecab27777f58fc1a5c92a300a0abbf0e44",
+  "logs": [
+    {
+      "file": "tests.txt",
+      "url": "https://github.com/shftwst/faff/blob/1258d5ecab27777f58fc1a5c92a300a0abbf0e44/verification/experiments/2026-11-17-paragraph-pass/tests.txt",
+      "sha256": "d23f04c7e9c19e1fde2fafccdd82684b703ea12f9cbb0da37a18fc9f372a7fe9"
+    },
+    {
+      "file": "adapter-lint.txt",
+      "url": "https://github.com/shftwst/faff/blob/1258d5ecab27777f58fc1a5c92a300a0abbf0e44/verification/experiments/2026-11-17-paragraph-pass/adapter-lint.txt",
+      "sha256": "07c39575689b4ef540ee678e927afa8e8c7b9962aa0ec32b0aef9bd9b547cd76"
+    },
+    {
+      "file": "rule-inventory.json",
+      "url": "https://github.com/shftwst/faff/blob/1258d5ecab27777f58fc1a5c92a300a0abbf0e44/verification/experiments/2026-11-17-paragraph-pass/rule-inventory.json",
+      "sha256": "efb7986884964d76b98e759141e9b0754582008c59d0f1a158cf2c34d299cffe"
+    },
+    {
+      "file": "2026-11-17-paragraph-jot-review.json",
+      "url": "https://github.com/shftwst/faff/blob/1258d5ecab27777f58fc1a5c92a300a0abbf0e44/verification/experiments/2026-11-17-paragraph-pass/2026-11-17-paragraph-jot-review.json",
+      "sha256": "ede6b5b1ccbf40d11c825c1a64d7c80186a262af5180d98f1a9dad26b1887803"
+    },
+    {
+      "file": "2026-11-17-paragraph-onboard-review.json",
+      "url": "https://github.com/shftwst/faff/blob/1258d5ecab27777f58fc1a5c92a300a0abbf0e44/verification/experiments/2026-11-17-paragraph-pass/2026-11-17-paragraph-onboard-review.json",
+      "sha256": "248f210c0e9ae961b12393e425f6835d0a76c396fec2613435215b7f7889a666"
+    },
+    {
+      "file": "2026-11-17-paragraph-plot-review.json",
+      "url": "https://github.com/shftwst/faff/blob/1258d5ecab27777f58fc1a5c92a300a0abbf0e44/verification/experiments/2026-11-17-paragraph-pass/2026-11-17-paragraph-plot-review.json",
+      "sha256": "db65adecaad1ad1548bfb5967ba81b3d404d0c2cec82e4cbc5104145a913a22a"
+    },
+    {
+      "file": "agile-review.json",
+      "url": "https://github.com/shftwst/faff/blob/1258d5ecab27777f58fc1a5c92a300a0abbf0e44/verification/experiments/2026-11-17-paragraph-pass/agile-review.json",
+      "sha256": "630ae852533acaf2fb56a04719f306c4fc70fd7b9a0c4ad847d37dcf181b58c8"
+    },
+    {
+      "file": "2026-11-17-paragraph-agile-correction-review.json",
+      "url": "https://github.com/shftwst/faff/blob/1258d5ecab27777f58fc1a5c92a300a0abbf0e44/verification/experiments/2026-11-17-paragraph-pass/2026-11-17-paragraph-agile-correction-review.json",
+      "sha256": "1841e93aaa9e7fa6977e245498a9995d741834ce096994405908ce22c5febe82"
+    },
+    {
+      "file": "2026-11-17-paragraph-review-corrections.json",
+      "url": "https://github.com/shftwst/faff/blob/1258d5ecab27777f58fc1a5c92a300a0abbf0e44/verification/experiments/2026-11-17-paragraph-pass/2026-11-17-paragraph-review-corrections.json",
+      "sha256": "b490935257c55490e664e50fab242725442048a955079308cfe357e9f5c9534f"
+    }
+  ]
+}

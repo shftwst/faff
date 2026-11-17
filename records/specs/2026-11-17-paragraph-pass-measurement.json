@@ -1,0 +1,58 @@
+{
+  "baseline_commit": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+  "scope": "Four-skill paragraph pass only; additional to PR #1204, which is not merged at recording time.",
+  "token_method": "sum ceil(UTF-16 code units / 4) per complete file; estimates, not tokenizer counts",
+  "files": [
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "before_bytes": 23298,
+      "after_bytes": 19678,
+      "saved_bytes": 3620,
+      "before_estimated_tokens": 5766,
+      "after_estimated_tokens": 4877,
+      "saved_estimated_tokens": 889,
+      "before_sha256": "f0d8aa30e61b12624b3e29abb95bf1c678f675a17d6cc58f3eab1234bbe47d97",
+      "after_sha256": "6ccd48d0bd390b80909f42f7a178afdfd1b97f33c739d0e495266741aeec8516"
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "before_bytes": 23024,
+      "after_bytes": 18033,
+      "saved_bytes": 4991,
+      "before_estimated_tokens": 5693,
+      "after_estimated_tokens": 4463,
+      "saved_estimated_tokens": 1230,
+      "before_sha256": "bee1f065f9487a723f4a55cb7a80d1156d2f861e6a482205e532f76fd51ab6cf",
+      "after_sha256": "7a461d10c65a0098c219b65cb67a0d34065fa2ef28268bb89e592009830be786"
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "before_bytes": 45820,
+      "after_bytes": 42606,
+      "saved_bytes": 3214,
+      "before_estimated_tokens": 11321,
+      "after_estimated_tokens": 10532,
+      "saved_estimated_tokens": 789,
+      "before_sha256": "3f115b17e9d4017332eea3bdbdb747735796435e2d57852b588d70c8222c5d31",
+      "after_sha256": "2104007c47b11d711bcbcc9db14e2e442c23718f759494418faa5cd5fa820b96"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "before_bytes": 44542,
+      "after_bytes": 40637,
+      "saved_bytes": 3905,
+      "before_estimated_tokens": 11037,
+      "after_estimated_tokens": 10084,
+      "saved_estimated_tokens": 953,
+      "before_sha256": "89b43b786f2ef8b5cce223813966cc8547456ac62961141a3c985252b2358251",
+      "after_sha256": "b8013fc4b6de88c0cf9766af1a2ad0348ef70db28051f1a14276f5c307a94469"
+    }
+  ],
+  "saved_bytes": 15730,
+  "saved_estimated_tokens": 3861,
+  "fidelity_before": "Original obligations read directly at the pinned baseline; no new behavioural model baseline.",
+  "fidelity_after": "Independent source review with six semantic findings corrected; 143 existing relevant tests and adapter lint pass. No full model behavioural parity claim.",
+  "model_runs": 0,
+  "executable_code_changes": false,
+  "test_changes": false
+}

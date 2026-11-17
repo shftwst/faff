@@ -7,9 +7,9 @@ user-invocable: false
 
 # faffter-dark-spec-review
 
-The **L4 (lights-out)** occupant of the **`spec_review`** slot. Where the default single-pass reviewer walks four lenses as one checklist, this runs **each enabled lens as its own independent adversarial pass** — a separate model invocation prompted to *refute* the spec from that lens's angle — then maps the set of refutations onto one founded verdict by a deterministic majority/severity rule. It challenges the *approach itself*, while the work is still just a spec, before any code exists.
+The **L4 (lights-out)** `spec_review` occupant runs **each enabled lens as its own independent adversarial pass**, a separate model invocation prompted to refute the spec from that lens's angle. A deterministic majority/severity rule maps those refutations to one founded verdict. Unlike the default four-lens checklist in one pass, it challenges the approach through independent passes before code exists.
 
-It is the spec-stage twin of the code-stage adversarial reviewer: same independent-model transport, one altitude up. At L4 there is no human in the room, so a single pass run by one model — even a four-lens one — inherits that model's correlated blind spots; running the lenses as **independent** passes is what decorrelates them.
+It shares the code-stage adversarial reviewer's independent-model transport. With no human at L4, independent lens passes reduce the correlated blind spots of one model pass.
 
 > When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/methodology.md` (the methodology lane it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 

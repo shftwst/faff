@@ -7,7 +7,7 @@ judgement_seam: routing
 
 # faffidavit-routing
 
-The default **adaptor** for the `routing_adaptor` slot. It **assigns** an automation-routing verdict to a spec-gated issue — from `backlog-diagnostics` findings + spec confidence + markers + park history — renders the verdicts consumers display, and **validates** an assignment on demand. A `faffidavit-*` skill: it both *defines* its assignment/display dialect and *checks* conformance.
+The default `routing_adaptor` assigns an automation-routing verdict from `backlog-diagnostics`, spec confidence, markers and park history, renders it for consumers and validates assignments on demand. It defines its assignment/display dialect and checks conformance.
 
 ```yaml
 slots:
@@ -21,7 +21,7 @@ The automation-routing contract itself is a faff-core invariant and lives in the
 - the closed six-verdict vocabulary and the root-cause class enum shared by repeat-park detection and the calibration log — canonical semantics: `faff contract automation-routing --describe`,
 - the **build-queue admission rule** — only the two build-ready verdicts ever enter the queue; all others route out with a one-line reason surfaced in wtf, never silently dropped.
 
-These are the stable boundary between the `methodology` slot and three consumers — `/faff-beep-boop`'s admission gate, `/faff-wtf`'s morning brief, `/faff-graft`'s park logic. Whatever methodology detects the backlog problems, the verdict words that gate admission stay fixed in the gateway. This skill does not get to change them. What it owns is *assignment + display* — how an issue is mapped onto a verdict, and how verdicts are rendered.
+This boundary binds the `methodology` slot and `/faff-beep-boop` admission, `/faff-wtf` briefing and `/faff-graft` parking. The gateway fixes verdict vocabulary regardless of methodology; this skill owns only assignment and display.
 
 **How this contract reaches you.** The fixed definition is loaded by the invoking consumer (`/faff-tidy` / `/faff-beep-boop` / `/faff-wtf` read the gateway on entry), so when you run as the `routing_adaptor` slot it is already in context. If you are invoked **standalone** ("why wouldn't SHF-123 fire?"), **Read the sibling `faff/references/kernel.md` (the shared kernel) → _Core contracts and adaptor slots → Automation-routing verdict_ now**, together with the lane references routing consumes — `faff/references/autonomous.md` (Resolve-attempt before park), `faff/references/methodology.md` (the methodology slot), `faff/references/review.md` (Producer slots vs adaptor slots), and `faff/references/park.md` (Park protocol) — before assigning. Refer back to it; never treat the recap below as the source of truth.
 
@@ -40,7 +40,7 @@ The adaptor assigns exactly one per Todo issue with a discoverable spec. The aut
 
 ### Conflict-analysis integration
 
-When assigning `likely-fire`, the verdict **anticipates** the collision-group serialisation conflict analysis would do anyway. An issue's verdict is `likely-fire` (not `fire-and-forget`) precisely when conflict analysis will serialise it. This keeps morning briefs honest — the human sees up front which issues run in parallel vs. queue behind a predecessor.
+Assign `likely-fire`, not `fire-and-forget`, precisely when conflict analysis will serialise the issue. Morning briefs then distinguish parallel work from work queued behind a predecessor.
 
 ## Adaptor (this skill's dialect)
 

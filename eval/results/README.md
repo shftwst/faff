@@ -9,3 +9,4 @@ Role columns are mean accuracy over the skills in that role (delta against the r
 | model | date | tier | producer | reviewer | judge |
 |---|---|---|---|---|---|
 | [spark/deepseek-v4.1-flash-1017](spark-deepseek-v4.1-flash-1017/2026-11-16/README.md) | 2026-11-16 | mixed (see notes) | 0.987 (-0.009) | 0.894 (-0.078) | 0.867 (-0.050) |
+| [spark/deepseek-v4.1-flash-1017](spark-deepseek-v4.1-flash-1017/2026-11-17/README.md) | 2026-11-17 | mixed (see notes) | 0.984 (-0.012) | 0.903 (-0.068) | 0.842 (-0.050) |

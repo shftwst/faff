@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "c3dcb8ff44d0fd2833595ddb22653576a43895fc",
+  "base": "f433f19d1fb4e1cf49dd75077afc99fdb525bc44",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -9,18 +9,18 @@
   },
   "current_main": {
     "files": 41,
-    "bytes": 1242438,
-    "estimated_tokens": 308014
+    "bytes": 1239940,
+    "estimated_tokens": 307400
   },
   "landed_savings": {
-    "bytes": 129643,
-    "estimated_tokens": 31915
+    "bytes": 132141,
+    "estimated_tokens": 32529
   },
   "pending_extractions": [
     {
       "skill": "kernel core contracts",
       "pr": "https://github.com/shftwst/faff/pull/1214",
-      "head": "72897030677cb849c3f144927b5ae167830ae714",
+      "head": "285dc1cfd28f96c804e1fb3263aa6752b2235d06",
       "path": "plugin/skills/faff/references/kernel.md",
       "before": {
         "bytes": 83652,
@@ -108,15 +108,19 @@
       "publication_binding": "Rebased to main 89ad284a; measured kernel hash unchanged.",
       "status": "open",
       "ci": {
-        "status": "pass",
+        "status": "running",
         "failed": [],
-        "remaining": []
-      }
+        "remaining": [
+          "unit (2)",
+          "typecheck"
+        ]
+      },
+      "remote_rebase_measured_source_unchanged": true
     },
     {
       "skill": "graft, prep and adversarial spec-review paragraphs",
       "pr": "https://github.com/shftwst/faff/pull/1215",
-      "head": "ba7512b6f5386e4483059bdc4bfdd7009e581e29",
+      "head": "6586b76dc8425f605879c88da20ca011c685efac",
       "saved": {
         "bytes": 12646,
         "estimated_tokens": 3111
@@ -176,15 +180,52 @@
           "unit (1)",
           "unit (2)",
           "unit (3)",
-          "unit (4)",
+          "validate-macos",
+          "env-rootless",
           "typecheck"
         ]
-      }
+      },
+      "remote_rebase_measured_source_unchanged": true
+    },
+    {
+      "skill": "spec, evaluate, ship, map, nlspec and routing paragraphs",
+      "pr": "https://github.com/shftwst/faff/pull/1218",
+      "head": "c4781bb56cb5e5cd6ce6f0498be16f042e905939",
+      "saved": {
+        "bytes": 3497,
+        "estimated_tokens": 861
+      },
+      "local_checks": {
+        "tests_passed": 158,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass;31/31",
+        "independent_source_review": "pass",
+        "frontmatter_headings_fences_tables": "unchanged"
+      },
+      "new_model_samples": 0,
+      "limits": [
+        "Conservative source review and existing tests; no fresh model parity claim."
+      ],
+      "ci": {
+        "status": "running",
+        "failed": [],
+        "remaining": [
+          "unit (1)",
+          "Validate PR title (Conventional Commits)",
+          "unit (2)",
+          "unit (3)",
+          "unit (4)",
+          "env-rootless",
+          "typecheck"
+        ]
+      },
+      "status": "open",
+      "remote_rebase_measured_source_unchanged": true
     }
   ],
   "pending_savings": {
-    "bytes": 25820,
-    "estimated_tokens": 6342
+    "bytes": 29317,
+    "estimated_tokens": 7203
   },
   "limits": [
     "PRs 1207 through 1213 have merged. Fresh diagnostics and historical cohorts remain separate.",
@@ -194,8 +235,8 @@
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1216618,
-    "estimated_tokens": 301672
+    "bytes": 1210623,
+    "estimated_tokens": 300197
   },
   "landed_extractions": [
     {
@@ -655,6 +696,33 @@
       },
       "new_model_samples": 2,
       "merge_commit": "c3dcb8ff44d0fd2833595ddb22653576a43895fc"
+    },
+    {
+      "skill": "concurrency paragraphs",
+      "pr": "https://github.com/shftwst/faff/pull/1217",
+      "head": "6bb9a52a7b3d8dac5e3eceb2dcc8d638905b4f39",
+      "saved": {
+        "bytes": 2498,
+        "estimated_tokens": 614
+      },
+      "local_checks": {
+        "tests_passed": 258,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass;14/14",
+        "independent_source_review": "pass",
+        "frontmatter_headings_fences_tables": "unchanged"
+      },
+      "new_model_samples": 0,
+      "limits": [
+        "Conservative source review and existing tests; no fresh model parity claim."
+      ],
+      "ci": {
+        "status": "pass",
+        "failed": [],
+        "remaining": []
+      },
+      "status": "merged",
+      "merge_commit": "f433f19d1fb4e1cf49dd75077afc99fdb525bc44"
     }
   ],
   "local_not_counted": [
@@ -700,7 +768,44 @@
         "estimated_tokens": 1979
       },
       "status": "Held: fresh ledger baseline13/14, missing phase-events ledger read; native audit also fails non-JSON heredoc. Consumer replay3/3 cannot waive either. Reporting baseline6/6 and native/assessment pass. Neither candidate launched."
+    },
+    {
+      "skill": "stored review-comment CLI extraction",
+      "pr": "https://github.com/shftwst/faff/pull/1216",
+      "head": "8b29b9dd3e44787a3aa13a38ea9df3b296c00932",
+      "saved_static_prompt": {
+        "bytes": 3211,
+        "estimated_tokens": 786
+      },
+      "added_tool_declarations": {
+        "bytes": 998,
+        "estimated_tokens": 250
+      },
+      "net_static_guidance": {
+        "bytes": 2213,
+        "estimated_tokens": 536
+      },
+      "status": "draft;219 focused tests pass after test-only CI fixes; hosted connector qualification outstanding; one diagnostic launch blocked before any provider request because interactive worker lacks required OAuth environment; zero retries",
+      "limits": [
+        "No fresh model parity or actual hosted connector qualification.",
+        "Net estimate excludes protocol and output; does not claim repository shrinkage."
+      ]
+    },
+    {
+      "skill": "prep-context CLI and caller port",
+      "head": "ee5fbb64345c002de517afad08a3dbf3ce57c8ef",
+      "saved_provisional": {
+        "bytes": 1976,
+        "estimated_tokens": 486
+      },
+      "status": "local unpublished; code64 focused tests and caller161 existing checks pass; independent source review and literal prompt shell smoke pass; no model workflow run",
+      "source_sha256": "ea9e251bf079628aafcbb33367c7520030452b0ca8756819fe63de92751bb1be",
+      "limits": [
+        "PR1215 overlaps one replaced explanation; recompute incremental savings after it merges. Do not add this provisional figure to qualified pending totals.",
+        "Raw comment judgement and provenance remain caller-owned; all input/fold failures now explicitly prevent dispatch, a disclosed conservative tightening.",
+        "No new mandatory help/reference load or tool declarations. Added code is tracked separately."
+      ]
     }
   ],
-  "recorded_at_utc": "2026-11-17T20:06:42.639034+00:00"
+  "recorded_at_utc": "2026-11-17T20:53:13.344772+00:00"
 }

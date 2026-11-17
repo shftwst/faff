@@ -1,0 +1,17 @@
+{
+  "status": "pass",
+  "kind": "literal new prompt shell smoke",
+  "head": "ee5fbb64345c002de517afad08a3dbf3ce57c8ef",
+  "prompt_sha256": "ea9e251bf079628aafcbb33367c7520030452b0ca8756819fe63de92751bb1be",
+  "conditions": "No run directory, no resolution variable, empty local source",
+  "exit": 3,
+  "result": {
+    "status": "absent",
+    "assembly_exit": 3,
+    "file": null,
+    "sha256": null,
+    "warnings": [],
+    "diagnostic": null
+  },
+  "scope": "Verifies executable optional-argument syntax and default empty array from the authored prompt. Not a model workflow/parity check."
+}

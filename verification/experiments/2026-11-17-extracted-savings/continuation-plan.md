@@ -11,15 +11,15 @@ Record complete-file bytes and ceil(UTF-16 code units /4) token estimates. Track
 | Phase | Scope | Planning range, not measured | Determinism |
 |---|---|---|---|
 | Conservative paragraphs | Graft/prep/adversarial spec-review, concurrency, remaining producers and shared references | Further 20-50KB beyond earlier prepared extractions | Source rules unchanged; no new machine enforcement |
-| Mechanical CLI extraction | Stored review-comment apply; bounded ledger/event bookkeeping or prep context assembly using existing functions | Potential 80-180KB across later slices, dependent on source inventories | Code owns validated mechanical operations; model supplies judgement inputs |
-| Deduplication and loading | One shared home, required stage-only reads, concise command contracts | Potential 30-80KB actual duplicate removal; task-loaded savings separately measured | Shared validation reduces interpretation differences; lazy loading alone is not determinism |
+| Mechanical CLI extraction | Stored review-comment apply; bounded ledger/event bookkeeping or prep context assembly using existing functions | First tranche roughly 10-20KB net; larger total not yet substantiated | Code owns validated mechanical operations; model supplies judgement inputs |
+| Deduplication and loading | One shared home, required stage-only reads, concise command contracts | Provisional 30-80KB duplicate-removal target pending inventory; task-loaded savings separately measured | Shared validation reduces interpretation differences; lazy loading alone is not determinism |
 | Judgement compression | Review/spec/methodology text and useful examples | Test 5-15% reductions of affected remaining text; no suite forecast yet | Remains probabilistic, measured by fidelity and failure rates |
 
-Working suite target: 25-35% below original 1,372,081B, approximately 0.89-1.03MB/220-255k estimated tokens. This is a planning target, not evidence or a promised result. Do not add overlapping ranges.
+Working suite target: first 25% below the original 1,372,081B, approximately 1.03MB/255k estimated tokens. A 35% reduction, approximately 0.89MB/220k tokens, is a stretch target requiring further demonstrated opportunities. This is a planning target, not evidence or a promised result. Do not add overlapping ranges.
 
 ## Current concrete CLI work
 
-- Stored comment application: draft PR #1216 extracts production code without its old harness. Static prompt saving 3,211B/786tokens; new tool definitions 998B/250tokens when loaded, leaving 2,213B/536tokens before protocol/output costs. 163 tests and independent source review pass. Actual hosted connector/auth/listing/ack qualification remains missing; no default activation or savings counted as landed.
+- Stored comment application: draft PR #1216 extracts production code without its old harness. Static prompt saving 3,211B/786tokens; new tool definitions 998B/250tokens when loaded, leaving 2,213B/536tokens before protocol/output costs. 219 focused tests and independent source review pass. Actual hosted connector/auth/listing/ack qualification remains missing; no default activation or savings counted as landed.
 - Prep context assembly: compose scratch/container/ratified-scope operations only where existing rules are defined. Raw intent topic parsing and equal/missing timestamp policy are unspecified; preserve the caller's existing structured-resolution extraction rather than invent parser policy. No new review-loop state machine.
 - Inspected bookkeeping surfaces total about 21KB across three candidate areas. These are ceilings, not net savings, and overlap historical ledger prose cuts. Larger CLI-phase estimates remain provisional pending broader inventories.
 
@@ -28,3 +28,15 @@ Working suite target: 25-35% below original 1,372,081B, approximately 0.89-1.03M
 Source-only cuts: independent actual before/after review, unchanged protected operational text, relevant existing consumer tests, adapter lint and complete rule inventory. Claim source review and test coverage accurately; no new model parity claim where none ran.
 
 CLI cuts: test extracted rules/failures and real consumers, then use a bounded intended-driver check that invokes the actual new command. Existing fixture coverage of old constituent commands does not certify a new wrapper. Reuse existing infrastructure; do not build another general framework. Preserve failed runs and stop unproductive retries.
+
+## Forecast update after closer source inspection
+
+The three further bounded CLI slices in `faff-cli-next-large-slices.json` contain 23,060 source bytes but only 5,300-9,000 estimated net prompt bytes can be removed while retaining caller judgement, live tracker reads and write authority. Prefer tidy container-coherence composition first, then graft failed-fix bookkeeping if repeat-call identity is already defined. Beep filing preflight has more entanglement. The earlier 80-180KB CLI-phase forecast is withdrawn as insufficiently grounded; the first tranche is approximately 10-20KB net, including the first two implementations and previously inspected bookkeeping. No full-suite forecast is evidence.
+
+CLI work is already underway in parallel with paragraphs. Review-comment is draft until real connector qualification; its source-bound diagnostic did not reach a model because the worker environment lacked the required OAuth token. Prep-context code and direct consumers pass 64 focused tests. Its caller port passes 161 existing checks, independent source review and a literal shell invocation. It saves a provisional 1,976B/486tokens before overlap with PR1215 is removed; intended-driver workflow measurement remains outstanding. Neither is counted as landed.
+
+## Delivery order and stopping rules
+
+Finish the remaining conservative paragraph pass while qualifying the two implemented CLI slices. Land small changes against current main, then use the same commands across additional callers where their contracts match. Before broader CLI work, require a net prompt estimate and a concrete mechanical failure or repeated procedure worth owning in code; avoid a new wrapper for a trivial sentence saving. Start shared-rule/load-path inventory in parallel after those first slices are qualified, keeping required safety/authority contracts on every relevant path. Compress judgement guidance last, retaining useful examples unless the existing fidelity checks support removal.
+
+Do not wait for all 32 skills to finish before merging individual slices. Do not count moved always-read text, overlapping branch cuts, tool-schema overhead, held runs or unpublished prototypes as landed savings. Track exact command outputs/invalid-input handling separately from model adherence and judgement fidelity; no numerical determinism percentage is justified for the whole system.

@@ -1,0 +1,250 @@
+{
+  "status": "source-and-existing-checks-pass-pending-independent-review",
+  "base_commit": "c3dcb8ff44d0fd2833595ddb22653576a43895fc",
+  "source_commits": [
+    "8a2edb622997c7e59d33dda727afd0424489708f",
+    "bfa3055c82916dcaf702f68db3b65b70d7f06b3d"
+  ],
+  "metadata_commit": "b102bda1e2d9b1b5e3caf5cc6d368802b8ea1e85",
+  "branch": "feat/skill-diet-spec-evaluate-ship-paragraph-main",
+  "files": [
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "before": {
+        "bytes": 17088,
+        "tokens_ceil_utf16_over_4": 4241,
+        "lines": 147,
+        "sha256": "452153f23a48b9cc96664350072563915deabea2dbb6bf99c0b8bce8dbd21c86"
+      },
+      "after": {
+        "bytes": 16577,
+        "tokens_ceil_utf16_over_4": 4115,
+        "lines": 147,
+        "sha256": "b2755b2a2935eb57cee4fdfd47de029459bf686e46355c5eef2d792d482593a5"
+      },
+      "saved_bytes": 511,
+      "saved_tokens": 126
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "before": {
+        "bytes": 15758,
+        "tokens_ceil_utf16_over_4": 3919,
+        "lines": 81,
+        "sha256": "81aeaa273338c66cd4460c3eb2b6f7a9b00981b740959daa77702b02125b021b"
+      },
+      "after": {
+        "bytes": 15592,
+        "tokens_ceil_utf16_over_4": 3878,
+        "lines": 81,
+        "sha256": "0e129824ca4346ec36bc22925825bb8cb0525ba6066b7400cb0598c7d0a8485b"
+      },
+      "saved_bytes": 166,
+      "saved_tokens": 41
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "before": {
+        "bytes": 13651,
+        "tokens_ceil_utf16_over_4": 3389,
+        "lines": 84,
+        "sha256": "f45287619eb5931874fb1c7c42aeac265cf12f58a4cd5160d3005d2fe6edbdea"
+      },
+      "after": {
+        "bytes": 12793,
+        "tokens_ceil_utf16_over_4": 3179,
+        "lines": 84,
+        "sha256": "1acd953ac9f07c3a0e5d1bd97f4f2ef3c94170085b5c9da24038d9d58f50592e"
+      },
+      "saved_bytes": 858,
+      "saved_tokens": 210
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "before": {
+        "bytes": 24684,
+        "tokens_ceil_utf16_over_4": 6026,
+        "lines": 228,
+        "sha256": "02018c31a741c261116735fac209647648133b18ef118f52dbfaafa1d0fe156b"
+      },
+      "after": {
+        "bytes": 23737,
+        "tokens_ceil_utf16_over_4": 5791,
+        "lines": 228,
+        "sha256": "e627744fd9ce3f9b15e10ae141e3e848622094382191155fed8fc93797b9b95d"
+      },
+      "saved_bytes": 947,
+      "saved_tokens": 235
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "before": {
+        "bytes": 18517,
+        "tokens_ceil_utf16_over_4": 4597,
+        "lines": 273,
+        "sha256": "f439add5bf59140977794d5184c5f16fe05065c9605c2274c8839a3dc71f7574"
+      },
+      "after": {
+        "bytes": 17941,
+        "tokens_ceil_utf16_over_4": 4456,
+        "lines": 273,
+        "sha256": "364d732bba56797a83568dcdb9a09de47f9e3a97d309e8e2f339c911bcbb48a6"
+      },
+      "saved_bytes": 576,
+      "saved_tokens": 141
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "before": {
+        "bytes": 10725,
+        "tokens_ceil_utf16_over_4": 2657,
+        "lines": 117,
+        "sha256": "8aa806a1c62bcb757a3d33b330d7d040aec4bd786c2de9acc94184caea27af23"
+      },
+      "after": {
+        "bytes": 10286,
+        "tokens_ceil_utf16_over_4": 2549,
+        "lines": 117,
+        "sha256": "acbb2d858e13574a06e052370f373f020ecb9bc2d6c7a7bb28516809309e5cbe"
+      },
+      "saved_bytes": 439,
+      "saved_tokens": 108
+    }
+  ],
+  "total_saved_bytes": 3497,
+  "total_saved_tokens_ceil_utf16_over_4": 861,
+  "checks": [
+    {
+      "argv": [
+        "env",
+        "TMPDIR=/var/tmp",
+        "GIT_CONFIG_COUNT=1",
+        "GIT_CONFIG_KEY_0=commit.gpgsign",
+        "GIT_CONFIG_VALUE_0=false",
+        "node",
+        "--test",
+        "test/eval-cli-driver.test.mjs",
+        "test/prose-size.test.mjs",
+        "test/validate-adapters.test.mjs",
+        "test/spec-producer-scenario-format.test.mjs"
+      ],
+      "passed": 157,
+      "failed": 0,
+      "log": "/var/tmp/faff-six-skill-paragraph-main-tests.txt"
+    },
+    {
+      "argv": [
+        "env",
+        "TMPDIR=/var/tmp",
+        "GIT_CONFIG_COUNT=1",
+        "GIT_CONFIG_KEY_0=commit.gpgsign",
+        "GIT_CONFIG_VALUE_0=false",
+        "node",
+        "--test",
+        "--test-name-pattern",
+        "graft Step 10 \\+ default ship producer contain no direct",
+        "test/merge-gate.test.mjs"
+      ],
+      "passed": 1,
+      "failed": 0,
+      "log": "/var/tmp/faff-six-skill-paragraph-main-merge-source-test.txt"
+    },
+    {
+      "argv": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "status": "pass",
+      "slot_skills_linted": 21,
+      "log": "/var/tmp/faff-six-skill-paragraph-main-adapter-lint.txt"
+    },
+    {
+      "argv": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "lint-refs"
+      ],
+      "status": "pass",
+      "log": "/var/tmp/faff-six-skill-paragraph-main-refs-lint.txt"
+    },
+    {
+      "argv": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "c3dcb8ff44d0fd2833595ddb22653576a43895fc",
+        "--json"
+      ],
+      "status": "pass",
+      "log": "/var/tmp/faff-six-skill-paragraph-main-rule-inventory.json"
+    }
+  ],
+  "rule_inventory": {
+    "result": "pass",
+    "blocks_deleted": 31,
+    "covered_moved": 0,
+    "covered_by_row": 31,
+    "uncovered": [],
+    "row_errors": [],
+    "warnings": []
+  },
+  "inventory_path": "records/specs/2026-11-17-six-skill-paragraph-prose-design.md",
+  "inventory_bytes": 5273,
+  "canonical_byte_baseline": "Exactly six corresponding skill entries lowered via existing prose-size baseline --lower. No line ratchets changed; all source line counts unchanged.",
+  "logs": [
+    {
+      "path": "/var/tmp/faff-six-skill-paragraph-main-tests.txt",
+      "sha256": "3c6b4e87e006356c47c6f8647d61719705a599043608f3b7519e00e086b13f5b",
+      "bytes": 37733
+    },
+    {
+      "path": "/var/tmp/faff-six-skill-paragraph-main-merge-source-test.txt",
+      "sha256": "d6ecdc61a9ac9f686f4ebe16580cbaae6262aa2bea81978cc8a1f9f967223acd",
+      "bytes": 399
+    },
+    {
+      "path": "/var/tmp/faff-six-skill-paragraph-main-adapter-lint.txt",
+      "sha256": "27c96caadcd0ce7fd7d10b9f65d5dd630d718f3abe8615cbdf1475f10bc5fcc9",
+      "bytes": 25207
+    },
+    {
+      "path": "/var/tmp/faff-six-skill-paragraph-main-refs-lint.txt",
+      "sha256": "5d1445e1a134997dc30599d6718a3d742bbd5b0d0aa4ac5fcbe11e915df7e1b9",
+      "bytes": 91
+    },
+    {
+      "path": "/var/tmp/faff-six-skill-paragraph-main-rule-inventory.json",
+      "sha256": "082d47ff3e506897cbc415afd42bf09c8b4aa929630f90ab9ad45d2eb2071262",
+      "bytes": 7048
+    },
+    {
+      "path": "/var/tmp/faff-six-skill-paragraph-main-prose-lower.txt",
+      "sha256": "07d535e8b32265118454bd588cc85008390104e8159a43958f39c3e6fc52a7be",
+      "bytes": 423
+    },
+    {
+      "path": "/var/tmp/faff-six-skill-paragraph-main-metadata-commit.txt",
+      "sha256": "7ccc9a783465aab4f10e6780930b4a97b1030b2c600dc40ce643faeebd258dfd",
+      "bytes": 246
+    }
+  ],
+  "changed_paths": [
+    "plugin/skills/faff-map/SKILL.md",
+    "plugin/skills/faff/prose-baseline.json",
+    "plugin/skills/faffidavit-routing/SKILL.md",
+    "plugin/skills/faffter-dark-nlspec/SKILL.md",
+    "plugin/skills/faffter-noon-evaluate/SKILL.md",
+    "plugin/skills/faffter-noon-ship/SKILL.md",
+    "plugin/skills/faffter-noon-spec/SKILL.md",
+    "records/specs/2026-11-17-six-skill-paragraph-prose-design.md"
+  ],
+  "worktree_clean": true,
+  "limits": [
+    "Independent final semantic review pending; existing tests/lints/inventory do not claim model parity.",
+    "No executable/test/harness code, new model calls, CLI extraction, additional mandatory reads or policy fixes.",
+    "No push or PR. Both source commits retained unchanged; metadata has unsigned operator DCO."
+  ]
+}

@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "base": "c3dcb8ff44d0fd2833595ddb22653576a43895fc",
+  "status": "bounded read-only inventory; no code/tests/models/harness",
+  "token_method": "ceil UTF16 code units /4, section-local; net byte ranges are estimates after replacement instructions",
+  "excluded": [
+    "previous return-ledger inventory",
+    "phase-event append inventory",
+    "prep context composition",
+    "full orchestration/state-machine rewrites"
+  ],
+  "opportunities": [
+    {
+      "priority": 1,
+      "name": "Tidy container-coherence preparation",
+      "source": {
+        "path": "plugin/skills/faff-tidy/SKILL.md",
+        "start_line": 194,
+        "end_line_inclusive": 216,
+        "bytes": 6682,
+        "estimated_tokens": 1650,
+        "sha256": "fc594fcccbd791c2831980a8e6021b6798a69f0c82194ec6f0a020b4406846e2"
+      },
+      "net_prompt_saving_bytes_range": [
+        1800,
+        3000
+      ],
+      "existing": [
+        "project-next.js projectNext/cmdProjectNext: forward-only categories, counts, DoD gate and terminal guards; in-kernel capture remains CLI-owned",
+        "admissibility.js cmdHoldout verdicts branch: existing association-to-PRDR verdict map",
+        "prdr.js coverage branch: live non-superseded PRDR selection, container slug match, DoD overlay; contract-defs.js computePrdCoverageVerdict",
+        "contain.js containerParent: membership relation helper"
+      ],
+      "slice": "Compose normalized already-fetched child/container facts with lazy existing holdout-verdicts + prdr coverage + project-next consult. Return proposed transition, gate reason, warnings and name-drift records; no tracker writes.",
+      "judgement_remains": [
+        "Tracker acquisition, native status mapping and current membership truth",
+        "Fresh live-status reread immediately before write; skip stale/terminal proposals, autonomous vs interactive consent",
+        "Human DoD acceptance and evaluator verdict authority; name-drift interpretation and PRDR-author offer stay outside"
+      ],
+      "risks": [
+        "No DoD or children open must never trigger coverage. Missing association/failed verdict read gives empty map; coverage error holds open with warning. Gate exactly satisfied===true, never mere exit0.",
+        "Do not replace existing prdr coverage filtering/overlay with a second implementation. Reuse CLI branch or extract its helper narrowly.",
+        "Preserve FAFF_RUN_DIR guarded Tier-2 capture, no action marker, and never let a prepared descriptor bypass final status reread.",
+        "Normalized counts are supplied observations, not independently verified tracker truth; keep ownership and consent paragraph."
+      ],
+      "tests": [
+        "test/project-next.test.mjs",
+        "test/prdr.test.mjs",
+        "test/holdout-verdicts.test.mjs"
+      ],
+      "coverage": "Existing constituents only. New direct composition tests would cover lazy calls, failures and gate overlay; no existing full tidy model workflow route located.",
+      "forecast": "One bounded local composition plus caller replacement after review. On-demand authoring at line218 excluded; do not count it as savings."
+    },
+    {
+      "priority": 2,
+      "name": "Graft failed-fix classification and checkpoint bookkeeping",
+      "source": {
+        "path": "plugin/skills/faff-graft/SKILL.md",
+        "start_line": 620,
+        "end_line_inclusive": 672,
+        "bytes": 5909,
+        "estimated_tokens": 1472,
+        "sha256": "9d7ad5c03111c3dff0b0d9be59540e84307a9f9c0c0c8e855a619d44736baf7d"
+      },
+      "net_prompt_saving_bytes_range": [
+        1700,
+        2800
+      ],
+      "existing": [
+        "land.ts decide/routeTriage and cmdLand: current-head observations, terminal/pending/deadline tokens; already owns wait state",
+        "ci-triage.js failingCheckNames: sorted failing-check identity semantics including pending exclusion",
+        "effects.js landingProgressPath/landingProgressApplyFixCycle/cmdLandingProgress: persisted count/history, fourth-record rejection"
+      ],
+      "slice": "Small post-fix assessment operation over explicit pre/post head check observations and existing progress. Compute same-class, record only a failed terminal cycle using existing writer, return continue/park/shadow outcome. No fixer, polling loop or merge action.",
+      "judgement_remains": [
+        "Implementor diagnoses conflict/regression, edits/tests/pushes and supplies tried summary",
+        "Existing land command continues owning bounded observation; caller invokes repair only under configured autofix",
+        "Merge-time review/CI/AC/holdout floor and ship handoff remain untouched"
+      ],
+      "risks": [
+        "Never classify pending, count deadline, count a resolved cycle, or record a fourth failure. Preserve conflict vs regression intersection semantics.",
+        "Existing effects reader treats malformed JSON as absent; improving that is a separate policy change, not a silent extraction.",
+        "Exact pre/post head attribution and check-name identity required. A new wrapper must not fetch a mutable pre-head check set late and call it the original observation.",
+        "Persisted writer lacks a new idempotency/concurrency contract for repeated same-cycle input. Keep single caller invocation or explicitly settle retry identity before implementation; do not add recovery framework."
+      ],
+      "tests": [
+        "test/landing-progress.test.mjs",
+        "test/ci-triage.test.mjs"
+      ],
+      "coverage": "Existing progress/triage/land constituent tests. No existing model route for new post-fix composition is asserted.",
+      "forecast": "Moderate risk and smaller yield than entire pseudocode suggests. Retain repair dispatch, terminal waiting and merge authority; exclude line674 onward return-ledger mapping already inventoried."
+    },
+    {
+      "priority": 3,
+      "name": "Beep discovered-scope filing preflight composition",
+      "source": {
+        "path": "plugin/skills/faff-beep-boop/SKILL.md",
+        "start_line": 285,
+        "end_line_inclusive": 323,
+        "bytes": 10469,
+        "estimated_tokens": 2589,
+        "sha256": "09b1e83b2fc3037e711e7a618090c58414e9caebe465f19eb79ef4eb3fa92042"
+      },
+      "net_prompt_saving_bytes_range": [
+        1800,
+        3200
+      ],
+      "existing": [
+        "contain.js cmdContain/subtreeContains/parseAncestry: ancestry walk and recorded containment decision",
+        "self-intake.js cmdSelfIntake/deriveSelfFromConfig plus shared-infra.js decideSelfIntake: committed self-side config and recorded target check",
+        "intake-record command: existing provenance stamping after create; discovered-scope-priority.js owns priority calculation at capture, not filing"
+      ],
+      "slice": "Compose contain then conditional self-intake then appetite routing over a concrete item and freshly supplied ancestry/destination facts. Return file-candidate or surface-only descriptor and exact mandate surface. Preserve existing recorded calls; do not implement tracker create or semantic dedup.",
+      "judgement_remains": [
+        "Concrete/vague classification, title/surface dedup vs open tickets and intended relationship/parent choice",
+        "Fresh tracker ancestry and destination team acquisition; no assertion that caller facts are truthful",
+        "Existing create, acknowledgement/recovery, priority comment and provenance writes remain caller-owned",
+        "Timing across eager/per-wave/residual passes, counters and later admission remain orchestration"
+      ],
+      "risks": [
+        "contained is not automatic permission: appetite gate follows; outward-new-root never files even full appetite; self-intake default-off and same-team/repo must remain primitive-derived.",
+        "Keep exact record payload/phase/run binding and detective-only authority. Missing run/invalid ancestry means no-create, not a new outward shortcut.",
+        "Orchestrator entries use dispatch container and summary-only surface; implementor entries use source issue and comment.",
+        "Existing local repo slug normalization can be reused only after verifying a suitable helper; do not introduce a guessed URL grammar.",
+        "Do not recompute entry.priority, add faff-automate to self-intake, or fold filing into admitted outcomes. This is a preflight descriptor, not complete publication."
+      ],
+      "tests": [
+        "test/contain.test.mjs",
+        "test/self-intake.test.mjs",
+        "test/faff-1399-discovered-scope-priority.test.mjs"
+      ],
+      "coverage": "Existing primitive tests; source-only discovered-scope fixtures do not execute a future composed preflight. No unchanged full filing consumer coverage claimed.",
+      "forecast": "Largest inspected section, but most remains caller-owned. Avoid expanding into tracker abstraction, hosted apply server or global wave state machine merely to chase its full byte count."
+    }
+  ],
+  "recommendation": "Tidy container-coherence preparation is the next least-entangled composition. Verify coverage helper reuse and normalized input contract first. Graft post-fix comes second only if repeated invocation policy is already resolved. Beep preflight is useful but not a whole filing implementation.",
+  "forecast": {
+    "combined_net_prompt_bytes_range": [
+      5300,
+      9000
+    ],
+    "qualification": "Forecast only; measured section bytes are not savings. These three scoped cuts cannot honestly promise tens of KB without larger policy/transport work."
+  },
+  "limits": [
+    "Read actual fixed source and constituent implementation exports/branches; no claim exhaustive largest-by-byte search.",
+    "No source changes, tests, hosted calls, model calls or new harness.",
+    "Any implementation must be TS+emit, preserve main overlap, and measure actual prompt reduction separately from added code."
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "status": "pass",
+  "base": "c3dcb8ff44d0fd2833595ddb22653576a43895fc",
+  "head": "b102bda1e2d9b1b5e3caf5cc6d368802b8ea1e85",
+  "review": "Root independently read all 31 before/after paragraph diffs. Decision thresholds, required reads, provenance, contract ownership, exception handling and ordering preserved. Existing contradictory source rules unchanged.",
+  "protected_text_checks": [
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "protected_text_unchanged": true,
+      "after_sha256": "b2755b2a2935eb57cee4fdfd47de029459bf686e46355c5eef2d792d482593a5"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "protected_text_unchanged": true,
+      "after_sha256": "0e129824ca4346ec36bc22925825bb8cb0525ba6066b7400cb0598c7d0a8485b"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "protected_text_unchanged": true,
+      "after_sha256": "1acd953ac9f07c3a0e5d1bd97f4f2ef3c94170085b5c9da24038d9d58f50592e"
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "protected_text_unchanged": true,
+      "after_sha256": "e627744fd9ce3f9b15e10ae141e3e848622094382191155fed8fc93797b9b95d"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "protected_text_unchanged": true,
+      "after_sha256": "364d732bba56797a83568dcdb9a09de47f9e3a97d309e8e2f339c911bcbb48a6"
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "protected_text_unchanged": true,
+      "after_sha256": "acbb2d858e13574a06e052370f373f020ecb9bc2d6c7a7bb28516809309e5cbe"
+    }
+  ],
+  "model_parity_claim": false,
+  "savings": {
+    "bytes": 3497,
+    "estimated_tokens": 861
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "status": "implementation complete; no prompt port or model qualification",
+  "worktree": "/var/tmp/faff-prep-context-main",
+  "branch": "feat/prep-context-main",
+  "base": "c3dcb8ff44d0fd2833595ddb22653576a43895fc",
+  "commit": "533bf511228b0c31a320d710e9100a8d76b02aba",
+  "removed_prompt_bytes": 0,
+  "removed_prompt_tokens": 0,
+  "files": [
+    {
+      "path": "plugin/skills/faff/bin/lib/prep-context.ts",
+      "bytes": 5994,
+      "tokens": 1498,
+      "sha256": "829a8af89302bf0907e6f5fb102c4a8f4b24a140e0f36125a11215e17b49fcb4"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/prep-context.js",
+      "bytes": 6145,
+      "tokens": 1536,
+      "sha256": "0f08e75365b7bd86d34148ba7577937b9ef5cc32b6906cb4a34e2e70d9911ec4"
+    },
+    {
+      "path": "test/prep-context.test.mjs",
+      "bytes": 10028,
+      "tokens": 2507,
+      "sha256": "0911a77de567ae49bb4530caea4a97186d53a9f326a1b0e574095d9b2740f370"
+    },
+    {
+      "path": "docs/reference/prep-context.md",
+      "bytes": 2570,
+      "tokens": 643,
+      "sha256": "b0375eb09e6e47407abc7eece4b241cc3952a1d3fbf73cf85e601d3ff5602847"
+    }
+  ],
+  "contract": "prep-context --issue ISSUE --root DIR [--run-dir DIR] --resolutions-file FILE|-; supplied already gathered RatifiedTrackerResolution[], local scratch only; exit0 ready,3 absent,2 failed/needs-human. No register/tracker/model effects.",
+  "preserved": [
+    "Unconditional fresh assembly on valid invocations, including no container",
+    "Existing spec-review-dir path resolution, explicit run-dir only",
+    "Ledger missing/unreadable falls back to no container as existing shell; errors now warned",
+    "Assembly source read failure removes stale file and returns needs-human",
+    "Legitimate empty removes stale file; fold can synthesize resolutions-only context",
+    "Exact existing neutralisation and framing; no new marker/parser/timestamp policies",
+    "Caller retains raw extraction, live marker/status, author filtering, post-spec scope, latest-topic dedup, per-round invocation and warning audit logging"
+  ],
+  "validation": [
+    "63 focused/constituent tests pass",
+    "Exact bytes against real assemble+fold CLI for populated and empty assembly",
+    "Existing four-lens request builder and review-call main read exact context with existing injected no-network transport hook",
+    "Build emit+manifest, regions, CLI coverage, lint-refs and diff checks pass"
+  ],
+  "limits": [
+    "No model/network run; no new harness",
+    "No prompt savings claimed yet; source-only shell/exit bookkeeping is potential subsequent migration",
+    "Existing optional ratified-scope validator rejects resolutions-only output; current prep does not invoke it, no new gate or validator change",
+    "No PR1215 dependency because no SKILL edits",
+    "Raw topic grammar and timestamp tie handling remain undefined in source and deliberately outside command",
+    "No concurrent same-issue scratch writer guarantee added; scratch symlink redirection refused"
+  ]
+}

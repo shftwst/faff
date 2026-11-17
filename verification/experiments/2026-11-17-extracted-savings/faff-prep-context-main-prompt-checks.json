@@ -1,0 +1,205 @@
+{
+  "status": "prompt-extraction-and-metadata-checked-pending-rebase-review",
+  "worktree": "/var/tmp/faff-prep-context-main",
+  "base_commit": "c3dcb8ff44d0fd2833595ddb22653576a43895fc",
+  "previous_cli_commit": "b4523c370d485458bb6b37b1639e90c280d3a353",
+  "commit": "ee5fbb64345c002de517afad08a3dbf3ce57c8ef",
+  "target": "plugin/skills/faff-prep/SKILL.md",
+  "before": {
+    "bytes": 104236,
+    "tokens_ceil_utf16_over_4": 25858,
+    "validator_lines": 612,
+    "sha256": "6a05f5f815795dee300c5a248cb570411c89fa824e4f5a98fdb097df4e609a48"
+  },
+  "after": {
+    "bytes": 102260,
+    "tokens_ceil_utf16_over_4": 25372,
+    "validator_lines": 600,
+    "sha256": "ea9e251bf079628aafcbb33367c7520030452b0ca8756819fe63de92751bb1be"
+  },
+  "provisional_branch_delta": {
+    "bytes": 1976,
+    "tokens_ceil_utf16_over_4": 486
+  },
+  "main_incremental_savings_claim": null,
+  "overlap": "PR1215 changes an explanatory paragraph inside this replaced block. Do not add this branch delta to its savings; root must reconcile overlap at rebase before any incremental main total. No rebase performed.",
+  "raw_gather": {
+    "byte_identical": true,
+    "bytes": 1018,
+    "sha256": "19bff0ac5a7d8476437008a5b029dcd5e2900342f87bd81d4693b72cc9f27d65"
+  },
+  "outside_replacement_region_exact": true,
+  "ordering_and_failure_notes": [
+    "Caller gathers the same-turn already fetched RatifiedTrackerResolution[] before composed prep-context invocation. Inside command fresh source assembly still precedes inert fold.",
+    "Invocation remains every round even without container or resolutions. Same spec-review-dir scratch path, allfourlens context and every returned warning audit remain mandatory.",
+    "All malformed input/fold/result failures now explicitly prohibit dispatch and old-file use; prior prose labelled fold fail-closed but left caller branch implicit.",
+    "Source-read failure removes stale context and skips fold; genuine empty returns absent and allows dispatch without context. Missing/unreadable ledger retains no-container fallback with warning.",
+    "Root corrected optional argv shell and default empty array during preparation; final actual102260B prompt measured. Verifier did not edit prompt source."
+  ],
+  "metadata": {
+    "byte_baseline": 102260,
+    "line_ratchet": {
+      "old": 612,
+      "new": 600
+    },
+    "inventory": "records/specs/2026-11-17-prep-context-prompt-extraction-design.md",
+    "inventory_bytes": 2556
+  },
+  "commands": [
+    {
+      "argv": [
+        "env",
+        "TMPDIR=/var/tmp",
+        "GIT_CONFIG_COUNT=1",
+        "GIT_CONFIG_KEY_0=commit.gpgsign",
+        "GIT_CONFIG_VALUE_0=false",
+        "node",
+        "--test",
+        "test/eval-cli-driver.test.mjs",
+        "test/prose-size.test.mjs",
+        "test/validate-adapters.test.mjs"
+      ],
+      "passed": 150,
+      "failed": 1,
+      "log": "/var/tmp/faff-prep-context-main-prompt-source-tests.txt"
+    },
+    {
+      "argv": [
+        "env",
+        "TMPDIR=/var/tmp",
+        "GIT_CONFIG_COUNT=1",
+        "GIT_CONFIG_KEY_0=commit.gpgsign",
+        "GIT_CONFIG_VALUE_0=false",
+        "node",
+        "--test",
+        "--test-name-pattern",
+        "prep SKILL|faff-prep|drift guard",
+        "test/spec-review-pin.test.mjs",
+        "test/spec-review-window.test.mjs",
+        "test/spec-review-convergence.test.mjs",
+        "test/spec-review-churn.test.mjs",
+        "test/spec-review-iteration-cap.test.mjs"
+      ],
+      "passed": 10,
+      "failed": 0,
+      "log": "/var/tmp/faff-prep-context-main-round-source-tests.txt"
+    },
+    {
+      "argv": [
+        "env",
+        "TMPDIR=/var/tmp",
+        "GIT_CONFIG_COUNT=1",
+        "GIT_CONFIG_KEY_0=commit.gpgsign",
+        "GIT_CONFIG_VALUE_0=false",
+        "node",
+        "--test",
+        "--test-name-pattern",
+        "FAFF-584: the two hub files",
+        "test/validate-adapters.test.mjs"
+      ],
+      "passed": 1,
+      "failed": 0,
+      "log": "/var/tmp/faff-prep-context-main-prompt-ratchet-recheck.txt"
+    },
+    {
+      "argv": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "status": "pass-before-ratchet-lower",
+      "log": "/var/tmp/faff-prep-context-main-prompt-adapter-lint.txt"
+    },
+    {
+      "argv": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "lint-refs"
+      ],
+      "status": "pass",
+      "log": "/var/tmp/faff-prep-context-main-prompt-refs-lint.txt"
+    },
+    {
+      "argv": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "c3dcb8ff44d0fd2833595ddb22653576a43895fc",
+        "--json"
+      ],
+      "status": "pass",
+      "log": "/var/tmp/faff-prep-context-main-prompt-rule-inventory.json"
+    }
+  ],
+  "unique_existing_source_consumer_tests_passed": 161,
+  "first_failure": {
+    "retained": true,
+    "cause": "FAFF584 exactratchet guard matches RATCHET faff-prep with /faff\\b/ and sees612baseline overactual600. Lowered only prep line baseline; unchanged test then passes.",
+    "resolution": "Scoped downward ratchet metadata; no prompt/test rewrite."
+  },
+  "inventory": {
+    "result": "pass",
+    "blocks_deleted": 8,
+    "covered_moved": 0,
+    "covered_by_row": 8,
+    "uncovered": [],
+    "row_errors": [],
+    "warnings": []
+  },
+  "logs": [
+    {
+      "path": "/var/tmp/faff-prep-context-main-prompt-source-tests.txt",
+      "sha256": "6cec896a799d7ec266ad48baa86171bb066420e4a2817dab1c726856a2fdc833",
+      "bytes": 37041
+    },
+    {
+      "path": "/var/tmp/faff-prep-context-main-round-source-tests.txt",
+      "sha256": "773a46077d2cd3aea78e3b7d6ec41be74a5a068370dfef6efdaa27d82d0dc9ea",
+      "bytes": 2687
+    },
+    {
+      "path": "/var/tmp/faff-prep-context-main-prompt-ratchet-recheck.txt",
+      "sha256": "dad68e870d63bfa96283d2150985e8730228974d89c9f699ec7a8c6738905071",
+      "bytes": 428
+    },
+    {
+      "path": "/var/tmp/faff-prep-context-main-prompt-adapter-lint.txt",
+      "sha256": "240742f91041b389b01f784beb852fe3713674e9cad8d2dc6a5d5cde9f50a20a",
+      "bytes": 25136
+    },
+    {
+      "path": "/var/tmp/faff-prep-context-main-prompt-refs-lint.txt",
+      "sha256": "5d1445e1a134997dc30599d6718a3d742bbd5b0d0aa4ac5fcbe11e915df7e1b9",
+      "bytes": 91
+    },
+    {
+      "path": "/var/tmp/faff-prep-context-main-prompt-rule-inventory.json",
+      "sha256": "668d3383d605cc56b6fce61de2ffad55923914268aa705160b02c04460498d33",
+      "bytes": 2404
+    },
+    {
+      "path": "/var/tmp/faff-prep-context-main-prompt-commit.txt",
+      "sha256": "6d4081b84a1932a2cf7cbb9b82203781e22baea1ff2687693e4fe36da7ba70b4",
+      "bytes": 227
+    },
+    {
+      "path": "/var/tmp/faff-prep-context-main-prose-lower.txt",
+      "sha256": "e3a8159ffddff163144b4a65db6bebde41671ce0bf76249fc7d412b4c37fe292",
+      "bytes": 135
+    }
+  ],
+  "commit_scoped_files": [
+    "plugin/skills/faff-prep/SKILL.md",
+    "plugin/skills/faff/bin/lib/validate-adapters.js",
+    "plugin/skills/faff/prose-baseline.json",
+    "records/specs/2026-11-17-prep-context-prompt-extraction-design.md"
+  ],
+  "limitations": [
+    "Root reports64focusedCLI tests alreadypass; not rerun because prompt integration does not change command behavior.",
+    "No models/new tests/harness/source or test alterations by verifier, push or PR.",
+    "Existing checks establish source integration, not model parity.",
+    "CLI commits retained; unsigned operator-DCO prompt+metadata commit only."
+  ]
+}

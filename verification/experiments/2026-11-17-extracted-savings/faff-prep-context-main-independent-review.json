@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T20:44:32.017799+00:00",
+  "reviewer": {
+    "role": "independent composition/source review",
+    "model": "Sol-medium"
+  },
+  "candidate_commit": "533bf511228b0c31a320d710e9100a8d76b02aba",
+  "base_commit": "c3dcb8ff44d0fd2833595ddb22653576a43895fc",
+  "status": "hold-before-prompt-port",
+  "bindings": [
+    {
+      "path": "plugin/skills/faff/bin/lib/prep-context.ts",
+      "sha256": "829a8af89302bf0907e6f5fb102c4a8f4b24a140e0f36125a11215e17b49fcb4"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/prep-context.js",
+      "sha256": "0f08e75365b7bd86d34148ba7577937b9ef5cc32b6906cb4a34e2e70d9911ec4"
+    },
+    {
+      "path": "test/prep-context.test.mjs",
+      "sha256": "0911a77de567ae49bb4530caea4a97186d53a9f326a1b0e574095d9b2740f370"
+    },
+    {
+      "path": "docs/reference/prep-context.md",
+      "sha256": "b0375eb09e6e47407abc7eece4b241cc3952a1d3fbf73cf85e601d3ff5602847"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/ratified-scope.js",
+      "sha256": "dc125e237a16eefd93136ddd89787b761299f5609eddc06d2efda36c8a47f6cc"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/spec-review-pin.js",
+      "sha256": "80679f2cc27451211b7724244c817847d0a8babf55bc9d0f728e8bead1691fbe"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "sha256": "6a05f5f815795dee300c5a248cb570411c89fa824e4f5a98fdb097df4e609a48"
+    }
+  ],
+  "findings": [
+    {
+      "id": "scratch-boundary-endpoint",
+      "severity": "medium",
+      "path": "plugin/skills/faff/bin/lib/prep-context.ts",
+      "line": 30,
+      "finding": "Ancestor guard excludes runDir/root endpoint itself. A symlink at explicit runDir is not lstat-checked; writes traverse it despite the claimed symlink-redirection refusal. Existing test only covers a symlink at ratified-scope.md.",
+      "required_correction": "Check the selected boundary itself while preserving permitted explicit outside-root run directories, or pin a real boundary and enforce output containment. Add a focused explicit-runDir symlink regression.",
+      "scope": "Filesystem guard claim/readiness gap, not a claim that the legacy shell already prevented this."
+    }
+  ],
+  "preserved_scope": [
+    "Existing specReviewDir layout; no ambient/latest-run resolution.",
+    "Unconditional fresh assembly for valid inputs, even without container. Container is sourced only from explicitly supplied run ledger; unavailable/malformed ledger retains no-container fallback with warning.",
+    "Existing assemble and inert renderer/framing reused, including exit3 resolution-only context synthesis. No register, tracker, model or verdict write.",
+    "Legitimate absence and assembly source-read failure remove stale scope file on successful filesystem operations; source failure never folds a fabricated empty block.",
+    "Current helper already owns secret/directive neutralisation; composition does not add a new raw-comment or timestamp policy.",
+    "Scratch context and stderr only; scope/source files are read, not intentionally modified. Existing resolutions-only validator disagreement is disclosed and not used as a new gate."
+  ],
+  "prompt_replacement_conditions": [
+    "Replace only scratch resolution/optional container extraction/assembly/fold shell and its explicit result handling. Do not claim all review-loop state or full7596B context section is now command-owned.",
+    "Caller retains post-spec and same-turn comment fetching, intent-status live filtering, automation-author exclusion, topic/Chosen extraction and latest-topic selection. Git-only passes empty array.",
+    "Invoke at start of every round immediately before inflight marker/dispatch; pass resolved explicit run dir when applicable; audit every warning.",
+    "Use only returned ready file/hash on exit0. Exit3 is legitimate absence; needs-human source failure preserves park routing. Any argument/input-read/scratch failure must prevent dispatch and must not use an earlier file.",
+    "Argument or resolution-file read errors occur before prepareContext/assembly, so old file can remain. Documentation explicitly prohibits treating it as current successful output; a prompt port must carry that prohibition.",
+    "No concurrency guarantee added; concurrent same-issue writers remain outside scope."
+  ],
+  "evidence_reviewed": [
+    "Actual TS/emit and new tests/docs at the bound commit, current prep prompt per-round assembly/gather/fold instructions, existing ratified-scope assemble/renderInertResolutions and specReviewDir implementations.",
+    "Reported63 focused/constituent passes read from extraction record; no tests rerun in this review."
+  ],
+  "limits": [
+    "No models, code changes, harness changes or hosted actions.",
+    "No prompt savings or model equivalence claimed; no SKILL change exists in inspected commit.",
+    "Another agent is addressing the endpoint finding; this record reviews533bf511 only and does not certify that uncommitted correction."
+  ]
+}

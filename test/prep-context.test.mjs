@@ -147,3 +147,18 @@ test('composition is byte-identical to existing assemble then fold CLI sequence'
     assert.deepEqual(result.warnings, assembled.stderr.trim().split('\n').filter(Boolean));
   }
 });
+test('explicit run-directory endpoint rejects symlink redirection but supports a real outside-root directory', t => {
+  const input = fixture(t), outside = fixture(t).root;
+  input.resolutionsText = JSON.stringify([resolution]);
+  const redirected = join(input.root, 'redirected-run');
+  fs.symlinkSync(outside, redirected);
+  input.runDir = redirected;
+  const refused = call(input);
+  assert.equal(refused.status, 2);
+  assert.match(JSON.parse(refused.stdout).diagnostic, /symbolic link/);
+  assert.equal(fs.existsSync(join(outside, input.issue)), false);
+  input.runDir = outside;
+  const accepted = call(input);
+  assert.equal(accepted.status, 0, accepted.stderr);
+  assert.equal(JSON.parse(accepted.stdout).file, join(outside, input.issue, 'spec-review/ratified-scope.md'));
+});

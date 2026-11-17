@@ -21,7 +21,7 @@ function prepareContext(input) {
     const file = path.join(scratch, 'ratified-scope.md');
     const stderr = path.join(scratch, 'ratified-scope.stderr');
     try {
-        const targets = [file, stderr];
+        const targets = [file, stderr, runDir ?? root];
         for (let current = scratch; current !== (runDir ?? root); current = path.dirname(current))
             targets.push(current);
         for (const target of targets) {

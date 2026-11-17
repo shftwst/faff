@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: gate replay comparison permits only the isolated directory to relocate
+ok 1 - gate replay comparison permits only the isolated directory to relocate
+  ---
+  duration_ms: 0.785499
+  type: 'test'
+  ...
+# Subtest: gate replay comparison retains missing incomplete work
+ok 2 - gate replay comparison retains missing incomplete work
+  ---
+  duration_ms: 0.155542
+  type: 'test'
+  ...
+# Subtest: gate replay comparison retains different consumer exit
+ok 3 - gate replay comparison retains different consumer exit
+  ---
+  duration_ms: 0.0805
+  type: 'test'
+  ...
+# Subtest: gate replay comparison retains different ledger bytes
+ok 4 - gate replay comparison retains different ledger bytes
+  ---
+  duration_ms: 0.117625
+  type: 'test'
+  ...
+# Subtest: gate replay comparison retains unexpected final summary
+ok 5 - gate replay comparison retains unexpected final summary
+  ---
+  duration_ms: 0.175041
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 50.85121

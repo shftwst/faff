@@ -4,9 +4,9 @@
 
 ### Ticket templates (born-structured create boundary)
 
-The single canonical definition of the **type-appropriate templates** that `/faff-jot` (Step 4) and `/faff-plot` (Step 5) fill when they *create* tickets, so issues are **born structured** — predictable per-type fields a later `/faff-prep` can build on — instead of free prose prep has to reverse-engineer. It generalises the lite spec arc (WHY/WHAT/HOW/DONE) **earlier** (the create stage) and **by type**. Both create-skills reference this one section; they never duplicate the taxonomy or field sets. The fill step runs **after** the `methodology` slot's `ticket-shaping` proposes the set and **before** the description is handed to the `rendering_adaptor` (gateway → **Rendering**).
+This section defines the type-appropriate templates `/faff-jot` (Step 4) and `/faff-plot` (Step 5) fill when creating tickets. Both reference the taxonomy and field sets without duplicating them. Fill after the `methodology` slot's `ticket-shaping` proposes the set, before handing the description to `rendering_adaptor` (gateway → **Rendering**).
 
-**The load-bearing invariant — seed, never constrain.** A template is a default the producer *fills*, never a form that *gates*. Ticket creation is **never** rejected, blocked, or warned-to-block because a field has no content; there is **no create-time completeness gate**. A one-line idea yields a thin-but-structured ticket (one filled field, the rest placeholdered), not an error. Completeness is `/faff-prep`'s gate, not creation's.
+**The load-bearing invariant — seed, never constrain.** Templates are defaults to fill, never completeness gates. Missing content never rejects, blocks or warns-to-block creation: a one-line idea produces one filled field and placeholders for the rest. Completeness belongs to `/faff-prep`.
 
 **Type taxonomy (closed set + fallback).**
 
@@ -17,7 +17,7 @@ The single canonical definition of the **type-appropriate templates** that `/faf
 - `epic` — a container that decomposes into child slices
 - `default` — fallback when type can't be determined (guarantees the fill step always has a skeleton, preserving the never-block invariant)
 
-**Built-in default field sets.** Each is an ordered field list; **every** template ends with `Open questions` (preserves jot's and plot's existing "carry open questions into the description" behaviour):
+**Built-in default field sets.** Ordered lists; every template ends with `Open questions`.
 
 | Type | Fields (in order) |
 |---|---|
@@ -30,13 +30,13 @@ The single canonical definition of the **type-appropriate templates** that `/faf
 
 **Template resolution order** (first match wins, per type):
 
-1. *Native-template slot* (tracker-native Linear/GitHub templates, **idea G**) — **implemented** (FAFF-1083). Ask the committed map for the tracker template mapped to this faff-type; on a hit, fill from the tracker's own template body (fetched live), keeping the tracker as source of truth. A miss (no map, no entry, a stale id, or an opaque body) falls through to tier 2 exactly as before. See **Native-template fill** below.
+1. *Native-template slot* (tracker-native Linear/GitHub templates): look up this faff-type in the committed map. On a hit, live-fetch the tracker template body as source of truth. No map/entry, stale id or opaque body falls through to tier 2; see **Native-template fill**.
 2. A committed **override file** at `<templates-path>/<type>.md`, if present, where `<templates-path>` is what `faff config templates-path --absolute` prints (use that string verbatim; do not join it onto the working directory or the repo root).
 3. The built-in default field set above.
 
 (`default` resolves the same way; a project may even override `<templates-path>/default.md`.)
 
-**Native-template fill (tier 1).** Only the create-skill's orchestrator lane runs this; the pure `faff` CLI never makes the tracker call. The read is **lane-bound**: the CLI returns the stored id, the skill lane fetches the body via `get_template`. It is **seed, never constrain** like every other tier — a miss never blocks creation, an unfilled field stays placeholdered.
+**Native-template fill (tier 1).** Only the create-skill orchestrator calls the tracker: the pure CLI returns the stored id; the lane fetches its body via `get_template`. Misses never block creation; unfilled fields remain placeholders.
 
 ```
 resolve_native_template(type):        # → FieldSequence | MISS
@@ -53,11 +53,11 @@ resolve_native_template(type):        # → FieldSequence | MISS
   RETURN fields
 ```
 
-- The body arrives at `get_template(id)`'s **`content.description`** (a markdown string); read only its `## <Field>` **level-2 heading sequence** (body prose under a heading is the template's own guidance and is ignored, exactly as tier-2 override files are). A tracker *form* template applies its fields through a form, so its `content.description` carries no `## <Field>` headings — that is the opaque-body miss.
+- Read `get_template(id)`'s `content.description` markdown for its ordered `## <Field>` level-2 headings only. Ignore body guidance, as with tier-2 overrides. A tracker form with no such headings is an opaque-body miss.
 - First-match-wins is preserved: tier 1 only *prepends* a resolution attempt; on any miss the existing tier 2 → tier 3 order runs unchanged.
 - **Git-only / no tracker connector:** `get_template` needs a tracker, so tier 1 always misses and the fill runs identically to today.
 
-**Override files.** Live at committed `<templates-path>/<type>.md`, resolved by `faff config templates-path --absolute`, which is the only place the location is decided; if the command fails, treat it as no override and fall to tier 3. The resolver may print a deprecation notice on stderr; that is informational, not a failure. By default the directory is `.faff/templates/`: the root ignore line is `.faff/*`, so git descends into `.faff/`, and faff's own `.faff/.gitignore` carries `!/templates/`. A multi-line per-type map is not cleanly readable through the scalar/block-scalar config CLI, so files, not config, are the single override surface; `tracking.templates_path` only says *where*. **Format:** a markdown file whose level-2 headings (`## <Field>`) are the field list, in order; body text under a heading is the project's own guidance and is ignored by the fill step (it reads only the heading sequence).
+**Override files.** Read committed `<templates-path>/<type>.md`; only `faff config templates-path --absolute` resolves the location. Failure falls to tier 3; a deprecation notice on stderr is informational. Default `.faff/templates/` stays commit-able through root `.faff/*` and `.faff/.gitignore`'s `!/templates/`. Files are the sole override surface; `tracking.templates_path` supplies only the location, since the scalar/block-scalar config CLI cannot cleanly read a per-type map. Parse ordered `## <Field>` level-2 headings, ignoring body guidance.
 
 **Type determination** (per proposed ticket):
 
@@ -78,6 +78,6 @@ resolve_native_template(type):        # → FieldSequence | MISS
 - Override filename for an unknown type (`foo.md`) → ignored; only the recognised type filenames + `default` are consulted.
 - **plot** container nodes (`shape-level` = `initiative` / `project`, or any node with children) resolve to the `epic` template *type*, then run the tier-1 lookup for `epic`; buildable first-slice nodes infer their own type per node.
 - **Git-only mode:** the fill step runs identically and the structured description is written into the `.faff/intake/…` file jot/plot already use; override files are read the same way, through the same resolver.
-- Existing create-path behaviour is otherwise unchanged — the fill step only restructures the *description body*; blocker/blocked-by links, `Backlog` status, and plot's `planned by /faff-plot` provenance line all still apply.
+- Only the description body changes: preserve blocker/blocked-by links, `Backlog` status and plot's `planned by /faff-plot` provenance line.
 
-**Out-of-scope seam (documented, not built here):** persisting type as a `faff-type-<type>` control label (a later ticket, via **Control-label provisioning**, reading the type the fill step already determined). (The native-template resolution slot, idea G, is now built — FAFF-1083; see **Template resolution order** tier 1.)
+**Out-of-scope seam (documented, not built here):** persisting the determined type as a `faff-type-<type>` control label via **Control-label provisioning**.

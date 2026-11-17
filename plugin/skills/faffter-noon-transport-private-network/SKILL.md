@@ -7,13 +7,13 @@ judgement_seam: none
 
 # faffter-noon-transport-private-network
 
-The default occupant of the **`transport`** slot, composed under `env`: given the provision context, it resolves the base host the evaluator uses to reach the system under build across the lane boundary, for the **private-network reachability class** — the system sits on a private network, the evaluator is a member of it, and network-layer segmentation alone satisfies "only the evaluator can reach it", with no application-layer auth.
+The default **`transport`** occupant composes under `env` to resolve the evaluator's base host across the lane boundary. For this **private-network reachability class**, the system and evaluator share a private network whose segmentation alone ensures evaluator-only access, without application-layer auth.
 
 > When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/l4.md` (the L4 concurrency & evaluator lane it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 
-One reachability class, one occupant, the substrate branch inside it: local docker-in-docker (this slice's buildable instance) and Fly 6PN (a follow-on, documented so the branch accommodates it) are two instances of the same class on different substrates. It never crosses a trust boundary on its own and carries no gated `faff-contract` block — the env occupant that calls it consumes the returned base host inline, in the same turn, exactly as the evaluator consumes the `env` slot's handle.
+One reachability class has substrate branches: local docker-in-docker is buildable here; Fly 6PN is a documented follow-on. This occupant crosses no trust boundary itself and emits no gated `faff-contract` block. The calling env occupant consumes its base host inline in the same turn, as the evaluator consumes the `env` handle.
 
 The deterministic trigger protects the zero-config guarantee: `base_host` resolves to `"localhost"` iff `provision_context.evaluator_topology` is `"co-resident"` or absent — a switch on one enum field, never an inference. Only `"dind-in-cage"` (this slice) or `"cross-machine"` (the Fly 6PN follow-on) re-bases.
 

@@ -37,7 +37,7 @@ The user may provide an issue identifier, OR invoke with no arguments.
 
 **Step 0: Create step-by-step todos (mandatory — interactive and autonomous)**
 
-Before starting any work, use your harness's todo-tracking capability (e.g. `TodoWrite`, or `TaskCreate`/`TaskUpdate`) to create one todo per numbered step below — one todo per step, in order. Mark each `in_progress` when starting it and `completed` the moment it finishes. This is the forcing function that stops review, AC verification, or any other late step from being dropped when the build phase becomes a habit loop.
+Before starting any work, use your harness's todo-tracking capability (e.g. `TodoWrite`, or `TaskCreate`/`TaskUpdate`) to create one todo per numbered step below, in order. Mark each `in_progress` when starting it and `completed` the moment it finishes. Never drop review, AC verification or another late step during the build.
 
 Minimum todo set:
 
@@ -72,7 +72,7 @@ If the issue doesn't exist, tell the user and stop.
 
 **Step 2: Check prep gate**
 
-**Resolve tracker availability first (gateway → Tracker availability resolution).** Before deciding "no spec", resolve tracker-vs-git-only per the shared rule — honour a `tracking.tracker` pin (`faff tracker probe`), discover the connector before concluding absence (the deferred-tool-harness case), and resolve the mode **once** here for the rest of this graft. This is what stops a Codex-style deferred-tool session from reading a connected tracker as absent and refusing a legitimately-prepped ticket. A `pinned` tracker is **never** downgraded to git-only on tool-invisibility.
+**Resolve tracker availability first (gateway → Tracker availability resolution).** Before deciding "no spec", resolve tracker-vs-git-only per the shared rule — honour a `tracking.tracker` pin (`faff tracker probe`), discover the connector before concluding absence (the deferred-tool-harness case), and resolve the mode **once** here for the rest of this graft. A `pinned` tracker is **never** downgraded to git-only on tool-invisibility.
 
 Check the issue for an attached spec. Follow the shared **Spec discovery** rule in the sibling `faff/references/tracker.md` — look in tracker comments, the main description/body, committed `docs/` paths, and (git-only mode) the `.faff/specs/<issue-id>.md` store. A hit in any of those counts as the spec. Per that rule, **a description is never a spec**: a hit in the description/body counts only when it is an actual formalised spec. Never build straight from a description, and never skip prep because it "reads clear".
 
@@ -765,7 +765,7 @@ A register-driven proceed writes the citation variant instead:
 
 Also write `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` capturing: original marker, files inspected, reasoning, inferred answer.
 
-**Calibration write.** If the PR is subsequently flipped to draft by a human comment, or reverted post-merge within 7 days, write to `.faff/calibration/wrong-inferences/<ISSUE-ID>.md` (or `.faff/calibration/post-merge-reverts/<ISSUE-ID>.md`) per gateway → **Autonomous Mode Contract → Calibration log**. This is the calibration evidence loop.
+**Calibration write.** If the PR is subsequently flipped to draft by a human comment, or reverted post-merge within 7 days, write to `.faff/calibration/wrong-inferences/<ISSUE-ID>.md` (or `.faff/calibration/post-merge-reverts/<ISSUE-ID>.md`) per gateway → **Autonomous Mode Contract → Calibration log**.
 
 **What this does NOT do.** Does not bypass existing safety boundaries. Side-effects-outside-PR-flow still park unconditionally. Destructive operations still park unconditionally.
 

@@ -7,13 +7,13 @@ judgement_seam: none
 
 # faffter-noon-env-compose
 
-The default occupant of the **`env`** slot — the provision box of faff's build-and-judge pipeline. Given an architecture proposal plus the team's acquired infra profile, it stands up a running, health-checked **stand-in** for the system under build, seeds it with a deterministic synthetic dataset, and emits one `faff-contract:env-handle` describing how to reach it and how to tear it down. The handle is the interface the evaluator depends on; the provisioning mechanism — docker-compose here, a cloud preview or ephemeral container in a swapped-in occupant — sits behind it.
+The default **`env`** occupant uses the architecture proposal and acquired infra profile to provision a running, health-checked stand-in, seed a deterministic synthetic dataset and emit one `faff-contract:env-handle` with reachability and teardown. The evaluator depends on this handle; docker-compose here, or a replacement cloud preview/ephemeral container, stays behind it.
 
 > When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/l4.md` (the L4 concurrency & evaluator lane it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 
-One pass turns the proposal + profile into one running env and one handle block. It **provisions, never evaluates**: it brings the env up, confirms it is healthy, seeds it, emits the handle, and stops. It runs no judgement over the build — the holdout evaluator is the downstream consumer, and the two meet only through the handle artifact. The handle is a **contract**, not an implementation: the consumer never learns how the env was stood up, so any producer conforms by emitting the same block.
+One pass provisions, health-checks and seeds one env, emits its handle and stops. It **provisions, never evaluates**. Build judgement belongs to the downstream holdout evaluator, reached only through the handle artifact. Consumers need no provisioning internals; a replacement producer conforms through the same block.
 
 The contract (`faff contract env-handle`) validates the handle's **shape** + the gate rule (exit 0 only on a conformant `status: ready` handle). This producer owns the **provisioning strategy** — how the env is composed and brought up. Do not re-validate shape here; emit a conformant block and let the consumer pipe it.
 

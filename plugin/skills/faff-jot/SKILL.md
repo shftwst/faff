@@ -59,7 +59,7 @@ If the configured intake skill returns something that isn't a conformant discove
 
 **Methodology transport.** jot's `methodology` calls — `ticket-shaping` for the brief and `prdr-author` for a new project — are **producer dispatches** (gateway → **Sibling-skill invocation → Producer dispatch**), resolving the `methodology` dispatch lane. Per gateway → **The `methodology` slot → Transport**, `ticket-shaping` is a **single dispatch per pass** and `prdr-author` dispatches **per project**; jot running inside a subagent falls back **in-context** (single-level nesting).
 
-Hand the discovery brief to the configured `methodology` skill's **`ticket-shaping`** output (resolve `faff config get slots.methodology`). The methodology decides the structure — workstreams/containers, ticket boundaries, sequencing, dependency links — from the brief plus the live tracker graph. This is where "a sensible set of tickets" is actually formed, and it follows whatever methodology the project has configured: the thematic default shapes purely from the brief + graph; an opinionated methodology (`faffter-dark-methodology-agile-delivery`) additionally right-sizes, outcome-names workstreams, and sequences by value × risk.
+Hand the discovery brief to the configured `methodology` skill's **`ticket-shaping`** output (resolve `faff config get slots.methodology`). The methodology decides workstreams/containers, ticket boundaries, sequencing and dependency links from the brief and live tracker graph. Follow the configured methodology: the thematic default shapes purely from the brief + graph; an opinionated methodology (`faffter-dark-methodology-agile-delivery`) additionally right-sizes, outcome-names workstreams, and sequences by value × risk.
 
 `/faff-jot` does not invent its own ticket structure — it asks the methodology for one. That's what keeps shaping consistent with how the same project's backlog is groomed and sequenced everywhere else.
 
@@ -89,7 +89,7 @@ After creating, offer the next step via the standard chaining gate: "Tickets cre
 
 ## Idempotent create + link authoring (the MCP-write seam)
 
-`/faff-jot` and `/faff-plot` are the two skills that **create** tracker issues via the Linear MCP `save_issue`. This is the single home for the three create/relink hazards at that seam; `/faff-plot` refers back here rather than restating them:
+`/faff-jot` and `/faff-plot` are the two skills that **create** tracker issues via the Linear MCP `save_issue`. The three create/relink hazards have one home here; `/faff-plot` refers back here rather than restating them:
 
 - **Re-query before retry, never retry blind.** A `save_issue` create whose result is ambiguous (timeout, 5xx, `upstream_unavailable`) may have written anyway. Before retrying, `list_issues` filtered by the resolved team-set (every team in `tracking.teams`, or the one legacy `tracking.team_key` team) + title-match against the intended title: a match → treat it as the already-created ticket, do **not** create again (if it is a confirmed unwanted duplicate, dedupe via `save_issue(id: <surplus>, duplicateOf: <kept>)` **without** also setting `state: "Duplicate"` in the same call — the combined write is rejected, "Missing duplicate relation"); no match → the prior attempt genuinely didn't land, proceed to create. A first attempt (no prior ambiguous result) creates directly — no re-query overhead.
 - **Search before create, on every `/faff-plot` re-slice.** Before a node-scoped re-slice creates a node's children, list the issues already parented under that node and match each proposed child against them by title; skip a match, create only the gap. Never issue a `removeBlocks` in the same pass without re-confirming the live edge was drawn by *this* pass — don't strip an edge on unchecked provenance.
@@ -145,7 +145,7 @@ Reads the suite-wide `appetite` dial but is lightly modulated, since creation is
 
 ## Logging
 
-Write a log per the gateway `.faff/logging` rule: the detected mode, which intake skill ran, the discovery brief, the methodology's proposed structure, what was created (ids + relationships), and any chain to `/faff-prep`. Enough that a follow-up agent can see how this backlog came to exist. For the **existing-ticket interactor**, log the ticket id and that it was loaded for inspection. This narrative `HHMMSS-jot.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`).
+Write a log per the gateway `.faff/logging` rule: the detected mode, which intake skill ran, the discovery brief, the methodology's proposed structure, what was created (ids + relationships), and any chain to `/faff-prep`. Record enough to reconstruct the backlog origin. For the **existing-ticket interactor**, log the ticket id and that it was loaded for inspection. This narrative `HHMMSS-jot.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`).
 
 ## Rules
 

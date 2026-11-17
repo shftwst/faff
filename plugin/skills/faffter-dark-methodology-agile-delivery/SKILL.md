@@ -69,7 +69,7 @@ The agile lens sequences a *set* of tickets, but a value stream is only **done**
 4. Emit a **principle-6** finding naming the chain, the gated stream, the deepest actionable prerequisite, and any dead-end.
 5. Order the combined set by **incremental end-user value** (principle 2), risk-aware (principle 7) — sequence to light up each increment, crossing structural slices as needed.
 
-**Why transitive, not direct-only.** Pulling only the *direct* blocker leaves its own blocker stranded — the direct blocker can't be picked up, so the stream still can't complete while *looking* sequenced. Walking to the deepest unstarted prerequisite surfaces the real next pickup.
+**Why transitive, not direct-only.** A direct blocker may itself be blocked; walking to the deepest unstarted prerequisite identifies the next actionable pickup.
 
 **A blocker that gates two streams** is reparented **once**, into the earliest stream that needs it — never double-homed into both (double-homing misreports membership and WIP just as duplicate sequencing did).
 
@@ -142,7 +142,7 @@ The **Default landing** rule sends new work project-less to Backlog on purpose, 
 5. **Order the proposals** by which grouping unlocks sequencable value first (principles 2 + 7).
 6. **Name every remaining loose ticket in the leave-loose set** with a one-line reason. A ticket may also be proposed for membership in an *existing* project whose outcome it matches (existing projects are an input for exactly this) — still a proposal, never a write.
 
-**Completeness — nothing silently omitted.** Every input loose ticket appears **exactly once** across the union of proposal memberships and the leave-loose set. A silently dropped ticket is indistinguishable from a forgotten one, which the caller cannot act on.
+**Completeness — nothing silently omitted.** Every input loose ticket appears **exactly once** across proposal memberships and the leave-loose set.
 
 **Conservative bias.** A wrong grouping is worse than a loose ticket: applying a proposal is cheap, but unwinding it is a manual reassign (a project assignment cannot be nulled — only moved), so err toward loose. Some loose is *correct* — a genuinely independent ticket has no outcome home and belongs in leave-loose. Propose **only high-confidence groupings**; when in doubt, leave loose and say so.
 
@@ -169,7 +169,7 @@ Each principle has: the rule, why it matters, what the violation looks like in t
 
 **Rule.** Build order is determined by value created per unit of work, weighted by risk and dependency chains. Not by ticket creation order, not by who shouted loudest, not by priority alone. Sharpen this to **incremental end-user value**: sequence to light up each observable increment of user-facing value as early as possible, crossing structural slices *within* an increment rather than finishing one slice at a time. When a value stream's completion is gated by work outside it, that gating chain is part of the increment — re-home it into the stream's order (see **Re-homing gating chains into the stream they gate**).
 
-**Why.** Tracker priority is noisy and stakeholder-influenced. Optimising for value-per-week shipped is the actual goal of a delivery practice. Risk-aware sequencing means de-risking earlier so unknown work doesn't surface at the worst moment.
+**Why.** Tracker priority is noisy and stakeholder-influenced; optimise value shipped per week and de-risk unknown work early.
 
 **PRD-distance composition (`pick-ordering` / `build-queue`).** When the caller supplies the optional `prd-distance` map (an L4 drain under a resolved target PRD — gateway → **Standard envelope → Optional input `prd-distance`**), the agile lens folds PRD-completion distance into this value×risk sequencing as a **within-band** signal: among same-priority-band independents, weight `class_rank` (nearer the parent PRD = sooner) *alongside* value×risk×unlock, so a drain heads for the sibling PRDR closest to a `met` DoD rather than taking queue order. An issue whose container slug-matches no entry, or matches only `met` (rank 0), is neutral — its value×risk position stands. **Two floor rules bind (never negotiable):** distance never reorders across a human-priority band, and **input absent ⇒ ordering byte-identical** to the map-unaware lens (no PRD in scope → nothing to fold). Distance composes with the re-home fold (**Re-homing gating chains into the stream they gate**), never replaces it.
 
@@ -203,7 +203,7 @@ Surfaced by `/faff-wtf`. Never surfaced by `/faff-beep-boop`.
 
 **Rule.** A workstream encodes one outcome. Mixed-purpose workstreams (multiple outcomes bundled, or one outcome plus a catch-all) are smell.
 
-**Why.** A workstream is a sequencing and grouping unit — if it has two outcomes, you can't sequence inside it (the right order for outcome A is different from outcome B), and the workstream's "done" is meaningless.
+**Why.** Two outcomes give a workstream competing sequencing orders and no single definition of done.
 
 **Violation shape.** Tickets within a single workstream describe two or more distinct outcomes; or a single workstream has a clear primary outcome plus several "while we're at it" tickets.
 
@@ -225,7 +225,7 @@ Surfaced by `/faff-wtf`. Never surfaced by `/faff-beep-boop`.
 
 **Rule.** Higher-risk work — novel integrations, unproven approaches, dependencies on external teams — is sequenced early or de-risked separately. The unknown does not all land at the end.
 
-**Why.** Risk piled at the end means schedule estimates are lies. Early-de-risking gives the team time to course-correct before commitment.
+**Why.** Late risk undermines estimates; early de-risking allows correction before commitment.
 
 **Violation shape.** The work most likely to surprise (large new integration, unfamiliar territory, external dep) is sequenced near the end of an initiative. Or no risk de-risking work exists — everything assumes the plan holds.
 

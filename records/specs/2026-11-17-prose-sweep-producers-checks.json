@@ -1,0 +1,62 @@
+{
+  "checks": [
+    {
+      "label": "source-checks",
+      "argv": [
+        "node",
+        "--test",
+        "--test-name-pattern",
+        "load[A-Z]|criteriaFor|registered.*anchor|anchor registry covers|all six producer files|every fenced Scenarios example|noon self-review|static: faffter-noon-adr|drift guard|concurrency executors restate|DONE-[789](?! \\(mechanical\\))|prep SKILL|faff-prep|occupant SKILL|SKILL.md documents|SKILL.md.s documented|SKILL.md.s resolution|dispatch prose|occupant dispatch|occupant wires|single-pass faffter-noon-spec-review|graft Step 8 takes ids|one governed-run check sentence|no other skill names|graft Steps 4c and 10|graft Step 4.s|SKILL.md tells the orchestrator|skill prose:|wiring: Step 4b|wiring: all four Step 4b|absent .priority.|tidy.s chain-gap filing|priority-reason comment is documented|every filing call site references|calls faff graft admit|^step 4|^static: the .0a|^static: a plan verdict|^static: a drain verdict|remote-based diff identity|no coupled graft diff block|committed baseline equals",
+        "test/eval-cli-driver.test.mjs",
+        "test/eval-routing.test.mjs",
+        "test/heading-slug.test.mjs",
+        "test/spec-producer-scenario-format.test.mjs",
+        "test/adr-format.test.mjs",
+        "test/review-iteration-cap.test.mjs",
+        "test/evidence-return.test.mjs",
+        "test/faff-679-bracket-writes.test.mjs",
+        "test/spec-review-churn.test.mjs",
+        "test/spec-review-convergence.test.mjs",
+        "test/spec-review-iteration-cap.test.mjs",
+        "test/spec-review-pin.test.mjs",
+        "test/spec-review-window.test.mjs",
+        "test/spec-review-dispatch-resolution.test.mjs",
+        "test/spec-review-occupant-served-dispatch.test.mjs",
+        "test/spec-review-reputation.test.mjs",
+        "test/faff-1287-ac-ids.test.mjs",
+        "test/commissaire-status-skill-sites.test.mjs",
+        "test/spec-commit.test.mjs",
+        "test/run-ledger-writer-inventory.test.mjs",
+        "test/holdout-record.test.mjs",
+        "test/adr-extract-intent.test.mjs",
+        "test/faff-1399-discovered-scope-priority.test.mjs",
+        "test/beep-boop-admission-prose.test.mjs",
+        "test/run-start-wiring.test.mjs",
+        "test/graft-remote-base.test.mjs",
+        "test/prose-size.test.mjs"
+      ],
+      "exit_code": 0,
+      "log": "https://github.com/shftwst/faff/blob/edbdfee14c5ce3497a5b8caa775adf2315fa8f23/verification/experiments/2026-11-17-prose-sweep/landing-checks/producers-source-checks.txt",
+      "sha256": "db60e1977d1193cef8bc6ade909a484a1e6f517675a279afdfe1a994b1c32cea"
+    },
+    {
+      "label": "adapter-lint",
+      "argv": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "log": "https://github.com/shftwst/faff/blob/edbdfee14c5ce3497a5b8caa775adf2315fa8f23/verification/experiments/2026-11-17-prose-sweep/landing-checks/producers-adapter-lint.txt",
+      "sha256": "2d18cb8ac7110f10818e29d090d69f50240e4e1f42d02599ad481576636accf1"
+    }
+  ],
+  "environment": {
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "commit.gpgsign",
+    "GIT_CONFIG_VALUE_0": "false",
+    "TMPDIR": "/var/tmp"
+  },
+  "model_runs": 0,
+  "limit": "Source consumers and deterministic lint; not full model behavioural parity."
+}

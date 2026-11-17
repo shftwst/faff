@@ -71,6 +71,7 @@ const TEST_FILE_COVERAGE = {
   // rule-inventory (FAFF-1428): `faff rule-inventory check` has no `--selftest`; it is exercised through the
   // real CLI entrypoint over fixture git repos with a local bare origin, and in-process.
   "rule-inventory": "test/rule-inventory.test.mjs",
+  "review-comment": "test/review-comment.test.mjs",
   // spec-judge-accept-bar — the deterministic accept-bar roll-up (FAFF-945): a pure coercion
   // over two JSON inputs, no standalone `--selftest`; its level-aware floor + fail-closed
   // directions are exercised through the real CLI entrypoint here.

@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "status": "held-baseline-failure",
+  "recorded_at": "2026-11-17T04:22:51.167231+00:00",
+  "baseline_plan_sha256": "ed9c94c2e778bdc0976aa6a175e067d3b9ff6bd616c6444cede895a3eebdaf36",
+  "registration_sha256": "3b6b99f761ba1255b4385e928683c4706d28f8eacc8d65cae59398a9718a07e0",
+  "manual_review": {
+    "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v3-baseline-1-independent.json",
+    "sha256": "692ec5c1898ac30008ab30c2541d8850fe8bb2ee58ebaeb18916ab27b7379226"
+  },
+  "original_baselines_completed": 1,
+  "original_baselines_unlaunched": 4,
+  "candidate_samples_launched": 0,
+  "raw_execution": {
+    "passed": 5,
+    "total": 8
+  },
+  "raw_decisions": {
+    "passed": 6,
+    "total": 6
+  },
+  "native_passes": 0,
+  "fresh_grade_and_native_replay": "Independent replay exactly matches saved failure. All104 frozen inputs unchanged.",
+  "diagnosis": {
+    "delivery": "All initial reads and70 policy chunks complete; no truncation.",
+    "interface_conflicts": [
+      "review-handoff advertises evidence-write command but supplies fixed stdin internally and refuses supplied JSON.",
+      "Generic submit_result instruction includes ledger cases whose delegated handler rejects it."
+    ],
+    "oracle_scope": "Absent-evidence continued:true explicitly meant reconciliation only. Source says legitimate absence neither parks nor persists; no unsafe downstream action occurred. Raw continued-after-refusal remains preserved, not regraded.",
+    "genuine_output_failures": [
+      "Invalid/unknown ledger patch fields.",
+      "Both final ledgers omit required discovered-scope count and prep outage/turn-budget annotations.",
+      "Mixed-ledger event and summary problems persist.",
+      "Final all-case/results-persisted claim overstates unresolved ledger omissions."
+    ]
+  },
+  "observed_provider_usage": {
+    "source": "Last native token_usage_record thread_token_usage",
+    "counters": {
+      "input_tokens": 16277187,
+      "cached_input_tokens": 16097536,
+      "cache_write_input_tokens": 0,
+      "output_tokens": 7674,
+      "reasoning_output_tokens": 249,
+      "total_tokens": 16284861
+    },
+    "elapsed_seconds": 457.5,
+    "interpretation": "Observed provider/session counters, including repeated cached input across calls. Not billing, price, net spend or measured dollar cost."
+  },
+  "sample_evidence": {
+    "task.json": "0bdf579a454e0e7f382658ba3cfe8b3b4f805e302f2620ecb0e65ff4805f5ebe",
+    "manifest.json": "85f9ad26acfb46f30a1b509b1894867b8e22e57dd0225a8e39dfe3418c43b522",
+    "capture.json": "6d51b04a93e84b3abf3a40946da81ab46a1e38ff76d077984038769e02221c3c",
+    "consumers.json": "bd42ebefba9177538c108bfb3e9fe676dd87bd98b9d1899911e0ace5438c6133",
+    "report.json": "58cad9db34ac94db87e32fa2dda3ab19f101cc15b7be9b5be8a0e861818a5493",
+    "native-audit.json": "2f4828b5d3f47db462c01439faa3d9be3f6993f88fc392992840981aabc2f1b4",
+    "worker-manifest.json": "b53999c590a26d61cdff712c128942242dc1008199fa32fa31c546a918797462",
+    "worker-final-state.json": "2c1411047c70bb849ca575650e747add7fe3bc8370ac7c7fad9c1c1d0456f7ac",
+    "worker-final-screen.json": "c61b7470e3a1391746ecd1eeaef89575d8578e5ce11ae15f2c2a72b0119b7da1",
+    "runner-failure.json": "bc5ee0c82f277d8fc823eb9a5cc2f615911e5384e00e8125e6bc71024ed6a676"
+  },
+  "source_installed": false,
+  "savings_counted": false,
+  "policy": "Hold this experiment. No retries, replacement, regrade, candidate launch or alternative-model rescue. Preserve source drafts for future explicitly scoped work; no further graft cohort planned at this checkpoint."
+}

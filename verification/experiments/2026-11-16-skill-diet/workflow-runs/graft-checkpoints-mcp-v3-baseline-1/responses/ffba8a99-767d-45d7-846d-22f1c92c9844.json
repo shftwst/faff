@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc100",
+      "--root",
+      "/var/tmp/graft-checkpoint-f6Zi2f/reconciliation/actual/mixed-ledger"
+    ],
+    "input": "{\"type\":\"ledger-write\",\"data\":{\"sha256\":\"dcdd6c709baeac8181c114cfcabf87417e42fd556c53b9936a3a295309511116\"}}",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "- phase 'undefined' not in Phase {run, tidy, prep, build, plot}\n",
+    "error": null,
+    "ledger_before_sha256": "dcdd6c709baeac8181c114cfcabf87417e42fd556c53b9936a3a295309511116",
+    "ledger_after_sha256": "dcdd6c709baeac8181c114cfcabf87417e42fd556c53b9936a3a295309511116",
+    "prior_events_sha256": "7a7475e0c1f62c2f0db06fb7d82682b1249cb3d555ea01100a02b4b587f3bca8",
+    "events_after_sha256": "7a7475e0c1f62c2f0db06fb7d82682b1249cb3d555ea01100a02b4b587f3bca8",
+    "appended": []
+  }
+}

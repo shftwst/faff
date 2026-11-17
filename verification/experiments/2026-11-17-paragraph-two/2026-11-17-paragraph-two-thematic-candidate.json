@@ -1,0 +1,324 @@
+{
+  "schema": 1,
+  "status": "paragraph-source-candidate-unqualified-awaiting-independent-review",
+  "accepted": false,
+  "baseline_commit": "9a6c64bacbe40bb99a40af5b014db357827289d9",
+  "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+  "before_bytes": 34734,
+  "after_bytes": 32125,
+  "saved_bytes": 2609,
+  "before_estimated_tokens": 8578,
+  "after_estimated_tokens": 7943,
+  "saved_estimated_tokens": 635,
+  "token_method": "ceil(UTF16 code units/4) on each whole file; source estimate, not billing",
+  "before_sha256": "0c57deb813e690969c8670ff70cafa4ed62630f0005494303d7787ff3a79876f",
+  "after_sha256": "25980b51369b94330e0fe2b25a94d134f1bbdbc4b1a55f011a0d8534f3ae50e7",
+  "paragraphs_rewritten": 28,
+  "paragraph_maps": [
+    {
+      "source_lead": "The default methodology, the **thematic** lens",
+      "before": "The default methodology, the **thematic** lens \u2014 opinion-free: it reflects what the tracker topology already says, with no outcome opinion. Ordering by unlock value, gating on decision closure, surfacing graph-level problems, and floating the highest-leverage work first. No opinionated delivery philosophy, no principle-based diagnosis. Just: what does the graph say?",
+      "after": "The default **thematic** methodology derives ordering, decision-closure gates and graph diagnostics from tracker topology. Float the highest-leverage work first without outcome opinions, delivery philosophy or principle-based diagnosis.",
+      "before_paragraph_sha256": "2ac57787a07a96315ffa7f4b472095c55a4959b91a9d6639b00de4925525ad8e",
+      "after_paragraph_sha256": "f2053e7aca300044b70fe6a0d9a447e57bd06a04a96983982ef7f57cf6adc6cc",
+      "saved_bytes": 134,
+      "preserved_obligations": "Opinion-free graph derivation, highest-leverage sequencing and decision-closure role retained."
+    },
+    {
+      "source_lead": "The cycle + ghost-project graph floor",
+      "before": "The cycle + ghost-project graph floor is **not** owned here \u2014 it is the methodology-agnostic **structural (topology) floor** (gateway \u2192 **The `methodology` slot** \u2192 the structural/topology floor), which this lens *composes* exactly as the agile lens does. \"structural\" names the tracker topology / dependency graph, never this lens.",
+      "after": "Compose the methodology-agnostic **structural (topology) floor** for cycle + ghost-project detection (gateway \u2192 **The `methodology` slot** \u2192 the structural/topology floor), as agile does. This lens does not own it: \"structural\" means tracker topology / dependency graph, not thematic.",
+      "before_paragraph_sha256": "eaa377326b309411c9c7eea28a01819b4025bc6f99ca4464ea5e65949c952cf6",
+      "after_paragraph_sha256": "c7a40c21ff6103865336b8bae33becbd89a142a7f9a885a1662d21db134e72b2",
+      "saved_bytes": 50,
+      "preserved_obligations": "Both composed categories, shared home, agile parity and terminology distinction retained."
+    },
+    {
+      "source_lead": "This is what runs when",
+      "before": "This is what runs when no other methodology is configured. It's extracted here so it can be referenced, tested, and eventually swapped.",
+      "after": "Run when no other methodology is configured; the separate skill can be referenced, tested and swapped.",
+      "before_paragraph_sha256": "168e2a4a78817e449fdc3d29835a7be21c4f8b75e276b7e9a073bd6f363293e7",
+      "after_paragraph_sha256": "0a27106747bae4959896fb7d212bbff107f6abc25727b12e2cd037a3cb194e37",
+      "saved_bytes": 33,
+      "preserved_obligations": "Unset-slot default and swappable implementation retained."
+    },
+    {
+      "source_lead": "When two issues have equal priority",
+      "before": "When two issues have equal priority, the one that unlocks more downstream work goes first. When both are equal, creation order breaks the tie (oldest first \u2014 fairness over recency). Every output below that sequences work uses this rule.",
+      "after": "Break equal priority by greater downstream unlock value; break equal priority and unlock by oldest creation first. Apply this rule to every output that sequences work.",
+      "before_paragraph_sha256": "0b2baa1795ebb50de8086618974785369064fa490dd32b7b6b2d995355cec367",
+      "after_paragraph_sha256": "a10f6ea5a6e67a8e024d7fffc3844310c7fd6668ae0386c80e8f3fb3cfeaba24",
+      "saved_bytes": 71,
+      "preserved_obligations": "All ordering precedence and oldest-first tie break explicit; no priority/unlock reversal."
+    },
+    {
+      "source_lead": "Each output is a named capability",
+      "before": "Each output is a named capability a caller requests by name. This skill does not know or describe its callers \u2014 it answers the request from the graph. The answer is always graph-derived, never opinion-derived. The canonical set of named outputs (which are required, which caller requests each, the standard envelope) is fixed in the gateway \u2192 **The `methodology` slot**; the sections below are this skill's implementation of that contract.",
+      "after": "Answer named requests from graph facts, never opinions; this skill neither knows nor describes callers. Gateway \u2192 **The `methodology` slot** fixes outputs, requiredness, caller mapping and standard envelope; implement that contract below.",
+      "before_paragraph_sha256": "2a61031440cbb7078cb9ae5ab45fb06acadcbba03f6cd8efff74cd4c084eb9bc",
+      "after_paragraph_sha256": "7cbfaa07c7dac57067cbdd91807b3e46d7f87beda71c4284eb474ec3cd46d241",
+      "saved_bytes": 203,
+      "preserved_obligations": "Named dispatch, caller-agnostic graph-only answer, canonical requiredness and envelope retained."
+    },
+    {
+      "source_lead": "It does **not** answer the optional",
+      "before": "It does **not** answer the optional `issue-critique` output \u2014 per-issue right-sizing/workstream/risk critique is an opinionated lens, and this default is pure structure. Unanswered is contract-valid: `/faff-prep` simply omits the `## Methodology critique` block (the agile lens is the one that fills it).",
+      "after": "Leave optional `issue-critique` unanswered: per-issue right-sizing/workstream/risk critique needs an opinionated lens. This is contract-valid; `/faff-prep` omits `## Methodology critique`, which agile supplies.",
+      "before_paragraph_sha256": "6baf5ba3372d0bcdd379a809905a84a6d4914112e6d50f888fcbb9a8f441039a",
+      "after_paragraph_sha256": "7f795c505933aac99740d694e42358c726a8963633bb6a29145208834803949f",
+      "saved_bytes": 96,
+      "preserved_obligations": "All three excluded critique dimensions, optional unanswered validity and exact downstream omission retained."
+    },
+    {
+      "source_lead": "Order a set of issues by",
+      "before": "Order a set of issues by the core ordering rule. Issues gating the longest chains rise to the top. Unlock value counts live blocker edges only (gateway \u2192 **Satisfied blockers \u2014 edges to terminal work**) \u2014 a satisfied edge adds no downstream count.",
+      "after": "Use the core ordering rule so issues gating longest chains rise. Count only live blocker edges (gateway \u2192 **Satisfied blockers \u2014 edges to terminal work**); satisfied edges add no downstream count.",
+      "before_paragraph_sha256": "d2607291e4e94734210c7fb2069e9206835656182f6e53ceeb13240f66d4592a",
+      "after_paragraph_sha256": "6d23c198a010cde9a996fcf978879f71b61dc3830bb266d3ab5c6f11531ff8a1",
+      "saved_bytes": 53,
+      "preserved_obligations": "Longest-chain sequencing and live-versus-satisfied edge count retained."
+    },
+    {
+      "source_lead": "**Optional `prd-distance` composition.**",
+      "before": "**Optional `prd-distance` composition.** When the caller supplies the `prd-distance` map (an L4 drain under a resolved target PRD \u2014 gateway \u2192 **Standard envelope \u2192 Optional input `prd-distance`**), compose it as a **within-band** tiebreaker on top of the core ordering rule, never a replacement:",
+      "after": "**Optional `prd-distance` composition.** When supplied under a resolved target PRD in an L4 drain, compose the `prd-distance` map within priority bands, never replacing the core rule (gateway \u2192 **Standard envelope \u2192 Optional input `prd-distance`**):",
+      "before_paragraph_sha256": "edc0c7ba7fc3e267fef9c2131f3ba4c338099605df7aaf351bc377af8486590a",
+      "after_paragraph_sha256": "ea000c0a5214a28c0ca413168bb8961764da36e5de01af7ec1788ff37b9fb462",
+      "saved_bytes": 48,
+      "preserved_obligations": "Optional map, L4/resolved-target condition, within-band limit and core-rule composition retained."
+    },
+    {
+      "source_lead": "Distance is the primary key across",
+      "before": "Distance is the primary key across classes within a band; the core ordering rule (unlock value, then creation order) is the deterministic tiebreak within a class. Because step 2 is a stable sort that leaves unmatched/`met` issues in place, **input absent \u21d2 byte-identical output** (floor rule (b)) \u2014 with no map the composition never runs.",
+      "after": "Within a band, distance is primary across classes; unlock value then creation breaks ties within a class. Step 2's stable sort leaves unmatched/`met` positions unchanged. **Input absent \u21d2 byte-identical output**: without a map, do not run composition.",
+      "before_paragraph_sha256": "3eab5971d49e8be107161daca309b1d102aa9f97925c5219a319bb12e30d8c89",
+      "after_paragraph_sha256": "25528a6be73aff2e4c01937c25731bab732cbb381e18195360ee5f7cae7777c7",
+      "saved_bytes": 90,
+      "preserved_obligations": "Across/within class keys, neutral positions and absent-input byte-equivalence retained."
+    },
+    {
+      "source_lead": "Turn a **discovery brief**",
+      "before": "Turn a **discovery brief** (the `intake` slot's output \u2014 see `faffter-noon-intake`) into a structured set of proposed tickets. Requested by `/faff-jot` after the intake conversation; the orchestrator creates the tickets this output proposes. This output **proposes** structure \u2014 it never writes to the tracker itself (that's the orchestrator lane).",
+      "after": "From a **discovery brief** (`intake` output, `faffter-noon-intake`), propose structured tickets for `/faff-jot` after intake. The orchestrator creates them; this output **proposes**, never writes the tracker.",
+      "before_paragraph_sha256": "3d4b9cd6f06ed0084d53c3148b5b1c67816d65cff06b14673c30756695fb1182",
+      "after_paragraph_sha256": "8d717e6c72fd7fd704156216102a8f7a8685e5e6c654b69528347c8c24aafbbe",
+      "saved_bytes": 144,
+      "preserved_obligations": "Intake source, jot timing, proposal-only boundary and orchestrator writer retained."
+    },
+    {
+      "source_lead": "The thematic lens shapes purely",
+      "before": "The thematic lens shapes purely from what the brief states plus the live tracker graph \u2014 no opinion about value or right-sizing (that's what an opinionated methodology like `faffter-dark-methodology-agile-delivery` adds on top):",
+      "after": "Shape from the brief's stated facts and live tracker graph, without value or right-sizing opinions; `faffter-dark-methodology-agile-delivery` adds those:",
+      "before_paragraph_sha256": "0887ee61ba6ebb5f12eba65450bdd79181b3493734d925e15505a4e4365c18e8",
+      "after_paragraph_sha256": "beb9f0557d3cab054b0e76d1766021dd87bd488d10cee8c5312aabef3e04e402",
+      "saved_bytes": 77,
+      "preserved_obligations": "Both inputs and excluded opinion axes retained without broadening methodology authority."
+    },
+    {
+      "source_lead": "For every proposed ticket emit:",
+      "before": "For every proposed ticket emit: title (from the capability/item, plain English \u2014 no invented codes), a description seeded from the relevant brief prose, the container/workstream it belongs under, declared blocker/blocked-by links derived from the brief's `Dependencies`, and a `Backlog` status. Carry the brief's `Open questions` onto the relevant ticket's description so `/faff-prep` picks them up.",
+      "after": "Each proposed ticket needs a capability/item-derived plain-English title (no invented codes), relevant-brief-seeded description, container/workstream, `Dependencies`-derived blocker/blocked-by links and `Backlog` status. Copy relevant `Open questions` into its description for `/faff-prep`.",
+      "before_paragraph_sha256": "d41ee7c05984aeb5058aab7614f07d58bbb3b24f0dc1f44be57bdca801db951d",
+      "after_paragraph_sha256": "1b46441cac145e928bce93b2d22b682ff3704f3eb792b3e80b54d4e53b149d93",
+      "saved_bytes": 111,
+      "preserved_obligations": "All ticket fields, title/description provenance, relationship source, status and open-question carry retained."
+    },
+    {
+      "source_lead": "**Recursive mode (`shape-level` supplied",
+      "before": "**Recursive mode (`shape-level` supplied by `/faff-plot`).** When the request carries a `shape-level` (`initiative` / `project` / `epic`), shape only *that altitude's children* of the node-scoped sub-brief \u2014 not a full flat set. `/faff-plot` drives the descent and owns the stop rule; this output shapes one level per call:",
+      "after": "**Recursive mode (`shape-level` supplied by `/faff-plot`).** A `shape-level` (`initiative` / `project` / `epic`) requests only that altitude's children from the node-scoped sub-brief, never a full flat set. `/faff-plot` owns descent and stop rule; shape one level per call:",
+      "before_paragraph_sha256": "d62680cc9c62a690a5f763e776d73512c82c23b85f64e050e19ef931124c63b8",
+      "after_paragraph_sha256": "7d862247f5a9a45233c44356d8642431f6b8612d50f06b856dc4c15ed6e1b795",
+      "saved_bytes": 52,
+      "preserved_obligations": "Three allowed levels, node scope, no flat recursion and plot stop ownership retained."
+    },
+    {
+      "source_lead": "Emit nothing for a branch",
+      "before": "Emit nothing for a branch the sub-brief can't concretely derive \u2014 surface \"needs more discovery\" so plot stops that branch. Same `Backlog` status and brief-seeded descriptions as the single-level output. Absent a `shape-level`, the single-level brief\u2192tickets behaviour above is unchanged (this is what `/faff-jot` uses).",
+      "after": "For a branch not concretely derivable, emit nothing and surface \"needs more discovery\" so plot stops it. Keep single-level `Backlog` status and brief-seeded descriptions. Without `shape-level`, retain the single-level brief\u2192tickets behaviour `/faff-jot` uses.",
+      "before_paragraph_sha256": "c023379a30ba499f522c2a6c4b0b7858066498f8b077419cc1ae723eff7d1a81",
+      "after_paragraph_sha256": "cce881b3622f6144704265070b1f32e98df1ea1c99f198a791d6236f78e63867",
+      "saved_bytes": 63,
+      "preserved_obligations": "No speculative branch, exact discovery signal, inherited fields and absent-level fallback retained."
+    },
+    {
+      "source_lead": "Conservative, same as every thematic output:",
+      "before": "Conservative, same as every thematic output: when the brief is too thin to derive a defensible structure, propose fewer, larger tickets and surface what's missing rather than manufacturing speculative ones \u2014 the human (or a later `/faff-prep`) refines.",
+      "after": "A thin brief warrants fewer, larger defensible tickets plus the missing facts, never speculative ones. Leave refinement to the human or later `/faff-prep`.",
+      "before_paragraph_sha256": "08819abaceb39decc3e73db85cedc0f86b4c4cd194855755aeba6a30172ebbb4",
+      "after_paragraph_sha256": "6fa73c9dd17ea68b66701e01fbdd145abda11f5c8613137f69dfbc983feebccf",
+      "saved_bytes": 99,
+      "preserved_obligations": "Conservative response and deferred refinement authority retained."
+    },
+    {
+      "source_lead": "Sequence within each horizon by",
+      "before": "Sequence within each horizon by `pick-ordering`. Surface structural diagnostics relevant to roadmaps: ghost-project pointers, structural gaps (initiative has no Next project), unfireable trigger gates, stalled Now projects (In Progress, no commits 14+ days), parked issues with unmet unpark conditions. Emit an ASCII chain diagram (initiative \u2192 project \u2192 issue) with structural gaps marked inline.",
+      "after": "Sequence each horizon by `pick-ordering`. Surface ghost-project pointers, initiative gaps with no Next project, unfireable trigger gates, stalled Now projects (In Progress, no commits 14+ days), and unmet unpark conditions. Emit an ASCII initiative \u2192 project \u2192 issue chain with gaps inline.",
+      "before_paragraph_sha256": "360c32c22ec2d81d96f64c6df27411f92e85a89099468d936ff5de382f97eddb",
+      "after_paragraph_sha256": "8d6936f8098737621a773790edc4d826b063629018e6f919894dfcb11b642d43",
+      "saved_bytes": 107,
+      "preserved_obligations": "All five diagnostic categories, 14-day threshold, horizon sequencing and diagram structure retained."
+    },
+    {
+      "source_lead": "**Ordering:** `pick-ordering`",
+      "before": "**Ordering:** `pick-ordering` \u2014 including its optional **`prd-distance`** within-band composition when the caller supplies the map under a resolved target PRD: the queue heads for the sibling PRDR nearest a `met` DoD, within human-priority bands and byte-identical when absent. Independents ordered directly; collision groups serialised within (lead issue determines group position). Admission and serialisation read live blocker edges only \u2014 a satisfied edge (gateway \u2192 **Satisfied blockers \u2014 edges to terminal work**) never triggers serialisation.",
+      "after": "**Ordering:** use `pick-ordering`, including optional **`prd-distance`** under a resolved target PRD: nearest `met` sibling PRDR first within human-priority bands, byte-identical when absent. Order independents directly; serialise collision-group members, with the lead issue fixing group position. Admission and serialisation use live blocker edges only; satisfied edges never serialise (gateway \u2192 **Satisfied blockers \u2014 edges to terminal work**).",
+      "before_paragraph_sha256": "33f8bd50ddab55182eb0c939000f526f8e58178bbf1e2df3286e41db28985579",
+      "after_paragraph_sha256": "ded8458be6ab602185158f5e2dbd248ca18052c741b8bd40ddf6b97641f7db42",
+      "saved_bytes": 105,
+      "preserved_obligations": "PRD conditional ordering, priority bands, absence identity, collision lead position and satisfied-edge safety retained."
+    },
+    {
+      "source_lead": "**Conflict analysis:**",
+      "before": "**Conflict analysis:** partition the admitted set into independents (parallel-safe) and collision groups (serialised within the group, parallel across groups) per the canonical heuristics \u2014 see `faff-beep-boop` \u2192 **Conflict analysis**. Single home: do **not** recap the heuristics here.",
+      "after": "**Conflict analysis:** partition admitted work into parallel-safe independents and collision groups serialised within, parallel across groups. Use `faff-beep-boop` \u2192 **Conflict analysis** as the canonical heuristic home; do **not** recap it.",
+      "before_paragraph_sha256": "72689fdea5a12445363d2df647ae19c8dc0dccb94f210313d082debe3c7f3e5a",
+      "after_paragraph_sha256": "ba62e60803228a49662aaf25765b145ed39c5cb58006ea6fb95f0ff4fbd0fdc4",
+      "saved_bytes": 47,
+      "preserved_obligations": "Independent/group parallelism and unchanged canonical algorithm ownership retained."
+    },
+    {
+      "source_lead": "**Optional** (gateway \u2192 **The `methodology` slot**). The thematic answer",
+      "before": "**Optional** (gateway \u2192 **The `methodology` slot**). The thematic answer to \"in what order do the **policy-weighted** terminating rungs win\" \u2014 the weighting behind the run-end decision `faff run-done` composes. The thematic lens orders from **graph/process facts, never value/risk opinion**, so its ladder is exactly the CLI's built-in `structural-default` policy ladder (the fixed `policy_source` enum \u2014 this output *is* that default, made explicit):",
+      "after": "**Optional** (gateway \u2192 **The `methodology` slot**). Order the **policy-weighted** terminating rungs for `faff run-done` from **graph/process facts, never value/risk opinion**. Return exactly the CLI's built-in `structural-default` ladder (fixed `policy_source` enum), made explicit:",
+      "before_paragraph_sha256": "54ff7d9a3c8c304a01edf598bec7ee0a36b83bd840a0a36a3d336334847d11f2",
+      "after_paragraph_sha256": "f6bb93f3cff4e63efc2e6845d6e58f77cf80370a09c0e9db0643bf5d4d84da39",
+      "saved_bytes": 172,
+      "preserved_obligations": "Optionality, graph/process basis, CLI run-end ownership and exact default ladder retained."
+    },
+    {
+      "source_lead": "**Output:** an ordered ladder",
+      "before": "**Output:** an ordered ladder of `{test, verdict}` rungs over the closed test vocabulary above, passed by the orchestrator to `faff run-done --policy`. Read-only \u2014 the methodology authors the ladder; it never decides the run-end (that is `faff run-done`, purely) and never writes the tracker.",
+      "after": "**Output:** ordered `{test, verdict}` rungs over the closed test vocabulary above, passed to `faff run-done --policy` by the orchestrator. Read-only: author the ladder, never decide run-end (`faff run-done` alone) or write the tracker.",
+      "before_paragraph_sha256": "e7ba3182fa45c55c7221ee10c1aacac99b0c65834f5b1a23bd4b483cef58cf32",
+      "after_paragraph_sha256": "baf705904034525a5916a50eb24f03f5a484796ca6bfd4139e977f1ea9fd71b8",
+      "saved_bytes": 59,
+      "preserved_obligations": "Exact rung schema, closed taxonomy, command, caller handoff and read-only/end-decision boundary retained."
+    },
+    {
+      "source_lead": "**Optional** (gateway \u2192 **The `methodology` slot**). Given the **not-automation-eligible**",
+      "before": "**Optional** (gateway \u2192 **The `methodology` slot**). Given the **not-automation-eligible** issue set + the dependency graph + each member's `faff next --if-eligible` hypothetical transition + appetite, return ranked **crank-up-sets** \u2014 coherent batches a human can approve in one go. Unanswered \u21d2 wtf/tidy fall back to the flat On-hold list. Read-only: never mutates eligibility.",
+      "after": "**Optional** (gateway \u2192 **The `methodology` slot**). From **not-automation-eligible** issues, dependency graph, each `faff next --if-eligible` hypothetical transition and appetite, return ranked **crank-up-sets**: coherent batches for human approval. Unanswered \u21d2 wtf/tidy use the flat On-hold list. Read-only; never mutate eligibility.",
+      "before_paragraph_sha256": "5f30fcf057f89079ad76a8bbfb2d07dbc56a17994c63d3d9fcf15a596224af9f",
+      "after_paragraph_sha256": "fbbea26bdf9caae2d56aff81ed82956797c6f0a096b27ba7e930d615a636afd9",
+      "saved_bytes": 45,
+      "preserved_obligations": "Four inputs, ranked human-approved batching, unanswered fallback and no eligibility writes retained."
+    },
+    {
+      "source_lead": "**Optional** (gateway \u2192 **The `methodology` slot**). Given a container",
+      "before": "**Optional** (gateway \u2192 **The `methodology` slot**). Given a container (initiative/project) + its `{outcome, child_specs, target}`, author one **`AuthoredPrdr`** \u2014 a loop-authored PRDR record (provenance `loop`, status `Proposed`). The thematic lens authors from **graph + container facts**, never value/risk opinion: the DoD is the **graph completion bar** (every child epic delivered + the container outcome's stated criteria met), scaled by target.",
+      "after": "**Optional** (gateway \u2192 **The `methodology` slot**). From an initiative/project container and `{outcome, child_specs, target}`, author one **`AuthoredPrdr`**, provenance `loop`, status `Proposed`. Use **graph + container facts**, never value/risk opinions: the target-scaled DoD requires every child epic delivered and the container's stated outcome criteria met.",
+      "before_paragraph_sha256": "1dc6567b336fa221d69e86c4da66534d3b54dfb055179d1a1f37585b5f7c4313",
+      "after_paragraph_sha256": "ffde28f590fb201e057787910399057e285b2620ccf1a8b1aa124c2001ac8b95",
+      "saved_bytes": 90,
+      "preserved_obligations": "Container classes, three inputs, record type/provenance/status, graph completion bar and target scaling retained."
+    },
+    {
+      "source_lead": "**Appetite** tunes only ambition framing",
+      "before": "**Appetite** tunes only ambition framing, never whether to admit (admission is the caller's level): lower appetite favours the thinner end of the target band, higher the fuller \u2014 it never self-Accepts (that is the L4 runner's gated act, or the human's L3 ratification).",
+      "after": "**Appetite** changes ambition framing only: lower favours the thin end of the target band, higher the full end. Admission belongs to the caller's level; never self-Accept (L4 runner's gated act or human L3 ratification).",
+      "before_paragraph_sha256": "9b587b0480f2f2abf2f26d707bccce5fc0b9611f97343a4d95733072237f1226",
+      "after_paragraph_sha256": "d860313855c821e5850cbf7fece81400c217df80d3cd37f0e61ac8734a171dbb",
+      "saved_bytes": 51,
+      "preserved_obligations": "Both ambition directions, caller admission authority and level-specific ratification retained."
+    },
+    {
+      "source_lead": "**Optional** (gateway \u2192 **The `methodology` slot**; this is **Phase 1**",
+      "before": "**Optional** (gateway \u2192 **The `methodology` slot**; this is **Phase 1** of the upper-gate two-phase arbitration \u2014 gateway \u2192 **Upper-gate (YAGNI) two-phase arbitration**). Given an `AuthoredPrdr` + the PRD (+ optional grounding), propose whether the PRDR is **warranted** \u2014 serves a real PRD goal **without exceeding it**. The thematic lens judges from **graph + PRD facts**, never value/risk opinion:",
+      "after": "**Optional** (gateway \u2192 **The `methodology` slot**; **Phase 1** of **Upper-gate (YAGNI) two-phase arbitration** in the gateway). From `AuthoredPrdr`, PRD and optional grounding, propose whether the PRDR serves a real PRD goal **without exceeding it**. Use **graph + PRD facts**, never value/risk opinions:",
+      "before_paragraph_sha256": "eb755e31b585e1a6b65c55afe24aad5c1bc4587c5a638cc57d245b1b89eb064d",
+      "after_paragraph_sha256": "3312b1df5bbb3f873224e6c1ed3de4964937e137d5d79831899bba666c289944",
+      "saved_bytes": 101,
+      "preserved_obligations": "Phase-one role, all inputs, warranted scope criterion and facts-only judgement retained."
+    },
+    {
+      "source_lead": "**Output:** `{serves_goal, within_scope, verdict:",
+      "before": "**Output:** `{serves_goal, within_scope, verdict: admit|reject, reason}` \u2014 the Phase-1 proposal the caller passes to `faff prdr yagni --proposal \u2026`. It **proposes, never admits** (admission is `faff prdr admit`), the adversarial-review slot challenges it in Phase 2, and it **never writes the tracker**. Unanswered \u21d2 the upper gate has no proposal (the caller falls back to the `faff prdr admit` gate's fail-safe upper default \u2014 conservative reject).",
+      "after": "**Output:** `{serves_goal, within_scope, verdict: admit|reject, reason}` for `faff prdr yagni --proposal \u2026`. **Propose, never admit** (`faff prdr admit` owns admission); the adversarial-review slot challenges in Phase 2. Never write the tracker. Unanswered leaves no proposal, so the caller uses `faff prdr admit`'s fail-safe upper default: conservative reject.",
+      "before_paragraph_sha256": "9f22515ed2de54b8e9e50606fd8a44c87bae029e594982db6c1b6fbe7ca772b4",
+      "after_paragraph_sha256": "d0670f89b36209185084f4eaa039a1e601bd0987c5450c9f018c410fa0605094",
+      "saved_bytes": 95,
+      "preserved_obligations": "All four result fields, exact commands, adversarial challenge, admission ownership, zero writes and unanswered fail-safe retained."
+    },
+    {
+      "source_lead": "**Appetite** tunes only the strictness",
+      "before": "**Appetite** tunes only the strictness of `within_scope` (lower = permissive, higher = tighter), never whether to admit \u2014 the conservative-reject-on-doubt arbitration is the CLI's.",
+      "after": "**Appetite** changes `within_scope` strictness only (lower permissive, higher tighter), never admission; conservative-reject-on-doubt arbitration belongs to the CLI.",
+      "before_paragraph_sha256": "e7f7786c80c6999d79b65bfa1c6ebd877805651652b55cea2cf9a94eba2263e8",
+      "after_paragraph_sha256": "a3be8f55e7dd64606ae7b3d342f5de288779dada1911c26af0f8f3fb795189b2",
+      "saved_bytes": 17,
+      "preserved_obligations": "Same strictness direction and CLI conservative-admission authority retained."
+    },
+    {
+      "source_lead": "**Optional** (gateway \u2192 **The `methodology` slot**). Proposing outcome-led",
+      "before": "**Optional** (gateway \u2192 **The `methodology` slot**). Proposing outcome-led project homes for loose Backlog work requires an **outcome** judgement \u2014 which shippable outcome a set of loose tickets converges on \u2014 and this lens is opinion-free by design: it groups by where work *sits* in the graph, never by the value-outcome it delivers. So the thematic default's legitimate answer is an **empty rehome-set**: no proposed containers, no membership map, no coherence edges, no leave-loose reasoning. This is an answer, not a gap \u2014 outcome-led formation is exactly the opinion an opinionated lens (`faffter-dark-methodology-agile-delivery`) adds on top.",
+      "after": "**Optional** (gateway \u2192 **The `methodology` slot**). Outcome-led homes for loose Backlog tickets require judging their shared shippable outcome. This lens groups by graph position, not value/outcome, so return an **empty rehome-set**: no proposed containers, membership map, coherence edges or leave-loose reasoning. This is a valid answer; `faffter-dark-methodology-agile-delivery` supplies the missing outcome opinion.",
+      "before_paragraph_sha256": "aea97130e0562f27ce1a4120c58be27c7d989ff56522e16bf4fbaf19e3e9b4f8",
+      "after_paragraph_sha256": "191a75e2bf449898eb665c9ff15eda8afa8eb92c5ced0858b49e41e357af1c3e",
+      "saved_bytes": 235,
+      "preserved_obligations": "Output remains optional/valid-empty, all four absent components, graph-versus-outcome boundary and agile role retained."
+    },
+    {
+      "source_lead": "Any authority to write tracker **topology**",
+      "before": "Any authority to write tracker **topology** (reparent / convert / rehome) is governed by the shared dial at gateway \u2192 **Appetite for destruction** \u2192 **Topology-write authority**, not a story this lens invents. Being opinion-free, the thematic lens sits at the dial's surface-only end \u2014 it reflects the topology the graph already states and never restructures it; the reversibility floor and the human-curated-structure floor there bind it as they do every lens.",
+      "after": "Gateway \u2192 **Appetite for destruction** \u2192 **Topology-write authority** governs tracker **topology** (reparent / convert / rehome). This opinion-free lens stays surface-only: reflect existing graph topology, never restructure it. The dial's reversibility and human-curated-structure floors bind here too.",
+      "before_paragraph_sha256": "7b8372a822b1d807b85f27a937ed0e69a7525f5abd7b06d807d421b3f58ad417",
+      "after_paragraph_sha256": "cf31c1ee55bdcbf55b2e35b36f183b5115a1f02f7f860cb791894fd3c3450e63",
+      "saved_bytes": 161,
+      "preserved_obligations": "All topology operation classes, canonical authority, absolute no-restructure posture and both floors retained."
+    }
+  ],
+  "protected_invariants": {
+    "frontmatter_verbatim": true,
+    "headings_and_extraction_anchors_verbatim": true,
+    "all_list_table_and_blockquote_lines_verbatim": true,
+    "fenced_code_and_behavioral_examples_verbatim": true,
+    "original_command_spans_retained_verbatim": true,
+    "no_new_mandatory_read": true,
+    "no_new_reference": true,
+    "all_input_output_schema_and_taxonomy_members_retained": true
+  },
+  "source_consumer_review": {
+    "method": "Inspect test/eval references and independently scan quoted plain source literals >=15chars that occur in baseline.",
+    "files_with_baseline_literal_matches": [
+      "test/contract-describe.test.mjs",
+      "test/eval-affected.test.mjs",
+      "test/eval-cli-driver.test.mjs",
+      "test/eval-coverage-gate.test.mjs",
+      "test/eval-routing.test.mjs",
+      "test/faff-tidy-repeat-park.test.mjs",
+      "test/is-bundled.test.mjs",
+      "test/lights-out-resume.test.mjs",
+      "test/prdr-loop-admit.test.mjs",
+      "test/prdr.test.mjs",
+      "test/run-close.test.mjs",
+      "test/run-done.test.mjs",
+      "test/seam-registry.test.mjs",
+      "test/shadow-fidelity.test.mjs",
+      "test/validate-adapters.test.mjs",
+      "test/fixtures/tracker/sample.json",
+      "test/golden/contracts/cases.json",
+      "test/helpers/seed-repo.mjs",
+      "eval/cli-driver.mjs",
+      "eval/grader.mjs",
+      "eval/run-live-evals.mjs",
+      "eval/seam-registry.json",
+      "eval/baselines/gateway-usage.json",
+      "eval/cases/routing-005.json",
+      "eval/cases/shaping-002.json"
+    ],
+    "lost_plain_literals": [],
+    "limits": "Arbitrary regex compatibility is not proved by this scan; no tests run."
+  },
+  "deferred": [
+    "All diagnostic category/fix tables, including park-history clock/window/threshold ownership, four chain-gap definitions/detection predicates/examples and skip cases.",
+    "All surface/create chain-gap actions and relationship mappings; all slice-frontier/eligibility/priority tie rules and five derivation steps.",
+    "All output code/schema examples, exact fixed run-termination ladder, safety-floor list, and appetite tables.",
+    "Existing contradictions or shorthand remain: greenfield sequencing explanation versus global ordering; opinion-free risk-spike frontier; topology surface-only versus specified mechanical actions. No policy repair."
+  ],
+  "limits": [
+    "Only the owned SKILL.md and this record changed.",
+    "No executable code, new references, allowances, inventories, tests, commits, model calls or harness.",
+    "Whole-paragraph source compression only; independent semantic review and root verification remain outstanding."
+  ]
+}

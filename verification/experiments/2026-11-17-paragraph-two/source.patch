@@ -1,0 +1,433 @@
+diff --git a/plugin/skills/faff-wtf/SKILL.md b/plugin/skills/faff-wtf/SKILL.md
+index 64bf602e..49547ad5 100644
+--- a/plugin/skills/faff-wtf/SKILL.md
++++ b/plugin/skills/faff-wtf/SKILL.md
+@@ -17,17 +17,17 @@ Pull current state from your issue tracker and git, figure out what matters, tel
+ 
+ **Methodology transport.** Each `methodology` output `/faff-wtf` requests (`pick-ordering`, `standup-digest`, and `backlog-diagnostics` when no tidy ran this pass) is dispatched as a **producer subagent** (gateway → **Sibling-skill invocation → Producer dispatch**) resolving the `methodology` dispatch lane. Per gateway → **The `methodology` slot → Transport** they share **one batched dispatch per render pass**; if `/faff-wtf` is ever itself a subagent, the call runs **in-context** (single-level nesting).
+ 
+-**Reflect newly unlocked potential.** When summarising recently completed work, explicitly call out what each shipped issue **unblocked** — issues whose blockers cleared in the last 24-48 hours and are now ready (or one step closer to ready). This belongs in "Recently Completed" alongside the ship list, and these unlocked issues are flagged as *just-realised* potential (annotated "just unlocked by …") so the human/automation notices them — where they land in "Coming Up" / "Today's Focus" / "Ready to pick up" is the methodology's `pick-ordering` call, not wtf's.
++**Reflect newly unlocked potential.** In "Recently Completed", show what each shipped issue unblocked: blockers cleared within 24-48 hours, leaving dependents ready or closer to ready. Annotate these issues "just unlocked by …" as *just-realised* potential. Their placement in "Coming Up" / "Today's Focus" / "Ready to pick up" follows methodology `pick-ordering`, never wtf's judgement.
+ 
+ ## Always pull fresh
+ 
+-Every invocation re-fetches the whole picture live per the shared **Always pull fresh** rule (gateway): every milestone, every In Progress / Blocked / Recently Completed / Coming Up issue, every blocker link, status field, and recent-activity timestamp. A briefing built on a partial or cached fetch is silently wrong, and the human acts on it.
++Re-fetch the whole picture live on every invocation (gateway → **Always pull fresh**): every milestone, In Progress / Blocked / Recently Completed / Coming Up issue, blocker link, status field and recent-activity timestamp. Never use a partial or cached fetch.
+ 
+ ## What it does
+ 
+ **Rendering rules.** Every issue surfaced in any section below uses the synthesis contract (gateway → **Rendering → `rendering_adaptor`**) — tracker ID + plain-English gloss + unlock-chain consequence when non-trivial. Build-queue and prep-queue sections render as the queue partition grid (`rendering_adaptor` slot, default `faffidavit-rendering` — form (c)). Cycles render as the cycle bracket / cycle box form. Structural diagnostics findings and calibration signals are pulled from the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy*.md` files; if none exists in the current pass, wtf runs the structural-diagnostics computation inline (same logic, same output location). When a `methodology` slot is configured, a `### Methodology findings` section sits after `### Today's Focus` (display convention: gateway → **The `methodology` slot**).
+ 
+-**Two lanes, daily-driver first.** Sections 1–7 are the **L1 answer**: what shipped, what's stuck, your parked loose ends, and the 2–3 things to do today, plus a backlog-health read (methodology, structural diagnostics, calibration) drawn from tidy's cache. One section, the **automation preview** (§5b), answers a *different* question: is it worth handing the queue to `/faff-beep-boop`? It renders after the focus answer and never displaces it.
++**Two lanes, daily-driver first.** Sections 1–7 give the **L1 answer**: shipped/stuck work, parked loose ends, 2–3 priorities for today and backlog health (methodology, structural diagnostics, calibration) from tidy's cache. The **automation preview** (5b) follows without displacing that answer: is the queue worth handing to `/faff-beep-boop`?
+ 
+ Run through these sections in order:
+ 
+@@ -54,9 +54,9 @@ Query across every team in the resolved team-set (`tracking.teams`, legacy `trac
+ 
+ ### 4. Parked work (any source)
+ 
+-Surface every issue faff has parked — whether by an overnight `/faff-beep-boop` run **or** interactively (a manual `/faff-prep` / `/faff-graft` that hit low confidence, an unresolved punt the user chose to leave, or a build-time ambiguity). The manual user parks too (L1 prep, L2 build), and that work must resurface here — not only beep-boop's.
++Surface every park, autonomous or interactive: overnight `/faff-beep-boop`, manual `/faff-prep` / `/faff-graft` low confidence, an unresolved punt the user left, or build-time ambiguity. Include human parks at L1 prep and L2 build.
+ 
+-**The `faff-parked` label is the spine of this section, not the run logs.** Every park — autonomous or interactive — applies the `faff-parked` label per the shared **Park / Unpark protocol** (gateway), so the tracker query catches them all regardless of how they were parked:
++**The `faff-parked` label is authoritative, not run logs.** Every autonomous or interactive park applies it (gateway → **Park / Unpark protocol**); query it to catch both:
+ 
+ - **Tracker query for issues tagged `faff-parked`** (or the tracker's equivalent label) — the authoritative source; covers interactive *and* autonomous parks.
+ - The most-recently-modified `.faff/runs/*/summary.md` (if any run logs exist) — used only to enrich autonomous parks with a log path. Pick by mtime, not name — run-id mint formats vary and are not load-bearing here. Use `Bash(ls -t "$PWD/.faff/runs/" 2>/dev/null)` to check for existence — do **not** use Glob, which silently misses dot-prefixed directories in some environments (e.g. Docker containers). A missing or unreadable run-log directory **never** suppresses this section — the label query still runs.
+@@ -71,19 +71,19 @@ Skip this section entirely if there are no parked issues (no `faff-parked`-label
+ 
+ ### 4c. Awaiting review — adversarial outage
+ 
+-Surface every issue tagged `faff-awaiting-review` via a **live tracker label query** (this label is not `faff-parked`'s query above and is easy to miss otherwise — wtf's parked query is scoped to `faff-parked` only). **Distinct from Parked work above:** this is not a human park — it means the built work is durable (branch pushed) and the review is waiting on a **machine** (the provider) to recover, auto-resuming on the next `/faff-beep-boop` drain with no rebuild. For each: issue id + title, the outage-retry attempt count (`n`/`graft.review_outage_retry_limit`), and a note that no action is needed — it self-resolves next drain, or escalates to an ordinary park after the retry bound. Skip the section if none.
++Query `faff-awaiting-review` **live**, separately from `faff-parked`. These are provider outages: the built branch is pushed, review awaits the machine and resumes next `/faff-beep-boop` drain without rebuilding. For each issue, show id + title, retry attempt `n`/`graft.review_outage_retry_limit`, and that no action is needed: it self-resolves next drain or becomes an ordinary park after the retry bound. Skip if none.
+ 
+ ### 4c-bis. Awaiting spec-review — adversarial outage
+ 
+-The prep-altitude twin of §4c above. Surface every issue tagged `faff-awaiting-spec-review` via a **live tracker label query** (a distinct label + query from `faff-awaiting-review`'s §4c — the two altitudes stay separable). **Distinct from Parked and §4c above:** not a human park, and not a stalled *build* — the spec is attached and durable on the tracker, review has not concluded, and the outage is waiting on a **machine** (the spec-review provider) to recover, auto-resuming on the next `/faff-beep-boop` drain with no re-spec. For each: issue id + title, the held-drain attempt count (`n`/`prep.spec_review_outage_hold_limit`), and a note that no action is needed — it self-resolves next prep drain, or escalates to an ordinary park past the hold limit. Skip the section if none.
++Query `faff-awaiting-spec-review` **live**, separately from `faff-awaiting-review` in 4c and from Parked work. The spec is attached durably to the tracker; review is unfinished while the provider recovers. Resume next `/faff-beep-boop` prep drain without re-speccing. Show each issue's id + title, held-drain attempt `n`/`prep.spec_review_outage_hold_limit`, and that no action is needed: it self-resolves next prep drain or becomes an ordinary park past the hold limit. Skip if none.
+ 
+ ### 4d. ADR supersession proposals awaiting ratification
+ 
+-Surface every **propose-only** ADR-admission candidate recorded by an autonomous `faff-graft` Step 3b run — a **loop-authored** ADR proposing to supersede a **human/legacy-provenance** ADR, which the admit gate correctly refused to auto-write (guardrails ratify only by human gesture; the loop never self-ratifies). Read `.faff/adr-proposals/*.json` (one file per candidate, keyed by the new ADR's number; written by graft, never by `/faff-wtf`). **Distinct from Parked / Awaiting-review above:** this isn't a stalled issue — the build that authored the proposing ADR already shipped; the proposal is a standing, git-native artifact (an ADR pair, not a tracker issue) waiting on a **ratification gesture**, not a build retry.
++Read `.faff/adr-proposals/*.json` for every **propose-only** autonomous graft Step 3b ADR-admission candidate: a loop-authored ADR proposing to supersede a human/legacy ADR, refused automatic writing because ratification requires a human gesture. Graft writes these files, one per new ADR number; wtf never does. The originating build already shipped. This standing git-native ADR pair awaits ratification, not a tracker issue or build retry.
+ 
+ For each entry with `disposition: propose-only`: surface the new ADR (number + title) and the old ADR it proposes to supersede (number + title), the recorded `why`, and the issue that authored it. Offer a yes/no gate: **"Ratify supersession of ADR-`<old>` by ADR-`<new>`? (y/n)"**. On confirm, run `faff adr supersede <old> --by <new>` (the existing mechanical linker), then delete the now-resolved `.faff/adr-proposals/<new>.json`. On deny, leave the file — it resurfaces unchanged on the next `/faff-wtf` pass. This is the **only** place a human ratifies a loop-over-human ADR supersession; the admit gate never asks elsewhere.
+ 
+-`disposition: reject` entries are informational only (already refused by the admit gate: challenge, by-level or ratchet; nothing to ratify) — mention a one-line count ("N supersession(s) refused by the admit gate — see the log") rather than itemising, unless appetite is `high`/`full` (prominent) per the gateway's appetite-graded-surfacing rule. Skip the section entirely if `.faff/adr-proposals/` is absent or empty.
++For `disposition: reject` (already refused by challenge, by-level or ratchet), nothing needs ratifying. Report a count: "N supersession(s) refused by the admit gate — see the log". Itemise prominently only at appetite `high`/`full` (gateway appetite-graded-surfacing rule). Skip the section if `.faff/adr-proposals/` is absent or empty.
+ 
+ ### 5. Today's Focus
+ Based on the above, recommend 2-3 specific things to focus on today, **selected and ordered per the configured methodology's `pick-ordering`** (gateway → **Ordering & judgement delegation**; the thematic default orders by priority → chainable unlock value):
+@@ -92,11 +92,11 @@ Based on the above, recommend 2-3 specific things to focus on today, **selected
+ - Flag if something blocked needs attention first
+ - Note any dependencies that are about to unblock downstream work — call out the size of the chain that would open up
+ 
+-(The value-chains view — which ready issue ships the most downstream value if delegated — lives in the **automation preview**, §5b, not here. Today's Focus stays the L1 answer: a short, ordered list of what *you* pick up next.)
++(The **automation preview**, 5b, shows which ready issue ships most downstream value if delegated. Today's Focus remains the L1 answer: a short ordered list of what the human picks up next.)
+ 
+ ### 5a. Methodology findings (rendered only when a `methodology` skill is configured)
+ 
+-Request the `standup-digest` output from the configured `methodology` skill and render what it returns. The digest carries a WIP status, an optional sequencing diagnosis, and the top structural findings — the methodology decides their content; faff-wtf only places and trims them.
++Request and render the configured methodology's `standup-digest`: WIP status, optional sequencing diagnosis and top structural findings. Methodology owns the content; wtf only places and trims it.
+ 
+ - **WIP coupling.** When the digest reports WIP at cap, `### Today's Focus` recommends **completion of in-flight only** — no new starts. Below cap, allow up to the digest's remaining-headroom count of new starts.
+ - **Highlight, not firehose.** Render at most two structural findings here, ordered by the digest's severity. If more exist, end with "(more in `/faff-tidy`)".
+@@ -105,9 +105,9 @@ Skip the entire `### 5a` subsection if no `methodology` skill is configured.
+ 
+ ### 5b. Automation preview — is it worth firing `/faff-beep-boop`? (always render)
+ 
+-The **L3 delegation view**: which lever ships the most downstream value, and what an unattended run would pick up right now (computed per the **Automation-routing verdict (fixed)**, gateway). It answers a different question from Today's Focus above and never displaces it. **Always present** — even with empty queues, render the headers with "(none)" so the human can see at a glance whether a run is worth kicking off.
++The **L3 delegation view** shows which lever ships most downstream value and what an unattended run would pick up now (gateway → **Automation-routing verdict (fixed)**). It never displaces Today's Focus. **Always render**, including headers with "(none)" for empty queues.
+ 
+-**Value chains to unlock (rendered when any ready issue has chainable unlock value ≥ 2).** Surface the **chains** so you can see which lever ships the most downstream value. For each ready (or about-to-be-ready) issue that gates others, render the chain it opens, not just a count:
++**Value chains to unlock (rendered when any ready issue has chainable unlock value ≥ 2).** For each ready or about-to-be-ready issue gating others, show the chain it opens, not just a count:
+ 
+ ```
+ SHF-12  add auth-token service        →  unlocks SHF-18 → SHF-19 → SHF-23   (3 issues, all currently blocked only by SHF-12)
+@@ -124,9 +124,9 @@ Render the head issue (the one to build now), an arrow, then the transitive depe
+ 
+ ### 5c. Structural diagnostics (always render — at least the status line)
+ 
+-Read the most recent tidy log (`.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`) for `backlog-diagnostics` findings. If no tidy ran this pass, request the `backlog-diagnostics` output from the configured methodology skill (default `faffter-noon-methodology-thematic`) — when it fires it joins the pass's batched methodology dispatch (**Methodology transport** above). Render a one-line status if all clean (`Structural diagnostics: clean ✓`); otherwise render the findings in the format that output defines.
++Read the latest tidy log (`.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`) for `backlog-diagnostics`. If no tidy ran this pass, request that output from the configured methodology (default `faffter-noon-methodology-thematic`) within the pass's batched dispatch (**Methodology transport**). Render `Structural diagnostics: clean ✓` if clean; otherwise use the output's findings format.
+ 
+-Repeat-parks, orphaned+repeat-parked, and **chain-gap** findings (any sub-type — sub-ticket / upstream / downstream / peer) additionally surface in `### Heads up` so the user sees the urgent patterns prominently, not just in the diagnostics dump. Chain gaps are first-class Heads-up material: when a ticket's spec references work no ticket tracks, picking up the ticket leaves the broader purpose unfulfilled with no breadcrumb for what's next. Tag each Heads-up chain-gap entry with the sub-type so the human can scan-read.
++Also surface repeat-parks, orphaned+repeat-parked and every **chain-gap** sub-type (sub-ticket / upstream / downstream / peer) in `### Heads up`, beyond the diagnostics section. Tag each chain-gap entry with its sub-type so missing work is visible before the human picks a focus issue.
+ 
+ ### 5d. Calibration signals (rendered only when threshold crossed)
+ 
+diff --git a/plugin/skills/faff/prose-baseline.json b/plugin/skills/faff/prose-baseline.json
+index 2ab324ab..7b091a93 100644
+--- a/plugin/skills/faff/prose-baseline.json
++++ b/plugin/skills/faff/prose-baseline.json
+@@ -17,7 +17,7 @@
+ 
+     "faff-tidy/SKILL.md": 75989,
+ 
+-    "faff-wtf/SKILL.md": 31496,
++    "faff-wtf/SKILL.md": 29189,
+ 
+     "faff/SKILL.md": 12984,
+ 
+@@ -39,7 +39,7 @@
+ 
+     "faff/references/tracker.md": 22649,
+ 
+-    "faffidavit-rendering/SKILL.md": 24639,
++    "faffidavit-rendering/SKILL.md": 21133,
+ 
+     "faffidavit-routing/SKILL.md": 10725,
+ 
+@@ -69,7 +69,7 @@
+ 
+     "faffter-noon-intake/SKILL.md": 7594,
+ 
+-    "faffter-noon-methodology-thematic/SKILL.md": 34734,
++    "faffter-noon-methodology-thematic/SKILL.md": 32157,
+ 
+     "faffter-noon-prd/SKILL.md": 4517,
+ 
+diff --git a/plugin/skills/faffidavit-rendering/SKILL.md b/plugin/skills/faffidavit-rendering/SKILL.md
+index 2dd654a3..b1cddac0 100644
+--- a/plugin/skills/faffidavit-rendering/SKILL.md
++++ b/plugin/skills/faffidavit-rendering/SKILL.md
+@@ -7,7 +7,7 @@ judgement_seam: gloss, explanatory-order
+ 
+ # faffidavit-rendering
+ 
+-The default **adaptor** for the `rendering_adaptor` slot — and the one slot with **no internal contract** behind it. It defines how faff sub-skills turn structure into output — both its *form* (when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps) and its *prose voice* (the house voice the output reads in, homed in **Voice** below) — and **validates/normalises** draft output against those rules on demand. A `faffidavit-*` skill: it both *defines* the house rendering style and *checks* conformance, so it's invokable rather than a passive style guide.
++The default **adaptor** for `rendering_adaptor` defines output form (visuals, tables/lists and density caps) and prose **Voice**, and validates/normalises drafts on demand. It has **no internal contract**. This `faffidavit-*` skill both defines style and checks conformance; it is invokable, not a passive guide.
+ 
+ Every sub-skill that emits user-facing output renders through it; it can be swapped wholesale for a different house style.
+ 
+@@ -18,11 +18,11 @@ slots:
+ 
+ ## No internal contract — a pure adaptor
+ 
+-The surviving sibling adaptor slot (`routing_adaptor`) sits in front of a **fixed internal contract** in the gateway — the six-verdict vocabulary the pipeline branches on — and the `spec` / `review` / `ship` contracts are producer-emitted (the producer self-declares a `faff-contract:<name>` block the consumer parses; their adaptor slots were retired). Rendering has none of that: no pipeline code branches on, counts, or gates on how output *looks*. It is purely human-facing. So there is nothing fixed in the gateway for this slot to translate *into* — the whole skill is the adaptor, swappable end to end. Swap it and house style changes wholesale, with no pipeline behaviour affected.
++`routing_adaptor` translates into the gateway's fixed six-verdict contract. The `spec` / `review` / `ship` contracts are producer-emitted `faff-contract:<name>` blocks parsed by consumers; their adaptor slots were retired. Rendering has no such contract: pipeline code never branches, counts or gates on appearance. The whole human-facing adaptor can be swapped without affecting pipeline behaviour.
+ 
+ ## Why an adaptor, not a producer
+ 
+-Unlike `spec` — which is produced by `faffter-noon-spec` (issue → new spec, self-declaring its `faff-contract:spec-readiness` block the consumer parses) — rendering has no separable generative act. There's no "render from nothing": every render is a transform of data some other skill already holds, and choosing the right form (cycle bracket vs cycle box) needs the domain understanding of what that structure *means*. So a standalone rendering *producer* would have no natural caller. What rendering genuinely is, is a standard **referenced by many skills** (every sub-skill renders "according to" it) plus a standalone normalise act — exactly the adaptor shape. The "produce" the producer-framing reaches for is already the validate/normalise face below. Don't re-split this into a `faffter-noon-rendering`.
++`faffter-noon-spec` produces a spec from an issue and self-declares `faff-contract:spec-readiness`. Rendering instead transforms data another skill holds; choosing forms (cycle bracket vs cycle box) requires understanding that structure. It has no separable generative act or natural standalone producer caller. Its shared standard plus invokable normalise pass is the adaptor; do not split out `faffter-noon-rendering`.
+ 
+ ## Two faces
+ 
+@@ -31,21 +31,21 @@ Unlike `spec` — which is produced by `faffter-noon-spec` (issue → new spec,
+ 
+ ## Scope — all human-facing faff output
+ 
+-Everything this adaptor defines and normalises applies to **all human-facing output a faff sub-skill emits: terminal output, tracker descriptions, and tracker comments alike** (gateway → **Rendering**, Universal-routing rule). The **only** carve-outs are skill source files (`skills/*/SKILL.md`) and internal `.faff/` logs — read in wider contexts, not human-facing in the same sense. There is no central emit point, so each skill runs the normalise pass itself as a final step before printing or writing.
++Apply all rules to **all human-facing faff output: terminal output, tracker descriptions and tracker comments** (gateway → **Rendering**, Universal-routing rule). Only skill source files (`skills/*/SKILL.md`) and internal `.faff/` logs are exempt. With no central emit point, each skill runs normalisation immediately before printing or writing.
+ 
+ ## Voice
+ 
+-Form is half of house style; the other half is the **voice** the prose reads in — casual-but-credible, claims discipline, the banned-word list. Those rules have a single home: the **`# Writing style`** section of **`AGENTS.md`** at the repo root, a fixed repo convention. This section *references* that section and never copies it — the rules live there so they have one place to drift from, not two (and the `faff validate-adapters` dedup lint fails CI on any block copied across skills).
++Voice (casual-but-credible, claims discipline, banned words) lives only in repo-root **`AGENTS.md`**, **`# Writing style`**. Reference it; never copy it. This fixed convention keeps one source; `faff validate-adapters` fails CI on blocks duplicated across skills.
+ 
+-**Injection.** Voice reaches a context-stripped executor the same way form reaches the reader: through the dispatch envelope. The gateway stamps a one-line pointer at the STYLE source into every dispatch that writes durable prose — the mechanism, its carrier rule, and the engine-lane fork all live at gateway → **Producer dispatch → Voice clause**. This charter owns *what* the house voice is for; the gateway owns *how* it rides each dispatch.
++**Injection.** Every durable-prose dispatch carries a one-line STYLE-source pointer for context-stripped executors. The gateway owns the envelope, carrier rule and engine-lane fork (gateway → **Producer dispatch → Voice clause**); this charter owns voice's purpose.
+ 
+-**Swapping the voice.** A project with a different voice edits the `# Writing style` section of `AGENTS.md` — same path, different contents, read fresh on the next dispatch (nothing caches it). The source path is a fixed convention, not adaptor-resolved: dispatch sites stamp the pointer without reading this adaptor first. Swapping the *adaptor* changes form rules and validation; it does not change where the voice rules live.
++**Swapping the voice.** Edit `AGENTS.md`'s `# Writing style`; each dispatch reads it fresh, without caching. Dispatch sites stamp this fixed pointer without reading the adaptor. Swapping the adaptor changes form and validation, not the voice source path.
+ 
+-**Fold, not a sibling.** Voice is folded into this adaptor rather than split into a sibling `voice` slot. Voice and form are both purely human-facing with no pipeline contract behind them — the exact property that defines this slot — so they belong in the one skill that already owns "how faff's output reads", with one swap point instead of two. The charter widening to name voice is deliberate, recorded here. A sibling `voice` adaptor stays a clean future extraction if a project ever needs voice swappable independently of form.
++**Fold, not a sibling.** Voice and form share this human-facing, contract-free adaptor and one swap point. Do not split a sibling `voice` slot now; independent voice swapping remains a possible future extraction.
+ 
+ ## Prose skimmability
+ 
+-Enumerable content must be skimmable — the failure mode is an enumerable set crammed into one `·`/comma run-on paragraph, which raises cognitive load and erodes trust. These rules fold into the Validate/normalise face; a violation is **rewritten**, not merely flagged:
++Enumerable content must be skimmable. Validate/normalise **rewrites**, rather than merely flags, violations:
+ 
+ - **3+ items → a list.** Any enumerable set of three or more items renders as a markdown list, never a `·`- or comma-separated run-on paragraph — the same 3+ threshold the canonical visual forms use for inline chains. A 2-item set may stay inline prose.
+ - **Bold-lead bullets** for scannable items: `- **label** — detail`, so the eye lands on the label.
+@@ -55,7 +55,7 @@ This rule governs tracker descriptions and comments as much as terminal output (
+ 
+ ## Output token economy
+ 
+-Skimmable form isn't enough: a response can satisfy every form rule and still burn tokens on ceremony that adds nothing the output doesn't already carry. Token-lean is part of *understandable-not-unapproachable* — the reader (and the budget) pays for every wasted line. These rules fold into the Validate/normalise face; a violation is **rewritten**, not merely flagged:
++Token economy is part of *understandable-not-unapproachable*. Validate/normalise **rewrites**, rather than merely flags, ceremony that adds no information:
+ 
+ - **No preamble/postamble.** Drop the conversational frame — "Here is the…", "I've gone ahead and…", "Let me know if you'd like…", "Hope this helps". Open on the substance; end when it ends.
+ - **Don't restate the ticket/request.** The reader just asked; echoing their ask back is filler. *Use instead:* go straight to the answer (a one-line gloss of *what shipped* is the synthesis contract's job, not a restatement of the brief).
+@@ -147,7 +147,7 @@ Every issue rendered in any faff output — wtf's "Do this", map's workstreams,
+ 2. **One-sentence plain-English gloss** — what the work actually is in human terms (not the tracker title verbatim; a generated sentence based on title + spec + description)
+ 3. **Unlock-chain consequence** (only when non-trivial) — what becomes possible once this lands, in human terms
+ 
+-This is part of the rendering contract because it governs *how an issue is described* in output — the content sibling of the visual-vs-prose split.
++The contract governs how issues are described, alongside the visual-vs-prose rules.
+ 
+ ### Canonical rendering
+ 
+@@ -168,12 +168,12 @@ In high-density visualisations (queue partition grids, chain diagrams), show onl
+ 
+ ### First-mention grounding
+ 
+-The **first** appearance of any issue ID in a given output carries its gloss (`ID + gloss`, per **Canonical rendering** above). Subsequent references to the same ID in the same output may be bare ID. An ID that appears **only ever bare** — never grounded anywhere in that output — is a violation: it forces the reader to the tracker to find out what it is.
++The **first** appearance of each issue ID carries its gloss (`ID + gloss`, per **Canonical rendering**). Later references in the same output may be bare. An ID never grounded anywhere in that output violates the rule.
+ 
+ - **Granularity is per-whole-output** — one grounding anywhere in the output satisfies the rule. (A skill *may* re-ground in a later section when a bare ID there would read unintelligibly, but that's the Humanisation test below talking, not this mechanical rule.)
+ - **This does not supersede the Humanisation rule.** First-mention grounding is the mechanical floor; a bare later reference must still pass the Humanisation reader-test in its context. Where it wouldn't, re-ground it there.
+ 
+-This is the checkable form of the Humanisation rule's reader-test: grounding-once is the minimum a normalise pass can mechanically enforce (see **Validation / normalise**).
++Grounding once is the mechanical minimum enforced by **Validation / normalise**.
+ 
+ ### Generation source order
+ 
+@@ -187,7 +187,7 @@ The skill **paraphrases** — does not just truncate. Tracker shorthand ("re: SH
+ 
+ ### Humanisation rule
+ 
+-The gloss is a delivery lead briefing a colleague, not a project manager filing a status report. A delivery lead bridges product, engineering, and business stakeholders by making work understandable, bite-sized, and transparent. Leaning on numbered references to internal documents — "principle 6", "ADR-N", "trigger 4", "PRs 3-N" — is the opposite: project-management smoke-and-mirrors that makes the writer look indispensable while making the reader work to decode it.
++Write the gloss as a delivery lead briefing a colleague: make work understandable, bite-sized and transparent across product, engineering and business. Internal document references such as "principle 6", "ADR-N", "trigger 4", "PRs 3-N" make the reader decode the report instead.
+ 
+ **Banned in user-facing output:**
+ 
+@@ -206,13 +206,13 @@ The gloss is a delivery lead briefing a colleague, not a project manager filing
+ - Short self-explanatory category names that *describe* a finding kind ("sub-ticket gap", "upstream gap", "repeat-park", "chain gap") — they tell the reader what was found, not which internal rule was matched.
+ - Principle / ADR / criterion references **alongside** plain-English explanation as traceability — "the spec assumes a wave-1 run has happened (the gate from the audit pipeline ADR)" — never standing in for explanation.
+ 
+-**Surface the concrete** (the positive twin of the ban above). Where the source provides a real, checkable noun — the actual field name (`cache_read_input_tokens`), the named file, the specific subsystem — render that, not a category label that abstracts it away. The ban says "don't hide behind principle 6"; this says "name the real thing the source already holds."
++**Surface the concrete** (the positive twin of the ban). When the source provides a checkable noun, render it instead of an abstract category: the actual field (`cache_read_input_tokens`), named file or specific subsystem. Name what the source holds, not "principle 6".
+ 
+ - **Surface, don't invent.** Promote only concretes present in the source. If the only available form is the abstraction, keep it — never manufacture a precise-sounding field/file/number that isn't there.
+ 
+ **Test:** if a reader who has never opened the project's CLAUDE.md, methodology spec, or ADR archive can't follow the finding, the rule is broken. Rewrite.
+ 
+-**Why this matters:** faff is a delivery lead, not a project manager. A delivery lead humanises work; a project manager codifies it to look valuable. We do the first. Every finding, every brief, every diagnosis renders the *substance* of what's going on, not the index entry that catalogues it.
++**Why this matters:** every finding, brief and diagnosis must render the substance, not the document's index entry. Humanise work rather than codifying it to look valuable.
+ 
+ ### Unlock-chain language
+ 
+@@ -241,9 +241,9 @@ Every faff sub-skill that names an issue in output applies this contract. Each s
+ 
+ ## Tabular data: markdown tables vs definition lists
+ 
+-Markdown tables break in narrow terminals when cells are long. They render as `Column 1: …` repeated per row, mid-word truncation, and rows crashing into each other — the data is technically present but unreadable.
++Long-cell markdown tables break in narrow terminals: repeated `Column 1: …`, mid-word truncation and colliding rows make data unreadable.
+ 
+-**Scope:** this rule applies to **all human-facing faff output** — terminal output (diagnostics, morning briefs, roadmap renders, in-conversation summaries) **and** tracker descriptions and comments (per **Scope — all human-facing faff output** above). It does **not** apply to skill source files (`skills/*/SKILL.md`) — those are documentation read in wider contexts (Claude Code editor panes, GitHub UI), where specification tables with prose cells are fine. It also does not apply to internal `.faff/runs/<run-id>/…` logs.
++**Scope:** all human-facing terminal output (diagnostics, morning briefs, roadmap renders, in-conversation summaries), tracker descriptions and comments, per **Scope — all human-facing faff output**. Exempt: skill sources (`skills/*/SKILL.md`), where prose-cell specification tables are fine in wider editor/GitHub views, and internal `.faff/runs/<run-id>/…` logs.
+ 
+ **Drop the markdown table when any of:**
+ 
+@@ -276,7 +276,7 @@ State: Done
+ Scope: Different — wrapper layer, not stage logic
+ ```
+ 
+-The separator is unicode `─` × 40, not markdown `---`. Markdown `---` renders as `<hr>` in some contexts and is often invisible in terminal chat panes — the unicode rule reads consistently across renderers.
++Use unicode `─` × 40, not markdown `---`: the latter may become `<hr>` and disappear in terminal chat; the unicode rule renders consistently.
+ 
+ ## Density caps
+ 
+diff --git a/plugin/skills/faffter-noon-methodology-thematic/SKILL.md b/plugin/skills/faffter-noon-methodology-thematic/SKILL.md
+index acfb4a39..40e053cd 100644
+--- a/plugin/skills/faffter-noon-methodology-thematic/SKILL.md
++++ b/plugin/skills/faffter-noon-methodology-thematic/SKILL.md
+@@ -7,11 +7,11 @@ judgement_seam: ordering
+ 
+ # faffter-noon-methodology-thematic
+ 
+-The default methodology, the **thematic** lens — opinion-free: it reflects what the tracker topology already says, with no outcome opinion. Ordering by unlock value, gating on decision closure, surfacing graph-level problems, and floating the highest-leverage work first. No opinionated delivery philosophy, no principle-based diagnosis. Just: what does the graph say?
++The default **thematic** methodology derives ordering, decision-closure gates and graph diagnostics from tracker topology. Float the highest-leverage work first without outcome opinions, delivery philosophy or principle-based diagnosis.
+ 
+-The cycle + ghost-project graph floor is **not** owned here — it is the methodology-agnostic **structural (topology) floor** (gateway → **The `methodology` slot** → the structural/topology floor), which this lens *composes* exactly as the agile lens does. "structural" names the tracker topology / dependency graph, never this lens.
++Compose the methodology-agnostic **structural (topology) floor** for cycle + ghost-project detection (gateway → **The `methodology` slot** → the structural/topology floor), as agile does. This lens does not own it: "structural" means tracker topology / dependency graph, not thematic.
+ 
+-This is what runs when no other methodology is configured. It's extracted here so it can be referenced, tested, and eventually swapped.
++Run when no other methodology is configured; the separate skill can be referenced, tested and swapped.
+ 
+ ```yaml
+ slots:
+@@ -22,25 +22,25 @@ slots:
+ 
+ **Priority (issue-level OR inherited from any ancestor) → chainable unlock value (count of direct + transitive dependents, over live blocker edges only — gateway → *Satisfied blockers — edges to terminal work*).**
+ 
+-When two issues have equal priority, the one that unlocks more downstream work goes first. When both are equal, creation order breaks the tie (oldest first — fairness over recency). Every output below that sequences work uses this rule.
++Break equal priority by greater downstream unlock value; break equal priority and unlock by oldest creation first. Apply this rule to every output that sequences work.
+ 
+ ## Outputs
+ 
+-Each output is a named capability a caller requests by name. This skill does not know or describe its callers — it answers the request from the graph. The answer is always graph-derived, never opinion-derived. The canonical set of named outputs (which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**; the sections below are this skill's implementation of that contract.
++Answer named requests from graph facts, never opinions; this skill neither knows nor describes callers. Gateway → **The `methodology` slot** fixes outputs, requiredness, caller mapping and standard envelope; implement that contract below.
+ 
+-It does **not** answer the optional `issue-critique` output — per-issue right-sizing/workstream/risk critique is an opinionated lens, and this default is pure structure. Unanswered is contract-valid: `/faff-prep` simply omits the `## Methodology critique` block (the agile lens is the one that fills it).
++Leave optional `issue-critique` unanswered: per-issue right-sizing/workstream/risk critique needs an opinionated lens. This is contract-valid; `/faff-prep` omits `## Methodology critique`, which agile supplies.
+ 
+ ### `pick-ordering`
+ 
+-Order a set of issues by the core ordering rule. Issues gating the longest chains rise to the top. Unlock value counts live blocker edges only (gateway → **Satisfied blockers — edges to terminal work**) — a satisfied edge adds no downstream count.
++Use the core ordering rule so issues gating longest chains rise. Count only live blocker edges (gateway → **Satisfied blockers — edges to terminal work**); satisfied edges add no downstream count.
+ 
+-**Optional `prd-distance` composition.** When the caller supplies the `prd-distance` map (an L4 drain under a resolved target PRD — gateway → **Standard envelope → Optional input `prd-distance`**), compose it as a **within-band** tiebreaker on top of the core ordering rule, never a replacement:
++**Optional `prd-distance` composition.** When supplied under a resolved target PRD in an L4 drain, compose the `prd-distance` map within priority bands, never replacing the core rule (gateway → **Standard envelope → Optional input `prd-distance`**):
+ 
+ 1. Partition the ordered set into contiguous **human-priority bands** (the existing priority tier — floor rule (a): distance never crosses a band).
+ 2. **Within each band**, stable-sort by the issue's PRD-completion distance: `rank = min class_rank` of `prd-distance` entries whose `container` slug-matches the issue's container. **No match, or `rank == 0` (met) → neutral** — keep the issue's existing relative position (the core-rule order). Lower rank (nearer the parent PRD) orders sooner.
+ 3. **Never** move an issue across a band boundary.
+ 
+-Distance is the primary key across classes within a band; the core ordering rule (unlock value, then creation order) is the deterministic tiebreak within a class. Because step 2 is a stable sort that leaves unmatched/`met` issues in place, **input absent ⇒ byte-identical output** (floor rule (b)) — with no map the composition never runs.
++Within a band, distance is primary across classes; unlock value then creation breaks ties within a class. Step 2's stable sort leaves unmatched/`met` positions unchanged. **Input absent ⇒ byte-identical output**: without a map, do not run composition.
+ 
+ ### `promotion-readiness`
+ 
+@@ -58,24 +58,24 @@ Distance is the primary key across classes within a band; the core ordering rule
+ 
+ ### `ticket-shaping`
+ 
+-Turn a **discovery brief** (the `intake` slot's output — see `faffter-noon-intake`) into a structured set of proposed tickets. Requested by `/faff-jot` after the intake conversation; the orchestrator creates the tickets this output proposes. This output **proposes** structure — it never writes to the tracker itself (that's the orchestrator lane).
++From a **discovery brief** (`intake` output, `faffter-noon-intake`), propose structured tickets for `/faff-jot` after intake. The orchestrator creates them; this output **proposes**, never writes the tracker.
+ 
+-The thematic lens shapes purely from what the brief states plus the live tracker graph — no opinion about value or right-sizing (that's what an opinionated methodology like `faffter-dark-methodology-agile-delivery` adds on top):
++Shape from the brief's stated facts and live tracker graph, without value or right-sizing opinions; `faffter-dark-methodology-agile-delivery` adds those:
+ 
+ - **greenfield brief** — one workstream/container candidate per stated capability (named after the capability, verbatim — the thematic lens does not rename); within each, the first tickets needed to reach the brief's `First slice`. Sequence the workstreams and the tickets by the core ordering rule (priority — none yet, so creation/sequence order — then unlock value derived from the stated `Dependencies`). Emit a top-level container proposal when the tracker supports one (initiative/project) and the brief spans multiple capabilities.
+ - **single-item brief** — one ticket from the `Item`, placed in the workstream named by `area`. If `split-sense: possibly-splittable`, propose the two tickets named after the two concerns and link them per the stated relationship; if `unitary`, one ticket. Never force a split the brief didn't flag.
+ 
+-For every proposed ticket emit: title (from the capability/item, plain English — no invented codes), a description seeded from the relevant brief prose, the container/workstream it belongs under, declared blocker/blocked-by links derived from the brief's `Dependencies`, and a `Backlog` status. Carry the brief's `Open questions` onto the relevant ticket's description so `/faff-prep` picks them up.
++Each proposed ticket needs a capability/item-derived plain-English title (no invented codes), relevant-brief-seeded description, container/workstream, `Dependencies`-derived blocker/blocked-by links and `Backlog` status. Copy relevant `Open questions` into its description for `/faff-prep`.
+ 
+-**Recursive mode (`shape-level` supplied by `/faff-plot`).** When the request carries a `shape-level` (`initiative` / `project` / `epic`), shape only *that altitude's children* of the node-scoped sub-brief — not a full flat set. `/faff-plot` drives the descent and owns the stop rule; this output shapes one level per call:
++**Recursive mode (`shape-level` supplied by `/faff-plot`).** A `shape-level` (`initiative` / `project` / `epic`) requests only that altitude's children from the node-scoped sub-brief, never a full flat set. `/faff-plot` owns descent and stop rule; shape one level per call:
+ 
+ - `initiative` — one initiative container per top-level outcome/capability group the brief names. Literal, verbatim names; no value opinion.
+ - `project` — given one initiative's slice of the brief, the projects (workstreams) under it.
+ - `epic` — given one project's slice, its **first-slice epics only** — the issues needed to reach that project's first usable slice — with `Dependencies`-derived blocker/blocked-by links. Do **not** enumerate the leaves below them.
+ 
+-Emit nothing for a branch the sub-brief can't concretely derive — surface "needs more discovery" so plot stops that branch. Same `Backlog` status and brief-seeded descriptions as the single-level output. Absent a `shape-level`, the single-level brief→tickets behaviour above is unchanged (this is what `/faff-jot` uses).
++For a branch not concretely derivable, emit nothing and surface "needs more discovery" so plot stops it. Keep single-level `Backlog` status and brief-seeded descriptions. Without `shape-level`, retain the single-level brief→tickets behaviour `/faff-jot` uses.
+ 
+-Conservative, same as every thematic output: when the brief is too thin to derive a defensible structure, propose fewer, larger tickets and surface what's missing rather than manufacturing speculative ones — the human (or a later `/faff-prep`) refines.
++A thin brief warrants fewer, larger defensible tickets plus the missing facts, never speculative ones. Leave refinement to the human or later `/faff-prep`.
+ 
+ ### `backlog-diagnostics`
+ 
+@@ -185,21 +185,21 @@ Assign each issue a horizon from tracker state:
+ - **Next** — Todo, blockers clear or nearly clear, spec exists
+ - **Later** — Backlog, or blocked by Now/Next work (live edges only — a satisfied edge, gateway → **Satisfied blockers — edges to terminal work**, does not count as blocked)
+ 
+-Sequence within each horizon by `pick-ordering`. Surface structural diagnostics relevant to roadmaps: ghost-project pointers, structural gaps (initiative has no Next project), unfireable trigger gates, stalled Now projects (In Progress, no commits 14+ days), parked issues with unmet unpark conditions. Emit an ASCII chain diagram (initiative → project → issue) with structural gaps marked inline.
++Sequence each horizon by `pick-ordering`. Surface ghost-project pointers, initiative gaps with no Next project, unfireable trigger gates, stalled Now projects (In Progress, no commits 14+ days), and parked issues with unmet unpark conditions. Emit an ASCII initiative → project → issue chain with gaps inline.
+ 
+ ### `build-queue`
+ 
+ **Admission:** the two build-ready verdicts enter; every other routing verdict routes out (canonical semantics: `faff contract automation-routing --describe`).
+ 
+-**Ordering:** `pick-ordering` — including its optional **`prd-distance`** within-band composition when the caller supplies the map under a resolved target PRD: the queue heads for the sibling PRDR nearest a `met` DoD, within human-priority bands and byte-identical when absent. Independents ordered directly; collision groups serialised within (lead issue determines group position). Admission and serialisation read live blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) never triggers serialisation.
++**Ordering:** use `pick-ordering`, including optional **`prd-distance`** under a resolved target PRD: head for the sibling PRDR nearest a `met` DoD within human-priority bands, byte-identical when absent. Order independents directly; serialise collision-group members, with the lead issue fixing group position. Admission and serialisation use live blocker edges only; satisfied edges never serialise (gateway → **Satisfied blockers — edges to terminal work**).
+ 
+-**Conflict analysis:** partition the admitted set into independents (parallel-safe) and collision groups (serialised within the group, parallel across groups) per the canonical heuristics — see `faff-beep-boop` → **Conflict analysis**. Single home: do **not** recap the heuristics here.
++**Conflict analysis:** partition admitted work into parallel-safe independents and collision groups serialised within, parallel across groups. Use `faff-beep-boop` → **Conflict analysis** as the canonical heuristic home; do **not** recap it.
+ 
+ **Wave structure:** After each wave drains, re-check for newly unlocked work, narrow-prep unblocked candidates, re-assemble the queue. Continue until drained or budget hit.
+ 
+ ### `run-termination-policy`
+ 
+-**Optional** (gateway → **The `methodology` slot**). The thematic answer to "in what order do the **policy-weighted** terminating rungs win" — the weighting behind the run-end decision `faff run-done` composes. The thematic lens orders from **graph/process facts, never value/risk opinion**, so its ladder is exactly the CLI's built-in `structural-default` policy ladder (the fixed `policy_source` enum — this output *is* that default, made explicit):
++**Optional** (gateway → **The `methodology` slot**). Order the **policy-weighted** terminating rungs for `faff run-done` from **graph/process facts, never value/risk opinion**. Return exactly the CLI's built-in `structural-default` ladder (fixed `policy_source` enum), made explicit:
+ 
+ ```
+ 1. non-convergence  → escalate      # no-progress waves need a human, not more spend
+@@ -213,11 +213,11 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics
+ - **Floor is not ours.** The fixed safety floor (`budget-escalate`, `undispatched-ledger` at drain, `product-incomplete`) is the CLI's, applied **before** this ladder and **never** overridable — this output only orders the rungs **above** it. Reordering or softening a non-floor rung is the lens's prerogative; weakening the floor is impossible by construction.
+ - **Unanswered ⇒ no change.** When this output is not requested/answered, `faff run-done` applies the same ladder as its built-in default — so zero-config runs behave identically.
+ 
+-**Output:** an ordered ladder of `{test, verdict}` rungs over the closed test vocabulary above, passed by the orchestrator to `faff run-done --policy`. Read-only — the methodology authors the ladder; it never decides the run-end (that is `faff run-done`, purely) and never writes the tracker.
++**Output:** ordered `{test, verdict}` rungs over the closed test vocabulary above, passed to `faff run-done --policy` by the orchestrator. Read-only: author the ladder, never decide run-end (`faff run-done` alone) or write the tracker.
+ 
+ ### `crank-up-set`
+ 
+-**Optional** (gateway → **The `methodology` slot**). Given the **not-automation-eligible** issue set + the dependency graph + each member's `faff next --if-eligible` hypothetical transition + appetite, return ranked **crank-up-sets** — coherent batches a human can approve in one go. Unanswered ⇒ wtf/tidy fall back to the flat On-hold list. Read-only: never mutates eligibility.
++**Optional** (gateway → **The `methodology` slot**). From **not-automation-eligible** issues, dependency graph, each `faff next --if-eligible` hypothetical transition and appetite, return ranked **crank-up-sets**: coherent batches for human approval. Unanswered ⇒ wtf/tidy use the flat On-hold list. Read-only; never mutate eligibility.
+ 
+ **Slice algorithm:**
+ 
+@@ -233,7 +233,7 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics
+ 
+ ### `prdr-author`
+ 
+-**Optional** (gateway → **The `methodology` slot**). Given a container (initiative/project) + its `{outcome, child_specs, target}`, author one **`AuthoredPrdr`** — a loop-authored PRDR record (provenance `loop`, status `Proposed`). The thematic lens authors from **graph + container facts**, never value/risk opinion: the DoD is the **graph completion bar** (every child epic delivered + the container outcome's stated criteria met), scaled by target.
++**Optional** (gateway → **The `methodology` slot**). From an initiative/project container and `{outcome, child_specs, target}`, author one **`AuthoredPrdr`**, provenance `loop`, status `Proposed`. Use **graph + container facts**, never value/risk opinions: the target-scaled DoD requires every child epic delivered and the container's stated outcome criteria met.
+ 
+ **Derivation (graph + container facts only):**
+ 
+@@ -248,23 +248,23 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics
+ 
+ **Output:** `AuthoredPrdr {decision, definition_of_done, container, prd_goal, provenance: "loop", status: "Proposed"}` + a confidence note. Unanswered-equivalent (no container, or `--no-prdr`) ⇒ the caller proposes no PRDR and the human authors the DoD directly.
+ 
+-**Appetite** tunes only ambition framing, never whether to admit (admission is the caller's level): lower appetite favours the thinner end of the target band, higher the fuller — it never self-Accepts (that is the L4 runner's gated act, or the human's L3 ratification).
++**Appetite** changes ambition framing only: lower favours the thin end of the target band, higher the full end. Admission belongs to the caller's level; never self-Accept (L4 runner's gated act or human L3 ratification).
+ 
+ ### `yagni-judge`
+ 
+-**Optional** (gateway → **The `methodology` slot**; this is **Phase 1** of the upper-gate two-phase arbitration — gateway → **Upper-gate (YAGNI) two-phase arbitration**). Given an `AuthoredPrdr` + the PRD (+ optional grounding), propose whether the PRDR is **warranted** — serves a real PRD goal **without exceeding it**. The thematic lens judges from **graph + PRD facts**, never value/risk opinion:
++**Optional** (gateway → **The `methodology` slot**; **Phase 1** of **Upper-gate (YAGNI) two-phase arbitration** in the gateway). From `AuthoredPrdr`, PRD and optional grounding, propose whether the PRDR serves a real PRD goal **without exceeding it**. Use **graph + PRD facts**, never value/risk opinions:
+ 
+ - `serves_goal` — does the PRDR's `prd_goal` name a real PRD goal *and* does its `decision`/`definition_of_done` materially advance that goal (not merely cite it)? Graph/text trace, not taste.
+ - `within_scope` — does the DoD cover **only declared PRD goals** (`V ⊆ D`), or does it add capability the PRD never asked for (structural over-reach)? Covering *several* declared goals in one functional MVP is in-scope, not gold-plating; only capability outside the declared goal set is over-reach. Grounding, when present, sharpens this (domain norms) but is never required.
+ - `verdict` — `admit` when both hold; `reject` otherwise, with a one-line `reason`.
+ 
+-**Output:** `{serves_goal, within_scope, verdict: admit|reject, reason}` — the Phase-1 proposal the caller passes to `faff prdr yagni --proposal …`. It **proposes, never admits** (admission is `faff prdr admit`), the adversarial-review slot challenges it in Phase 2, and it **never writes the tracker**. Unanswered ⇒ the upper gate has no proposal (the caller falls back to the `faff prdr admit` gate's fail-safe upper default — conservative reject).
++**Output:** `{serves_goal, within_scope, verdict: admit|reject, reason}` for `faff prdr yagni --proposal …`. **Propose, never admit** (`faff prdr admit` owns admission); the adversarial-review slot challenges in Phase 2. Never write the tracker. Unanswered leaves no proposal, so the caller uses `faff prdr admit`'s fail-safe upper default: conservative reject.
+ 
+-**Appetite** tunes only the strictness of `within_scope` (lower = permissive, higher = tighter), never whether to admit — the conservative-reject-on-doubt arbitration is the CLI's.
++**Appetite** changes `within_scope` strictness only (lower permissive, higher tighter), never admission; conservative-reject-on-doubt arbitration belongs to the CLI.
+ 
+ ### `rehome-set`
+ 
+-**Optional** (gateway → **The `methodology` slot**). Proposing outcome-led project homes for loose Backlog work requires an **outcome** judgement — which shippable outcome a set of loose tickets converges on — and this lens is opinion-free by design: it groups by where work *sits* in the graph, never by the value-outcome it delivers. So the thematic default's legitimate answer is an **empty rehome-set**: no proposed containers, no membership map, no coherence edges, no leave-loose reasoning. This is an answer, not a gap — outcome-led formation is exactly the opinion an opinionated lens (`faffter-dark-methodology-agile-delivery`) adds on top.
++**Optional** (gateway → **The `methodology` slot**). Outcome-led homes for loose Backlog tickets require judging their shared shippable outcome. This lens groups by graph position, not value/outcome, so return an **empty rehome-set**: no proposed containers, membership map, coherence edges or leave-loose reasoning. This is a valid answer; `faffter-dark-methodology-agile-delivery` supplies the missing outcome opinion.
+ 
+ **Empty/unanswered ⇒ the caller reports no grouping opinion and writes nothing** (zero-config unchanged).
+ 
+@@ -280,7 +280,7 @@ The thematic lens respects appetite but has limited agency by design:
+ 
+ Note: the thematic lens never reorders by value/risk/principles — that's what opinionated methodologies (like `faffter-dark-methodology-agile-delivery`) add. Thematic ordering is always priority + unlock value.
+ 
+-Any authority to write tracker **topology** (reparent / convert / rehome) is governed by the shared dial at gateway → **Appetite for destruction** → **Topology-write authority**, not a story this lens invents. Being opinion-free, the thematic lens sits at the dial's surface-only end — it reflects the topology the graph already states and never restructures it; the reversibility floor and the human-curated-structure floor there bind it as they do every lens.
++Gateway → **Appetite for destruction** → **Topology-write authority** governs tracker **topology** (reparent / convert / rehome). This opinion-free lens stays surface-only: reflect existing graph topology, never restructure it. The dial's reversibility and human-curated-structure floors bind here too.
+ 
+ ## Rules
+ 

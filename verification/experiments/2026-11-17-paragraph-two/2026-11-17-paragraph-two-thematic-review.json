@@ -1,0 +1,54 @@
+{
+  "source": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+  "baseline_commit": "9a6c64bacbe40bb99a40af5b014db357827289d9",
+  "reviewed_candidate_sha256": "25980b51369b94330e0fe2b25a94d134f1bbdbc4b1a55f011a0d8534f3ae50e7",
+  "corrected_sha256": "cd702155b615269532975789404964e57449e2ea65b035e4e706bff04b257f41",
+  "method": "Compared all28 changed paragraphs directly against original source and retained adjacent procedures.",
+  "findings": [
+    {
+      "section": "horizon-assignment",
+      "issue": "The rewrite lost the explicit parked-issue subject of unmet unpark conditions.",
+      "resolution": "Restore parked issues explicitly."
+    },
+    {
+      "section": "build-queue",
+      "issue": "Nearest met sibling PRDR can mean an already-complete sibling rather than a sibling nearest a met DoD.",
+      "resolution": "Restore nearest a met DoD."
+    }
+  ],
+  "corrections": [
+    {
+      "before": "and unmet unpark conditions. Emit an ASCII",
+      "after": "and parked issues with unmet unpark conditions. Emit an ASCII"
+    },
+    {
+      "before": "nearest `met` sibling PRDR first within human-priority bands",
+      "after": "head for the sibling PRDR nearest a `met` DoD within human-priority bands"
+    }
+  ],
+  "limits": [
+    "Source review only; no model parity claim.",
+    "Inherited ordering/graph-completion contradictions remain unchanged."
+  ],
+  "status": "recorded corrections independently verified",
+  "resolution": {
+    "verdict": "both_findings_resolved",
+    "current_sha256": "cd702155b615269532975789404964e57449e2ea65b035e4e706bff04b257f41",
+    "scope": "Independently compared only the two recorded corrections with the original baseline paragraphs and current actual source.",
+    "findings": [
+      {
+        "section": "horizon-assignment",
+        "verdict": "resolved",
+        "evidence": "Current text explicitly surfaces parked issues with unmet unpark conditions, matching the original subject and condition."
+      },
+      {
+        "section": "build-queue",
+        "verdict": "resolved",
+        "evidence": "Current text heads for the sibling PRDR nearest a met DoD within human-priority bands, restoring distance-to-completion rather than selecting an already-met sibling."
+      }
+    ],
+    "limits": [
+      "No broader thematic rereview; no tests, models, harness or source edits."
+    ]
+  }
+}

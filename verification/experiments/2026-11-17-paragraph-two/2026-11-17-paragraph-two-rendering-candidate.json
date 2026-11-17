@@ -1,0 +1,238 @@
+{
+  "source": "plugin/skills/faffidavit-rendering/SKILL.md",
+  "baseline_commit": "9a6c64bacbe40bb99a40af5b014db357827289d9",
+  "baseline": {
+    "bytes": 24639,
+    "utf16_code_units": 24159,
+    "tokens_estimated": 6040,
+    "sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce"
+  },
+  "candidate": {
+    "bytes": 21133,
+    "utf16_code_units": 20714,
+    "tokens_estimated": 5179,
+    "sha256": "71a385627cab006746af22cc0c46bbb81f8bcd787539c3aa3be158659a1dd75f"
+  },
+  "bytes_saved": 3506,
+  "token_estimate_method": "ceil(whole-file UTF-16 code units / 4)",
+  "changes": [
+    {
+      "start": "The default **adaptor**",
+      "before": "The default **adaptor** for the `rendering_adaptor` slot \u2014 and the one slot with **no internal contract** behind it. It defines how faff sub-skills turn structure into output \u2014 both its *form* (when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps) and its *prose voice* (the house voice the output reads in, homed in **Voice** below) \u2014 and **validates/normalises** draft output against those rules on demand. A `faffidavit-*` skill: it both *defines* the house rendering style and *checks* conformance, so it's invokable rather than a passive style guide.\n\n",
+      "after": "The default **adaptor** for `rendering_adaptor` defines output form (visuals, tables/lists and density caps) and prose **Voice**, and validates/normalises drafts on demand. It has **no internal contract**. This `faffidavit-*` skill both defines style and checks conformance; it is invokable, not a passive guide.\n\n",
+      "preserved_obligations": [
+        "default slot identity",
+        "no internal contract",
+        "form and voice ownership",
+        "invokable define/normalise faces"
+      ]
+    },
+    {
+      "start": "The surviving sibling adaptor slot",
+      "before": "The surviving sibling adaptor slot (`routing_adaptor`) sits in front of a **fixed internal contract** in the gateway \u2014 the six-verdict vocabulary the pipeline branches on \u2014 and the `spec` / `review` / `ship` contracts are producer-emitted (the producer self-declares a `faff-contract:<name>` block the consumer parses; their adaptor slots were retired). Rendering has none of that: no pipeline code branches on, counts, or gates on how output *looks*. It is purely human-facing. So there is nothing fixed in the gateway for this slot to translate *into* \u2014 the whole skill is the adaptor, swappable end to end. Swap it and house style changes wholesale, with no pipeline behaviour affected.\n\n",
+      "after": "`routing_adaptor` translates into the gateway's fixed six-verdict contract. The `spec` / `review` / `ship` contracts are producer-emitted `faff-contract:<name>` blocks parsed by consumers; their adaptor slots were retired. Rendering has no such contract: pipeline code never branches, counts or gates on appearance. The whole human-facing adaptor can be swapped without affecting pipeline behaviour.\n\n",
+      "preserved_obligations": [
+        "routing six-verdict fixed contract",
+        "producer-emitted parsed spec/review/ship contracts and retired adaptors",
+        "no pipeline appearance gates",
+        "end-to-end swap"
+      ]
+    },
+    {
+      "start": "Unlike `spec`",
+      "before": "Unlike `spec` \u2014 which is produced by `faffter-noon-spec` (issue \u2192 new spec, self-declaring its `faff-contract:spec-readiness` block the consumer parses) \u2014 rendering has no separable generative act. There's no \"render from nothing\": every render is a transform of data some other skill already holds, and choosing the right form (cycle bracket vs cycle box) needs the domain understanding of what that structure *means*. So a standalone rendering *producer* would have no natural caller. What rendering genuinely is, is a standard **referenced by many skills** (every sub-skill renders \"according to\" it) plus a standalone normalise act \u2014 exactly the adaptor shape. The \"produce\" the producer-framing reaches for is already the validate/normalise face below. Don't re-split this into a `faffter-noon-rendering`.\n\n",
+      "after": "`faffter-noon-spec` produces a spec from an issue and self-declares `faff-contract:spec-readiness`. Rendering instead transforms data another skill holds; choosing forms (cycle bracket vs cycle box) requires understanding that structure. It has no separable generative act or natural standalone producer caller. Its shared standard plus invokable normalise pass is the adaptor; do not split out `faffter-noon-rendering`.\n\n",
+      "preserved_obligations": [
+        "spec producer example and contract",
+        "transform of existing data",
+        "domain-dependent form selection",
+        "no separate rendering producer"
+      ]
+    },
+    {
+      "start": "Everything this adaptor defines",
+      "before": "Everything this adaptor defines and normalises applies to **all human-facing output a faff sub-skill emits: terminal output, tracker descriptions, and tracker comments alike** (gateway \u2192 **Rendering**, Universal-routing rule). The **only** carve-outs are skill source files (`skills/*/SKILL.md`) and internal `.faff/` logs \u2014 read in wider contexts, not human-facing in the same sense. There is no central emit point, so each skill runs the normalise pass itself as a final step before printing or writing.\n\n",
+      "after": "Apply all rules to **all human-facing faff output: terminal output, tracker descriptions and tracker comments** (gateway \u2192 **Rendering**, Universal-routing rule). Only skill source files (`skills/*/SKILL.md`) and internal `.faff/` logs are exempt. With no central emit point, each skill runs normalisation immediately before printing or writing.\n\n",
+      "preserved_obligations": [
+        "all three output surfaces",
+        "only source/log exemptions",
+        "per-skill final normalise pass"
+      ]
+    },
+    {
+      "start": "Form is half of house style",
+      "before": "Form is half of house style; the other half is the **voice** the prose reads in \u2014 casual-but-credible, claims discipline, the banned-word list. Those rules have a single home: the **`# Writing style`** section of **`AGENTS.md`** at the repo root, a fixed repo convention. This section *references* that section and never copies it \u2014 the rules live there so they have one place to drift from, not two (and the `faff validate-adapters` dedup lint fails CI on any block copied across skills).\n\n",
+      "after": "Voice (casual-but-credible, claims discipline, banned words) lives only in repo-root **`AGENTS.md`**, **`# Writing style`**. Reference it; never copy it. This fixed convention keeps one source; `faff validate-adapters` fails CI on blocks duplicated across skills.\n\n",
+      "preserved_obligations": [
+        "voice characteristics",
+        "fixed AGENTS Writing style single source",
+        "no copying",
+        "dedup lint"
+      ]
+    },
+    {
+      "start": "**Injection.**",
+      "before": "**Injection.** Voice reaches a context-stripped executor the same way form reaches the reader: through the dispatch envelope. The gateway stamps a one-line pointer at the STYLE source into every dispatch that writes durable prose \u2014 the mechanism, its carrier rule, and the engine-lane fork all live at gateway \u2192 **Producer dispatch \u2192 Voice clause**. This charter owns *what* the house voice is for; the gateway owns *how* it rides each dispatch.\n\n",
+      "after": "**Injection.** Every durable-prose dispatch carries a one-line STYLE-source pointer for context-stripped executors. The gateway owns the envelope, carrier rule and engine-lane fork (gateway \u2192 **Producer dispatch \u2192 Voice clause**); this charter owns voice's purpose.\n\n",
+      "preserved_obligations": [
+        "every durable-prose dispatch",
+        "one-line STYLE pointer",
+        "context-stripped executors",
+        "gateway mechanism ownership and reference"
+      ]
+    },
+    {
+      "start": "**Swapping the voice.**",
+      "before": "**Swapping the voice.** A project with a different voice edits the `# Writing style` section of `AGENTS.md` \u2014 same path, different contents, read fresh on the next dispatch (nothing caches it). The source path is a fixed convention, not adaptor-resolved: dispatch sites stamp the pointer without reading this adaptor first. Swapping the *adaptor* changes form rules and validation; it does not change where the voice rules live.\n\n",
+      "after": "**Swapping the voice.** Edit `AGENTS.md`'s `# Writing style`; each dispatch reads it fresh, without caching. Dispatch sites stamp this fixed pointer without reading the adaptor. Swapping the adaptor changes form and validation, not the voice source path.\n\n",
+      "preserved_obligations": [
+        "fixed non-adaptor-resolved path",
+        "fresh every dispatch no caching",
+        "dispatch pointer independent of adaptor",
+        "swap boundary"
+      ]
+    },
+    {
+      "start": "**Fold, not a sibling.**",
+      "before": "**Fold, not a sibling.** Voice is folded into this adaptor rather than split into a sibling `voice` slot. Voice and form are both purely human-facing with no pipeline contract behind them \u2014 the exact property that defines this slot \u2014 so they belong in the one skill that already owns \"how faff's output reads\", with one swap point instead of two. The charter widening to name voice is deliberate, recorded here. A sibling `voice` adaptor stays a clean future extraction if a project ever needs voice swappable independently of form.\n\n",
+      "after": "**Fold, not a sibling.** Voice and form share this human-facing, contract-free adaptor and one swap point. Do not split a sibling `voice` slot now; independent voice swapping remains a possible future extraction.\n\n",
+      "preserved_obligations": [
+        "voice folded with form",
+        "no present sibling voice slot",
+        "future independent extraction possibility"
+      ]
+    },
+    {
+      "start": "Enumerable content must be skimmable",
+      "before": "Enumerable content must be skimmable \u2014 the failure mode is an enumerable set crammed into one `\u00b7`/comma run-on paragraph, which raises cognitive load and erodes trust. These rules fold into the Validate/normalise face; a violation is **rewritten**, not merely flagged:\n\n",
+      "after": "Enumerable content must be skimmable. Validate/normalise **rewrites**, rather than merely flags, violations:\n\n",
+      "preserved_obligations": [
+        "rewrite not merely flag",
+        "enumerable skimmability"
+      ]
+    },
+    {
+      "start": "Skimmable form isn't enough:",
+      "before": "Skimmable form isn't enough: a response can satisfy every form rule and still burn tokens on ceremony that adds nothing the output doesn't already carry. Token-lean is part of *understandable-not-unapproachable* \u2014 the reader (and the budget) pays for every wasted line. These rules fold into the Validate/normalise face; a violation is **rewritten**, not merely flagged:\n\n",
+      "after": "Token economy is part of *understandable-not-unapproachable*. Validate/normalise **rewrites**, rather than merely flags, ceremony that adds no information:\n\n",
+      "preserved_obligations": [
+        "token economy requirement",
+        "rewrite not merely flag",
+        "ceremony only"
+      ]
+    },
+    {
+      "start": "This is part of the rendering contract",
+      "before": "This is part of the rendering contract because it governs *how an issue is described* in output \u2014 the content sibling of the visual-vs-prose split.\n\n",
+      "after": "The contract governs how issues are described, alongside the visual-vs-prose rules.\n\n",
+      "preserved_obligations": [
+        "issue description rendering ownership"
+      ]
+    },
+    {
+      "start": "The **first** appearance",
+      "before": "The **first** appearance of any issue ID in a given output carries its gloss (`ID + gloss`, per **Canonical rendering** above). Subsequent references to the same ID in the same output may be bare ID. An ID that appears **only ever bare** \u2014 never grounded anywhere in that output \u2014 is a violation: it forces the reader to the tracker to find out what it is.\n\n",
+      "after": "The **first** appearance of each issue ID carries its gloss (`ID + gloss`, per **Canonical rendering**). Later references in the same output may be bare. An ID never grounded anywhere in that output violates the rule.\n\n",
+      "preserved_obligations": [
+        "first appearance gloss",
+        "later bare allowed",
+        "whole-output ungrounded violation"
+      ]
+    },
+    {
+      "start": "This is the checkable form of the Humanisation rule's reader-test:",
+      "before": "This is the checkable form of the Humanisation rule's reader-test: grounding-once is the minimum a normalise pass can mechanically enforce (see **Validation / normalise**).\n\n",
+      "after": "Grounding once is the mechanical minimum enforced by **Validation / normalise**.\n\n",
+      "preserved_obligations": [
+        "mechanical minimum normalise enforcement"
+      ]
+    },
+    {
+      "start": "The gloss is a delivery lead briefing",
+      "before": "The gloss is a delivery lead briefing a colleague, not a project manager filing a status report. A delivery lead bridges product, engineering, and business stakeholders by making work understandable, bite-sized, and transparent. Leaning on numbered references to internal documents \u2014 \"principle 6\", \"ADR-N\", \"trigger 4\", \"PRs 3-N\" \u2014 is the opposite: project-management smoke-and-mirrors that makes the writer look indispensable while making the reader work to decode it.\n\n",
+      "after": "Write the gloss as a delivery lead briefing a colleague: make work understandable, bite-sized and transparent across product, engineering and business. Internal document references such as \"principle 6\", \"ADR-N\", \"trigger 4\", \"PRs 3-N\" make the reader decode the report instead.\n\n",
+      "preserved_obligations": [
+        "delivery-lead voice",
+        "cross-stakeholder intelligibility",
+        "all original reference examples"
+      ]
+    },
+    {
+      "start": "**Surface the concrete**",
+      "before": "**Surface the concrete** (the positive twin of the ban above). Where the source provides a real, checkable noun \u2014 the actual field name (`cache_read_input_tokens`), the named file, the specific subsystem \u2014 render that, not a category label that abstracts it away. The ban says \"don't hide behind principle 6\"; this says \"name the real thing the source already holds.\"\n\n",
+      "after": "**Surface the concrete** (the positive twin of the ban). When the source provides a checkable noun, render it instead of an abstract category: the actual field (`cache_read_input_tokens`), named file or specific subsystem. Name what the source holds, not \"principle 6\".\n\n",
+      "preserved_obligations": [
+        "source-grounded concrete noun over abstraction",
+        "field/file/subsystem examples",
+        "principle 6 example"
+      ]
+    },
+    {
+      "start": "**Why this matters:**",
+      "before": "**Why this matters:** faff is a delivery lead, not a project manager. A delivery lead humanises work; a project manager codifies it to look valuable. We do the first. Every finding, every brief, every diagnosis renders the *substance* of what's going on, not the index entry that catalogues it.\n\n",
+      "after": "**Why this matters:** every finding, brief and diagnosis must render the substance, not the document's index entry. Humanise work rather than codifying it to look valuable.\n\n",
+      "preserved_obligations": [
+        "substance not index across finding/brief/diagnosis",
+        "humanisation rationale"
+      ]
+    },
+    {
+      "start": "Markdown tables break in narrow terminals",
+      "before": "Markdown tables break in narrow terminals when cells are long. They render as `Column 1: \u2026` repeated per row, mid-word truncation, and rows crashing into each other \u2014 the data is technically present but unreadable.\n\n",
+      "after": "Long-cell markdown tables break in narrow terminals: repeated `Column 1: \u2026`, mid-word truncation and colliding rows make data unreadable.\n\n",
+      "preserved_obligations": [
+        "narrow-terminal failure examples"
+      ]
+    },
+    {
+      "start": "**Scope:** this rule applies",
+      "before": "**Scope:** this rule applies to **all human-facing faff output** \u2014 terminal output (diagnostics, morning briefs, roadmap renders, in-conversation summaries) **and** tracker descriptions and comments (per **Scope \u2014 all human-facing faff output** above). It does **not** apply to skill source files (`skills/*/SKILL.md`) \u2014 those are documentation read in wider contexts (Claude Code editor panes, GitHub UI), where specification tables with prose cells are fine. It also does not apply to internal `.faff/runs/<run-id>/\u2026` logs.\n\n",
+      "after": "**Scope:** all human-facing terminal output (diagnostics, morning briefs, roadmap renders, in-conversation summaries), tracker descriptions and comments, per **Scope \u2014 all human-facing faff output**. Exempt: skill sources (`skills/*/SKILL.md`), where prose-cell specification tables are fine in wider editor/GitHub views, and internal `.faff/runs/<run-id>/\u2026` logs.\n\n",
+      "preserved_obligations": [
+        "all surfaces and terminal examples",
+        "source prose-table exemption",
+        "internal run logs exemption"
+      ]
+    },
+    {
+      "start": "The separator is unicode",
+      "before": "The separator is unicode `\u2500` \u00d7 40, not markdown `---`. Markdown `---` renders as `<hr>` in some contexts and is often invisible in terminal chat panes \u2014 the unicode rule reads consistently across renderers.\n\n",
+      "after": "Use unicode `\u2500` \u00d7 40, not markdown `---`: the latter may become `<hr>` and disappear in terminal chat; the unicode rule renders consistently.\n\n",
+      "preserved_obligations": [
+        "exact separator and length",
+        "not markdown separator",
+        "hr/terminal rationale"
+      ]
+    }
+  ],
+  "preservation": {
+    "headings_identical": true,
+    "frontmatter_identical": true,
+    "code_fences_identical": true,
+    "tables_identical": true,
+    "examples": "All fenced templates, table examples, thresholds, positive/negative examples and ambiguity quote retained.",
+    "source_consumer_anchors": [
+      "SYNTH_GLOSS_START/END",
+      "LEAD_WITH_MODEL_START/END"
+    ],
+    "validation_catalogue": "unchanged",
+    "tests_or_models_run": false
+  },
+  "guard_reads": [
+    "test/eval-cli-driver.test.mjs synthesis loader assertions and anchor registry",
+    "eval/cli-driver.mjs synthesis/explanatory-order extraction anchors",
+    "eval/grader.mjs explanatory-order wiring comments",
+    "eval/seam-registry.json gloss/explanatory-order rows",
+    "eval/README.md synthesis extraction description"
+  ],
+  "deferred": [
+    "No attempt to resolve first-mention versus grounding-anywhere wording",
+    "No change to density ID-only overflow versus grounding requirement",
+    "No change to count-bearing canonical tight example versus consequence-not-count rule",
+    "No change to fixed voice path versus end-to-end adaptor swap framing"
+  ],
+  "limits": [
+    "Source compression only, not demonstrated model behavioural equivalence",
+    "No executable code, tests, models, harness, allowance, inventory or commits"
+  ]
+}

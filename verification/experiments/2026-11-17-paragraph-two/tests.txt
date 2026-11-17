@@ -1,0 +1,733 @@
+TAP version 13
+# [run-evals] frontier model: claude-opus-5-5 · effort: medium (--model flag > eval.model config > pinned default; never the account default — FAFF-315)
+# [run-evals] frontier model: M · effort: high (--model flag > eval.model config > pinned default; never the account default — FAFF-315)
+# [run-evals] frontier model: M (--model flag > eval.model config > pinned default; never the account default — FAFF-315)
+# Subtest: local invocation appends --model and injects the redirect env
+ok 1 - local invocation appends --model and injects the redirect env
+  ---
+  duration_ms: 2.307039
+  type: 'test'
+  ...
+# Subtest: frontier invocation injects nothing beyond CLAUDE_CONFIG_DIR
+ok 2 - frontier invocation injects nothing beyond CLAUDE_CONFIG_DIR
+  ---
+  duration_ms: 0.304
+  type: 'test'
+  ...
+# Subtest: localDriver throws without a base URL
+ok 3 - localDriver throws without a base URL
+  ---
+  duration_ms: 0.273291
+  type: 'test'
+  ...
+# Subtest: frontierOpts forwards creds; localOpts does not (never leak Anthropic creds to the local gateway)
+ok 4 - frontierOpts forwards creds; localOpts does not (never leak Anthropic creds to the local gateway)
+  ---
+  duration_ms: 0.100458
+  type: 'test'
+  ...
+# Subtest: forwardCredentials copies .credentials.json into cfgDir for frontier, locked to 0600
+ok 5 - forwardCredentials copies .credentials.json into cfgDir for frontier, locked to 0600
+  ---
+  duration_ms: 0.211249
+  type: 'test'
+  ...
+# Subtest: forwardCredentials is a no-op for the local preset (forwardCreds:false)
+ok 6 - forwardCredentials is a no-op for the local preset (forwardCreds:false)
+  ---
+  duration_ms: 0.065708
+  type: 'test'
+  ...
+# Subtest: forwardCredentials is best-effort: a missing creds file returns null, no throw
+ok 7 - forwardCredentials is best-effort: a missing creds file returns null, no throw
+  ---
+  duration_ms: 0.124791
+  type: 'test'
+  ...
+# Subtest: resolveDriver defaults to frontier when --driver is absent
+ok 8 - resolveDriver defaults to frontier when --driver is absent
+  ---
+  duration_ms: 85.636614
+  type: 'test'
+  ...
+# Subtest: resolveDriver(--driver local) without a base URL throws an explicit error and builds nothing
+ok 9 - resolveDriver(--driver local) without a base URL throws an explicit error and builds nothing
+  ---
+  duration_ms: 43.224661
+  type: 'test'
+  ...
+# Subtest: resolveDriver rejects an unknown --driver
+ok 10 - resolveDriver rejects an unknown --driver
+  ---
+  duration_ms: 37.022542
+  type: 'test'
+  ...
+# Subtest: resolveEffort: valid level returned, absent → null, off-vocab throws naming the set (FAFF-722)
+ok 11 - resolveEffort: valid level returned, absent → null, off-vocab throws naming the set (FAFF-722)
+  ---
+  duration_ms: 0.281499
+  type: 'test'
+  ...
+# Subtest: resolveEffort: --effort flag > eval.effort config > none; inherit means no flag (ADR-0133)
+ok 12 - resolveEffort: --effort flag > eval.effort config > none; inherit means no flag (ADR-0133)
+  ---
+  duration_ms: 0.14125
+  type: 'test'
+  ...
+# Subtest: resolveDriver rejects an off-vocabulary --effort loudly, before building anything (FAFF-722)
+ok 13 - resolveDriver rejects an off-vocabulary --effort loudly, before building anything (FAFF-722)
+  ---
+  duration_ms: 0.097458
+  type: 'test'
+  ...
+# Subtest: resolveDriver threads --effort into the frontier preset; omits it for inherit (FAFF-722)
+ok 14 - resolveDriver threads --effort into the frontier preset; omits it for inherit (FAFF-722)
+  ---
+  duration_ms: 0.119
+  type: 'test'
+  ...
+# Subtest: resolveDriver(--driver local) forwards an explicit --effort and nothing else
+ok 15 - resolveDriver(--driver local) forwards an explicit --effort and nothing else
+  ---
+  duration_ms: 41.776204
+  type: 'test'
+  ...
+# Subtest: localOpts carries effort into the claude -p argv; absent leaves argv unchanged
+ok 16 - localOpts carries effort into the claude -p argv; absent leaves argv unchanged
+  ---
+  duration_ms: 0.289583
+  type: 'test'
+  ...
+# Subtest: resolveLocalParams resolves --base-url and --model from flags, and the key from the environment
+ok 17 - resolveLocalParams resolves --base-url and --model from flags, and the key from the environment
+  ---
+  duration_ms: 1.474998
+  type: 'test'
+  ...
+# Subtest: frontierOpts: repo plugin, NO --bare (OAuth auth), forwardCreds true
+ok 18 - frontierOpts: repo plugin, NO --bare (OAuth auth), forwardCreds true
+  ---
+  duration_ms: 0.07175
+  type: 'test'
+  ...
+# Subtest: localOpts defaults to the repo plugin + --bare alongside the gateway redirect
+ok 19 - localOpts defaults to the repo plugin + --bare alongside the gateway redirect
+  ---
+  duration_ms: 0.046666
+  type: 'test'
+  ...
+# Subtest: localOpts sends its apiKey as the auth token and refuses to build without one
+ok 20 - localOpts sends its apiKey as the auth token and refuses to build without one
+  ---
+  duration_ms: 0.061
+  type: 'test'
+  ...
+# Subtest: buildInvocation emits --plugin-dir (no --bare) for the frontier preset
+ok 21 - buildInvocation emits --plugin-dir (no --bare) for the frontier preset
+  ---
+  duration_ms: 0.157459
+  type: 'test'
+  ...
+# Subtest: buildInvocation orders args: --model then --bare then --plugin-dir (local keeps --bare)
+ok 22 - buildInvocation orders args: --model then --bare then --plugin-dir (local keeps --bare)
+  ---
+  duration_ms: 0.102749
+  type: 'test'
+  ...
+# Subtest: pluginDir:null disables the plugin (vanilla baseline) — frontier emits just -p PROMPT
+ok 23 - pluginDir:null disables the plugin (vanilla baseline) — frontier emits just -p PROMPT
+  ---
+  duration_ms: 0.098041
+  type: 'test'
+  ...
+# Subtest: resolvePluginDir: flag overrides, --no-plugin disables, absent is undefined
+ok 24 - resolvePluginDir: flag overrides, --no-plugin disables, absent is undefined
+  ---
+  duration_ms: 0.055166
+  type: 'test'
+  ...
+# Subtest: loadTidyJudgementProse extracts section 1 (the classification rubric) from the shipped SKILL.md
+ok 25 - loadTidyJudgementProse extracts section 1 (the classification rubric) from the shipped SKILL.md
+  ---
+  duration_ms: 0.266583
+  type: 'test'
+  ...
+# Subtest: loadTidyJudgementProse fails loud on a missing skill file
+ok 26 - loadTidyJudgementProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.180625
+  type: 'test'
+  ...
+# Subtest: loadSynthesisGlossProse extracts the synthesis-gloss section from the shipped rendering skill
+ok 27 - loadSynthesisGlossProse extracts the synthesis-gloss section from the shipped rendering skill
+  ---
+  duration_ms: 0.24975
+  type: 'test'
+  ...
+# Subtest: loadSynthesisGlossProse fails loud on a missing skill file
+ok 28 - loadSynthesisGlossProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.111334
+  type: 'test'
+  ...
+# Subtest: loadJudgementCriteria combines the classification rubric and the synthesis-gloss contract
+ok 29 - loadJudgementCriteria combines the classification rubric and the synthesis-gloss contract
+  ---
+  duration_ms: 0.464291
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadConfidenceRubricProse extracts the Confidence self-rating section verbatim
+ok 30 - FAFF-146 loadConfidenceRubricProse extracts the Confidence self-rating section verbatim
+  ---
+  duration_ms: 0.156334
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadConfidenceRubricProse fails loud on a missing skill file
+ok 31 - FAFF-146 loadConfidenceRubricProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.072333
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadMarkerDialectProse extracts the decision-marker dialect verbatim
+ok 32 - FAFF-146 loadMarkerDialectProse extracts the decision-marker dialect verbatim
+  ---
+  duration_ms: 0.265208
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadMarkerDialectProse fails loud on a missing skill file
+ok 33 - FAFF-146 loadMarkerDialectProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.073833
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadReconciliationProse extracts the Step-2a Challenge/Resolution/Context/Noise rubric
+ok 34 - FAFF-146 loadReconciliationProse extracts the Step-2a Challenge/Resolution/Context/Noise rubric
+  ---
+  duration_ms: 0.652666
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadReconciliationProse fails loud on a missing skill file
+ok 35 - FAFF-146 loadReconciliationProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.12925
+  type: 'test'
+  ...
+# Subtest: FAFF-146 criteriaFor picks the prep rubric for confidence/marker and the tidy criteria otherwise
+ok 36 - FAFF-146 criteriaFor picks the prep rubric for confidence/marker and the tidy criteria otherwise
+  ---
+  duration_ms: 0.650207
+  type: 'test'
+  ...
+# Subtest: FAFF-146 buildEvalPrompt(confidence) carries the spec body and the confidence envelope shape
+ok 37 - FAFF-146 buildEvalPrompt(confidence) carries the spec body and the confidence envelope shape
+  ---
+  duration_ms: 0.343416
+  type: 'test'
+  ...
+# Subtest: FAFF-146 buildEvalPrompt(marker) carries the sections and the marker envelope shape
+ok 38 - FAFF-146 buildEvalPrompt(marker) carries the sections and the marker envelope shape
+  ---
+  duration_ms: 0.260958
+  type: 'test'
+  ...
+# Subtest: FAFF-153 loadTidyChainGapProse extracts the verbatim `\#\#\#\# Chain gaps` sub-section
+ok 39 - FAFF-153 loadTidyChainGapProse extracts the verbatim `\#\#\#\# Chain gaps` sub-section
+  ---
+  duration_ms: 0.218958
+  type: 'test'
+  ...
+# Subtest: FAFF-153 loadTidyChainGapProse fails loud on a missing skill file
+ok 40 - FAFF-153 loadTidyChainGapProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.06675
+  type: 'test'
+  ...
+# Subtest: FAFF-153 buildEvalPrompt(chain-gap) folds the criteria + the chain_gap envelope over raw spec prose
+ok 41 - FAFF-153 buildEvalPrompt(chain-gap) folds the criteria + the chain_gap envelope over raw spec prose
+  ---
+  duration_ms: 0.200083
+  type: 'test'
+  ...
+# Subtest: FAFF-146 buildEvalPrompt(dupe) is unchanged — still the tidy backlog framing
+ok 42 - FAFF-146 buildEvalPrompt(dupe) is unchanged — still the tidy backlog framing
+  ---
+  duration_ms: 0.349917
+  type: 'test'
+  ...
+# Subtest: loadReviewVerdictProse folds the gateway's fixed contract and the review producer's rubric verbatim
+ok 43 - loadReviewVerdictProse folds the gateway's fixed contract and the review producer's rubric verbatim
+  ---
+  duration_ms: 0.328083
+  type: 'test'
+  ...
+# Subtest: loadReviewVerdictProse fails loud on a missing skill file
+ok 44 - loadReviewVerdictProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.063708
+  type: 'test'
+  ...
+# Subtest: buildEvalPrompt(verdict-revert) emits the verdict envelope + folds the rubric + the fixture
+ok 45 - buildEvalPrompt(verdict-revert) emits the verdict envelope + folds the rubric + the fixture
+  ---
+  duration_ms: 0.065583
+  type: 'test'
+  ...
+# Subtest: buildEvalPrompt(dupe) still uses the tidy classification envelope (unchanged)
+ok 46 - buildEvalPrompt(dupe) still uses the tidy classification envelope (unchanged)
+  ---
+  duration_ms: 0.044417
+  type: 'test'
+  ...
+# Subtest: VERDICT_REVERT_INSTRUCTION names the revert test and the closed enum
+ok 47 - VERDICT_REVERT_INSTRUCTION names the revert test and the closed enum
+  ---
+  duration_ms: 0.059333
+  type: 'test'
+  ...
+# Subtest: FAFF-317 loadHoldoutJudgementProse extracts the exercise-step/met-unmet/prose rubric verbatim
+ok 48 - FAFF-317 loadHoldoutJudgementProse extracts the exercise-step/met-unmet/prose rubric verbatim
+  ---
+  duration_ms: 0.097458
+  type: 'test'
+  ...
+# Subtest: FAFF-317 loadHoldoutJudgementProse fails loud on a missing skill file
+ok 49 - FAFF-317 loadHoldoutJudgementProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.06175
+  type: 'test'
+  ...
+# Subtest: FAFF-317 criteriaFor arms both `holdout` and `holdout-exercise` with the evaluator rubric
+ok 50 - FAFF-317 criteriaFor arms both `holdout` and `holdout-exercise` with the evaluator rubric
+  ---
+  duration_ms: 0.09525
+  type: 'test'
+  ...
+# Subtest: FAFF-317 buildEvalPrompt(holdout) carries spec_dod + the recorded exercise, fixing the FAFF-284 gap
+ok 51 - FAFF-317 buildEvalPrompt(holdout) carries spec_dod + the recorded exercise, fixing the FAFF-284 gap
+  ---
+  duration_ms: 0.089874
+  type: 'test'
+  ...
+# Subtest: FAFF-317 buildEvalPrompt(holdout-exercise) carries spec_dod + a labelled raw recording catalog
+ok 52 - FAFF-317 buildEvalPrompt(holdout-exercise) carries spec_dod + a labelled raw recording catalog
+  ---
+  duration_ms: 0.1025
+  type: 'test'
+  ...
+# Subtest: FAFF-319 criteriaFor arms each judgement-eval kind with its OWN surface rubric (not tidy's)
+ok 53 - FAFF-319 criteriaFor arms each judgement-eval kind with its OWN surface rubric (not tidy's)
+  ---
+  duration_ms: 0.428332
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(architecture) frames the proposal task + emits env.architecture
+ok 54 - FAFF-319 buildEvalPrompt(architecture) frames the proposal task + emits env.architecture
+  ---
+  duration_ms: 0.065958
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(specqual) frames the write-a-spec task + emits env.specqual
+ok 55 - FAFF-319 buildEvalPrompt(specqual) frames the write-a-spec task + emits env.specqual
+  ---
+  duration_ms: 0.082083
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(roadmap) frames the synthesis task + emits env.roadmap
+ok 56 - FAFF-319 buildEvalPrompt(roadmap) frames the synthesis task + emits env.roadmap
+  ---
+  duration_ms: 0.102084
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(adr-gloss) frames the ADR-authoring task + emits env.adr
+ok 57 - FAFF-319 buildEvalPrompt(adr-gloss) frames the ADR-authoring task + emits env.adr
+  ---
+  duration_ms: 0.073708
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(spec-verdict) frames the review task + emits env.verdict
+ok 58 - FAFF-319 buildEvalPrompt(spec-verdict) frames the review task + emits env.verdict
+  ---
+  duration_ms: 0.067375
+  type: 'test'
+  ...
+# Subtest: FAFF-731 fanRefutationSpec runs four INDEPENDENT per-lens passes and merges via production aggregate()
+ok 59 - FAFF-731 fanRefutationSpec runs four INDEPENDENT per-lens passes and merges via production aggregate()
+  ---
+  duration_ms: 1.615165
+  type: 'test'
+  ...
+# Subtest: FAFF-731 fanRefutationSpec errors the rep when a lens produces unparseable output (never a silent drop)
+ok 60 - FAFF-731 fanRefutationSpec errors the rep when a lens produces unparseable output (never a silent drop)
+  ---
+  duration_ms: 0.417249
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(refutation-code) frames the diff-review task + emits env.findings
+ok 61 - FAFF-319 buildEvalPrompt(refutation-code) frames the diff-review task + emits env.findings
+  ---
+  duration_ms: 0.250458
+  type: 'test'
+  ...
+# Subtest: refutation-code criteria append the shared fixture-data section and a sample prefix list
+ok 62 - refutation-code criteria append the shared fixture-data section and a sample prefix list
+  ---
+  duration_ms: 0.218167
+  type: 'test'
+  ...
+# Subtest: refutation-code-006 and -007: the fixture-only diff stays clean, the diff with real-code injection is flagged
+ok 63 - refutation-code-006 and -007: the fixture-only diff stays clean, the diff with real-code injection is flagged
+  ---
+  duration_ms: 0.202749
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadPrepArchitectureTriggerProse loads the conditional architecture step's trigger test
+ok 64 - FAFF-669 loadPrepArchitectureTriggerProse loads the conditional architecture step's trigger test
+  ---
+  duration_ms: 0.2345
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadGroupingProse loads the agile lens's rehome-set proposal procedure
+ok 65 - FAFF-669 loadGroupingProse loads the agile lens's rehome-set proposal procedure
+  ---
+  duration_ms: 0.991582
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadResolvedElsewhereProse lands on the heading, not the earlier inline back-reference
+ok 66 - FAFF-669 loadResolvedElsewhereProse lands on the heading, not the earlier inline back-reference
+  ---
+  duration_ms: 0.192166
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadAdrDriftProse reaches past the seam plumbing into the independence rules
+ok 67 - FAFF-669 loadAdrDriftProse reaches past the seam plumbing into the independence rules
+  ---
+  duration_ms: 0.198958
+  type: 'test'
+  ...
+# Subtest: FAFF-669 extractSectionToEnd fails loud, naming its loader, when the start anchor is absent
+ok 68 - FAFF-669 extractSectionToEnd fails loud, naming its loader, when the start anchor is absent
+  ---
+  duration_ms: 0.643457
+  type: 'test'
+  ...
+# Subtest: FAFF-669 criteriaFor arms all four kinds with their own surface's rubric, and null under --no-plugin
+ok 69 - FAFF-669 criteriaFor arms all four kinds with their own surface's rubric, and null under --no-plugin
+  ---
+  duration_ms: 0.578875
+  type: 'test'
+  ...
+# Subtest: FAFF-669 buildEvalPrompt(prep-architecture-trigger) frames the fire/skip call + emits env.verdict
+ok 70 - FAFF-669 buildEvalPrompt(prep-architecture-trigger) frames the fire/skip call + emits env.verdict
+  ---
+  duration_ms: 0.256291
+  type: 'test'
+  ...
+# Subtest: FAFF-669 buildEvalPrompt(grouping) frames the rehome-set proposal + emits env.grouping
+ok 71 - FAFF-669 buildEvalPrompt(grouping) frames the rehome-set proposal + emits env.grouping
+  ---
+  duration_ms: 0.13275
+  type: 'test'
+  ...
+# Subtest: FAFF-669 buildEvalPrompt(adr-drift) frames the supersession judgement + emits env.challenge_outcome
+ok 72 - FAFF-669 buildEvalPrompt(adr-drift) frames the supersession judgement + emits env.challenge_outcome
+  ---
+  duration_ms: 0.382208
+  type: 'test'
+  ...
+# Subtest: FAFF-669 buildEvalPrompt(resolved-elsewhere) frames symptom similarity + emits env.resolved_elsewhere
+ok 73 - FAFF-669 buildEvalPrompt(resolved-elsewhere) frames symptom similarity + emits env.resolved_elsewhere
+  ---
+  duration_ms: 0.1925
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the resolved-elsewhere quarantine clause matches the holdout-exercise precedent
+ok 74 - FAFF-669 the resolved-elsewhere quarantine clause matches the holdout-exercise precedent
+  ---
+  duration_ms: 0.038125
+  type: 'test'
+  ...
+# Subtest: FAFF-669 every case-backed kind's instruction declares the key eval/grader.mjs reads for it
+ok 75 - FAFF-669 every case-backed kind's instruction declares the key eval/grader.mjs reads for it
+  ---
+  duration_ms: 0.134166
+  type: 'test'
+  ...
+# Subtest: FAFF-669 no non-exempt case-backed kind is riding the tidy fall-through
+ok 76 - FAFF-669 no non-exempt case-backed kind is riding the tidy fall-through
+  ---
+  duration_ms: 2.824914
+  type: 'test'
+  ...
+# Subtest: FAFF-669 each tidy-envelope exemption is earned — its read field really is in the shared instruction
+ok 77 - FAFF-669 each tidy-envelope exemption is earned — its read field really is in the shared instruction
+  ---
+  duration_ms: 0.692749
+  type: 'test'
+  ...
+# Subtest: FAFF-669 prep-architecture-trigger resolves to its OWN instruction, not a verdict-sharing sibling
+ok 78 - FAFF-669 prep-architecture-trigger resolves to its OWN instruction, not a verdict-sharing sibling
+  ---
+  duration_ms: 0.075958
+  type: 'test'
+  ...
+# Subtest: FAFF-1095 prd-readiness resolves to its OWN instruction, not a verdict-sharing sibling
+ok 79 - FAFF-1095 prd-readiness resolves to its OWN instruction, not a verdict-sharing sibling
+  ---
+  duration_ms: 0.059792
+  type: 'test'
+  ...
+# Subtest: FAFF-669 instructionFor mirrors buildEvalPrompt's verdict-revert branch
+ok 80 - FAFF-669 instructionFor mirrors buildEvalPrompt's verdict-revert branch
+  ---
+  duration_ms: 0.068666
+  type: 'test'
+  ...
+# Subtest: FAFF-669 every registered start anchor occurs exactly once in the file its loader reads
+ok 81 - FAFF-669 every registered start anchor occurs exactly once in the file its loader reads
+  ---
+  duration_ms: 4.38737
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the anchor registry covers every start-anchor constant declared in the driver
+ok 82 - FAFF-669 the anchor registry covers every start-anchor constant declared in the driver
+  ---
+  duration_ms: 0.259625
+  type: 'test'
+  ...
+# Subtest: FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window
+ok 83 - FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window
+  ---
+  duration_ms: 4.631745
+  type: 'test'
+  ...
+# Subtest: FAFF-687 a duplicate end-anchor spliced inside a section is caught (demonstrated red)
+ok 84 - FAFF-687 a duplicate end-anchor spliced inside a section is caught (demonstrated red)
+  ---
+  duration_ms: 0.244958
+  type: 'test'
+  ...
+# Subtest: FAFF-687 the anchor registry covers every end-anchor constant declared in the driver
+ok 85 - FAFF-687 the anchor registry covers every end-anchor constant declared in the driver
+  ---
+  duration_ms: 0.229
+  type: 'test'
+  ...
+# Subtest: FAFF-687 exactly one registry row has a null end, and it is ADR_DRIFT_PROSE_START
+ok 86 - FAFF-687 exactly one registry row has a null end, and it is ADR_DRIFT_PROSE_START
+  ---
+  duration_ms: 0.062875
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the three prefix/mid-line anchors are left raw, because the newline form matches none of them
+ok 87 - FAFF-669 the three prefix/mid-line anchors are left raw, because the newline form matches none of them
+  ---
+  duration_ms: 0.7105
+  type: 'test'
+  ...
+# Subtest: FAFF-669 no instruction and no renderer framing line carries the oracle's own vocabulary
+ok 88 - FAFF-669 no instruction and no renderer framing line carries the oracle's own vocabulary
+  ---
+  duration_ms: 0.187583
+  type: 'test'
+  ...
+# Subtest: FAFF-669 grouping-001's question no longer leaks the oracle; the oracle is at its FAFF-615-widened value
+ok 89 - FAFF-669 grouping-001's question no longer leaks the oracle; the oracle is at its FAFF-615-widened value
+  ---
+  duration_ms: 0.15275
+  type: 'test'
+  ...
+# Subtest: FAFF-669 every grouping must_include set stays reachable from the fixture or the loaded rubric
+ok 90 - FAFF-669 every grouping must_include set stays reachable from the fixture or the loaded rubric
+  ---
+  duration_ms: 0.251625
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the real case files render every fixture field their renderer names
+ok 91 - FAFF-669 the real case files render every fixture field their renderer names
+  ---
+  duration_ms: 0.716249
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the resolved-elsewhere quarantine clause lands after the rendered corpus
+ok 92 - FAFF-669 the resolved-elsewhere quarantine clause lands after the rendered corpus
+  ---
+  duration_ms: 0.852333
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the adr-drift plumbing is connected end to end on the real case file
+ok 93 - FAFF-669 the adr-drift plumbing is connected end to end on the real case file
+  ---
+  duration_ms: 0.233875
+  type: 'test'
+  ...
+# Subtest: compareProse: grew, shrank, equal, unlisted, stale and mixed, sorted by path
+ok 94 - compareProse: grew, shrank, equal, unlisted, stale and mixed, sorted by path
+  ---
+  duration_ms: 1.242624
+  type: 'test'
+  ...
+# Subtest: serialiseBaseline writes sorted keys, one per line, a blank line between entries, and round-trips
+ok 95 - serialiseBaseline writes sorted keys, one per line, a blank line between entries, and round-trips
+  ---
+  duration_ms: 0.199125
+  type: 'test'
+  ...
+# Subtest: validateBaseline refuses a wrong schema, a non-object files map and a bad value
+ok 96 - validateBaseline refuses a wrong schema, a non-object files map and a bad value
+  ---
+  duration_ms: 0.165875
+  type: 'test'
+  ...
+# Subtest: coveredFiles: SKILL.md and references/*.md only, not recursive, not other extensions
+ok 97 - coveredFiles: SKILL.md and references/*.md only, not recursive, not other extensions
+  ---
+  duration_ms: 1.833081
+  type: 'test'
+  ...
+# Subtest: validate-adapters fails a covered file that grows, naming it, its baseline and the delta
+ok 98 - validate-adapters fails a covered file that grows, naming it, its baseline and the delta
+  ---
+  duration_ms: 152.354749
+  type: 'test'
+  ...
+# Subtest: validate-adapters prints a RATCHET advisory, exit 0, when a covered file shrinks
+ok 99 - validate-adapters prints a RATCHET advisory, exit 0, when a covered file shrinks
+  ---
+  duration_ms: 133.363936
+  type: 'test'
+  ...
+# Subtest: validate-adapters fails a covered file with no baseline entry, naming its size
+ok 100 - validate-adapters fails a covered file with no baseline entry, naming its size
+  ---
+  duration_ms: 126.721903
+  type: 'test'
+  ...
+# Subtest: validate-adapters fails a baseline entry whose file is missing
+ok 101 - validate-adapters fails a baseline entry whose file is missing
+  ---
+  duration_ms: 116.867955
+  type: 'test'
+  ...
+# Subtest: validate-adapters fails a malformed baseline and skips an absent one for an explicit skills dir
+ok 102 - validate-adapters fails a malformed baseline and skips an absent one for an explicit skills dir
+  ---
+  duration_ms: 226.561667
+  type: 'test'
+  ...
+# Subtest: a 601-line SKILL.md with a matching byte baseline still fails the line cap
+ok 103 - a 601-line SKILL.md with a matching byte baseline still fails the line cap
+  ---
+  duration_ms: 115.17654
+  type: 'test'
+  ...
+# Subtest: the bundled tree fails closed when its baseline is missing or malformed (copied tree, no --skills-dir)
+ok 104 - the bundled tree fails closed when its baseline is missing or malformed (copied tree, no --skills-dir)
+  ---
+  duration_ms: 2001.120881
+  type: 'test'
+  ...
+# Subtest: prose-size baseline --lower lowers a shrunk entry, leaves a grown one, reports both, keeps the format
+ok 105 - prose-size baseline --lower lowers a shrunk entry, leaves a grown one, reports both, keeps the format
+  ---
+  duration_ms: 17.195981
+  type: 'test'
+  ...
+# Subtest: prose-size baseline --lower never adds or removes an entry, and refuses without --lower or a baseline
+ok 106 - prose-size baseline --lower never adds or removes an entry, and refuses without --lower or a baseline
+  ---
+  duration_ms: 45.484075
+  type: 'test'
+  ...
+# Subtest: prose-size tally reports rows, start, end, net, groups and other from git history
+ok 107 - prose-size tally reports rows, start, end, net, groups and other from git history
+  ---
+  duration_ms: 50.453362
+  type: 'test'
+  ...
+# Subtest: prose-size tally counts a deleted file to 0, ignores uncovered files, and prints a text form
+ok 108 - prose-size tally counts a deleted file to 0, ignores uncovered files, and prints a text form
+  ---
+  duration_ms: 100.674264
+  type: 'test'
+  ...
+# Subtest: ticketOf takes the last parenthesised key; parseLsTree keeps covered blobs in scope
+ok 109 - ticketOf takes the last parenthesised key; parseLsTree keeps covered blobs in scope
+  ---
+  duration_ms: 0.333541
+  type: 'test'
+  ...
+# Subtest: parseLsTree reads NUL-separated -z output, so a path git would C-quote is still counted
+ok 110 - parseLsTree reads NUL-separated -z output, so a path git would C-quote is still counted
+  ---
+  duration_ms: 0.052042
+  type: 'test'
+  ...
+# Subtest: proseRatchet turns a covered-file read failure into a FAIL line, not a throw
+ok 111 - proseRatchet turns a covered-file read failure into a FAIL line, not a throw
+  ---
+  duration_ms: 0.642166
+  type: 'test'
+  ...
+# Subtest: the committed baseline equals the real tree exactly, entry for entry
+ok 112 - the committed baseline equals the real tree exactly, entry for entry
+  ---
+  duration_ms: 0.810541
+  type: 'test'
+  ...
+# Subtest: .gitattributes keeps git from converting line endings in every covered file
+ok 113 - .gitattributes keeps git from converting line endings in every covered file
+  ---
+  duration_ms: 2.745956
+  type: 'test'
+  ...
+# Subtest: flags a leading-slash invoke literal at a delegation site
+ok 114 - flags a leading-slash invoke literal at a delegation site
+  ---
+  duration_ms: 152.775457
+  type: 'test'
+  ...
+# Subtest: flags a faff:-namespaced invoke literal at a delegation site
+ok 115 - flags a faff:-namespaced invoke literal at a delegation site
+  ---
+  duration_ms: 134.964893
+  type: 'test'
+  ...
+# Subtest: a canonical delegation target passes clean
+ok 116 - a canonical delegation target passes clean
+  ---
+  duration_ms: 134.878143
+  type: 'test'
+  ...
+# Subtest: FP-guard: human-command slash prose is not a delegation (no 'via the Skill tool')
+ok 117 - FP-guard: human-command slash prose is not a delegation (no 'via the Skill tool')
+  ---
+  duration_ms: 113.750916
+  type: 'test'
+  ...
+# Subtest: FP-guard: the convention's counter-example ('to the Skill tool') is not flagged
+ok 118 - FP-guard: the convention's counter-example ('to the Skill tool') is not flagged
+  ---
+  duration_ms: 112.789543
+  type: 'test'
+  ...
+# Subtest: FP-guard: a line mixing human-command slash prose with a canonical delegation passes
+ok 119 - FP-guard: a line mixing human-command slash prose with a canonical delegation passes
+  ---
+  duration_ms: 110.02267
+  type: 'test'
+  ...
+# Subtest: regression guard: the real shipped tree passes the delegation lint clean
+ok 120 - regression guard: the real shipped tree passes the delegation lint clean
+  ---
+  duration_ms: 686.777369
+  type: 'test'
+  ...
+1..120
+# tests 120
+# suites 0
+# pass 120
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3134.354717

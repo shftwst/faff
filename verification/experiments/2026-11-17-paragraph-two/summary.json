@@ -1,0 +1,53 @@
+{
+  "source_commit": "cf8548fcb2e7dc9170aacc6ad69eb8b60b649ae8",
+  "baseline_commit": "9a6c64bacbe40bb99a40af5b014db357827289d9",
+  "files": [
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "before_bytes": 31496,
+      "after_bytes": 29189,
+      "saved_bytes": 2307,
+      "before_estimated_tokens": 7794,
+      "after_estimated_tokens": 7228,
+      "saved_estimated_tokens": 566,
+      "before_sha256": "4235fb0c6e0ddbce7a79ad234faae1aa0b414778d37155c83637feee48aef04d",
+      "after_sha256": "c36ba658ec8ff452920da345799f126490442cf37c2536adcf26e8ebe219109b"
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "before_bytes": 24639,
+      "after_bytes": 21133,
+      "saved_bytes": 3506,
+      "before_estimated_tokens": 6040,
+      "after_estimated_tokens": 5179,
+      "saved_estimated_tokens": 861,
+      "before_sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce",
+      "after_sha256": "71a385627cab006746af22cc0c46bbb81f8bcd787539c3aa3be158659a1dd75f"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "before_bytes": 34734,
+      "after_bytes": 32157,
+      "saved_bytes": 2577,
+      "before_estimated_tokens": 8578,
+      "after_estimated_tokens": 7951,
+      "saved_estimated_tokens": 627,
+      "before_sha256": "0c57deb813e690969c8670ff70cafa4ed62630f0005494303d7787ff3a79876f",
+      "after_sha256": "cd702155b615269532975789404964e57449e2ea65b035e4e706bff04b257f41"
+    }
+  ],
+  "saved_bytes": 8390,
+  "saved_estimated_tokens": 2054,
+  "validation": {
+    "tests": 120,
+    "passed": 120,
+    "failed": 0,
+    "adapter_lint": "pass",
+    "inventory_blocks": 62,
+    "uncovered": 0,
+    "row_errors": 0,
+    "source_review_findings": 2,
+    "source_review_findings_resolved": 2
+  },
+  "model_status": "Fresh one-baseline/one-candidate Opus focus-report diagnostic prepared, not started at recording time."
+}

@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "status": "independent-bounded-source-review-clear",
+  "accepted": false,
+  "reviewer": "verify_wtf_scope",
+  "baseline_commit": "9a6c64bacbe40bb99a40af5b014db357827289d9",
+  "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+  "baseline_sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce",
+  "candidate_sha256": "71a385627cab006746af22cc0c46bbb81f8bcd787539c3aa3be158659a1dd75f",
+  "baseline_bytes": 24639,
+  "candidate_bytes": 21133,
+  "saved_bytes": 3506,
+  "method": "Read full current skill and actual git diff against requested HEAD, evaluating changed paragraphs in full rule context. Author maps not used as proof.",
+  "findings": [],
+  "obligation_review": {
+    "all_human_facing_scope_only_skill_internal_log_exemptions": "preserved",
+    "no_internal_contract_no_pipeline_gating_swappable_authority": "preserved",
+    "transforming_adaptor_not_new_rendering_producer": "preserved",
+    "define_validate_normalise_faces_and_caller_selected_output": "preserved",
+    "normalise_before_print_or_write": "preserved",
+    "fixed_repo_root_AGENTS_Writing_style_pointer_no_copy_fresh_each_dispatch": "preserved",
+    "adaptor_swap_does_not_change_voice_source_path": "preserved",
+    "three_item_list_threshold_two_item_exception_prose_density_rewrite": "preserved",
+    "token_economy_rewrite_and_substantive_prose_carveouts": "preserved",
+    "closed_visual_catalogue_conditions_and_examples": "preserved",
+    "three_prose_carveouts_and_no_recommendation_content_change": "preserved",
+    "load_bearing_model_source_only_hoist_order_and_no_fabrication": "preserved",
+    "gloss_three_components_and_tight_visual_variants": "preserved",
+    "first_mention_per_whole_output_floor_and_context_humanisation": "preserved",
+    "source_preference_order_paraphrase_not_truncate_subject_terms": "preserved",
+    "humanisation_bans_allowances_source_concretes_reader_test": "preserved",
+    "unlock_threshold_two_direct_or_chain_of_three_consequence_not_count": "preserved",
+    "ambiguity_escape_hatch_and_invocation_only_cache": "preserved",
+    "table_any_trigger_30chars_multisentence_80to120width_short_tables_allowed": "preserved",
+    "definition_list_shape_unicode40_separator_examples": "preserved",
+    "caps_three_cycles_ten_queue_rows_seven_initiatives_and_overflow": "preserved",
+    "validation_report_or_normalise_no_meaning_change": "preserved"
+  },
+  "mechanical_preservation": {
+    "frontmatter_verbatim": true,
+    "all_headings_and_extraction_anchors_verbatim": true,
+    "all_existing_list_table_blockquote_lines_verbatim": true,
+    "all_ten_fenced_examples_verbatim": true,
+    "original_command_and_option_spans_retained_verbatim": true,
+    "markdown_separator_explanation": "Repeated prose mention of markdown --- is condensed; the prohibition and exact unicode40 separator remain."
+  },
+  "inherited_ambiguities_retained": [
+    "First-mention wording coexists with per-whole-output mechanical grounding floor; both remain.",
+    "Synthesis is called a rendering contract while there is no internal pipeline contract; existing distinction remains explicit."
+  ],
+  "assessment": "No lost condition, weakened authority boundary or new obligation found. Compression removes rationale/repetition while operational thresholds, exceptions, examples, fields and validation-versus-normalisation choices remain. Voice keeps its fixed source path and fresh per-dispatch read; no new reference or mandatory read.",
+  "limits": [
+    "Static source review only; no tests, model calls or rendering/workflow execution.",
+    "No source, allowance, inventory or commit edits by reviewer.",
+    "Protected-structure equality supports preservation; semantic parity remains bounded source-review judgement."
+  ]
+}

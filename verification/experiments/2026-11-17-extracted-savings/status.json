@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "89ad284a36cf24da33c0e0f44e34d18fd1db7507",
+  "base": "c3dcb8ff44d0fd2833595ddb22653576a43895fc",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -9,95 +9,18 @@
   },
   "current_main": {
     "files": 41,
-    "bytes": 1243988,
-    "estimated_tokens": 308394
+    "bytes": 1242438,
+    "estimated_tokens": 308014
   },
   "landed_savings": {
-    "bytes": 128093,
-    "estimated_tokens": 31535
+    "bytes": 129643,
+    "estimated_tokens": 31915
   },
   "pending_extractions": [
     {
-      "skill": "default spec-review",
-      "pr": "https://github.com/shftwst/faff/pull/1213",
-      "head": "e8ad65cb4c2f543b1991f6ec994a7d1c35d6b9dd",
-      "before": {
-        "bytes": 9605,
-        "sha256": "4704eea626c039b83490a8ccf87a52d289b97ae2128ac0d0d56adbf7f22895b7",
-        "estimated_tokens": 2381
-      },
-      "after": {
-        "bytes": 8055,
-        "sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571",
-        "estimated_tokens": 2001
-      },
-      "saved": {
-        "bytes": 1550,
-        "estimated_tokens": 380
-      },
-      "fresh_fidelity": {
-        "baseline": {
-          "samples": 1,
-          "raw_cases_passed": 21,
-          "raw_cases_total": 21,
-          "artifact_cases": 6,
-          "decision_cases": 15,
-          "real_consumer_cases_passed": 6,
-          "real_consumer_cases_total": 6,
-          "unfounded_mutations_rejected": 6,
-          "native": "pass",
-          "manual": "pass",
-          "actual_model": [
-            "claude-opus-5-5"
-          ],
-          "actual_cli": [
-            "2.1.325"
-          ]
-        },
-        "candidate": {
-          "samples": 1,
-          "raw_cases_passed": 21,
-          "raw_cases_total": 21,
-          "artifact_cases": 6,
-          "decision_cases": 15,
-          "real_consumer_cases_passed": 6,
-          "real_consumer_cases_total": 6,
-          "unfounded_mutations_rejected": 6,
-          "native": "pass",
-          "manual": "pass",
-          "actual_model": [
-            "claude-opus-5-5"
-          ],
-          "actual_cli": [
-            "2.1.325"
-          ]
-        }
-      },
-      "qualification_commit": "ac2721c6e45aec61777c2ee92b17735e6d8c5a80",
-      "qualification_path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-qualification.json",
-      "limits": [
-        "One fixed fresh sample per arm; historical Sol-medium qualification remains separate and unpooled.",
-        "No prep loop, hosted tracker writes, human escalation, L4 independent refuters, full caller workflow, statistical equivalence or provider billing claim.",
-        "Fixture expectations and rubrics are unchanged. No new normalisation or assessment correction is registered. Real consumption and manual/native checks are separate mandatory gates, not automatic features newly added to the literal runner."
-      ],
-      "observed_variation": "Two QA findings used major in baseline and blocker in candidate; both are allowed by the supplied policy and both correctly route to revise. No identical-output or causal attribution claim.",
-      "local_checks": {
-        "tests_passed": 208,
-        "adapter_lint": "pass",
-        "rule_inventory": "pass"
-      },
-      "status": "open",
-      "ci": {
-        "status": "pass",
-        "failed": [],
-        "remaining": []
-      },
-      "new_model_samples": 2
-    },
-    {
       "skill": "kernel core contracts",
       "pr": "https://github.com/shftwst/faff/pull/1214",
-      "head": "d55846e80588d0b5547fe6b8d3a3eedbd5daa873",
+      "head": "72897030677cb849c3f144927b5ae167830ae714",
       "path": "plugin/skills/faff/references/kernel.md",
       "before": {
         "bytes": 83652,
@@ -185,28 +108,94 @@
       "publication_binding": "Rebased to main 89ad284a; measured kernel hash unchanged.",
       "status": "open",
       "ci": {
+        "status": "pass",
+        "failed": [],
+        "remaining": []
+      }
+    },
+    {
+      "skill": "graft, prep and adversarial spec-review paragraphs",
+      "pr": "https://github.com/shftwst/faff/pull/1215",
+      "head": "ba7512b6f5386e4483059bdc4bfdd7009e581e29",
+      "saved": {
+        "bytes": 12646,
+        "estimated_tokens": 3111
+      },
+      "files": [
+        {
+          "path": "plugin/skills/faff-graft/SKILL.md",
+          "before_bytes": 179185,
+          "after_bytes": 173897,
+          "saved_bytes": 5288,
+          "saved_estimated_tokens": 1297,
+          "before_sha256": "67949b420e063a193fccbe001a5f0befd894a52f37e22432e4e811edb7fd1a99",
+          "after_sha256": "d76758a91ae52dcf09017ed8eaa49da97ce3a5dbc6834f72e06cb5c3f0a27d14",
+          "inventory_rows": 26
+        },
+        {
+          "path": "plugin/skills/faff-prep/SKILL.md",
+          "before_bytes": 104236,
+          "after_bytes": 99459,
+          "saved_bytes": 4777,
+          "saved_estimated_tokens": 1176,
+          "before_sha256": "6a05f5f815795dee300c5a248cb570411c89fa824e4f5a98fdb097df4e609a48",
+          "after_sha256": "1b698f6eac7954a6d6f8901e85b35199ed34df2e91c143a251019d77e7fed154",
+          "inventory_rows": 27
+        },
+        {
+          "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+          "before_bytes": 40463,
+          "after_bytes": 37882,
+          "saved_bytes": 2581,
+          "saved_estimated_tokens": 638,
+          "before_sha256": "97a045b8defc13f5e254778151acee89c680c188ad5cae5d28e95e713afef88e",
+          "after_sha256": "e5593fcd09bdae806e17601f92c71c568c2f1f832251f35bca39d84ba3bcd6f9",
+          "inventory_rows": 13
+        }
+      ],
+      "local_checks": {
+        "tests_passed": 852,
+        "tests_skipped": 1,
+        "tests_failed": 0,
+        "adapter_lint": "pass",
+        "rule_inventory_blocks": 66,
+        "rule_inventory": "pass",
+        "independent_source_review": "pass; graft claim-label clarification applied",
+        "frontmatter_headings_fences_tables": "unchanged"
+      },
+      "new_model_samples": 0,
+      "limits": [
+        "Conservative explanatory paragraph cuts; source review and existing tests, no fresh model parity claim.",
+        "No CLI behaviour, harness or raw evidence included."
+      ],
+      "status": "open",
+      "ci": {
         "status": "running",
         "failed": [],
         "remaining": [
+          "unit (1)",
+          "unit (2)",
+          "unit (3)",
+          "unit (4)",
           "typecheck"
         ]
       }
     }
   ],
   "pending_savings": {
-    "bytes": 14724,
-    "estimated_tokens": 3611
+    "bytes": 25820,
+    "estimated_tokens": 6342
   },
   "limits": [
-    "PRs 1207 through 1212 have merged. Fresh diagnostics and historical cohorts remain separate.",
+    "PRs 1207 through 1213 have merged. Fresh diagnostics and historical cohorts remain separate.",
     "No raw runs, harness or bulk evidence imported into implementation branches.",
     "Optional documentation, tests and rule inventories are not runtime prompt savings.",
     "#1203 remains draft; other implemented or held cuts are not promoted by these extractions."
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1229264,
-    "estimated_tokens": 304783
+    "bytes": 1216618,
+    "estimated_tokens": 301672
   },
   "landed_extractions": [
     {
@@ -588,6 +577,84 @@
       "new_model_samples": 2,
       "remote_rebase_measured_source_unchanged": true,
       "merge_commit": "89ad284a36cf24da33c0e0f44e34d18fd1db7507"
+    },
+    {
+      "skill": "default spec-review",
+      "pr": "https://github.com/shftwst/faff/pull/1213",
+      "head": "e8ad65cb4c2f543b1991f6ec994a7d1c35d6b9dd",
+      "before": {
+        "bytes": 9605,
+        "sha256": "4704eea626c039b83490a8ccf87a52d289b97ae2128ac0d0d56adbf7f22895b7",
+        "estimated_tokens": 2381
+      },
+      "after": {
+        "bytes": 8055,
+        "sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571",
+        "estimated_tokens": 2001
+      },
+      "saved": {
+        "bytes": 1550,
+        "estimated_tokens": 380
+      },
+      "fresh_fidelity": {
+        "baseline": {
+          "samples": 1,
+          "raw_cases_passed": 21,
+          "raw_cases_total": 21,
+          "artifact_cases": 6,
+          "decision_cases": 15,
+          "real_consumer_cases_passed": 6,
+          "real_consumer_cases_total": 6,
+          "unfounded_mutations_rejected": 6,
+          "native": "pass",
+          "manual": "pass",
+          "actual_model": [
+            "claude-opus-5-5"
+          ],
+          "actual_cli": [
+            "2.1.325"
+          ]
+        },
+        "candidate": {
+          "samples": 1,
+          "raw_cases_passed": 21,
+          "raw_cases_total": 21,
+          "artifact_cases": 6,
+          "decision_cases": 15,
+          "real_consumer_cases_passed": 6,
+          "real_consumer_cases_total": 6,
+          "unfounded_mutations_rejected": 6,
+          "native": "pass",
+          "manual": "pass",
+          "actual_model": [
+            "claude-opus-5-5"
+          ],
+          "actual_cli": [
+            "2.1.325"
+          ]
+        }
+      },
+      "qualification_commit": "ac2721c6e45aec61777c2ee92b17735e6d8c5a80",
+      "qualification_path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-qualification.json",
+      "limits": [
+        "One fixed fresh sample per arm; historical Sol-medium qualification remains separate and unpooled.",
+        "No prep loop, hosted tracker writes, human escalation, L4 independent refuters, full caller workflow, statistical equivalence or provider billing claim.",
+        "Fixture expectations and rubrics are unchanged. No new normalisation or assessment correction is registered. Real consumption and manual/native checks are separate mandatory gates, not automatic features newly added to the literal runner."
+      ],
+      "observed_variation": "Two QA findings used major in baseline and blocker in candidate; both are allowed by the supplied policy and both correctly route to revise. No identical-output or causal attribution claim.",
+      "local_checks": {
+        "tests_passed": 208,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass"
+      },
+      "status": "merged",
+      "ci": {
+        "status": "pass",
+        "failed": [],
+        "remaining": []
+      },
+      "new_model_samples": 2,
+      "merge_commit": "c3dcb8ff44d0fd2833595ddb22653576a43895fc"
     }
   ],
   "local_not_counted": [
@@ -632,7 +699,7 @@
         "bytes": 8065,
         "estimated_tokens": 1979
       },
-      "status": "Fresh reporting and ledger baselines running; candidate not launched. Source review and 247 tests pass."
+      "status": "Held: fresh ledger baseline13/14, missing phase-events ledger read; native audit also fails non-JSON heredoc. Consumer replay3/3 cannot waive either. Reporting baseline6/6 and native/assessment pass. Neither candidate launched."
     }
   ],
   "recorded_at_utc": "2026-11-17T20:06:42.639034+00:00"

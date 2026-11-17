@@ -11,12 +11,13 @@ Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 | [1210](https://github.com/shftwst/faff/pull/1210), rendering | 9,842 B | 2,401 | Merged |
 | [1211](https://github.com/shftwst/faff/pull/1211), thematic | 3,672 B | 896 | Merged |
 | [1212](https://github.com/shftwst/faff/pull/1212), PRD | 2,001 B | 494 | Merged |
-| [1213](https://github.com/shftwst/faff/pull/1213), default spec-review | 1,550 B | 380 | Open, CI running |
-| [1214](https://github.com/shftwst/faff/pull/1214), kernel core contracts | 13,174 B | 3,231 | Open, CI running |
+| [1213](https://github.com/shftwst/faff/pull/1213), default spec-review | 1,550 B | 380 | Merged |
+| [1214](https://github.com/shftwst/faff/pull/1214), kernel core contracts | 13,174 B | 3,231 | Open |
+| [1215](https://github.com/shftwst/faff/pull/1215), graft/prep/spec-review paragraphs | 12,646 B | 3,111 | Open |
 
-Merged savings since the quick-pass starting main: **128,093 bytes / 31,535
-estimated tokens**. Main totals **1,243,988 bytes / 308,394 estimated tokens**
-across 41 covered files. Open PRs contribute another 14,724 bytes / 3,611 tokens.
+Merged savings since the quick-pass starting main: **129,643 bytes / 31,915
+estimated tokens**. Main totals **1,242,438 bytes / 308,014 estimated tokens**
+across 41 covered files. Open PRs contribute another 25,820 bytes / 6,342 tokens.
 Local and held reductions are excluded from both totals.
 
 Fresh Opus diagnostics used one fixed sample per arm. Thematic passed 16/16
@@ -44,8 +45,10 @@ bindings, 9/9 real CLI outcomes and 9/9 invalid controls in each arm. Manual
 and native audits passed. The prior held treatment stays separate.
 
 The combined beep-boop reporting and ledger candidate saves 8,065 bytes / 1,979
-tokens locally. Source review and 247 existing tests pass; fresh reporting and
-ledger baselines are running. This saving is excluded from the totals above.
+tokens locally. Source review and 247 existing tests pass. Its ledger baseline
+is held: one case omitted its required read and native audit found a non-JSON
+heredoc. Reporting passed all six baseline cases and native/assessment checks.
+Neither candidate was launched. This saving remains excluded from totals.
 
 Kernel's missed line allowance was corrected from 465 to 435. Linux checks
 passed; macOS was cancelled after merge. The other merged extractions had

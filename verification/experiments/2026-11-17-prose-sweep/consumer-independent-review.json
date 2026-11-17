@@ -1,0 +1,214 @@
+{
+  "schema": 1,
+  "status": "independent-bounded-source-review-clear",
+  "accepted": false,
+  "baseline_commit": "3c148dc6f07032e5112989651e210217af7ef13b",
+  "consumer_record": {
+    "path": "verification/experiments/2026-11-17-prose-sweep/consumer-pass.json",
+    "sha256": "bc7c6daee0935bd34b382cd479870a6f854e810f171b561c2d001d41ae43bd50"
+  },
+  "files_reviewed": 9,
+  "wording_edits_reviewed": 36,
+  "files": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "baseline_sha256": "003d961663cb7e38de3d673a639e4da8fe19bd5f23dc1f954f811d71f3477549",
+      "current_sha256": "634bc2ca4f7def09ba4383327d12a7975a8d3beebc6cabef9b909c4873b72d38",
+      "edits_reviewed": 6,
+      "classification": "clear-no-material-rule-loss",
+      "retained_rule_domains": "methodology always-on/order; single git-only resolution; budget exception",
+      "plain_source_guard_literals_lost": []
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "baseline_sha256": "a6834f8d738b01d94e4d40887c309ffa83599e7fbda0c406f65eb3f03a78f7e6",
+      "current_sha256": "08ca0b2c0dfb472b3f2ef1ca518736f9b6fc783527f2ff3501b0b3a8e40e61b0",
+      "edits_reviewed": 4,
+      "classification": "clear-no-material-rule-loss",
+      "retained_rule_domains": "step tracking; discover-before-absence tracker pin; calibration writes",
+      "plain_source_guard_literals_lost": []
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "baseline_sha256": "3258c873a3ddae74a97d17f34812748a564655b34cbbae36a3753d52d329ce78",
+      "current_sha256": "f0d8aa30e61b12624b3e29abb95bf1c678f675a17d6cc58f3eab1234bbe47d97",
+      "edits_reviewed": 4,
+      "classification": "clear-no-material-rule-loss",
+      "retained_rule_domains": "methodology shaping authority; create/relink home; reconstructible logs",
+      "plain_source_guard_literals_lost": []
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "baseline_sha256": "55e5aa388261b226e011f45d16d3b88d6e61a9e9bba0f1831b2cfdf57ce308c6",
+      "current_sha256": "276bd4f4f33b3c0565dc48ff02221accdf7eea81e03449750999fcfd61bf5808",
+      "edits_reviewed": 4,
+      "classification": "clear-no-material-rule-loss",
+      "retained_rule_domains": "within-horizon sequencing; diagnostic enrichment only; plot handoff; full MCP log",
+      "plain_source_guard_literals_lost": []
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "baseline_sha256": "61b542661d1a6d20e5d50ba8912deda6a3633c82e00b5040916d49a6e38c429b",
+      "current_sha256": "05b24b16306f56e0c938d1ae896152e6adec44ac05051353d3bd459a280c1edb",
+      "edits_reviewed": 5,
+      "classification": "clear-no-material-rule-loss",
+      "retained_rule_domains": "decline-stub vs real config; local overlay and detection/writer ownership",
+      "plain_source_guard_literals_lost": []
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "baseline_sha256": "57c8efe868e470b21d70f5787025457fed8ab70766d1a8115e721645e37fa25c",
+      "current_sha256": "267770b6c925abd41e17faf0b2921804180102546bdf5fe53ebc8cb4a86f2154",
+      "edits_reviewed": 3,
+      "classification": "clear-no-material-rule-loss",
+      "retained_rule_domains": "audit offer; complete exactly-once grouping; idempotent existing-container reuse",
+      "plain_source_guard_literals_lost": []
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "baseline_sha256": "3c7cfc586a19e92af472480086dbcc56a8aba1c8d7052ee327f12cfacce97886",
+      "current_sha256": "4bf9ecf842d6baa4672be2e94a27773bac22b0d4185afae1c7b675c97313a10e",
+      "edits_reviewed": 3,
+      "classification": "clear-no-material-rule-loss",
+      "retained_rule_domains": "bounded ratification; producer quality ownership; attach precondition of returns",
+      "plain_source_guard_literals_lost": []
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "baseline_sha256": "5a52e93398564ddf4400a4492275dd30728012a515ac6f88d72ec605a5b7529c",
+      "current_sha256": "174513972768bf59688b1537d5ab9f103ed1ae3058ef40dbf94b113c51a57621",
+      "edits_reviewed": 4,
+      "classification": "clear-no-material-rule-loss",
+      "retained_rule_domains": "dead-link housekeeping; superseded-spec confidence routing; stuck-park ordering",
+      "plain_source_guard_literals_lost": []
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "baseline_sha256": "8df715340ed14eabc072dc6c063bb6ef69682341c0e48f7e05cbf1f700df87bb",
+      "current_sha256": "051d998486bc4b63badbb98f01780eabda15732aaa5e563010ded787ab9dafc5",
+      "edits_reviewed": 3,
+      "classification": "clear-no-material-rule-loss",
+      "retained_rule_domains": "exclusive supersession ratification; confirmation/denial file handling; appetite surfacing",
+      "plain_source_guard_literals_lost": []
+    }
+  ],
+  "findings": [],
+  "nonblocking_style_observation": {
+    "path": "plugin/skills/faff-onboard/SKILL.md",
+    "text": "rather than bailing ; this explicit opt-in",
+    "assessment": "Extra space before semicolon only; no policy impact. No verifier edit made."
+  },
+  "assessment": "All36 recorded fragment substitutions reconstruct the actual nine edited files exactly. Changes shorten rationale or restate existing instructions without changing conditions, authority, required actions, exceptions, examples or outputs. No material omission or widening found.",
+  "guard_review": {
+    "all_recorded_hashes_match": true,
+    "all_headings_and_inline_code_preserved": true,
+    "plain_quoted_test_eval_literals_at_least15chars_lost": 0,
+    "method": "Read each actual baseline/current diff with surrounding paragraph context; independently reconstruct36 substitutions and scan plain quoted test/eval literals.",
+    "limit": "Arbitrary regex compatibility is not proven by literal scanning. Existing source-loading tests are identified separately for root integration; no tests run."
+  },
+  "limits": [
+    "Source-only bounded review; no model/workflow equivalence or acceptance claim.",
+    "No source/runtime/test/allowance edits or commits.",
+    "Comparison covers the exact current consumer hashes; a later edit needs corresponding review/binding refresh."
+  ],
+  "existing_source_loading_checks": {
+    "observed_changed_prose_files": 35,
+    "note": "The stated41-file sweep includes reviewed-but-unchanged files. At this check35 prose paths differ from baseline; no tests executed. Select source tests by name rather than entire runtime suites.",
+    "groups": [
+      {
+        "paths": [
+          "test/eval-cli-driver.test.mjs"
+        ],
+        "pattern": "load[A-Z]|criteriaFor|every registered start anchor|every registered end anchor|anchor registry covers",
+        "covers": "Canonical judgement prose loaders for changed producer/consumer/kernel/lane text and registered loader anchor integrity."
+      },
+      {
+        "paths": [
+          "test/eval-routing.test.mjs"
+        ],
+        "pattern": "loadRoutingVerdictProse",
+        "covers": "Routing contract/adaptor source loader."
+      },
+      {
+        "paths": [
+          "test/heading-slug.test.mjs",
+          "test/spec-producer-scenario-format.test.mjs",
+          "test/adr-format.test.mjs",
+          "test/review-iteration-cap.test.mjs"
+        ],
+        "pattern": "all six producer files|every fenced Scenarios example|noon self-review|static: faffter-noon-adr|drift guard",
+        "covers": "Exact spec-anchor rule/examples, scenario examples/self-review guard, ADR resolver, fixed review appetite table."
+      },
+      {
+        "paths": [
+          "test/evidence-return.test.mjs",
+          "test/faff-679-bracket-writes.test.mjs"
+        ],
+        "pattern": "concurrency executors restate|DONE-7|DONE-8|DONE-9",
+        "covers": "Both executor and L4 shared-custody source obligations. DONE-9 mechanical invokes existing lint, so omit that one if lint is already run separately."
+      },
+      {
+        "paths": [
+          "test/spec-review-churn.test.mjs",
+          "test/spec-review-convergence.test.mjs",
+          "test/spec-review-iteration-cap.test.mjs",
+          "test/spec-review-pin.test.mjs",
+          "test/spec-review-window.test.mjs"
+        ],
+        "pattern": "prep SKILL|faff-prep|drift guard|occupant SKILL",
+        "covers": "Prep gate/round/churn/cap/governance and adversarial occupant chain/pin/served source guards."
+      },
+      {
+        "paths": [
+          "test/spec-review-dispatch-resolution.test.mjs",
+          "test/spec-review-occupant-served-dispatch.test.mjs",
+          "test/spec-review-reputation.test.mjs"
+        ],
+        "pattern": "SKILL.md|dispatch prose|occupant dispatch|occupant wires|single-pass",
+        "covers": "Exact adversarial dispatch strategy/timeout/probe source guards; actual extracted served-dispatch shell; reputation conditional wiring."
+      },
+      {
+        "paths": [
+          "test/faff-1287-ac-ids.test.mjs",
+          "test/commissaire-status-skill-sites.test.mjs",
+          "test/spec-commit.test.mjs",
+          "test/run-ledger-writer-inventory.test.mjs",
+          "test/holdout-record.test.mjs",
+          "test/adr-extract-intent.test.mjs"
+        ],
+        "pattern": "graft Step 8 takes ids|one governed-run check sentence|no other skill names|graft Steps 4c and 10|graft Step 4.s|SKILL.md tells the orchestrator|skill prose:|wiring:",
+        "covers": "Consumer direct source guards for ACs, governed-run checks, commit scheme/warnings, ledger schema, holdout writer/resume and ADR intent."
+      },
+      {
+        "paths": [
+          "test/faff-1399-discovered-scope-priority.test.mjs",
+          "test/beep-boop-admission-prose.test.mjs",
+          "test/run-start-wiring.test.mjs"
+        ],
+        "pattern": "absent .priority.|tidy.s chain-gap filing|priority-reason comment is documented|every filing call site references|admission|step 4|static:",
+        "covers": "Priority/comment, queue admission and L4 run-start source guards."
+      },
+      {
+        "paths": [
+          "test/graft-remote-base.test.mjs"
+        ],
+        "pattern": "remote-based diff identity|no coupled graft diff block",
+        "covers": "Actual source-extracted diff identity block and no hardcoded main-base guard; remaining unchanged helper runtime cases need not repeat solely for prose."
+      },
+      {
+        "paths": [
+          "test/prose-size.test.mjs"
+        ],
+        "pattern": "committed baseline equals",
+        "covers": "Run after root lowers allowances with canonical serializer; expected to fail before allowance integration."
+      }
+    ],
+    "separate_existing_lint": "validate-adapters covers all skill frontmatter, delegation, defaults, reads, paragraphs, anchors, sizes and seam structural guards. No new adapter/harness required.",
+    "limits": [
+      "This is a source-loader/guard selection, not a recommendation to rerun entire command suites.",
+      "No dedicated literal guard located for every changed rationale sentence; independent source review carries those parity claims.",
+      "Use process-local signing disabled and short TMPDIR for source-extracted git/dispatch fixtures.",
+      "No broad tests or model evals run."
+    ]
+  }
+}

@@ -1,86 +1,86 @@
 {
   "schema": 1,
   "files": {
-    "faff-beep-boop/SKILL.md": 138533,
+    "faff-beep-boop/SKILL.md": 138389,
 
-    "faff-graft/SKILL.md": 141650,
+    "faff-graft/SKILL.md": 141371,
 
-    "faff-jot/SKILL.md": 23456,
+    "faff-jot/SKILL.md": 23298,
 
-    "faff-map/SKILL.md": 24535,
+    "faff-map/SKILL.md": 24437,
 
-    "faff-onboard/SKILL.md": 23039,
+    "faff-onboard/SKILL.md": 22878,
 
-    "faff-plot/SKILL.md": 45580,
+    "faff-plot/SKILL.md": 45494,
 
-    "faff-prep/SKILL.md": 87112,
+    "faff-prep/SKILL.md": 86983,
 
-    "faff-tidy/SKILL.md": 67340,
+    "faff-tidy/SKILL.md": 67148,
 
-    "faff-wtf/SKILL.md": 27152,
+    "faff-wtf/SKILL.md": 27097,
 
     "faff/SKILL.md": 5832,
 
-    "faff/references/autonomous.md": 39233,
+    "faff/references/autonomous.md": 38758,
 
-    "faff/references/build.md": 12080,
+    "faff/references/build.md": 9689,
 
-    "faff/references/create.md": 9145,
+    "faff/references/create.md": 7429,
 
-    "faff/references/kernel.md": 70857,
+    "faff/references/kernel.md": 70437,
 
-    "faff/references/l4.md": 26377,
+    "faff/references/l4.md": 25523,
 
-    "faff/references/methodology.md": 35453,
+    "faff/references/methodology.md": 34325,
 
-    "faff/references/park.md": 14619,
+    "faff/references/park.md": 13771,
 
-    "faff/references/review.md": 4756,
+    "faff/references/review.md": 4389,
 
-    "faff/references/tracker.md": 24185,
+    "faff/references/tracker.md": 22649,
 
     "faffidavit-rendering/SKILL.md": 11288,
 
-    "faffidavit-routing/SKILL.md": 11144,
+    "faffidavit-routing/SKILL.md": 10633,
 
     "faffter-dark-adversarial-review/SKILL.md": 22259,
 
-    "faffter-dark-authoring-adaptors/SKILL.md": 12321,
+    "faffter-dark-authoring-adaptors/SKILL.md": 11657,
 
-    "faffter-dark-concurrency-parallel/SKILL.md": 25665,
+    "faffter-dark-concurrency-parallel/SKILL.md": 25365,
 
-    "faffter-dark-methodology-agile-delivery/SKILL.md": 44947,
+    "faffter-dark-methodology-agile-delivery/SKILL.md": 44432,
 
-    "faffter-dark-nlspec/SKILL.md": 18819,
+    "faffter-dark-nlspec/SKILL.md": 18599,
 
-    "faffter-dark-spec-review/SKILL.md": 40496,
+    "faffter-dark-spec-review/SKILL.md": 40244,
 
-    "faffter-noon-adr/SKILL.md": 4238,
+    "faffter-noon-adr/SKILL.md": 3936,
 
-    "faffter-noon-architecture/SKILL.md": 4787,
+    "faffter-noon-architecture/SKILL.md": 4428,
 
-    "faffter-noon-concurrency-sequential/SKILL.md": 18512,
+    "faffter-noon-concurrency-sequential/SKILL.md": 18056,
 
-    "faffter-noon-env-code-interface/SKILL.md": 9602,
+    "faffter-noon-env-code-interface/SKILL.md": 9140,
 
-    "faffter-noon-env-compose/SKILL.md": 12232,
+    "faffter-noon-env-compose/SKILL.md": 11843,
 
-    "faffter-noon-evaluate/SKILL.md": 15939,
+    "faffter-noon-evaluate/SKILL.md": 15505,
 
-    "faffter-noon-intake/SKILL.md": 5689,
+    "faffter-noon-intake/SKILL.md": 5568,
 
-    "faffter-noon-methodology-thematic/SKILL.md": 29418,
+    "faffter-noon-methodology-thematic/SKILL.md": 29034,
 
     "faffter-noon-prd/SKILL.md": 2465,
 
     "faffter-noon-review/SKILL.md": 8045,
 
-    "faffter-noon-ship/SKILL.md": 14027,
+    "faffter-noon-ship/SKILL.md": 13489,
 
     "faffter-noon-spec-review/SKILL.md": 8055,
 
-    "faffter-noon-spec/SKILL.md": 17847,
+    "faffter-noon-spec/SKILL.md": 17130,
 
-    "faffter-noon-transport-private-network/SKILL.md": 6250
+    "faffter-noon-transport-private-network/SKILL.md": 5951
   }
 }

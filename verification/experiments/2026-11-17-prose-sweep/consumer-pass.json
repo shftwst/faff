@@ -1,0 +1,472 @@
+{
+  "schema": 1,
+  "status": "conservative-consumer-prose-pass-source-edited-uncommitted-unqualified",
+  "baseline_commit": "3c148dc6f07032e5112989651e210217af7ef13b",
+  "workspace": "/var/tmp/faff-skill-diet-prose-sweep",
+  "scope": "Exactly nine assigned consumer SKILL.md files; all visited, no unchanged files. No baselines copied; baseline bytes are Git3c148dc6.",
+  "method": "Read complete assigned files and scan their lines; inspect changed prose contexts, remove local repetition/shorten wording only. Preserve structured interfaces exactly. This is a bounded mechanical/simple-prose pass, not a new full semantic/workflow qualification.",
+  "token_method": "ceil(UTF-16 code units /4) per full file, summed; estimates, not billed usage",
+  "guard_inspection": {
+    "directories": [
+      "test",
+      "eval"
+    ],
+    "files_read": 1234,
+    "method": "Scan quoted literals of at least15 characters that occur in original assigned source; reject any edit losing such a literal. Inspect relevant source-guard phrase matches. Also compare complete ordered frontmatter/headings/bold spans/inline code/code fences before and after.",
+    "limit": "Literal search does not prove arbitrary regex compatibility. Root owns integration checks; no tests run."
+  },
+  "files": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "status": "visited-and-edited",
+      "before": {
+        "bytes": 138533,
+        "estimated_tokens": 34381,
+        "sha256": "003d961663cb7e38de3d673a639e4da8fe19bd5f23dc1f954f811d71f3477549"
+      },
+      "after": {
+        "bytes": 138389,
+        "estimated_tokens": 34346,
+        "sha256": "634bc2ca4f7def09ba4383327d12a7975a8d3beebc6cabef9b909c4873b72d38"
+      },
+      "saved_bytes": 144,
+      "saved_estimated_tokens": 35,
+      "preservation_checks": {
+        "headings": true,
+        "bold_spans": true,
+        "inline_code": true,
+        "code_fences": true,
+        "frontmatter": true
+      },
+      "retained_rule_mapping": [
+        {
+          "before_fragment": "so the build-queue order always comes through it",
+          "after_fragment": "so it owns build-queue order",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "What's *conditional* is only the display banner:",
+          "after_fragment": "Only the banner is *conditional*:",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "the slot is never *skipped*, because its outputs are load-bearing",
+          "after_fragment": "the slot is never *skipped*",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "The whole-lifecycle structural git-only signal this run asserts once and never re-sniffs per wave (step 8.5) **is** the tracker side of that shared rule:",
+          "after_fragment": "The run's once-resolved git-only signal (never per wave, step 8.5) **is** the shared tracker-side answer:",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": " \u2014 every delegated skill (tidy/prep/graft) consumes it rather than re-inferring.",
+          "after_fragment": "; delegated skills (tidy/prep/graft) consume it without re-inferring.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is **not** a deferral by the orchestrator \u2014 the user chose the budget.",
+          "after_fragment": "The user chose this budget; it is **not** an orchestrator deferral.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        }
+      ],
+      "quoted_source_guard_literals_lost": [],
+      "deferred": "Algorithmic/gate/retry/containment text, behavioural examples, status/return vocabulary and contradictions retained. No extraction, redesigned flow or new read."
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "status": "visited-and-edited",
+      "before": {
+        "bytes": 141650,
+        "estimated_tokens": 35217,
+        "sha256": "a6834f8d738b01d94e4d40887c309ffa83599e7fbda0c406f65eb3f03a78f7e6"
+      },
+      "after": {
+        "bytes": 141371,
+        "estimated_tokens": 35148,
+        "sha256": "08ca0b2c0dfb472b3f2ef1ca518736f9b6fc783527f2ff3501b0b3a8e40e61b0"
+      },
+      "saved_bytes": 279,
+      "saved_estimated_tokens": 69,
+      "preservation_checks": {
+        "headings": true,
+        "bold_spans": true,
+        "inline_code": true,
+        "code_fences": true,
+        "frontmatter": true
+      },
+      "retained_rule_mapping": [
+        {
+          "before_fragment": "to create one todo per numbered step below \u2014 one todo per step, in order.",
+          "after_fragment": "to create one todo per numbered step below, in order.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is the forcing function that stops review, AC verification, or any other late step from being dropped when the build phase becomes a habit loop.",
+          "after_fragment": "Never drop review, AC verification or another late step during the build.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is what stops a Codex-style deferred-tool session from reading a connected tracker as absent and refusing a legitimately-prepped ticket. ",
+          "after_fragment": "",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": " This is the calibration evidence loop.",
+          "after_fragment": "",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        }
+      ],
+      "quoted_source_guard_literals_lost": [],
+      "deferred": "Algorithmic/gate/retry/containment text, behavioural examples, status/return vocabulary and contradictions retained. No extraction, redesigned flow or new read."
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "status": "visited-and-edited",
+      "before": {
+        "bytes": 23456,
+        "estimated_tokens": 5804,
+        "sha256": "3258c873a3ddae74a97d17f34812748a564655b34cbbae36a3753d52d329ce78"
+      },
+      "after": {
+        "bytes": 23298,
+        "estimated_tokens": 5766,
+        "sha256": "f0d8aa30e61b12624b3e29abb95bf1c678f675a17d6cc58f3eab1234bbe47d97"
+      },
+      "saved_bytes": 158,
+      "saved_estimated_tokens": 38,
+      "preservation_checks": {
+        "headings": true,
+        "bold_spans": true,
+        "inline_code": true,
+        "code_fences": true,
+        "frontmatter": true
+      },
+      "retained_rule_mapping": [
+        {
+          "before_fragment": "This is where \"a sensible set of tickets\" is actually formed, and it follows whatever methodology the project has configured:",
+          "after_fragment": "Follow the configured methodology:",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "Enough that a follow-up agent can see how this backlog came to exist.",
+          "after_fragment": "Record enough to reconstruct the backlog origin.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is the single home for the three create/relink hazards at that seam;",
+          "after_fragment": "The three create/relink hazards have one home here;",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "The methodology decides the structure \u2014 workstreams/containers, ticket boundaries, sequencing, dependency links \u2014 from the brief plus the live tracker graph.",
+          "after_fragment": "The methodology decides workstreams/containers, ticket boundaries, sequencing and dependency links from the brief and live tracker graph.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        }
+      ],
+      "quoted_source_guard_literals_lost": [],
+      "deferred": "Algorithmic/gate/retry/containment text, behavioural examples, status/return vocabulary and contradictions retained. No extraction, redesigned flow or new read."
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "status": "visited-and-edited",
+      "before": {
+        "bytes": 24535,
+        "estimated_tokens": 5988,
+        "sha256": "55e5aa388261b226e011f45d16d3b88d6e61a9e9bba0f1831b2cfdf57ce308c6"
+      },
+      "after": {
+        "bytes": 24437,
+        "estimated_tokens": 5964,
+        "sha256": "276bd4f4f33b3c0565dc48ff02221accdf7eea81e03449750999fcfd61bf5808"
+      },
+      "saved_bytes": 98,
+      "saved_estimated_tokens": 24,
+      "preservation_checks": {
+        "headings": true,
+        "bold_spans": true,
+        "inline_code": true,
+        "code_fences": true,
+        "frontmatter": true
+      },
+      "retained_rule_mapping": [
+        {
+          "before_fragment": "The horizon assignment itself is unchanged \u2014 only the order inside each horizon shifts.",
+          "after_fragment": "Keep horizon assignments; change only their internal order.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is enrichment only \u2014 map already has full cycle + ghost coverage from",
+          "after_fragment": "This only enriches; map already has full cycle + ghost coverage from",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is the **planning session** this skill points at when the roadmap doesn't hang together.",
+          "after_fragment": "This **planning session** addresses a disconnected roadmap.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "so a follow-up agent can reconstruct the roadmap from the log alone.",
+          "after_fragment": "so the log alone reconstructs the roadmap.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        }
+      ],
+      "quoted_source_guard_literals_lost": [],
+      "deferred": "Algorithmic/gate/retry/containment text, behavioural examples, status/return vocabulary and contradictions retained. No extraction, redesigned flow or new read."
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "status": "visited-and-edited",
+      "before": {
+        "bytes": 23039,
+        "estimated_tokens": 5697,
+        "sha256": "61b542661d1a6d20e5d50ba8912deda6a3633c82e00b5040916d49a6e38c429b"
+      },
+      "after": {
+        "bytes": 22878,
+        "estimated_tokens": 5657,
+        "sha256": "05b24b16306f56e0c938d1ae896152e6adec44ac05051353d3bd459a280c1edb"
+      },
+      "saved_bytes": 161,
+      "saved_estimated_tokens": 40,
+      "preservation_checks": {
+        "headings": true,
+        "bold_spans": true,
+        "inline_code": true,
+        "code_fences": true,
+        "frontmatter": true
+      },
+      "retained_rule_mapping": [
+        {
+          "before_fragment": "Gather everything that can be inferred, so the human confirms rather than types.",
+          "after_fragment": "Infer values for human confirmation.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "\u2014 the human declined once but is now opting in for real, and onboarding a decline-stub clobbers nothing.",
+          "after_fragment": "; this explicit opt-in overwrites no live config.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is safe because every local-mode writer below targets",
+          "after_fragment": "Every local-mode writer below targets",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "Standard mode passes neither flag and behaves exactly as today.",
+          "after_fragment": "Standard mode passes neither flag.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is what keeps the `validate-adapters` config-access lint green.",
+          "after_fragment": "This preserves the `validate-adapters` config-access rule.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        }
+      ],
+      "quoted_source_guard_literals_lost": [],
+      "deferred": "Algorithmic/gate/retry/containment text, behavioural examples, status/return vocabulary and contradictions retained. No extraction, redesigned flow or new read."
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "status": "visited-and-edited",
+      "before": {
+        "bytes": 45580,
+        "estimated_tokens": 11262,
+        "sha256": "57c8efe868e470b21d70f5787025457fed8ab70766d1a8115e721645e37fa25c"
+      },
+      "after": {
+        "bytes": 45494,
+        "estimated_tokens": 11241,
+        "sha256": "267770b6c925abd41e17faf0b2921804180102546bdf5fe53ebc8cb4a86f2154"
+      },
+      "saved_bytes": 86,
+      "saved_estimated_tokens": 21,
+      "preservation_checks": {
+        "headings": true,
+        "bold_spans": true,
+        "inline_code": true,
+        "code_fences": true,
+        "frontmatter": true
+      },
+      "retained_rule_mapping": [
+        {
+          "before_fragment": "This is the coherence check on what plot just wrote \u2014 chain join-up, gate fireability, ghost projects.",
+          "after_fragment": "Check chain join-up, gate fireability and ghost projects.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "so a re-run proposes homing the remainder into an existing container rather than duplicating it.",
+          "after_fragment": "so re-runs propose existing containers for remaining tickets without duplication.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "Completeness: every input loose ticket appears exactly once across membership \u222a leave-loose \u2014 surface a violation, never silently drop a ticket.",
+          "after_fragment": "Every input loose ticket must appear exactly once across membership \u222a leave-loose; surface violations, never drop tickets.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        }
+      ],
+      "quoted_source_guard_literals_lost": [],
+      "deferred": "Algorithmic/gate/retry/containment text, behavioural examples, status/return vocabulary and contradictions retained. No extraction, redesigned flow or new read."
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "status": "visited-and-edited",
+      "before": {
+        "bytes": 87112,
+        "estimated_tokens": 21638,
+        "sha256": "3c7cfc586a19e92af472480086dbcc56a8aba1c8d7052ee327f12cfacce97886"
+      },
+      "after": {
+        "bytes": 86983,
+        "estimated_tokens": 21606,
+        "sha256": "4bf9ecf842d6baa4672be2e94a27773bac22b0d4185afae1c7b675c97313a10e"
+      },
+      "saved_bytes": 129,
+      "saved_estimated_tokens": 32,
+      "preservation_checks": {
+        "headings": true,
+        "bold_spans": true,
+        "inline_code": true,
+        "code_fences": true,
+        "frontmatter": true
+      },
+      "retained_rule_mapping": [
+        {
+          "before_fragment": "(the producer is responsible for its own quality bar) ",
+          "after_fragment": "",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This turns the same-turn-attach rule into a self-checked precondition of the *return value* itself, not just of the turn ending.",
+          "after_fragment": "The attach check is a precondition of the *return value*, not only turn completion.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is bounded LLM judgement, not a closed-vocabulary parser like heading-slug validation.",
+          "after_fragment": "This uses bounded LLM judgement, unlike heading-slug parsing.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        }
+      ],
+      "quoted_source_guard_literals_lost": [],
+      "deferred": "Algorithmic/gate/retry/containment text, behavioural examples, status/return vocabulary and contradictions retained. No extraction, redesigned flow or new read."
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "status": "visited-and-edited",
+      "before": {
+        "bytes": 67340,
+        "estimated_tokens": 16696,
+        "sha256": "5a52e93398564ddf4400a4492275dd30728012a515ac6f88d72ec605a5b7529c"
+      },
+      "after": {
+        "bytes": 67148,
+        "estimated_tokens": 16649,
+        "sha256": "174513972768bf59688b1537d5ab9f103ed1ae3058ef40dbf94b113c51a57621"
+      },
+      "saved_bytes": 192,
+      "saved_estimated_tokens": 47,
+      "preservation_checks": {
+        "headings": true,
+        "bold_spans": true,
+        "inline_code": true,
+        "code_fences": true,
+        "frontmatter": true
+      },
+      "retained_rule_mapping": [
+        {
+          "before_fragment": "The reference is always dead \u2014 a cancelled issue cannot unblock, parent, or depend on anything.",
+          "after_fragment": "Cancelled/archived references are dead.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is not a judgement call and is applied in both interactive and autonomous modes.",
+          "after_fragment": "Apply this mechanical cleanup in both modes.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "This is the same loop: if a high-confidence fresh spec lands, beep-boop builds it in the same run; a medium one is attached-and-surfaced, and a low one is parked for the morning.",
+          "after_fragment": "Beep-boop builds high-confidence fresh specs in the same run; medium stays attached-and-surfaced, low parked for the morning.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "so `/faff-wtf` and the morning human reviewer see the highest-leverage decisions first.",
+          "after_fragment": "for `/faff-wtf` and the morning human reviewer.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        }
+      ],
+      "quoted_source_guard_literals_lost": [],
+      "deferred": "Algorithmic/gate/retry/containment text, behavioural examples, status/return vocabulary and contradictions retained. No extraction, redesigned flow or new read."
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "status": "visited-and-edited",
+      "before": {
+        "bytes": 27152,
+        "estimated_tokens": 6734,
+        "sha256": "8df715340ed14eabc072dc6c063bb6ef69682341c0e48f7e05cbf1f700df87bb"
+      },
+      "after": {
+        "bytes": 27097,
+        "estimated_tokens": 6722,
+        "sha256": "051d998486bc4b63badbb98f01780eabda15732aaa5e563010ded787ab9dafc5"
+      },
+      "saved_bytes": 55,
+      "saved_estimated_tokens": 12,
+      "preservation_checks": {
+        "headings": true,
+        "bold_spans": true,
+        "inline_code": true,
+        "code_fences": true,
+        "frontmatter": true
+      },
+      "retained_rule_mapping": [
+        {
+          "before_fragment": "(the shipped mechanical linker \u2014 no new write mechanics)",
+          "after_fragment": "(the existing mechanical linker)",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "(the admit gate's own gates \u2014 challenge, by-level, ratchet \u2014 already refused these; there is nothing to ratify)",
+          "after_fragment": "(already refused by the admit gate: challenge, by-level or ratchet; nothing to ratify)",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        },
+        {
+          "before_fragment": "it resurfaces on the next `/faff-wtf` pass unchanged.",
+          "after_fragment": "it resurfaces unchanged on the next `/faff-wtf` pass.",
+          "disposition": "Shorter wording or repeated rationale removed; governing conditions, action, authority and examples unchanged."
+        }
+      ],
+      "quoted_source_guard_literals_lost": [],
+      "deferred": "Algorithmic/gate/retry/containment text, behavioural examples, status/return vocabulary and contradictions retained. No extraction, redesigned flow or new read."
+    }
+  ],
+  "totals": {
+    "visited": 9,
+    "edited": 9,
+    "unchanged": 0,
+    "before_bytes": 578397,
+    "after_bytes": 577095,
+    "saved_bytes": 1302,
+    "before_estimated_tokens": 143417,
+    "after_estimated_tokens": 143099,
+    "saved_estimated_tokens": 318,
+    "edits": 36
+  },
+  "retained": {
+    "all_commands_and_code_fences": "Exact ordered code spans/fenced blocks unchanged, including flags, examples and return vocabulary.",
+    "headings_and_bold_anchors": "Exact ordered headings and every bold span unchanged.",
+    "frontmatter": "Byte-identical in all nine files.",
+    "behaviour": "No list item, behavioural example, condition, exception, authority rule or return cause deleted; edits stay inside existing prose lines.",
+    "reads": "No added mandatory reads."
+  },
+  "deferred_rationale": [
+    "Already-cut complex gates and holds have little safe first-pass prose to remove; further reductions need targeted semantic review.",
+    "Historical/contradictory policies are not resolved by a wording pass.",
+    "No savings quota was used to force risky deletion."
+  ],
+  "limits": [
+    "No tests, model evals, harness/framework/CLI work, allowance or design changes, commits or accepted-ledger edits.",
+    "Only assigned source files and this compact evidence map written. Root integrates all agents and verifies."
+  ],
+  "manual_diff_review": "Reviewed all changed lines before closure; retained proposal-only wording in plot idempotence and removed a non-saving wording substitution. No source authority or completion outcome strengthened."
+}

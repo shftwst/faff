@@ -1,0 +1,358 @@
+{
+  "schema": 1,
+  "status": "completed-existing-checks-92-of93-pass-plus-lint-pass-inherited-source-guard-failure",
+  "accepted": false,
+  "workspace": "/var/tmp/faff-skill-diet-prose-sweep",
+  "baseline_commit": "3c148dc6f07032e5112989651e210217af7ef13b",
+  "environment": {
+    "TMPDIR": "/var/tmp",
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "commit.gpgsign",
+    "GIT_CONFIG_VALUE_0": "false"
+  },
+  "commands": [
+    {
+      "argv": [
+        "node",
+        "--test",
+        "--test-name-pattern",
+        "load[A-Z]|criteriaFor|registered.*anchor|anchor registry covers|all six producer files|every fenced Scenarios example|noon self-review|static: faffter-noon-adr|drift guard|concurrency executors restate|DONE-[789](?! \\(mechanical\\))|prep SKILL|faff-prep|occupant SKILL|SKILL.md documents|SKILL.md.s documented|SKILL.md.s resolution|dispatch prose|occupant dispatch|occupant wires|single-pass faffter-noon-spec-review|graft Step 8 takes ids|one governed-run check sentence|no other skill names|graft Steps 4c and 10|graft Step 4.s|SKILL.md tells the orchestrator|skill prose:|wiring: Step 4b|wiring: all four Step 4b|absent .priority.|tidy.s chain-gap filing|priority-reason comment is documented|every filing call site references|calls faff graft admit|^step 4|^static: the .0a|^static: a plan verdict|^static: a drain verdict|remote-based diff identity|no coupled graft diff block|committed baseline equals",
+        "test/eval-cli-driver.test.mjs",
+        "test/eval-routing.test.mjs",
+        "test/heading-slug.test.mjs",
+        "test/spec-producer-scenario-format.test.mjs",
+        "test/adr-format.test.mjs",
+        "test/review-iteration-cap.test.mjs",
+        "test/evidence-return.test.mjs",
+        "test/faff-679-bracket-writes.test.mjs",
+        "test/spec-review-churn.test.mjs",
+        "test/spec-review-convergence.test.mjs",
+        "test/spec-review-iteration-cap.test.mjs",
+        "test/spec-review-pin.test.mjs",
+        "test/spec-review-window.test.mjs",
+        "test/spec-review-dispatch-resolution.test.mjs",
+        "test/spec-review-occupant-served-dispatch.test.mjs",
+        "test/spec-review-reputation.test.mjs",
+        "test/faff-1287-ac-ids.test.mjs",
+        "test/commissaire-status-skill-sites.test.mjs",
+        "test/spec-commit.test.mjs",
+        "test/run-ledger-writer-inventory.test.mjs",
+        "test/holdout-record.test.mjs",
+        "test/adr-extract-intent.test.mjs",
+        "test/faff-1399-discovered-scope-priority.test.mjs",
+        "test/beep-boop-admission-prose.test.mjs",
+        "test/run-start-wiring.test.mjs",
+        "test/graft-remote-base.test.mjs",
+        "test/prose-size.test.mjs"
+      ],
+      "exit_code": 1,
+      "log": "verification/experiments/2026-11-17-prose-sweep/existing-source-checks-first.txt",
+      "log_sha256": "1249b92882328ea985974c25164b2fecd8d3c59a326a2237f9d9a5a67ff3039d",
+      "tests": 93,
+      "passed": 92,
+      "failed": 1
+    },
+    {
+      "argv": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "log": "verification/experiments/2026-11-17-prose-sweep/existing-adapter-lint-first.txt",
+      "log_sha256": "1c2b00f06da26c738381af4f6c4817a6aecd9b1af9f2ddb03733fa6de95123d2",
+      "result": "PASS (21 slot skills linted)"
+    }
+  ],
+  "inherited_failure": {
+    "test": "loadReviewVerdictProse folds the gateway's fixed contract and the review producer's rubric verbatim",
+    "path": "test/eval-cli-driver.test.mjs",
+    "assertion_line": 343,
+    "assertion_regex": "never silently to `?pass`?",
+    "actual_unchanged_literal": "Malformed/unparseable verdicts coerce to human judgement, never `pass`.",
+    "proof": {
+      "kernel_path": "plugin/skills/faff/references/kernel.md",
+      "start_anchor": "### Review verdict (fixed)",
+      "end_anchor_exclusive": "### Spec-review verdict (fixed)",
+      "baseline_section_equals_current": true,
+      "section_sha256": "49da87da0888edbb0df7724f592842e330b1f54fb9320c1516f8f3c7f9c0cf25",
+      "unchanged_loaded_producer_and_test": [
+        {
+          "path": "plugin/skills/faffter-noon-review/SKILL.md",
+          "baseline_equals_current": true,
+          "sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f"
+        },
+        {
+          "path": "test/eval-cli-driver.test.mjs",
+          "baseline_equals_current": true,
+          "sha256": "b7f80be2a9436b2723eaa2b31439ec2bb6df434f2b12ed5491fb6518f8a0ae0a"
+        }
+      ]
+    },
+    "classification": "inherited baseline source-literal mismatch; not attributable to sweep",
+    "action": "Preserve first failure; no repair/retry. Root instructed new main refs cohort imports only new intro delta and retains main original review contract; this record does not claim to test that future import."
+  },
+  "test_file_hashes": [
+    {
+      "path": "test/eval-cli-driver.test.mjs",
+      "sha256": "b7f80be2a9436b2723eaa2b31439ec2bb6df434f2b12ed5491fb6518f8a0ae0a"
+    },
+    {
+      "path": "test/eval-routing.test.mjs",
+      "sha256": "e1ad12b177a51bbffad455d30d1c92a2143984fe9b34b32b774ee3cd0e34b3df"
+    },
+    {
+      "path": "test/heading-slug.test.mjs",
+      "sha256": "96abbe6939f0b4454dffc7ba2333a3f15d404122744b1d91a78b36c4c9975590"
+    },
+    {
+      "path": "test/spec-producer-scenario-format.test.mjs",
+      "sha256": "bec8587cda0e469b19ad9edb82c11d53ef7dddcf21fef94983f39e9a37cdf5f7"
+    },
+    {
+      "path": "test/adr-format.test.mjs",
+      "sha256": "97aa3bb55bf39c1f376be1a9ca583d8ff14034b5b3eaee481ab9469fe5a95d0d"
+    },
+    {
+      "path": "test/review-iteration-cap.test.mjs",
+      "sha256": "38a938669f8b5720ab087e6a66c4eb5b8af61b0e1a80bd076c6f10cec4ea7dcc"
+    },
+    {
+      "path": "test/evidence-return.test.mjs",
+      "sha256": "3470d87be79ed58865c0d93a435646e6eb300b4f779ba7445ed882294fd2d735"
+    },
+    {
+      "path": "test/faff-679-bracket-writes.test.mjs",
+      "sha256": "4d5322424119eac7a1d450c39d69c9daa39677d619aed6a842ee165c9378951c"
+    },
+    {
+      "path": "test/spec-review-churn.test.mjs",
+      "sha256": "9838638a2aaba6bb576764a289aeb2bc9c18fe7b33298ccb1f4de1257676c1b2"
+    },
+    {
+      "path": "test/spec-review-convergence.test.mjs",
+      "sha256": "a29ec2610bee62854a4f240d168c89c0cfc61de0626840aa779aa9631243c6c2"
+    },
+    {
+      "path": "test/spec-review-iteration-cap.test.mjs",
+      "sha256": "72e7ef18979d16453d1589173fa4826fda02d96aca3260186cb8467f6cb83c07"
+    },
+    {
+      "path": "test/spec-review-pin.test.mjs",
+      "sha256": "06b954a58441a8069bd413b751a840077676ec75a21adcd286182ff30cb097df"
+    },
+    {
+      "path": "test/spec-review-window.test.mjs",
+      "sha256": "8f718d4b8dd37a1f6b53c1c3e1eacc6078f90870792ee366c200d59cc660bf6f"
+    },
+    {
+      "path": "test/spec-review-dispatch-resolution.test.mjs",
+      "sha256": "0ec549f1ccfa3eaa74d63550a8634d242d4596572010767a8cddd96ac7f99f7f"
+    },
+    {
+      "path": "test/spec-review-occupant-served-dispatch.test.mjs",
+      "sha256": "2dc03892d0a12612132bc7a6b8efc068624af185de1d97ef4dd4b048faa2271b"
+    },
+    {
+      "path": "test/spec-review-reputation.test.mjs",
+      "sha256": "f2a94646daf5cd8dfa651c1ccdc39e8286cb950faac29e6abb336a1f6874d570"
+    },
+    {
+      "path": "test/faff-1287-ac-ids.test.mjs",
+      "sha256": "4a628deb3431361d6ddb850012dd2b9a7e9d0cf992d4e72631a77c7ec87643d5"
+    },
+    {
+      "path": "test/commissaire-status-skill-sites.test.mjs",
+      "sha256": "7d0ece94d6b1b50c27eccdb66aa6eae31e56c3219045fe226c9692ce9688d17d"
+    },
+    {
+      "path": "test/spec-commit.test.mjs",
+      "sha256": "e3425752515eb40c71de11dadc14934227cfc7602042390de562882ba2a4293a"
+    },
+    {
+      "path": "test/run-ledger-writer-inventory.test.mjs",
+      "sha256": "ce2f7fcbd868727d3f540c0425e21e0e4879237a9f18f0e2a171fc7f3697eab5"
+    },
+    {
+      "path": "test/holdout-record.test.mjs",
+      "sha256": "06c9843543b75c3eba7ab3804e24fc732d0d02096d658102836736e73ebee905"
+    },
+    {
+      "path": "test/adr-extract-intent.test.mjs",
+      "sha256": "2519dce7e63817a5f40654050defd3bee828a5a6701b5b83316cc2951da5d417"
+    },
+    {
+      "path": "test/faff-1399-discovered-scope-priority.test.mjs",
+      "sha256": "444564a56a6926fd7c491f1d4eddce4e1c06cbb7d97c914a8ad4187fc7df3320"
+    },
+    {
+      "path": "test/beep-boop-admission-prose.test.mjs",
+      "sha256": "95a6b8541f426546026cf9a03a511cf9b1b38cb12fbaab8c8d1e76fdf44eee59"
+    },
+    {
+      "path": "test/run-start-wiring.test.mjs",
+      "sha256": "432f95b3cb21ec5a3b8dc661cd3b27d83909c7b32ea37dc5107f9e7746d51ea1"
+    },
+    {
+      "path": "test/graft-remote-base.test.mjs",
+      "sha256": "2a89e0fd2b3c0373a425122d03f7b3bd7b57d71723edd7bb520e349b2b1e46ee"
+    },
+    {
+      "path": "test/prose-size.test.mjs",
+      "sha256": "85d1a54da680bbc3f462140a7475536f052c44b62fdf739939f6d9150ddb7e0b"
+    }
+  ],
+  "post_run_prose_snapshot": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "sha256": "634bc2ca4f7def09ba4383327d12a7975a8d3beebc6cabef9b909c4873b72d38"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "sha256": "08ca0b2c0dfb472b3f2ef1ca518736f9b6fc783527f2ff3501b0b3a8e40e61b0"
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "sha256": "f0d8aa30e61b12624b3e29abb95bf1c678f675a17d6cc58f3eab1234bbe47d97"
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "sha256": "276bd4f4f33b3c0565dc48ff02221accdf7eea81e03449750999fcfd61bf5808"
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "sha256": "05b24b16306f56e0c938d1ae896152e6adec44ac05051353d3bd459a280c1edb"
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "sha256": "267770b6c925abd41e17faf0b2921804180102546bdf5fe53ebc8cb4a86f2154"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "sha256": "4bf9ecf842d6baa4672be2e94a27773bac22b0d4185afae1c7b675c97313a10e"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "sha256": "174513972768bf59688b1537d5ab9f103ed1ae3058ef40dbf94b113c51a57621"
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "sha256": "051d998486bc4b63badbb98f01780eabda15732aaa5e563010ded787ab9dafc5"
+    },
+    {
+      "path": "plugin/skills/faff/prose-baseline.json",
+      "sha256": "75cdd5c66ec47717c1a395bb78c5149319a98651339161a1518d0d211e51aa38"
+    },
+    {
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "sha256": "bdce7d30ce7977774fe212752229437c9361f1e19671647d3de5e254174ed77f"
+    },
+    {
+      "path": "plugin/skills/faff/references/build.md",
+      "sha256": "beebea1e856e34333b1ba5abd8a03aeadfcf5ea50ecfd9888cb2dbaef4fa1c14"
+    },
+    {
+      "path": "plugin/skills/faff/references/create.md",
+      "sha256": "fbcfb8b614d7cbedfb7d6a363bec38aed88467792687aa7d4c19cf4b98ce4396"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "sha256": "253d136ada3fb381c66eac4ada1d021ba6275b845b564ff01d569c662480c901"
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "sha256": "7db85429ab189be2243c4f83c67b1c6e5116f5a0e964954e09425938da3b2ebc"
+    },
+    {
+      "path": "plugin/skills/faff/references/methodology.md",
+      "sha256": "f3deac00756d6d8e64fd000390182651c2f3b4f51abafb754485faccd3785586"
+    },
+    {
+      "path": "plugin/skills/faff/references/park.md",
+      "sha256": "d609101fd0f9a02a0e8b804fba1c943ac63f86e0e0b45d2a2fc035b0453e1e12"
+    },
+    {
+      "path": "plugin/skills/faff/references/review.md",
+      "sha256": "1ee9ee248b9928e6c25c32120b5851f4d5bf8cc7f228a6d0bc137ba7196302b3"
+    },
+    {
+      "path": "plugin/skills/faff/references/tracker.md",
+      "sha256": "f3f01623ec743a633a4b68a6b7162809393db7ee70efa7f2cd14fcca1c17a13d"
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "sha256": "3323626cd19c57775d6e7a657b474f81de2388754439517c38f9e6775d4ad59e"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "sha256": "fec534126acd6f9f9603572de0a5f6c7cc918fb8bb1ee672be5024c59c4f2aa9"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "sha256": "41022246a2ad714fd3b3d9c486f14d7d3bb701754c840e6ac87093476a512470"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "sha256": "a3937b46190db5fb36ce8c70d06a5df03369bcd215438285e538b2a130e98d89"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "sha256": "57e045bbf139018024bb6b76631bbaa7cf9ce237a527595653f209403cdcc920"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "sha256": "de93a100ac5d5c266284d7adfef18aa8c2eec5e22a8b35cfeb188cb2ea3af1ac"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "sha256": "61edc2aac14d0bcfc935b099b0a64dd16d9c57b71297e4d605ec38b3f9b0dc3c"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "sha256": "bc09144787827f8ce6d836311979aa9a28ee051f7ecbdb11ea38bc1eeea4e43a"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "sha256": "ddb99618c2540ae0cab65295c4fc405c1a16bace8d0583d9033383e4aea15a75"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "sha256": "11a4a5f08179c326a3e9f36793c251fdad51c34308f28aaaa634cd60b23c332e"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "sha256": "5d760fb5c67bc21086acc34c72f4f51dcc92b663f7e74b348be5d57ab516685a"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "sha256": "a16d5990b228a08d958d6cc34ba973936e255306ae72aa6c1b16c7bb4f28930f"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "sha256": "7265d83f5c17390caba995a82d715a6f7776872ac55f71b35cf101bc8457b717"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "sha256": "5590820d128638fd77f5c0792334ad9c84fb386d64e0b26d820c5a71975e2b8a"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "sha256": "35d5d9951eeda10a6190dfd8b7c08d71de91124441fa322b364a97dbf7d46e3d"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "sha256": "67e5bdc09c4b7880cfc55797af209b9d3bba6b1888e0a0ff392005ca6c8da947"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "sha256": "f053ef865574838a1093ff4fe735f2de7848716e722da85aabd698f20c8ba480"
+    }
+  ],
+  "limits": [
+    "Only selected existing source loaders/guards and adapter lint, not a broad runtime suite, were run.",
+    "No model calls, new tests/harness, runtime/source edits, allowances or commits by this verifier.",
+    "Inventory is HEAD-only and intentionally not run before root commit.",
+    "The sole failure remains recorded, not waived or counted as pass.",
+    "Post-run file hashes identify the inspected source snapshot, not a frozen native/model qualification."
+  ]
+}

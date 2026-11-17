@@ -1,0 +1,17 @@
+[
+  {
+    "path": "plugin/skills/faff/references/create.md",
+    "before": "Both reference these field sets without duplicating them.",
+    "after": "Both reference the taxonomy and field sets without duplicating them."
+  },
+  {
+    "path": "plugin/skills/faff/references/tracker.md",
+    "before": "Before reporting \"no spec / almost ready / needs prep\"",
+    "after": "Before classifying or reporting \"no spec / almost ready / needs prep\""
+  },
+  {
+    "path": "plugin/skills/faff/references/tracker.md",
+    "before": "Immediately visible tools do not prove availability:",
+    "after": "Absence from immediately visible tools does not prove unavailability:"
+  }
+]

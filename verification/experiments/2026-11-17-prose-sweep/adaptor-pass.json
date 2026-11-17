@@ -1,0 +1,245 @@
+{
+  "schema": 1,
+  "status": "draft-prose-only-awaiting-root-review",
+  "baseline": "3c148dc6",
+  "files": [
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "visited": true,
+      "changed": false,
+      "before_bytes": 11288,
+      "after_bytes": 11288,
+      "saving_bytes": 0,
+      "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4",
+      "preservation": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "commands_flags_examples_and_source_anchors": "preserved; edits confined to enumerated prose passages"
+      },
+      "edits": [],
+      "deferred": "Operational branching, examples, authority rules, literal guards and all command recipes untouched. Rendering/adversarial review already lean; unchanged where no low-risk cut was warranted."
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "visited": true,
+      "changed": true,
+      "before_bytes": 11144,
+      "after_bytes": 10633,
+      "saving_bytes": 511,
+      "sha256": "3323626cd19c57775d6e7a657b474f81de2388754439517c38f9e6775d4ad59e",
+      "preservation": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "commands_flags_examples_and_source_anchors": "preserved; edits confined to enumerated prose passages"
+      },
+      "edits": [
+        {
+          "source_anchor": "The default **adaptor** for the `routing_adaptor` slot. It **assigns** an automation-routing verdict to a spec",
+          "preservation": "Same inputs, three responsibilities and dialect/conformance ownership."
+        },
+        {
+          "source_anchor": "These are the stable boundary between the `methodology` slot and three consumers \u2014 `/faff-beep-boop`'s admissi",
+          "preservation": "All named consumers and fixed-versus-swappable authority retained."
+        },
+        {
+          "source_anchor": "When assigning `likely-fire`, the verdict **anticipates** the collision-group serialisation conflict analysis ",
+          "preservation": "Exact serialisation condition and resulting display distinction retained."
+        }
+      ],
+      "deferred": "Operational branching, examples, authority rules, literal guards and all command recipes untouched. Rendering/adversarial review already lean; unchanged where no low-risk cut was warranted."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "visited": true,
+      "changed": false,
+      "before_bytes": 22259,
+      "after_bytes": 22259,
+      "saving_bytes": 0,
+      "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "preservation": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "commands_flags_examples_and_source_anchors": "preserved; edits confined to enumerated prose passages"
+      },
+      "edits": [],
+      "deferred": "Operational branching, examples, authority rules, literal guards and all command recipes untouched. Rendering/adversarial review already lean; unchanged where no low-risk cut was warranted."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "visited": true,
+      "changed": true,
+      "before_bytes": 12321,
+      "after_bytes": 11657,
+      "saving_bytes": 664,
+      "sha256": "fec534126acd6f9f9603572de0a5f6c7cc918fb8bb1ee672be5024c59c4f2aa9",
+      "preservation": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "commands_flags_examples_and_source_anchors": "preserved; edits confined to enumerated prose passages"
+      },
+      "edits": [
+        {
+          "source_anchor": "The author/validate skill for **slot occupants** \u2014 anything you plug into a `slots` slot: an adaptor (`routing",
+          "preservation": "All slot types, producer block/consumer authority, fused wrapper and standalone binding retained."
+        },
+        {
+          "source_anchor": "A slot skill that omits the refer-back prose is a latent bug: it works as a delegated slot (inherits context) ",
+          "preservation": "Same two missing-reference hazards."
+        },
+        {
+          "source_anchor": "`pass` when no item fires. A missing refer-back note (item 2) or an authoritative-looking recap (item 3) is a ",
+          "preservation": "Exact pass/fail cases retained; rationale removed."
+        }
+      ],
+      "deferred": "Operational branching, examples, authority rules, literal guards and all command recipes untouched. Rendering/adversarial review already lean; unchanged where no low-risk cut was warranted."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "visited": true,
+      "changed": true,
+      "before_bytes": 25665,
+      "after_bytes": 25365,
+      "saving_bytes": 300,
+      "sha256": "41022246a2ad714fd3b3d9c486f14d7d3bb701754c840e6ac87093476a512470",
+      "preservation": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "commands_flags_examples_and_source_anchors": "preserved; edits confined to enumerated prose passages"
+      },
+      "edits": [
+        {
+          "source_anchor": "Two builds writing the same working tree is the one thing parallel execution must never do; the per-issue work",
+          "preservation": "Worktree safety prohibition retained; preceding path/default/override rule untouched."
+        },
+        {
+          "source_anchor": "The cap bounds worktree count, disk, and the number of branches racing `main` at any moment. A queue longer th",
+          "preservation": "All cap effects and queue-drain completeness retained."
+        },
+        {
+          "source_anchor": "This keeps the throughput win of parallel building while making the *merge* boundary as safe as the sequential",
+          "preservation": "Rebase/CI/lock procedures untouched; summary shortened."
+        }
+      ],
+      "deferred": "Operational branching, examples, authority rules, literal guards and all command recipes untouched. Rendering/adversarial review already lean; unchanged where no low-risk cut was warranted."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "visited": true,
+      "changed": true,
+      "before_bytes": 44947,
+      "after_bytes": 44432,
+      "saving_bytes": 515,
+      "sha256": "a3937b46190db5fb36ce8c70d06a5df03369bcd215438285e538b2a130e98d89",
+      "preservation": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "commands_flags_examples_and_source_anchors": "preserved; edits confined to enumerated prose passages"
+      },
+      "edits": [
+        {
+          "source_anchor": "**Why transitive, not direct-only.** Pulling only the *direct* blocker leaves its own blocker stranded \u2014 the d",
+          "preservation": "Transitive prerequisite rationale preserved; actual walk rules unchanged."
+        },
+        {
+          "source_anchor": "**Completeness \u2014 nothing silently omitted.** Every input loose ticket appears **exactly once** across the unio",
+          "preservation": "Exact-once invariant retained; redundant consequence removed."
+        },
+        {
+          "source_anchor": "**Why.** Tracker priority is noisy and stakeholder-influenced. Optimising for value-per-week shipped is the ac",
+          "preservation": "Same priority limitation, optimisation goal and early risk posture."
+        },
+        {
+          "source_anchor": "**Why.** A workstream is a sequencing and grouping unit \u2014 if it has two outcomes, you can't sequence inside it",
+          "preservation": "Cohesion rationale only; rules/examples/diagnosis unchanged."
+        },
+        {
+          "source_anchor": "**Why.** Risk piled at the end means schedule estimates are lies. Early-de-risking gives the team time to cour",
+          "preservation": "Risk sequencing rationale only."
+        }
+      ],
+      "deferred": "Operational branching, examples, authority rules, literal guards and all command recipes untouched. Rendering/adversarial review already lean; unchanged where no low-risk cut was warranted."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "visited": true,
+      "changed": true,
+      "before_bytes": 18819,
+      "after_bytes": 18599,
+      "saving_bytes": 220,
+      "sha256": "57e045bbf139018024bb6b76631bbaa7cf9ce237a527595653f209403cdcc920",
+      "preservation": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "commands_flags_examples_and_source_anchors": "preserved; edits confined to enumerated prose passages"
+      },
+      "edits": [
+        {
+          "source_anchor": "This section prevents scope creep during build AND tells the next agent where to extend. Every item the explor",
+          "preservation": "All explore exclusions retained; extension purpose preserved."
+        },
+        {
+          "source_anchor": "A dedicated `## Scenarios` section, after HOW, expressing the spec's **main objectives** as scenarios so what ",
+          "preservation": "Section order/name and main-objective verification retained; criteria below unchanged."
+        },
+        {
+          "source_anchor": "**Integration smoke test:** pseudocode for a single end-to-end path that exercises the happy case. This is not",
+          "preservation": "Same pseudocode, one path, happy-case and non-exhaustive scope."
+        }
+      ],
+      "deferred": "Operational branching, examples, authority rules, literal guards and all command recipes untouched. Rendering/adversarial review already lean; unchanged where no low-risk cut was warranted."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "visited": true,
+      "changed": true,
+      "before_bytes": 40496,
+      "after_bytes": 40244,
+      "saving_bytes": 252,
+      "sha256": "de93a100ac5d5c266284d7adfef18aa8c2eec5e22a8b35cfeb188cb2ea3af1ac",
+      "preservation": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "commands_flags_examples_and_source_anchors": "preserved; edits confined to enumerated prose passages"
+      },
+      "edits": [
+        {
+          "source_anchor": "The **L4 (lights-out)** occupant of the **`spec_review`** slot. Where the default single-pass reviewer walks f",
+          "preservation": "L4 slot, separate enabled-lens invocations, refutation, deterministic aggregation and pre-code approach review retained."
+        },
+        {
+          "source_anchor": "It is the spec-stage twin of the code-stage adversarial reviewer: same independent-model transport, one altitu",
+          "preservation": "Transport sharing and independence rationale retained; no transport/protocol edit."
+        }
+      ],
+      "deferred": "Operational branching, examples, authority rules, literal guards and all command recipes untouched. Rendering/adversarial review already lean; unchanged where no low-risk cut was warranted."
+    }
+  ],
+  "total_saving_bytes": 2462,
+  "guard_inspection": [
+    "test/adversarial-call.test.mjs",
+    "test/eval-cli-driver.test.mjs",
+    "test/eval-finding-identity.test.mjs",
+    "test/faff-679-bracket-writes.test.mjs",
+    "test/heading-slug.test.mjs",
+    "test/review-bench-lens-parity.test.mjs",
+    "test/review-fixture-paths.test.mjs",
+    "test/spec-review-dispatch-resolution.test.mjs",
+    "test/spec-review-pin.test.mjs",
+    "test/spec-review-reputation.test.mjs",
+    "test/validate-adapters.test.mjs",
+    "eval/cli-driver.mjs"
+  ],
+  "limits": [
+    "No tests or model calls run; no CLI extraction, harness, allowance, design or commit changes.",
+    "All eight files read; only six changed. Existing contradictions deliberately untouched.",
+    "Mechanical preservation checks compare frontmatter/headings/fences; semantic equivalence requires root review."
+  ]
+}

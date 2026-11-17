@@ -97,7 +97,7 @@ The act of admission stays human (L3); `/faff-plot` only **authors + surfaces**.
 
 After the skeleton is written, offer two gates in order:
 
-- **Audit:** "Roadmap created — audit whether it joins up via `/faff-map`? (y/n)". On confirm, invoke the `faff-map` skill via the Skill tool. This is the coherence check on what plot just wrote — chain join-up, gate fireability, ghost projects.
+- **Audit:** "Roadmap created — audit whether it joins up via `/faff-map`? (y/n)". On confirm, invoke the `faff-map` skill via the Skill tool. Check chain join-up, gate fireability and ghost projects.
 - **Start:** "Prep the first slice for build via `/faff-prep <first-epic>`? (y/n)". On confirm, invoke the `faff-prep` skill via the Skill tool on the highest-sequenced first-slice epic. On deny, stop cleanly.
 
 ## Rehoming pass (`/faff-plot rehome`)
@@ -126,7 +126,7 @@ Fetch fresh (gateway → **Always-pull-fresh**): every issue that is **project-l
 
 Dispatch per gateway → **Sibling-skill invocation → Producer dispatch**: resolve `slots.methodology` at dispatch (never hardcode), an Agent-tool subagent with `run_in_background: false`, the `methodology` dispatch lane, in-context fallback when plot is itself a subagent. Transport grain: **one batched dispatch per pass** (gateway → **The `methodology` slot → Transport**) — the whole loose set in, one proposal out; the per-grouping gate is at apply, not here.
 
-The proposal shape is the gateway `rehome-set` row (**The `methodology` slot**): proposed outcome-led containers (each `{container_name, outcome}`), a membership map, proposed coherence blocker edges (`{blocker, blocked}` — explicit, never written by the methodology), an explicit leave-loose set (each loose ticket with a one-line reason), and principle-keyed findings, ordered by which grouping unlocks sequencable value first. Completeness: every input loose ticket appears exactly once across membership ∪ leave-loose — surface a violation, never silently drop a ticket. (If the shipped contract differs from this, the shipped row wins.)
+The proposal shape is the gateway `rehome-set` row (**The `methodology` slot**): proposed outcome-led containers (each `{container_name, outcome}`), a membership map, proposed coherence blocker edges (`{blocker, blocked}` — explicit, never written by the methodology), an explicit leave-loose set (each loose ticket with a one-line reason), and principle-keyed findings, ordered by which grouping unlocks sequencable value first. Every input loose ticket must appear exactly once across membership ∪ leave-loose; surface violations, never drop tickets. (If the shipped contract differs from this, the shipped row wins.)
 
 ### R3. Render the proposal — zero writes pre-confirm
 
@@ -155,7 +155,7 @@ Per approved project, **finish-forward — never roll back** (rollback would del
 
 Report each project's landed state exactly — container id, members moved / skipped / failed, edges drawn / missing — with manual completion steps for anything missing. No per-member tracker comment: the new membership is already legible, and the gateway forbids duplicating legible state; the apply log is the write record.
 
-**Idempotence.** Re-running converges: already-homed members drop out of the input set, and existing projects are part of `rehome-set`'s input, so a re-run proposes homing the remainder into an existing container rather than duplicating it.
+**Idempotence.** Re-running converges: already-homed members drop out of the input set, and existing projects are part of `rehome-set`'s input, so re-runs propose existing containers for remaining tickets without duplication.
 
 ### Zero-write endings
 

@@ -1,0 +1,516 @@
+{
+  "schema": 1,
+  "status": "conservative-prose-source-pass-for-root-integration",
+  "accepted": false,
+  "baseline_commit": "3c148dc6",
+  "reviewer": "verify_wtf_scope",
+  "scope": "Exactly fourteen faffter-noon SKILL.md files; no runtime, test, allowance, design or commit edits.",
+  "token_method": "ceil(UTF-16 code units / 4), source estimate only",
+  "files": [
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 4238,
+      "after_bytes": 3936,
+      "saved_bytes": 302,
+      "before_estimated_tokens": 1052,
+      "after_estimated_tokens": 977,
+      "before_sha256": "19620bd0d1588ea9f4e1d8f6486e368f75da3c5f3a08add1165f03dbcef78346",
+      "after_sha256": "61edc2aac14d0bcfc935b099b0a64dd16d9c57b71297e4d605ec38b3f9b0dc3c",
+      "rule_preservation_map": [
+        {
+          "source_lead": "The default producer for the",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "0fa2d7cf6e9ee148410c58f7e1f0b38ac7b7061922f39331a178816b7d2caff8"
+        },
+        {
+          "source_lead": "It is the judgement layer over",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "05492ccb4d37fab32335bbb1e404f569a97ee79d7d44040ec673a567d00beda3"
+        },
+        {
+          "source_lead": "This is a producer doing-skill",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "bd7f8b1fb180db1d1ea7271dd6d2b75c117242008bed9ff84b534ba98c0a5cd6"
+        },
+        {
+          "source_lead": "faff-graft **Step 4b**",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "77cf1df00dd2887fc21bc718f8ae75f4ca7109166081bde827856d65430feab7"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "Settled Chosen decisions only; sole ADR body writer; graft/CLI owns scaffold/number/validate/commit and confidence routing; resolved sections and consequences based on shipped build."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 4787,
+      "after_bytes": 4428,
+      "saved_bytes": 359,
+      "before_estimated_tokens": 1192,
+      "after_estimated_tokens": 1104,
+      "before_sha256": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88",
+      "after_sha256": "bc09144787827f8ce6d836311979aa9a28ee051f7ecbdb11ea38bc1eeea4e43a",
+      "rule_preservation_map": [
+        {
+          "source_lead": "The default occupant of the",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "b157189be6615ca88e1b9e22025f4f254c588baa69412e3a8083c9063139aaf6"
+        },
+        {
+          "source_lead": "One LLM pass turns",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "acf26e668ebdf487d01608564700f767fdfddf0036872b7cb19cac5aed64e523"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "One best-fit proposal from brief/profile; proposer and critic independent; no ADR writes or review; exact contract example, non-build human routing and ADR intent unchanged."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 18512,
+      "after_bytes": 18056,
+      "saved_bytes": 456,
+      "before_estimated_tokens": 4590,
+      "after_estimated_tokens": 4480,
+      "before_sha256": "1e0e8c86860a2e962e4f022225c5c23148539afa2075981d1148c9069e3af2d8",
+      "after_sha256": "ddb99618c2540ae0cab65295c4fc405c1a16bace8d0583d9033383e4aea15a75",
+      "rule_preservation_map": [
+        {
+          "source_lead": "The default executor for",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "61174c14ddb18ecdf6c14d6177d6a4b4b9bf7e3aee97fc24a02ba5a56936fad1"
+        },
+        {
+          "source_lead": "Invoked by `/faff-beep-boop`",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "57d730bcacfb44deb3dcb5c817a9d829fdc5d5a39a9615a376c4effb042bf6a0"
+        },
+        {
+          "source_lead": "**Heartbeat ownership follows",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "d037b4fe862f97ed4c5be95e9fba55b57d43d111efacaeecb422befaea19e873"
+        },
+        {
+          "source_lead": "Because only one unit runs",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "9b3dc608c38cc2a8cf19407d75e46abb52d8f37c0413d1b149fdd6e959310c33"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "Foreground isolated dispatch; seven obligations, custody/evidence/merge placement, model/effort selection, dependency stacking and ledger/token rules untouched. Heartbeat active-writer and resume semantics retained."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 9602,
+      "after_bytes": 9140,
+      "saved_bytes": 462,
+      "before_estimated_tokens": 2389,
+      "after_estimated_tokens": 2275,
+      "before_sha256": "f4dc693965a2e49f2765d745a343e5c9e5df3282cc439fb762781a5ed49ece75",
+      "after_sha256": "11a4a5f08179c326a3e9f36793c251fdad51c34308f28aaaa634cd60b23c332e",
+      "rule_preservation_map": [
+        {
+          "source_lead": "The default occupant of the",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "a7b9a637277022d579bb9c9f7fda3a92f2aa88111aa5ce23696d06f7127ecd27"
+        },
+        {
+          "source_lead": "One provisioning mechanism:",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "e0c43052b7154afdc69d42cfef6eb3055c8bc027307e58a0d82206b512a59d43"
+        },
+        {
+          "source_lead": "It is a **mechanism, not a judgement**",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "dc6d442bc72b8e26166c76fb29e8a319531777a939686312e9512a519e656522"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "Inline mechanism after caller chooses bridge path; sole env-handle writer is env; single ProvisionPlan/up/health wait, topology exposure, path secrecy and failure rules unchanged."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 12232,
+      "after_bytes": 11843,
+      "saved_bytes": 389,
+      "before_estimated_tokens": 3043,
+      "after_estimated_tokens": 2948,
+      "before_sha256": "311f5695a82a15e3be90ebe15878a0f9a67fb7c710ef178c7f37d8f557a651d9",
+      "after_sha256": "5d760fb5c67bc21086acc34c72f4f51dcc92b663f7e74b348be5d57ab516685a",
+      "rule_preservation_map": [
+        {
+          "source_lead": "The default occupant of the",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "ae3bab108a2a8b612b4ae41ad776222f8ddd7afcf37969ede47f2570b0802daf"
+        },
+        {
+          "source_lead": "One pass turns the proposal",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "8e1c825799e4d8b40c90be4fed5c6873534bebf40a801427c75885e3ce2fa678"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "Provision/health/seed only; handle is sole evaluator interface. All absent-input, recommendation, engine, service/bridge, teardown, credential and contract rules unchanged."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 15939,
+      "after_bytes": 15505,
+      "saved_bytes": 434,
+      "before_estimated_tokens": 3961,
+      "after_estimated_tokens": 3856,
+      "before_sha256": "155185589d5cd019fce35b657f11c751326e44b1f7de0836890f057293c60d22",
+      "after_sha256": "a16d5990b228a08d958d6cc34ba973936e255306ae72aa6c1b16c7bb4f28930f",
+      "rule_preservation_map": [
+        {
+          "source_lead": "The default occupant of the",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "52b093d02ee00628f29ba1863fcf8ff771a2b897648554554585e6d23f67c096"
+        },
+        {
+          "source_lead": "One pass turns a spec",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "10648782191fbf8c5171dc14d15dd40d4a2bcb1a8dd6f4af8732d20373d971bb"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "Code-blind outcome exercise from trusted spec against running env; classification/delegation, credential and wire errors, reason codes, spawner authority and teardown untouched."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 5689,
+      "after_bytes": 5568,
+      "saved_bytes": 121,
+      "before_estimated_tokens": 1412,
+      "after_estimated_tokens": 1382,
+      "before_sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b",
+      "after_sha256": "7265d83f5c17390caba995a82d715a6f7776872ac55f71b35cf101bc8457b717",
+      "rule_preservation_map": [
+        {
+          "source_lead": "A short, focused conversation.",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "82a3bb477382c3386462cd3b87a4ef1711814c38de57a09637bad52d9e437576"
+        },
+        {
+          "source_lead": "Stop pulling threads once",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "9a8f881b48ac08f5772a7f7eca510902261fb061b7496deda5cb62dc17d24924"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "Short discovery rather than spec writing; stop when brief fillable, unresolved questions carried to prep without blocking. Mode lists, output example and appetite unchanged."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 29418,
+      "after_bytes": 29034,
+      "saved_bytes": 384,
+      "before_estimated_tokens": 7281,
+      "after_estimated_tokens": 7187,
+      "before_sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f",
+      "after_sha256": "5590820d128638fd77f5c0792334ad9c84fb386d64e0b26d820c5a71975e2b8a",
+      "rule_preservation_map": [
+        {
+          "source_lead": "Detects problems with the",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "28337523a902e5bd637f1af27ddf58c9787523d87609e2cea7efca3faf7aaab4"
+        },
+        {
+          "source_lead": "**Cycle + ghost-project detection",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "1fbd7699b9b0a6ed7dfb1dc93aea9405e5559db2f06acc6cd8db692a44e302ee"
+        },
+        {
+          "source_lead": "Detection is conservative.",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "d1760da7af49de736aa645eec4dc12b329c83f19831509ffa74f6c19528ea8c1"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "Always-on structural diagnostics with single shared floor; no value/risk opinions; categories and ownership retained. Entire tables, detection details, examples, action and appetite policies untouched."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "reviewed": true,
+      "changed": false,
+      "before_bytes": 2465,
+      "after_bytes": 2465,
+      "saved_bytes": 0,
+      "before_estimated_tokens": 617,
+      "after_estimated_tokens": 617,
+      "before_sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb",
+      "after_sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb",
+      "rule_preservation_map": [],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Operational procedures, tables, exceptions, list members, behaviour examples and loaded judgement rubrics retained. Already lean prose left unchanged.",
+      "preserved_obligations": "Reviewed unchanged: already lean, code-blind PRD-only judgement, readiness and caller authority preserved."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "reviewed": true,
+      "changed": false,
+      "before_bytes": 8045,
+      "after_bytes": 8045,
+      "saved_bytes": 0,
+      "before_estimated_tokens": 2008,
+      "after_estimated_tokens": 2008,
+      "before_sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f",
+      "after_sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f",
+      "rule_preservation_map": [],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Operational procedures, tables, exceptions, list members, behaviour examples and loaded judgement rubrics retained. Already lean prose left unchanged.",
+      "preserved_obligations": "Reviewed unchanged: already lean; five passes, verdict precedence, finding schema/identity, examples, fixed appetite table and caller ownership preserved."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 14027,
+      "after_bytes": 13489,
+      "saved_bytes": 538,
+      "before_estimated_tokens": 3481,
+      "after_estimated_tokens": 3349,
+      "before_sha256": "7df6adee9b0220feec53dc794cc9f047fcdfdde5906f98dfe87a77e1bc444e2b",
+      "after_sha256": "35d5d9951eeda10a6190dfd8b7c08d71de91124441fa322b364a97dbf7d46e3d",
+      "rule_preservation_map": [
+        {
+          "source_lead": "The default **producer**",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "be68455f6d452e9ed6d1d60d1bf422bd43315a4b8144359236bef5f7b2cac2c1"
+        },
+        {
+          "source_lead": "Invoked by `/faff-graft`",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "12837715e73e376ca5f81d02e6bf94f458b63c5de7e86afe7dc26827792571f2"
+        },
+        {
+          "source_lead": "After emitting the native result",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "d524aa245e5babe515bfce89b05039dcf6c53f6f53e1694fde9c25d099b641c6"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "Minimum no-deploy interlocked merge; native result plus final block; caller owns parsing/routing. All precondition probes, indeterminate/git-only handling, custody relay, corroboration and cleanup rules untouched."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 17847,
+      "after_bytes": 17130,
+      "saved_bytes": 717,
+      "before_estimated_tokens": 4427,
+      "after_estimated_tokens": 4251,
+      "before_sha256": "cc268664fa8b1789242fb898e2236c2301c937520805c1fd8a6cf6b48be99696",
+      "after_sha256": "67e5bdc09c4b7880cfc55797af209b9d3bba6b1888e0a0ff392005ca6c8da947",
+      "rule_preservation_map": [
+        {
+          "source_lead": "The default spec producer.",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "b4d8c011059ece9e1e037bbbea930ef047e676ae74cb73d9fa810fac4c17d5c6"
+        },
+        {
+          "source_lead": "This is the implicit default",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "9c969dd4051ba250d5557206702e29bd9271b4acbe1296c00064adbfde43386f"
+        },
+        {
+          "source_lead": "Before emitting the spec + self-rating",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "ff51cd5146b42a0a2255e33b3794bc754a50acc2a3bbef39698ca762356ca633"
+        },
+        {
+          "source_lead": "**No size threshold.**",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "0b6e6e35032da03d9c80ab749e5abc7fe10b8068360479382920936a4353fdeb"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "Lite producer contract and all arc/scenario rules unchanged; every fresh spec still reviewed regardless of size and mode; producer subagent verifies in-context to avoid nesting. Checklist, findings/rating/refresh exception and artifacts untouched."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "reviewed": true,
+      "changed": false,
+      "before_bytes": 8055,
+      "after_bytes": 8055,
+      "saved_bytes": 0,
+      "before_estimated_tokens": 2001,
+      "after_estimated_tokens": 2001,
+      "before_sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571",
+      "after_sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571",
+      "rule_preservation_map": [],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Operational procedures, tables, exceptions, list members, behaviour examples and loaded judgement rubrics retained. Already lean prose left unchanged.",
+      "preserved_obligations": "Reviewed unchanged: already lean and exact slug-rule guard; selected lenses, objections/enrichment, founder invariant, map and example contracts preserved."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "reviewed": true,
+      "changed": true,
+      "before_bytes": 6250,
+      "after_bytes": 5951,
+      "saved_bytes": 299,
+      "before_estimated_tokens": 1555,
+      "after_estimated_tokens": 1481,
+      "before_sha256": "8187ee3fb166c1d0f0355f38452f007e70c7aa4b1e516a79a12161487c699284",
+      "after_sha256": "f053ef865574838a1093ff4fe735f2de7848716e722da85aabd698f20c8ba480",
+      "rule_preservation_map": [
+        {
+          "source_lead": "The default occupant of the",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "87d04f8a0ba515391b013bd5461e4c266d2f23de7783f3aa10120c7c08565f32"
+        },
+        {
+          "source_lead": "One reachability class, one occupant",
+          "preservation": "Same named roles, inputs, outputs, ordering and mode conditions; repetitive framing or rationale shortened.",
+          "before_paragraph_sha256": "3ca846bb6a68bc2cf6c343dfdcc87faf4141a34287d973536f72f9564e773d51"
+        }
+      ],
+      "protected_invariants": {
+        "frontmatter_verbatim": true,
+        "headings_verbatim": true,
+        "fenced_code_and_examples_verbatim": true,
+        "existing_command_spans_retained_verbatim": true,
+        "all_existing_list_and_table_lines_verbatim": true
+      },
+      "deferred": "Detailed procedures, exceptions, authority boundaries, tables, lists and examples retained; no policy contradictions resolved or interpretation delegated to a new read.",
+      "preserved_obligations": "Private-network segmentation class, inline return and no gated block preserved; exact topology resolver and rootless/rootful/Fly follow-on branches untouched; base validation/credential/teardown rules retained."
+    }
+  ],
+  "saved_bytes": 4461,
+  "saved_estimated_tokens": 1093,
+  "guards_inspected": [
+    "test/adr-format.test.mjs",
+    "test/adr-slot.test.mjs",
+    "test/eval-cli-driver.test.mjs",
+    "eval/cli-driver.mjs",
+    "eval/baselines/gateway-usage.json",
+    "test/evidence-return.test.mjs",
+    "test/faff-679-bracket-writes.test.mjs",
+    "test/heading-slug.test.mjs",
+    "test/spec-producer-scenario-format.test.mjs",
+    "test/spec-review-reputation.test.mjs",
+    "test/review-iteration-cap.test.mjs",
+    "test/review-bench-lens-parity.test.mjs",
+    "test/holdout-record.test.mjs",
+    "test/evaluate-call.test.mjs",
+    "test/holdout-rpc-evaluate-integration.test.mjs"
+  ],
+  "limits": [
+    "All fourteen assigned files read. Existing protected loader headings, source guard rule lines and examples retained.",
+    "No model evals, harness, tests, allowances, design edits or commits. Mechanical protection assertions compare frontmatter, headings, fenced blocks and command strings only; semantic parity is a bounded source-review judgement.",
+    "No new mandatory read or CLI extraction; existing lane/kernel reads unchanged."
+  ],
+  "mechanical_review": {
+    "diff_whitespace_check": "git diff --check over exactly fourteen owned paths, exit0",
+    "no_test_execution": true,
+    "no_allowance_or_design_edits": true,
+    "all_fourteen_baseline_files_confirmed_equal_to_git_before_edits": true,
+    "all_existing_list_and_table_lines_preserved_verbatim": true
+  }
+}

@@ -1,0 +1,577 @@
+{
+  "schema": 1,
+  "status": "independent-bounded-source-review-clear",
+  "baseline_commit": "3c148dc6f07032e5112989651e210217af7ef13b",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-17-prose-sweep/adaptor-pass.json",
+      "sha256": "153a640ce1da20cf01f7b0d1c52811d5da8d9d6f799e2579a7b1f7d3775d5e1c"
+    },
+    {
+      "path": "verification/experiments/2026-11-17-prose-sweep/producer-pass.json",
+      "sha256": "35b79916a46c36f4724f2bf83c475b3e75a9101a1579eb1cade4ab7d53c1c7cf"
+    }
+  ],
+  "method": "Read all actual changed-line diffs for8 adaptor and14 producer files against Git baseline; inspect adjacent NLSpec scenario rules; compare structured interfaces and author-record final hashes. No tests/models or qualification.",
+  "files": [
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "changed": false,
+      "baseline_sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4",
+      "current_sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4",
+      "before_bytes": 11288,
+      "after_bytes": 11288,
+      "saved_bytes": 0,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Unchanged; house rendering and validation contract retained."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "d6e7f37d231ea6a42a336cdc268717fe2e788ac290dc17d5948a673d9d698735",
+      "current_sha256": "3323626cd19c57775d6e7a657b474f81de2388754439517c38f9e6775d4ad59e",
+      "before_bytes": 11144,
+      "after_bytes": 10633,
+      "saved_bytes": 511,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Assignment inputs, fixed gateway vocabulary/ownership and precise serialisation condition for likely-fire preserved; explanatory family label removed only."
+        }
+      ],
+      "lost_noncommand_inline_spans": [
+        "faffidavit-*"
+      ],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "changed": false,
+      "baseline_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "current_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "before_bytes": 22259,
+      "after_bytes": 22259,
+      "saved_bytes": 0,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Unchanged; independent adversarial review and routing preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "74251c96bb33e9b5f15f370f994256a0ed25a588cd7a186ecca80d13eed98ae0",
+      "current_sha256": "fec534126acd6f9f9603572de0a5f6c7cc918fb8bb1ee672be5024c59c4f2aa9",
+      "before_bytes": 12321,
+      "after_bytes": 11657,
+      "saved_bytes": 664,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "All occupant types, producer block/fused wrapper responsibility, standalone contract binding and three fail-not-warning cases retained."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "4706d07b456a00e1b9e4e47dada91182950f6f716c610123977525f7d7471ef9",
+      "current_sha256": "41022246a2ad714fd3b3d9c486f14d7d3bb701754c840e6ac87093476a512470",
+      "before_bytes": 25665,
+      "after_bytes": 25365,
+      "saved_bytes": 300,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Cap/default/resolver, no shared worktree, queue drain/no drops and merge revalidation preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "73358ee7786bf114f34e0fe69912dc644fb809a35ae27841f222164bad09aff3",
+      "current_sha256": "a3937b46190db5fb36ce8c70d06a5df03369bcd215438285e538b2a130e98d89",
+      "before_bytes": 44947,
+      "after_bytes": 44432,
+      "saved_bytes": 515,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Transitive prerequisite traversal, exact-once rehome completeness, value/risk sequencing and single-outcome principles preserved; rationale shortened without unique example deletion."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af",
+      "current_sha256": "57e045bbf139018024bb6b76631bbaa7cf9ce237a527595653f209403cdcc920",
+      "before_bytes": 18819,
+      "after_bytes": 18599,
+      "saved_bytes": 220,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "All related explore items, dedicated Scenarios placement/objectives and non-exhaustive happy-path smoke retained. Adjacent complexity bar, Given-When-Then/fence rules, nonfunctional assertions and anti-DONE-duplication still state scenario obligations explicitly."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "d0eb7dfabc221c9a3822336eef239e4d0a2537ae68b254c4581a99be25ab6200",
+      "current_sha256": "de93a100ac5d5c266284d7adfef18aa8c2eec5e22a8b35cfeb188cb2ea3af1ac",
+      "before_bytes": 40496,
+      "after_bytes": 40244,
+      "saved_bytes": 252,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "L4 role, separate enabled-lens adversarial model invocations, deterministic majority/severity founded verdict and proposer-before-code boundary preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "19620bd0d1588ea9f4e1d8f6486e368f75da3c5f3a08add1165f03dbcef78346",
+      "current_sha256": "61edc2aac14d0bcfc935b099b0a64dd16d9c57b71297e4d605ec38b3f9b0dc3c",
+      "before_bytes": 4238,
+      "after_bytes": 3936,
+      "saved_bytes": 302,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Settled Chosen inputs, sole ADR prose author, actual scaffold/number/validate ownership, template headings and graft-time implemented consequences preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88",
+      "current_sha256": "bc09144787827f8ce6d836311979aa9a28ee051f7ecbdb11ea38bc1eeea4e43a",
+      "before_bytes": 4787,
+      "after_bytes": 4428,
+      "saved_bytes": 359,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "One reasoned best-fit production-grade proposal; infra inputs, intent-only ADR candidates/no writes/no adr-new, graft materialisation and separated critic authority preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "1e0e8c86860a2e962e4f022225c5c23148539afa2075981d1148c9069e3af2d8",
+      "current_sha256": "ddb99618c2540ae0cab65295c4fc405c1a16bace8d0583d9033383e4aea15a75",
+      "before_bytes": 18512,
+      "after_bytes": 18056,
+      "saved_bytes": 456,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "One-at-a-time conflict partition, default mechanism role, active writer heartbeat/run ownership and merge-or-park before next dispatch/dependency knob preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "f4dc693965a2e49f2765d745a343e5c9e5df3282cc439fb762781a5ed49ece75",
+      "current_sha256": "11a4a5f08179c326a3e9f36793c251fdad51c34308f28aaaa634cd60b23c332e",
+      "before_bytes": 9602,
+      "after_bytes": 9140,
+      "saved_bytes": 462,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Inline env-composed bridge provisioning/health/socket, Tier1 session-RPC wire contract, no separate gated emitter and env-only per-issue mechanism selection preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "311f5695a82a15e3be90ebe15878a0f9a67fb7c710ef178c7f37d8f557a651d9",
+      "current_sha256": "5d760fb5c67bc21086acc34c72f4f51dcc92b663f7e74b348be5d57ab516685a",
+      "before_bytes": 12232,
+      "after_bytes": 11843,
+      "saved_bytes": 389,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Proposal/profile input, running health-checked deterministic seeded stand-in/single reachability-teardown handle and no evaluation judgement preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "155185589d5cd019fce35b657f11c751326e44b1f7de0836890f057293c60d22",
+      "current_sha256": "a16d5990b228a08d958d6cc34ba973936e255306ae72aa6c1b16c7bb4f28930f",
+      "before_bytes": 15939,
+      "after_bytes": 15505,
+      "saved_bytes": 434,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Code-blind spec/live-system criteria exercise with evidence, single holdout verdict and teardown preserved; implementation never an input."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b",
+      "current_sha256": "7265d83f5c17390caba995a82d715a6f7776872ac55f71b35cf101bc8457b717",
+      "before_bytes": 5689,
+      "after_bytes": 5568,
+      "saved_bytes": 121,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Brief sufficient for ticket shaping, later per-ticket specs/implementation and unresolved questions captured without blocking preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f",
+      "current_sha256": "5590820d128638fd77f5c0792334ad9c84fb386d64e0b26d820c5a71975e2b8a",
+      "before_bytes": 29418,
+      "after_bytes": 29034,
+      "saved_bytes": 384,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Always-on structural output, shared composed cycle/ghost floor, thematic-owned remaining categories and conservative do-not-flag default preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "changed": false,
+      "baseline_sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb",
+      "current_sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb",
+      "before_bytes": 2465,
+      "after_bytes": 2465,
+      "saved_bytes": 0,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Unchanged; code-blind PRD role/contract retained."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "changed": false,
+      "baseline_sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f",
+      "current_sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f",
+      "before_bytes": 8045,
+      "after_bytes": 8045,
+      "saved_bytes": 0,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Unchanged; review rubric and fixed verdict handling retained."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "7df6adee9b0220feec53dc794cc9f047fcdfdde5906f98dfe87a77e1bc444e2b",
+      "current_sha256": "35d5d9951eeda10a6190dfd8b7c08d71de91124441fa322b364a97dbf7d46e3d",
+      "before_bytes": 14027,
+      "after_bytes": 13489,
+      "saved_bytes": 538,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Floor-cleared input/confirmed interactive versus automatic autonomous delivery, merge-gate-only/no raw merge/no deploy/own cleanup and native result plus sole last delivery block mirror preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [
+        "spec"
+      ],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "cc268664fa8b1789242fb898e2236c2301c937520805c1fd8a6cf6b48be99696",
+      "current_sha256": "67e5bdc09c4b7880cfc55797af209b9d3bba6b1888e0a0ff392005ca6c8da947",
+      "before_bytes": 17847,
+      "after_bytes": 17130,
+      "saved_bytes": 717,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Lite arc/default slot and every fresh spec clean-context review, marker/rating checks, codebase-only inputs, single-level dispatch fallback and no size exemption preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "changed": false,
+      "baseline_sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571",
+      "current_sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571",
+      "before_bytes": 8055,
+      "after_bytes": 8055,
+      "saved_bytes": 0,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Unchanged; checklist lenses and spec-review verdict retained."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "changed": true,
+      "baseline_sha256": "8187ee3fb166c1d0f0355f38452f007e70c7aa4b1e516a79a12161487c699284",
+      "current_sha256": "f053ef865574838a1093ff4fe735f2de7848716e722da85aabd698f20c8ba480",
+      "before_bytes": 6250,
+      "after_bytes": 5951,
+      "saved_bytes": 299,
+      "checks": {
+        "frontmatter_identical": true,
+        "headings_identical": true,
+        "code_fences_identical": true,
+        "paragraph_bold_leads_identical": true,
+        "no_lost_command_spans": true
+      },
+      "findings": [
+        {
+          "severity": "none",
+          "assessment": "Private-network evaluator-only/no-app-auth class, base host under env, local implemented versus Fly follow-on, inline same-turn/no standalone gated emitter preserved."
+        }
+      ],
+      "lost_noncommand_inline_spans": [],
+      "concrete_misses": []
+    }
+  ],
+  "summary": {
+    "visited": 22,
+    "changed": 17,
+    "unchanged": 5,
+    "saved_bytes": 6923,
+    "concrete_misses": 0,
+    "scope_or_authority_changes_found": 0,
+    "unique_behavioural_examples_removed": 0
+  },
+  "source_guard_inspection": {
+    "scope": "Quoted literals>=15characters in test/ and eval/, plus all ordered headings/fences/paragraph bold leads and command-span membership.",
+    "lost_literal_match": [
+      {
+        "source": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+        "path": "test/mock-tracker.test.mjs:16",
+        "text": "plumbing is connected",
+        "assessment": "Historical comment label above tracker smoke test, not a source-reading assertion or extraction anchor. Happy-path connectivity meaning retained in NLSpec; no guard compatibility issue from this match."
+      }
+    ],
+    "limitation": "Quoted-literal scan cannot establish arbitrary regex compatibility. Root owns deterministic integration checks."
+  },
+  "limits": [
+    "Bounded independent review of proposed prose changes, not full re-review of unchanged source or a model/workflow equivalence claim.",
+    "No source, tests, allowances, designs, models, harnesses or commits changed; only this review record written.",
+    "Emphasis spans inside introductory prose may be reduced; headings, code fences, paragraph bold lead anchors and executable command spans are preserved.",
+    "Inherited contradictions are not resolved or adjudicated."
+  ]
+}

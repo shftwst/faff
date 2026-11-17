@@ -7,7 +7,7 @@ judgement_seam: none
 
 # faffter-noon-concurrency-sequential
 
-The default executor for the `concurrency` slot. Runs `/faff-beep-boop`'s build pass **sequentially** — one `/faff-graft` at a time — over the partition that conflict analysis produced. The safe, zero-contention default: no worktree juggling, no merge races, no concurrency cap to tune. Swap to `faffter-dark-concurrency-parallel` when you want speed and your project can absorb concurrent worktrees.
+The default `concurrency` executor runs `/faff-beep-boop`'s build pass **sequentially**, one `/faff-graft` at a time over the conflict-analysis partition. No concurrent worktrees, merge races or cap to tune. Swap to `faffter-dark-concurrency-parallel` when the project can absorb concurrent worktrees.
 
 ```yaml
 slots:
@@ -16,7 +16,7 @@ slots:
 
 ## When it runs
 
-Invoked by `/faff-beep-boop`'s build pass (full pipeline step 6, and the explicit-list build loop) as the configured `concurrency` skill — the default when the slot is unset. It is a **mechanism** slot (no paired adaptor): it executes the build pass, it does not produce or translate anything.
+Invoked by `/faff-beep-boop`'s build pass (full pipeline step 6 and explicit-list loop) as the configured `concurrency` skill, default when unset. A **mechanism** slot with no paired adaptor: it executes rather than produces or translates.
 
 ## The slot contract
 
@@ -43,9 +43,9 @@ Strictly one issue at a time, no worktree concurrency:
 
 `outcome` (the recorded **ledger bucket**) is one of the five build buckets (`shipped` / `superseded` / `pr-open` / `parked` / `errored`) — a clean build's returned **token** is `pr-ready`, which this executor completes to `shipped` / `pr-open` / `parked` via obligation 7 (never recorded raw); `superseded` is graft's build-time premise-superseded close-path (deliverables already on `main`, issue moved Done, no PR — the `superseded-done` return); `routed-out` (queue-assembly verdict gate) and `unreached-budget` (budget fire) are orchestrator dispositions written to the ledger, never values a build subagent returns; nor does a build subagent ever return `claimed-by-peer` (resolved pre-dispatch, never admitted). `shipped` / `pr-open` imply `pr != null` (a `superseded` outcome has no PR — its evidence is `<run-dir>/<issue>/supersession.json`).
 
-**Heartbeat ownership follows the single active writer.** Because the orchestrator blocks awaiting the subagent, exactly one of them is active at any instant: between dispatches the orchestrator refreshes the heartbeat; during a dispatched build the subagent does (it has `run_dir` from the `BuildDispatch`). Both refresh through the single sanctioned `faff heartbeat "$run_dir"` write path — never a hand-rolled ledger edit — so the tick's atomic replace of the dedicated heartbeat file is race-free and the in-build ticks from faff-graft's long sub-steps land on the owning run. No concurrent writers of the run ledger, no race — `runcheck` never sees a live build as abandoned. This preserves the owner stamp across the whole graft lifecycle.
+**Heartbeat ownership follows the single active writer.** The orchestrator blocks during a build: it refreshes between dispatches; the subagent refreshes during the build using `run_dir` from `BuildDispatch`. Both use the sanctioned `faff heartbeat "$run_dir"` path, never hand-edit the ledger. Its atomic replacement of the dedicated heartbeat file is race-free; graft's long-step ticks reach the owning run, preserve its owner stamp and prevent `runcheck` misclassifying a live build as abandoned. No concurrent run-ledger writers.
 
-Because only one unit runs at a time and this executor merges it (obligation 7) or records its park before the next dispatch, every later build sees `main` exactly as the prior merge left it — there is no merge race to manage and no rebase step needed. The one case to handle depends on the `graft.dependency_wait` knob (obligation 2, resolved once per pass via `faff config get graft.dependency_wait -d`):
+Before the next dispatch, this executor merges the current unit (obligation 7) or records its park, so each build sees `main` as the prior merge left it. No merge race or rebase is needed. The remaining case depends on `graft.dependency_wait` (obligation 2, resolved once per pass via `faff config get graft.dependency_wait -d`):
 
 - **`off` (default):** a dependent whose in-group blocker terminated **unmerged** is parked, not built — it can't build on a `main` that's missing its dependency. Byte-identical to today. Throughput is the cost; safety and simplicity are the payoff.
 - **`stack`:** a dependent whose blocker landed **`pr-open`** is stacked, not parked — resolve the blocker's PR + head branch + **pinned tip SHA once**, write and commit the `stack-parent.json` anchor, dispatch the dependent's graft with `FAFF_WORKTREE_BASE_REF` set to **that same pinned SHA**, and apply the `faff-stacked` label (mechanics per obligation 2). The dependent builds and opens its PR on the blocker's branch while the blocker's PR is in review. At its merge locus (obligation 7) merge-gate's additive `dependency_gate` leg refuses the merge until the blocker's PR merges (the dependent stays `pr-open`); once the blocker merges, the merge locus runs the bounded `git rebase --onto <pinned-sha>` before merging. The two owner-park outcomes — blocker PR **closed-unmerged** (dead base) and a rebase **conflict** — are enacted **here** (park the dependent, `reconsider:human`) from the merge-gate result's surfaced park intent, never inside merge-gate. A blocker that landed `parked`/`errored` parks the dependent under both knob values (no branch to stack on); git-only mode degrades `stack` to `off`.

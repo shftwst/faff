@@ -1,0 +1,393 @@
+{
+  "schema": 1,
+  "status": "changes-requested-bounded-static-review",
+  "created_utc": "2026-11-17T15:06:39.271061+00:00",
+  "baseline": "3c148dc6",
+  "rewrite_manifest": {
+    "path": "verification/experiments/2026-11-17-prose-sweep/reference-rewrites.json",
+    "sha256": "65fb4673ed5d8189484e09ccebc0180e12274b9e1d4c66dca41b8a317310e3c7"
+  },
+  "reviewed_rows": 35,
+  "reviewed_files": 9,
+  "file_bindings": {
+    "plugin/skills/faff/references/review.md": {
+      "sha256": "1ee9ee248b9928e6c25c32120b5851f4d5bf8cc7f228a6d0bc137ba7196302b3",
+      "headings_identical": true
+    },
+    "plugin/skills/faff/references/create.md": {
+      "sha256": "1b715730883c139f19b7ff96f03d89fff98789c863d71500b21904aceb1eb0a4",
+      "headings_identical": true
+    },
+    "plugin/skills/faff/references/build.md": {
+      "sha256": "beebea1e856e34333b1ba5abd8a03aeadfcf5ea50ecfd9888cb2dbaef4fa1c14",
+      "headings_identical": true
+    },
+    "plugin/skills/faff/references/park.md": {
+      "sha256": "d609101fd0f9a02a0e8b804fba1c943ac63f86e0e0b45d2a2fc035b0453e1e12",
+      "headings_identical": true
+    },
+    "plugin/skills/faff/references/autonomous.md": {
+      "sha256": "bdce7d30ce7977774fe212752229437c9361f1e19671647d3de5e254174ed77f",
+      "headings_identical": true
+    },
+    "plugin/skills/faff/references/methodology.md": {
+      "sha256": "f3deac00756d6d8e64fd000390182651c2f3b4f51abafb754485faccd3785586",
+      "headings_identical": true
+    },
+    "plugin/skills/faff/references/l4.md": {
+      "sha256": "7db85429ab189be2243c4f83c67b1c6e5116f5a0e964954e09425938da3b2ebc",
+      "headings_identical": true
+    },
+    "plugin/skills/faff/references/tracker.md": {
+      "sha256": "18c47c7c3275f0347ccc573c948ef0a42b60240d52452d4535850ec8650df5f9",
+      "headings_identical": true
+    },
+    "plugin/skills/faff/references/kernel.md": {
+      "sha256": "253d136ada3fb381c66eac4ada1d021ba6275b845b564ff01d569c662480c901",
+      "headings_identical": true
+    }
+  },
+  "row_results": [
+    {
+      "row": 1,
+      "path": "plugin/skills/faff/references/review.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 2,
+      "path": "plugin/skills/faff/references/review.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 3,
+      "path": "plugin/skills/faff/references/review.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 4,
+      "path": "plugin/skills/faff/references/create.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "fix-requested",
+      "assessment": "See findings."
+    },
+    {
+      "row": 5,
+      "path": "plugin/skills/faff/references/create.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 6,
+      "path": "plugin/skills/faff/references/create.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 7,
+      "path": "plugin/skills/faff/references/create.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 8,
+      "path": "plugin/skills/faff/references/create.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 9,
+      "path": "plugin/skills/faff/references/create.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 10,
+      "path": "plugin/skills/faff/references/create.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 11,
+      "path": "plugin/skills/faff/references/create.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 12,
+      "path": "plugin/skills/faff/references/create.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 13,
+      "path": "plugin/skills/faff/references/build.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 14,
+      "path": "plugin/skills/faff/references/build.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 15,
+      "path": "plugin/skills/faff/references/build.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 16,
+      "path": "plugin/skills/faff/references/build.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 17,
+      "path": "plugin/skills/faff/references/build.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 18,
+      "path": "plugin/skills/faff/references/build.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 19,
+      "path": "plugin/skills/faff/references/park.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 20,
+      "path": "plugin/skills/faff/references/park.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 21,
+      "path": "plugin/skills/faff/references/park.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 22,
+      "path": "plugin/skills/faff/references/park.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 23,
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 24,
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 25,
+      "path": "plugin/skills/faff/references/methodology.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 26,
+      "path": "plugin/skills/faff/references/methodology.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 27,
+      "path": "plugin/skills/faff/references/methodology.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 28,
+      "path": "plugin/skills/faff/references/l4.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 29,
+      "path": "plugin/skills/faff/references/l4.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 30,
+      "path": "plugin/skills/faff/references/tracker.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "clarify",
+      "assessment": "See findings."
+    },
+    {
+      "row": 31,
+      "path": "plugin/skills/faff/references/tracker.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 32,
+      "path": "plugin/skills/faff/references/tracker.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 33,
+      "path": "plugin/skills/faff/references/tracker.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "fix-requested",
+      "assessment": "See findings."
+    },
+    {
+      "row": 34,
+      "path": "plugin/skills/faff/references/tracker.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    },
+    {
+      "row": 35,
+      "path": "plugin/skills/faff/references/kernel.md",
+      "old_matches_baseline": true,
+      "new_matches_source": true,
+      "status": "pass",
+      "assessment": "Wording/rationale shortened without a material rule, exception, decision example, command or anchor change in the surrounding section."
+    }
+  ],
+  "findings": [
+    {
+      "row": 4,
+      "path": "plugin/skills/faff/references/create.md",
+      "severity": "preservation-fix",
+      "finding": "The original prohibits duplicating taxonomy and field sets; replacement explicitly prohibits duplicating only field sets.",
+      "fix": "Both reference this taxonomy and these field sets without duplicating them."
+    },
+    {
+      "row": 33,
+      "path": "plugin/skills/faff/references/tracker.md",
+      "severity": "preservation-fix",
+      "finding": "Original requires fetching comments before classifying an issue as no spec/almost ready/needs prep. Replacement requires it only before reporting, weakening the prerequisite for an internal classification that may drive routing.",
+      "fix": "Before classifying or reporting \"no spec / almost ready / needs prep\", fetch comments..."
+    },
+    {
+      "row": 30,
+      "path": "plugin/skills/faff/references/tracker.md",
+      "severity": "clarity",
+      "finding": "Immediately visible tools do not prove availability reverses the direction of the original warning, which concerns absence from the visible set. Detailed discovery rules remain unchanged, so this is not a new execution-path failure.",
+      "fix": "Absence from immediately visible tools does not prove unavailability: deferred-tool harnesses such as Codex require discovery."
+    }
+  ],
+  "core_kernel_contract_region_identical": true,
+  "summary": "32 rows pass as written; two need small explicit-rule restorations and one needs directional clarity. No other material command, source anchor, example or authority loss found.",
+  "limits": [
+    "Static source review only; no tests, models, harness or runtime checks.",
+    "No source edits or commits.",
+    "Existing source inconsistencies, including park/correctness and claim/status wording, were not resolved.",
+    "Removed historical incidents are not decision examples needed by the remaining explicit rules."
+  ],
+  "resolution": {
+    "status": "all-three-findings-resolved",
+    "created_utc": "2026-11-17T15:07:05.306147+00:00",
+    "scope": "Only the three previously reported findings checked against actual files; original review and hashes preserved above. No broader rereview.",
+    "corrections_manifest_sha256": "7fecc5cd0f2fe47abb4263a8e4ccdf3e5ff986cc37ad61a7cd265ed70705bd67",
+    "checks": [
+      {
+        "path": "plugin/skills/faff/references/create.md",
+        "correction": "Both reference the taxonomy and field sets without duplicating them.",
+        "present": true,
+        "replaced_text_absent": true,
+        "sha256": "fbcfb8b614d7cbedfb7d6a363bec38aed88467792687aa7d4c19cf4b98ce4396"
+      },
+      {
+        "path": "plugin/skills/faff/references/tracker.md",
+        "correction": "Before classifying or reporting \"no spec / almost ready / needs prep\"",
+        "present": true,
+        "replaced_text_absent": true,
+        "sha256": "f3f01623ec743a633a4b68a6b7162809393db7ee70efa7f2cd14fcca1c17a13d"
+      },
+      {
+        "path": "plugin/skills/faff/references/tracker.md",
+        "correction": "Absence from immediately visible tools does not prove unavailability:",
+        "present": true,
+        "replaced_text_absent": true,
+        "sha256": "f3f01623ec743a633a4b68a6b7162809393db7ee70efa7f2cd14fcca1c17a13d"
+      }
+    ],
+    "main_landing_caveat": "Apply only these sweep-specific old-to-new paragraph deltas onto main. kernel.md and review.md have earlier branch-only changes; full-file replacement would import unqualified unrelated changes. If an old paragraph does not match main uniquely, stop that hunk for contextual review rather than importing the branch file. Preserve main prefix/suffix outside each targeted paragraph and review resulting main diff for only the intended sweep edits."
+  }
+}

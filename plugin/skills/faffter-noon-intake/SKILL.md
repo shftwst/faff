@@ -22,7 +22,7 @@ The caller (`/faff-jot`) provides:
 
 ## How it runs — discovery, not interrogation
 
-A short, focused conversation. The goal is to extract just enough to shape tickets, not to write a spec (that's `/faff-prep`'s job, later, per ticket). Pull on the threads that change how the work breaks down; leave implementation detail for prep.
+Keep discovery short: gather enough to shape tickets, leaving specs and implementation detail to `/faff-prep` later, per ticket. Ask about facts that change how work breaks down.
 
 ### `greenfield` mode
 
@@ -44,7 +44,7 @@ Establish enough to write one well-formed ticket (or a small set if it splits):
 4. **Known dependencies** — anything that must ship first, or that this enables.
 5. **Size sense** — is this one ticket, or does it obviously span two independent concerns? (Don't force a split — just flag it for the methodology to decide.)
 
-Stop pulling threads once the brief below can be filled. Unresolved questions are captured, not chased — they go into the brief as open questions for prep to resolve, not as blockers here.
+Stop once the brief below can be filled. Capture unresolved questions for prep under open questions; do not chase them or block the brief.
 
 ## Output: the discovery brief
 

@@ -164,7 +164,7 @@ Offer ratify only interactively, for a `major`/`minor` design-lens objection nam
 | "The chosen Postgres migration has no rollback path" | Implementation | No |
 | "Postgres is fine, but this schema will lock the table under load" | Ambiguous/mixed | No |
 
-This is bounded LLM judgement, not a closed-vocabulary parser like heading-slug validation. Ambiguity always means no ratify; retain the non-`critical` objection in the loop. The occupant's `eval/in-spec-ratification/` fixtures exercise implementation/ambiguous cases.
+This uses bounded LLM judgement, unlike heading-slug parsing. Ambiguity always means no ratify; retain the non-`critical` objection in the loop. The occupant's `eval/in-spec-ratification/` fixtures exercise implementation/ambiguous cases.
 
 1. `critical`: unconditional severity floor; revise/park, never offer ratify.
 2. Scope not cleanly decision-level: no offer.
@@ -549,7 +549,7 @@ Always delegated to the `spec` slot (default `faffter-noon-spec`) — autonomous
 
 **Step 2 — run the shared already-shipped scan + premise-superseded gate** (above) on the just-produced spec: **Park** (substantially delivered) exits Path 2 immediately, citing Done ticket IDs in the park comment; **Proceed** (premise holds) continues to Step 3; **Narrow** (partially delivered) is handled per the subroutine — for Path 2 that means re-invoking the producer on the narrowed scope (its self-review fires). Continue to Step 3.
 
-**Step 3 — validate and gate the spec.** **Stage the spec the instant the producer returned**, before any rendering (_Stage and attach_ above, `--mode autonomous`). (Confirm after each successful attach below; on either `park` outcome, `--park`.) The producer already ran its clean-context self-review and returned a `confidence:` self-rating in Step 1 — prep does **not** re-review; it trusts the producer's rating (the producer is responsible for its own quality bar) and logs the returned review findings. The rating means:
+**Step 3 — validate and gate the spec.** **Stage the spec the instant the producer returned**, before any rendering (_Stage and attach_ above, `--mode autonomous`). (Confirm after each successful attach below; on either `park` outcome, `--park`.) The producer already ran its clean-context self-review and returned a `confidence:` self-rating in Step 1 — prep does **not** re-review; it trusts the producer's rating and logs the returned review findings. The rating means:
 
 - `high` — every non-trivial decision has a `**Chosen:**` marker with rationale, no `**Punt:**` escalates a genuine product/architecture question, the ACs are concrete and testable, and the self-review surfaced no `blocker` / fewer than 3 `major`.
 - `medium` — mostly clean but 1–2 substantive `**Punt:**` markers, thin rationale a human would want to weigh in on, or a self-review that forced a downgrade.
@@ -584,7 +584,7 @@ Return to caller one of:
 - `parked` — see park cause in log (low confidence, contract violation, or architectural change needed)
 - `errored` — something went wrong (MCP failure, unexpected state); treated as park for purposes of the run
 
-**Self-verify before an attach-expecting return (the belt; the caller's ground-truth reconciliation is the braces regardless).** Before returning `refreshed` / `promoted` / `promoted-needs-review` — the outcomes above that assert a spec was attached — self-check `faff prepcheck --issue <ISSUE> --json`. If `state != "attached"`, the attach chain did not actually complete: do not emit the false success. Retry the attach **once** inline (stage → post → confirm), then re-check. Still not `attached` → downgrade the return to `errored`, so the caller's reconciliation recovers rather than trusting the claim. This turns the same-turn-attach rule into a self-checked precondition of the *return value* itself, not just of the turn ending.
+**Self-verify before an attach-expecting return (the belt; the caller's ground-truth reconciliation is the braces regardless).** Before returning `refreshed` / `promoted` / `promoted-needs-review` — the outcomes above that assert a spec was attached — self-check `faff prepcheck --issue <ISSUE> --json`. If `state != "attached"`, the attach chain did not actually complete: do not emit the false success. Retry the attach **once** inline (stage → post → confirm), then re-check. Still not `attached` → downgrade the return to `errored`, so the caller's reconciliation recovers rather than trusting the claim. The attach check is a precondition of the *return value*, not only turn completion.
 
 ## Notes
 

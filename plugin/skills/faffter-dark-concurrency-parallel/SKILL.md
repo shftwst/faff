@@ -22,11 +22,11 @@ Invoked by `/faff-beep-boop`'s build pass as the configured `concurrency` skill.
 
 ## Concurrency cap
 
-Read `concurrency_max` from `.faff/config.yaml` via the bundled resolver (`faff config get concurrency_max` — the CLI applies the default **4** when unset; resolve the `faff` executable per gateway → **Resolver** if it isn't on `PATH`). Never exceed it — at most `concurrency_max` `/faff-graft` builds run at once. The cap bounds worktree count, disk, and the number of branches racing `main` at any moment. A queue longer than the cap drains as slots free up; nothing is dropped.
+Read `concurrency_max` from `.faff/config.yaml` via the bundled resolver (`faff config get concurrency_max` — the CLI applies the default **4** when unset; resolve the `faff` executable per gateway → **Resolver** if it isn't on `PATH`). Never exceed it — at most `concurrency_max` `/faff-graft` builds run at once. The cap bounds worktrees, disk and branches racing `main`; longer queues drain as slots free, dropping nothing.
 
 ## Worktree isolation
 
-Each in-flight build runs in its **own git worktree** at `~/.faff/worktrees/<repo>/<branch>` (default; per the gateway → **Worktree policy**, `worktree_root`-overridable — `/faff-graft` creates one per issue, never shared across concurrent builds). Two builds writing the same working tree is the one thing parallel execution must never do; the per-issue worktree isolation guaranteed by that policy is what makes independents safe to run together.
+Each in-flight build runs in its **own git worktree** at `~/.faff/worktrees/<repo>/<branch>` (default; per the gateway → **Worktree policy**, `worktree_root`-overridable — `/faff-graft` creates one per issue, never shared across concurrent builds). Never let concurrent builds write the same working tree.
 
 Every concurrency unit is dispatched as a **build subagent** (Agent/Task tool), never run inline via the Skill tool — **one subagent per collision-group serial chain, one per independent**.
 
@@ -80,7 +80,7 @@ Several PRs going green in parallel were each tested against the `main` they bra
 4. **If CI fails after rebase** → a normal post-build CI failure — re-dispatch the member for one fix attempt if fixable, else record the park. The stale-green never reaches `main`.
 5. The executor releases the merge lock; the next ready `pr-ready` member takes it.
 
-This keeps the throughput win of parallel building while making the *merge* boundary as safe as the sequential default — each PR lands against the `main` it was actually re-validated against.
+Each PR lands against the `main` it was re-validated against while builds remain parallel.
 
 ## Integrity-digest custody chain (obligation 5 — placement here)
 

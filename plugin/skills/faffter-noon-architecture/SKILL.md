@@ -7,13 +7,13 @@ judgement_seam: architecture
 
 # faffter-noon-architecture
 
-The default occupant of the **`architecture`** slot — the generative half of faff's architecture story. Given a brief or spec plus the team's acquired infra profile, it **proposes** one best-fit, production-grade architecture + infra, reasoned. It is the missing PROPOSE box: faff already records ADRs (the `adr` slot), critiques a spec's design (the spec-review `architectural` lens), and acquires the infra profile (the `profile` slot) — this generates the proposal those steps then judge.
+The default **`architecture`** slot proposes one reasoned, best-fit, production-grade architecture + infra from a brief/spec and the acquired infra profile. It supplies the proposal recorded by the `adr` slot and judged by the spec-review `architectural` lens; the `profile` slot acquires the profile.
 
 > When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first — it holds the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 
-One LLM pass turns the brief/spec + infra profile into one proposal envelope. It **proposes, never commits**: it emits the envelope + ADR candidates as *intent* and stops. It writes nothing to the configured ADR directory and makes **no `faff adr new` call** — graft Step 4b materialises any candidate. It runs no review or verdict logic; the only contact with the downstream spec-review `architectural` lens (the critic) is the spec artifact the proposal lands in — the proposer/critic boundary, where the proposer generates and the critic judges, sharing no logic.
+One LLM pass produces one proposal envelope + ADR candidates as intent, then stops. It **proposes, never commits**: no writes to the configured ADR directory and **no `faff adr new` call**; graft Step 4b materialises candidates. It runs no review or verdict logic. The proposal's spec artifact is its only contact with the downstream spec-review `architectural` critic; proposer and critic share no logic.
 
 The contract (`faff contract architecture-proposal`) validates the envelope's **shape** only. This producer owns the **proposing strategy** — how the design is fitted. Do not re-validate shape here; emit a conformant block and let the consumer pipe it.
 

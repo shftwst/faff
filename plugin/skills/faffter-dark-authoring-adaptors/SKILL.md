@@ -6,7 +6,7 @@ judgement_seam: none
 
 # faffter-dark-authoring-adaptors
 
-The author/validate skill for **slot occupants** — anything you plug into a `slots` slot: an adaptor (`routing_adaptor`, `rendering_adaptor`), a producer (`intake`, `spec`, `review`, `ship`), a `methodology`, or a **mechanism** (`concurrency`). The `spec` / `review` / `ship` contracts are **producer-emitted** (their adaptor slots were retired): a bespoke producer conforms by emitting the standard `faff-contract:<name>` block its consumer parses — and **this skill is how you wrap a producer whose native tool can't emit that block** (the fused-wrapper path: the wrapper emits the block on the producer's behalf). It exists to close the binding gap: slots are swappable, so a replacement skill must carry — *on its own* — the prose that lets it find and conform to the fixed contract it sits in front of. A shipped default does this by convention; a hand-written replacement easily forgets, and then nothing in the running system reminds it. This skill is that reminder, in two faces.
+Authors and validates `slots` occupants: adaptors (`routing_adaptor`, `rendering_adaptor`), producers (`intake`, `spec`, `review`, `ship`), `methodology` and mechanisms (`concurrency`). The `spec` / `review` / `ship` contracts are producer-emitted; their adaptor slots are retired. Producers emit the standard `faff-contract:<name>` block their consumer parses. If a native tool cannot, this skill authors a fused wrapper to emit it. Each replacement must carry its own contract-discovery and conformance prose; the Author and Validate faces enforce that binding.
 
 This is a `faffter-dark-*` skill — advanced tooling, not part of the day-to-day pipeline. You invoke it when writing or auditing a slot skill, not during normal faff use.
 
@@ -18,7 +18,7 @@ Skills load independently. When a slot skill runs — as a delegated slot, or st
 2. a standalone-invoked slot skill **reads the gateway itself** before applying a contract;
 3. **this skill** ensures a *new* slot occupant is written so (2) actually happens — that it refers back rather than silently relying on a copy that can drift or be swapped away.
 
-A slot skill that omits the refer-back prose is a latent bug: it works as a delegated slot (inherits context) but is wrong standalone, and it invites someone to treat its local recap as the source of truth.
+Without refer-back prose, a delegated slot can inherit the contract yet fail standalone or treat its recap as authoritative.
 
 ## Two faces
 
@@ -85,7 +85,7 @@ signal: pass | fail
 [what's wrong] → [the fix]
 ```
 
-`pass` when no item fires. A missing refer-back note (item 2) or an authoritative-looking recap (item 3) is a `fail`, not a warning — those are exactly the drift/orphan bugs this skill exists to catch. A skill that redefines the fixed vocabulary (item 4) is `fail` regardless of how well-written it is.
+`pass` when no item fires. Missing refer-back (item 2), an authoritative recap (item 3) or redefined fixed vocabulary (item 4) is `fail`, never a warning.
 
 **Mechanical pre-check.** The bundled `faff validate-adapters` command (resolve the `faff` executable per gateway → **Resolver** if it isn't on `PATH`) is a fast, deterministic lint of the **shipped defaults** — it checks the *structural* half of this checklist (refer-back present, non-normative marker, methodology required-outputs named, mechanism points at its gateway contract) and exits non-zero on drift, so it's suitable for CI / pre-commit. Its `--configured` variant (`faff validate-adapters --configured`) runs the same structural checks against the occupants a user has actually configured in `.faff/config.yaml` — deriving each one's expected profile from the slot it fills — so it's the **pre-flight** for a swapped-in slot occupant: run it before trusting an unattended build, rather than discovering a structural fault as an overnight park. Neither variant replaces this Validate face: they can't judge the semantic items (4 "maps onto, never redefines", 7 "stays in its lane"). Run the script to catch structural drift cheaply; run this face for the judgement calls and for third-party occupants installed outside the skills dir.
 

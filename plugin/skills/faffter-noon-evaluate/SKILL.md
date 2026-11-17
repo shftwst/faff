@@ -7,13 +7,13 @@ judgement_seam: holdout, holdout-exercise, holdout-live
 
 # faffter-noon-evaluate
 
-The default occupant of the **`evaluator`** slot — the evaluate box of faff's build-and-judge pipeline (propose → provision → seed → evaluate). Given a spec and a feature *running* in a provisioned environment — and **never the diff or the codebase** — it answers one question: does the running thing satisfy what the spec promised? It exercises the spec's born-verifiable done-criteria against the live system and emits one `faff-contract:holdout-verdict`, then tears the env down. Its trust comes from a structural fact: code-blind by construction, it cannot mark its own homework or be talked into a pass by a plausible implementation.
+The default **`evaluator`** occupant exercises a spec's born-verifiable done-criteria against a running provisioned feature, emits one `faff-contract:holdout-verdict` and tears the env down. It receives the spec, **never the diff or codebase**: code-blindness prevents judging its own implementation or accepting one merely because it looks plausible.
 
 > When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/l4.md` (the L4 concurrency & evaluator lane it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 
-One pass turns a spec + a running env into one verdict block. It **judges outcomes, never reads code**: it exercises the feature from the outside and reports whether each criterion is met, with evidence. The verdict is a **contract**, not an implementation — a caller branches on the block, never on how the feature was exercised, so any evaluator conforms by emitting the same block.
+One pass **judges outcomes, never reads code**: exercise the feature externally and report each criterion with evidence in one verdict block. Callers branch on the contract block, not the exercise mechanism; replacement evaluators emit the same block.
 
 The trust boundary is fixed and not negotiable:
 

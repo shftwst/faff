@@ -63,7 +63,7 @@ For each excluded item:
 - **Why excluded** — one sentence
 - **Extension point** — where a future issue would add this (file, module, interface)
 
-This section prevents scope creep during build AND tells the next agent where to extend. Every item the explore step surfaced as "related but not this issue" belongs here.
+Include every explore item surfaced as "related but not this issue" to bound this build and locate future extensions.
 
 ### 3. WHAT — Vocabulary, Types, and Interfaces
 
@@ -127,7 +127,7 @@ Emit only above the complexity bar (same judgement as Scenarios): a spike, a nov
 
 ### 5. SCENARIOS — born-verifiable main objectives
 
-A dedicated `## Scenarios` section, after HOW, expressing the spec's **main objectives** as scenarios so what the work must achieve is born verifiable — not just prose the verifier has to re-derive.
+After HOW, a dedicated `## Scenarios` section makes the spec's **main objectives** directly verifiable.
 
 **Coverage — proportionate, not always-on.** Emit a scenario only for a main objective **above the complexity bar**: a non-trivial behavioural objective with a non-obvious observable outcome. Trivial objectives get none — a scenario for them is bloat, and the house skimmability rule outranks blanket consistency. The producer judges the bar.
 
@@ -211,7 +211,7 @@ Tag a done-item only a person can check with `needs-human: <reason>`, after any 
 
 **Eval coverage.** If the work introduces or changes an LLM-judgement seam, a DONE item registers its grader `KIND` + ≥1 eval case + the seam-registry row in this same ticket — all autonomous-doable. Recording/accepting the baseline value is a separate human-supervised step and is never required by this DONE item.
 
-**Integration smoke test:** pseudocode for a single end-to-end path that exercises the happy case. This is not exhaustive — it's the "if this one thing works, the plumbing is connected" test.
+**Integration smoke test:** pseudocode for one end-to-end happy path, checking connectivity rather than exhaustive coverage.
 
 ### 9. APPENDICES (optional)
 

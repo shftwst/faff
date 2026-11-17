@@ -7,15 +7,15 @@ judgement_seam: adr-gloss
 
 # faffter-noon-adr
 
-The default producer for the **`adr` slot**. Given a *settled* (already-`Chosen`) decision, it authors the ADR body that faff-graft drops into the `faff adr new` scaffold and commits on the feature branch (the `faff adr new` mechanics own the scaffold, numbering, and validate; this producer owns only the prose) — against the repo's **resolved section list**: Nygard (Context / Decision / Consequences) by default, or a committed `adr.md` template's own headings when the repo carries one.
+The default **`adr` slot** producer authors a settled (already-`Chosen`) decision for faff-graft to place in the `faff adr new` scaffold and commit on the feature branch. `faff adr new` owns scaffold, numbering and validate; this producer owns prose against the repo's **resolved section list**: Nygard (Context / Decision / Consequences) by default, or the committed `adr.md` template's headings.
 
-It is the judgement layer over the `faff adr new` deterministic ADR machinery, and the **single ADR-authoring producer**: the generative architecture proposer *decides* architecture and feeds settled decisions into this same slot rather than carrying its own writer.
+The **single ADR-authoring producer** over the deterministic `faff adr new` machinery: the architecture proposer settles decisions and feeds them to this slot rather than writing ADRs itself.
 
-This is a producer doing-skill, invoked as a configured slot — not a user `/` command. Swap it (`slots.adr`) to change how ADR bodies are authored.
+Invoked as a configured producer slot, not a user `/` command. Swap `slots.adr` to change body authoring.
 
 ## When it runs
 
-faff-graft **Step 4b**, once a promoted decision is settled and the build is complete. Authoring at *graft* (not the spec stage) is deliberate: the implementation is done, so the *Consequences* are real rather than guessed, and the record is true to what shipped.
+faff-graft **Step 4b**, once a promoted decision is settled and the build complete. Author at graft, not spec time, so *Consequences* describe the implementation that shipped.
 
 ## Input
 

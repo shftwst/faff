@@ -268,7 +268,7 @@ test("specReviewWindowSelftest() returns 0 in-process", () => {
 test("faff-prep/SKILL.md: the loop resolves the window + round number through `spec-review round`", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
   assert.match(body, /"\$faff" spec-review round --issue <ISSUE-XX> --dir "\$scratch"/, "each round is recorded by the round call, which reads window_start and the round number from disk");
-  assert.match(body, /spec-review round --open-window --dir \$scratch/, "a human unpark opens the window through the round call");
+  assert.match(body, /spec-review round --open-window --dir "?\$scratch"?/, "a human unpark opens the window through the round call");
   for (const verb of ["--read", "--govern", "--next-round", "--set"]) {
     assert.doesNotMatch(body, new RegExp(`spec-review-window ${verb}`), `prep no longer calls spec-review-window ${verb} by hand`);
   }

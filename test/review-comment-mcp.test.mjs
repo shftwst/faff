@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { createInterface } from 'node:readline';
 import { connectReviewTracker } from '../plugin/skills/faff/bin/lib/review-comment-mcp.js';
 import { createReviewCommentSession } from '../plugin/skills/faff/bin/lib/review-comment-session.js';
@@ -19,7 +19,7 @@ function tracker(t, faults = []) {
   createFixtureTracker({ directory: dir, issueId: issue, initialState: {
     comments: [{ id: 'one', body: `human\r\n${open}\r\nold\r\n${close}\r\n尾\\n\r\n`, created_at: null }], next_comment_id: 'new', now: '2026-11-16T00:00:00Z',
   }, faults });
-  return { dir, config: { schema: 1, command: process.execPath, args: [resolve('test/helpers/review-comment-tracker.mjs'), dir], tools: { list: 'list_comments', create: 'create_comment', update: 'save_comment' }, issueArgument: 'issue_id', timestampField: 'created_at', listing: 'complete-comments' } };
+  return { dir, config: { schema: 1, command: process.execPath, args: [resolve('test/helpers/review-comment-tracker.mjs'), '--serve', dir], tools: { list: 'list_comments', create: 'create_comment', update: 'save_comment' }, issueArgument: 'issue_id', timestampField: 'created_at', listing: 'complete-comments' } };
 }
 
 test('production MCP connector writes exact stored bytes through a real upstream stdio process', async t => {
@@ -158,7 +158,7 @@ for (const scenario of inputs.registry.scenarios) test(`shipped connector matche
   const dir = mkdtempSync(join(tmpdir(), 'faff-oracle-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const tracker = createFixtureTracker({ directory: dir, issueId: fixture.issue_id, initialState: fixture.tracker });
-  const config = { schema: 1, command: process.execPath, args: [resolve('test/helpers/review-comment-tracker.mjs'), dir], tools: { list: 'list_comments', create: 'create_comment', update: 'save_comment' }, issueArgument: 'issue_id', timestampField: 'created_at', listing: 'complete-comments' };
+  const config = { schema: 1, command: process.execPath, args: [resolve('test/helpers/review-comment-tracker.mjs'), '--serve', dir], tools: { list: 'list_comments', create: 'create_comment', update: 'save_comment' }, issueArgument: 'issue_id', timestampField: 'created_at', listing: 'complete-comments' };
   const upstream = await connectReviewTracker(config);
   t.after(() => upstream.close());
   const session = createReviewCommentSession(upstream.ports);
@@ -169,4 +169,13 @@ for (const scenario of inputs.registry.scenarios) test(`shipped connector matche
   const effects = tracker.readEvents().filter(e => e.kind === 'effect-attempt').map(({ op, args }) => ({ op, args }));
   assert.deepEqual(effects, scenario.expected.effects);
   assert.deepEqual(tracker.readState().issues, inputs.expected.scenarios[scenario.id].final_comments);
+});
+
+test('tracker helper discovery is inert and explicit serving requires a directory', () => {
+  const helper = resolve('test/helpers/review-comment-tracker.mjs');
+  const discovered = spawnSync(process.execPath, ['--test', helper], { encoding: 'utf8', timeout: 5000 });
+  assert.equal(discovered.status, 0, discovered.stdout + discovered.stderr);
+  const invalid = spawnSync(process.execPath, [helper, '--serve'], { encoding: 'utf8', timeout: 5000 });
+  assert.notEqual(invalid.status, 0);
+  assert.match(invalid.stderr, /--serve DIRECTORY/);
 });

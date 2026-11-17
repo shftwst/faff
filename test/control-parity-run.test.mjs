@@ -11,11 +11,14 @@ import { evaluateCapture, preflight, prepareExperiment, runBaseline, runPairs } 
 import { loadPolicyBytes } from '../eval/control-parity/tracker.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
+// Frozen policy matches this historical registry, independent of current runtime prose.
+const LEGACY_POLICY = readFileSync(new URL('./fixtures/review-comment/legacy-policy.md', import.meta.url), 'utf8');
 const FILES = ['plugin/skills/faff/references/review.md', 'eval/control-parity/schema.mjs', 'eval/control-parity/tracker.mjs', 'eval/control-parity/proxy.mjs', 'eval/control-parity/tool-server.mjs', 'eval/control-parity/claude-driver.mjs', 'eval/control-parity/run.mjs', 'eval/control-parity/registry.json', 'eval/control-parity/expected-outcomes.json', 'eval/control-parity/blocked-coverage.json', 'eval/control-parity/fixtures/review-comments.json'];
 const git = (cwd, ...args) => execFileSync('git', ['-c', 'user.name=Test', '-c', 'user.email=test@example.invalid', '-c', 'commit.gpgsign=false', '-c', 'core.hooksPath=/dev/null', ...args], { cwd, encoding: 'utf8' }).trim();
 const makeRepo = () => {
   const dir = mkdtempSync(join(tmpdir(), 'cp-run-repo-'));
   for (const f of FILES) { mkdirSync(dirname(join(dir, f)), { recursive: true }); cpSync(join(ROOT, f), join(dir, f)); }
+  writeFileSync(join(dir, 'plugin/skills/faff/references/review.md'), LEGACY_POLICY + '### Producer slots\n');
   git(dir, 'init', '-q');
   git(dir, 'add', '.');
   git(dir, 'commit', '-q', '-m', 'pinned');

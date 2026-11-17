@@ -48,8 +48,9 @@ export function createFixtureTracker({ directory, initialState, issueId, faults 
   };
   return { ports, readState, readEvents };
 }
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  const tracker = createFixtureTracker({ directory: resolve(process.argv[2]) });
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href && process.argv[2] === '--serve') {
+  if (process.argv.length !== 4 || !process.argv[3]) throw new Error('usage: review-comment-tracker.mjs --serve DIRECTORY');
+  const tracker = createFixtureTracker({ directory: resolve(process.argv[3]) });
   createInterface({ input: process.stdin }).on('line', line => {
     const m = JSON.parse(line);
     if (m.id === undefined) return;

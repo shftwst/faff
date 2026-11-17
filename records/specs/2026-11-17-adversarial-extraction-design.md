@@ -30,6 +30,8 @@ removed passage; coverage alone does not establish semantic equivalence.
 
 | Prose rule | Disposition |
 |---|---|
+| `yaml adversarial: provider: vllm` | changed: configuration example moves to the optional operator reference |
+| `openai vllm openrouter nvidia deepseek gemini` | changed: supported transports remain in the optional operator reference |
 | `description: "Adversarial second-opinion code review for the` | changed: compact wording, same caller obligation |
 | `Two-phase code review: standard structural review (delegated to` | changed: compact wording, same caller obligation |
 | `Plugs into the review slot — replaces the default review, not` | changed: compact wording, same caller obligation |
@@ -101,7 +103,6 @@ removed passage; coverage alone does not establish semantic equivalence.
 | `When this lens finds nothing — this text is the --system prompt` | changed: compact wording, same caller obligation |
 | `The network call is made only by the bundled review-call.mjs` | changed: compact wording, same caller obligation |
 | `The skill supports any LLM backend. Configure which one it` | changed: move operator reference out of runtime loading and remove unchanged helper internals |
-| `yaml adversarial: provider: vllm # ollama \| openai \| vllm \|` | changed: move operator reference out of runtime loading and remove unchanged helper internals |
 | `Fallback chain. The scalar block above is the primary backend.` | changed: move operator reference out of runtime loading and remove unchanged helper internals |
 | `- Value is a JSON-string — a quoted JSON array of backend` | changed: move operator reference out of runtime loading and remove unchanged helper internals |
 | `- Each fallback is self-contained (its own provider/model/host` | changed: move operator reference out of runtime loading and remove unchanged helper internals |
@@ -115,7 +116,6 @@ removed passage; coverage alone does not establish semantic equivalence.
 | `- The token estimate is deliberately conservative (a` | changed: remove implementation narrative, retain caller obligations |
 | `Transport families (helper-internal — how review-call.mjs` | changed: move operator reference out of runtime loading and remove unchanged helper internals |
 | `\| Provider \| Transport \| Host \| Auth \| Notes \|` | changed: move operator reference out of runtime loading and remove unchanged helper internals |
-| `\| ollama openai vllm openrouter nvidia deepseek gemini \|` | changed: move operator reference out of runtime loading and remove unchanged helper internals |
 | `\| anthropic \| native (/v1/messages, named-event SSE) \| host =` | changed: move operator reference out of runtime loading and remove unchanged helper internals |
 | `An unknown provider exits 2 (loud), never a silent pass. (A` | changed: compact wording, same caller obligation |
 | `Anti-pattern: hand-rolling the backend request. Reconstructing` | changed: compact wording, same caller obligation |

@@ -932,7 +932,7 @@ const ANCHOR_REGISTRY = {
   ROADMAP_PROSE_START: { skill: "faff-map", end: "ROADMAP_PROSE_END" },
   ADR_GLOSS_PROSE_START: { skill: "faffter-noon-adr", end: "ADR_GLOSS_PROSE_END" },
   SPEC_VERDICT_PROSE_START: { skill: "faffter-noon-spec-review", end: "SPEC_VERDICT_PROSE_END" },
-  REFUTATION_CODE_PROSE_START: { skill: "faffter-dark-adversarial-review", end: "REFUTATION_CODE_PROSE_END" },
+  REFUTATION_CODE_PROSE_START: { skill: "faffter-dark-adversarial-review", end: "REFUTATION_CODE_PROSE_END", nextHeading: "Output" },
   // FAFF-669
   PREP_ARCH_TRIGGER_PROSE_START: { skill: "faff-prep", end: "PREP_ARCH_TRIGGER_PROSE_END" },
   GROUPING_PROSE_START: { skill: "faffter-dark-methodology-agile-delivery", end: "GROUPING_PROSE_END" },
@@ -988,7 +988,7 @@ test("FAFF-669 the anchor registry covers every start-anchor constant declared i
 // mirror of the start check counting occurrences in [0, EOF] against 1. Within [start, firstEnd] the
 // end anchor always appears exactly once by construction, so THAT narrower window could never reveal
 // an inserted duplicate — only the after-start-to-EOF window can.
-test("FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window", () => {
+test("FAFF-687 every registered end anchor matches its declared boundary", () => {
   for (const [name, row] of Object.entries(ANCHOR_REGISTRY)) {
     if (row.end === null) continue; // extractSectionToEnd — no end anchor to guard
     const md = readFileSync(rowPath(row), "utf8");
@@ -996,6 +996,14 @@ test("FAFF-687 every registered end anchor occurs exactly endCount times (defaul
     const startPos = md.indexOf(startVal);
     assert.ok(startPos >= 0, `${name} not found in ${row.skill}/${rowFile(row)}`);
     const window = md.slice(startPos + startVal.length);
+    if (row.nextHeading) {
+      const boundary = anchorValue(row.end);
+      assert.equal(boundary, "\n## ");
+      const next = window.indexOf(boundary);
+      assert.ok(next >= 0, `${name}: next peer heading is missing`);
+      assert.equal(window.slice(next + boundary.length).split("\n", 1)[0], row.nextHeading);
+      continue;
+    }
     const expected = row.endCount ?? 1;
     assert.equal(occurrences(window, anchorValue(row.end)), expected,
       `${row.end} does not occur ${expected}x after ${name} in ${row.skill}/${rowFile(row)} — extractSection would silently truncate`);

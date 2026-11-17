@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T04:08:09.872395+00:00",
+  "reviewer": "/root/verify_wtf_scope; independent bounded prelaunch verifier",
+  "status": "ready_for_exact_registered_serial_baseline_only",
+  "bindings": {
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v3-registration.json": {
+      "sha256": "3b6b99f761ba1255b4385e928683c4706d28f8eacc8d65cae59398a9718a07e0",
+      "bytes": 3145
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v3-baseline-plan.json": {
+      "sha256": "ed9c94c2e778bdc0976aa6a175e067d3b9ff6bd616c6444cede895a3eebdaf36",
+      "bytes": 30883
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v3-candidate-plan.json": {
+      "sha256": "786523e1db7970ed2c679e33850aab21f3b529d493a55405c9636ec5262c2720",
+      "bytes": 30903
+    },
+    "verification/experiments/2026-11-16-skill-diet/verify-graft-checkpoint-arm-v3.mjs": {
+      "sha256": "3f1405281df4943678d6738b69de5346ba343c95050cc878e317e0e142a1de3a",
+      "bytes": 11407
+    },
+    "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v4.py": {
+      "sha256": "85840dcfc17bedb3a9760eb344e28187ecd45d3ed5c8e2b761050f8575fd7c75",
+      "bytes": 13012
+    },
+    "verification/experiments/2026-11-16-skill-diet/independent-graft-checkpoints-v3-review.json": {
+      "sha256": "02d0190879b890e813f455a8eb646cd32d67f4a56ace8d2b6e27ee67bf2304bd",
+      "bytes": 11742
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v3-development-checkpoint.json": {
+      "sha256": "3a3d1e7d6a42afa07e593483bb968bdb5d0274999be6a8773a4532c2956866e6",
+      "bytes": 102527
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v2-hold.json": {
+      "sha256": "efb54de2b27a10da50c4e4e040f40f440bd6045220532b09845c365cbe91adc0",
+      "bytes": 18730
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v2-registration.json": {
+      "sha256": "61d159f0b85c3e18347f89ff4d1e5db130c40cbdb43ee525bb23b2b70f51795c",
+      "bytes": 3976
+    },
+    "eval/control-parity/graft-checkpoint-execution-v3.mjs": {
+      "sha256": "016859b43982b3bae73bed432d22b5261168490f30a940d9280d5852e3411310",
+      "bytes": 30265
+    },
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v3-draft.json": {
+      "sha256": "bb053dc6a6f290290440726b89c1a416c8784f1e6179d70f9429ca8932e3a517",
+      "bytes": 13078
+    }
+  },
+  "checks": {
+    "registration_plan_hashes_match": true,
+    "frozen_inputs_per_arm": 104,
+    "all104_current_hashes_match": true,
+    "frozen_maps_identical": true,
+    "arms_identical_except_sample_name_arm_policy": true,
+    "five_original_samples_per_arm_exact_names": true,
+    "no_v3_sample_directory_present": true,
+    "model_effort_unchanged": "gpt-6.1-sol medium",
+    "runtime_unchanged": {
+      "root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+      "commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+      "plugin_tree": "95a737122d9d74167045d24fa0619c6a47f11991",
+      "bindCandidateCommand_and_end_guard_pass": true
+    },
+    "source_policy_pair_unchanged_from_held_v2": true,
+    "eight_shared_context_references_byte_identical_between_arms": true,
+    "source_bodies_match_independently_reviewed_baseline_candidate": true,
+    "mandatory_initial_context_files_unchanged": true,
+    "dynamic_reporting_execution_explicitly_frozen": true,
+    "static_plus_explicit_dynamic_closure_files_checked": 22,
+    "missing_closure_entries": [],
+    "checker_literal_cohort_fixture_harness_runner_ids_match": true,
+    "existing_v4_runner_serial_stop_on_first_failure": true,
+    "no_runner_change": true,
+    "no_assessment_or_regrade_hook_requested": true,
+    "old59_frozen_hashes_unchanged": true,
+    "prior_v2_hold_and_registration_hashes_match": true
+  },
+  "manual_acceptance_bound": {
+    "criteria_ids": [
+      "gate-and-order",
+      "ac-and-methods",
+      "evidence-and-refusals",
+      "terminal-mapping",
+      "supported-claims",
+      "real-consumers",
+      "proof-limits"
+    ],
+    "reject_file_bodies_and_nested_evidence_even_if_factual": true,
+    "every_optional_claim_and_note_source_grounded": true,
+    "actual_pr_handoff_classifier_writer_captured_spec_config_facts": true,
+    "contiguous_sole_writer_repair_interpretation_explicit": true,
+    "ledger_extra_detail_independent_review_retained": true,
+    "all14_case_reviews_and7criteria_require_pass": true
+  },
+  "execution_and_acceptance": {
+    "baseline": "Five original samples serially, stopping all further launches on first raw/native failure. No replacement/retry/waiver/alternative model rescue.",
+    "candidate": "No launch until complete five-sample baseline raw/native/manual/fresh-replay arm gate passes. Then identical five original candidate samples and strict bars.",
+    "checker": "Exact registered source/input/runtime bindings, fresh raw grade equality with manual flag, native replay equality and actual evidence hashes; no partial arm can pass.",
+    "future_integration": "Exact source integration, adapter lint, inventory and accounting remain prerequisites to acceptance."
+  },
+  "scope_limits": [
+    "Guarded local-floor refusal for the exact unasserted-integrity blocker is expected; no successful floor/custody/merge claim.",
+    "Eight bounded executions and six decisions; supplied shipped ledger observations are not exercised hosted merges.",
+    "No full graft, PR-open orchestration, hosted PR/CI, review quality, lifecycle, PR-body placement, long resume/timeout, separate errored-rung model proof or Claude/Opus/provider-wide parity.",
+    "Zero-model controller/serializer evidence is not a native model/full-context qualification. Actual native and semantic/manual gates remain required.",
+    "Held V2 raw/native/manual failures remain frozen and unpooled; no old sample regraded.",
+    "Only this review record written; no model calls, source/helper/fixture edits or sample launches."
+  ],
+  "readiness": "No prelaunch defect found at these exact registered bytes. Readiness applies only to the registered serial baseline phase, not candidates or source acceptance."
+}

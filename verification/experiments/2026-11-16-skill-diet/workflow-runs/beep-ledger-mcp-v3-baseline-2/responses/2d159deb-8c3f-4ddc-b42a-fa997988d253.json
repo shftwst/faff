@@ -1,0 +1,34 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc102",
+      "--root",
+      "/var/tmp/faff-ledger-measure-9eplDF/actual/phase-events"
+    ],
+    "input": "{\"phase\":\"prep\",\"type\":\"prep-start\",\"issue\":\"PREP-1\"}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":5,\"ts\":\"2026-11-17T00:48:21.006Z\",\"prev\":\"e66638fe5ed60234198ff4b608ccef568dbc40416d8eec9db55d21804bf19eb9\",\"phase\":\"prep\",\"type\":\"prep-start\",\"issue\":\"PREP-1\"}\n",
+    "stderr": "",
+    "error": null,
+    "ledger_before_sha256": "e973d09090283388d4ca12034ae0bc7ba27fdfb42a3591868332a2464aa3a76a",
+    "ledger_after_sha256": "e973d09090283388d4ca12034ae0bc7ba27fdfb42a3591868332a2464aa3a76a",
+    "prior_events_sha256": "1dec145ce51e9868f410481c1c489bf99c5af53b891e26e6ec5770f33b06f7a3",
+    "events_after_sha256": "8334f20e1477faaf0b06e5259d2fd0c3afd2ef790cfec707b88f520b70c926e5",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 5,
+        "ts": "2026-11-17T00:48:21.006Z",
+        "prev": "e66638fe5ed60234198ff4b608ccef568dbc40416d8eec9db55d21804bf19eb9",
+        "phase": "prep",
+        "type": "prep-start",
+        "issue": "PREP-1"
+      }
+    ]
+  }
+}

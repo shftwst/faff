@@ -1,0 +1,64 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc102",
+      "--root",
+      "/var/tmp/faff-ledger-measure-15Q5QA/actual/phase-events",
+      "--tokens",
+      "--session-id",
+      "ledger-measurement-session"
+    ],
+    "input": "{\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-1\",\"data\":{\"outcome\":\"parked\",\"gate\":\"adversarial\",\"rework_turns\":2}}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":10,\"ts\":\"2026-11-17T00:43:37.625Z\",\"prev\":\"cda8a0eec652746e3ab06a1cecc2dfbfb09f1b41e0205f35d9f38e80125ba858\",\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-1\",\"data\":{\"outcome\":\"parked\",\"gate\":\"adversarial\",\"rework_turns\":2,\"tokens\":{\"input\":315,\"output\":45,\"cache_write_5m\":6,\"cache_write_1h\":3,\"cache_read\":12},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"d5cd2f8c49dd45fee7519fd4dbd2621e05198124c01e2927cce0453ff0aa699c\",\"ledger_sha256_after\":\"a4b2a335471d255dfb715383f45cb8608a6ae0131c10f9090ae52d880833a747\"}}\n",
+    "stderr": "",
+    "error": null,
+    "ledger_before_sha256": "d5cd2f8c49dd45fee7519fd4dbd2621e05198124c01e2927cce0453ff0aa699c",
+    "ledger_after_sha256": "a4b2a335471d255dfb715383f45cb8608a6ae0131c10f9090ae52d880833a747",
+    "prior_events_sha256": "a734b6bfbc971cf3d75e95eafd66c354934ff0f95f7d956d0ee3f576958a4893",
+    "events_after_sha256": "a77c161e7c710cbb5665d09030eb2b15264700c2317d94de0c31aa50fd005355",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 9,
+        "ts": "2026-11-17T00:43:37.625Z",
+        "prev": "2818673036966829ea4c4032a4a0f03132539765b38460cca15f2efbacd9b258",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "a4b2a335471d255dfb715383f45cb8608a6ae0131c10f9090ae52d880833a747"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 10,
+        "ts": "2026-11-17T00:43:37.625Z",
+        "prev": "cda8a0eec652746e3ab06a1cecc2dfbfb09f1b41e0205f35d9f38e80125ba858",
+        "phase": "build",
+        "type": "issue-outcome",
+        "issue": "BUILD-1",
+        "data": {
+          "outcome": "parked",
+          "gate": "adversarial",
+          "rework_turns": 2,
+          "tokens": {
+            "input": 315,
+            "output": 45,
+            "cache_write_5m": 6,
+            "cache_write_1h": 3,
+            "cache_read": 12
+          },
+          "tokens_source": "transcript",
+          "ledger_sha256_before": "d5cd2f8c49dd45fee7519fd4dbd2621e05198124c01e2927cce0453ff0aa699c",
+          "ledger_sha256_after": "a4b2a335471d255dfb715383f45cb8608a6ae0131c10f9090ae52d880833a747"
+        }
+      }
+    ]
+  }
+}

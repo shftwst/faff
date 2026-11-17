@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All three cases and all 11 questions finished successfully. The incomplete-ledger case preserved OPEN-1 without a terminal outcome, as requested.\n\nNo departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e6fb-aa59-7bc3-a3f0-ad93ae3988b3"
+    ],
+    "elapsed_seconds": 287.8,
+    "stdout_sha256": "4ae76556955ed73a1dbc5d85db420f3e37d9da7a026eb3dce088619790bdcb1f",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

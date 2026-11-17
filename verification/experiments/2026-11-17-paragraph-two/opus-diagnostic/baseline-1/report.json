@@ -1,0 +1,417 @@
+{
+  "status": "fail",
+  "bridge": {
+    "stop": null,
+    "requests": 53,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 208665,
+    "utf16_characters": 206541,
+    "sha256": "bea7a19a937522d4f6333b015b87562fa934d44bc458b9cb3942e32d85a13ae1",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6066,
+        "sha256": "439c95286ca76044112fb4acad4ce2f04a7c0c83ccf7e9fd55ce598c479f591d"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "cf46e58b9e213b907b7fcec4ee0aad2f54745592b0e7bc0ad35a13e690ef7980"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "29c2f0e1d843e2dd5722d3e1b31d4771fcc7ed58bf1550153d42de9c06decb93"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6032,
+        "sha256": "57a16d84c1cf90fabe85f35813c0e7e7a473856991342d84a47ab884015da952"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "00b35770f8924f91551316c922aae892e07485914e8cc038db695c519b762086"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "58738bcf18092ac99db9a9e075258b8cb1ba0d67f8221c05af181734d23d7b04"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "4ae11a6bb1806f93cffd3ba5e315292de79799f67b2b0644ce81511fb12e13d0"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6047,
+        "sha256": "bc12e35606aad5a4485e00115e2caf9af0e64f588111c7622a563ec41ad1deca"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "1e9ac08a3c5f39f0d69961ff9a536c8a2da3c290922a489fd42b916d0ce77877"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "16c82d2ae9fd2eb88e24b7f444431596beb9fbdcea0581f6881dc36cb7f32d52"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "7139bf30a49d691decb466beb077088912bf24db940bf46eb37f3062d3b83c55"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "2db26b6929bdbbcbd4545580185d881fdbae6c702d4a9b16a61bc0e782864a07"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "3712f91f6201990a5f3a2a098b66497fd5a0d9212aaa60bcb3add299f646ac0a"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "620463dc7c2d0b24f19291001421b2172860f795a31fc5f462acce1368bdc76d"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "3644923266eea88b0a1eb9e2e39aa8eb8fc433c7489459ca8d058ac9951b808f"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6063,
+        "sha256": "5acbb9520180964813510db5441bcd254ad3d1eb8d1514258cd9aa97aef71eb7"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "deb09c260d2ee8853b4663781fa3547589a7506a391662fc7964a4f7738f2e77"
+      },
+      {
+        "offset": 102000,
+        "end": 108000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "51c7997c77e9f98cbb7685d527cbc31dfe4d8c54d3e32d46dbbad3cd1ade706c"
+      },
+      {
+        "offset": 108000,
+        "end": 114000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "45a23e86509b741fc74da08089001ab8d8f25e96b0f26c1f27b561f55c8bb211"
+      },
+      {
+        "offset": 114000,
+        "end": 120000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "6d92c690a3b9e195f8be4c0b55964aaf728bd11d613346f051bfe5550cb1b4e7"
+      },
+      {
+        "offset": 120000,
+        "end": 126000,
+        "characters": 6000,
+        "bytes": 6040,
+        "sha256": "7989853363f55b7cf550ffd0ac6041142f25c52d160509bd6854819ab15f7e39"
+      },
+      {
+        "offset": 126000,
+        "end": 132000,
+        "characters": 6000,
+        "bytes": 6074,
+        "sha256": "13d8d14273861dbcd592ecaf843dfb6deffb45dd7817d4becbbbf7b1400148ae"
+      },
+      {
+        "offset": 132000,
+        "end": 138000,
+        "characters": 6000,
+        "bytes": 6058,
+        "sha256": "7428772682bd9b503f2c8a0b6ca5f743ca69603fcec9ee242b3e2e6d710f634d"
+      },
+      {
+        "offset": 138000,
+        "end": 144000,
+        "characters": 6000,
+        "bytes": 6074,
+        "sha256": "7b7161c7bd3e0f15490a060e5ce3f4a6034484eae9c7782d3e72bea58d10c020"
+      },
+      {
+        "offset": 144000,
+        "end": 150000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "994a4bf845adcc44499248e2f571a84981f0cabb7c3b8d9235310d58500f618b"
+      },
+      {
+        "offset": 150000,
+        "end": 156000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "2376f2997c1d8e84f7ff73485b4189bb4f1607d88b350d8727b23259a383e16b"
+      },
+      {
+        "offset": 156000,
+        "end": 162000,
+        "characters": 6000,
+        "bytes": 6135,
+        "sha256": "a79a0cfb393b7ae230f2d05ad2c8bfd074b35df68f8f5bcba436c8e22387a4ab"
+      },
+      {
+        "offset": 162000,
+        "end": 168000,
+        "characters": 6000,
+        "bytes": 6057,
+        "sha256": "d1a1912ba51ef0abdee2421b1a8846ec12c17bfa0a1fea7facb1960a8ef87102"
+      },
+      {
+        "offset": 168000,
+        "end": 174000,
+        "characters": 6000,
+        "bytes": 6232,
+        "sha256": "1ff9cdb570bd870fd7851489f3090ec97a854c1e497a3e8a0eb7ea02ebc150fa"
+      },
+      {
+        "offset": 174000,
+        "end": 180000,
+        "characters": 6000,
+        "bytes": 6058,
+        "sha256": "72fda4fea3d14481c3d06530aefc22d3807755b2e928a42bfa3218643869ccc2"
+      },
+      {
+        "offset": 180000,
+        "end": 186000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "859fabd4c86cf7299dc5bd0ec26db1d8345a964192f42658f850baeafdd0507c"
+      },
+      {
+        "offset": 186000,
+        "end": 192000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "1a4a024fa33dbee156262f5fefdb3024732d0615193cf09be502a71c48f48c6e"
+      },
+      {
+        "offset": 192000,
+        "end": 198000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "db7d972449e3a10e3b7512a53bb32dab341bc995b43eb32aa13d1ef971aebcb7"
+      },
+      {
+        "offset": 198000,
+        "end": 204000,
+        "characters": 6000,
+        "bytes": 6098,
+        "sha256": "36e676e24743e1c2018e6351689c87db4dd00aeba9fabd1b11ca27cde4ddbf0f"
+      },
+      {
+        "offset": 204000,
+        "end": 206541,
+        "characters": 2541,
+        "bytes": 2561,
+        "sha256": "1f44018c105d8217e2860a4a4d631a6571b6b6fe0ee78215afa04c534cbc67e5"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "fail",
+    "cases": [
+      {
+        "id": "empty",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "operations",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "wip-cap",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "empty-preview",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "methodology-line",
+        "kind": "decision",
+        "pass": false,
+        "problems": [
+          "rule-answer"
+        ],
+        "value": "Methodology: "
+      },
+      {
+        "id": "milestone-columns",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": [
+          "Milestone",
+          "Target",
+          "Progress"
+        ]
+      },
+      {
+        "id": "diagnostics-clean",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "calibration-empty",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "wip-cap",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "autonomous-wip",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "findings-cap",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": 2
+      },
+      {
+        "id": "ordering-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "pick-ordering"
+      },
+      {
+        "id": "parked-manual",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "no-ratification",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "prep-no-spec",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-prep"
+      },
+      {
+        "id": "graft-spec",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-graft"
+      },
+      {
+        "id": "medium-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "(unowned)"
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Persisted interactive WTF briefs at the completed-fetch boundary. Only the Output Format example and duplicated Notes are eligible for compression. All collection, dispatch, mutation gates, chaining and autonomous sections remain byte-identical. Source facts are controlled caller snapshots; no live tracker fetch, mutation or full entry workflow is claimed.",
+  "accounting": "unmetered"
+}

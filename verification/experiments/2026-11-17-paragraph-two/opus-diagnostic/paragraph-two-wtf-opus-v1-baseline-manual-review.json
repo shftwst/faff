@@ -1,0 +1,300 @@
+{
+  "schema": 1,
+  "status": "manual-hold-required-queue-format-failure-with-interpretive-offer-concern",
+  "candidate_launch_gate": "hold",
+  "sample": "paragraph-two-wtf-opus-v1-baseline-1",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/wtf-format.json",
+      "sha256": "c253d413ce6dadae1db1e9bee52e05971b2dffa96599a968b65d53c5b4d90acd",
+      "bytes": 20625
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/paragraph-two-wtf-opus-v1-baseline-policy.md",
+      "sha256": "bea7a19a937522d4f6333b015b87562fa934d44bc458b9cb3942e32d85a13ae1",
+      "bytes": 208665
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/paragraph-two-wtf-opus-v1-baseline-1/capture.json",
+      "sha256": "9be45f36b97d7c9dc137398aa26f9c979d80ee8c3f3e6d5259346a743c2a5f66",
+      "bytes": 19362
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/paragraph-two-wtf-opus-v1-baseline-1/report.json",
+      "sha256": "53f217548b1a9d8dbef33daf8a50a1d8e428503a50632e930baebaea8e9babfe",
+      "bytes": 10826
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/paragraph-two-wtf-opus-v1-baseline-plan.json",
+      "sha256": "a207cf024fb8448ca4b852f0b3ca301fdef1faf6a82718027d799070be1b7cce",
+      "bytes": 1406
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/paragraph-two-wtf-opus-v1-registration.json",
+      "sha256": "a35406906d6fadf82f36c11d25e478e562823cb579b505c829eafa0a03e0a4f8",
+      "bytes": 95771
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/paragraph-two-wtf-opus-v1-label-assessment-addendum.json",
+      "sha256": "d96eebfa501044ee9cceca0a3641984285981b11ee1d1ed96ea0c45fb7e58ad4",
+      "bytes": 5245
+    }
+  ],
+  "method": "Read all three persisted actual Markdown artifacts and all14 rule answers against fixture controlled facts and frozen full target policy plus relevant fixed rendering queue-grid rules. Hash-bind full delivered baseline policy; no automatic oracle pass substituted for manual review.",
+  "case_reviews": [
+    {
+      "case_id": "empty",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/paragraph-two-wtf-opus-v1-baseline-1/artifacts/empty.md",
+        "sha256": "0ae1430d9fe7998e3e3b68c12cd69fa34aa70a0c5514da81a6f0b254c1a380c8",
+        "bytes": 364
+      },
+      "source_pointer": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/wtf-format.json#/cases/0/source",
+      "source_sha256": "eda715efc016233ab4df154018b2e67c866bff10d7b7739eca16aa6d4a87d818",
+      "facts": "pass",
+      "authority_and_no_invented_actions": "pass",
+      "ordering_and_WIP": "pass",
+      "required_offers": "interpretive-concern-not-established-failure",
+      "required_format": "pass",
+      "finding": "No methodology banner or invented issue/milestone/action. Optional empty sections omitted; Build/Prep/Needs-your-call none and clean structural status retained. No fictitious WIP/week dates/operations. Full-groom gate missing.",
+      "findings": [
+        "missing-full-groom"
+      ],
+      "manual_case_status": "pass-on-established-hard-rules-with-offer-concern"
+    },
+    {
+      "case_id": "operations",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/paragraph-two-wtf-opus-v1-baseline-1/artifacts/operations.md",
+        "sha256": "1b5af36e723b20079bfdd07a18362fae35acf7ec47720d96098ab95766ea93cc",
+        "bytes": 3683
+      },
+      "source_pointer": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/wtf-format.json#/cases/1/source",
+      "source_sha256": "15ae0e3dde7f9e8546a1e26afebcde39e5f1b2e10d21f302ac94cc3afc9c0a11",
+      "facts": "pass",
+      "authority_and_no_invented_actions": "pass",
+      "ordering_and_WIP": "pass",
+      "required_offers": "interpretive-concern-not-established-failure",
+      "required_format": "fail",
+      "finding": "Milestone target50%/7days and project preserved. Shipped BRF10 unlocks11; focus11 then12 preserves methodology order and chain13\u219214. Both parked sources/causes/unpark paths and autonomous log retained. Review1/3 and spec-review2/4 durability/resume/no-work repetition accurate. ADR42/31 titles/reason/author and ratify gate retained without execution. Human WIP1/cap3/headroom2, owner groups architecture/product/unowned, retained medium/thin retry timing and no-spec prep33 preserved. Ready11/graft/promotion/build/parked offers present; full-groom offer missing; build queue grid incomplete.",
+      "findings": [
+        "missing-full-groom",
+        "missing-queue-partition-grid"
+      ],
+      "manual_case_status": "fail-required-queue-partition-grid"
+    },
+    {
+      "case_id": "wip-cap",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/paragraph-two-wtf-opus-v1-baseline-1/artifacts/wip-cap.md",
+        "sha256": "9c0aba907ed09d4925f6b127d95feb2b07d9b5f1a3abadc773b01ecb89d3eceb",
+        "bytes": 2520
+      },
+      "source_pointer": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/wtf-format.json#/cases/2/source",
+      "source_sha256": "2cde291c24733a8458dac260be37a526b89f68a3499a56e6e00fd94bd3a2745a",
+      "facts": "pass",
+      "authority_and_no_invented_actions": "pass",
+      "ordering_and_WIP": "pass",
+      "required_offers": "pass",
+      "required_format": "fail",
+      "finding": "Human WIP1/2 count2/cap2/headroom0; autonomous3 excluded. Focus filters out new start4 while automation retains4. Two methodology highlights in supplied severity order; full diagnostics retain third ghost6. Upstream gap/repeatpark also in Heads up. Calibration currency4/14days with3 advisory choices and no completed-action claim. Gap/prep/fullgroom/build gates present; build queue grid incomplete.",
+      "findings": [
+        "missing-queue-partition-grid"
+      ],
+      "manual_case_status": "fail-required-queue-partition-grid"
+    }
+  ],
+  "answer_reviews": [
+    {
+      "id": "empty-preview",
+      "actual": true,
+      "expected": true,
+      "value_sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "methodology-line",
+      "actual": "Methodology: ",
+      "expected": "Methodology:",
+      "value_sha256": "6bf682ca6adf7da84ee403981a7f1eca054243da120f4ae8b0324465630f8130",
+      "raw_match": false,
+      "manual_source_assessment": "Equivalent only under preregistered exact single trailing separator correction; rawfail retained.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "milestone-columns",
+      "actual": [
+        "Milestone",
+        "Target",
+        "Progress"
+      ],
+      "expected": [
+        "Milestone",
+        "Target",
+        "Progress"
+      ],
+      "value_sha256": "59b619127a783b152f9fc61f89217c09cbfd124bfd927992d15d235f39691b06",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "diagnostics-clean",
+      "actual": true,
+      "expected": true,
+      "value_sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "calibration-empty",
+      "actual": false,
+      "expected": false,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "wip-cap",
+      "actual": false,
+      "expected": false,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "autonomous-wip",
+      "actual": false,
+      "expected": false,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "findings-cap",
+      "actual": 2,
+      "expected": 2,
+      "value_sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "ordering-owner",
+      "actual": "pick-ordering",
+      "expected": "pick-ordering",
+      "value_sha256": "71a7ddf0dfdc4b51b09b26e8d52f8269f6c575116449c8b4d84f0819552beef1",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "parked-manual",
+      "actual": true,
+      "expected": true,
+      "value_sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "no-ratification",
+      "actual": false,
+      "expected": false,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "prep-no-spec",
+      "actual": "faff-prep",
+      "expected": "faff-prep",
+      "value_sha256": "f5cde65dcad9a5d1abc43dc576e612df374b52287c916b9141230add73c789b3",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "graft-spec",
+      "actual": "faff-graft",
+      "expected": "faff-graft",
+      "value_sha256": "97e45799081698d5ca7d43c6bd73944c0596869d0910bd5b2311c5838ef4e8c4",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    },
+    {
+      "id": "medium-owner",
+      "actual": "(unowned)",
+      "expected": "(unowned)",
+      "value_sha256": "6dfab8f85ed1a87534495dce0c5b122244098fb075ff8393b93b5ca92ff264d5",
+      "raw_match": true,
+      "manual_source_assessment": "Matches source rule and expected decision.",
+      "assessed_under_registered_rule": "pass"
+    }
+  ],
+  "findings": [
+    {
+      "id": "missing-full-groom",
+      "category": "required-offer",
+      "artifacts": [
+        "empty.md",
+        "operations.md"
+      ],
+      "policy": "WTF Chaining: After presenting output, Full groom: Run a full groom via /faff-tidy? (y/n).",
+      "observed": "Neither report includes this gate; wip-cap.md includes it.",
+      "assessment": "Concrete omission of the prescribed chaining offer, distinct from optional voice/style.",
+      "grading": "interpretive-concern-not-hard-failure",
+      "assessment_after_clarification": "Offer absent in empty/operations, but bullet may be a user-intent branch; do not count as mandatory universal omission."
+    },
+    {
+      "id": "missing-queue-partition-grid",
+      "category": "required-format",
+      "artifacts": [
+        "operations.md",
+        "wip-cap.md"
+      ],
+      "policy": "WTF5b Build queue requires rendering_adaptor queue partition grid form(c); Output Format says render(none) under empty subsections rather than omitting them. Fixed rendering form(c) has fire-and-forget(independents) and likely-fire(serialised) partitions.",
+      "observed": "Both render only an indented fire-and-forget list; header says0likely-fire, but there is no likely-fire grid partition or(none) subsection.",
+      "assessment": "Concrete layout/empty-partition omission, not a claim that queue membership or counts are wrong.",
+      "grading": "hard-source-format-failure",
+      "empty_partition_detail": "Empty likely-fire (none) is supporting layout evidence; the clearest hard rule is the required queue partition grid, rather than imposing a newly invented exact label."
+    }
+  ],
+  "raw_report_summary": {
+    "status": "fail",
+    "artifacts_passed": 3,
+    "artifacts_total": 3,
+    "decisions_exact_passed": 13,
+    "decisions_total": 14,
+    "sole_raw_decision_failure": "methodology-line trailing separator space",
+    "capture_errors": [],
+    "policy_delivery_complete": true,
+    "policy_delivery_errors": []
+  },
+  "separate_gate_notes": [
+    "Existing exact label-prefix assessment can resolve the one rule-answer mismatch but cannot waive the manual offer/layout failures.",
+    "Native audit and actual initial guidance hash binding are separate root-owned gates. Root reports current native guidance hash mismatch and holds candidate; this manual review does not waive it.",
+    "Global guidance hash mismatch has documented historical container-view precedent; this record grants no new context waiver or registry change."
+  ],
+  "scope_limits": [
+    "One baseline sample, three completed-fetch report artifacts and14decisions only; no parity, workflow qualification, acquisition, dispatch, tracker mutations or hosted effects claim.",
+    "Old fixture original OutputFormat/Notes scope does not qualify all new edits outside that scope.",
+    "Relevant exercised policy clauses reviewed; unchanged/unexercised200KB context is hash-bound, not independently re-reviewed clause by clause.",
+    "No optional prose/voice preference graded as factual invention; no unsupported issue/action facts found.",
+    "No artifact/report/capture/source/registry edits, model calls, reruns or harness changes; only this review record written."
+  ],
+  "grading_clarification": {
+    "prior_record_sha256": "a6aa84cd4b274125648cdb813d72fd4ebec48dbd47aac66bb941e9559765a5e5",
+    "correction": "Initial review overstated Full groom as unconditionally required after every brief. The Chaining bullet can also denote a user-intent branch; no explicit universal trigger was established. Preserve absence as an interpretive offer concern, not a confirmed hard source-rule failure.",
+    "hard_failure_retained": "WTF explicitly requires nonempty Build queue as fixed renderer queue partition grid. Operations and wip-cap instead render one indented fire-and-forget list, with no likely-fire partition; this remains an explicit format finding.",
+    "inherited_park_ambiguity": "Operations uses source-supplied regraft choice for build park. Later generic overnight re-prep wording conflicts; no new regression is asserted."
+  }
+}

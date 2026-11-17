@@ -1,0 +1,74 @@
+{
+  "status": "held-baseline-manual-format-failure",
+  "scope": "One original Opus baseline at completed-fetch focus-report boundary; no candidate run, no parity comparison.",
+  "source_baseline_commit": "9a6c64bacbe40bb99a40af5b014db357827289d9",
+  "candidate_source_commit": "cf8548fcb2e7dc9170aacc6ad69eb8b60b649ae8",
+  "provider": {
+    "observed_model": [
+      "claude-opus-5-5"
+    ],
+    "observed_cli": [
+      "2.1.325"
+    ],
+    "measurement_calls": 1,
+    "candidate_calls": 0,
+    "retries": 0
+  },
+  "raw": {
+    "status": "fail",
+    "artifact_passed": 3,
+    "artifact_total": 3,
+    "decisions_passed": 13,
+    "decisions_total": 14,
+    "failure": "methodology-line label with one trailing separator space"
+  },
+  "assessed": {
+    "status": "pass",
+    "artifact_passed": 3,
+    "decisions_passed": 14,
+    "rule": "Existing exact label-prefix separator correction, registered before launch; original raw failure retained."
+  },
+  "native": {
+    "status": "pass",
+    "complete": true,
+    "problems": [],
+    "guidance_limit": "Global operator guidance delivered by the worker differs from orchestrator filesystem view; the same delivered hash is recorded in earlier Claude audits. No claim these are identical files.",
+    "delivered_initial_reads": [
+      {
+        "path": "/Users/shftwst/.agents/AGENTS.md",
+        "complete": true,
+        "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+        "content_bytes": 21125
+      },
+      {
+        "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+        "complete": true,
+        "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+        "content_bytes": 5591
+      },
+      {
+        "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/paragraph-two-wtf-opus-v1-baseline-1/task.json",
+        "complete": true,
+        "content_sha256": "30644a85d8845bcf18cd15b8bf7888f72b61c07a156967748c584615af2b3955",
+        "content_bytes": 15459
+      }
+    ]
+  },
+  "manual": {
+    "status": "fail",
+    "facts_ordering_wip_holds_consent": "pass",
+    "hard_findings": [
+      "operations report lacks required queue partition grid",
+      "wip-cap report lacks required queue partition grid"
+    ],
+    "interpretive_concerns": [
+      "Full-groom offer is missing in empty/operations; branch interpretation is ambiguous, not a confirmed hard failure."
+    ]
+  },
+  "candidate": "not launched under frozen baseline gate",
+  "limitations": [
+    "No full workflow or model parity claim.",
+    "The diagnostic exposes baseline formatting gaps; it does not demonstrate a regression from the candidate, which was not run.",
+    "No reruns, replacement samples, grader changes or new harness code."
+  ]
+}

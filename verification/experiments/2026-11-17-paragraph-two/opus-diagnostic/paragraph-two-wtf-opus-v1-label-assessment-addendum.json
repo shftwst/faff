@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "status": "frozen-pre-launch-addendum-no-samples-started",
+  "created_utc": "2026-11-17T16:32:04.452733+00:00",
+  "parent_registration": "verification/experiments/2026-11-16-skill-diet/paragraph-two-wtf-opus-v1-registration.json",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/paragraph-two-wtf-opus-v1-registration.json",
+      "sha256": "a35406906d6fadf82f36c11d25e478e562823cb579b505c829eafa0a03e0a4f8"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/assess-wtf-format.mjs",
+      "sha256": "4d15ba9d6ca69fa3338e7d6410dbd9ee9c8890bad1562143dc042ae28575e945"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/WTF-LABEL-CORRECTION.md",
+      "sha256": "cc827d0c1a715d63d62aba8e28c89c1a4de143a40746921369e3cf57b0e1f161"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/wtf-format.json",
+      "sha256": "c253d413ce6dadae1db1e9bee52e05971b2dffa96599a968b65d53c5b4d90acd"
+    },
+    {
+      "path": "eval/control-parity/rendering-artifact.mjs",
+      "sha256": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/paragraph-two-wtf-opus-v1-baseline-plan.json",
+      "sha256": "a207cf024fb8448ca4b852f0b3ca301fdef1faf6a82718027d799070be1b7cce"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/paragraph-two-wtf-opus-v1-candidate-plan.json",
+      "sha256": "5ae907a430a19aa3488859aa28717694e86b67637138a045be35b8ef195ead0e"
+    }
+  ],
+  "prerun_absence_proof": [
+    {
+      "arm": "baseline",
+      "name": "paragraph-two-wtf-opus-v1-baseline-1",
+      "directory": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/paragraph-two-wtf-opus-v1-baseline-1",
+      "exists": false,
+      "checked_utc": "2026-11-17T16:32:04.452733+00:00"
+    },
+    {
+      "arm": "candidate",
+      "name": "paragraph-two-wtf-opus-v1-candidate-1",
+      "directory": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/paragraph-two-wtf-opus-v1-candidate-1",
+      "exists": false,
+      "checked_utc": "2026-11-17T16:32:04.452733+00:00"
+    }
+  ],
+  "change": "Reuse the established WTF label-prefix assessment symmetrically before this diagnostic starts. No fixture, grader, runner, harness, policy, original registration or original plan edits.",
+  "only_permitted_normalisation": {
+    "answer_id": "methodology-line",
+    "exact_original_value": "Methodology: ",
+    "exact_assessed_value": "Methodology:",
+    "scope": "Only the single trailing separator space in this exact answer value. No other whitespace/case/label/value/artifact/case changes."
+  },
+  "execution_and_gates": [
+    "Run baseline-only frozen plan first. Preserve its original report/capture/worker artifacts, raw grade and process exit, including rawfail/exit1 when the sole defect is the established exact label-prefix mismatch. Never replace a sample.",
+    "After finalization, run existing assess-wtf-format.mjs on that same baseline plan. It regrades a clone and writes unique assessment.json, binding originals/fixture/grader/assessor/correction hashes. Require assessed status pass, full policy delivery and no bridge rejection/stop/error. Any other failed decision/artifact remains failure.",
+    "Before candidate launch, root must independently accept baseline assessment, strict native model/version/read/tool/finish checks and actual three report artifacts plus14 decisions manual fact/authority/format review. Rawfail/exit1 alone is neither silently promoted nor a retry.",
+    "If baseline assessment, complete policy, native or manual gate fails, STOP; no candidate. Otherwise root may launch candidate-only plan once and apply the identical assessment and complete policy/native/manual gates.",
+    "Zero retries/replacements, no other waiver; raw and assessed results remain separately reported. One sample per arm remains diagnostic only, no full parity/qualification/acquisition/mutation or out-of-original-OutputFormat/Notes claim."
+  ],
+  "assessment_commands": {
+    "baseline": "node /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/assess-wtf-format.mjs /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/paragraph-two-wtf-opus-v1-baseline-plan.json",
+    "candidate_after_baseline_gate": "node /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/assess-wtf-format.mjs /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/paragraph-two-wtf-opus-v1-candidate-plan.json"
+  },
+  "worker_preflight": "Root reports actual Claude CLI2.1.325 and native transcript directory/auditor readability confirmed inside claude-retry. Native audit still mandatory after finalized sample.",
+  "preparation_limits": "New addendum only; no launch/model/assessor/harness execution or existing evidence edits."
+}

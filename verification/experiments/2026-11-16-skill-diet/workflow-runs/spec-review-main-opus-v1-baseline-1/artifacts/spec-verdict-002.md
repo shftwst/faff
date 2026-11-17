@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{ "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker", "claim": "Per-request auth state is held in a module-level mutable singleton shared by every in-flight request, so concurrent requests overwrite each other's roles; the state must be request-scoped (passed as an argument or held in a per-request context).", "evidence": "HOW: a module-level mutable singleton `let currentRoles` set at the start of request handling and read by every downstream helper", "predicted_consequence": "When two requests interleave, request A's helpers read request B's roles, so a caller can be authorised with another user's roles.", "spec_anchor": "how" } ] }
+```

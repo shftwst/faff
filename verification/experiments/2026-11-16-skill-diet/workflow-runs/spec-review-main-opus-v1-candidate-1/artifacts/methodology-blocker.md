@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{ "verdict": "reject-approach", "objections": [ { "lens": "methodology", "severity": "blocker", "claim": "The attached methodology critique rates the ticket a scope blocker: it combines four independently deliverable concerns where the increment limit is one useful recovery step.", "evidence": "HOW: token issuance, recovery email delivery, account policy administration and migration of old recovery records in one ticket; Methodology critique, Severity: blocker", "predicted_consequence": "Building as specified delivers four concerns in one increment. Split it and keep token issuance as the first useful slice.", "spec_anchor": "how" } ] }
+```

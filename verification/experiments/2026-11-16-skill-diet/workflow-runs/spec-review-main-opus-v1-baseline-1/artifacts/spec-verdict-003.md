@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{ "verdict": "needs-human", "objections": [ { "lens": "infosec", "severity": "blocker", "claim": "The server fetches any user-supplied URL with no allow-list and returns the body to the caller, which is server-side request forgery.", "evidence": "HOW: the backend performs `fetch(userUrl)` and streams the body back in the API response. No allow-list", "predicted_consequence": "A user can register an internal address such as a cloud metadata endpoint or a private-network service and read its response in the preview pane.", "spec_anchor": "how" } ] }
+```

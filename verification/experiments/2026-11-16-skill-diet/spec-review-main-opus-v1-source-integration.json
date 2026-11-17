@@ -1,0 +1,89 @@
+{
+  "main_base": "cd633ecf2fc24e175b2146e6af6bb551fcb9dffb",
+  "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+  "main_bytes": 9605,
+  "integrated_bytes": 8055,
+  "saved_bytes": 1550,
+  "main_estimated_tokens": 2381,
+  "integrated_estimated_tokens": 2001,
+  "saved_estimated_tokens": 380,
+  "main_sha256": "4704eea626c039b83490a8ccf87a52d289b97ae2128ac0d0d56adbf7f22895b7",
+  "integrated_sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571",
+  "historical_source_ref": "a523734d",
+  "qualification_record": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/spec-review-producer-sol-v1-final-qualification.json",
+  "qualification_record_sha256": "1283a923777d620b30e1346905d4cacfb4563543a2f0d979ea4e99d241c0cca4",
+  "independent_evidence_audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-spec-review-evidence-audit-sol.json",
+  "independent_audit_sha256": "334f4e2376e2c14150fe5964e0223ee1fda4d091693166f3eb731840e0214471",
+  "qualification_status": "qualified-bounded-spec-review-production-and-contract-routing",
+  "historical_model": "gpt-6.1-sol",
+  "historical_effort": "medium",
+  "checked_qualification_reference_hashes": 7,
+  "main_equals_original_baseline": true,
+  "exact_historical_source_match": true,
+  "compatibility_deltas": [],
+  "historical_body_saving_bytes": 1405,
+  "additional_catalog_description_saving_bytes": 145,
+  "limits": [
+    "Historically qualified Sol-medium production/contract-routing only; no Opus or complete prep-loop claim.",
+    "No model/harness/test/runtime modification; original evidence remains experimental branch."
+  ],
+  "inventory_rows": 13,
+  "inventory_bytes": 2627,
+  "commit": "c1bb21cdec0c02c1d2ccabe9c653f194f2b0b52a",
+  "branch": "feat/skill-diet-spec-review-main",
+  "worktree_clean": true,
+  "files_committed": [
+    "plugin/skills/faff/prose-baseline.json",
+    "plugin/skills/faffter-noon-spec-review/SKILL.md",
+    "records/specs/2026-11-17-skill-diet-spec-review-main-design.md"
+  ],
+  "signed_off_by": "Alec Hill <alec@shftwst.dev>",
+  "checks": [
+    {
+      "log": "/var/tmp/faff-spec-review-main-source-consumer-tests.txt",
+      "sha256": "1109df5272adc65d63afe9570fae11511b6372fbde3dcda10111edd5f110792c",
+      "status": "pass",
+      "exit_code": 0,
+      "tests": 122,
+      "pass": 122,
+      "fail": 0
+    },
+    {
+      "log": "/var/tmp/faff-spec-review-main-reputation-source-test.txt",
+      "sha256": "6f268c07bfb20b32200705e59f398b61af905d922e5e6eae7ec44c61615d2cbf",
+      "status": "pass",
+      "exit_code": 0,
+      "tests": 1,
+      "pass": 1,
+      "fail": 0
+    },
+    {
+      "log": "/var/tmp/faff-spec-review-main-prose-adapter-tests.txt",
+      "sha256": "e16d6ff4ea83d7794a6fe6eb398eace16fbdafc4cc8860f59ec916306f340de8",
+      "status": "pass",
+      "exit_code": 0,
+      "tests": 85,
+      "pass": 85,
+      "fail": 0
+    },
+    {
+      "log": "/var/tmp/faff-spec-review-main-adapter-lint.txt",
+      "sha256": "1601b691f953422c0cb71693868296d8615d4c26d72cccd02320ef5b3a146a27",
+      "status": "pass",
+      "exit_code": 0
+    },
+    {
+      "log": "/var/tmp/faff-spec-review-main-rule-inventory.json",
+      "sha256": "803a2ed4250ade2fdae796c2544d9ecc85dfbd536b0435abac595fb59cb1ff13",
+      "status": "pass",
+      "exit_code": 0
+    }
+  ],
+  "inventory": {
+    "blocks_deleted": 13,
+    "covered_moved": 0,
+    "covered_by_row": 13
+  },
+  "test_total": 208,
+  "no_push_or_pr": true
+}

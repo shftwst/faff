@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{ "verdict": "reject-approach", "objections": [ { "lens": "methodology", "severity": "blocker", "claim": "The attached methodology critique rates this a blocker: the ticket combines four independently deliverable concerns, over the limit of one independently useful recovery step. Split it, keeping token issuance as the first slice.", "evidence": "HOW: token issuance, recovery email delivery, account policy administration and migration of old recovery records in one ticket; Methodology critique, severity blocker", "predicted_consequence": "The ticket exceeds the mandatory increment limit and must be re-sliced before build.", "spec_anchor": "how" } ] }
+```

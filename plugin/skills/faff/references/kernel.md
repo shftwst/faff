@@ -363,7 +363,7 @@ No faff skill uses passive "run `/faff-*` next" or "you should run" language. Ev
 
 ## Interactive next-step offer (the forward-lean, in prose)
 
-Sibling of the **Chaining pattern**: that gates *decisions*; this governs *continuation and offers* at phase boundaries and stops. Claude Code's loop is **forward-leaning** — at a turn boundary it continues, or volunteers a "want me to proceed?" nudge; a non-forward-leaning harness (Codex) ends the turn and waits silently. faff inherited that forward-lean rather than writing it down, so the same flow stalled at every boundary under Codex. This subsection encodes the **interactive next-step offer** posture so the loop leans forward on any harness — without weakening the autonomous no-prompt invariant.
+The **Chaining pattern** gates decisions; this section governs continuation and next-step offers at phase boundaries and stops on every harness, preserving the autonomous no-prompt invariant.
 
 **The interactive guarantee (L1/L2 only).** At every **phase boundary** (prep→graft, build→review, review-pass→open-PR, PR→merge, graft→next-ticket) **and** every park/stall, exactly one holds: **CONTINUE** — no operator decision is required → proceed to the next step *in the same turn* (a continuation instruction); or **OFFER** — the turn ends here (a real decision gate, a park/stall, or a clean handoff like a long CI wait) → the **last line** names the next step *and its exact command* (a **next-step offer**; at a park, the **recovery offer** from the Park protocol). Never end the turn silently with neither. The CONTINUE arm is not licence to strip a real decision gate (e.g. the graft "Merge now?" confirm) — decision gates are the OFFER arm.
 

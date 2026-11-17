@@ -7,11 +7,11 @@ judgement_seam: ordering
 
 # faffter-noon-methodology-thematic
 
-The default methodology, the **thematic** lens — opinion-free: it reflects what the tracker topology already says, with no outcome opinion. Ordering by unlock value, gating on decision closure, surfacing graph-level problems, and floating the highest-leverage work first. No opinionated delivery philosophy, no principle-based diagnosis. Just: what does the graph say?
+The default **thematic** methodology derives ordering, decision-closure gates and graph diagnostics from tracker topology. Float the highest-leverage work first without outcome opinions, delivery philosophy or principle-based diagnosis.
 
-The cycle + ghost-project graph floor is **not** owned here — it is the methodology-agnostic **structural (topology) floor** (gateway → **The `methodology` slot** → the structural/topology floor), which this lens *composes* exactly as the agile lens does. "structural" names the tracker topology / dependency graph, never this lens.
+Compose the methodology-agnostic **structural (topology) floor** for cycle + ghost-project detection (gateway → **The `methodology` slot** → the structural/topology floor), as agile does. This lens does not own it: "structural" means tracker topology / dependency graph, not thematic.
 
-This is what runs when no other methodology is configured. It's extracted here so it can be referenced, tested, and eventually swapped.
+Run when no other methodology is configured; the separate skill can be referenced, tested and swapped.
 
 ```yaml
 slots:
@@ -22,25 +22,25 @@ slots:
 
 **Priority (issue-level OR inherited from any ancestor) → chainable unlock value (count of direct + transitive dependents, over live blocker edges only — gateway → *Satisfied blockers — edges to terminal work*).**
 
-When two issues have equal priority, the one that unlocks more downstream work goes first. When both are equal, creation order breaks the tie (oldest first — fairness over recency). Every output below that sequences work uses this rule.
+Break equal priority by greater downstream unlock value; break equal priority and unlock by oldest creation first. Apply this rule to every output that sequences work.
 
 ## Outputs
 
-Each output is a named capability a caller requests by name. This skill does not know or describe its callers — it answers the request from the graph. The answer is always graph-derived, never opinion-derived. The canonical set of named outputs (which are required, which caller requests each, the standard envelope) is fixed in the gateway → **The `methodology` slot**; the sections below are this skill's implementation of that contract.
+Answer named requests from graph facts, never opinions; this skill neither knows nor describes callers. Gateway → **The `methodology` slot** fixes outputs, requiredness, caller mapping and standard envelope; implement that contract below.
 
-It does **not** answer the optional `issue-critique` output — per-issue right-sizing/workstream/risk critique is an opinionated lens, and this default is pure structure. Unanswered is contract-valid: `/faff-prep` simply omits the `## Methodology critique` block (the agile lens is the one that fills it).
+Leave optional `issue-critique` unanswered: per-issue right-sizing/workstream/risk critique needs an opinionated lens. This is contract-valid; `/faff-prep` omits `## Methodology critique`, which agile supplies.
 
 ### `pick-ordering`
 
-Order a set of issues by the core ordering rule. Issues gating the longest chains rise to the top. Unlock value counts live blocker edges only (gateway → **Satisfied blockers — edges to terminal work**) — a satisfied edge adds no downstream count.
+Use the core ordering rule so issues gating longest chains rise. Count only live blocker edges (gateway → **Satisfied blockers — edges to terminal work**); satisfied edges add no downstream count.
 
-**Optional `prd-distance` composition.** When the caller supplies the `prd-distance` map (an L4 drain under a resolved target PRD — gateway → **Standard envelope → Optional input `prd-distance`**), compose it as a **within-band** tiebreaker on top of the core ordering rule, never a replacement:
+**Optional `prd-distance` composition.** When supplied under a resolved target PRD in an L4 drain, compose the `prd-distance` map within priority bands, never replacing the core rule (gateway → **Standard envelope → Optional input `prd-distance`**):
 
 1. Partition the ordered set into contiguous **human-priority bands** (the existing priority tier — floor rule (a): distance never crosses a band).
 2. **Within each band**, stable-sort by the issue's PRD-completion distance: `rank = min class_rank` of `prd-distance` entries whose `container` slug-matches the issue's container. **No match, or `rank == 0` (met) → neutral** — keep the issue's existing relative position (the core-rule order). Lower rank (nearer the parent PRD) orders sooner.
 3. **Never** move an issue across a band boundary.
 
-Distance is the primary key across classes within a band; the core ordering rule (unlock value, then creation order) is the deterministic tiebreak within a class. Because step 2 is a stable sort that leaves unmatched/`met` issues in place, **input absent ⇒ byte-identical output** (floor rule (b)) — with no map the composition never runs.
+Within a band, distance is primary across classes; unlock value then creation breaks ties within a class. Step 2's stable sort leaves unmatched/`met` positions unchanged. **Input absent ⇒ byte-identical output**: without a map, do not run composition.
 
 ### `promotion-readiness`
 
@@ -58,24 +58,24 @@ Distance is the primary key across classes within a band; the core ordering rule
 
 ### `ticket-shaping`
 
-Turn a **discovery brief** (the `intake` slot's output — see `faffter-noon-intake`) into a structured set of proposed tickets. Requested by `/faff-jot` after the intake conversation; the orchestrator creates the tickets this output proposes. This output **proposes** structure — it never writes to the tracker itself (that's the orchestrator lane).
+From a **discovery brief** (`intake` output, `faffter-noon-intake`), propose structured tickets for `/faff-jot` after intake. The orchestrator creates them; this output **proposes**, never writes the tracker.
 
-The thematic lens shapes purely from what the brief states plus the live tracker graph — no opinion about value or right-sizing (that's what an opinionated methodology like `faffter-dark-methodology-agile-delivery` adds on top):
+Shape from the brief's stated facts and live tracker graph, without value or right-sizing opinions; `faffter-dark-methodology-agile-delivery` adds those:
 
 - **greenfield brief** — one workstream/container candidate per stated capability (named after the capability, verbatim — the thematic lens does not rename); within each, the first tickets needed to reach the brief's `First slice`. Sequence the workstreams and the tickets by the core ordering rule (priority — none yet, so creation/sequence order — then unlock value derived from the stated `Dependencies`). Emit a top-level container proposal when the tracker supports one (initiative/project) and the brief spans multiple capabilities.
 - **single-item brief** — one ticket from the `Item`, placed in the workstream named by `area`. If `split-sense: possibly-splittable`, propose the two tickets named after the two concerns and link them per the stated relationship; if `unitary`, one ticket. Never force a split the brief didn't flag.
 
-For every proposed ticket emit: title (from the capability/item, plain English — no invented codes), a description seeded from the relevant brief prose, the container/workstream it belongs under, declared blocker/blocked-by links derived from the brief's `Dependencies`, and a `Backlog` status. Carry the brief's `Open questions` onto the relevant ticket's description so `/faff-prep` picks them up.
+Each proposed ticket needs a capability/item-derived plain-English title (no invented codes), relevant-brief-seeded description, container/workstream, `Dependencies`-derived blocker/blocked-by links and `Backlog` status. Copy relevant `Open questions` into its description for `/faff-prep`.
 
-**Recursive mode (`shape-level` supplied by `/faff-plot`).** When the request carries a `shape-level` (`initiative` / `project` / `epic`), shape only *that altitude's children* of the node-scoped sub-brief — not a full flat set. `/faff-plot` drives the descent and owns the stop rule; this output shapes one level per call:
+**Recursive mode (`shape-level` supplied by `/faff-plot`).** A `shape-level` (`initiative` / `project` / `epic`) requests only that altitude's children from the node-scoped sub-brief, never a full flat set. `/faff-plot` owns descent and stop rule; shape one level per call:
 
 - `initiative` — one initiative container per top-level outcome/capability group the brief names. Literal, verbatim names; no value opinion.
 - `project` — given one initiative's slice of the brief, the projects (workstreams) under it.
 - `epic` — given one project's slice, its **first-slice epics only** — the issues needed to reach that project's first usable slice — with `Dependencies`-derived blocker/blocked-by links. Do **not** enumerate the leaves below them.
 
-Emit nothing for a branch the sub-brief can't concretely derive — surface "needs more discovery" so plot stops that branch. Same `Backlog` status and brief-seeded descriptions as the single-level output. Absent a `shape-level`, the single-level brief→tickets behaviour above is unchanged (this is what `/faff-jot` uses).
+For a branch not concretely derivable, emit nothing and surface "needs more discovery" so plot stops it. Keep single-level `Backlog` status and brief-seeded descriptions. Without `shape-level`, retain the single-level brief→tickets behaviour `/faff-jot` uses.
 
-Conservative, same as every thematic output: when the brief is too thin to derive a defensible structure, propose fewer, larger tickets and surface what's missing rather than manufacturing speculative ones — the human (or a later `/faff-prep`) refines.
+A thin brief warrants fewer, larger defensible tickets plus the missing facts, never speculative ones. Leave refinement to the human or later `/faff-prep`.
 
 ### `backlog-diagnostics`
 
@@ -185,21 +185,21 @@ Assign each issue a horizon from tracker state:
 - **Next** — Todo, blockers clear or nearly clear, spec exists
 - **Later** — Backlog, or blocked by Now/Next work (live edges only — a satisfied edge, gateway → **Satisfied blockers — edges to terminal work**, does not count as blocked)
 
-Sequence within each horizon by `pick-ordering`. Surface structural diagnostics relevant to roadmaps: ghost-project pointers, structural gaps (initiative has no Next project), unfireable trigger gates, stalled Now projects (In Progress, no commits 14+ days), parked issues with unmet unpark conditions. Emit an ASCII chain diagram (initiative → project → issue) with structural gaps marked inline.
+Sequence each horizon by `pick-ordering`. Surface ghost-project pointers, initiative gaps with no Next project, unfireable trigger gates, stalled Now projects (In Progress, no commits 14+ days), and parked issues with unmet unpark conditions. Emit an ASCII initiative → project → issue chain with gaps inline.
 
 ### `build-queue`
 
 **Admission:** the two build-ready verdicts enter; every other routing verdict routes out (canonical semantics: `faff contract automation-routing --describe`).
 
-**Ordering:** `pick-ordering` — including its optional **`prd-distance`** within-band composition when the caller supplies the map under a resolved target PRD: the queue heads for the sibling PRDR nearest a `met` DoD, within human-priority bands and byte-identical when absent. Independents ordered directly; collision groups serialised within (lead issue determines group position). Admission and serialisation read live blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) never triggers serialisation.
+**Ordering:** use `pick-ordering`, including optional **`prd-distance`** under a resolved target PRD: head for the sibling PRDR nearest a `met` DoD within human-priority bands, byte-identical when absent. Order independents directly; serialise collision-group members, with the lead issue fixing group position. Admission and serialisation use live blocker edges only; satisfied edges never serialise (gateway → **Satisfied blockers — edges to terminal work**).
 
-**Conflict analysis:** partition the admitted set into independents (parallel-safe) and collision groups (serialised within the group, parallel across groups) per the canonical heuristics — see `faff-beep-boop` → **Conflict analysis**. Single home: do **not** recap the heuristics here.
+**Conflict analysis:** partition admitted work into parallel-safe independents and collision groups serialised within, parallel across groups. Use `faff-beep-boop` → **Conflict analysis** as the canonical heuristic home; do **not** recap it.
 
 **Wave structure:** After each wave drains, re-check for newly unlocked work, narrow-prep unblocked candidates, re-assemble the queue. Continue until drained or budget hit.
 
 ### `run-termination-policy`
 
-**Optional** (gateway → **The `methodology` slot**). The thematic answer to "in what order do the **policy-weighted** terminating rungs win" — the weighting behind the run-end decision `faff run-done` composes. The thematic lens orders from **graph/process facts, never value/risk opinion**, so its ladder is exactly the CLI's built-in `structural-default` policy ladder (the fixed `policy_source` enum — this output *is* that default, made explicit):
+**Optional** (gateway → **The `methodology` slot**). Order the **policy-weighted** terminating rungs for `faff run-done` from **graph/process facts, never value/risk opinion**. Return exactly the CLI's built-in `structural-default` ladder (fixed `policy_source` enum), made explicit:
 
 ```
 1. non-convergence  → escalate      # no-progress waves need a human, not more spend
@@ -213,11 +213,11 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 - **Floor is not ours.** The fixed safety floor (`budget-escalate`, `undispatched-ledger` at drain, `product-incomplete`) is the CLI's, applied **before** this ladder and **never** overridable — this output only orders the rungs **above** it. Reordering or softening a non-floor rung is the lens's prerogative; weakening the floor is impossible by construction.
 - **Unanswered ⇒ no change.** When this output is not requested/answered, `faff run-done` applies the same ladder as its built-in default — so zero-config runs behave identically.
 
-**Output:** an ordered ladder of `{test, verdict}` rungs over the closed test vocabulary above, passed by the orchestrator to `faff run-done --policy`. Read-only — the methodology authors the ladder; it never decides the run-end (that is `faff run-done`, purely) and never writes the tracker.
+**Output:** ordered `{test, verdict}` rungs over the closed test vocabulary above, passed to `faff run-done --policy` by the orchestrator. Read-only: author the ladder, never decide run-end (`faff run-done` alone) or write the tracker.
 
 ### `crank-up-set`
 
-**Optional** (gateway → **The `methodology` slot**). Given the **not-automation-eligible** issue set + the dependency graph + each member's `faff next --if-eligible` hypothetical transition + appetite, return ranked **crank-up-sets** — coherent batches a human can approve in one go. Unanswered ⇒ wtf/tidy fall back to the flat On-hold list. Read-only: never mutates eligibility.
+**Optional** (gateway → **The `methodology` slot**). From **not-automation-eligible** issues, dependency graph, each `faff next --if-eligible` hypothetical transition and appetite, return ranked **crank-up-sets**: coherent batches for human approval. Unanswered ⇒ wtf/tidy use the flat On-hold list. Read-only; never mutate eligibility.
 
 **Slice algorithm:**
 
@@ -233,7 +233,7 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 
 ### `prdr-author`
 
-**Optional** (gateway → **The `methodology` slot**). Given a container (initiative/project) + its `{outcome, child_specs, target}`, author one **`AuthoredPrdr`** — a loop-authored PRDR record (provenance `loop`, status `Proposed`). The thematic lens authors from **graph + container facts**, never value/risk opinion: the DoD is the **graph completion bar** (every child epic delivered + the container outcome's stated criteria met), scaled by target.
+**Optional** (gateway → **The `methodology` slot**). From an initiative/project container and `{outcome, child_specs, target}`, author one **`AuthoredPrdr`**, provenance `loop`, status `Proposed`. Use **graph + container facts**, never value/risk opinions: the target-scaled DoD requires every child epic delivered and the container's stated outcome criteria met.
 
 **Derivation (graph + container facts only):**
 
@@ -248,23 +248,23 @@ Sequence within each horizon by `pick-ordering`. Surface structural diagnostics 
 
 **Output:** `AuthoredPrdr {decision, definition_of_done, container, prd_goal, provenance: "loop", status: "Proposed"}` + a confidence note. Unanswered-equivalent (no container, or `--no-prdr`) ⇒ the caller proposes no PRDR and the human authors the DoD directly.
 
-**Appetite** tunes only ambition framing, never whether to admit (admission is the caller's level): lower appetite favours the thinner end of the target band, higher the fuller — it never self-Accepts (that is the L4 runner's gated act, or the human's L3 ratification).
+**Appetite** changes ambition framing only: lower favours the thin end of the target band, higher the full end. Admission belongs to the caller's level; never self-Accept (L4 runner's gated act or human L3 ratification).
 
 ### `yagni-judge`
 
-**Optional** (gateway → **The `methodology` slot**; this is **Phase 1** of the upper-gate two-phase arbitration — gateway → **Upper-gate (YAGNI) two-phase arbitration**). Given an `AuthoredPrdr` + the PRD (+ optional grounding), propose whether the PRDR is **warranted** — serves a real PRD goal **without exceeding it**. The thematic lens judges from **graph + PRD facts**, never value/risk opinion:
+**Optional** (gateway → **The `methodology` slot**; **Phase 1** of **Upper-gate (YAGNI) two-phase arbitration** in the gateway). From `AuthoredPrdr`, PRD and optional grounding, propose whether the PRDR serves a real PRD goal **without exceeding it**. Use **graph + PRD facts**, never value/risk opinions:
 
 - `serves_goal` — does the PRDR's `prd_goal` name a real PRD goal *and* does its `decision`/`definition_of_done` materially advance that goal (not merely cite it)? Graph/text trace, not taste.
 - `within_scope` — does the DoD cover **only declared PRD goals** (`V ⊆ D`), or does it add capability the PRD never asked for (structural over-reach)? Covering *several* declared goals in one functional MVP is in-scope, not gold-plating; only capability outside the declared goal set is over-reach. Grounding, when present, sharpens this (domain norms) but is never required.
 - `verdict` — `admit` when both hold; `reject` otherwise, with a one-line `reason`.
 
-**Output:** `{serves_goal, within_scope, verdict: admit|reject, reason}` — the Phase-1 proposal the caller passes to `faff prdr yagni --proposal …`. It **proposes, never admits** (admission is `faff prdr admit`), the adversarial-review slot challenges it in Phase 2, and it **never writes the tracker**. Unanswered ⇒ the upper gate has no proposal (the caller falls back to the `faff prdr admit` gate's fail-safe upper default — conservative reject).
+**Output:** `{serves_goal, within_scope, verdict: admit|reject, reason}` for `faff prdr yagni --proposal …`. **Propose, never admit** (`faff prdr admit` owns admission); the adversarial-review slot challenges in Phase 2. Never write the tracker. Unanswered leaves no proposal, so the caller uses `faff prdr admit`'s fail-safe upper default: conservative reject.
 
-**Appetite** tunes only the strictness of `within_scope` (lower = permissive, higher = tighter), never whether to admit — the conservative-reject-on-doubt arbitration is the CLI's.
+**Appetite** changes `within_scope` strictness only (lower permissive, higher tighter), never admission; conservative-reject-on-doubt arbitration belongs to the CLI.
 
 ### `rehome-set`
 
-**Optional** (gateway → **The `methodology` slot**). Proposing outcome-led project homes for loose Backlog work requires an **outcome** judgement — which shippable outcome a set of loose tickets converges on — and this lens is opinion-free by design: it groups by where work *sits* in the graph, never by the value-outcome it delivers. So the thematic default's legitimate answer is an **empty rehome-set**: no proposed containers, no membership map, no coherence edges, no leave-loose reasoning. This is an answer, not a gap — outcome-led formation is exactly the opinion an opinionated lens (`faffter-dark-methodology-agile-delivery`) adds on top.
+**Optional** (gateway → **The `methodology` slot**). Outcome-led homes for loose Backlog tickets require judging their shared shippable outcome. This lens groups by graph position, not value/outcome, so return an **empty rehome-set**: no proposed containers, membership map, coherence edges or leave-loose reasoning. This is a valid answer; `faffter-dark-methodology-agile-delivery` supplies the missing outcome opinion.
 
 **Empty/unanswered ⇒ the caller reports no grouping opinion and writes nothing** (zero-config unchanged).
 
@@ -280,7 +280,7 @@ The thematic lens respects appetite but has limited agency by design:
 
 Note: the thematic lens never reorders by value/risk/principles — that's what opinionated methodologies (like `faffter-dark-methodology-agile-delivery`) add. Thematic ordering is always priority + unlock value.
 
-Any authority to write tracker **topology** (reparent / convert / rehome) is governed by the shared dial at gateway → **Appetite for destruction** → **Topology-write authority**, not a story this lens invents. Being opinion-free, the thematic lens sits at the dial's surface-only end — it reflects the topology the graph already states and never restructures it; the reversibility floor and the human-curated-structure floor there bind it as they do every lens.
+Gateway → **Appetite for destruction** → **Topology-write authority** governs tracker **topology** (reparent / convert / rehome). This opinion-free lens stays surface-only: reflect existing graph topology, never restructure it. The dial's reversibility and human-curated-structure floors bind here too.
 
 ## Rules
 

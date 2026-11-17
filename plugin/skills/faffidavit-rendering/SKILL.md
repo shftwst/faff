@@ -7,7 +7,7 @@ judgement_seam: gloss, explanatory-order
 
 # faffidavit-rendering
 
-The default **adaptor** for the `rendering_adaptor` slot — and the one slot with **no internal contract** behind it. It defines how faff sub-skills turn structure into output — both its *form* (when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps) and its *prose voice* (the house voice the output reads in, homed in **Voice** below) — and **validates/normalises** draft output against those rules on demand. A `faffidavit-*` skill: it both *defines* the house rendering style and *checks* conformance, so it's invokable rather than a passive style guide.
+The default **adaptor** for `rendering_adaptor` defines output form (visuals, tables/lists and density caps) and prose **Voice**, and validates/normalises drafts on demand. It has **no internal contract**. This `faffidavit-*` skill both defines style and checks conformance; it is invokable, not a passive guide.
 
 Every sub-skill that emits user-facing output renders through it; it can be swapped wholesale for a different house style.
 
@@ -18,11 +18,11 @@ slots:
 
 ## No internal contract — a pure adaptor
 
-The surviving sibling adaptor slot (`routing_adaptor`) sits in front of a **fixed internal contract** in the gateway — the six-verdict vocabulary the pipeline branches on — and the `spec` / `review` / `ship` contracts are producer-emitted (the producer self-declares a `faff-contract:<name>` block the consumer parses; their adaptor slots were retired). Rendering has none of that: no pipeline code branches on, counts, or gates on how output *looks*. It is purely human-facing. So there is nothing fixed in the gateway for this slot to translate *into* — the whole skill is the adaptor, swappable end to end. Swap it and house style changes wholesale, with no pipeline behaviour affected.
+`routing_adaptor` translates into the gateway's fixed six-verdict contract. The `spec` / `review` / `ship` contracts are producer-emitted `faff-contract:<name>` blocks parsed by consumers; their adaptor slots were retired. Rendering has no such contract: pipeline code never branches, counts or gates on appearance. The whole human-facing adaptor can be swapped without affecting pipeline behaviour.
 
 ## Why an adaptor, not a producer
 
-Unlike `spec` — which is produced by `faffter-noon-spec` (issue → new spec, self-declaring its `faff-contract:spec-readiness` block the consumer parses) — rendering has no separable generative act. There's no "render from nothing": every render is a transform of data some other skill already holds, and choosing the right form (cycle bracket vs cycle box) needs the domain understanding of what that structure *means*. So a standalone rendering *producer* would have no natural caller. What rendering genuinely is, is a standard **referenced by many skills** (every sub-skill renders "according to" it) plus a standalone normalise act — exactly the adaptor shape. The "produce" the producer-framing reaches for is already the validate/normalise face below. Don't re-split this into a `faffter-noon-rendering`.
+`faffter-noon-spec` produces a spec from an issue and self-declares `faff-contract:spec-readiness`. Rendering instead transforms data another skill holds; choosing forms (cycle bracket vs cycle box) requires understanding that structure. It has no separable generative act or natural standalone producer caller. Its shared standard plus invokable normalise pass is the adaptor; do not split out `faffter-noon-rendering`.
 
 ## Two faces
 
@@ -31,21 +31,21 @@ Unlike `spec` — which is produced by `faffter-noon-spec` (issue → new spec, 
 
 ## Scope — all human-facing faff output
 
-Everything this adaptor defines and normalises applies to **all human-facing output a faff sub-skill emits: terminal output, tracker descriptions, and tracker comments alike** (gateway → **Rendering**, Universal-routing rule). The **only** carve-outs are skill source files (`skills/*/SKILL.md`) and internal `.faff/` logs — read in wider contexts, not human-facing in the same sense. There is no central emit point, so each skill runs the normalise pass itself as a final step before printing or writing.
+Apply all rules to **all human-facing faff output: terminal output, tracker descriptions and tracker comments** (gateway → **Rendering**, Universal-routing rule). Only skill source files (`skills/*/SKILL.md`) and internal `.faff/` logs are exempt. With no central emit point, each skill runs normalisation immediately before printing or writing.
 
 ## Voice
 
-Form is half of house style; the other half is the **voice** the prose reads in — casual-but-credible, claims discipline, the banned-word list. Those rules have a single home: the **`# Writing style`** section of **`AGENTS.md`** at the repo root, a fixed repo convention. This section *references* that section and never copies it — the rules live there so they have one place to drift from, not two (and the `faff validate-adapters` dedup lint fails CI on any block copied across skills).
+Voice (casual-but-credible, claims discipline, banned words) lives only in repo-root **`AGENTS.md`**, **`# Writing style`**. Reference it; never copy it. This fixed convention keeps one source; `faff validate-adapters` fails CI on blocks duplicated across skills.
 
-**Injection.** Voice reaches a context-stripped executor the same way form reaches the reader: through the dispatch envelope. The gateway stamps a one-line pointer at the STYLE source into every dispatch that writes durable prose — the mechanism, its carrier rule, and the engine-lane fork all live at gateway → **Producer dispatch → Voice clause**. This charter owns *what* the house voice is for; the gateway owns *how* it rides each dispatch.
+**Injection.** Every durable-prose dispatch carries a one-line STYLE-source pointer for context-stripped executors. The gateway owns the envelope, carrier rule and engine-lane fork (gateway → **Producer dispatch → Voice clause**); this charter owns voice's purpose.
 
-**Swapping the voice.** A project with a different voice edits the `# Writing style` section of `AGENTS.md` — same path, different contents, read fresh on the next dispatch (nothing caches it). The source path is a fixed convention, not adaptor-resolved: dispatch sites stamp the pointer without reading this adaptor first. Swapping the *adaptor* changes form rules and validation; it does not change where the voice rules live.
+**Swapping the voice.** Edit `AGENTS.md`'s `# Writing style`; each dispatch reads it fresh, without caching. Dispatch sites stamp this fixed pointer without reading the adaptor. Swapping the adaptor changes form and validation, not the voice source path.
 
-**Fold, not a sibling.** Voice is folded into this adaptor rather than split into a sibling `voice` slot. Voice and form are both purely human-facing with no pipeline contract behind them — the exact property that defines this slot — so they belong in the one skill that already owns "how faff's output reads", with one swap point instead of two. The charter widening to name voice is deliberate, recorded here. A sibling `voice` adaptor stays a clean future extraction if a project ever needs voice swappable independently of form.
+**Fold, not a sibling.** Voice and form share this human-facing, contract-free adaptor and one swap point. Do not split a sibling `voice` slot now; independent voice swapping remains a possible future extraction.
 
 ## Prose skimmability
 
-Enumerable content must be skimmable — the failure mode is an enumerable set crammed into one `·`/comma run-on paragraph, which raises cognitive load and erodes trust. These rules fold into the Validate/normalise face; a violation is **rewritten**, not merely flagged:
+Enumerable content must be skimmable. Validate/normalise **rewrites**, rather than merely flags, violations:
 
 - **3+ items → a list.** Any enumerable set of three or more items renders as a markdown list, never a `·`- or comma-separated run-on paragraph — the same 3+ threshold the canonical visual forms use for inline chains. A 2-item set may stay inline prose.
 - **Bold-lead bullets** for scannable items: `- **label** — detail`, so the eye lands on the label.
@@ -55,7 +55,7 @@ This rule governs tracker descriptions and comments as much as terminal output (
 
 ## Output token economy
 
-Skimmable form isn't enough: a response can satisfy every form rule and still burn tokens on ceremony that adds nothing the output doesn't already carry. Token-lean is part of *understandable-not-unapproachable* — the reader (and the budget) pays for every wasted line. These rules fold into the Validate/normalise face; a violation is **rewritten**, not merely flagged:
+Token economy is part of *understandable-not-unapproachable*. Validate/normalise **rewrites**, rather than merely flags, ceremony that adds no information:
 
 - **No preamble/postamble.** Drop the conversational frame — "Here is the…", "I've gone ahead and…", "Let me know if you'd like…", "Hope this helps". Open on the substance; end when it ends.
 - **Don't restate the ticket/request.** The reader just asked; echoing their ask back is filler. *Use instead:* go straight to the answer (a one-line gloss of *what shipped* is the synthesis contract's job, not a restatement of the brief).
@@ -147,7 +147,7 @@ Every issue rendered in any faff output — wtf's "Do this", map's workstreams, 
 2. **One-sentence plain-English gloss** — what the work actually is in human terms (not the tracker title verbatim; a generated sentence based on title + spec + description)
 3. **Unlock-chain consequence** (only when non-trivial) — what becomes possible once this lands, in human terms
 
-This is part of the rendering contract because it governs *how an issue is described* in output — the content sibling of the visual-vs-prose split.
+The contract governs how issues are described, alongside the visual-vs-prose rules.
 
 ### Canonical rendering
 
@@ -168,12 +168,12 @@ In high-density visualisations (queue partition grids, chain diagrams), show onl
 
 ### First-mention grounding
 
-The **first** appearance of any issue ID in a given output carries its gloss (`ID + gloss`, per **Canonical rendering** above). Subsequent references to the same ID in the same output may be bare ID. An ID that appears **only ever bare** — never grounded anywhere in that output — is a violation: it forces the reader to the tracker to find out what it is.
+The **first** appearance of each issue ID carries its gloss (`ID + gloss`, per **Canonical rendering**). Later references in the same output may be bare. An ID never grounded anywhere in that output violates the rule.
 
 - **Granularity is per-whole-output** — one grounding anywhere in the output satisfies the rule. (A skill *may* re-ground in a later section when a bare ID there would read unintelligibly, but that's the Humanisation test below talking, not this mechanical rule.)
 - **This does not supersede the Humanisation rule.** First-mention grounding is the mechanical floor; a bare later reference must still pass the Humanisation reader-test in its context. Where it wouldn't, re-ground it there.
 
-This is the checkable form of the Humanisation rule's reader-test: grounding-once is the minimum a normalise pass can mechanically enforce (see **Validation / normalise**).
+Grounding once is the mechanical minimum enforced by **Validation / normalise**.
 
 ### Generation source order
 
@@ -187,7 +187,7 @@ The skill **paraphrases** — does not just truncate. Tracker shorthand ("re: SH
 
 ### Humanisation rule
 
-The gloss is a delivery lead briefing a colleague, not a project manager filing a status report. A delivery lead bridges product, engineering, and business stakeholders by making work understandable, bite-sized, and transparent. Leaning on numbered references to internal documents — "principle 6", "ADR-N", "trigger 4", "PRs 3-N" — is the opposite: project-management smoke-and-mirrors that makes the writer look indispensable while making the reader work to decode it.
+Write the gloss as a delivery lead briefing a colleague: make work understandable, bite-sized and transparent across product, engineering and business. Internal document references such as "principle 6", "ADR-N", "trigger 4", "PRs 3-N" make the reader decode the report instead.
 
 **Banned in user-facing output:**
 
@@ -206,13 +206,13 @@ The gloss is a delivery lead briefing a colleague, not a project manager filing 
 - Short self-explanatory category names that *describe* a finding kind ("sub-ticket gap", "upstream gap", "repeat-park", "chain gap") — they tell the reader what was found, not which internal rule was matched.
 - Principle / ADR / criterion references **alongside** plain-English explanation as traceability — "the spec assumes a wave-1 run has happened (the gate from the audit pipeline ADR)" — never standing in for explanation.
 
-**Surface the concrete** (the positive twin of the ban above). Where the source provides a real, checkable noun — the actual field name (`cache_read_input_tokens`), the named file, the specific subsystem — render that, not a category label that abstracts it away. The ban says "don't hide behind principle 6"; this says "name the real thing the source already holds."
+**Surface the concrete** (the positive twin of the ban). When the source provides a checkable noun, render it instead of an abstract category: the actual field (`cache_read_input_tokens`), named file or specific subsystem. Name what the source holds, not "principle 6".
 
 - **Surface, don't invent.** Promote only concretes present in the source. If the only available form is the abstraction, keep it — never manufacture a precise-sounding field/file/number that isn't there.
 
 **Test:** if a reader who has never opened the project's CLAUDE.md, methodology spec, or ADR archive can't follow the finding, the rule is broken. Rewrite.
 
-**Why this matters:** faff is a delivery lead, not a project manager. A delivery lead humanises work; a project manager codifies it to look valuable. We do the first. Every finding, every brief, every diagnosis renders the *substance* of what's going on, not the index entry that catalogues it.
+**Why this matters:** every finding, brief and diagnosis must render the substance, not the document's index entry. Humanise work rather than codifying it to look valuable.
 
 ### Unlock-chain language
 
@@ -241,9 +241,9 @@ Every faff sub-skill that names an issue in output applies this contract. Each s
 
 ## Tabular data: markdown tables vs definition lists
 
-Markdown tables break in narrow terminals when cells are long. They render as `Column 1: …` repeated per row, mid-word truncation, and rows crashing into each other — the data is technically present but unreadable.
+Long-cell markdown tables break in narrow terminals: repeated `Column 1: …`, mid-word truncation and colliding rows make data unreadable.
 
-**Scope:** this rule applies to **all human-facing faff output** — terminal output (diagnostics, morning briefs, roadmap renders, in-conversation summaries) **and** tracker descriptions and comments (per **Scope — all human-facing faff output** above). It does **not** apply to skill source files (`skills/*/SKILL.md`) — those are documentation read in wider contexts (Claude Code editor panes, GitHub UI), where specification tables with prose cells are fine. It also does not apply to internal `.faff/runs/<run-id>/…` logs.
+**Scope:** all human-facing terminal output (diagnostics, morning briefs, roadmap renders, in-conversation summaries), tracker descriptions and comments, per **Scope — all human-facing faff output**. Exempt: skill sources (`skills/*/SKILL.md`), where prose-cell specification tables are fine in wider editor/GitHub views, and internal `.faff/runs/<run-id>/…` logs.
 
 **Drop the markdown table when any of:**
 
@@ -276,7 +276,7 @@ State: Done
 Scope: Different — wrapper layer, not stage logic
 ```
 
-The separator is unicode `─` × 40, not markdown `---`. Markdown `---` renders as `<hr>` in some contexts and is often invisible in terminal chat panes — the unicode rule reads consistently across renderers.
+Use unicode `─` × 40, not markdown `---`: the latter may become `<hr>` and disappear in terminal chat; the unicode rule renders consistently.
 
 ## Density caps
 

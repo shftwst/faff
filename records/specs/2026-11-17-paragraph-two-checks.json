@@ -1,0 +1,92 @@
+{
+  "source_commit": "cf8548fcb2e7dc9170aacc6ad69eb8b60b649ae8",
+  "baseline_commit": "9a6c64bacbe40bb99a40af5b014db357827289d9",
+  "tests": {
+    "command": [
+      "node",
+      "--test",
+      "test/eval-cli-driver.test.mjs",
+      "test/validate-adapters-delegation.test.mjs",
+      "test/prose-size.test.mjs"
+    ],
+    "environment": {
+      "GIT_CONFIG_COUNT": "1",
+      "GIT_CONFIG_KEY_0": "commit.gpgsign",
+      "GIT_CONFIG_VALUE_0": "false",
+      "TMPDIR": "/var/tmp"
+    },
+    "exit_code": 0,
+    "tests": 120,
+    "pass": 120,
+    "fail": 0,
+    "skipped": 0
+  },
+  "adapter_lint": {
+    "command": [
+      "node",
+      "plugin/skills/faff/bin/faff",
+      "validate-adapters"
+    ],
+    "exit_code": 0,
+    "result": "pass"
+  },
+  "rule_inventory": {
+    "command": [
+      "node",
+      "plugin/skills/faff/bin/faff",
+      "rule-inventory",
+      "check",
+      "--base",
+      "9a6c64bacbe40bb99a40af5b014db357827289d9",
+      "--json"
+    ],
+    "exit_code": 0,
+    "result": "pass",
+    "blocks_deleted": 62,
+    "uncovered": 0,
+    "row_errors": 0
+  },
+  "review_findings": 2,
+  "review_findings_resolved": 2,
+  "evidence_commit": "eb50bbc09895aa66406bb62593dcc7101158e9fb",
+  "logs": [
+    {
+      "file": "tests.txt",
+      "url": "https://github.com/shftwst/faff/blob/eb50bbc09895aa66406bb62593dcc7101158e9fb/verification/experiments/2026-11-17-paragraph-two/tests.txt",
+      "sha256": "ab9b1855bdd152b9dcb9e4772059a69ffc20fbf93073c25ce0ebb4cc6d0a159f"
+    },
+    {
+      "file": "adapter-lint.txt",
+      "url": "https://github.com/shftwst/faff/blob/eb50bbc09895aa66406bb62593dcc7101158e9fb/verification/experiments/2026-11-17-paragraph-two/adapter-lint.txt",
+      "sha256": "9965e409fe372f2710ae544a93ac821e5bfe00a24ec4474bbb488b54a7d4b41c"
+    },
+    {
+      "file": "rule-inventory.json",
+      "url": "https://github.com/shftwst/faff/blob/eb50bbc09895aa66406bb62593dcc7101158e9fb/verification/experiments/2026-11-17-paragraph-two/rule-inventory.json",
+      "sha256": "42ac4e23e167e5e667d3e12ca4f18a5aa025e2c6c888ec0020d527c1a0acba10"
+    },
+    {
+      "file": "2026-11-17-paragraph-two-rendering-review.json",
+      "url": "https://github.com/shftwst/faff/blob/eb50bbc09895aa66406bb62593dcc7101158e9fb/verification/experiments/2026-11-17-paragraph-two/2026-11-17-paragraph-two-rendering-review.json",
+      "sha256": "73983d282c7baddd002a3935996a0fdf05a0b3e0094834d10a62896e4c3a4eb3"
+    },
+    {
+      "file": "2026-11-17-paragraph-two-thematic-review.json",
+      "url": "https://github.com/shftwst/faff/blob/eb50bbc09895aa66406bb62593dcc7101158e9fb/verification/experiments/2026-11-17-paragraph-two/2026-11-17-paragraph-two-thematic-review.json",
+      "sha256": "e204ee6113adbe58dd017a8b8cfb950f66a17b54d23f2f080c4919954e8645c1"
+    },
+    {
+      "file": "2026-11-17-paragraph-two-wtf-review.json",
+      "url": "https://github.com/shftwst/faff/blob/eb50bbc09895aa66406bb62593dcc7101158e9fb/verification/experiments/2026-11-17-paragraph-two/2026-11-17-paragraph-two-wtf-review.json",
+      "sha256": "abbd1671b7317bf6994bf37ddf636abb4bcfa29819e3a925e36bd4fb3f557007"
+    }
+  ],
+  "fidelity_limit": "Source review and existing deterministic tests pass. One Opus baseline exposed two report-format failures; candidate was not launched. No model parity claim.",
+  "opus_diagnostic": {
+    "status": "held-baseline-manual-format-failure",
+    "baseline_calls": 1,
+    "candidate_calls": 0,
+    "retries": 0,
+    "evidence": "https://github.com/shftwst/faff/blob/b455d4380b104cf87940a019365348697f21e636/verification/experiments/2026-11-17-paragraph-two/opus-diagnostic/result.json"
+  }
+}

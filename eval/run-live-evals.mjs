@@ -33,10 +33,10 @@ import { execFileSync } from "node:child_process";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { grade, aggregateCase, hasDisagreement, erroredRep } from "./grader.mjs";
-import { BASE_REPS, MAX_REPS, loadCases, loadLiveCases, summarize, assertNonEmptyCases, resolveEvalModel, resolveEffort } from "./run-evals.mjs";
+import { BASE_REPS, MAX_REPS, loadCases, loadLiveCases, summarize, assertNonEmptyCases, resolveEvalModel, resolveEffort, resolveLocalParams } from "./run-evals.mjs";
 import { driveReconciliationCase, driveRoutingCase, driveVerdictBuildCase, driveFindingIdentityCase, makeLiveModel } from "./live-driver.mjs";
 import { driveHoldoutLiveRep } from "./live-agent-driver.mjs";
-import { frontierOpts } from "./cli-driver.mjs";
+import { frontierOpts, localOpts } from "./cli-driver.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
@@ -323,8 +323,31 @@ export function resolveLiveFrontier(argv, { bin = "claude", pluginDir, run } = {
   return { model, effort, opts: frontierOpts({ bin, pluginDir, model, effort }) };
 }
 
+// Pure: the options the live model is built from. `--driver local` redirects `claude -p` at a configured
+// gateway (URL, model and key from resolveLocalParams); anything else is the frontier lane above. An
+// explicit --effort is forwarded on the local lane, as run-evals.mjs does.
+export function resolveLiveModelOpts(argv, { bin = "claude", pluginDir, run } = {}) {
+  if (argFlag(argv, "--driver") === "local") {
+    const { baseUrl, model, apiKey } = resolveLocalParams(argv);
+    const effort = argFlag(argv, "--effort") ? resolveEffort(argv, { run }) : null;
+    return { lane: "local", model, effort, opts: localOpts({ baseUrl, model, apiKey, bin, pluginDir, effort }) };
+  }
+  return { lane: "frontier", ...resolveLiveFrontier(argv, { bin, pluginDir, run }) };
+}
+
+// The harness ports a live kind runs against (FAFF-93 runSkill, a one-issue mock tracker, a seeded repo).
+// Imported here, not at module top, so eval/ stays free of test-helper deps for `node --test`.
+export async function makeLiveCtx({ model }) {
+  const { runSkill } = await import("../test/helpers/skill-harness.mjs");
+  const { loadFixture } = await import("../test/helpers/mock-tracker.mjs");
+  const { seedRepo } = await import("../test/helpers/seed-repo.mjs");
+  const tracker = loadFixture({ version: 1, issues: [{ id: "ISS-A", title: "anything", state: "Todo", stateCategory: "unstarted" }] });
+  const repo = seedRepo({ commits: [{ message: "init", files: { "README.md": "x" } }] });
+  return { ctx: { runSkill, tracker, repo, model }, teardown: () => { try { repo.teardown?.(); } catch { /* best-effort */ } } };
+}
+
 // CLI — the REAL run (human-supervised; spawns claude -p). Never triggered by a test import.
-// `node eval/run-live-evals.mjs --kind reconciliation [--reps N] [--only ID] [--plugin-dir P | --no-plugin] [--bin claude]`
+// `node eval/run-live-evals.mjs --kind reconciliation [--driver local --base-url U --model M] [--reps N] [--only ID] [--plugin-dir P | --no-plugin] [--bin claude]`
 async function main(argv) {
   const kind = argFlag(argv, "--kind") ?? "reconciliation";
   const only = argFlag(argv, "--only");
@@ -336,21 +359,14 @@ async function main(argv) {
   else if (argv.includes("--no-plugin")) pluginDir = null;
   else pluginDir = undefined; // preset default = the repo plugin
 
-  // The real harness ports (imported here, NOT at module top, so eval/ stays free of test-helper deps
-  // for `node --test` and the unit test injects its own mocks). makeLiveModel owns per-rep isolation.
-  const { runSkill } = await import("../test/helpers/skill-harness.mjs");
-  const { loadFixture } = await import("../test/helpers/mock-tracker.mjs");
-  const { seedRepo } = await import("../test/helpers/seed-repo.mjs");
-  const tracker = loadFixture({ version: 1, issues: [{ id: "ISS-A", title: "anything", state: "Todo", stateCategory: "unstarted" }] });
-  const repo = seedRepo({ commits: [{ message: "init", files: { "README.md": "x" } }] });
-  // FAFF-160 — build the frontier model via frontierOpts (NOT bare opts): frontierOpts sets
-  // forwardCreds:true + bare:false, so makeLiveModel's per-rep forwardCredentials actually copies the
-  // OAuth `.credentials.json` into the isolated CLAUDE_CONFIG_DIR. Without it, `forwardCreds` defaulted
-  // falsy and every rep landed "Not logged in" in the isolated dir (the FAFF-138 gap the live-runner
-  // path missed — the proven cli-driver frontierDriver already wraps frontierOpts; this matches it).
-  const frontier = resolveLiveFrontier(argv, { bin, pluginDir });
-  console.log(`[run-live-evals] frontier model: ${frontier.model}${frontier.effort ? ` · effort: ${frontier.effort}` : ""}`);
-  const model = makeLiveModel(frontier.opts);
+  // FAFF-160 — frontierOpts (NOT bare opts) sets forwardCreds:true + bare:false so makeLiveModel's per-rep
+  // forwardCredentials copies the OAuth `.credentials.json` into the isolated CLAUDE_CONFIG_DIR; the local
+  // lane forwards nothing and authenticates with its own key.
+  const live = resolveLiveModelOpts(argv, { bin, pluginDir });
+  console.log(`[run-live-evals] ${live.lane} model: ${live.model}${live.effort ? ` · effort: ${live.effort}` : ""}`);
+  const { ctx, teardown } = await makeLiveCtx({ model: makeLiveModel(live.opts) });
+  const { tracker, repo, runSkill, model } = ctx;
+  const frontier = live;
 
   try {
     const summary = await runLiveEvals({ kind, ctx: { runSkill, tracker, repo, model }, only, baseReps: repsArg ? Number(repsArg) : BASE_REPS });
@@ -374,7 +390,7 @@ async function main(argv) {
     console.log(`\nReports written:\n  eval/report/${kind}-live-baseline.json (gitignored summarize dump)\n  eval/report/FAFF-163-${kind}-baseline.md (gitignored — copy the table into records/adr/0004 addendum)`);
     return summary.status === "complete" ? 0 : 1;
   } finally {
-    try { repo.teardown?.(); } catch { /* best-effort */ }
+    teardown();
   }
 }
 

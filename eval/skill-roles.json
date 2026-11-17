@@ -1,0 +1,24 @@
+{
+  "_comment": "Which role each skill plays when the model under test is run as the orchestrator or implementor. producer = the model authors the artefact; reviewer = an independent pass that should normally run on a different model; judge = an independent code-blind verdict. Keys are the `surface` values in seam-registry.json; a surface missing here rolls up as `unclassified`.",
+  "roles": {
+    "faff-jot": "producer",
+    "faff-map": "producer",
+    "faff-plot": "producer",
+    "faff-prep": "producer",
+    "faff-tidy": "producer",
+    "faffidavit-rendering": "producer",
+    "faffidavit-routing": "producer",
+    "faffter-dark-methodology-agile-delivery": "producer",
+    "faffter-noon-adr": "producer",
+    "faffter-noon-architecture": "producer",
+    "faffter-noon-intake": "producer",
+    "faffter-noon-methodology-thematic": "producer",
+    "faffter-noon-prd": "producer",
+    "faffter-noon-spec": "producer",
+    "faffter-dark-adversarial-review": "reviewer",
+    "faffter-dark-spec-review": "reviewer",
+    "faffter-noon-review": "reviewer",
+    "faffter-noon-spec-review": "reviewer",
+    "faffter-noon-evaluate": "judge"
+  }
+}

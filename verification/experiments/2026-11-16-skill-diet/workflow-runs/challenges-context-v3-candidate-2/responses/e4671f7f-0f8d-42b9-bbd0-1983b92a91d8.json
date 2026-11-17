@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "adr-1",
+      "outcome": "survived",
+      "ground": null,
+      "reason": "The old decision's stated rationale (under 20 issues per run, simplicity) is contradicted by current facts: runs admit 200+ issues and the concurrency executor writes issues in parallel. The new design addresses both concrete failure modes, single-lock contention and whole-run loss from one corrupt write, and keeps the same directory root with an index file for discovery. The supersession argument is sound. Residual risk to check in implementation: atomicity across the index and per-issue files, which the old design got for free."
+    },
+    "calls": [
+      {
+        "args": [
+          "adr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--challenge",
+          "survived"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"admit\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"survived\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": null,
+    "admission": {
+      "disposition": "admit",
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "challenge": {
+        "ran": true,
+        "outcome": "survived"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

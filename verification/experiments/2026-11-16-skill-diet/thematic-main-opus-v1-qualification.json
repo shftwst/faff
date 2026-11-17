@@ -1,0 +1,122 @@
+{
+  "status": "pass-bounded-one-pair-diagnostic",
+  "recorded_at_utc": "2026-11-17T19:41:07.997572+00:00",
+  "registration": "thematic-main-opus-v1-registration.json",
+  "registration_sha256": "ef9ee079278aabae23e39da7327c96c79b5eaf90d2bc8fd527b33d97e09cc39c",
+  "before": {
+    "bytes": 32157,
+    "estimated_tokens": 7951,
+    "sha256": "cd702155b615269532975789404964e57449e2ea65b035e4e706bff04b257f41"
+  },
+  "after": {
+    "bytes": 28485,
+    "estimated_tokens": 7055,
+    "sha256": "a664849ed53305386e82eb81c6d30cd507b3845ea76c57bbc01b0f326efe3605"
+  },
+  "saved": {
+    "bytes": 3672,
+    "estimated_tokens": 896
+  },
+  "arms": {
+    "baseline": {
+      "samples": 1,
+      "raw_cases_passed": 16,
+      "raw_cases_total": 16,
+      "artifact_cases": 3,
+      "decision_cases": 12,
+      "termination_policy_cases": 1,
+      "cli_scenarios_passed": 9,
+      "cli_scenarios_total": 9,
+      "native": "pass",
+      "manual": "pass",
+      "actual_model": [
+        "claude-opus-5-5"
+      ],
+      "actual_cli": [
+        "2.1.325"
+      ]
+    },
+    "candidate": {
+      "samples": 1,
+      "raw_cases_passed": 16,
+      "raw_cases_total": 16,
+      "artifact_cases": 3,
+      "decision_cases": 12,
+      "termination_policy_cases": 1,
+      "cli_scenarios_passed": 9,
+      "cli_scenarios_total": 9,
+      "native": "pass",
+      "manual": "pass",
+      "actual_model": [
+        "claude-opus-5-5"
+      ],
+      "actual_cli": [
+        "2.1.325"
+      ]
+    }
+  },
+  "publication": {
+    "integration_commit": "7c34333a89c55e898ef0c0b495c54fae967fae29",
+    "base": "8b64039c0ef7605cbafc8b5f94867730b0a5f6a6",
+    "measured_source_sha256": "a664849ed53305386e82eb81c6d30cd507b3845ea76c57bbc01b0f326efe3605",
+    "measured_source_unchanged": true
+  },
+  "runtime_tree_scope": {
+    "registered_field_runtime_plugin_tree_refers_to": "HEAD:plugin/skills",
+    "skills_tree": "76e906eef73675093ae66ae715eb1506453e69eb",
+    "manifest_plugin_tree_refers_to": "HEAD:plugin",
+    "plugin_tree": "95a737122d9d74167045d24fa0619c6a47f11991",
+    "runtime_changed": false,
+    "note": "Both trees are fixed by the same registered commit. Field-scope clarification only; registrations, inputs, runs and acceptance unchanged."
+  },
+  "evidence": [
+    {
+      "path": "workflow-runs/thematic-main-opus-v1-baseline-1/report.json",
+      "sha256": "3d185ff39732996ab26d66fb24d6910354ae85e5017e1f4d137fb94c5372b50e"
+    },
+    {
+      "path": "workflow-runs/thematic-main-opus-v1-baseline-1/capture.json",
+      "sha256": "428a079ccdc88c47cb28dc6eee22567c5642cbcb4636a488ca026ed0f04ab66e"
+    },
+    {
+      "path": "workflow-runs/thematic-main-opus-v1-baseline-1/manifest.json",
+      "sha256": "07f36663c68b8d0e17d308054db4e3960e9cf7bb6019cfe6ecbe4c9d10ebf8e0"
+    },
+    {
+      "path": "native-audits/thematic-main-opus-v1-baseline.json",
+      "sha256": "6f0af4149ac7ed193f28a9c4abd6bc555655049624d408795670b7289fe9110f"
+    },
+    {
+      "path": "thematic-main-opus-v1-baseline-manual-audit.json",
+      "sha256": "7e15d9ef9cd81ee70240148b5eefe488b1d1a9e60562ae63ed37776c683fbf9c"
+    },
+    {
+      "path": "workflow-runs/thematic-main-opus-v1-candidate-1/report.json",
+      "sha256": "def4701faf2e08e0b9baa48042b788e0239a9e106b86c727e63eee92944fce4c"
+    },
+    {
+      "path": "workflow-runs/thematic-main-opus-v1-candidate-1/capture.json",
+      "sha256": "e788073755115b509dc96ad42e2db5ed9b6acf7d4385a67e899ae455969f6e09"
+    },
+    {
+      "path": "workflow-runs/thematic-main-opus-v1-candidate-1/manifest.json",
+      "sha256": "f7aedb691daa8379d90101a2550ff8ae4a393fbeaaf637cac35b3d3d0099bc45"
+    },
+    {
+      "path": "native-audits/thematic-main-opus-v1-candidate.json",
+      "sha256": "65b5ef2b2b506655c9a142ce29217969876d21930c00cdb23108c93a3bd3a387"
+    },
+    {
+      "path": "thematic-main-opus-v1-candidate-manual-audit.json",
+      "sha256": "942994055f1d94109bc51355d6b83313c014ddbf606e127be6979b1096a1181d"
+    }
+  ],
+  "retries": 0,
+  "waivers": 0,
+  "normalisations": 0,
+  "limits": [
+    "Fresh bounded diagnostic with one sample per arm; historical five-sample Opus evidence remains separate.",
+    "Does not execute every preserved L4-drain, parked-issue or build-queue branch; source preservation review covers those rules.",
+    "No live tracker mutation, complete caller workflow, statistical equivalence or provider billing claim."
+  ]
+}

@@ -1,0 +1,387 @@
+{
+  "status": "fail",
+  "bridge": {
+    "stop": null,
+    "requests": 32,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 11288,
+    "utf16_characters": 11108,
+    "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6090,
+        "sha256": "390ac25fc558db19e1716a92ac862365c1f97bfc0a24a2b90d441733a229325c"
+      },
+      {
+        "offset": 6000,
+        "end": 11108,
+        "characters": 5108,
+        "bytes": 5198,
+        "sha256": "4014087529645778e0c021576c10398b9665bba7ad58dff84a11172b8cba2a25"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "fail",
+    "cases": [
+      {
+        "id": "gloss-001",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 6,
+          "passed": 6,
+          "vector": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "gloss-002",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 7,
+          "passed": 7,
+          "vector": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "gloss-003",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 9,
+          "passed": 9,
+          "vector": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "long-table",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 8,
+          "passed": 8,
+          "vector": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "short-table",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 4,
+          "passed": 4,
+          "vector": [
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "enumeration",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 8,
+          "passed": 8,
+          "vector": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "model-hoist",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 6,
+          "passed": 6,
+          "vector": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "missing-model",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 4,
+          "passed": 4,
+          "vector": [
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "cycle",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 9,
+          "passed": 9,
+          "vector": [
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "scope",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "terminal": true,
+          "tracker_description": true,
+          "tracker_comment": true,
+          "skill_source": false,
+          "internal_log": false
+        }
+      },
+      {
+        "id": "contract",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "normalise-authority",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "two-item-dependency",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "prose"
+      },
+      {
+        "id": "branching-cycle",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "cycle-box"
+      },
+      {
+        "id": "closed-catalogue",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "density",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "cycle_visualisations": 3,
+          "queue_rows": 10,
+          "live_initiatives": 7
+        }
+      },
+      {
+        "id": "overflow",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "visible_rows": 10,
+          "overflow_marker": "(+ 2 more)",
+          "full_list_location": "log"
+        }
+      },
+      {
+        "id": "gloss-source",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "spec-summary"
+      },
+      {
+        "id": "gloss-grounding",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "later-humanisation",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "unlock-one",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "unlock-chain",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "unlock-count",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "The alerting work can now use a real log schema"
+      },
+      {
+        "id": "ambiguous-gloss",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "state_ambiguity": true,
+          "invent_resolution": false
+        }
+      },
+      {
+        "id": "gloss-cache",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "reuse_within_invocation": true,
+          "reuse_across_invocations": false
+        }
+      },
+      {
+        "id": "surface-concrete",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "voice-source",
+        "kind": "decision",
+        "pass": false,
+        "problems": [
+          "rule-answer"
+        ],
+        "value": {
+          "file": "AGENTS.md",
+          "heading": "# Writing style"
+        }
+      },
+      {
+        "id": "voice-swap",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "prose-carveouts",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "synthesis_gloss": true,
+          "diagnosis": true,
+          "TLDR": true
+        }
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Persisted rendering artifacts and deterministic source-fact/form checks, with separate rule decisions. Rendering has no gated internal contract. No tracker write, full caller workflow, subjective-quality equivalence or provider-cost claim.",
+  "accounting": "unmetered"
+}

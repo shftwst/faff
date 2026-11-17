@@ -1,0 +1,68 @@
+{
+  "status": "in-progress-not-qualified",
+  "updated_utc": "2026-11-16T12:44:28.566564+00:00",
+  "read_artifacts": 12,
+  "notes": "First baseline read. Both greenfield modes, original technology constraints, first slices, CSV dependency, possible split and unresolved timezone remain faithful. No invented goals, resolved assumptions or claimed ticket creation. intake-brief-astra-v1-baseline-2 read; source facts and required behaviour pass.",
+  "rows": [
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-1/artifacts/greenfield-complete.md",
+      "sha256": "23606e90b80fdfb3e4cdb65d13ea8da97e2dc50be0663bd1803ba21340bfd519",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-1/artifacts/greenfield-repo-signal.md",
+      "sha256": "a7a8c4182f53b9536a4de14fbaaac0d62e8ae8894e4d36688c861f446dcc88ac",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-1/artifacts/greenfield-thin.md",
+      "sha256": "be712258d8d58ea71d8f3df98b38f198173510e98036219ae1618a6bdccb5292",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-1/artifacts/minor-ambiguity.md",
+      "sha256": "d36bd0e96210d215ddc72c369eeaeefeb6a4184bd8f1ea337a2dce0ca108ceb4",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-1/artifacts/single-bug.md",
+      "sha256": "211a1fd730af34d992083f838eef17069b221ae6e3c2374ebcecb44eed8d37aa",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-1/artifacts/single-split.md",
+      "sha256": "4d577ed3f4495fb64f0d2d5e3bfb1022efddd22f3e2f6836e99756ff1a779163",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-2/artifacts/greenfield-complete.md",
+      "sha256": "25f7e57e8ee2b48aba2ed5bf89a1024c3e29a8bd3b86e674bde4fc91793fc7ad",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-2/artifacts/greenfield-repo-signal.md",
+      "sha256": "66fe540abed4c0625ba5c34119f08bf2fd0a5db7b096e54dfd795a1e5f4b0ba2",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-2/artifacts/greenfield-thin.md",
+      "sha256": "0b68b46a67e3435399fecd3ac15d39dfca921180decbfdeeb13bf8497d6965cc",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-2/artifacts/minor-ambiguity.md",
+      "sha256": "025fbfed4dd8eda77a917c04a43cb2abee8738f354bc365d187876444d06d9db",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-2/artifacts/single-bug.md",
+      "sha256": "5a22381e654cac564ecd0c6f03ac03831edcbbfb70ddf43272cb394aa4959d80",
+      "status": "read-source-faithful"
+    },
+    {
+      "path": "workflow-runs/intake-brief-astra-v1-baseline-2/artifacts/single-split.md",
+      "sha256": "410229e63800f02f4bedb0a19df5a4d95e3d1cf5e1cef3b29b759f353cd0a8d2",
+      "status": "read-source-faithful"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "status": "held-strict-native-context-failure",
+  "accepted": false,
+  "candidate_launched": false,
+  "savings_counted": false,
+  "raw_artifacts_passed": 20,
+  "decisions_passed": 50,
+  "manual_artifacts_passed": 20,
+  "native_samples_passed": 4,
+  "native_samples_total": 5,
+  "failed_sample": "architecture-proposal-mcp-v1-baseline-5",
+  "native_problems": [
+    {
+      "code": "user-context-order-or-type",
+      "detail": null
+    },
+    {
+      "code": "worker-incomplete-or-prompt-differs",
+      "detail": null
+    }
+  ],
+  "reason": "A runtime environment_context user message advanced the date across UTC midnight, violating the frozen exact-two-user-message native bar. Independent diagnosis found metadata only and unchanged timezone/filesystem fields; the original native failure remains blocking.",
+  "action": "Retain all samples and diagnostic records without waiver, rescore, replacement or candidate launch. Continue other independently qualified slices.",
+  "bindings": [
+    {
+      "path": "architecture-proposal-mcp-v1-registration.json",
+      "sha256": "7c16f09ccac313b28c9b6f128d3e61acf6f4d14a51b6b7c1e646b0e85bc35bad"
+    },
+    {
+      "path": "architecture-proposal-mcp-v1-baseline-plan.json",
+      "sha256": "1f395fa4edee39569ab444de43104c22258b733fd6e3aac77feeef182e6cec7d"
+    },
+    {
+      "path": "architecture-proposal-mcp-v1-candidate-plan.json",
+      "sha256": "4f3d6bf7db23e10386eedf3edae0a582cb71250e8d362c973e09dcd80d790312"
+    },
+    {
+      "path": "manual-artifact-reviews/architecture-proposal-mcp-v1-baseline-independent.json",
+      "sha256": "e94523690510ea364223ecb61e00b4e248d9945ec4d128e1061b32b54781f567"
+    },
+    {
+      "path": "manual-artifact-reviews/architecture-proposal-mcp-v1-baseline5-midnight-diagnosis.json",
+      "sha256": "175dbe22f8adff2ed56f2f0f5a2baa5e13cb84e551fc6769a2afde1eae0d423a"
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-mcp-v1-baseline-5/capture.json",
+      "sha256": "45f4a4a9b05946f4d735fddfda4dc69129b6fa778f62fbfe64c3392eca0cae8a"
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-mcp-v1-baseline-5/report.json",
+      "sha256": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78"
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-mcp-v1-baseline-5/native-audit.json",
+      "sha256": "513ac5614d5c4bb9925cb62516b4b30ba89c195a54777c9085c1bdd9c2d99057"
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-mcp-v1-baseline-5/worker-final-state.json",
+      "sha256": "83b8c99dca13bf095bf5d2ef1f1f064cd5f30da0012e723e9cd9d049ab84286a"
+    },
+    {
+      "path": "workflow-runs/architecture-proposal-mcp-v1-baseline-5/runner-failure.json",
+      "sha256": "ce758a5fb290dd6581bda641c5669a968773644e1c460d246cae071690d4b8a9"
+    }
+  ]
+}

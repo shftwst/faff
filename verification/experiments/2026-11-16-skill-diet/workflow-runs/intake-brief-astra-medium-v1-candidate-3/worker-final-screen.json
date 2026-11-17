@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All six briefs and twelve rule answers were recorded. Finish succeeded.\n\nThe full policy was read before workflow operations. No departures from the restrictions; `functions.exec` only carried individual `exec_command` calls.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e65a-368b-7931-9b01-db4d7f78a9bb"
+    ],
+    "elapsed_seconds": 424.4,
+    "stdout_sha256": "a465ee59bdf64e055ce226c65e30159bf636883a46f2604d65694c50674a0d85",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

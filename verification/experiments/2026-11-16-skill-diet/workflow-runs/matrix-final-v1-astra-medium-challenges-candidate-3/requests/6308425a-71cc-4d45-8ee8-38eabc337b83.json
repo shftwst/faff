@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"The supplied provider attempt is exhausted with opinion_available=false. No challenge opinion exists; omit --challenge and preserve phase2-inconclusive rejection. The Phase-1 admit and apparently in-scope proposal cannot replace the missing opinion."}}

@@ -1,0 +1,177 @@
+{
+  "schema": 1,
+  "status": "append-only-diagnostic-correction-no-qualification",
+  "superseded_claim": "Original baseline1-3 manual narrative calls persisted machine locators overescaped/inaccurate. This diagnostic corrects only that claim, leaving original review files unchanged. Baseline4-5 findings already describe matching locator provenance.",
+  "bound_adjudication": {
+    "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v2-source-oracle-adjudication.json",
+    "sha256": "b182fa2280e0c5ca9da57f4db5d5adb3a14b76e7a505f4e5c8eebc478deb00b0"
+  },
+  "original_review_hashes": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-1-3-independent.json",
+      "sha256": "90eac05dfbdef613aa4dcbcf29f072a10edb5f7182e1ba916ee22517a2cbb3e5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-4-independent.json",
+      "sha256": "792375c9a138bc7ed15e992555da51658c9b83368d5db4e40417cd149b4823ad"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-5-independent.json",
+      "sha256": "b6eedd6d037927d7472998dbf3bf4b223e362ddb92276d3a9d3d01403423071a"
+    }
+  ],
+  "finding": "All five historical JSON locator strings parse to exactly the actual captured [executable,...argv]. Script arguments contain zero literal backslashes. Nested JSON display escapes are serialization, not changed executed arguments. No raw positive-case grade lists machine-method-provenance.",
+  "witnesses": [
+    {
+      "sample": 1,
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-1/capture.json",
+        "sha256": "f0c1b6c2c7e70c49f1ecb6ace5ec7fd174109666a649070a41faaf9dbe80fda1"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-1/report.json",
+        "sha256": "4b5836b31fe757de88f74604bdca71afa75b192408cc26a4f3c6a00e3b57684e"
+      },
+      "original_manual": {
+        "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-1-3-independent.json",
+        "sha256": "90eac05dfbdef613aa4dcbcf29f072a10edb5f7182e1ba916ee22517a2cbb3e5"
+      },
+      "locator_string_sha256": "f13c0a3f222f375a801e9677a2514dffc9ae037a2a375d3792a5155d1fd44df1",
+      "parsed_locator": [
+        "/usr/local/bin/node",
+        "-e",
+        "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+      ],
+      "actual_executable_argv": [
+        "/usr/local/bin/node",
+        "-e",
+        "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+      ],
+      "exact_array_equality": true,
+      "literal_backslashes_in_script_arg": 0,
+      "raw_grader_machine_method_failure": false
+    },
+    {
+      "sample": 2,
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-2/capture.json",
+        "sha256": "0d37c7cc9baede02388ac4620c3ac17e5ae897b3a7aeae0acd5c888f72389c05"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-2/report.json",
+        "sha256": "56f46837eb06ded02647f9c36004df7cbbb1710a16aa5285940cbf781cdf4440"
+      },
+      "original_manual": {
+        "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-1-3-independent.json",
+        "sha256": "90eac05dfbdef613aa4dcbcf29f072a10edb5f7182e1ba916ee22517a2cbb3e5"
+      },
+      "locator_string_sha256": "f13c0a3f222f375a801e9677a2514dffc9ae037a2a375d3792a5155d1fd44df1",
+      "parsed_locator": [
+        "/usr/local/bin/node",
+        "-e",
+        "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+      ],
+      "actual_executable_argv": [
+        "/usr/local/bin/node",
+        "-e",
+        "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+      ],
+      "exact_array_equality": true,
+      "literal_backslashes_in_script_arg": 0,
+      "raw_grader_machine_method_failure": false
+    },
+    {
+      "sample": 3,
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-3/capture.json",
+        "sha256": "f17cacda99adc38715f891025e2492dcaa84ee5cbfc8bf9415ec5be4d4edf7a1"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-3/report.json",
+        "sha256": "dc39d3d3dd50a4e1bcc5b609a4c3aa78c0e3c0abd77be2ad563f41c84ae929a8"
+      },
+      "original_manual": {
+        "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-1-3-independent.json",
+        "sha256": "90eac05dfbdef613aa4dcbcf29f072a10edb5f7182e1ba916ee22517a2cbb3e5"
+      },
+      "locator_string_sha256": "f13c0a3f222f375a801e9677a2514dffc9ae037a2a375d3792a5155d1fd44df1",
+      "parsed_locator": [
+        "/usr/local/bin/node",
+        "-e",
+        "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+      ],
+      "actual_executable_argv": [
+        "/usr/local/bin/node",
+        "-e",
+        "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+      ],
+      "exact_array_equality": true,
+      "literal_backslashes_in_script_arg": 0,
+      "raw_grader_machine_method_failure": false
+    },
+    {
+      "sample": 4,
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-4/capture.json",
+        "sha256": "7810c08331075c58ce2b2963c6c602f516ce95e8c5cdf9e0ab01a2e121f07f45"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-4/report.json",
+        "sha256": "1395025b84bc431a92adb69a7012bb8561129692c03102dec6b793f5a676a238"
+      },
+      "original_manual": {
+        "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-4-independent.json",
+        "sha256": "792375c9a138bc7ed15e992555da51658c9b83368d5db4e40417cd149b4823ad"
+      },
+      "locator_string_sha256": "f13c0a3f222f375a801e9677a2514dffc9ae037a2a375d3792a5155d1fd44df1",
+      "parsed_locator": [
+        "/usr/local/bin/node",
+        "-e",
+        "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+      ],
+      "actual_executable_argv": [
+        "/usr/local/bin/node",
+        "-e",
+        "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+      ],
+      "exact_array_equality": true,
+      "literal_backslashes_in_script_arg": 0,
+      "raw_grader_machine_method_failure": false
+    },
+    {
+      "sample": 5,
+      "capture": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-5/capture.json",
+        "sha256": "6d789703e522c9db580a13f256ed03a44466638856b9d7d5da1e1b018ea9ef5f"
+      },
+      "report": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-5/report.json",
+        "sha256": "550651f0236edc0a755aef943d762b9630fc3fe344bad8c9f9eb3aa187b46889"
+      },
+      "original_manual": {
+        "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-5-independent.json",
+        "sha256": "b6eedd6d037927d7472998dbf3bf4b223e362ddb92276d3a9d3d01403423071a"
+      },
+      "locator_string_sha256": "f13c0a3f222f375a801e9677a2514dffc9ae037a2a375d3792a5155d1fd44df1",
+      "parsed_locator": [
+        "/usr/local/bin/node",
+        "-e",
+        "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+      ],
+      "actual_executable_argv": [
+        "/usr/local/bin/node",
+        "-e",
+        "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+      ],
+      "exact_array_equality": true,
+      "literal_backslashes_in_script_arg": 0,
+      "raw_grader_machine_method_failure": false
+    }
+  ],
+  "unchanged_status": [
+    "All five V2 native audits remain failed and cohort remains held/unqualified.",
+    "Raw report grades, manual records, actual missing executions/ledger fields/invalid root causes/false claims and task truncation findings are not changed or rescored.",
+    "No replacement, waiver, post-hoc acceptance or pooling."
+  ],
+  "method": "Read exact existing capture/artifact fields and compare JSON.parse(locator) to actual command argv; verified all original manual capture hashes. No command or model execution."
+}

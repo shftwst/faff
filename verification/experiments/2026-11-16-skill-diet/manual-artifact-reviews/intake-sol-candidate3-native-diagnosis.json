@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "status": "actual-native-protocol-deviations-original-failure-retained",
+  "updated_utc": "2026-11-16T19:10:30.610052+00:00",
+  "sample": "intake-brief-sol-v1-candidate-3",
+  "scope": "Only native tool inputs/result envelopes inspected. No reasoning or raw full capture exported.",
+  "bindings": [
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-candidate-3/native-audit.json",
+      "sha256": "0f35135520ac7fcb627c071d408fad25f607a7e11cb3ce6645d00706249b0399"
+    },
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-candidate-3/native-audit-sample.json",
+      "sha256": "3e0b070ba66b8c78ab4529dfd23a273944d5bd19a5c48025c3d3eb2a2ecc6c34"
+    },
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-candidate-3/worker-manifest.json",
+      "sha256": "dc99edf4ee8137454900a6be7703c90844383c4769eac33207548f1c778e21a3"
+    },
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-candidate-3/worker-final-state.json",
+      "sha256": "83f005a708c403eba4ddab643bdebce347127384034f0b256f287219cc4618f0"
+    },
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-candidate-3/report.json",
+      "sha256": "be4fb5613f9984bc7eb54d21b5a0322a5ce995498e8638aab8d04fc947116d80"
+    }
+  ],
+  "private_native_source_sha256": "cf1227b26558fd5846c75d7a9baf9fa365c4f54235c6d19c53dc172258345014",
+  "source_matches_audit": true,
+  "native_calls": 46,
+  "full_result_metadata_calls": 46,
+  "exit_codes": {
+    "0": 45,
+    "1": 1
+  },
+  "strict_initial_reads": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "complete": true,
+      "content_sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "content_bytes": 22605
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "complete": true,
+      "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "content_bytes": 5591
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-brief-sol-v1-candidate-3/task.json",
+      "complete": true,
+      "content_sha256": "1ab134e0444befcfbaa6a4eace94d5535ab4b74cf6028292100e1b35611a7f0d",
+      "content_bytes": 12011
+    }
+  ],
+  "findings": [
+    {
+      "call_id": "call_b530e3ab0e2643c8840881f05a932647",
+      "operation": "read_policy",
+      "offset": 96000,
+      "issue": "Run-directory path misspells workspace as workfspace.",
+      "expected_component": "/Users/shftwst/workspace/",
+      "actual_component": "/Users/shftwst/workfspace/",
+      "exit_code": 1,
+      "result": "ENOENT while creating the mailbox request under the nonexistent path.",
+      "classification": "Actual failed command and wrong literal bridge directory, not unsupported equivalent wrapper."
+    },
+    {
+      "call_id": "call_7e86e60525b14fa08767f8939187ca5a",
+      "operation": "write_output",
+      "case_id": "greenfield-complete",
+      "issue": "Missing closing FAFF_JSON heredoc delimiter.",
+      "exit_code": 0,
+      "result": "Shell warned that heredoc reached end-of-file; write_output still acknowledged a 654-byte artifact.",
+      "artifact_sha256": "2675b46a2f781843a8fb5f53389cbd9b111d48ad7a5b111280d58944a1c4b31e",
+      "classification": "Actual literal-command protocol violation despite successful artifact write."
+    }
+  ],
+  "conclusion": "Full exit metadata survives for all calls and all three initial reads are strictly certified. Strict audit correctly fails; changing wrapper parsing would not remove these two protocol deviations. Original audit, reports and stopped continuation remain retained. No rerun or implementation edit performed."
+}

@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "",
+  "state": {
+    "exit_code": 1,
+    "thread_ids": [
+      "01a1e470-37f6-7d92-8ba8-e132fc86ff5f"
+    ],
+    "elapsed_seconds": 25.0,
+    "stdout_sha256": "42e96aface84e4dbd2647640700bec32f17d63d75855dbb343281e12f17b50b8",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

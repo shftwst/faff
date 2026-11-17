@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"format-source","value":{"command":"faff adr format --json","read_template_directly":false}}}

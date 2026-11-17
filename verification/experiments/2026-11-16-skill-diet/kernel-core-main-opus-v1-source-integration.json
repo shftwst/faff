@@ -1,0 +1,153 @@
+{
+  "status": "source-ported-and-integration-checked-not-model-qualified",
+  "base_commit": "8b64039c0ef7605cbafc8b5f94867730b0a5f6a6",
+  "commit": "edc7eeda24418176abd4978bc73282413a2442fe",
+  "implementation_commit": "3a587f91",
+  "branch": "feat/skill-diet-kernel-core-main",
+  "before": {
+    "bytes": 83652,
+    "tokens_ceil_utf16_over_4": 20753,
+    "validator_lines": 435,
+    "sha256": "aa76c16a0d51ee966c3e77cf5df8564834966173f08dd2100da174b82c97ac89"
+  },
+  "after": {
+    "bytes": 70478,
+    "tokens_ceil_utf16_over_4": 17522,
+    "validator_lines": 435,
+    "sha256": "4505afeeec9f75b9d2d388564f5f61ce9b7daeac7bbf21bd546d04de41f4e1f5"
+  },
+  "savings": {
+    "bytes": 13174,
+    "tokens_ceil_utf16_over_4": 3231
+  },
+  "source_batch_kernel_sha256": "59420e7265aa8aa0174eadb665f988d9b748fa728f8035efce69fe69ce7f24d9",
+  "diff_bounds": {
+    "unchanged_prefix_bytes": 54644,
+    "region": "Core contracts and adaptor slots through EOF",
+    "outside_region_exact_current_main": true
+  },
+  "integration_deltas": [
+    "Keep source-batch 45-byte producer-consumer loader END anchor restoration.",
+    "Restore original chosen|punt|assumes|none marker enum, +16 bytes versus placeholder.",
+    "Restore existing never silently to pass literal, +12 bytes; original unchanged consumer guard required it.",
+    "Restore explicit autonomous run gives it a resolve-attempt requirement, as original main requires; +13 bytes."
+  ],
+  "line_ratchet": {
+    "before": 435,
+    "after": 435,
+    "KERNEL_LINE_BASELINE": 435,
+    "validator_file_changed": false
+  },
+  "byte_baseline": "Only faff/references/kernel.md lowered canonically from83652 to70478.",
+  "checks": {
+    "initial_tests": {
+      "passed": 150,
+      "failed": 1,
+      "reason": "Existing loadReviewVerdictProse guard required never silently to pass; corrected in prompt, test unchanged."
+    },
+    "focused_follow_up": {
+      "passed": 2,
+      "failed": 0,
+      "scope": "Failed review-loader source guard and committed prose-baseline serialization"
+    },
+    "unique_existing_tests_pass": 151,
+    "adapter_lint": "pass on final corrected source",
+    "inventory": {
+      "result": "pass",
+      "blocks_deleted": 44,
+      "covered_moved": 2,
+      "covered_by_row": 42,
+      "uncovered": [],
+      "row_errors": [],
+      "warnings": []
+    },
+    "inventory_initial_failure": "Fourteen missing list-member anchors added and four unused anchors removed in follow-up inventory-only commit; first log retained.",
+    "diff_check": "pass",
+    "worktree": "clean",
+    "final_corrected_full_existing_tests": {
+      "passed": 151,
+      "failed": 0
+    }
+  },
+  "commands": [
+    "env TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node --test test/eval-cli-driver.test.mjs test/prose-size.test.mjs test/validate-adapters.test.mjs",
+    "env TMPDIR=/var/tmp GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false node --test --test-name-pattern \"loadReviewVerdictProse folds|committed\" test/eval-cli-driver.test.mjs test/prose-size.test.mjs",
+    "node plugin/skills/faff/bin/faff validate-adapters",
+    "node plugin/skills/faff/bin/faff rule-inventory check --base 8b64039c0ef7605cbafc8b5f94867730b0a5f6a6 --json"
+  ],
+  "logs": [
+    {
+      "path": "/var/tmp/faff-kernel-core-main-tests.txt",
+      "bytes": 36940,
+      "sha256": "4a8e333027e9c1d4db9335bffe15b261dd6ab01ad7cdedf2e7564888937d18c4"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-adapter-lint.txt",
+      "bytes": 25038,
+      "sha256": "b876598b47e3a0ba00a552c7f443019d426bd2b5837ec12899fe7b09a2ad0242"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-compat-tests.txt",
+      "bytes": 594,
+      "sha256": "9a2f3a9f1c1318c74d395a4b89c61df367c6fa297f85634a407d030702fe70a2"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-final-adapter-lint.txt",
+      "bytes": 25038,
+      "sha256": "b876598b47e3a0ba00a552c7f443019d426bd2b5837ec12899fe7b09a2ad0242"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-rule-inventory.json",
+      "bytes": 10181,
+      "sha256": "d99f57483172891c9b1f54bf639efc75269f5eed1ed9c1684565bc6a0e4a4570"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-rule-inventory-final.json",
+      "bytes": 10479,
+      "sha256": "636bbf280765b744d0b965b09b9d0b9976967b9325992166f8ec75f41d00e464"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-commit.txt",
+      "bytes": 222,
+      "sha256": "8738e464b7c879cad179326b27e7d071a65b1ec53e4b85622ea9071830cd5247"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-inventory-commit.txt",
+      "bytes": 138,
+      "sha256": "118fb25715b0bef7847d34622cc22d1c3039fb6675d5544a166faa790659b77a"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-resolve-tests.txt",
+      "bytes": 36163,
+      "sha256": "8a57a96c9de2c0b878b7470edb91dea698f792f0eaac3b3ee0ca6ff7e9b16da3"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-resolve-adapter-lint.txt",
+      "bytes": 25038,
+      "sha256": "b876598b47e3a0ba00a552c7f443019d426bd2b5837ec12899fe7b09a2ad0242"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-resolve-commit.txt",
+      "bytes": 138,
+      "sha256": "7f68a983785ea15b3a771c239cc2d8d41940dc1935793d404d0fb91292bfe079"
+    },
+    {
+      "path": "/var/tmp/faff-kernel-core-main-resolve-rule-inventory.json",
+      "bytes": 10479,
+      "sha256": "636bbf280765b744d0b965b09b9d0b9976967b9325992166f8ec75f41d00e464"
+    }
+  ],
+  "limits": [
+    "New corrected source treatment. Prior held raw/input-binding measurement is not reused as qualification.",
+    "No model calls, new fixtures/harnesses, runtime behaviour changes, push or PR.",
+    "Existing source/structural tests and inventory do not establish model parity."
+  ],
+  "previous_commits": [
+    "3a587f91",
+    "28dbbd74bbe2175c46900c743e99b6a3667b808e"
+  ],
+  "semantic_preservation_corrections": [
+    "Original explicit chosen|punt|assumes|none producer encoding.",
+    "Original mandatory autonomous resolve-attempt before failure callback."
+  ]
+}

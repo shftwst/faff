@@ -1,0 +1,8 @@
+{
+  "status": "rejected",
+  "candidate": "candidates/skill-catalog-v1.json",
+  "observed_samples": 1,
+  "unrun_samples": 4,
+  "failure": "selection-04 returned faff-prep instead of faff-jot. The request overlaps ticket inspection and clarification. The revised catalogue restores both full original descriptions rather than narrowing the oracle after observing the failure.",
+  "revision": "26 other description reductions remain candidates; no v1 sample is counted as v2."
+}

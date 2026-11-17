@@ -1,0 +1,6 @@
+{
+  "exit_code": 0,
+  "temporary_directory": "/var/tmp/faff-intake-integration-uy944xwd",
+  "reason": "Avoid the independently observed transient /tmp/.git ancestor. No source or test assertion changed.",
+  "log": "deterministic-checks/intake-sol-integration-tests-isolated-tmp.txt"
+}

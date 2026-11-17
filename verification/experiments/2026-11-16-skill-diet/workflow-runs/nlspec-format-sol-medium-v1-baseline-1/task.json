@@ -1,0 +1,341 @@
+{
+  "instructions": "Read the complete rendering policy through read_policy. For each independent artifact case, transform the supplied draft or source into the requested output and persist it through write_output. These are isolated human-facing outputs; preserve their facts and use the supplied source material. Do not query a tracker or read additional files. Separately answer every bounded rule question. Global operator guidance applies. Finish after every case is recorded.",
+  "policy": {
+    "bytes": 120316,
+    "utf16_characters": 119305,
+    "sha256": "73ae4d3301da2e648c43b5ccc2693c4a8d9fd016ac82c53ba57397021588cb94",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_output",
+      "description": "Persist the completed rendering for one artifact case. Write once per case; provide the actual normalised text or violation report requested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "answer_rule",
+      "description": "Answer one separate bounded policy question in its stated value shape. Do not perform hypothetical actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all artifacts and rule answers are recorded.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "mechanical",
+      "task": "Produce the final full nlspec body from these completed issue/explore/review snapshots. Explore and inherited self-review already finished outside this boundary; their supplied results are authoritative inputs. Do not inspect a repository, dispatch reviewers, attach the spec or write tracker state. Preserve requirements and unresolved decisions without inventing choices. Include the required confidence and last contract block. This case measures final spec production, not the upstream review procedure. Persist the actual Markdown.",
+      "source": {
+        "issue": "SPEC-1",
+        "title": "Correct the help-page heading",
+        "explore": {
+          "files": {
+            "docs/help.md": "# CLI reference\n\nUse tool --help for options.\n"
+          },
+          "behaviour": "Only this heading changes; no command behaviour or API change."
+        },
+        "requirements": [
+          "Rename heading CLI reference to Command reference in docs/help.md.",
+          "Preserve the remaining page bytes.",
+          "This is a mechanical text edit; there is no non-trivial behavioural objective."
+        ],
+        "excluded": [
+          {
+            "name": "Command behaviour",
+            "why": "Only documentation naming changes",
+            "extension": "src/cli.ts"
+          }
+        ],
+        "decisions": [
+          {
+            "chosen": "Edit the existing heading in place",
+            "reason": "Avoid replacing the page or changing command behaviour"
+          }
+        ],
+        "checks": [
+          "A file-content assertion checks the heading and unchanged remainder."
+        ],
+        "review": {
+          "completed": true,
+          "blocker": 0,
+          "major": 0,
+          "minor": 0,
+          "result": "All supplied facts checked; no changes beyond the supplied snapshot are authorised.",
+          "returned_record_required": true
+        },
+        "completed_punt_scan": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "id": "retry-and-privacy",
+      "task": "Produce the final full nlspec body from these completed issue/explore/review snapshots. Explore and inherited self-review already finished outside this boundary; their supplied results are authoritative inputs. Do not inspect a repository, dispatch reviewers, attach the spec or write tracker state. Preserve requirements and unresolved decisions without inventing choices. Include the required confidence and last contract block. This case measures final spec production, not the upstream review procedure. Persist the actual Markdown.",
+      "source": {
+        "issue": "SPEC-2",
+        "title": "Bound import retries",
+        "explore": {
+          "files": {
+            "src/import.ts": "export async function runImport(payload) { return importOnce(payload); }",
+            "src/errors.ts": "export class ImportError extends Error { transient: boolean; }",
+            "src/logger.ts": "export function log(event, fields) { /* existing logger */ }"
+          },
+          "integration": "Existing caller expects successful import value or original terminal error; existing job runner calls runImport."
+        },
+        "requirements": [
+          "Attempt importOnce at most 3 times, including the initial attempt.",
+          "Retry only ImportError with transient true, immediately, using the existing job runner; do not introduce backoff.",
+          "Success returns the original successful value; permanent errors or the third transient error return the original error.",
+          "Log retry attempts using attempt number only. Logs MUST NOT contain payloads.",
+          "Add a separate DONE item for the repository test file test/import-retry.test.ts passing.",
+          "Use three behavioural scenarios: immediate success, transient failure then success, three transient failures. Withhold the third as one holdout; retain the other two visible. Include the log privacy assertion as a non-functional criterion."
+        ],
+        "excluded": [
+          {
+            "name": "Backoff",
+            "why": "No timing policy requested",
+            "extension": "src/import.ts retry loop"
+          },
+          {
+            "name": "New job runner",
+            "why": "Existing runner is retained",
+            "extension": "src/runner.ts"
+          }
+        ],
+        "decisions": [
+          {
+            "chosen": "Bound retries in existing runImport",
+            "reason": "Preserve caller interface and runner ownership"
+          }
+        ],
+        "review": {
+          "completed": true,
+          "blocker": 0,
+          "major": 0,
+          "minor": 0,
+          "result": "All supplied facts checked; no changes beyond the supplied snapshot are authorised.",
+          "returned_record_required": true
+        },
+        "completed_punt_scan": {
+          "punts": [],
+          "eligible_count": 0,
+          "blocking_open_count": 0
+        }
+      }
+    },
+    {
+      "id": "blocking-punt",
+      "task": "Produce the final full nlspec body from these completed issue/explore/review snapshots. Explore and inherited self-review already finished outside this boundary; their supplied results are authoritative inputs. Do not inspect a repository, dispatch reviewers, attach the spec or write tracker state. Preserve requirements and unresolved decisions without inventing choices. Include the required confidence and last contract block. This case measures final spec production, not the upstream review procedure. Persist the actual Markdown.",
+      "source": {
+        "issue": "SPEC-3",
+        "title": "Persist recovery tokens",
+        "explore": {
+          "files": {
+            "src/token-store.ts": "export interface TokenStore { put(token): Promise<void>; get(id): Promise<Token | null>; }"
+          },
+          "state": "Interface exists, no persistence backend is implemented."
+        },
+        "requirements": [
+          "Persist accepted tokens across restart.",
+          "get(id) returns the stored token, or null when absent.",
+          "Keep TokenStore interface unchanged."
+        ],
+        "blocking_decision": "Choose SQLite or PostgreSQL before implementation; the architecture owner must decide. Do not choose or assume a backend.",
+        "excluded": [
+          {
+            "name": "Token expiry",
+            "why": "Retention behaviour is a separate feature",
+            "extension": "src/token-store.ts"
+          }
+        ],
+        "decisions": [
+          {
+            "chosen": "Keep the existing TokenStore interface",
+            "reason": "Callers already use it"
+          },
+          {
+            "punt": "SQLite or PostgreSQL",
+            "owner": "architecture",
+            "blocking": true
+          }
+        ],
+        "review": {
+          "completed": true,
+          "blocker": 0,
+          "major": 0,
+          "minor": 0,
+          "result": "All supplied facts checked; no changes beyond the supplied snapshot are authorised.",
+          "returned_record_required": true
+        },
+        "completed_punt_scan": {
+          "punts": [
+            {
+              "topic": "SQLite or PostgreSQL for durable token storage; the increment depends on this unresolved choice .",
+              "decides": "architecture",
+              "non_blocking": false,
+              "out_of_scope_crossref": false,
+              "eligible": false
+            }
+          ],
+          "eligible_count": 0,
+          "blocking_open_count": 1
+        }
+      }
+    },
+    {
+      "id": "deferred-punt",
+      "task": "Produce the final full nlspec body from these completed issue/explore/review snapshots. Explore and inherited self-review already finished outside this boundary; their supplied results are authoritative inputs. Do not inspect a repository, dispatch reviewers, attach the spec or write tracker state. Preserve requirements and unresolved decisions without inventing choices. Include the required confidence and last contract block. This case measures final spec production, not the upstream review procedure. Persist the actual Markdown.",
+      "source": {
+        "issue": "SPEC-4",
+        "title": "Validate import row limits",
+        "explore": {
+          "files": {
+            "src/validate-import.ts": "export function validateImport(rows) { return { valid: true }; }"
+          },
+          "state": "Existing caller accepts {valid:boolean,error?:string}."
+        },
+        "requirements": [
+          "Accept arrays with at most 1000 rows.",
+          "Reject larger arrays with valid false and error row-limit.",
+          "Preserve the existing return shape and do not import or mutate rows during validation."
+        ],
+        "excluded": [
+          {
+            "name": "Latency dashboard",
+            "why": "Reporting is unrelated to enforcing the limit",
+            "extension": "src/metrics.ts"
+          }
+        ],
+        "decisions": [
+          {
+            "chosen": "Validate length before any import",
+            "reason": "Reject excessive work without side effects"
+          },
+          {
+            "punt": "Latency dashboard",
+            "blocking": false,
+            "owner": "product",
+            "note": "A dashboard design decision is deferred. Include the identical Latency dashboard label in OUT OF SCOPE and mark its Punt (non-blocking). This decision does not affect the row limit."
+          }
+        ],
+        "review": {
+          "completed": true,
+          "blocker": 0,
+          "major": 0,
+          "minor": 0,
+          "result": "All supplied facts checked; no changes beyond the supplied snapshot are authorised.",
+          "returned_record_required": true
+        },
+        "completed_punt_scan": {
+          "punts": [
+            {
+              "topic": "Latency dashboard  . Dashboard design is deferred under OUT OF SCOPE and does not affect row-limit enforcement.",
+              "decides": "product",
+              "non_blocking": true,
+              "out_of_scope_crossref": true,
+              "eligible": true
+            }
+          ],
+          "eligible_count": 1,
+          "blocking_open_count": 0
+        }
+      }
+    }
+  ],
+  "rule_questions": [
+    {
+      "id": "scenario-scope",
+      "question": "Does a mechanical text-only objective require a behavioural scenario? Return {\"required\": boolean}."
+    },
+    {
+      "id": "scenario-format",
+      "question": "For a non-trivial behavioural objective choose the canonical machine-readable scenario form. Return {\"fenced\":boolean,\"capitalised_step_starts\":boolean,\"bulleted_steps\":boolean}."
+    },
+    {
+      "id": "nonfunctional",
+      "question": "Does a non-functional log privacy objective require forced Given/When/Then? Return {\"forced_gwt\":boolean}."
+    },
+    {
+      "id": "holdout",
+      "question": "Can a holdout introduce the only statement of a new requirement? Return {\"allowed\":boolean}."
+    },
+    {
+      "id": "done-coverage",
+      "question": "May DONE introduce a requirement absent from the body? Return {\"allowed\":boolean}."
+    },
+    {
+      "id": "repository-test",
+      "question": "Should a repository test-file check share a DONE item with HTTP behaviour? Return {\"separate_items\":boolean}."
+    },
+    {
+      "id": "known-owner",
+      "question": "A Punt clearly belongs to architecture. Return {\"owner_suffix\":\"architecture\"|\"omit\"}."
+    },
+    {
+      "id": "confidence",
+      "question": "Only an eligible non-blocking Punt remains and review has no findings. Return {\"confidence\":\"high\"|\"medium\"|\"low\"}."
+    },
+    {
+      "id": "review-cap",
+      "question": "Inherited review retains one blocker. Return {\"high_allowed\":boolean}."
+    },
+    {
+      "id": "contract",
+      "question": "Where does the spec-readiness contract block go? Return {\"position\":\"last\"|\"first\"}."
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "harness": "eval/control-parity/routing-assignment.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/routing-assignment.json",
+  "timeout_seconds": 1200,
+  "worker": "claude-challenges",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Actual routing assignments, real Punt scanner and routing contract, complete fixed original shared references and accepted rendering source. Literal native commands; no tracker writes.",
+  "acceptance": "Five samples per arm; all ten assignments, two validation refusals and thirteen decisions; complete native audit. Source display section remains byte-identical. No full queue/park workflow claim.",
+  "samples": [
+    {
+      "name": "routing-assignment-v1-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/routing-assignment-with-context.md"
+    },
+    {
+      "name": "routing-assignment-v1-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/routing-assignment-with-context.md"
+    },
+    {
+      "name": "routing-assignment-v1-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/routing-assignment-with-context.md"
+    },
+    {
+      "name": "routing-assignment-v1-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/routing-assignment-with-context.md"
+    },
+    {
+      "name": "routing-assignment-v1-baseline-5",
+      "arm": "baseline",
+      "policy": "baseline/routing-assignment-with-context.md"
+    }
+  ]
+}

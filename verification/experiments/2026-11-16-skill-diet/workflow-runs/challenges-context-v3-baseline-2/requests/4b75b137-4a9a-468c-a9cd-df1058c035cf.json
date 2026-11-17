@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":"absent","ground":null,"reason":"opinion_available=false: the provider attempt was exhausted and no independent opinion was obtained. The absence is preserved as the absent outcome; a missing skeptic is a reject, never a pass."}}

@@ -1,0 +1,12 @@
+{
+  "status": "held-baseline-semantic-failure",
+  "accepted": false,
+  "source_sha256": "fafabf033ac31eec5f2aeb6d2fd1730c8009881a40774e5784512c0c5a2d0bd7",
+  "updated_utc": "2026-11-16T11:46:40.461178+00:00",
+  "artifact": "workflow-runs/agile-principles-astra-v3-baseline-3/artifacts/late-risk.json",
+  "artifact_sha256": "b3c64f3efdee47e683de5d8255d83693c1e4c562cabb24f83b063ef7dcbf6eee",
+  "finding": "The recommendation names dependent UI work, but the fixture establishes a sequence and an unfamiliar bank integration, not a dependency from UI to BANK. The central risk and earlier-investigation recommendation are supported; the added dependency qualifier is not.",
+  "gate": "AGILE-PRINCIPLES-V3.md requires every actual artifact to pass the frozen source-fact rubric, including no invented facts. A mechanical pass cannot replace that review.",
+  "action": "Retain the baseline evidence and finish the already-running baseline capture. Cancel the candidate continuation; route the freed measurement lane to routing assignment. No revised sample replaces this baseline and no agile body savings are counted.",
+  "limits": "This is a baseline failure, not evidence of a candidate regression. The unmeasured candidate remains outside production."
+}

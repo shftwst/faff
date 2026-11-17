@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"tier-precedence","status":"completed","values":{"model":"haiku","effort":"high","effort_applied":false},"reason":"faff dispatch resolve build --tier mechanical --confidence high gave model haiku, effort high. Dispatched with model haiku; effort recorded as not applied (Agent tool has no effort parameter)."}}

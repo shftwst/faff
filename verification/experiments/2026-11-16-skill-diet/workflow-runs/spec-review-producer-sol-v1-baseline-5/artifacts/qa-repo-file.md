@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"revise","objections":[{"lens":"QA","severity":"major","claim":"The Receipt date scenario is unverifiable by the code-blind holdout. State the observable receipt behaviour in the scenario and move the repository test check to its own DONE item.","evidence":"Receipt date ends with then test/receipt.test.mjs passes; the supplied context says the holdout cannot read or execute repository test files.","predicted_consequence":"The holdout cannot decide whether the Receipt date scenario passes against the running receipt component.","spec_anchor":"receipt-date"}]}
+```

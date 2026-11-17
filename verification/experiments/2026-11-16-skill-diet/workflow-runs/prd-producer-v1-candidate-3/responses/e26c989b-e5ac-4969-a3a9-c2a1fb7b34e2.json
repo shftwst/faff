@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "value": {
+    "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-v1-candidate-3/prds/mixed.md",
+    "text": "# Product goal\nImprove sign-in.\n\n## Done\n- Users should love it.\n- Given an expired token, when it is submitted to the login endpoint, then the endpoint returns HTTP 401.\n"
+  }
+}

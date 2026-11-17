@@ -1,0 +1,356 @@
+{
+  "schema": 1,
+  "kind": "read-only-existing-consumer-reuse-notes",
+  "source_commit": "994007374548a302c11685318dec5b413a4c0ee6",
+  "executed_commands": false,
+  "model_calls": 0,
+  "scope": "Mechanical test/API mapping for a bounded graft evidence producer-to-consumer fixture. No new harness, model measurement or qualification. CLI arrays below are appended to [node, ABS_PINNED_PLUGIN_BIN]; placeholders are host-bound isolated paths.",
+  "inputs": [
+    {
+      "path": "test/evidence-write.test.mjs",
+      "sha256": "85e0f313c356c5950c3dbf36d073b02dea2ac873beeed82bdb2416102e95dd62"
+    },
+    {
+      "path": "test/evidence-return.test.mjs",
+      "sha256": "3470d87be79ed58865c0d93a435646e6eb300b4f779ba7445ed882294fd2d735"
+    },
+    {
+      "path": "test/faff-1475-ac-floor.test.mjs",
+      "sha256": "39d04aeab6e83b961f5841b33a499dd52da5d0fab28ef2466f2f41622e87af2c"
+    },
+    {
+      "path": "test/helpers/evidence-anchor-fixtures.mjs",
+      "sha256": "a656dc8fdc6e84c755c9e831f2e29be31c1a3bd3c5c28c3786367995c7c55dee"
+    },
+    {
+      "path": "test/spec-commit.test.mjs",
+      "sha256": "e3425752515eb40c71de11dadc14934227cfc7602042390de562882ba2a4293a"
+    },
+    {
+      "path": "test/faff-1475-human-only-acs.test.mjs",
+      "sha256": "218ca6edb40c9799de15d008d6e4cb66b87573ad1406d3ff95f2a2c9c1b06575"
+    },
+    {
+      "path": "test/faff-1287-ac-ids.test.mjs",
+      "sha256": "4a628deb3431361d6ddb850012dd2b9a7e9d0cf992d4e72631a77c7ec87643d5"
+    },
+    {
+      "path": "test/dod.test.mjs",
+      "sha256": "9361ea85014cd9b6ea8ef985c32f1e2a2bf974f96ca17d2f47c2247852a2c79b"
+    },
+    {
+      "path": "test/run-ledger-serialiser.test.mjs",
+      "sha256": "708bc94e3cb6ee6a09a0e7dcb08ccbbb8191113b0eb226a7d1412d7174f6818f"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/evidence.js",
+      "sha256": "bb7c90e347a0a9bc401619b175ea0cdb7e93f90761e5eb537451f91a02ad7874"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/merge-gate-floor.js",
+      "sha256": "573813c2da857a5964d611d0e222131f11d7292c4a5fc4f3b064301baec4c365"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/merge-gate-local.js",
+      "sha256": "ca4d1b34e35855981fbb7a0271a3f9102a7cc59762d9644b14a5a5f572331fe4"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/spec-commit.js",
+      "sha256": "1b250425767b1ff8e87c43226b4dfbfcf4776052ca10e32508994166d2d026f7"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/events.js",
+      "sha256": "b74fa6acb7d04adcff3c00f926516c542695cb441d83f9bd81b1d8728cedebd2"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/heartbeat.js",
+      "sha256": "be1a8751bf0e9898cf0a8dfb8b8f66fa5fb515111200755e6f4debee312be76a"
+    }
+  ],
+  "minimal_source_spec": "# Fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+  "sequence": [
+    {
+      "step": "seed and commit source spec",
+      "commands": [
+        [
+          "spec",
+          "commit",
+          "--issue",
+          "FAFF-9",
+          "--title",
+          "Evidence fixture",
+          "--spec",
+          "SOURCE_SPEC",
+          "--worktree",
+          "ISOLATED_REPO",
+          "--run-dir",
+          "RUN_DIR",
+          "--json"
+        ]
+      ],
+      "required_seed": "Owned no-remote temporary git repo, local operator fixture identity, main baseline commit and feature branch. Empty/safe package.json test script true. Write source spec outside worktree, docs/ directory and explicit tracking:none fixture config using the tested layout. RUN_DIR must be ROOT/.faff/runs/RUN_NAME for subsequent evidence writers.",
+      "expect": "Capture path, commit, source/committed hashes from token committed or already-committed. Keep spec-commit.json in RUN_DIR/FAFF-9. Do not derive its date-stamped path yourself.",
+      "pointer": "test/spec-commit.test.mjs:34"
+    },
+    {
+      "step": "verify committed builder spec",
+      "commands": [
+        [
+          "spec",
+          "verify",
+          "--issue",
+          "FAFF-9",
+          "--spec",
+          "SOURCE_SPEC",
+          "--worktree",
+          "ISOLATED_REPO",
+          "--run-dir",
+          "RUN_DIR",
+          "--json"
+        ]
+      ],
+      "expect": "exit0, token verified and matching path; working-tree or HEAD rewrite exits1 mismatch. Missing/ambiguous committed spec exits2. Bind source input bytes and actual committed builder bytes.",
+      "pointer": "test/spec-commit.test.mjs:133"
+    },
+    {
+      "step": "classify",
+      "commands": [
+        [
+          "dod",
+          "classify",
+          "--spec",
+          "SOURCE_SPEC",
+          "--issue",
+          "FAFF-9",
+          "--json"
+        ]
+      ],
+      "expect": "Use actual returned qualified ac_ids. Explicit needs-human marker yields human_only:true, verification_tier delegated and verifier ac-checklist for ac-2. Do not infer human-only from subjectivity or mark it passed.",
+      "pointer": "test/faff-1475-human-only-acs.test.mjs:42"
+    },
+    {
+      "step": "execute automatic check and write checklist",
+      "precondition": "Actually execute the supplied arithmetic command and retain argv/stdout/stderr/exit before asserting passed:true. Example verified string must describe that actual capture.",
+      "commands": [
+        [
+          "evidence",
+          "write",
+          "ac-checklist",
+          "--run-dir",
+          "RUN_DIR",
+          "--issue",
+          "FAFF-9"
+        ]
+      ],
+      "stdin": {
+        "all_verified": false,
+        "criteria": [
+          {
+            "ac": "the supplied arithmetic command MUST pass",
+            "verified": "Actual captured command exits 0",
+            "passed": true,
+            "ac_id": "faff-9#ac-1",
+            "verifications": [
+              {
+                "kind": "command",
+                "locator": "node -e \"if (2 + 2 !== 4) process.exit(1)\""
+              }
+            ]
+          },
+          {
+            "ac": "Prices match the published pricing page",
+            "verified": "Needs human verification: published prices have not been inspected",
+            "passed": false,
+            "ac_id": "faff-9#ac-2",
+            "verifications": [
+              {
+                "kind": "human"
+              }
+            ]
+          }
+        ]
+      },
+      "expect": "exit0, stdout written absolute path; writer stamps schema_version1 and current faff_version. Persisted all_verified remains false. Writer requires string ac_id on every row, rejects inconsistent aggregate/passed flags and invalid method shapes.",
+      "pointer": "plugin/skills/faff/bin/lib/evidence.js:959"
+    },
+    {
+      "step": "persist human-only declaration before return/anchor",
+      "commands": [
+        [
+          "evidence",
+          "write",
+          "human-only-acs",
+          "--run-dir",
+          "RUN_DIR",
+          "--issue",
+          "FAFF-9"
+        ]
+      ],
+      "stdin": {
+        "issue": "FAFF-9",
+        "level": "L3",
+        "unattended": true,
+        "human_only": [
+          "faff-9#ac-2"
+        ]
+      },
+      "expect": "Real writer emits human-only-acs.json plus hash-bound human-only-acs-stamp event. Requires existing real genesis chain. Do not hand-synthesise stamp for a producer proof.",
+      "pointer": "test/faff-1475-human-only-acs.test.mjs:100"
+    },
+    {
+      "step": "render actual persisted checklist",
+      "commands": [
+        [
+          "evidence",
+          "render",
+          "ac-checklist",
+          "--run-dir",
+          "RUN_DIR",
+          "--issue",
+          "FAFF-9"
+        ]
+      ],
+      "expect": "exit0; Markdown starts ## Acceptance Criteria, checked automatic row and unchecked human row with identical ids; Method: command locator and Method: human. This proves anchor-to-render consistency, not PR publication.",
+      "pointer": "plugin/skills/faff/bin/lib/evidence.js:987"
+    },
+    {
+      "step": "return digests",
+      "commands": [
+        [
+          "evidence",
+          "return",
+          "--run-dir",
+          "RUN_DIR",
+          "--issue",
+          "FAFF-9"
+        ]
+      ],
+      "expect": "One JSON line {issue,ac_checklist:{present,sha256},review_verdict:{present,sha256},human_only_acs:{present,sha256}}. Digests cover exact raw bytes including final newline. Return is an identity statement, not schema/fidelity proof. Passing review evidence must already exist as a declared controlled dependency.",
+      "pointer": "test/evidence-return.test.mjs:58"
+    },
+    {
+      "step": "verify returned actual line",
+      "commands": [
+        [
+          "evidence",
+          "verify-return",
+          "--run-dir",
+          "RUN_DIR",
+          "--issue",
+          "FAFF-9"
+        ]
+      ],
+      "stdin": "Exact captured evidence return stdout, not rebuilt digests",
+      "expect": "exit0 verdict agree, all three files match; evidence_persisted contains issue/ac_sha256/review_verdict_sha256/human_only_acs_sha256. Command reports this entry but does not itself save it in ledger.",
+      "pointer": "test/evidence-return.test.mjs:104"
+    },
+    {
+      "step": "persist returned witness then verify against ledger",
+      "host_operation": "Use existing production heartbeat.mutateLedgerUnderLock(RUN_DIR, fresh => ({...fresh,evidence_persisted:[verified.evidence_persisted]})) for this one-issue fixture; preserve any other fields. Existing entries require replace-by-issue rather than truncation in a multi-issue fixture. Real serialiser stamps/validates ledger and folds ledger-write.",
+      "commands": [
+        [
+          "evidence",
+          "verify-return",
+          "--against-ledger",
+          "--run-dir",
+          "RUN_DIR",
+          "--issue",
+          "FAFF-9"
+        ]
+      ],
+      "expect": "exit0 agree with no stdin required; unknown/malformed digest ledger exits2, changed evidence exits1 mismatch. Bind updated ledger bytes and folded event hash.",
+      "pointer": "test/evidence-return.test.mjs:421; test/run-ledger-serialiser.test.mjs:53"
+    },
+    {
+      "step": "mint actual anchor and consume with local gate",
+      "commands": [
+        [
+          "events",
+          "anchor",
+          "--run-dir",
+          "RUN_DIR",
+          "--issue",
+          "FAFF-9",
+          "--dest",
+          "ISOLATED_REPO/.faff/anchors/RUN_NAME/FAFF-9"
+        ],
+        [
+          "merge-gate",
+          "--local",
+          "--issue",
+          "FAFF-9",
+          "--run-dir",
+          "RUN_DIR",
+          "--level",
+          "L3",
+          "--branch",
+          "feature",
+          "--base",
+          "main",
+          "--json",
+          "--check-only"
+        ]
+      ],
+      "between_commands": "Commit the complete actual minted anchor on feature. ReadAnchoredHumanOnly obtains its declaration+stamp and anchored L3 level from this exact branch HEAD; AC checklist/review floor are read from live RUN_DIR. Capture both live and committed anchor bytes.",
+      "expect": "With controlled passing review/local test dependency, no remote and correct anchor, ac_called_out is [faff-9#ac-2] and the AC blocker is absent. For full merge-ok require all independent floor legs to pass; never waive another blocker to claim full gate success. --check-only performs no branch merge or hosted/tracker write, but runs actual safe fixture local tests.",
+      "pointer": "test/faff-1475-ac-floor.test.mjs:46; plugin/skills/faff/bin/lib/merge-gate-local.js:150"
+    }
+  ],
+  "reuse": [
+    {
+      "module": "test/helpers/evidence-anchor-fixtures.mjs",
+      "exports": [
+        "mkScopeRun",
+        "mintScopeAnchor",
+        "mkChainedRun",
+        "seedFloor",
+        "floorAcChecklist",
+        "floorReviewVerdict",
+        "exampleObject"
+      ],
+      "recommendation": "Prefer mkScopeRun(ROOT,{runName:RUN_NAME,admitted:[FAFF-9]}) to seed a real schema-valid run ledger, real genesis+bound-ledger event chain and controlled conforming review dependency; then overwrite only checklist through real writer. mintScopeAnchor calls production mintIssueAnchor. Alternatively mkChainedRun seeds genesis/build-start but its fixed FAFF-1 issue must not be mistaken for FAFF-9 execution; use mkScopeRun for this case."
+    },
+    {
+      "module": "test/faff-1475-ac-floor.test.mjs",
+      "private_helpers": [
+        "scaffoldRepo",
+        "commitAnchor",
+        "localArgs",
+        "passedRow",
+        "humanRow"
+      ],
+      "recommendation": "These helpers are not exported; do not import the whole test file, which registers/runs tests. Copy only tiny owned-repo setup into the existing harness if needed. Do not reuse commitAnchor synthetic stamp for end-to-end producer proof; use real human writer+events anchor and commit those outputs."
+    },
+    {
+      "module": "test/spec-commit.test.mjs",
+      "private_helpers": [
+        "fixture",
+        "commit",
+        "verify"
+      ],
+      "recommendation": "Use setup shape and real spec commit/verify API. No spec-verify.test.mjs exists; spec-commit.test.mjs contains real verify coverage. Record actual date-stamped path returned by spec commit."
+    },
+    {
+      "module": "plugin/skills/faff/bin/lib/merge-gate-floor.js",
+      "exports": [
+        "readAcFloor",
+        "readAnchoredHumanOnly"
+      ],
+      "recommendation": "Additional narrow handler assertion can independently call readAcFloor(RUN_DIR,FAFF-9,{unattended:true,ids:[faff-9#ac-2]}) -> {complete:true,called_out:[faff-9#ac-2]}. Keep exact all_verified:false persisted checklist; the skip is conditional merge eligibility, not human verification."
+    }
+  ],
+  "required_negatives": [
+    "Change one evidence byte after returned digest: verify-return and against-ledger must exit1 mismatch.",
+    "Unattended false, missing/edited human declaration, missing/mismatched stamp, or anchored level mismatch: no human skip and AC blocker remains.",
+    "Human row missing ac_id, mixed/nonhuman/empty verifications, additional unlisted pending AC, or no passed automatic AC: readAcFloor remains blocked.",
+    "Rewrite committed spec or worktree spec: spec verify rejects; classifier ids must continue to match written and rendered rows.",
+    "Do not replace full schema-valid ledger with the minimal {evidence_persisted:[entry]} used by isolated return unit test; it would undermine the actual anchor/gate setup."
+  ],
+  "boundaries": [
+    "A real successful review or hosted PR is not generated by this fixture. Passing review is a supplied controlled dependency; manual recovery writer --terminal-only must not be labelled a real review workflow.",
+    "L3 unattended fixture is sufficient for human-only skip. L4 adds independent holdout/progress/Commissaire gates; an AC-blocker-absent result alone does not mean L4 merge-ok.",
+    "Use no-remote owned temporary repositories and --check-only for local gate. Never run local --execute against the shared worktree.",
+    "Freeze imported helper and full production dependency closure, including current-root helper imports. If invoking a pinned runtime, assert helper-loaded modules match the registered runtime rather than silently mixing versions.",
+    "These examples were checked against source/tests only, not executed as a combined scenario. Required next evidence is one deterministic actual CLI preflight in the existing infrastructure with exact inputs/results/files."
+  ]
+}

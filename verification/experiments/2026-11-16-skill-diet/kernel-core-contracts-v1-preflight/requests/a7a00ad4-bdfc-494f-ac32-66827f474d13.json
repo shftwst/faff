@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"provenance-ownership","value":{"prep_detects_stamp_with_deterministic_regex":true,"spec_producer_supplies_provenance_present":false,"missing_stamp_can_invalidate_readiness":true}}}

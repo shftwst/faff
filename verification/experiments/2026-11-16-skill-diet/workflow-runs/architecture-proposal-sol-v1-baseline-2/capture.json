@@ -1,0 +1,302 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "write_output",
+      "args": {
+        "case_id": "relational",
+        "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"One Node 22 timesheet application deployed through the existing Docker Compose setup, with relational users, projects and entries in the existing PostgreSQL datastore.\",\n  \"rationale\": \"Small internal timesheet tool for a handful of users: one application serves the modest workload. Relational users/projects/entries: PostgreSQL tables use primary keys, foreign keys and constraints to preserve relationships. Records must survive restarts: persist PostgreSQL data on a durable Compose volume and provide backup and restore procedures. Concurrent edits need transactional integrity: commit related changes in database transactions and use row-version checks to reject stale edits. Use the existing team runtime and deployment: Node 22 and Docker Compose match the supplied profile; GitHub Actions runs migration and application checks. No streaming or high-throughput ingestion requirement: ordinary request-driven reads and writes meet the stated load.\",\n  \"adr_candidates\": [\n    {\"title\": \"Use the existing Node and Compose deployment for timesheets\", \"decision\": \"Build one Node 22 application and deploy it through the existing Docker Compose setup.\", \"rationale\": \"The profile records this runtime and deployment, and one application fits a handful of internal users.\"},\n    {\"title\": \"Persist transactional timesheet records in PostgreSQL\", \"decision\": \"Use the existing PostgreSQL datastore with relational constraints, durable storage, transactions and row-version checks for edits.\", \"rationale\": \"Users, projects and entries require relational integrity, survival across restarts and safe concurrent edits.\"}\n  ],\n  \"assumptions\": [\"The existing PostgreSQL instance has capacity for this small workload.\", \"The deployment can provide a persistent PostgreSQL volume and an operator-owned backup and restore procedure; these remain to be verified.\", \"Internal user access and authentication requirements will be confirmed before implementation.\"],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Use the existing Node and Compose deployment for timesheets: build one Node 22 application on the recorded deployment to serve the small internal workload. Candidate for later review and materialisation by graft Step 4b.\n- Persist transactional timesheet records in PostgreSQL: use relational constraints, durable storage, transactions and row-version checks to meet durability and concurrent-edit integrity requirements. Candidate for later review and materialisation by graft Step 4b.\n\nconfidence: high"
+      },
+      "case_id": "relational",
+      "result": {
+        "written": true,
+        "bytes": 2591,
+        "sha256": "847a221ed8b9854d8e5d3e147737a86ee882203e252324cd53a125e07e3b3bc3"
+      }
+    },
+    {
+      "seq": 2,
+      "name": "write_output",
+      "args": {
+        "case_id": "nightly-batch",
+        "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A scheduled Node 22 batch command deployed with the existing Docker Compose setup reads timesheets and writes weekly summary rows in the existing PostgreSQL datastore.\",\n  \"rationale\": \"Nightly batch job: an operator-configured nightly schedule invokes the command. Reads the existing timesheet table: query PostgreSQL directly using a consistent transactional snapshot. Writes weekly summary rows: aggregate by the agreed week and grouping keys, then transactionally upsert summaries under a unique key so reruns are idempotent. A few thousand reads and a few dozen writes per run: one batch process handles the stated workload. No real-time fan-out or cross-partition ordering: each run computes summaries directly from its snapshot. Use existing infrastructure: use the recorded Node 22 runtime, PostgreSQL datastore, Docker Compose deployment and GitHub Actions for checks. Record run success or failure and return a non-zero exit code on failure.\",\n  \"adr_candidates\": [\n    {\"title\": \"Run nightly summaries as a Node batch command\", \"decision\": \"Schedule one Node 22 command in the existing Compose deployment to read PostgreSQL timesheets and transactionally upsert weekly summaries from a consistent snapshot.\", \"rationale\": \"A nightly process fits the stated volume and existing infrastructure; unique summary keys make retries safe.\"}\n  ],\n  \"assumptions\": [\"The existing deployment host can provide a nightly scheduler; scheduler availability is not established by the profile.\", \"The reporting timezone, week boundaries and summary grouping keys will be agreed before implementation.\", \"The existing database permits the required reads and summary writes.\", \"An operator will monitor failed runs and rerun them; an overlap lock will prevent concurrent instances of this job.\"],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Run nightly summaries as a Node batch command: schedule one Node 22 command on the existing deployment, read a consistent PostgreSQL snapshot and transactionally upsert uniquely keyed weekly summaries. This fits the nightly workload and supports safe retries. Candidate for later review and materialisation by graft Step 4b.\n\nconfidence: medium"
+      },
+      "case_id": "nightly-batch",
+      "result": {
+        "written": true,
+        "bytes": 2263,
+        "sha256": "1b846b5ed4d718d5e865b7c94b70e84af6b5330776c8b86c5c96db2d4c55855f"
+      }
+    },
+    {
+      "seq": 3,
+      "name": "write_output",
+      "args": {
+        "case_id": "no-profile",
+        "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A local Python command-line application stores equipment checkout records in a SQLite database file on the laptop.\",\n  \"rationale\": \"Local command-line tool: one Python executable entry point handles checkout and return commands on the laptop. Records must survive restart: commit each operation to an on-disk SQLite database with equipment and checkout constraints, and provide a database backup procedure. One laptop: the application and database run locally. No shared-server or cloud requirement: deployment is a local installation with no hosted dependency. Implementation language is open: Python provides command-line and SQLite support in its standard library. The supplied profile-show result exits 3, so this proposal uses the brief alone.\",\n  \"adr_candidates\": [\n    {\"title\": \"Keep equipment checkouts in a local SQLite database\", \"decision\": \"Build a Python CLI using an on-disk SQLite database and commit each checkout or return in a transaction.\", \"rationale\": \"Local transactional storage preserves records across application restarts and fits operation on one laptop.\"}\n  ],\n  \"assumptions\": [\"No infra profile is available: the supplied profile-show result exits 3; runtime and deployment choices are proposed from the brief alone.\", \"Python is installable on the laptop; its availability has not been verified.\", \"The database file will live in a persistent user data directory with suitable filesystem permissions.\", \"The operator will back up the database; retention requirements remain to be confirmed.\"],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Keep equipment checkouts in a local SQLite database: build a Python CLI that commits checkout and return transactions to a persistent laptop database. Local storage meets the restart durability requirement. Candidate for later review and materialisation by graft Step 4b.\n\nconfidence: medium"
+      },
+      "case_id": "no-profile",
+      "result": {
+        "written": true,
+        "bytes": 1948,
+        "sha256": "cb61d513eebb5b1fb4817e2ab44d317f51e0f3774a9a6d88fe64a26cb5e35a4e"
+      }
+    },
+    {
+      "seq": 4,
+      "name": "write_output",
+      "args": {
+        "case_id": "external-only",
+        "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"Use the required certified FixtureSign service as the signing component, accessed through a narrow Node 22 integration boundary on the existing runtime, subject to separate human authorisation and service access.\",\n  \"rationale\": \"Certified FixtureSign service for document signatures: delegate document signing to FixtureSign through a small integration boundary that submits signing requests and records returned signature references and status. Certification is mandatory and the team cannot build a certified substitute in this release: the required certified capability must come from FixtureSign. Propose the signing component only: keep the proposal limited to this component on the recorded Node 22 runtime. No licence purchase or service call is authorised: surface the buy recommendation for a human and make no purchase, subscription or service call. The profile records no FixtureSign licence or service access, so live integration depends on that external prerequisite.\",\n  \"adr_candidates\": [\n    {\"title\": \"Use certified FixtureSign for document signatures\", \"decision\": \"Delegate document signatures to the required certified FixtureSign service behind a Node 22 integration boundary, contingent on human-authorised access.\", \"rationale\": \"The brief mandates FixtureSign certification, which the team cannot obtain for a substitute in this release.\"}\n  ],\n  \"assumptions\": [\"The brief's certification requirement and named FixtureSign service are authoritative fixture facts.\", \"No FixtureSign licence or service access exists, as recorded in the supplied profile.\", \"A human must resolve procurement and authorise service access separately before any live integration can run.\", \"FixtureSign's supported interface, credentials, signature verification and data-handling requirements remain to be confirmed before implementation.\"],\n  \"recommendation\": \"buy\"\n}\n```\n\n## ADR promotion intent\n\n- Use certified FixtureSign for document signatures: delegate signing to the mandatory certified service through a Node 22 integration boundary because the team cannot build a certified substitute in this release. Candidate for later review and materialisation by graft Step 4b.\n\nHuman review required for the buy recommendation and external access prerequisite. This proposal grants no procurement or service-call authority and carries no approval verdict.\n\nconfidence: medium"
+      },
+      "case_id": "external-only",
+      "result": {
+        "written": true,
+        "bytes": 2450,
+        "sha256": "0483e981b594f4942c190d07a6ca7b832c3fe4c5d6b4e1016624804f7793a2af"
+      }
+    },
+    {
+      "seq": 5,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "profile-read",
+        "value": {
+          "command": "faff profile show --json"
+        }
+      },
+      "case_id": "profile-read",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 6,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "missing-profile",
+        "value": {
+          "stop": false,
+          "state_no_profile_assumption": true,
+          "use_brief": true
+        }
+      },
+      "case_id": "missing-profile",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 7,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "default",
+        "value": {
+          "recommendation": "build"
+        }
+      },
+      "case_id": "default",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 8,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "non-build",
+        "value": {
+          "act": false,
+          "surface_for_human": true
+        }
+      },
+      "case_id": "non-build",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 9,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "materialise",
+        "value": {
+          "call": false
+        }
+      },
+      "case_id": "materialise",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 10,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "critic",
+        "value": {
+          "issue_verdict": false
+        }
+      },
+      "case_id": "critic",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 11,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "needs",
+        "value": {
+          "required": true
+        }
+      },
+      "case_id": "needs",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 12,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "alternatives",
+        "value": {
+          "argue_against_unchosen": false
+        }
+      },
+      "case_id": "alternatives",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 13,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "intent",
+        "value": {
+          "echo_each": true
+        }
+      },
+      "case_id": "intent",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 14,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "confidence",
+        "value": {
+          "advisory": true,
+          "gates_quality": false
+        }
+      },
+      "case_id": "confidence",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 15,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "relational",
+      "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"One Node 22 timesheet application deployed through the existing Docker Compose setup, with relational users, projects and entries in the existing PostgreSQL datastore.\",\n  \"rationale\": \"Small internal timesheet tool for a handful of users: one application serves the modest workload. Relational users/projects/entries: PostgreSQL tables use primary keys, foreign keys and constraints to preserve relationships. Records must survive restarts: persist PostgreSQL data on a durable Compose volume and provide backup and restore procedures. Concurrent edits need transactional integrity: commit related changes in database transactions and use row-version checks to reject stale edits. Use the existing team runtime and deployment: Node 22 and Docker Compose match the supplied profile; GitHub Actions runs migration and application checks. No streaming or high-throughput ingestion requirement: ordinary request-driven reads and writes meet the stated load.\",\n  \"adr_candidates\": [\n    {\"title\": \"Use the existing Node and Compose deployment for timesheets\", \"decision\": \"Build one Node 22 application and deploy it through the existing Docker Compose setup.\", \"rationale\": \"The profile records this runtime and deployment, and one application fits a handful of internal users.\"},\n    {\"title\": \"Persist transactional timesheet records in PostgreSQL\", \"decision\": \"Use the existing PostgreSQL datastore with relational constraints, durable storage, transactions and row-version checks for edits.\", \"rationale\": \"Users, projects and entries require relational integrity, survival across restarts and safe concurrent edits.\"}\n  ],\n  \"assumptions\": [\"The existing PostgreSQL instance has capacity for this small workload.\", \"The deployment can provide a persistent PostgreSQL volume and an operator-owned backup and restore procedure; these remain to be verified.\", \"Internal user access and authentication requirements will be confirmed before implementation.\"],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Use the existing Node and Compose deployment for timesheets: build one Node 22 application on the recorded deployment to serve the small internal workload. Candidate for later review and materialisation by graft Step 4b.\n- Persist transactional timesheet records in PostgreSQL: use relational constraints, durable storage, transactions and row-version checks to meet durability and concurrent-edit integrity requirements. Candidate for later review and materialisation by graft Step 4b.\n\nconfidence: high",
+      "persisted_sha256": "847a221ed8b9854d8e5d3e147737a86ee882203e252324cd53a125e07e3b3bc3"
+    },
+    {
+      "id": "nightly-batch",
+      "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A scheduled Node 22 batch command deployed with the existing Docker Compose setup reads timesheets and writes weekly summary rows in the existing PostgreSQL datastore.\",\n  \"rationale\": \"Nightly batch job: an operator-configured nightly schedule invokes the command. Reads the existing timesheet table: query PostgreSQL directly using a consistent transactional snapshot. Writes weekly summary rows: aggregate by the agreed week and grouping keys, then transactionally upsert summaries under a unique key so reruns are idempotent. A few thousand reads and a few dozen writes per run: one batch process handles the stated workload. No real-time fan-out or cross-partition ordering: each run computes summaries directly from its snapshot. Use existing infrastructure: use the recorded Node 22 runtime, PostgreSQL datastore, Docker Compose deployment and GitHub Actions for checks. Record run success or failure and return a non-zero exit code on failure.\",\n  \"adr_candidates\": [\n    {\"title\": \"Run nightly summaries as a Node batch command\", \"decision\": \"Schedule one Node 22 command in the existing Compose deployment to read PostgreSQL timesheets and transactionally upsert weekly summaries from a consistent snapshot.\", \"rationale\": \"A nightly process fits the stated volume and existing infrastructure; unique summary keys make retries safe.\"}\n  ],\n  \"assumptions\": [\"The existing deployment host can provide a nightly scheduler; scheduler availability is not established by the profile.\", \"The reporting timezone, week boundaries and summary grouping keys will be agreed before implementation.\", \"The existing database permits the required reads and summary writes.\", \"An operator will monitor failed runs and rerun them; an overlap lock will prevent concurrent instances of this job.\"],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Run nightly summaries as a Node batch command: schedule one Node 22 command on the existing deployment, read a consistent PostgreSQL snapshot and transactionally upsert uniquely keyed weekly summaries. This fits the nightly workload and supports safe retries. Candidate for later review and materialisation by graft Step 4b.\n\nconfidence: medium",
+      "persisted_sha256": "1b846b5ed4d718d5e865b7c94b70e84af6b5330776c8b86c5c96db2d4c55855f"
+    },
+    {
+      "id": "no-profile",
+      "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A local Python command-line application stores equipment checkout records in a SQLite database file on the laptop.\",\n  \"rationale\": \"Local command-line tool: one Python executable entry point handles checkout and return commands on the laptop. Records must survive restart: commit each operation to an on-disk SQLite database with equipment and checkout constraints, and provide a database backup procedure. One laptop: the application and database run locally. No shared-server or cloud requirement: deployment is a local installation with no hosted dependency. Implementation language is open: Python provides command-line and SQLite support in its standard library. The supplied profile-show result exits 3, so this proposal uses the brief alone.\",\n  \"adr_candidates\": [\n    {\"title\": \"Keep equipment checkouts in a local SQLite database\", \"decision\": \"Build a Python CLI using an on-disk SQLite database and commit each checkout or return in a transaction.\", \"rationale\": \"Local transactional storage preserves records across application restarts and fits operation on one laptop.\"}\n  ],\n  \"assumptions\": [\"No infra profile is available: the supplied profile-show result exits 3; runtime and deployment choices are proposed from the brief alone.\", \"Python is installable on the laptop; its availability has not been verified.\", \"The database file will live in a persistent user data directory with suitable filesystem permissions.\", \"The operator will back up the database; retention requirements remain to be confirmed.\"],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Keep equipment checkouts in a local SQLite database: build a Python CLI that commits checkout and return transactions to a persistent laptop database. Local storage meets the restart durability requirement. Candidate for later review and materialisation by graft Step 4b.\n\nconfidence: medium",
+      "persisted_sha256": "cb61d513eebb5b1fb4817e2ab44d317f51e0f3774a9a6d88fe64a26cb5e35a4e"
+    },
+    {
+      "id": "external-only",
+      "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"Use the required certified FixtureSign service as the signing component, accessed through a narrow Node 22 integration boundary on the existing runtime, subject to separate human authorisation and service access.\",\n  \"rationale\": \"Certified FixtureSign service for document signatures: delegate document signing to FixtureSign through a small integration boundary that submits signing requests and records returned signature references and status. Certification is mandatory and the team cannot build a certified substitute in this release: the required certified capability must come from FixtureSign. Propose the signing component only: keep the proposal limited to this component on the recorded Node 22 runtime. No licence purchase or service call is authorised: surface the buy recommendation for a human and make no purchase, subscription or service call. The profile records no FixtureSign licence or service access, so live integration depends on that external prerequisite.\",\n  \"adr_candidates\": [\n    {\"title\": \"Use certified FixtureSign for document signatures\", \"decision\": \"Delegate document signatures to the required certified FixtureSign service behind a Node 22 integration boundary, contingent on human-authorised access.\", \"rationale\": \"The brief mandates FixtureSign certification, which the team cannot obtain for a substitute in this release.\"}\n  ],\n  \"assumptions\": [\"The brief's certification requirement and named FixtureSign service are authoritative fixture facts.\", \"No FixtureSign licence or service access exists, as recorded in the supplied profile.\", \"A human must resolve procurement and authorise service access separately before any live integration can run.\", \"FixtureSign's supported interface, credentials, signature verification and data-handling requirements remain to be confirmed before implementation.\"],\n  \"recommendation\": \"buy\"\n}\n```\n\n## ADR promotion intent\n\n- Use certified FixtureSign for document signatures: delegate signing to the mandatory certified service through a Node 22 integration boundary because the team cannot build a certified substitute in this release. Candidate for later review and materialisation by graft Step 4b.\n\nHuman review required for the buy recommendation and external access prerequisite. This proposal grants no procurement or service-call authority and carries no approval verdict.\n\nconfidence: medium",
+      "persisted_sha256": "0483e981b594f4942c190d07a6ca7b832c3fe4c5d6b4e1016624804f7793a2af"
+    }
+  ],
+  "rule_answers": [
+    {
+      "id": "profile-read",
+      "value": {
+        "command": "faff profile show --json"
+      }
+    },
+    {
+      "id": "missing-profile",
+      "value": {
+        "stop": false,
+        "state_no_profile_assumption": true,
+        "use_brief": true
+      }
+    },
+    {
+      "id": "default",
+      "value": {
+        "recommendation": "build"
+      }
+    },
+    {
+      "id": "non-build",
+      "value": {
+        "act": false,
+        "surface_for_human": true
+      }
+    },
+    {
+      "id": "materialise",
+      "value": {
+        "call": false
+      }
+    },
+    {
+      "id": "critic",
+      "value": {
+        "issue_verdict": false
+      }
+    },
+    {
+      "id": "needs",
+      "value": {
+        "required": true
+      }
+    },
+    {
+      "id": "alternatives",
+      "value": {
+        "argue_against_unchosen": false
+      }
+    },
+    {
+      "id": "intent",
+      "value": {
+        "echo_each": true
+      }
+    },
+    {
+      "id": "confidence",
+      "value": {
+        "advisory": true,
+        "gates_quality": false
+      }
+    }
+  ]
+}

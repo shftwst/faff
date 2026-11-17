@@ -1,0 +1,2 @@
+Explanation → no load-bearing model to lead with → ask the producer to supply the governing idea.
+Steps one to three → three enumerable items must be a markdown list → render each step as a separate bold-lead bullet.

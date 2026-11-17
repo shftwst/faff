@@ -1,0 +1,10 @@
+{
+  "command": "cat -- verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/task.json",
+  "max_output_tokens": 12000,
+  "yield_time_ms": 10000,
+  "exit_code": 0,
+  "original_token_count": 15133,
+  "returned_characters": 48105,
+  "truncation_marker_present": true,
+  "scope": "Exact initial read executed without model; full task output omitted from this bounded evidence report."
+}

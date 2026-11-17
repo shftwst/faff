@@ -1,0 +1,10 @@
+{
+  "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+  "findings": [
+    {
+      "principle": 1,
+      "diagnosis": "W1, 'Q2 sprint 3', is named for a sprint despite its stated outcome of reducing checkout abandonment. A, keeping the checkout address on validation error, serves that outcome; the sprint name hides the shared delivery goal and makes sequencing harder to interpret.",
+      "recommended_action": "Rename W1 to 'Reduce checkout abandonment' so its name states the outcome its work serves."
+    }
+  ]
+}

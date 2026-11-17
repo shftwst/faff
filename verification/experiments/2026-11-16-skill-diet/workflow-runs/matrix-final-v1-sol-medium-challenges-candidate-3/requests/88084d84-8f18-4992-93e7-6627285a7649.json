@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-1","outcome":"survived","ground":null,"reason":"The proposed dry-run exposes the current merge-floor decision without merging and retains the existing eligibility logic. Each DoD item directly supports safe current inspection; no historical storage or query capability is added. Same-provider-family calibration judgement only."}}

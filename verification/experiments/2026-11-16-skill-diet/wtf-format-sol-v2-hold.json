@@ -1,0 +1,655 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:28:57.229988+00:00",
+  "accepted": false,
+  "status": "held-candidate-queue-partition-omission",
+  "candidate": "candidates/wtf-format-v4.md",
+  "candidate_source_sha256": "06e17bdcf8afa8e5c87f664893952596dff2c6b9b9115976e8f778a1b17b4c28",
+  "samples": 5,
+  "automatic_artifacts_passed": 15,
+  "automatic_artifacts_total": 15,
+  "assessed_decisions_passed": 70,
+  "assessed_decisions_total": 70,
+  "native_samples_passed": 5,
+  "manual_artifacts_passed": 13,
+  "manual_artifacts_total": 15,
+  "manual_records": [
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-1/artifacts/empty.md",
+      "sha256": "da1d1cd063d65441037c19058cfcdf79c504f0bf12e64101fe8ed798c156f0be",
+      "arm": "candidate",
+      "sample": 1,
+      "case": "empty",
+      "read_complete": true,
+      "status": "pass-with-source-ambiguities",
+      "required_facts": {
+        "status": "pass",
+        "details": "Correct date; no invented issue or methodology facts; clean diagnostics."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "not-applicable-empty-queues",
+        "manual_park": "not-applicable",
+        "autonomous_park": "not-applicable",
+        "adr_ratification": "not-applicable",
+        "ready_promotion": "not-applicable",
+        "focus_build": "not-applicable-no-new-human-start"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "none-present",
+        "needs_your_call": "none-present",
+        "prep_queue": "none-present",
+        "value_chains": "correctly-omitted-threshold-unmet",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable section and focus order preserved."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "source_version": "V4",
+      "measurement_series": "sol-v2"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-1/artifacts/operations.md",
+      "sha256": "e0663a90bee17877f462a101c45cdb384f9a01de9ffe670fa0041af41591a347",
+      "arm": "candidate",
+      "sample": 1,
+      "case": "operations",
+      "read_complete": true,
+      "status": "pass-with-source-ambiguities",
+      "required_facts": {
+        "status": "pass",
+        "details": "Milestone date/progress/project, shipped/unlocked relation, in-flight/blocked states, both park causes/routes/log, outage durability/counters/resumption, ADR pair/titles/author/reason, focus order/headroom, chain gating, queue membership, decision owners/medium confidence and ready item preserved."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "present-correct-counts-full-pipeline",
+        "manual_park": "present-prep-yes-no",
+        "autonomous_park": "present-log-reprep-leave-and-correct-graft-route",
+        "adr_ratification": "present",
+        "ready_promotion": "present",
+        "focus_build": "present"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "nonempty-correct-partition-with-empty-likely-fire",
+        "needs_your_call": "nonempty-owner-grouped",
+        "prep_queue": "nonempty",
+        "value_chains": "present-threshold-met",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable layout and focus order preserved. Candidate omits separate Coming up section; its ready head and downstream chain are preserved elsewhere."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "source_version": "V4",
+      "measurement_series": "sol-v2"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-1/artifacts/wip-cap.md",
+      "sha256": "e9a30ebc506fc24be0c1a54458b7c674702eb9264a314b7f8866f5409aabc47f",
+      "arm": "candidate",
+      "sample": 1,
+      "case": "wip-cap",
+      "read_complete": true,
+      "status": "pass-with-source-ambiguities",
+      "required_facts": {
+        "status": "pass",
+        "details": "Human WIP 2/2 with zero headroom; autonomous WIP excluded; only in-flight completions; two severity-ordered findings with tidy overflow; urgent findings repeated in Heads up; all three diagnostics; calibration 4 events/14 days with three advisory options; automation WIP-4 preserved."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "present-correct-counts-full-pipeline",
+        "manual_park": "not-applicable",
+        "autonomous_park": "not-applicable",
+        "adr_ratification": "not-applicable",
+        "ready_promotion": "not-applicable",
+        "focus_build": "not-applicable-no-new-human-start"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "nonempty-correct-partition-with-empty-likely-fire",
+        "needs_your_call": "none-present",
+        "prep_queue": "none-present",
+        "value_chains": "correctly-omitted-threshold-unmet",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable section and focus order preserved."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "format_notes": [
+        "Calibration uses three bullet options after a paragraph; retained paragraph-only instruction differs, while all requested facts/options remain. Shared form variance, recorded separately from functional/offer outcomes."
+      ],
+      "source_version": "V4",
+      "measurement_series": "sol-v2"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-2/artifacts/empty.md",
+      "sha256": "0a038cb0ac2168ab8edbbdc89d9dad6ff48d64b9299aa141e00858af6ac4de5f",
+      "arm": "candidate",
+      "sample": 2,
+      "case": "empty",
+      "read_complete": true,
+      "status": "pass-with-source-ambiguities",
+      "required_facts": {
+        "status": "pass",
+        "details": "Correct date; no invented issue or methodology facts; clean diagnostics."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "not-applicable-empty-queues",
+        "manual_park": "not-applicable",
+        "autonomous_park": "not-applicable",
+        "adr_ratification": "not-applicable",
+        "ready_promotion": "not-applicable",
+        "focus_build": "not-applicable-no-new-human-start"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "none-present",
+        "needs_your_call": "none-present",
+        "prep_queue": "none-present",
+        "value_chains": "correctly-omitted-threshold-unmet",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable section and focus order preserved."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "form_outcome": "pass-top-level-empty-headers",
+      "source_version": "V4",
+      "measurement_series": "sol-v2"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-2/artifacts/operations.md",
+      "sha256": "cd095a9b24f217d2e17d9521da6d6dcecb311dcbbd1bb51207d3d59354bbaf8f",
+      "arm": "candidate",
+      "sample": 2,
+      "case": "operations",
+      "read_complete": true,
+      "status": "fail-missing-empty-likely-fire-queue-partition",
+      "required_facts": {
+        "status": "pass",
+        "details": "Milestone date/progress/project, shipped/unlocked relation, in-flight/blocked states, both park causes/routes/log, outage durability/counters/resumption, ADR pair/titles/author/reason, focus order/headroom, chain gating, queue membership, decision owners/medium confidence and ready item preserved."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "present-correct-counts-full-pipeline",
+        "manual_park": "present-prep-yes-no",
+        "autonomous_park": "present-log-reprep-leave-and-correct-graft-route",
+        "adr_ratification": "present",
+        "ready_promotion": "present",
+        "focus_build": "present"
+      },
+      "empty_sections": {
+        "status": "fail",
+        "build_queue": "fire-and-forget-only; missing empty likely-fire(serialised) partition",
+        "needs_your_call": "nonempty-owner-grouped",
+        "prep_queue": "nonempty",
+        "value_chains": "present-threshold-met",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable layout and focus order preserved. Candidate omits separate Coming up section; its ready head and downstream chain are preserved elsewhere."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "failure_reason": "Build queue omits the empty likely-fire partition required by retained queue partition-grid form and empty-subsection rule. Functional membership and all applicable offers remain correct.",
+      "form_outcome": "fail-queue-partition-form",
+      "source_version": "V4",
+      "measurement_series": "sol-v2"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-2/artifacts/wip-cap.md",
+      "sha256": "7b926c0eae001a8b115a4aaad3c4f655dd10f981ba0bc472cd559d13487f7ff4",
+      "arm": "candidate",
+      "sample": 2,
+      "case": "wip-cap",
+      "read_complete": true,
+      "status": "fail-missing-empty-likely-fire-queue-partition",
+      "required_facts": {
+        "status": "pass",
+        "details": "Human WIP 2/2 with zero headroom; autonomous WIP excluded; only in-flight completions; two severity-ordered findings with tidy overflow; urgent findings repeated in Heads up; all three diagnostics; calibration 4 events/14 days with three advisory options; automation WIP-4 preserved."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "present-correct-counts-full-pipeline",
+        "manual_park": "not-applicable",
+        "autonomous_park": "not-applicable",
+        "adr_ratification": "not-applicable",
+        "ready_promotion": "not-applicable",
+        "focus_build": "not-applicable-no-new-human-start"
+      },
+      "empty_sections": {
+        "status": "fail",
+        "build_queue": "fire-and-forget-only; missing empty likely-fire(serialised) partition",
+        "needs_your_call": "none-present",
+        "prep_queue": "none-present",
+        "value_chains": "correctly-omitted-threshold-unmet",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable section and focus order preserved."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "format_notes": [
+        "Calibration uses three bullet options after a paragraph; retained paragraph-only instruction differs, while all requested facts/options remain. Shared form variance, recorded separately from functional/offer outcomes."
+      ],
+      "failure_reason": "Build queue omits the empty likely-fire partition required by retained queue partition-grid form and empty-subsection rule. Functional membership and all applicable offers remain correct.",
+      "form_outcome": "fail-queue-partition-form",
+      "source_version": "V4",
+      "measurement_series": "sol-v2"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-3/artifacts/empty.md",
+      "sha256": "21bd90c6d6fedae641f2105ee74b243a6807439ea04beb7a8c547fd1e7c11727",
+      "arm": "candidate",
+      "sample": 3,
+      "case": "empty",
+      "read_complete": true,
+      "status": "pass-with-source-ambiguities",
+      "required_facts": {
+        "status": "pass",
+        "details": "Correct date; no invented issue or methodology facts; clean diagnostics."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "not-applicable-empty-queues",
+        "manual_park": "not-applicable",
+        "autonomous_park": "not-applicable",
+        "adr_ratification": "not-applicable",
+        "ready_promotion": "not-applicable",
+        "focus_build": "not-applicable-no-new-human-start"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "none-present",
+        "needs_your_call": "none-present",
+        "prep_queue": "none-present",
+        "value_chains": "correctly-omitted-threshold-unmet",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable section and focus order preserved."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "measurement_series": "sol-v2",
+      "source_version": "V4",
+      "calibration_style": "not-applicable"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-3/artifacts/operations.md",
+      "sha256": "0b33bcb2f88064e7ead9bd6257f501fd9d1e5ef90bbbadc9959fe3c006b36c39",
+      "arm": "candidate",
+      "sample": 3,
+      "case": "operations",
+      "read_complete": true,
+      "status": "pass-with-source-ambiguities",
+      "required_facts": {
+        "status": "pass",
+        "details": "Milestone date/progress/project, shipped/unlocked relation, in-flight/blocked states, both park causes/routes/log, outage durability/counters/resumption, ADR pair/titles/author/reason, focus order/headroom, chain gating, queue membership, decision owners/medium confidence and ready item preserved."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "present-correct-counts-full-pipeline",
+        "manual_park": "present-prep-yes-no",
+        "autonomous_park": "present-log-reprep-leave-and-correct-graft-route",
+        "adr_ratification": "present",
+        "ready_promotion": "present",
+        "focus_build": "present"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "nonempty-correct-partition-with-empty-likely-fire",
+        "needs_your_call": "nonempty-owner-grouped",
+        "prep_queue": "nonempty",
+        "value_chains": "present-threshold-met",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable layout and focus order preserved. Candidate omits separate Coming up section; its ready head and downstream chain are preserved elsewhere."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "measurement_series": "sol-v2",
+      "source_version": "V4",
+      "calibration_style": "not-applicable"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-3/artifacts/wip-cap.md",
+      "sha256": "7fcb6be0e427ce65e8160941aec557a87492df86d504a4ecc31978d44e229a8b",
+      "arm": "candidate",
+      "sample": 3,
+      "case": "wip-cap",
+      "read_complete": true,
+      "status": "pass-with-source-ambiguities",
+      "required_facts": {
+        "status": "pass",
+        "details": "Human WIP 2/2 with zero headroom; autonomous WIP excluded; only in-flight completions; two severity-ordered findings with tidy overflow; urgent findings repeated in Heads up; all three diagnostics; calibration 4 events/14 days with three advisory options; automation WIP-4 preserved."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "present-correct-counts-full-pipeline",
+        "manual_park": "not-applicable",
+        "autonomous_park": "not-applicable",
+        "adr_ratification": "not-applicable",
+        "ready_promotion": "not-applicable",
+        "focus_build": "not-applicable-no-new-human-start"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "nonempty-correct-partition-with-empty-likely-fire",
+        "needs_your_call": "none-present",
+        "prep_queue": "none-present",
+        "value_chains": "correctly-omitted-threshold-unmet",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable section and focus order preserved."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "measurement_series": "sol-v2",
+      "source_version": "V4",
+      "calibration_style": "single paragraph with inline a/b/c advisory options"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-4/artifacts/empty.md",
+      "sha256": "21bd90c6d6fedae641f2105ee74b243a6807439ea04beb7a8c547fd1e7c11727",
+      "arm": "candidate",
+      "sample": 4,
+      "case": "empty",
+      "read_complete": true,
+      "status": "pass-required-facts-offers-headers-and-build-partitions",
+      "required_facts": {
+        "status": "pass",
+        "details": "Correct date; no invented issue or methodology facts; clean diagnostics."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "not-applicable-empty-queues",
+        "manual_park": "not-applicable",
+        "autonomous_park": "not-applicable",
+        "adr_ratification": "not-applicable",
+        "ready_promotion": "not-applicable",
+        "focus_build": "not-applicable-no-new-human-start"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "none-present",
+        "needs_your_call": "none-present",
+        "prep_queue": "none-present",
+        "value_chains": "correctly-omitted-threshold-unmet",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable section and focus order preserved."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "source_version": "V4",
+      "measurement_series": "sol-v2",
+      "calibration_style": "not-applicable"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-4/artifacts/operations.md",
+      "sha256": "e346dfe126a215bbbd02ba1bfd7c98ac7bcf6bc0a9d997e2a8237b32525c17e2",
+      "arm": "candidate",
+      "sample": 4,
+      "case": "operations",
+      "read_complete": true,
+      "status": "pass-required-facts-offers-headers-and-build-partitions",
+      "required_facts": {
+        "status": "pass",
+        "details": "Milestone date/progress/project, shipped/unlocked relation, in-flight/blocked states, both park causes/routes/log, outage durability/counters/resumption, ADR pair/titles/author/reason, focus order/headroom, chain gating, queue membership, decision owners/medium confidence and ready item preserved."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "present-correct-counts-full-pipeline",
+        "manual_park": "present-prep-yes-no",
+        "autonomous_park": "present-log-reprep-leave-and-correct-graft-route",
+        "adr_ratification": "present",
+        "ready_promotion": "present",
+        "focus_build": "present"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "nonempty-correct-partition-with-empty-likely-fire",
+        "needs_your_call": "nonempty-owner-grouped",
+        "prep_queue": "nonempty",
+        "value_chains": "present-threshold-met",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable layout and focus order preserved. Candidate omits separate Coming up section; its ready head and downstream chain are preserved elsewhere."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "source_version": "V4",
+      "measurement_series": "sol-v2",
+      "calibration_style": "not-applicable"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-4/artifacts/wip-cap.md",
+      "sha256": "9eb9a63de9945a107e459790db4cfa4a211d6444e23779f876fe70c800372b24",
+      "arm": "candidate",
+      "sample": 4,
+      "case": "wip-cap",
+      "read_complete": true,
+      "status": "pass-required-facts-offers-headers-and-build-partitions",
+      "required_facts": {
+        "status": "pass",
+        "details": "Human WIP 2/2 with zero headroom; autonomous WIP excluded; only in-flight completions; two severity-ordered findings with tidy overflow; urgent findings repeated in Heads up; all three diagnostics; calibration 4 events/14 days with three advisory options; automation WIP-4 preserved."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "present-correct-counts-full-pipeline",
+        "manual_park": "not-applicable",
+        "autonomous_park": "not-applicable",
+        "adr_ratification": "not-applicable",
+        "ready_promotion": "not-applicable",
+        "focus_build": "not-applicable-no-new-human-start"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "nonempty-correct-partition-with-empty-likely-fire",
+        "needs_your_call": "none-present",
+        "prep_queue": "none-present",
+        "value_chains": "correctly-omitted-threshold-unmet",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable section and focus order preserved."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "format_notes": [
+        "Calibration uses three bullet options after a paragraph; retained paragraph-only instruction differs, while all requested facts/options remain. Shared form variance, recorded separately from functional/offer outcomes."
+      ],
+      "source_version": "V4",
+      "measurement_series": "sol-v2",
+      "calibration_style": "paragraph followed by3 advisory bullets; shared formatting variance"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-5/artifacts/empty.md",
+      "sha256": "21bd90c6d6fedae641f2105ee74b243a6807439ea04beb7a8c547fd1e7c11727",
+      "arm": "candidate",
+      "sample": 5,
+      "case": "empty",
+      "read_complete": true,
+      "status": "pass-required-facts-offers-headers-and-build-partitions",
+      "required_facts": {
+        "status": "pass",
+        "details": "Correct date; no invented issue or methodology facts; clean diagnostics."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "not-applicable-empty-queues",
+        "manual_park": "not-applicable",
+        "autonomous_park": "not-applicable",
+        "adr_ratification": "not-applicable",
+        "ready_promotion": "not-applicable",
+        "focus_build": "not-applicable-no-new-human-start"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "none-present",
+        "needs_your_call": "none-present",
+        "prep_queue": "none-present",
+        "value_chains": "correctly-omitted-threshold-unmet",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable section and focus order preserved."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "source_version": "V4",
+      "measurement_series": "sol-v2",
+      "calibration_style": "not-applicable"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-5/artifacts/operations.md",
+      "sha256": "b481976993d88b324f7faa996bffe5060659ea70ac546bf53e8bee43bd29128f",
+      "arm": "candidate",
+      "sample": 5,
+      "case": "operations",
+      "read_complete": true,
+      "status": "pass-required-facts-offers-headers-and-build-partitions",
+      "required_facts": {
+        "status": "pass",
+        "details": "Milestone date/progress/project, shipped/unlocked relation, in-flight/blocked states, both park causes/routes/log, outage durability/counters/resumption, ADR pair/titles/author/reason, focus order/headroom, chain gating, queue membership, decision owners/medium confidence and ready item preserved."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "present-correct-counts-full-pipeline",
+        "manual_park": "present-prep-yes-no",
+        "autonomous_park": "present-log-reprep-leave-and-correct-graft-route",
+        "adr_ratification": "present",
+        "ready_promotion": "present",
+        "focus_build": "present"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "nonempty-correct-partition-with-empty-likely-fire",
+        "needs_your_call": "nonempty-owner-grouped",
+        "prep_queue": "nonempty",
+        "value_chains": "present-threshold-met",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable layout and focus order preserved. Candidate omits separate Coming up section; its ready head and downstream chain are preserved elsewhere."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "source_version": "V4",
+      "measurement_series": "sol-v2",
+      "calibration_style": "not-applicable"
+    },
+    {
+      "path": "workflow-runs/wtf-format-sol-v2-candidate-5/artifacts/wip-cap.md",
+      "sha256": "08117b53f0fa15f2ba94ffcc3dc3905eed06cfe6f284ce154c7765a6eeda934a",
+      "arm": "candidate",
+      "sample": 5,
+      "case": "wip-cap",
+      "read_complete": true,
+      "status": "pass-required-facts-offers-headers-and-build-partitions",
+      "required_facts": {
+        "status": "pass",
+        "details": "Human WIP 2/2 with zero headroom; autonomous WIP excluded; only in-flight completions; two severity-ordered findings with tidy overflow; urgent findings repeated in Heads up; all three diagnostics; calibration 4 events/14 days with three advisory options; automation WIP-4 preserved."
+      },
+      "offers": {
+        "status": "pass",
+        "full_groom": "present",
+        "automation": "present-correct-counts-full-pipeline",
+        "manual_park": "not-applicable",
+        "autonomous_park": "not-applicable",
+        "adr_ratification": "not-applicable",
+        "ready_promotion": "not-applicable",
+        "focus_build": "not-applicable-no-new-human-start"
+      },
+      "empty_sections": {
+        "status": "pass-with-verdict-subsection-ambiguity",
+        "build_queue": "nonempty-correct-partition-with-empty-likely-fire",
+        "needs_your_call": "none-present",
+        "prep_queue": "none-present",
+        "value_chains": "correctly-omitted-threshold-unmet",
+        "empty_optional_sections": "correctly-omitted",
+        "empty_individual_nonadmitted_verdicts": "omitted; source ambiguity recorded"
+      },
+      "ordering": {
+        "status": "pass",
+        "details": "Applicable section and focus order preserved."
+      },
+      "action_claims": "no unsupported mutation or skill invocation claims",
+      "policy_source": "candidates/wtf-format-v4.md",
+      "format_notes": [
+        "Calibration uses three bullet options after a paragraph; retained paragraph-only instruction differs, while all requested facts/options remain. Shared form variance, recorded separately from functional/offer outcomes."
+      ],
+      "source_version": "V4",
+      "measurement_series": "sol-v2",
+      "calibration_style": "paragraph followed by3 advisory bullets; shared formatting variance"
+    }
+  ],
+  "failures": [
+    "candidate2 operations: missing empty likely-fire partition",
+    "candidate2 wip-cap: missing empty likely-fire partition"
+  ],
+  "savings_counted": false,
+  "source_installed": false,
+  "replacement_treatment": "wtf-format-sol-v3-freeze.json",
+  "limits": [
+    "Every original sample and native audit remains retained. SourceV5 is a changed candidate requiring five new samples, not a reroll of this source.",
+    "Manual failures cannot be waived by automatic rubric or native passes."
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+  "findings": [
+    {
+      "principle": 6,
+      "diagnosis": "CLIENT requires the schema emitted by SCHEMA, 'Publish the schema', before enabling the client, but CLIENT has no declared blocker and SCHEMA remains in Backlog. The graph can therefore present CLIENT as ready before its required input exists.",
+      "recommended_action": "Declare SCHEMA as a blocker of CLIENT if the dependency is real; otherwise remove the schema prerequisite from CLIENT's spec."
+    }
+  ]
+}

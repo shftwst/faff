@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "Deterministic reference-output MCP preflight only, no model measurement or source acceptance.",
+  "calls": 32,
+  "artifacts": 4,
+  "decisions": 10,
+  "omitted_outputs_rejected": 14,
+  "client_sha256": "8c4e81b6b2708b52f641bf0cfa99f42bc680b2a73affcb18aed17afdadc8c3ca",
+  "plan_sha256": "b543acd28a45f45f8d83a7bc034b88bb9868804d25ecae393c141cff73ee4f68",
+  "hashes": {
+    "mcp-trace.jsonl": "ea777d13abad946688e842db2534d4582b2bd08cbbf705da2bf5eb3235cf8d71",
+    "mcp-server-manifest.json": "0dfab235ffa611ece3a993c5fda85e7dd61c8b8ff5ca1bde81db2de153c4567b",
+    "task.json": "702ab54806e7ea6cd47034fca4ead53051c423c75c9f3c9e555c9abad78738bb",
+    "manifest.json": "1bd3d2c3aaa7ef0bb75e077d33d3a4cc51a3937edec6e6685cc092dae45112cf",
+    "capture.json": "c6e3864409ab47ee0f3401e3becee415aed4f8df61de4f26cbe64a860b938531",
+    "report.json": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78"
+  }
+}

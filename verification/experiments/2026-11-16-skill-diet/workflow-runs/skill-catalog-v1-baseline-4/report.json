@@ -1,0 +1,327 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 39,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 12873,
+    "utf16_characters": 12873,
+    "sha256": "468d1762102877a5d626d3c98f70797639aa7e43ab37e1e92c43bc250d091e81",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6000,
+        "sha256": "c39de0560c864aaa1080628a6d26e982ba51f24181b1590bf3afacb9414e4cda"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6000,
+        "sha256": "ae34bf7692b001ab7dbd8a8523fa0b968cf766abd7b9249007129babd322ab4c"
+      },
+      {
+        "offset": 12000,
+        "end": 12873,
+        "characters": 873,
+        "bytes": 873,
+        "sha256": "44523734931d0876932c57280d464ceb7d304fe8c0993033c549a0803f9545a6"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "selection-01",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-02",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-jot",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-03",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-jot",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-04",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-jot",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-05",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-plot",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-06",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-plot",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-07",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-wtf",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-08",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-map",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-09",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-tidy",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-10",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-prep",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-11",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-graft",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-12",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-beep-boop",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-13",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff-onboard",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-14",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-intake",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-15",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-spec",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-16",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-dark-nlspec",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-17",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-spec-review",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-18",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-dark-spec-review",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-19",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-review",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-20",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-dark-adversarial-review",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-21",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-adr",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-22",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-architecture",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-23",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-env-compose",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-24",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-env-code-interface",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-25",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-transport-private-network",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-26",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-evaluate",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-27",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-prd",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-28",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-concurrency-sequential",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-29",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-dark-concurrency-parallel",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-30",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-methodology-thematic",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-31",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-dark-methodology-agile-delivery",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-32",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffidavit-routing",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-33",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffidavit-rendering",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-34",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-noon-ship",
+        "consumer_results": []
+      },
+      {
+        "id": "selection-35",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faffter-dark-authoring-adaptors",
+        "consumer_results": []
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Catalogue selection decisions only. Names, invocability flags and bodies remain unchanged; no selected workflow is executed. This cannot qualify a body edit.",
+  "accounting": "unmetered"
+}

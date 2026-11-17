@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All cases finished successfully. The literal text was persisted, the cost answer recorded, and finish confirmed. No departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e70b-b491-76e0-a168-d15b38bca582"
+    ],
+    "elapsed_seconds": 46.3,
+    "stdout_sha256": "f8d7e1280fc1664d1cc109eb2792823414199a60fca5f6cb460d12f1aeb76b7d",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

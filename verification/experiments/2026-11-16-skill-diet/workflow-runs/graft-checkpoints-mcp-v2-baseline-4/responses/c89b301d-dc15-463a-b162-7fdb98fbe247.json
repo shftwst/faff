@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "gates",
+      "run",
+      "--root",
+      "/var/tmp/graft-checkpoint-ZXmOJR/gate-none",
+      "--json"
+    ],
+    "stdin": "",
+    "cwd": "/var/tmp/graft-checkpoint-ZXmOJR/gate-none",
+    "exit_code": 1,
+    "stdout": "{\n  \"signal\": \"needs-human\",\n  \"discovery\": \"none\",\n  \"coverage\": {\n    \"eligible_steps\": 0,\n    \"recognised_steps\": 0,\n    \"ratio\": 1\n  },\n  \"exclusions\": [],\n  \"rungs\": [],\n  \"partialWarning\": false,\n  \"contract\": {\n    \"signal\": \"needs-human\",\n    \"rungs\": []\n  }\n}\n",
+    "stderr": "",
+    "error": null
+  }
+}

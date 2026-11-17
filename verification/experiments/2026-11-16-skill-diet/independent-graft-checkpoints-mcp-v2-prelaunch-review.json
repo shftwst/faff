@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "status": "prelaunch-review-pass",
+  "accepted": false,
+  "model_calls": 0,
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v2-registration.json",
+      "sha256": "61d159f0b85c3e18347f89ff4d1e5db130c40cbdb43ee525bb23b2b70f51795c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v2-baseline-plan.json",
+      "sha256": "c161ded3286e67e009a68c0ba9c9e3326d5dc248331cbe4a5ebaee5ccffed185"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v2-candidate-plan.json",
+      "sha256": "219c9faf1bc71600efca5dc139a027822c7b980d7ed380323ceec28ed8d1a997"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/verify-graft-checkpoint-arm-v2.mjs",
+      "sha256": "e74a60ba79864b518f054fb532b9192e7652a1efa8526d4dbf8594b174abdbaa"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-graft-checkpoint-arm-v1-code-review.json",
+      "sha256": "75db5eca3c858f60f2bdcede3a5a0452976430c97b6e9898840025f06a280ab6"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-graft-checkpoints-mcp-v1-prelaunch-review.json",
+      "sha256": "3597a496e190ad8c9b3952b8764b8018dade477144b1f2903620d78fe64f899f"
+    }
+  ],
+  "checks": {
+    "registration_and_both_plan_hashes_match": true,
+    "all59_frozen_hashes_match_in_each_arm": true,
+    "checker_only_literal_cohort_identity_change": true,
+    "prior57_entries_retained_unchanged": true,
+    "only_two_new_frozen_inputs": [
+      {
+        "arm": "baseline",
+        "new_frozen_inputs": [
+          "eval/control-parity/reporting-execution.mjs",
+          "verification/experiments/2026-11-16-skill-diet/verify-graft-checkpoint-arm-v2.mjs"
+        ],
+        "frozen_count": 59,
+        "policy_bytes": 420170,
+        "bare_source_bytes": 178777
+      },
+      {
+        "arm": "candidate",
+        "new_frozen_inputs": [
+          "eval/control-parity/reporting-execution.mjs",
+          "verification/experiments/2026-11-16-skill-diet/verify-graft-checkpoint-arm-v2.mjs"
+        ],
+        "frozen_count": 59,
+        "policy_bytes": 408250,
+        "bare_source_bytes": 166857
+      }
+    ],
+    "same_source_fixture_runtime_model_effort_context_manual_criteria_limits": true,
+    "exact5_original_samples_per_arm": true,
+    "8_execution_and6_decision_ids_and7_manual_criteria_unchanged": true,
+    "exact8_reference_order_hashes_and_bytes": true,
+    "shared_context_prefix_identical_between_arms": true,
+    "bare_source_suffixes_exact": true,
+    "current_graft_source_matches_baseline": true,
+    "both_v1_and_v2_sample_dirs_absent": true,
+    "baseline_arm_gate_and_independent_manual_before_candidate_explicit": true,
+    "stop_after_failure_no_retry_replacement_pooling_waiver_or_model_rescue": true
+  },
+  "dynamic_closure": {
+    "missing_reporting_helper_now_frozen": true,
+    "reporting_static_dependencies_already_frozen": true,
+    "all_gate_required_inputs_present": true,
+    "dynamic_production_loads": "heartbeat.js and reporting --consume run-summary.js resolve under pinned runtimeRoot; full clean plugin binding checked. No current-root plugin dependency needed.",
+    "generated_code": "fixture-check.cjs literal derives from frozen graft adapter.",
+    "runtime_binding": {
+      "path": "/tmp/faff-graft-v2-prelaunch-runtime-binding.json",
+      "sha256": "0222769c746916af9bf6d0e3799ac1dadbbdbabf2db8fe21674977727278d19e"
+    }
+  },
+  "scope": "Prelaunch source/identity/policy/closure review only. Prior bounded gate review remains applicable because V2 checker changes only exact cohort identity. Consumers execute in the original harness, with fresh grade/native replay and independent actual-output manual gate; no separately restored graft consumer replay claimed.",
+  "remaining_launch_conditions": [
+    "Root may launch only the5 registered original baselines. All complete baseline raw/native/manual/external-gate requirements must pass before any candidate launch.",
+    "Keep frozen inputs unchanged; failed originals remain held with no reroll. Source integration/lint/inventory/accounting remain required before acceptance."
+  ],
+  "limits": [
+    "Eight bounded execution cases and six decisions; not proof of every route or full skill workflow.",
+    "Review verdict and PR creation are controlled handoffs. No hosted actions, review quality, run lifecycle or dispatched custody proof; PR body placement is not inspected.",
+    "Long gate-resume/timeout and separate errored-rung cases use existing deterministic tests, not these model executions.",
+    "Actual consumers run on the produced artifacts in each sample. Fresh grading and native replay are required; no independently restored graft consumer replay is claimed.",
+    "No-rung gates returns needs-human/rungs:[] while the real quality contract refuses that inherited shape; never fabricate conformity.",
+    "GPT Sol medium stand-in only; no Claude/Opus confirmation or provider-wide equivalence."
+  ],
+  "blockers": []
+}

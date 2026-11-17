@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "status": "held",
+  "reason": "Baseline1 issued skip_transition twice for the same micro transition. The first succeeded; the second was rejected. Automatic phase-event execution and strict native audit fail. Correct final persisted state does not waive a failed call history.",
+  "samples_launched": 1,
+  "raw_execution_passed": 2,
+  "raw_execution_total": 3,
+  "decisions_passed": 11,
+  "native_passed": 0,
+  "native_problems": [
+    {
+      "code": "trace-order-or-error",
+      "detail": 53
+    },
+    {
+      "code": "mailbox-response-differs",
+      "detail": 53
+    },
+    {
+      "code": "native-mcp-result-differs",
+      "detail": 53
+    },
+    {
+      "code": "reported-policy-delivery-differs",
+      "detail": null
+    },
+    {
+      "code": "bridge-report-differs",
+      "detail": null
+    },
+    {
+      "code": "capture-operation-bijection-differs",
+      "detail": null
+    }
+  ],
+  "candidate_launched": false,
+  "accepted": false,
+  "savings_counted": false,
+  "files": {
+    "beep-ledger-mcp-v2-registration.json": "206683a5aafc9ec16281bb8db0cf1968af179375928df18cdc288e305c505030",
+    "beep-ledger-mcp-v2-baseline-plan.json": "d54ad9cf805cb542eb20f5c71e8443a07d89244262715edb389320349aebca84",
+    "workflow-runs/beep-ledger-mcp-v2-baseline-1/report.json": "78db2c24ec04651ee4e5507a32789f1434a1063ae90bdd96653fb67a24efaef8",
+    "workflow-runs/beep-ledger-mcp-v2-baseline-1/native-audit.json": "a6e01745eb04ce5fb972d5f56a598796b1507ea5194a93561f09edec29ae9f2b",
+    "workflow-runs/beep-ledger-mcp-v2-baseline-1/runner-failure.json": "8ed2f0d7579cae90b818ed79b98f115e067b8c92c6650334dab34dfe6f93a910"
+  },
+  "next": "One fresh complete Astra-medium cohort with identical policies, corrected workload and strict bars, independent and unpooled. A failed Astra cohort remains held; no replacement or further model retry for this cut."
+}

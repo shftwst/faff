@@ -1,0 +1,87 @@
+{
+  "consumer": {
+    "pass": true,
+    "producer_value": {
+      "verdict": "reject-approach",
+      "objections": [
+        {
+          "lens": "architectural",
+          "severity": "blocker",
+          "claim": "A module-level mutable roles holder cannot isolate overlapping requests. Roles must be held in request-scoped state.",
+          "evidence": "HOW chooses let currentRoles at module scope, written on request entry and read directly by downstream helpers.",
+          "predicted_consequence": "When request B enters before request A finishes, B overwrites currentRoles and a later helper in A reads B's roles.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 0,
+      "stdout": "{\"verdict\":\"reject-approach\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"blocker\",\"claim\":\"A module-level mutable roles holder cannot isolate overlapping requests. Roles must be held in request-scoped state.\",\"evidence\":\"HOW chooses let currentRoles at module scope, written on request entry and read directly by downstream helpers.\",\"predicted_consequence\":\"When request B enters before request A finishes, B overwrites currentRoles and a later helper in A reads B's roles.\",\"spec_anchor\":\"how\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "reject-approach",
+        "objections": [
+          {
+            "lens": "architectural",
+            "severity": "blocker",
+            "claim": "A module-level mutable roles holder cannot isolate overlapping requests. Roles must be held in request-scoped state.",
+            "evidence": "HOW chooses let currentRoles at module scope, written on request entry and read directly by downstream helpers.",
+            "predicted_consequence": "When request B enters before request A finishes, B overwrites currentRoles and a later helper in A reads B's roles.",
+            "spec_anchor": "how"
+          }
+        ],
+        "conformant": true,
+        "violations": []
+      }
+    },
+    "route": {
+      "exit_code": 0,
+      "stdout": "{\"destination\":\"prep\",\"reason\":\"no-methodology-major\",\"carried_design_objections\":[]}\n",
+      "stderr": "",
+      "value": {
+        "destination": "prep",
+        "reason": "no-methodology-major",
+        "carried_design_objections": []
+      }
+    }
+  },
+  "unfounded_mutation": {
+    "pass": false,
+    "producer_value": {
+      "verdict": "approve",
+      "objections": [
+        {
+          "lens": "architectural",
+          "severity": "blocker",
+          "claim": "A module-level mutable roles holder cannot isolate overlapping requests. Roles must be held in request-scoped state.",
+          "evidence": "HOW chooses let currentRoles at module scope, written on request entry and read directly by downstream helpers.",
+          "predicted_consequence": "When request B enters before request A finishes, B overwrites currentRoles and a later helper in A reads B's roles.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 1,
+      "stdout": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"architectural\",\"severity\":\"blocker\",\"claim\":\"A module-level mutable roles holder cannot isolate overlapping requests. Roles must be held in request-scoped state.\",\"evidence\":\"HOW chooses let currentRoles at module scope, written on request entry and read directly by downstream helpers.\",\"predicted_consequence\":\"When request B enters before request A finishes, B overwrites currentRoles and a later helper in A reads B's roles.\",\"spec_anchor\":\"how\"}],\"conformant\":false,\"violations\":[\"approve carries objections — approve must carry none\"]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "approve",
+        "objections": [
+          {
+            "lens": "architectural",
+            "severity": "blocker",
+            "claim": "A module-level mutable roles holder cannot isolate overlapping requests. Roles must be held in request-scoped state.",
+            "evidence": "HOW chooses let currentRoles at module scope, written on request entry and read directly by downstream helpers.",
+            "predicted_consequence": "When request B enters before request A finishes, B overwrites currentRoles and a later helper in A reads B's roles.",
+            "spec_anchor": "how"
+          }
+        ],
+        "conformant": false,
+        "violations": [
+          "approve carries objections — approve must carry none"
+        ]
+      }
+    },
+    "route": null
+  }
+}

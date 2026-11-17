@@ -1,0 +1,11 @@
+{
+  "accepted": false,
+  "status": "held-baseline-output-format",
+  "baseline_sample": "map-report-astra-v1-baseline-1",
+  "reason": "All six reports omit the explicit TL;DR section required by the frozen rubric and existing skill. Leading summary prose does not satisfy that frozen form check.",
+  "secondary_oracle_issue": "The off-chain report says removing, a concrete action missed by remove|cut|break. No correction applied because a separate real baseline failure already holds the run.",
+  "candidate": "candidates/map-report-v1.md",
+  "candidate_measured": false,
+  "source_changed": false,
+  "savings_counted": false
+}

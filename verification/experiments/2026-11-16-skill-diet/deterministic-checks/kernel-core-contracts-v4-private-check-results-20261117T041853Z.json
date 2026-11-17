@@ -1,0 +1,46 @@
+{
+  "environment_overrides": {
+    "TMPDIR": "/var/tmp/kc3-uv5pfd3w",
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "commit.gpgsign",
+    "GIT_CONFIG_VALUE_0": "false"
+  },
+  "checks": [
+    {
+      "check": "adapter-lint",
+      "command": [
+        "/usr/local/bin/node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "cwd": "/var/tmp/faff-kernel-core-contracts-v3-integration",
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v4-private-adapter-lint-20261117T041853Z.txt",
+      "sha256": "4454ecd8b5baa6e6c60cb7976c55202a558c034e3f61e97dc49a43f94dcd29f2",
+      "started_utc": "2026-11-17T04:18:53.221396+00:00",
+      "finished_utc": "2026-11-17T04:18:53.874764+00:00"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "/usr/local/bin/node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "cwd": "/var/tmp/faff-kernel-core-contracts-v3-integration",
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v4-private-rule-inventory-20261117T041853Z.txt",
+      "sha256": "4df1a4aee64f790ca9e023791228df85cc5912872be034f3444ff8f9fc07f020",
+      "started_utc": "2026-11-17T04:18:53.221722+00:00",
+      "finished_utc": "2026-11-17T04:18:56.903030+00:00",
+      "result": "pass",
+      "uncovered": 0,
+      "row_errors": 0,
+      "blocks_deleted": 673
+    }
+  ]
+}

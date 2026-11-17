@@ -1,0 +1,972 @@
+{
+  "schema": 1,
+  "scope": "Bounded beep-boop Reporting: actual pinned run-summary command handler, production ledger writers and summary file persistence; fixed forge/health/metering dependencies; controlled rendering/publication and build continuation. No real run-close/andon, hosted tracker, full build loop, rendering quality or pre-write normalisation claim. Claimed-by-peer prose remains unchanged and outside this boundary.",
+  "cases": [
+    {
+      "id": "shipped-precedence",
+      "entropy": "abc101",
+      "action": "report",
+      "task": "Prepare and publish the completed run report from the supplied observations. The run is already closed.",
+      "target": "project:fixture-reporting",
+      "outcomes": {
+        "SHP-1": "shipped",
+        "SHP-2": "shipped",
+        "SHP-3": "shipped",
+        "SHP-4": "shipped",
+        "SHP-5": "shipped",
+        "SUP-1": "superseded"
+      },
+      "annotations": {
+        "review_adversarial_skipped": [
+          "SHP-2",
+          "SHP-3",
+          "SHP-4"
+        ],
+        "post_merge_verification_failures": [
+          {
+            "issue": "SHP-3",
+            "command": "npm test"
+          }
+        ],
+        "post_merge_verification_unverified": [
+          "SHP-5"
+        ]
+      },
+      "records": {
+        "sibling-baseline.json": [],
+        "SHP-1/merge-record.json": {
+          "pr": 101,
+          "head_sha": "abc123"
+        },
+        "SHP-2/merge-record.json": {
+          "pr": 102,
+          "head_sha": "abc123"
+        },
+        "SHP-3/merge-record.json": {
+          "pr": 103,
+          "head_sha": "abc123",
+          "ac_called_out": [
+            "AC-human"
+          ]
+        },
+        "SHP-4/merge-record.json": {
+          "pr": 104,
+          "head_sha": "abc123",
+          "ac_called_out": [
+            "AC-human"
+          ]
+        },
+        "SHP-5/merge-record.json": {
+          "pr": 105,
+          "head_sha": "abc123"
+        },
+        "SUP-1/supersession.json": {
+          "issue": "SUP-1",
+          "superseded_by": [
+            "PRIOR-1"
+          ]
+        }
+      },
+      "stop_reason": "queue-drained",
+      "queue": [],
+      "budget": {
+        "ceiling_set": false,
+        "breached": [],
+        "tokens_source": "estimate"
+      },
+      "source": {
+        "tracker_observations": {
+          "titles": {
+            "SHP-1": "Delivered fixture SHP-1",
+            "SHP-2": "Delivered fixture SHP-2",
+            "SHP-3": "Delivered fixture SHP-3",
+            "SHP-4": "Delivered fixture SHP-4",
+            "SHP-5": "Delivered fixture SHP-5",
+            "SUP-1": "Delivered fixture SUP-1"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {
+            "SUP-1": true
+          }
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": [
+            "Remove the completed SHP-1 worktree."
+          ]
+        },
+        "command_owned_state": {
+          "outcomes": {
+            "SHP-1": "shipped",
+            "SHP-2": "shipped",
+            "SHP-3": "shipped",
+            "SHP-4": "shipped",
+            "SHP-5": "shipped",
+            "SUP-1": "superseded"
+          },
+          "annotations": {
+            "review_adversarial_skipped": [
+              "SHP-2",
+              "SHP-3",
+              "SHP-4"
+            ],
+            "post_merge_verification_failures": [
+              {
+                "issue": "SHP-3",
+                "command": "npm test"
+              }
+            ],
+            "post_merge_verification_unverified": [
+              "SHP-5"
+            ]
+          },
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "estimate",
+            "cost_total": 3,
+            "zero_ship": false,
+            "cost_per_shipped": {
+              "tokens_each": 240.0,
+              "cost_each": 0.6
+            },
+            "cost_per_attempt": {
+              "denom": 6,
+              "tokens_each": 200.0,
+              "cost_each": null
+            },
+            "buckets": [
+              {
+                "bucket": "shipped",
+                "count": 5
+              },
+              {
+                "bucket": "superseded",
+                "count": 1
+              }
+            ],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "dependencies": {
+        "doctor": {
+          "exit": 0,
+          "resultLine": "RESULT: fixture install is clean."
+        },
+        "economics": {
+          "tokens_total": 1200,
+          "tokens_source": "estimate",
+          "cost_total": 3,
+          "zero_ship": false,
+          "cost_per_shipped": {
+            "tokens_each": 240.0,
+            "cost_each": 0.6
+          },
+          "cost_per_attempt": {
+            "denom": 6,
+            "tokens_each": 200.0,
+            "cost_each": null
+          },
+          "buckets": [
+            {
+              "bucket": "shipped",
+              "count": 5
+            },
+            {
+              "bucket": "superseded",
+              "count": 1
+            }
+          ],
+          "per_issue": [],
+          "warnings": []
+        },
+        "budget": {
+          "breached": [],
+          "tokens_source": "estimate"
+        },
+        "methodology": null,
+        "forge": {
+          "[\"pr\",\"view\",\"101\",\"--json\",\"state,headRefOid\"]": {
+            "ok": true,
+            "data": {
+              "state": "MERGED",
+              "headRefOid": "abc123"
+            },
+            "stderr": ""
+          },
+          "[\"pr\",\"view\",\"102\",\"--json\",\"state,headRefOid\"]": {
+            "ok": true,
+            "data": {
+              "state": "MERGED",
+              "headRefOid": "abc123"
+            },
+            "stderr": ""
+          },
+          "[\"pr\",\"view\",\"103\",\"--json\",\"state,headRefOid\"]": {
+            "ok": true,
+            "data": {
+              "state": "MERGED",
+              "headRefOid": "abc123"
+            },
+            "stderr": ""
+          },
+          "[\"pr\",\"view\",\"104\",\"--json\",\"state,headRefOid\"]": {
+            "ok": true,
+            "data": {
+              "state": "MERGED",
+              "headRefOid": "abc123"
+            },
+            "stderr": ""
+          },
+          "[\"pr\",\"view\",\"105\",\"--json\",\"state,headRefOid\"]": {
+            "ok": true,
+            "data": {
+              "state": "MERGED",
+              "headRefOid": "abc123"
+            },
+            "stderr": ""
+          }
+        }
+      },
+      "expected_facts": {
+        "format": 2,
+        "tracker": {
+          "titles": {
+            "SHP-1": "Delivered fixture SHP-1",
+            "SHP-2": "Delivered fixture SHP-2",
+            "SHP-3": "Delivered fixture SHP-3",
+            "SHP-4": "Delivered fixture SHP-4",
+            "SHP-5": "Delivered fixture SHP-5",
+            "SUP-1": "Delivered fixture SUP-1"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {
+            "SUP-1": true
+          }
+        },
+        "run": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": [
+            "Remove the completed SHP-1 worktree."
+          ]
+        }
+      },
+      "economics_line": "Economics: 1200 tokens (estimate), $3.00 \u00b7 5 shipped \u00b7 $0.60 per shipped",
+      "output_patterns": [
+        "^## Shipped \\(auto-merged\\): 1",
+        "^## Shipped \\(human-only ACs called out\\): 1",
+        "^## Shipped \\(adversarial review skipped.*: 1",
+        "^## Shipped \\(post-merge verification flagged\\): 2",
+        "^## Superseded .*: 1"
+      ],
+      "section_membership": {
+        "SHP-1": "Shipped (auto-merged)",
+        "SHP-2": "Shipped (adversarial review skipped",
+        "SHP-3": "Shipped (post-merge verification flagged)",
+        "SHP-4": "Shipped (human-only ACs called out)",
+        "SHP-5": "Shipped (post-merge verification flagged)",
+        "SUP-1": "Superseded (delivered by prior tickets)"
+      }
+    },
+    {
+      "id": "review-holds",
+      "entropy": "abc102",
+      "action": "report",
+      "task": "Prepare and publish the completed run report from the supplied observations. The run is already closed.",
+      "target": "project:fixture-reporting",
+      "outcomes": {
+        "OPEN-1": "pr-open",
+        "OPEN-2": "pr-open",
+        "PARK-1": "parked",
+        "PARK-2": "parked"
+      },
+      "annotations": {
+        "landing_resumable": [
+          "OPEN-2"
+        ],
+        "review_outage_pending": [
+          "PARK-2"
+        ],
+        "spec_review_outage_pending": [
+          "PREP-1"
+        ]
+      },
+      "records": {
+        "sibling-baseline.json": [],
+        "OPEN-1/landing-loop.json": {
+          "pr": 201
+        },
+        "OPEN-2/landing-loop.json": {
+          "pr": 202
+        }
+      },
+      "stop_reason": "queue-drained",
+      "queue": [],
+      "budget": {
+        "ceiling_set": false,
+        "breached": [],
+        "tokens_source": "estimate"
+      },
+      "source": {
+        "tracker_observations": {
+          "titles": {
+            "OPEN-1": "Needs human review",
+            "OPEN-2": "Landing can resume",
+            "PARK-1": "Ordinary park",
+            "PARK-2": "Build review unavailable",
+            "PREP-1": "Prep review unavailable"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [
+            {
+              "issue_id": "PARK-1",
+              "root_cause_class": "low-confidence",
+              "timestamp": "2026-01-01T00:30:00Z"
+            }
+          ],
+          "follow_ups": [],
+          "reasons": {
+            "OPEN-1": "Three landing cycles exhausted."
+          }
+        },
+        "command_owned_state": {
+          "outcomes": {
+            "OPEN-1": "pr-open",
+            "OPEN-2": "pr-open",
+            "PARK-1": "parked",
+            "PARK-2": "parked"
+          },
+          "annotations": {
+            "landing_resumable": [
+              "OPEN-2"
+            ],
+            "review_outage_pending": [
+              "PARK-2"
+            ],
+            "spec_review_outage_pending": [
+              "PREP-1"
+            ]
+          },
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "estimate",
+            "cost_total": null,
+            "zero_ship": true,
+            "cost_per_shipped": {
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "cost_per_attempt": {
+              "denom": 4,
+              "tokens_each": 300.0,
+              "cost_each": null
+            },
+            "buckets": [
+              {
+                "bucket": "parked",
+                "count": 2
+              },
+              {
+                "bucket": "pr-open",
+                "count": 2
+              }
+            ],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "dependencies": {
+        "doctor": {
+          "exit": 0,
+          "resultLine": "RESULT: fixture install is clean."
+        },
+        "economics": {
+          "tokens_total": 1200,
+          "tokens_source": "estimate",
+          "cost_total": null,
+          "zero_ship": true,
+          "cost_per_shipped": {
+            "tokens_each": null,
+            "cost_each": null
+          },
+          "cost_per_attempt": {
+            "denom": 4,
+            "tokens_each": 300.0,
+            "cost_each": null
+          },
+          "buckets": [
+            {
+              "bucket": "parked",
+              "count": 2
+            },
+            {
+              "bucket": "pr-open",
+              "count": 2
+            }
+          ],
+          "per_issue": [],
+          "warnings": []
+        },
+        "budget": {
+          "breached": [],
+          "tokens_source": "estimate"
+        },
+        "methodology": null,
+        "forge": {
+          "[\"pr\",\"view\",\"201\",\"--json\",\"state,headRefOid\"]": {
+            "ok": true,
+            "data": {
+              "state": "OPEN",
+              "headRefOid": "abc123"
+            },
+            "stderr": ""
+          },
+          "[\"pr\",\"view\",\"202\",\"--json\",\"state,headRefOid\"]": {
+            "ok": true,
+            "data": {
+              "state": "OPEN",
+              "headRefOid": "abc123"
+            },
+            "stderr": ""
+          }
+        }
+      },
+      "expected_facts": {
+        "format": 2,
+        "tracker": {
+          "titles": {
+            "OPEN-1": "Needs human review",
+            "OPEN-2": "Landing can resume",
+            "PARK-1": "Ordinary park",
+            "PARK-2": "Build review unavailable",
+            "PREP-1": "Prep review unavailable"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "run": {
+          "waves": 2,
+          "park_records": [
+            {
+              "issue_id": "PARK-1",
+              "root_cause_class": "low-confidence",
+              "timestamp": "2026-01-01T00:30:00Z"
+            }
+          ],
+          "follow_ups": [],
+          "reasons": {
+            "OPEN-1": "Three landing cycles exhausted."
+          }
+        }
+      },
+      "economics_line": "Economics: 1200 tokens (estimate) \u00b7 0 shipped \u00b7 ZERO-SHIP",
+      "output_patterns": [
+        "^## PR open for human review: 1",
+        "^## Awaiting landing \\(resumable\\): 1",
+        "^## Awaiting review \\(adversarial outage\\): 1",
+        "^## Awaiting spec-review \\(adversarial outage\\): 1",
+        "^## Parked: 1"
+      ],
+      "section_membership": {
+        "OPEN-1": "PR open for human review",
+        "OPEN-2": "Awaiting landing (resumable)",
+        "PARK-1": "Parked:",
+        "PARK-2": "Awaiting review (adversarial outage)",
+        "PREP-1": "Awaiting spec-review (adversarial outage)"
+      },
+      "not_admitted": [
+        "PREP-1"
+      ]
+    },
+    {
+      "id": "budget-zero-ship",
+      "entropy": "abc103",
+      "action": "report",
+      "task": "Prepare and publish the completed run report from the supplied observations. The run is already closed.",
+      "target": "project:fixture-reporting",
+      "outcomes": {
+        "BUD-1": "unreached-budget"
+      },
+      "annotations": {},
+      "records": {
+        "sibling-baseline.json": []
+      },
+      "stop_reason": "budget-hit(tokens)",
+      "queue": [
+        "BUD-1"
+      ],
+      "budget": {
+        "ceiling_set": true,
+        "breached": [
+          "tokens"
+        ],
+        "tokens_source": "transcript"
+      },
+      "source": {
+        "tracker_observations": {
+          "titles": {
+            "BUD-1": "Budget-bound ready work"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": []
+        },
+        "command_owned_state": {
+          "outcomes": {
+            "BUD-1": "unreached-budget"
+          },
+          "annotations": {},
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "transcript",
+            "cost_total": null,
+            "zero_ship": true,
+            "cost_per_shipped": {
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "cost_per_attempt": {
+              "denom": 1,
+              "tokens_each": 1200.0,
+              "cost_each": null
+            },
+            "buckets": [
+              {
+                "bucket": "unreached-budget",
+                "count": 1
+              }
+            ],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "dependencies": {
+        "doctor": {
+          "exit": 0,
+          "resultLine": "RESULT: fixture install is clean."
+        },
+        "economics": {
+          "tokens_total": 1200,
+          "tokens_source": "transcript",
+          "cost_total": null,
+          "zero_ship": true,
+          "cost_per_shipped": {
+            "tokens_each": null,
+            "cost_each": null
+          },
+          "cost_per_attempt": {
+            "denom": 1,
+            "tokens_each": 1200.0,
+            "cost_each": null
+          },
+          "buckets": [
+            {
+              "bucket": "unreached-budget",
+              "count": 1
+            }
+          ],
+          "per_issue": [],
+          "warnings": []
+        },
+        "budget": {
+          "breached": [
+            "tokens"
+          ],
+          "tokens_source": "transcript"
+        },
+        "methodology": null,
+        "forge": {}
+      },
+      "expected_facts": {
+        "format": 2,
+        "tracker": {
+          "titles": {
+            "BUD-1": "Budget-bound ready work"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "run": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": []
+        }
+      },
+      "economics_line": "Economics: 1200 tokens (transcript) \u00b7 0 shipped \u00b7 ZERO-SHIP",
+      "output_patterns": [
+        "ZERO-SHIP",
+        "^## Unreached \\(budget hit\\): 1",
+        "tokens_source: transcript"
+      ]
+    },
+    {
+      "id": "dirty-install",
+      "entropy": "abc104",
+      "action": "report",
+      "task": "Prepare and publish the completed run report from the supplied observations. The run is already closed.",
+      "target": "project:fixture-reporting",
+      "outcomes": {
+        "ERR-1": "errored"
+      },
+      "annotations": {},
+      "records": {
+        "sibling-baseline.json": []
+      },
+      "stop_reason": "queue-drained",
+      "queue": [],
+      "budget": {
+        "ceiling_set": false,
+        "breached": [],
+        "tokens_source": "estimate"
+      },
+      "source": {
+        "tracker_observations": {
+          "titles": {
+            "ERR-1": "Fixture title\n## Deferred"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": [
+            "Remove the unused branch."
+          ],
+          "reasons": {
+            "ERR-1": "Controlled environment error."
+          },
+          "discovered_scope": {
+            "filed": [],
+            "deduped": 1,
+            "surfaced": [
+              {
+                "id": "ERR-1",
+                "text": "Investigate the missing endpoint.",
+                "why": "No tracker permission."
+              }
+            ]
+          }
+        },
+        "command_owned_state": {
+          "outcomes": {
+            "ERR-1": "errored"
+          },
+          "annotations": {},
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "estimate",
+            "cost_total": null,
+            "zero_ship": true,
+            "cost_per_shipped": {
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "cost_per_attempt": {
+              "denom": 1,
+              "tokens_each": 1200.0,
+              "cost_each": null
+            },
+            "buckets": [
+              {
+                "bucket": "errored",
+                "count": 1
+              }
+            ],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "dependencies": {
+        "doctor": {
+          "exit": 1,
+          "resultLine": "RESULT: fixture install contains one stale copy."
+        },
+        "economics": {
+          "tokens_total": 1200,
+          "tokens_source": "estimate",
+          "cost_total": null,
+          "zero_ship": true,
+          "cost_per_shipped": {
+            "tokens_each": null,
+            "cost_each": null
+          },
+          "cost_per_attempt": {
+            "denom": 1,
+            "tokens_each": 1200.0,
+            "cost_each": null
+          },
+          "buckets": [
+            {
+              "bucket": "errored",
+              "count": 1
+            }
+          ],
+          "per_issue": [],
+          "warnings": []
+        },
+        "budget": {
+          "breached": [],
+          "tokens_source": "estimate"
+        },
+        "methodology": null,
+        "forge": {}
+      },
+      "expected_facts": {
+        "format": 2,
+        "tracker": {
+          "titles": {
+            "ERR-1": "Fixture title\n## Deferred"
+          },
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "run": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": [
+            "Remove the unused branch."
+          ],
+          "reasons": {
+            "ERR-1": "Controlled environment error."
+          },
+          "discovered_scope": {
+            "filed": [],
+            "deduped": 1,
+            "surfaced": [
+              {
+                "id": "ERR-1",
+                "text": "Investigate the missing endpoint.",
+                "why": "No tracker permission."
+              }
+            ]
+          }
+        }
+      },
+      "economics_line": "Economics: 1200 tokens (estimate) \u00b7 0 shipped \u00b7 ZERO-SHIP",
+      "output_patterns": [
+        "^\u26a0 INSTALL-HEALTH:",
+        "^## Errored: 1",
+        "ZERO-SHIP"
+      ]
+    },
+    {
+      "id": "no-budget-continuation",
+      "entropy": "abc105",
+      "action": "continue",
+      "task": "A proposed final report says Deferred, but ready work remains and no budget ceiling was set or breached. Handle this checkpoint under the policy. This run has not closed.",
+      "target": "project:fixture-reporting",
+      "outcomes": {},
+      "annotations": {},
+      "records": {
+        "sibling-baseline.json": []
+      },
+      "stop_reason": "queue-drained",
+      "queue": [
+        "NEXT-1"
+      ],
+      "budget": {
+        "ceiling_set": false,
+        "breached": [],
+        "tokens_source": "estimate"
+      },
+      "source": {
+        "tracker_observations": {
+          "titles": {},
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": []
+        },
+        "command_owned_state": {
+          "outcomes": {},
+          "annotations": {},
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "estimate",
+            "cost_total": null,
+            "zero_ship": true,
+            "cost_per_shipped": {
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "cost_per_attempt": {
+              "denom": 0,
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "buckets": [],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "dependencies": {
+        "doctor": {
+          "exit": 0,
+          "resultLine": "RESULT: fixture install is clean."
+        },
+        "economics": {
+          "tokens_total": 1200,
+          "tokens_source": "estimate",
+          "cost_total": null,
+          "zero_ship": true,
+          "cost_per_shipped": {
+            "tokens_each": null,
+            "cost_each": null
+          },
+          "cost_per_attempt": {
+            "denom": 0,
+            "tokens_each": null,
+            "cost_each": null
+          },
+          "buckets": [],
+          "per_issue": [],
+          "warnings": []
+        },
+        "budget": {
+          "breached": [],
+          "tokens_source": "estimate"
+        },
+        "methodology": null,
+        "forge": {}
+      },
+      "expected_facts": {
+        "format": 2,
+        "tracker": {
+          "titles": {},
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "run": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": []
+        }
+      },
+      "economics_line": "Economics: 1200 tokens (estimate) \u00b7 0 shipped \u00b7 ZERO-SHIP",
+      "output_patterns": []
+    },
+    {
+      "id": "unreadable-ledger",
+      "entropy": "abc106",
+      "action": "fault",
+      "task": "Prepare the completed run report. The on-disk ledger may be unreadable; preserve the command failure if it is.",
+      "target": "project:fixture-reporting",
+      "outcomes": {},
+      "annotations": {},
+      "records": {
+        "sibling-baseline.json": []
+      },
+      "stop_reason": "queue-drained",
+      "queue": [],
+      "budget": {
+        "ceiling_set": false,
+        "breached": [],
+        "tokens_source": "estimate"
+      },
+      "source": {
+        "tracker_observations": {
+          "titles": {},
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "in_run_judgements": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": []
+        },
+        "command_owned_state": {
+          "outcomes": {},
+          "annotations": {},
+          "metering": {
+            "tokens_total": 1200,
+            "tokens_source": "estimate",
+            "cost_total": null,
+            "zero_ship": true,
+            "cost_per_shipped": {
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "cost_per_attempt": {
+              "denom": 0,
+              "tokens_each": null,
+              "cost_each": null
+            },
+            "buckets": [],
+            "per_issue": [],
+            "warnings": []
+          }
+        },
+        "facts_authority": "Tracker observations and in-run judgements only. Command-owned values already exist in the fixture state."
+      },
+      "dependencies": {
+        "doctor": {
+          "exit": 0,
+          "resultLine": "RESULT: fixture install is clean."
+        },
+        "economics": {
+          "tokens_total": 1200,
+          "tokens_source": "estimate",
+          "cost_total": null,
+          "zero_ship": true,
+          "cost_per_shipped": {
+            "tokens_each": null,
+            "cost_each": null
+          },
+          "cost_per_attempt": {
+            "denom": 0,
+            "tokens_each": null,
+            "cost_each": null
+          },
+          "buckets": [],
+          "per_issue": [],
+          "warnings": []
+        },
+        "budget": {
+          "breached": [],
+          "tokens_source": "estimate"
+        },
+        "methodology": null,
+        "forge": {}
+      },
+      "expected_facts": {
+        "format": 2,
+        "tracker": {
+          "titles": {},
+          "sibling_end_states": {},
+          "superseded_delivered": {}
+        },
+        "run": {
+          "waves": 2,
+          "park_records": [],
+          "follow_ups": []
+        }
+      },
+      "economics_line": "Economics: 1200 tokens (estimate) \u00b7 0 shipped \u00b7 ZERO-SHIP",
+      "output_patterns": []
+    }
+  ]
+}

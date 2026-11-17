@@ -1,0 +1,29 @@
+```faff-contract:architecture-proposal
+{
+  "chosen_architecture": "A Node 22 batch command packaged for the existing Docker Compose deployment, scheduled nightly by a timer on the existing host. Read the existing PostgreSQL timesheet table and transactionally upsert weekly summary rows into the same datastore. Use a unique summary key for each reporting entity and week, plus a PostgreSQL advisory lock to prevent overlapping runs. Compute each run from a consistent transaction snapshot and commit its summary changes atomically. Emit run status and row counts, and allow safe reruns after failure. Exercise aggregation and rerun behaviour in the existing GitHub Actions CI.",
+  "rationale": "A nightly batch job is met by a nightly host timer invoking one batch command. Reads the existing timesheet table and writes weekly summary rows is met by SQL aggregation and transactional summary upserts in the existing PostgreSQL datastore. A few thousand reads and a few dozen writes per run fits a bounded batch transaction. No real-time fan-out or cross-partition ordering is required; each run reads a consistent snapshot and commits its summaries together. Use existing infrastructure is met by Node 22, Docker Compose, PostgreSQL and GitHub Actions recorded in the supplied profile. Unique summary keys and an overlap lock make retries and repeated scheduling safe.",
+  "adr_candidates": [
+    {
+      "title": "Run nightly summaries as a Node batch command on existing infrastructure",
+      "decision": "Schedule a Node 22 command nightly on the existing Compose host, reading timesheets and transactionally upserting weekly summaries in the existing PostgreSQL datastore, with a consistent snapshot, unique summary keys and an overlap lock.",
+      "rationale": "The nightly schedule and bounded read/write workload fit the team's existing runtime and deployment; atomic upserts and locking support safe reruns."
+    }
+  ],
+  "assumptions": [
+    "The supplied successful profile-show result describes infrastructure available to this job.",
+    "The existing host can provide a nightly timer and run the Compose-packaged command; timer configuration and timezone must be confirmed.",
+    "The reporting week boundary, reporting timezone, grouping keys and treatment of later timesheet edits will be specified before implementation.",
+    "The batch database role can read timesheets, write summaries and acquire the chosen advisory lock.",
+    "Weekly summaries can be recomputed from source rows; a failed transaction can be retried without external side effects."
+  ],
+  "recommendation": "build"
+}
+```
+
+## ADR promotion intent
+
+- Run nightly summaries as a Node batch command on existing infrastructure: schedule a Node 22 command nightly on the existing Compose host, reading timesheets and transactionally upserting weekly summaries in the existing PostgreSQL datastore, with a consistent snapshot, unique summary keys and an overlap lock. The nightly schedule and bounded workload fit existing infrastructure; atomic upserts and locking support safe reruns.
+
+This is a candidate for later review and materialisation by graft Step 4b. Production suitability remains subject to human review.
+
+confidence: high

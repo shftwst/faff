@@ -1,0 +1,43 @@
+{
+  "harness": "eval/control-parity/methodology-output.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/thematic-readonly.json",
+  "timeout_seconds": 900,
+  "worker": "claude-retry",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Full unchanged kernel and methodology gateway context followed by the thematic policy, delivered through the bounded reader. Named output decisions and persisted proposals are separated from actual termination-policy CLI consumption. Only the readonly slice is eligible for compression; diagnostic mutation, crank-up, PRDR authoring and YAGNI sections remain verbatim.",
+  "acceptance": "Five candidate samples must pass all intended cases, persisted artifact review and native protocol audit. Preserve baseline failures; no reroll or model pooling. Report consumer scenario results separately from decisions and artifacts.",
+  "samples": [
+    {
+      "name": "thematic-readonly-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/thematic-v1-with-context.md"
+    },
+    {
+      "name": "thematic-readonly-v1-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/thematic-v1-with-context.md"
+    },
+    {
+      "name": "thematic-readonly-v1-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/thematic-v1-with-context.md"
+    },
+    {
+      "name": "thematic-readonly-v1-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/thematic-v1-with-context.md"
+    },
+    {
+      "name": "thematic-readonly-v1-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/thematic-v1-with-context.md"
+    }
+  ]
+}

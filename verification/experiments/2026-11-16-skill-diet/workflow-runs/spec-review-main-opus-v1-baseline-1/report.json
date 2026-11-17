@@ -1,0 +1,461 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 50,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 166480,
+    "utf16_characters": 165126,
+    "sha256": "9eb1b8e74a3f17cf91803ae433f5f037b05e2dda2beeea37e726b411f7758c98",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "557a1ca6e8885bb77dafaabf8221586bfc770fdc2d6503c954707a2be3191649"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6016,
+        "sha256": "46d93659a9d5b56410915a933a5c61ddab3154905372c79c65e0c1911475ca48"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6002,
+        "sha256": "ededcb657d522d3672fd83111120658352ad733a8ad2e667f9cdc808a6e0ffb6"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "57bee205e3a4a85d30c05411b7df31efd4ba2894e6e6632b80330e1e3596de88"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "f10c9b7a323c5fe87e9f63ca74fad078960e8b74b43b248c2cbc78be75e1d60f"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6039,
+        "sha256": "4a0b5d760c4c5b1123ad174c56927db1b967b255348bb68f0035f8318d39c459"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "d6f25ed943c0827fb5c7fbb7192d6c2ec3d3fa7ad53c99c11a2a27e5ac6ad8ff"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "75d47d05e68dfa3bac75012f34a989b0c1ea37da5431d1924b97f8e0423182bb"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "6675c3789f27140425e5407d1cc747805ecacd00c0412ec26888f8c0e1e3d2ce"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "2c5888b4605943ac04cfb1666c4d0d933bb7414ebfea03b29c44c5d609ad2185"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "8d9d87c27ad85ce1a088f4c97d32b0c207d8457227b900872032c3370978ee68"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "802e2a812ac0db65a4a1e96d3b17c9f68234598144f958df3f9cd9809b7a193a"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "67a41c760b2b59a74be1588ed87b27c08196ede867553e375f0a48916849e226"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6057,
+        "sha256": "ac4db7e53dee35991e5b708619e197acce5dd3704b97ec089cfada77dcbd8b88"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6034,
+        "sha256": "e8a91781669c88b92e4aadce4734b992e9c7b0202d2ad6a32afb3d9347a33246"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6042,
+        "sha256": "af6a7cc7aeb875100e986138072aebb4d1af4ce46965eaa3865aef7eb8fa913d"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "8aa98c5a20dc67917f1d9db123f84ec7c86f201d685d1a47b176000217fbd753"
+      },
+      {
+        "offset": 102000,
+        "end": 108000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "a90ea8a5f8fa2fcd30ecd10d59bbc2c9e2bad08f80a1ef1d1b4337565c23ed6a"
+      },
+      {
+        "offset": 108000,
+        "end": 114000,
+        "characters": 6000,
+        "bytes": 6058,
+        "sha256": "15cd87c6e5b3592ee394f0b3bda5c4ca5b5ba63db3f7eff5e18a52ea999cdfb6"
+      },
+      {
+        "offset": 114000,
+        "end": 120000,
+        "characters": 6000,
+        "bytes": 6042,
+        "sha256": "816ff859dcd46cce9ce99f86e261dd545f15e9a68be096230ddd5d47434b36fd"
+      },
+      {
+        "offset": 120000,
+        "end": 126000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "89b1e438c0176a3788618984953c85e6a946ac77b4dadff22539690c39ee147f"
+      },
+      {
+        "offset": 126000,
+        "end": 132000,
+        "characters": 6000,
+        "bytes": 6034,
+        "sha256": "c1bdfa17cefa2d7421a5542693dbfe020034247e58f38e6e18e43fa9aa9cccd3"
+      },
+      {
+        "offset": 132000,
+        "end": 138000,
+        "characters": 6000,
+        "bytes": 6084,
+        "sha256": "f520a7251c7c90c403fda0824597161b3ad55c3ee2309707979940a5de33373c"
+      },
+      {
+        "offset": 138000,
+        "end": 144000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "8e911c838ab47edd93e0597543f79ef3d521600d570cdf521108071e7f408e4f"
+      },
+      {
+        "offset": 144000,
+        "end": 150000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "734eacf55280c64f2f97889fd12435e2c37f4a002ddba4c38c12245a75fe8340"
+      },
+      {
+        "offset": 150000,
+        "end": 156000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "a2e58fd73b179c71bd31447013955412553069b38669133396e10bd00a921ea7"
+      },
+      {
+        "offset": 156000,
+        "end": 162000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "ec58e6db7cc26603d17c019b5b0f29e98035a663a113cf80a2fcabd92dad53c4"
+      },
+      {
+        "offset": 162000,
+        "end": 165126,
+        "characters": 3126,
+        "bytes": 3162,
+        "sha256": "3562078025a69cd1d9401e3cbac9c20ce68b6f433884a09910753f0486628442"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "spec-verdict-001",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "spec-verdict-002",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "spec-verdict-003",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "qa-repo-file",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "qa-no-observation",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "methodology-blocker",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 2,
+          "passed": 2,
+          "vector": [
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "default-lenses",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "lenses": [
+            "architectural",
+            "infosec",
+            "methodology",
+            "QA"
+          ]
+        }
+      },
+      {
+        "id": "selected-lenses",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "lenses": [
+            "infosec",
+            "QA"
+          ]
+        }
+      },
+      {
+        "id": "mandatory-lenses",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "lenses": [
+            "infosec",
+            "QA"
+          ]
+        }
+      },
+      {
+        "id": "methodology-missing",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "recompute": false,
+          "objections": 0,
+          "note_gap": true
+        }
+      },
+      {
+        "id": "worst-only",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "maximum": 1
+        }
+      },
+      {
+        "id": "builder-choice",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "approve",
+          "objections": 0
+        }
+      },
+      {
+        "id": "weak-consequence",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "value": "not separately stated"
+        }
+      },
+      {
+        "id": "anchor",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "anchor": "the-spec-anchor-field"
+        }
+      },
+      {
+        "id": "no-anchor",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "omit_spec_anchor": true
+        }
+      },
+      {
+        "id": "minor-only",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "revise"
+        }
+      },
+      {
+        "id": "qa-blocker",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "revise"
+        }
+      },
+      {
+        "id": "infosec-blocker",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "needs-human"
+        }
+      },
+      {
+        "id": "founded",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "allowed": false
+        }
+      },
+      {
+        "id": "route-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "owner": "consumer"
+        }
+      },
+      {
+        "id": "adversarial",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "launches": false
+        }
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Bounded default spec-review production with the existing three spec-verdict fixtures plus two code-blind QA cases and an attached methodology blocker. Real contract and reject-approach route consumption required. No prep loop, hosted tracker or L4-refuter execution claim.",
+  "accounting": "unmetered"
+}

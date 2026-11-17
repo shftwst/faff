@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All six brief cases and twelve rule answers were persisted. Finish succeeded.\n\nTwo departures occurred:\n\n- One call used `workfspace` instead of `workspace`; it failed and was retried correctly.\n- The first output write omitted the closing `FAFF_JSON` delimiter; it still persisted successfully.\n\nNo output files were inspected after finish.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5bd-d29a-72d0-b283-9034aeba15c7"
+    ],
+    "elapsed_seconds": 254.5,
+    "stdout_sha256": "c6f97e16c30dc27492f44522a279b22ca5daae33925f1a98afe7f16ce5924953",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

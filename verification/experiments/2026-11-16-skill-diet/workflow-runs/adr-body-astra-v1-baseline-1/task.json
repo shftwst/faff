@@ -1,0 +1,367 @@
+{
+  "instructions": "Read the complete rendering policy through read_policy. For each independent artifact case, transform the supplied draft or source into the requested output and persist it through write_output. These are isolated human-facing outputs; preserve their facts and use the supplied source material. Do not query a tracker or read additional files. Separately answer every bounded rule question. Global operator guidance applies. Finish after every case is recorded.",
+  "policy": {
+    "bytes": 123838,
+    "utf16_characters": 122793,
+    "sha256": "3d64fef00109709e97d51a36c8fab7614c43997f16e215450e1faed2a784ec2e",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_output",
+      "description": "Persist the completed rendering for one artifact case. Write once per case; provide the actual normalised text or violation report requested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "answer_rule",
+      "description": "Answer one separate bounded policy question in its stated value shape. Do not perform hypothetical actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all artifacts and rule answers are recorded.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "nygard",
+      "task": "Author the ADR-slot body for this settled decision after build. The caller already ran the real adr format CLI; use its supplied resolved_format. Return the actual body, self-review and advisory confidence. Numbering, scaffold, validation, commit and confidence routing belong to the caller. Do not claim to perform them.",
+      "source": {
+        "decision": {
+          "title": "Persist recovery tokens in SQLite",
+          "chosen": "Use the existing SQLite database for recovery tokens."
+        },
+        "spec_rationale": "One local service must retain token state across restart; the existing database avoids a second persistence service.",
+        "issue": {
+          "id": "ADRWORK-1",
+          "title": "Persist recovery tokens in SQLite"
+        },
+        "related_adrs": [],
+        "resolved_format": {
+          "format": "nygard",
+          "sections": [
+            {
+              "name": "Context",
+              "placeholder": "_TODO: what forces this decision._"
+            },
+            {
+              "name": "Decision",
+              "placeholder": "_TODO: the decision, stated forward._"
+            },
+            {
+              "name": "Consequences",
+              "placeholder": "_TODO: what this constrains downstream._"
+            }
+          ],
+          "decision_section": "Decision",
+          "source": "default",
+          "template_path": null,
+          "degraded": false,
+          "notes": null
+        },
+        "implementation_evidence": "The committed implementation writes a token row before acknowledging creation. A restart test passes. No multi-host deployment or throughput test was performed.",
+        "appetite": "high"
+      }
+    },
+    {
+      "id": "custom",
+      "task": "Author the ADR-slot body for this settled decision after build. The caller already ran the real adr format CLI; use its supplied resolved_format. Return the actual body, self-review and advisory confidence. Numbering, scaffold, validation, commit and confidence routing belong to the caller. Do not claim to perform them.",
+      "source": {
+        "decision": {
+          "title": "Deduplicate webhook jobs",
+          "chosen": "Use a unique delivery key in the existing job table."
+        },
+        "spec_rationale": "The provider may deliver the same event twice. The service already has a job table with a unique-key constraint.",
+        "issue": {
+          "id": "ADRWORK-1",
+          "title": "Deduplicate webhook jobs"
+        },
+        "related_adrs": [],
+        "resolved_format": {
+          "format": "template",
+          "sections": [
+            {
+              "name": "Situation",
+              "placeholder": "_TODO: ..._"
+            },
+            {
+              "name": "Decision",
+              "placeholder": "_TODO: ..._"
+            },
+            {
+              "name": "Trade-offs",
+              "placeholder": "_TODO: ..._"
+            },
+            {
+              "name": "Follow-up",
+              "placeholder": "_TODO: ..._"
+            }
+          ],
+          "decision_section": "Decision",
+          "source": "template",
+          "template_path": ".faff/templates/adr.md",
+          "degraded": false,
+          "notes": null
+        },
+        "implementation_evidence": "The same delivery key is inserted once and the second enqueue is acknowledged without a second job. A duplicate-event test passes. Different event ordering was not changed.",
+        "appetite": "high"
+      }
+    },
+    {
+      "id": "no-decision-heading",
+      "task": "Author the ADR-slot body for this settled decision after build. The caller already ran the real adr format CLI; use its supplied resolved_format. Return the actual body, self-review and advisory confidence. Numbering, scaffold, validation, commit and confidence routing belong to the caller. Do not claim to perform them.",
+      "source": {
+        "decision": {
+          "title": "Keep exports on the existing worker",
+          "chosen": "Run account exports on the existing worker process."
+        },
+        "spec_rationale": "The existing worker already streams files and the first release has one operator.",
+        "issue": {
+          "id": "ADRWORK-1",
+          "title": "Keep exports on the existing worker"
+        },
+        "related_adrs": [],
+        "resolved_format": {
+          "format": "template",
+          "sections": [
+            {
+              "name": "Summary",
+              "placeholder": "_TODO: ..._"
+            },
+            {
+              "name": "Rationale",
+              "placeholder": "_TODO: ..._"
+            }
+          ],
+          "decision_section": null,
+          "source": "template",
+          "template_path": ".faff/templates/adr.md",
+          "degraded": false,
+          "notes": "faff adr format: .faff/templates/adr.md has no `## Decision` heading; L3 contradiction-detection disabled for this repo"
+        },
+        "implementation_evidence": "A worker job streams one account export to disk. The restart/resume path is not implemented and is explicitly outside this slice.",
+        "appetite": "high"
+      }
+    },
+    {
+      "id": "empty-template",
+      "task": "Author the ADR-slot body for this settled decision after build. The caller already ran the real adr format CLI; use its supplied resolved_format. Return the actual body, self-review and advisory confidence. Numbering, scaffold, validation, commit and confidence routing belong to the caller. Do not claim to perform them.",
+      "source": {
+        "decision": {
+          "title": "Use UTC timestamps",
+          "chosen": "Store event timestamps in UTC."
+        },
+        "spec_rationale": "Exports from two regions need one comparable timestamp convention.",
+        "issue": {
+          "id": "ADRWORK-1",
+          "title": "Use UTC timestamps"
+        },
+        "related_adrs": [],
+        "resolved_format": {
+          "format": "nygard",
+          "sections": [
+            {
+              "name": "Context",
+              "placeholder": "_TODO: what forces this decision._"
+            },
+            {
+              "name": "Decision",
+              "placeholder": "_TODO: the decision, stated forward._"
+            },
+            {
+              "name": "Consequences",
+              "placeholder": "_TODO: what this constrains downstream._"
+            }
+          ],
+          "decision_section": "Decision",
+          "source": "default",
+          "template_path": null,
+          "degraded": true,
+          "notes": "faff adr format: .faff/templates/adr.md is empty or has no level-2 headings; using the Nygard default"
+        },
+        "implementation_evidence": "The serializer emits UTC timestamps; two timezone conversion tests pass. This changes exported representation only, not retention or scheduling.",
+        "appetite": "high"
+      }
+    },
+    {
+      "id": "related-decision",
+      "task": "Author the ADR-slot body for this settled decision after build. The caller already ran the real adr format CLI; use its supplied resolved_format. Return the actual body, self-review and advisory confidence. Numbering, scaffold, validation, commit and confidence routing belong to the caller. Do not claim to perform them.",
+      "source": {
+        "decision": {
+          "title": "Use a durable retry ledger",
+          "chosen": "Keep retry attempts in the existing durable database."
+        },
+        "spec_rationale": "The accepted transient retry record in ADR-0041 loses attempt history after restart. This settled choice preserves that history.",
+        "issue": {
+          "id": "ADRWORK-1",
+          "title": "Use a durable retry ledger"
+        },
+        "related_adrs": [
+          {
+            "number": "ADR-0041",
+            "title": "Use transient retry records",
+            "status": "Accepted",
+            "date": "2026-10-20"
+          }
+        ],
+        "resolved_format": {
+          "format": "nygard",
+          "sections": [
+            {
+              "name": "Context",
+              "placeholder": "_TODO: what forces this decision._"
+            },
+            {
+              "name": "Decision",
+              "placeholder": "_TODO: the decision, stated forward._"
+            },
+            {
+              "name": "Consequences",
+              "placeholder": "_TODO: what this constrains downstream._"
+            }
+          ],
+          "decision_section": "Decision",
+          "source": "default",
+          "template_path": null,
+          "degraded": false,
+          "notes": null
+        },
+        "implementation_evidence": "The retry count and next-attempt time survive the tested restart. No ADR status or supersession metadata has been changed; the caller owns recording it.",
+        "appetite": "high"
+      }
+    },
+    {
+      "id": "limited-verification",
+      "task": "Author the ADR-slot body for this settled decision after build. The caller already ran the real adr format CLI; use its supplied resolved_format. Return the actual body, self-review and advisory confidence. Numbering, scaffold, validation, commit and confidence routing belong to the caller. Do not claim to perform them.",
+      "source": {
+        "decision": {
+          "title": "Keep attachment blobs on local disk",
+          "chosen": "Store attachment blobs in the existing local data directory."
+        },
+        "spec_rationale": "The deployment has one host and a durable data volume. Remote replication is excluded from this release.",
+        "issue": {
+          "id": "ADRWORK-1",
+          "title": "Keep attachment blobs on local disk"
+        },
+        "related_adrs": [],
+        "resolved_format": {
+          "format": "nygard",
+          "sections": [
+            {
+              "name": "Context",
+              "placeholder": "_TODO: what forces this decision._"
+            },
+            {
+              "name": "Decision",
+              "placeholder": "_TODO: the decision, stated forward._"
+            },
+            {
+              "name": "Consequences",
+              "placeholder": "_TODO: what this constrains downstream._"
+            }
+          ],
+          "decision_section": "Decision",
+          "source": "default",
+          "template_path": null,
+          "degraded": false,
+          "notes": null
+        },
+        "implementation_evidence": "The implementation writes blobs to the configured local directory; a write/read test passes. Disk-loss recovery and backup restore have not been tested.",
+        "appetite": "high"
+      }
+    }
+  ],
+  "rule_questions": [
+    {
+      "id": "punt",
+      "question": "The supplied spec still marks this choice Punt. Should this producer author a settled ADR for it? Return {\"author\": boolean}."
+    },
+    {
+      "id": "format-source",
+      "question": "How is the section list resolved? Return {\"command\": string, \"read_template_directly\": boolean}."
+    },
+    {
+      "id": "sections",
+      "question": "A resolved custom format has Situation, Choice, Effects and no Decision heading. Add the default Nygard headings? Return {\"add_defaults\": boolean, \"preserve_order\": boolean}."
+    },
+    {
+      "id": "ownership",
+      "question": "Does this producer call adr new, assign a number, validate or commit? Return {\"producer_performs_mechanics\": boolean}."
+    },
+    {
+      "id": "low-confidence",
+      "question": "A promoted settled decision receives low advisory confidence. Can the producer block recording it? Return {\"blocks_recording\": boolean, \"routing_owner\": string}."
+    },
+    {
+      "id": "self-review",
+      "question": "Should consequences be checked against what shipped or only the original spec? Return {\"basis\": string}."
+    },
+    {
+      "id": "related",
+      "question": "How should a related ADR be referenced? Return {\"bare_number_only\": boolean, \"include_decision_subject\": boolean}."
+    },
+    {
+      "id": "contract",
+      "question": "Must this producer emit a gated contract block? Return {\"gated_block\": boolean, \"confidence_advisory\": boolean}."
+    },
+    {
+      "id": "timing",
+      "question": "At which caller stage does this producer author? Return {\"stage\": string, \"build_complete\": boolean}."
+    },
+    {
+      "id": "refinement",
+      "question": "At high/full appetite, who owns a bounded automatic refinement after advisory confidence? Return {\"owner\": string}."
+    }
+  ]
+}

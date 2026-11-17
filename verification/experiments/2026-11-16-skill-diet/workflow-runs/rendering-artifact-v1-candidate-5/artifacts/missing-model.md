@@ -1,0 +1,2 @@
+- Opening of the explanation → Lead with the load-bearing model → no load-bearing model to lead with; flag for the producer to supply one, do not invent it.
+- Steps one to three → Prose skimmability (three or more enumerable items become a list) → render the steps as a numbered list: 1. Open the dashboard. 2. Copy the displayed number. 3. Close the tab.

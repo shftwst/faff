@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "scope": "Gateway first-run boundary: real pinned CLI housekeeping and recorded downstream skill dispatch. Downstream skills are fixture stubs, not full onboard/prep/map/beep-boop executions.",
+  "offer": "No faff config found. Set up faff for this repo now? (y/n)",
+  "cases": [
+    {"id":"case-a","user_message":"/faff","autonomous":false,"reply":"n","seed":"empty","expected_skill":"faff-wtf","expected_args":[],"expected_path":"decline"},
+    {"id":"case-b","user_message":"/faff-prep FAFF-7001","autonomous":false,"reply":"n","seed":"existing-housekeeping","expected_skill":"faff-prep","expected_args":["FAFF-7001"],"expected_path":"decline"},
+    {"id":"case-c","user_message":"Run the backlog unattended overnight.","autonomous":true,"reply":null,"seed":"empty","expected_skill":"faff-beep-boop","expected_args":[],"expected_path":"no-write"},
+    {"id":"case-d","user_message":"/faff","autonomous":false,"reply":null,"seed":"decline-stub","expected_skill":"faff-wtf","expected_args":[],"expected_path":"no-write"},
+    {"id":"case-e","user_message":"/faff-map","autonomous":false,"reply":"y","seed":"empty","expected_skill":"faff-map","expected_args":[],"expected_path":"accept"}
+  ],
+  "normalisations": [
+    "Per-case comparisons allow independent cases to be interleaved.",
+    "The optional --json output flag does not alter housekeeping effects; raw argv remains recorded.",
+    "The faff: namespace prefix resolves to the same bundled skill; raw names remain recorded.",
+    "Fixture workspace paths are replaced with <workspace> in file content and CLI output comparisons.",
+    "Additional config path reads are retained in the trace and reported, but do not constitute an extra mutation or dispatch. A successful initial path read must precede effectful decisions."
+  ],
+  "acceptance": "No forbidden attempts, errors, missing operations, reordered mutations, incorrect offers/dispatches or final-state differences. Compare both arms against this oracle and each other. Provider usage is unmetered."
+}

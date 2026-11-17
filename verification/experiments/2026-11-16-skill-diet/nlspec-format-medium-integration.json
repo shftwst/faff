@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "status": "fail",
+  "directory": "/var/tmp/faff-nlspec-format-medium-integration",
+  "base_commit": "3cbd784148e35408bacb271da5821c392c988a69",
+  "isolated_commit": "da35d0f42e91c6528466f9762f3fbed29f495903",
+  "source_sha256": "2b5b91c33b6e644d8e8e5720aa0aa6b6fb39d7f864fd2a8ee69a8b991a5975c9",
+  "production_installed": false,
+  "temporary_directory": "/var/tmp/faff-nlspec-format-tests-hyjiiiwn",
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=4",
+        "test/control-parity-nlspec.test.mjs",
+        "test/admissible.test.mjs",
+        "test/dod.test.mjs",
+        "test/punt-scan.test.mjs",
+        "test/prep-attach.test.mjs",
+        "test/contract-golden.test.mjs"
+      ],
+      "exit_code": 1,
+      "path": "deterministic-checks/nlspec-format-medium-integration-tests.txt",
+      "sha256": "feb4dbc2bee4597993bebdfeadae5db08a7a328de2305f725127299b199d677e"
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/nlspec-format-medium-integration-adapter-lint.txt",
+      "sha256": "bb4d1a24e82014e354b443a671613ccbfff3359e4e424d6bf8508de9c22e43ec"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "exit_code": 1,
+      "path": "deterministic-checks/nlspec-format-medium-integration-rule-inventory.txt",
+      "sha256": "db81f124fc448802eadb400feeea4351af39699c728d0e7ffab4db3f8547d533"
+    }
+  ],
+  "limits": [
+    "Deterministic integration only; model-pair native, output and manual checks required before source acceptance."
+  ]
+}

@@ -1,0 +1,161 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only prelaunch verifier",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "clear-for-five-baseline-launch-only",
+  "models_launched_by_review": 0,
+  "source_installed_by_review": false,
+  "candidate_launch_allowed_by_this_record": false,
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v1-registration.json",
+      "sha256": "479e4023f1d0a66f1932a757060701bcc9c0b371c28bf05ce55244419beddf5d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v1-baseline-plan.json",
+      "sha256": "2d9cddcf88d0676ce737de6a94c93024e78c461680369634005925fc5603b85b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v1-candidate-plan.json",
+      "sha256": "686211b7cae0a069117b5029cffc54ef76fb686c51d597034f195ba045b274d6"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-integration.json",
+      "sha256": "272598d65ebe9f33bc128a160237cf43e980a0fa1951e9c80ec19701da8db5bf"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v2-source-review.json",
+      "sha256": "fe1c5d99523ec12f8f705e11a6f395171fb7f23c6b10ad1d142664b079ed86b3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v7-preflight-review.json",
+      "sha256": "e2c870ea8fce59ad8213998077fa958d9fa4100b125ebb576cc123f8beb93dca"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-ledger-mcp-preflight-v1-review.json",
+      "sha256": "388e3470f682c0af9fbbd55d06153bd4f43450a4b22437451fb0a14fc4eceabc"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/preflight.json",
+      "sha256": "cbd935d0e6224e79f068ca14a051dc3f3af66f69c463721c01169309bc4431e5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-runner-v3-replay-smoke.json",
+      "sha256": "7074281b97d5818d46866fad5cc9ef37ebd5a874605f86bf74a6bcbfe8207d02"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v3.py",
+      "sha256": "b576807c3adc1b5e7c0e2f5d09917caa8ab290ec1dc6da2b05ae85713245ec21"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-final-qualification.json",
+      "sha256": "84817cb65c0946867ea087bc08f0818fc2a3b279267e9de5590976e1009f5b6e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-main-integration.json",
+      "sha256": "33ef8198fd160928e728f8d7f4bb7f03e79e62ed8ca8e8d319c045f2a629292d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/mcp-transport-v4-qualification.json",
+      "sha256": "909bb9bff077b2d993b16e36e09fe9ab78b20dffd2a7310fbb2ce60c81fb7018"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-mcp-transport-v4-review.json",
+      "sha256": "529b6e4d966753bfbb86f58da6978e7e03293ebfcdaeaacd4c5e528455fc0eca"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-v2-integration-tests.txt",
+      "sha256": "eadc8ea290d59ac272a8a2f2463a7101e2709822e1aec7df89d2b48be692ca91"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-v2-integration-adapter-lint.txt",
+      "sha256": "fe64e7c7e129f03531e7a640d40ec41fe5b9434e6d7caf7c54e3d980fac79994"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-v2-integration-rule-inventory.txt",
+      "sha256": "7b9af22f72b98f92170bfa8358000c34b1db0e6595d7208730fb603a99ca090e"
+    }
+  ],
+  "frozen_plans": {
+    "registered_plan_plus_frozen_file_hash_checks": 68,
+    "mismatches": 0,
+    "baseline_samples": 5,
+    "candidate_samples": 5,
+    "unique_sample_names_per_arm": true,
+    "same_frozen_input_map_across_arms": true,
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "assessment_present": false,
+    "stop_rule": "Preserve any failure and stop; no replacement, pooling or post-hoc assessment."
+  },
+  "baseline_prerequisite": {
+    "accepted_reporting_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+    "reporting_qualification_accepted": true,
+    "source_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+    "accepted_commit_is_current_head_ancestor": true,
+    "current_head_committed_skill_matches_baseline": true,
+    "current_working_skill_matches_baseline": true,
+    "main_integration_record_and_log_hashes_match": true
+  },
+  "private_integration": {
+    "base_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+    "isolated_commit": "1a00415927e9c356d42eba08d71fe940e994e3f8",
+    "actual_private_head_matches": true,
+    "committed_base_source_matches_reporting_baseline": true,
+    "committed_candidate_source_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+    "exact_check_set": [
+      "adapter-lint",
+      "rule-inventory",
+      "tests"
+    ],
+    "all_log_hashes_match": true,
+    "recorded_tests_passed": 143,
+    "recorded_tests_failed": 0,
+    "lint": "pass",
+    "rule_inventory_uncovered": 0
+  },
+  "runtime": {
+    "root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "actual_and_registered_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "bound_artifact_hash_checks": 578,
+    "mismatches": 0,
+    "scope": "Pinned original CLI runtime; model-facing prose treatment rebased onto accepted Reporting skill. Runtime prose is not claimed to be the installed treatment."
+  },
+  "transport_external_binding": {
+    "qualification": "mcp-transport-v4-qualification.json",
+    "status": "qualified-for-fresh-measurements",
+    "independent_review_and_live_pilot_and_regression_hashes_match": true,
+    "v4_registered_transport_input_checks": 16,
+    "mismatches": 0,
+    "reason_external": "V4 transport qualification is explicitly bound by this review rather than added to already frozen model plans. Transport qualification does not substitute for each sample native audit."
+  },
+  "preflight_and_runner": {
+    "existing_preflight_hashes_unchanged": true,
+    "preflight_calls": 71,
+    "policy_reads": 40,
+    "workflow_operations": 31,
+    "real_execution_cases": 3,
+    "decisions": 11,
+    "omission_rejections": 14,
+    "preflight_policy": "Original full Reporting baseline, explicitly declared feasibility-only; not represented as a ledgerV2 model sample.",
+    "new_policies": "Exact ledgerV2 bare sources with identical fixed shared context, bound in both plans.",
+    "runner": "Reviewed V3 adds dependency path and reproduces gradeLedgerExecution; zero-model AST-extracted replay smoke parses JSON and matches grade. No worker launched by this review."
+  },
+  "conditions": [
+    "Run only the registered five-baseline plan now.",
+    "Require complete five-baseline semantic/native/manual/real-consumer gate before any candidate launch. Generic runner does not enforce this external prerequisite.",
+    "Then require the same five original candidate samples; retain every failure and stop.",
+    "Require final source/integration qualification before installing the ledger cut or counting savings."
+  ],
+  "limits": [
+    "No model-produced ledger artifacts were reviewed here; no source fidelity or acceptance result.",
+    "143-test integration and logs were independently bound/read, not re-executed in this prelaunch review. Prior43-test pinned verification remains separately recorded.",
+    "No full run-open/close/governance, actual review/landing/filing, hosted publication or unattended-loop proof.",
+    "Controlled transcript counts and fixed summary dependencies are not provider usage, billing or architectural-quality measurements.",
+    "Inherited old schema1/four-class prose remains disclosed; real CLI owns schema2/split-cache output.",
+    "No skill source or source totals changed by this review."
+  ]
+}

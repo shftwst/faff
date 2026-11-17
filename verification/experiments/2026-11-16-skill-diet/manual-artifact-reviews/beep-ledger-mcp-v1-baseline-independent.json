@@ -1,0 +1,3661 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "independent actual-output reviewer; verification only",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "blocked-by-preserved-raw-failure",
+  "scope": "Closed original baseline samples only. Actual producer ledgers, caller payloads, persisted events and CLI consumer outputs reviewed independently of frozen rubric. No reassessment or waiver.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v1-baseline-plan.json",
+      "sha256": "2d9cddcf88d0676ce737de6a94c93024e78c461680369634005925fc5603b85b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v2-draft.json",
+      "sha256": "964c256e19405eb5d676ce290a9335d5d7e2253de4963bdfb53b52b32da417d4"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+      "sha256": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/beep-ledger-v2.md",
+      "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/beep-ledger-v2-with-context.md",
+      "sha256": "99a8191396272aab59cf54f2f9f69412e7b396e096d1f26a9246e9ecf65a0ebd"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution.mjs",
+      "sha256": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31"
+    },
+    {
+      "path": "eval/control-parity/codex-mcp-native-audit.mjs",
+      "sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0"
+    }
+  ],
+  "binding_checks": [
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-native-audit.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-startup-context.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-tool-declaration.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-native-audit.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/interactive-handoff.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/policy-reader.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/ledger-execution.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/candidate-command.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/schema.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-ledger.test.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v3.py",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/ledger-runner-v3-replay-smoke.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/preflight-ledger-mcp-v1.mjs",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/preflight.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-ledger-mcp-preflight-v1-review.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v7-preflight-review.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-source-review.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v2-source-review.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-integration.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-final-qualification.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v2-draft.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/beep-ledger-v2.md",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/beep-ledger-v2-with-context.md",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v2.md",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v2-with-context.md",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-v2-integration-tests.txt",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-v2-integration-adapter-lint.txt",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-v2-integration-rule-inventory.txt",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/.agents/AGENTS.md",
+      "pass": true
+    },
+    {
+      "check": "frozen /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "pass": true
+    },
+    {
+      "check": "runtime commit",
+      "pass": true
+    },
+    {
+      "check": "runtime root",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/.claude-plugin/plugin.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-beep-boop/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-graft/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-graft/remote-diff-base.sh",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-graft/setup-worktree.sh",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-jot/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-map/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-onboard/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-plot/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-prep/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-tidy/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff-wtf/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/.gitignore",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/commissaire",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/faff",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/faff-bridge-node.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/faff-review-comments.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/ac-id.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/admissibility.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/adr.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/adversarial-backends.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/adversarial-judge-scrub.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/andon.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/argv.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/audit.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/backends.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/background-fence.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/budget.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/build-judge-casefile.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/build-judge-evidence.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/build-review-churn.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/build-review-convergence.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/bundle-recover.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/bundle-seal-core.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/bundle.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/ci-triage.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/claim-verdict.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/claude-config-isolation.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/cli-surface.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/commissaire-governor-client.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/commissaire-governor-client.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/commissaire-trust.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/commissaire-trust.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/commissaire-verify.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/commissaire-verify.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/commissaire.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/commissaire.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/config-check.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/config-core.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/config-dispatch.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/config-resolve.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/config-write-selftest.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/config-write.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/config.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contain.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/container-check.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contract-defs-delivery.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contract-defs-describe.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contract-defs-evidence.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contract-defs-floor.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contract-defs-prd.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contract-defs-registry.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contract-defs-review.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contract-defs-run.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contract-defs.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/contract-engine.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/conventions.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/corrective-integrity.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/corrective.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/decision-capture.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/decision-policy.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/decision-policy.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/decisions.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/discovered-scope-priority.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/dispatch.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/disposition.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/drain-filter.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/economics.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/effects-reconcile.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/effects.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/eligible.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/engine-codex.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/engine.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/env.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/eval-affected.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/evaluator-preflight.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/events.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/evidence-collate.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/evidence-readiness.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/evidence.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/faff-version.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/fields.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/finding-id.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/findings-reconcile.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/fixtures.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/forge-merge.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/fs-lock.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gates-cli.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gates-config.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gates-discover.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gates-doctor.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gates-exec.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gates-progress.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gates-progress.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gates-report.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gates-select.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gates.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/github-templates.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/gitignore-ensure.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/governance-check.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/governance-profile.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/governor-admin.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/governor-admin.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/governor-install.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/governor-install.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/governor.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/governor.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/graft-admit.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/graft-admit.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/harness.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/heading-slug.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/heartbeat.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/holdout-record.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/hooks-ensure.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/human-only-acs.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/human-only-acs.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/ids.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/ids.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/inflightcheck.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/intake-provenance.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/integrity-digest.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/judge-dispositions.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/judge-dispositions.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/judge-trail.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/killable-spawn.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/label.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/labels.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/land.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/land.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/landing-comment.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/lane-boundary.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/leaf-read.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/lights-out.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/lint-cli-coverage.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/lint-cli-doc.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/lint-refs.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/machine-id.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/manifest.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-authorize.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-authorize.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-fence.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-gate-classify.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-gate-effects.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-gate-floor.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-gate-gh.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-gate-local.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-gate-pr-create.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-gate-selftest.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-gate-stack.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/merge-gate.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/native-map.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/next.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/park-history.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/park-reconsider.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/park-verdict.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/peer-cred-helper.py",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/peer-cred.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/peer-cred.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/post-merge.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/pr-body.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/pr-open.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/pr-open.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/prd-checklist.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/prd.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/prdr.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/prep-attach.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/prep-attach.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/prepcheck.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/producer-auth.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/producer-auth.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/profile.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/project-next.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/prose-size.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/prose-size.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/punt-scan.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/quality.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/queue-state.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/ratified-scope.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/reconcile-recover.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/reconcile.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/redact.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/regions.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/result.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/result.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/resume-store.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/resume.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/resumecheck.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-comment-mcp.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-comment-mcp.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-comment-server.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-comment-server.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-comment-session.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-comment-session.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-comment.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-comment.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-fixture-paths.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-iteration-cap.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-prior.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-target.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/review-vocab.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/rule-inventory.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/rule-inventory.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-checkpoint.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-checkpoint.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-close.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-close.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-done.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-ledger.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-open.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-open.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-outward.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-record-prd.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-start.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-summary.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-summary.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-trigger.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run-trigger.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/run.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/runcheck.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/scenario-matrix.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/self-intake.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/sentry-poller.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/sentry.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/sentrycheck.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/shadow-fidelity.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/shared-infra.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-commit.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-commit.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-judge-casefile.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-judge-evidence.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-refresh-carry.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review-churn.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review-convergence.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review-hold.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review-hold.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review-iteration-cap.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review-pin.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review-reputation.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review-round.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review-round.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review-window.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/spec-review.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/stage.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/state.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/supervisor.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/tier.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/tracker.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/turncheck.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/validate-adapters.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/worktree-check.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/worktree-ensure.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/worktree-ensure.ts",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/worktree-heal.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/bin/lib/worktree-prune.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/build-manifest.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/README.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/adr-admission.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/architecture-proposal.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/automation-routing.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/build-judge-verdict.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/bundle-verdict.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/ci-triage.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/delivery-outcome.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/env-handle.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/README.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/anchor-manifest.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/anchor-manifest.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/evidence-documents.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/logs.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/ac-checklist.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/anchor-manifest.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/build-progress.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/chain-head.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/commissaire/accepted_under_contract.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/commissaire/admission.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/commissaire/conformed_to_contract.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/commissaire/declare.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/commissaire/effect-decision-request.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/commissaire/effect-decision-verdict.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/commissaire/observe.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/commissaire/reconcile.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/declared-effect.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/branch-delete.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/db-migration.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/deploy.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/email.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/file-write.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/force-push.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/label-write.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/merge.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/other.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/pr-create.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/prod-script.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/push.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/registry-publish.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/secret-rotation.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/tracker-write.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/effects/webhook.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/agent-dispatch.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/budget-checkpoint.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/build-start.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/bundle-store-unavailable.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/containment-check.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/corrective-authored.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/corrective-consumed.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/decision-capture-action.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/decision-capture.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/discovered-scope-filed.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/evidence-terminal-only.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/human-only-acs-stamp.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/issue-admitted.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/issue-outcome.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/ledger-write.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/park-reconsidered.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/park.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/prep-done.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/prep-start.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/run-claim-abandoned.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/run-end.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/run-resume.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/run-start.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/runner-identity.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/self-intake-check.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/sentry-checkpoint.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/sentry-trip.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/events/tidy-done.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/ac-checklist.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/ac-checklist.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/ac-checklist.schema-1.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/anchor-manifest.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/anchor-manifest.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/build-progress.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/build-progress.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/chain-head.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/chain-head.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/accepted_under_contract.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/accepted_under_contract.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/admission.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/admission.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/conformed_to_contract.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/conformed_to_contract.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/declare.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/declare.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/effect-decision-request.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/effect-decision-request.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/effect-decision-verdict.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/effect-decision-verdict.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/observe.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/observe.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/reconcile.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/commissaire/reconcile.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/declared-effect.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/declared-effect.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/declared-effect.schema-1.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/declared-effect.schema-1.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/declared-effect.schema-3.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/declared-effect.schema-3.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/branch-delete.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/branch-delete.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/db-migration.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/db-migration.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/deploy.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/deploy.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/email.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/email.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/file-write.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/file-write.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/force-push.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/force-push.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/label-write.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/label-write.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/merge.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/merge.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/other.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/other.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/pr-create.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/pr-create.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/prod-script.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/prod-script.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/push.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/push.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/registry-publish.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/registry-publish.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/secret-rotation.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/secret-rotation.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/tracker-write.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/tracker-write.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/webhook.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/effects/webhook.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/agent-dispatch.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/agent-dispatch.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/budget-checkpoint.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/budget-checkpoint.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/build-start.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/build-start.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/bundle-store-unavailable.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/bundle-store-unavailable.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/containment-check.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/containment-check.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/corrective-authored.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/corrective-authored.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/corrective-consumed.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/corrective-consumed.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/decision-capture-action.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/decision-capture-action.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/decision-capture.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/decision-capture.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/discovered-scope-filed.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/discovered-scope-filed.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/evidence-terminal-only.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/evidence-terminal-only.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/human-only-acs-stamp.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/human-only-acs-stamp.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/issue-admitted.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/issue-admitted.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/issue-outcome.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/issue-outcome.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/ledger-write.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/ledger-write.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/park-reconsidered.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/park-reconsidered.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/park.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/park.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/prep-done.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/prep-done.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/prep-start.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/prep-start.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/run-claim-abandoned.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/run-claim-abandoned.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/run-end.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/run-end.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/run-resume.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/run-resume.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/run-start.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/run-start.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/runner-identity.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/runner-identity.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/self-intake-check.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/self-intake-check.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/sentry-checkpoint.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/sentry-checkpoint.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/sentry-trip.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/sentry-trip.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/tidy-done.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/events/tidy-done.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/holdout-anchored.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/holdout-anchored.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/human-only-acs.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/human-only-acs.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/landing-progress.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/landing-progress.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/producer-pk.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/producer-pk.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/review-round.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/review-round.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/review-verdict-anchored.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/review-verdict-anchored.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/run-event.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/run-event.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/run-event.schema-1.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/run-event.schema-1.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/run-ledger.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/run-ledger.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/spec-review-verdict-anchored.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/examples/spec-review-verdict-anchored.invalid.example.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/holdout-anchored.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/human-only-acs.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/landing-progress.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/producer-pk.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/review-round.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/review-verdict-anchored.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/run-event.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/run-ledger.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/evidence-v0.3/schema/spec-review-verdict-anchored.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/examples/spec-readiness.bad.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/examples/spec-readiness.good.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/examples/spec-with-artifact.example.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/holdout-verdict.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/integrity-floor.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/l4-topology-envelope.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/lane-boundary.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/post-merge-verification.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/prd-coverage.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/prd-distance.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/prd-readiness.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/prdr-admission.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/prdr-yagni.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/quality-gates.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/recovery-disposition.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/review-verdict.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/run-termination.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/run-trigger.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/scenario-record.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/spec-judge-verdict.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/spec-readiness.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/spec-review-verdict.schema.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/contracts/validate-schema.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/legacy-js-modules.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/package-lock.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/package.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/prose-baseline.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/references/autonomous.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/references/build.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/references/create.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/references/kernel.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/references/l4.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/references/methodology.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/references/park.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/references/review.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/references/tracker.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/scripts/build-manifest.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/scripts/ts-equivalence.js",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faff/tsconfig.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffidavit-rendering/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffidavit-routing/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-adversarial-review/adjudicate-build-phase1-reconstruct.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-adversarial-review/adjudicate-build-phase2-rule.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-adversarial-review/eval/build-judge-discrimination/README.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-adversarial-review/eval/build-judge-discrimination/case-defect.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-adversarial-review/eval/build-judge-discrimination/case-false-positive.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-adversarial-review/eval/build-judge-discrimination/oracles.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-adversarial-review/fan-out.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-adversarial-review/review-call.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-adversarial-review/review-spawn.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/adjudicate-phase1-reconstruct.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/adjudicate-phase2-rule.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/aggregate.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/build-lens-requests.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/README.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/decisions-fixture.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/run-log.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/scope-test-objections.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/spec-decision-critical.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/spec-decision-tagged.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/spec-decision-untagged.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/in-spec-ratification/spec-implementation.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/spec-judge-discrimination/README.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/spec-judge-discrimination/case-defect.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/spec-judge-discrimination/case-taste.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/eval/spec-judge-discrimination/oracles.json",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/parse-refutation.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/refute-architectural.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/refute-infosec.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/refute-methodology.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-dark-spec-review/refute-qa.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-adr/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-architecture/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-evaluate/evaluate-call.mjs",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-intake/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-prd/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-review/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-ship/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-spec/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "runtime artifact plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "pass": true
+    },
+    {
+      "check": "manifest fixture_sha256",
+      "pass": true
+    },
+    {
+      "check": "manifest dependencies_sha256",
+      "pass": true
+    },
+    {
+      "check": "manifest policy_sha256",
+      "pass": true
+    },
+    {
+      "check": "manifest task_sha256",
+      "pass": true
+    },
+    {
+      "check": "manifest harness_sha256",
+      "pass": true
+    },
+    {
+      "check": "native evidence task.json",
+      "pass": true
+    },
+    {
+      "check": "native evidence startup-binding.json",
+      "pass": true
+    },
+    {
+      "check": "native evidence worker-manifest.json",
+      "pass": true
+    },
+    {
+      "check": "native evidence worker-final-state.json",
+      "pass": true
+    },
+    {
+      "check": "native evidence mcp-server-manifest.json",
+      "pass": true
+    },
+    {
+      "check": "native evidence mcp-trace.jsonl",
+      "pass": true
+    },
+    {
+      "check": "native evidence mcp-protocol-errors.jsonl",
+      "pass": true
+    },
+    {
+      "check": "native evidence capture.json",
+      "pass": true
+    },
+    {
+      "check": "native evidence report.json",
+      "pass": true
+    },
+    {
+      "check": "full policy delivered",
+      "pass": true
+    },
+    {
+      "check": "native complete and correct driver",
+      "pass": true
+    },
+    {
+      "check": "raw grade replay matches",
+      "pass": true
+    },
+    {
+      "check": "fresh native exact replay",
+      "pass": true
+    },
+    {
+      "check": "fresh grade exact replay",
+      "pass": true
+    },
+    {
+      "check": "mixed-ledger command authority",
+      "pass": true
+    },
+    {
+      "check": "mixed-ledger literal ledger snapshot",
+      "pass": true
+    },
+    {
+      "check": "mixed-ledger persisted read consistency",
+      "pass": true
+    },
+    {
+      "check": "mixed-ledger required fields exact except optional detail",
+      "pass": true
+    },
+    {
+      "check": "mixed-ledger extra detail matches supplied review and supersession",
+      "pass": true
+    },
+    {
+      "check": "mixed-ledger ledger event computes hash",
+      "pass": true
+    },
+    {
+      "check": "incomplete-ledger command authority",
+      "pass": true
+    },
+    {
+      "check": "incomplete-ledger literal ledger snapshot",
+      "pass": true
+    },
+    {
+      "check": "incomplete-ledger persisted read consistency",
+      "pass": true
+    },
+    {
+      "check": "incomplete-ledger required fields exact except optional detail",
+      "pass": true
+    },
+    {
+      "check": "incomplete-ledger extra detail matches supplied review and supersession",
+      "pass": true
+    },
+    {
+      "check": "incomplete-ledger ledger event computes hash",
+      "pass": true
+    },
+    {
+      "check": "phase-events command authority",
+      "pass": true
+    },
+    {
+      "check": "phase-events literal ledger snapshot",
+      "pass": true
+    },
+    {
+      "check": "phase-events persisted read consistency",
+      "pass": true
+    },
+    {
+      "check": "independent transcript delta tidy",
+      "pass": true
+    },
+    {
+      "check": "independent transcript delta prep-done",
+      "pass": true
+    },
+    {
+      "check": "independent transcript delta build-return",
+      "pass": true
+    },
+    {
+      "check": "independent transcript delta clean-return",
+      "pass": true
+    },
+    {
+      "check": "independent transcript delta nongate-return",
+      "pass": true
+    },
+    {
+      "check": "independent transcript delta budget",
+      "pass": true
+    },
+    {
+      "check": "final token checkpoint",
+      "pass": true
+    },
+    {
+      "check": "independent decision failed-resolution",
+      "pass": true
+    },
+    {
+      "check": "independent decision superseded",
+      "pass": true
+    },
+    {
+      "check": "independent decision review-hold",
+      "pass": true
+    },
+    {
+      "check": "independent decision slow-prep",
+      "pass": true
+    },
+    {
+      "check": "independent decision outage-prep",
+      "pass": true
+    },
+    {
+      "check": "independent decision landing-human",
+      "pass": true
+    },
+    {
+      "check": "independent decision post-merge-writer",
+      "pass": true
+    },
+    {
+      "check": "independent decision new-ticket",
+      "pass": true
+    },
+    {
+      "check": "independent decision rich-detail",
+      "pass": true
+    },
+    {
+      "check": "independent decision event-ownership",
+      "pass": true
+    },
+    {
+      "check": "independent decision stop-reason-ownership",
+      "pass": true
+    }
+  ],
+  "samples": [
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "raw_status": "fail",
+      "native_status": [
+        "pass"
+      ],
+      "workflow_replay_status": "fail",
+      "fresh_native_replay": {
+        "schema": 1,
+        "scope": "Native structured transport and unchanged mailbox attribution. Semantic fidelity, case completion and production runtime binding require the separately recorded workflow grade and integration checks. No reasoning or tool content is exported.",
+        "auditor_sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+        "source_sha256": "a0f9ae72986b6c6977c0d314736689362a3a799254c0bbaacb15cae84ab06daf",
+        "evidence_hashes": {
+          "task.json": "da854f132c5a9323d96ed0570514cdc08bf214a3fddde481633db09a56bbd270",
+          "startup-binding.json": "7465ab40a3aa98f4e65b71204e4a43d729266dd5e65aabaaf244dc23a849886f",
+          "worker-manifest.json": "58e19bf9ca86cc0d74bbfa73505414a8fdb48bf8f90e88ee8bc02b11340b820d",
+          "worker-final-state.json": "347e7bc2cbd8cf91d1e870709608a7277256dda0ab79cae4c460f306797395b8",
+          "mcp-server-manifest.json": "6f2d5a0b101158f4cf7efa773f6fcd29658b7409ff06ee417414857047302265",
+          "mcp-trace.jsonl": "5ec58fe671d1c080afd21b6fe794a91face678ee7c7994d7ca12123f2ba5fd28",
+          "mcp-protocol-errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "capture.json": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d",
+          "report.json": "c4a4bcb8b4c636f52c81a9b2e32ba47ee5ed762f7e72845934b235166f61be64"
+        },
+        "runs": [
+          {
+            "status": "pass",
+            "session_id": "01a1e6d3-0b56-7fb3-9a18-ac58052c879a",
+            "model_ids": [
+              "gpt-6.1-sol"
+            ],
+            "efforts": [
+              "medium"
+            ],
+            "versions": [
+              "0.169.0"
+            ],
+            "base_instruction_hashes": [
+              "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+            ],
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/task.json",
+                "complete": true,
+                "sha256": "da854f132c5a9323d96ed0570514cdc08bf214a3fddde481633db09a56bbd270"
+              }
+            ],
+            "native_calls": 74,
+            "mcp_calls": 71,
+            "policy_reads": 40,
+            "problems": []
+          }
+        ]
+      },
+      "fresh_grade_replay": {
+        "status": "fail",
+        "cases": [
+          {
+            "id": "mixed-ledger",
+            "kind": "execution",
+            "pass": false,
+            "problems": [
+              "ledger-producer-fields"
+            ]
+          },
+          {
+            "id": "incomplete-ledger",
+            "kind": "execution",
+            "pass": false,
+            "problems": [
+              "ledger-producer-fields"
+            ]
+          },
+          {
+            "id": "phase-events",
+            "kind": "execution",
+            "pass": true,
+            "problems": []
+          },
+          {
+            "id": "failed-resolution",
+            "kind": "decision",
+            "pass": true
+          },
+          {
+            "id": "superseded",
+            "kind": "decision",
+            "pass": true
+          },
+          {
+            "id": "review-hold",
+            "kind": "decision",
+            "pass": true
+          },
+          {
+            "id": "slow-prep",
+            "kind": "decision",
+            "pass": true
+          },
+          {
+            "id": "outage-prep",
+            "kind": "decision",
+            "pass": true
+          },
+          {
+            "id": "landing-human",
+            "kind": "decision",
+            "pass": true
+          },
+          {
+            "id": "post-merge-writer",
+            "kind": "decision",
+            "pass": true
+          },
+          {
+            "id": "new-ticket",
+            "kind": "decision",
+            "pass": true
+          },
+          {
+            "id": "rich-detail",
+            "kind": "decision",
+            "pass": true
+          },
+          {
+            "id": "event-ownership",
+            "kind": "decision",
+            "pass": true
+          },
+          {
+            "id": "stop-reason-ownership",
+            "kind": "decision",
+            "pass": true
+          }
+        ],
+        "errors": [],
+        "problems": []
+      },
+      "fresh_replay_matches": true,
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/expected.json",
+          "sha256": "71e650319aa241e1968438b76c2beee57523e401ff96e07bf355ed42f5fb1b45"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/report.json",
+          "sha256": "c4a4bcb8b4c636f52c81a9b2e32ba47ee5ed762f7e72845934b235166f61be64"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/native-audit.json",
+          "sha256": "29f151c2b4b7c672555ab56489eea68f4c121192e47dde829db1970a75b79011"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/workflow-replay.json",
+          "sha256": "44d6db96d158564c5b7a1d63662a472e72838a69a61ca81e8a571219ffe4dc15"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/manifest.json",
+          "sha256": "2a76ad15c0691258930800ed35c5cde22c4fa37f388b5ff62601b336b61d3c47"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/task.json",
+          "sha256": "da854f132c5a9323d96ed0570514cdc08bf214a3fddde481633db09a56bbd270"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/worker-manifest.json",
+          "sha256": "58e19bf9ca86cc0d74bbfa73505414a8fdb48bf8f90e88ee8bc02b11340b820d"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/worker-final-state.json",
+          "sha256": "347e7bc2cbd8cf91d1e870709608a7277256dda0ab79cae4c460f306797395b8"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/startup-binding.json",
+          "sha256": "7465ab40a3aa98f4e65b71204e4a43d729266dd5e65aabaaf244dc23a849886f"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/mcp-server-manifest.json",
+          "sha256": "6f2d5a0b101158f4cf7efa773f6fcd29658b7409ff06ee417414857047302265"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/mcp-trace.jsonl",
+          "sha256": "5ec58fe671d1c080afd21b6fe794a91face678ee7c7994d7ca12123f2ba5fd28"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/mcp-protocol-errors.jsonl",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "manual_execution_passed": 3,
+      "manual_decisions_passed": 11,
+      "raw_execution_passed": 1,
+      "raw_decisions_passed": 11,
+      "mcp_calls": 71,
+      "policy_reads": 40
+    }
+  ],
+  "case_reviews": [
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "mixed-ledger",
+      "kind": "execution",
+      "manual_status": "pass",
+      "raw_status": "fail",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "All supplied outcomes are bare strings: SKIP-1, POST-1 and UNKNOWN-1 shipped; HOLD-1 and RESOLVE-1 parked; LAND-1 and HUMAN-1 pr-open; SUPER-1 superseded. No new ticket was admitted.",
+        "Distinct arrays retain shipped-with-review-outage, mandatory-review hold, prep outage, healthy slow prep, resumable landing, post-merge failure and unverified status. POST-1 PR 501, merge SHA and npm test are exact; discovered count is two.",
+        "Source-grounded additional outcome_details preserve SKIP-1 supplied review verdict and SUPER-1 delivery by PRIOR-7. The source explicitly permits a free-form issue-keyed detail map. No unsupported fact found.",
+        "Read precedes a single producer-only patch, followed by a hash-free ledger-write caller payload. CLI persists the exact current ledger hash; schema, owner and command-owned fields stay intact.",
+        "Real runcheck returns 0 with no missing or invalid outcome. Persisted summary equals stdout; distinct review/landing/prep and post-merge buckets preserve all source facts. Controlled economics show 1200 estimated tokens, $3, three shipped, two pr-open, two parked and one superseded. No outcome was promoted to a cleaner bucket.",
+        "Summary timestamp matches owner.started_at and duration uses the captured heartbeat/event endpoint. Admission verdict counts remain unknown; stop reason remains not recorded. Exact issue rows may reorder within sections only."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [
+        {
+          "kind": "frozen-oracle-failure",
+          "detail": "Raw and fresh replay fail ledger-producer-fields because exact expected outcome_details permits only SKIP-1 merged_head/tests. The added supplied review verdict and prior-ticket supersession are outside that exact oracle projection. This record does not waive or replace the failure."
+        }
+      ],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "case_pointer": "/cases/0",
+        "before_ledger_utf8_sha256": "902587274348cd37151332ef6e15f049894903e004c6b887206990e63fdd3df3",
+        "persisted_ledger_utf8_sha256": "d070066bbbbd75a539ba967683bef2422c3b01c6d71010e6ec5d93c6e7e43b6e",
+        "persisted_events_structured_sha256": "393da7453ba3bacb44202915aefa6111d2c2ab06a9560eb3cf8d30af75b8f5e9",
+        "consumer_results_structured_sha256": "1f13cba1819c67085ffc49cecf4177a3778f84783982daf4b5cda8d53ba18f77",
+        "caller_operations": [
+          {
+            "seq": 1,
+            "name": "read_ledger",
+            "arguments_structured_sha256": "bfced16be3c90276c624a9ee8aff5395b81ca43d942efd53ca1ee260982dc2ba",
+            "result_structured_sha256": "1f9baeee6876144b7e1ea52541fc204fe76b1deb68b1447f4fc9ed73a22726bc"
+          },
+          {
+            "seq": 2,
+            "name": "write_ledger",
+            "arguments_structured_sha256": "e168570a538da79dee0ffef55b8dfe93bbd5995a9f8e67332a3c675dab3568ed",
+            "result_structured_sha256": "e50d2109656662af40110b76d88cc3b203248c5317f8c7d702035a6c8b2311f8"
+          },
+          {
+            "seq": 3,
+            "name": "append_event",
+            "arguments_structured_sha256": "98a47191a789d0cd5d0c9379d60226a4a24822b95eaa72fa54132183657a4b64",
+            "result_structured_sha256": "0e0bb3a181175fd9bd3876db832835ad50d4ab39ad8e3ea50a3db7e1dbd20759"
+          }
+        ],
+        "persisted_summary_utf8_sha256": "3e7eb3ddb921507519ee7fec913c31964d86ce728e5ff201b5fd95d8e4a98200"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "incomplete-ledger",
+      "kind": "execution",
+      "manual_status": "pass",
+      "raw_status": "fail",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "All supplied outcomes are bare strings: SKIP-1, POST-1 and UNKNOWN-1 shipped; HOLD-1 and RESOLVE-1 parked; LAND-1 and HUMAN-1 pr-open; SUPER-1 superseded. No new ticket was admitted.",
+        "Distinct arrays retain shipped-with-review-outage, mandatory-review hold, prep outage, healthy slow prep, resumable landing, post-merge failure and unverified status. POST-1 PR 501, merge SHA and npm test are exact; discovered count is two.",
+        "Source-grounded additional outcome_details preserve SKIP-1 supplied review verdict and SUPER-1 delivery by PRIOR-7. The source explicitly permits a free-form issue-keyed detail map. No unsupported fact found.",
+        "Read precedes a single producer-only patch, followed by a hash-free ledger-write caller payload. CLI persists the exact current ledger hash; schema, owner and command-owned fields stay intact.",
+        "OPEN-1 remains admitted with no outcome or invented detail. Real runcheck returns 3 and names only OPEN-1 as undispatched. No summary, closure, dispatch or park is performed."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [
+        {
+          "kind": "frozen-oracle-failure",
+          "detail": "Raw and fresh replay fail ledger-producer-fields because exact expected outcome_details permits only SKIP-1 merged_head/tests. The added supplied review verdict and prior-ticket supersession are outside that exact oracle projection. This record does not waive or replace the failure."
+        }
+      ],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "case_pointer": "/cases/1",
+        "before_ledger_utf8_sha256": "518bb8e6eacebd6ab54c9fc874e6fb441bfaf71e9ffc9c38649f67faf452b6f5",
+        "persisted_ledger_utf8_sha256": "b74c4b491116de03d15d1ea4090ed2468b6e4369e15402cbaa88a8c3ea5fc1d5",
+        "persisted_events_structured_sha256": "c590b16a4366520c049e515d47e418388111eaefa9bc45550e9680483f8f5879",
+        "consumer_results_structured_sha256": "011bc2165df591a820d4cc99bc6439f31502e1c7bc99750d4bcdccae8250fb2b",
+        "caller_operations": [
+          {
+            "seq": 4,
+            "name": "read_ledger",
+            "arguments_structured_sha256": "47a10c1d9b7395b14a60951984ec60dd068652c0bcac3eb1e68c51f16beac0bf",
+            "result_structured_sha256": "7a40b37c18019c18640659564968d1f9963b6414f0fdd16450b104e068d8daf3"
+          },
+          {
+            "seq": 5,
+            "name": "write_ledger",
+            "arguments_structured_sha256": "75a6a2c1034adf2a51ad050918a7166c0e074c912fe5520c13d8857a8ee87b8c",
+            "result_structured_sha256": "f5c2284d69d09f4136c04a6d2450e82bf0f00f35dc39a2be0eda730dc42e941d"
+          },
+          {
+            "seq": 6,
+            "name": "append_event",
+            "arguments_structured_sha256": "4f597f39564e9b37a277ff255c7ea21cbb34933a3b92c225e8bc340a204dd658",
+            "result_structured_sha256": "ee6ee94691b6ee093ea6cce3db291ad21959b9183cb41852609060dce795a275"
+          }
+        ]
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "phase-events",
+      "kind": "execution",
+      "manual_status": "pass",
+      "raw_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "Eleven meaningful transition calls occur in source order; the single file read is explicitly skipped. Genesis, run-start and final close are not duplicated. Caller payloads contain only phase/type/issue/data; CLI owns schema, sequence, time, chain and ledger hashes.",
+        "BUILD-1 carries parked/adversarial/rework_turns=2. Clean BUILD-2 carries shipped/rework_turns=0 without a gate. Access-blocked BUILD-3 carries parked/rework_turns=0 without a gate. BudgetState and sentry null run_dir/empty verdicts remain exact.",
+        "Token flags and pinned root/session are correct. Independent transcript arithmetic confirms tidy 201/21, prep-done 205/25, gate return 315/45, clean return 107/17, non-gate return 108/18 and budget 330/60 input/output deltas, with exact split-cache classes. Missing park transcript persists null tokens and estimate source, without advancing the checkpoint.",
+        "Final cumulative checkpoint is input 1266, output 186, cache_write_5m 24, cache_write_1h 12, cache_read 48. All 20 schema2 events preserve sequence and verified hash chain. Read, validate and verify consumers return 0. Only CLI-owned token checkpoint changes the ledger."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "case_pointer": "/cases/2",
+        "before_ledger_utf8_sha256": "844bf01871fb8fc5c7ce97da26cd2ecca781e30cc39d5004da358618fb8f8f98",
+        "persisted_ledger_utf8_sha256": "363212e90a142f9c122ba52718bfebb3a331ce9a61ab377ab714c3aaa1752b29",
+        "persisted_events_structured_sha256": "f8eba5069742c505b2a4ef7ffe9228bb941ede1444595ccfe34d2367cf43cece",
+        "consumer_results_structured_sha256": "9b76209f458abb4fbc4c9418b9665374006b2b6f754ba5ca5c4e6ed23fe4e374",
+        "caller_operations": [
+          {
+            "seq": 7,
+            "name": "read_ledger",
+            "arguments_structured_sha256": "8720e5e3c6c32b1fccffdfb1e34e0f6337c57f6ed309d42422f2624286264477",
+            "result_structured_sha256": "7621d290f22c0deae663a33202c52ab200e17e1592f457a66fb522de6569c5c0"
+          },
+          {
+            "seq": 8,
+            "name": "append_event",
+            "arguments_structured_sha256": "a0ef991d38425f55a7dacac663b769feb5b422a445933a4d2012be18f9dd29a1",
+            "result_structured_sha256": "eba421067499116526672fad1fb2178b26eb7d10e5dfb1fe3cc132003a44ad67"
+          },
+          {
+            "seq": 9,
+            "name": "append_event",
+            "arguments_structured_sha256": "aeb88c30d4b4c2b81e5eec2e129898289777bd36b9f2b32282b21960996ed8b9",
+            "result_structured_sha256": "59de44b7514ae071e445a5c2c5c719b1c3d5eb16b128e808fc606bf98d7949d9"
+          },
+          {
+            "seq": 10,
+            "name": "append_event",
+            "arguments_structured_sha256": "1f3100a66f50b885ea526db790d9bada40e23583641347442229e3db1faa5570",
+            "result_structured_sha256": "2535f6acea64bcf60bbcefa532740ec818138e76961eadc0bd29ef7c52fd424d"
+          },
+          {
+            "seq": 11,
+            "name": "append_event",
+            "arguments_structured_sha256": "4c98ce3078b9321849c4c2e9b3973a451e1a4dac0737d15b987464eb872ba3cb",
+            "result_structured_sha256": "31575e6a9d03393ebd6c8f344400f7533ab18c3aeddf48abc86875788631fe51"
+          },
+          {
+            "seq": 12,
+            "name": "skip_transition",
+            "arguments_structured_sha256": "c290fc3aa33df8c31d32127176b189520c127986c0d51c48ac83486848ef7981",
+            "result_structured_sha256": "1527fe2f6ebd56a8b429ca17d721758490c37aac8af902dcfc06b3d942f725df"
+          },
+          {
+            "seq": 13,
+            "name": "append_event",
+            "arguments_structured_sha256": "5c7259c7ad894cc41b69768505c4c86622069adc0bf2d54124036754338f39df",
+            "result_structured_sha256": "b9a602b8aba39dea2329a9c136a9ef5e57e8a2e913067f967bf2a240e499b696"
+          },
+          {
+            "seq": 14,
+            "name": "append_event",
+            "arguments_structured_sha256": "297c60066f7a501651b4bf06674dded49435e7763f14129203848902b5ce0336",
+            "result_structured_sha256": "bab671446a55d96a630542166c4c0548646a750a0d0364e546467bf2d86f92f6"
+          },
+          {
+            "seq": 15,
+            "name": "append_event",
+            "arguments_structured_sha256": "819c91725ed4599e7f0f52fa2d886908aa40539ade3f6655110d4d09a9a0529b",
+            "result_structured_sha256": "cc2cbc8a1d3972b0198f77693c41e1d14e1000f0b3a029231748cc3f16493d9d"
+          },
+          {
+            "seq": 16,
+            "name": "append_event",
+            "arguments_structured_sha256": "e19a1d5eba2ed2205e8ee643c37c2138cbdcd4f4e2a7f2549cceb5178cd63460",
+            "result_structured_sha256": "ad2bbd1b7d2034feb32fb8c79b797dc716c533a50159bbb13a3859619a19aff9"
+          },
+          {
+            "seq": 17,
+            "name": "append_event",
+            "arguments_structured_sha256": "f98382f44cc0ab6a38d2ad11ee08225dfb8adda8a300a0239f1e346dcef95320",
+            "result_structured_sha256": "aad03595d96811e058bb58b1a047e55eedf2c09985d0672f8057d02c755c6ab2"
+          },
+          {
+            "seq": 18,
+            "name": "append_event",
+            "arguments_structured_sha256": "cd40cd189113d3c34577f4dc10a3c22ff190dc3a8a4b9c8079bfadb448329850",
+            "result_structured_sha256": "8729986bfa758b1f9b95225f9b237372e370aec9949765325c5ae6f2a1371ec1"
+          },
+          {
+            "seq": 19,
+            "name": "append_event",
+            "arguments_structured_sha256": "09e48ce1b892d4c9115f092a057104860e77a5aea2dcd28c3ed92da18aa92def",
+            "result_structured_sha256": "030fb534a1da24383d7466a4c7efd5b80fee2976fed3fe41832c800bf87a6430"
+          }
+        ],
+        "transitions": [
+          {
+            "transition": "tidy",
+            "caller_payload": {
+              "phase": "tidy",
+              "type": "tidy-done"
+            },
+            "token_flag": true,
+            "persisted_event_data": [
+              {
+                "tokens": {
+                  "input": 201,
+                  "output": 21,
+                  "cache_write_5m": 4,
+                  "cache_write_1h": 2,
+                  "cache_read": 8
+                },
+                "tokens_source": "transcript",
+                "ledger_sha256_before": "844bf01871fb8fc5c7ce97da26cd2ecca781e30cc39d5004da358618fb8f8f98",
+                "ledger_sha256_after": "2ff0f93a9314f9ef0704ac626ee94be7d920c86c2f08d85691575c7c94b2b53e"
+              }
+            ]
+          },
+          {
+            "transition": "prep-start",
+            "caller_payload": {
+              "phase": "prep",
+              "type": "prep-start",
+              "issue": "PREP-1"
+            },
+            "token_flag": false,
+            "persisted_event_data": [
+              null
+            ]
+          },
+          {
+            "transition": "prep-done",
+            "caller_payload": {
+              "phase": "prep",
+              "type": "prep-done",
+              "issue": "PREP-1"
+            },
+            "token_flag": true,
+            "persisted_event_data": [
+              {
+                "tokens": {
+                  "input": 205,
+                  "output": 25,
+                  "cache_write_5m": 4,
+                  "cache_write_1h": 2,
+                  "cache_read": 8
+                },
+                "tokens_source": "transcript",
+                "ledger_sha256_before": "2ff0f93a9314f9ef0704ac626ee94be7d920c86c2f08d85691575c7c94b2b53e",
+                "ledger_sha256_after": "2f81d61680976c7d84758848240d4f55c8a1e76a2314bda63107d5d2a6214467"
+              }
+            ]
+          },
+          {
+            "transition": "build-start",
+            "caller_payload": {
+              "phase": "build",
+              "type": "build-start",
+              "issue": "BUILD-1"
+            },
+            "token_flag": false,
+            "persisted_event_data": [
+              null
+            ]
+          },
+          {
+            "transition": "micro",
+            "caller_payload": null,
+            "token_flag": false,
+            "persisted_event_data": []
+          },
+          {
+            "transition": "build-return",
+            "caller_payload": {
+              "phase": "build",
+              "type": "issue-outcome",
+              "issue": "BUILD-1",
+              "data": {
+                "outcome": "parked",
+                "gate": "adversarial",
+                "rework_turns": 2
+              }
+            },
+            "token_flag": true,
+            "persisted_event_data": [
+              {
+                "outcome": "parked",
+                "gate": "adversarial",
+                "rework_turns": 2,
+                "tokens": {
+                  "input": 315,
+                  "output": 45,
+                  "cache_write_5m": 6,
+                  "cache_write_1h": 3,
+                  "cache_read": 12
+                },
+                "tokens_source": "transcript",
+                "ledger_sha256_before": "2f81d61680976c7d84758848240d4f55c8a1e76a2314bda63107d5d2a6214467",
+                "ledger_sha256_after": "07048009b19dccbbdaf03e9f85ea45707308ca17b4115039627f12156082e6bf"
+              }
+            ]
+          },
+          {
+            "transition": "clean-return",
+            "caller_payload": {
+              "phase": "build",
+              "type": "issue-outcome",
+              "issue": "BUILD-2",
+              "data": {
+                "outcome": "shipped",
+                "rework_turns": 0
+              }
+            },
+            "token_flag": true,
+            "persisted_event_data": [
+              {
+                "outcome": "shipped",
+                "rework_turns": 0,
+                "tokens": {
+                  "input": 107,
+                  "output": 17,
+                  "cache_write_5m": 2,
+                  "cache_write_1h": 1,
+                  "cache_read": 4
+                },
+                "tokens_source": "transcript",
+                "ledger_sha256_before": "07048009b19dccbbdaf03e9f85ea45707308ca17b4115039627f12156082e6bf",
+                "ledger_sha256_after": "6397525ec62c16584e09a615fd2b4976e6841089f18505fb9e06b1065bf2706a"
+              }
+            ]
+          },
+          {
+            "transition": "nongate-return",
+            "caller_payload": {
+              "phase": "build",
+              "type": "issue-outcome",
+              "issue": "BUILD-3",
+              "data": {
+                "outcome": "parked",
+                "rework_turns": 0
+              }
+            },
+            "token_flag": true,
+            "persisted_event_data": [
+              {
+                "outcome": "parked",
+                "rework_turns": 0,
+                "tokens": {
+                  "input": 108,
+                  "output": 18,
+                  "cache_write_5m": 2,
+                  "cache_write_1h": 1,
+                  "cache_read": 4
+                },
+                "tokens_source": "transcript",
+                "ledger_sha256_before": "6397525ec62c16584e09a615fd2b4976e6841089f18505fb9e06b1065bf2706a",
+                "ledger_sha256_after": "5dcc2cbd97dd5d461e193fcee5e92f8b02ae521d65341a1d10a946377721bdec"
+              }
+            ]
+          },
+          {
+            "transition": "park",
+            "caller_payload": {
+              "phase": "build",
+              "type": "park",
+              "issue": "PARK-1"
+            },
+            "token_flag": true,
+            "persisted_event_data": [
+              {
+                "tokens": null,
+                "tokens_source": "estimate"
+              }
+            ]
+          },
+          {
+            "transition": "filed",
+            "caller_payload": {
+              "phase": "run",
+              "type": "discovered-scope-filed"
+            },
+            "token_flag": false,
+            "persisted_event_data": [
+              null
+            ]
+          },
+          {
+            "transition": "budget",
+            "caller_payload": {
+              "phase": "run",
+              "type": "budget-checkpoint",
+              "data": {
+                "spent": {
+                  "elapsed_ms": 1000,
+                  "attempts": 1,
+                  "tokens": 120,
+                  "cost": 0.25
+                },
+                "tokens_source": "transcript",
+                "breached": [],
+                "outcome": "continue",
+                "warnings": []
+              }
+            },
+            "token_flag": true,
+            "persisted_event_data": [
+              {
+                "spent": {
+                  "elapsed_ms": 1000,
+                  "attempts": 1,
+                  "tokens": 120,
+                  "cost": 0.25
+                },
+                "tokens_source": "transcript",
+                "breached": [],
+                "outcome": "continue",
+                "warnings": [],
+                "tokens": {
+                  "input": 330,
+                  "output": 60,
+                  "cache_write_5m": 6,
+                  "cache_write_1h": 3,
+                  "cache_read": 12
+                },
+                "ledger_sha256_before": "5dcc2cbd97dd5d461e193fcee5e92f8b02ae521d65341a1d10a946377721bdec",
+                "ledger_sha256_after": "363212e90a142f9c122ba52718bfebb3a331ce9a61ab377ab714c3aaa1752b29"
+              }
+            ]
+          },
+          {
+            "transition": "sentry",
+            "caller_payload": {
+              "phase": "run",
+              "type": "sentry-checkpoint",
+              "data": {
+                "run_dir": null,
+                "verdicts": []
+              }
+            },
+            "token_flag": false,
+            "persisted_event_data": [
+              {
+                "run_dir": null,
+                "verdicts": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "failed-resolution",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "outcome": "parked"
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/0",
+        "decision_structured_sha256": "dfbb55b4a770fc9ac0ab31c782c4a8ef6cc45dfaf3645fea59cae20f14e2e8aa"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "superseded",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "outcome": "superseded",
+        "post_merge_rollup": false
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/1",
+        "decision_structured_sha256": "2e34824d47b053dc08ebb33b8ddab3026f74749821094700f96e31b30627cc0e"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "review-hold",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "outcome": "parked",
+        "annotation": "review_outage_pending",
+        "human_action_required": false
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/2",
+        "decision_structured_sha256": "4dc930429a6225053ac025a7c4bcf2ad7319602b1a7fb827fc11e585567db6d7"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "slow-prep",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "annotation": "spec_review_turn_budget_pending",
+        "admitted": false,
+        "outcome": null,
+        "provider_outage": false
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/3",
+        "decision_structured_sha256": "ea96830f1691314b5f499fe9fcc3d4f281ec14b6e5761dee8d48fdc68fc91e79"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "outage-prep",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "annotation": "spec_review_outage_pending",
+        "admitted": false,
+        "outcome": null
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/4",
+        "decision_structured_sha256": "0306231e12efa035106dd342175df3ba0b9fbfb7165c2ad70d1333af31478bfd"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "landing-human",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "outcome": "pr-open",
+        "landing_resumable": false
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/5",
+        "decision_structured_sha256": "5a4e30d9c74f320b5a198f06390d24faef1b62b003fe48c8e078fd7e8d326c1e"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "post-merge-writer",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "writer": "orchestrator",
+        "reinvoke_check": false,
+        "terminal_outcome": "shipped"
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/6",
+        "decision_structured_sha256": "5239b6f94cc73476a2feb5bdd65f378a9927b9843f066c096051aaa157b39de9"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "new-ticket",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "affects_completeness": false
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/7",
+        "decision_structured_sha256": "342a3d71ecff0a69ea96ab3baaf9211a5c2e666979b3312e9dfef61988a81b57"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "rich-detail",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "field": "outcome_details",
+        "outcome_value_type": "string",
+        "satisfies_missing_outcome": false
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/8",
+        "decision_structured_sha256": "b494164656c39fc35275adea22f6241e7fd5794203c3b562297e5c7da31e67c7"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "event-ownership",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "caller_fields": [
+          "phase",
+          "type",
+          "issue",
+          "data"
+        ],
+        "order_by": "seq",
+        "caller_supplies_ledger_hash": false
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/9",
+        "decision_structured_sha256": "bb2868e22fb36b08d592aee9dd640378cf140fc04f606d85de088480bbe89ab3"
+      }
+    },
+    {
+      "sample": "beep-ledger-mcp-v1-baseline-1",
+      "case_id": "stop-reason-ownership",
+      "kind": "decision",
+      "manual_status": "pass",
+      "findings": [
+        "Structured decision matches the source contract and all supplied expected values."
+      ],
+      "unsupported_assertions": [],
+      "value": {
+        "normal_writer": "run close",
+        "checkpoint_fail_closed_token": "sentry-abort",
+        "affects_completeness": false,
+        "legacy_absence_allowed": true
+      },
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v1-baseline-1/capture.json",
+          "sha256": "e115a0357fa1e40ebebc6169b45a5cf5907789463cebfe6aaf2d027f26c15f2d"
+        },
+        "decision_pointer": "/decisions/10",
+        "decision_structured_sha256": "5e6172dd3923e9512a2b67e1837fc848cc634a28261a5d0b5d61f8a52c19ea14"
+      }
+    }
+  ],
+  "limits": [
+    "No candidate launch clearance: original baseline1 fails frozen raw checks in two cases. Other four planned baseline samples have not been reviewed or counted.",
+    "The two exact-projection failures concern source-grounded optional outcome_details. Factual fidelity and raw rubric qualification are recorded separately.",
+    "Mint, runtime consumer, schema2/split-cache telemetry and summary are actual CLI operations with controlled observations/transcripts/dependencies. No provider billing, hosted effects, lifecycle closure, review or build proof.",
+    "Disposable working roots are removed by the harness; exact captured ledger bytes, persisted summary text, operations and acknowledged hashes remain bound.",
+    "Nested structured SHA256 fields use sorted-key compact JSON encoded as UTF-8. Byte snapshots use literal UTF-8 strings."
+  ],
+  "updated_utc": "2026-11-17T00:13:35.574028+00:00",
+  "summary": {
+    "closed_samples_reviewed": 1,
+    "manual_execution_cases_passed": 3,
+    "manual_decisions_passed": 11,
+    "raw_execution_cases_passed": 1,
+    "raw_execution_cases_failed": 2,
+    "raw_decisions_passed": 11,
+    "native_samples_passed": 1,
+    "binding_checks_passed": 665,
+    "binding_checks_failed": 0,
+    "candidate_gate_clear": false
+  },
+  "immutability": "Final for currently closed original baseline1. Any future assessor requires a separate record; raw failure and these findings remain unchanged."
+}

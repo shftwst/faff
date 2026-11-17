@@ -1,0 +1,2 @@
+- **Explanation** → no load-bearing model to lead with → flag the producer gap; the producer must supply the governing statement.
+- **Steps** → three enumerable items run inline → render the steps as a numbered list.

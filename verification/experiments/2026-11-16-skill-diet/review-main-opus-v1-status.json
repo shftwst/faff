@@ -1,0 +1,16 @@
+{
+  "status": "held-baseline-manual-failure",
+  "candidate_launched": false,
+  "raw_status": "pass",
+  "native_status": "pass",
+  "native_binding_problems": [],
+  "manual_audit": "review-main-opus-v1-baseline-manual-audit.json",
+  "manual_sha256": "d69cb9595b91a515f4eaf93edf319d66b1c76680523a90d130b9bfb21f5a4f0c",
+  "reason": "Five of six finding titles differ between prose and JSON across four artifacts. The frozen policy requires equality.",
+  "retries": 0,
+  "assessment_adjustments": 0,
+  "limits": [
+    "This is a baseline failure; it does not establish a reduction-induced regression.",
+    "No candidate run or Opus parity claim. Historical GPT evidence remains separate."
+  ]
+}

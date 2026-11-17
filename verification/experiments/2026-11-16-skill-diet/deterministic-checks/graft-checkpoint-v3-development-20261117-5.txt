@@ -1,0 +1,23 @@
+TAP version 13
+# Subtest: controlled PR dependency owns human-only production from real captured spec, run and config facts
+ok 1 - controlled PR dependency owns human-only production from real captured spec, run and config facts
+  ---
+  duration_ms: 1542.205688
+  type: 'test'
+  ...
+# {"consumer_source_discovery":{"removed_committed_anchor_path":"/var/tmp/graft-v3-test-qMvvpK/dispatched-pass/.faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/ac-checklist.json","exit_code":1,"stdout":"{\\"verdict\\":\\"refuse\\",\\"blockers\\":[\\"corrective-artifact integrity unasserted at L3 (FAFF-325): no trusted attestation declaration — refused (defence-in-depth; the run-start preflight should already have caught this)\\"],\\"merged\\":false,\\"ci_state\\":\\"ci-green\\",\\"head_sha\\":\\"90fa568f75fa27d34e0d6fb354aabbdb1a415731\\",\\"integrity\\":\\"unasserted\\",\\"ac_called_out\\":[\\"faff-9\#ac-2\\"],\\"warnings\\":[],\\"holdout_posture\\":\\"pass-through\\",\\"holdout_missing\\":[\\"no-born-verifiable-dod-or-standable-sut\\",\\"no-proven-cage\\"],\\"holdout_fault\\":[]}\\n"},"actual_consumer_negative":{"argv":["/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff","merge-gate","--local","--issue","FAFF-9","--run-dir","/var/tmp/graft-v3-test-qMvvpK/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass","--level","L3","--branch","feature","--base","main","--json","--check-only"],"removed_live_input":"/var/tmp/graft-v3-test-qMvvpK/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/ac-checklist.json","anchor_restored_before_probe":true,"exit_code":1,"stdout":"{\\"verdict\\":\\"refuse\\",\\"blockers\\":[\\"ACs not all verified\\",\\"corrective-artifact integrity unasserted at L3 (FAFF-325): no trusted attestation declaration — refused (defence-in-depth; the run-start preflight should already have caught this)\\"],\\"merged\\":false,\\"ci_state\\":\\"ci-green\\",\\"head_sha\\":\\"61d8512e6b52f0ee9f64e8f700447c4c4b3e363e\\",\\"integrity\\":\\"unasserted\\",\\"ac_called_out\\":[],\\"warnings\\":[],\\"holdout_posture\\":\\"pass-through\\",\\"holdout_missing\\":[\\"no-born-verifiable-dod-or-standable-sut\\",\\"no-proven-cage\\"],\\"holdout_fault\\":[]}\\n","stderr":"","refs_unchanged":true}}
+# Subtest: gate diagnostic optional grounded follow-up is allowed while exact contract remains required
+ok 2 - gate diagnostic optional grounded follow-up is allowed while exact contract remains required
+  ---
+  duration_ms: 201.372243
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1794.9669

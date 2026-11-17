@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"needs-human\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"disposition\":\"open\",\"source\":\"adversarial\",\"disposition_rationale\":\"faff adversarial-backends exit 2: adversarial.fallbacks is not valid JSON; no backend chain was assembled.\",\"title\":\"Malformed adversarial.fallbacks JSON in adversarial config\",\"location\":\".faff/config.yaml\",\"action\":\"Rewrite adversarial.fallbacks as a valid JSON array of backend objects, then re-run the adversarial review.\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": false,
+      "ac_complete": true,
+      "review_verdict": "needs-human",
+      "holdout": "not-applicable",
+      "reasons": [
+        "review-verdict needs-human"
+      ],
+      "ac_called_out": []
+    }
+  }
+}

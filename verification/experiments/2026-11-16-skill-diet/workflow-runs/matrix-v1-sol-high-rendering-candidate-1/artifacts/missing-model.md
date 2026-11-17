@@ -1,0 +1,2 @@
+Explanation opening → no load-bearing model to lead with → ask the producer to supply a governing idea.
+Step sequence → three enumerable items remain inline → render the supplied steps as a markdown list.

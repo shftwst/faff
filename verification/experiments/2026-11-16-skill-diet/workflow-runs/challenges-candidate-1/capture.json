@@ -1,0 +1,1421 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "describe_contract",
+      "args": {
+        "case_id": "adr-1"
+      },
+      "case_id": "adr-1",
+      "result": {
+        "args": [
+          "contract",
+          "adr-admission",
+          "--describe"
+        ],
+        "exit_code": 0,
+        "stdout": "# faff contract adr-admission\n\nThe ADR-axis sibling of prdr-admission — a two-gate admission verdict (authority + a drift-challenge, in place of PRDR's upper/lower value gates) that lets a loop supersede its own earlier ADRs while human/legacy ADRs stay guardrails.\n\n## Values\n\n### `disposition`\n\nEnum: `admit`, `propose-only`, `reject`\n\n| Value | Meaning |\n|---|---|\n| `admit` | the challenge survived, by_level is ok, the ratchet is unbreached, and the mover is not a loop superseding a human-provenance ADR |\n| `propose-only` | gates pass but a loop is superseding a human-provenance ADR — recorded, effective only on human ratification |\n| `reject` | at least one gate failed |\n\n### `authority.actor`\n\nEnum: `loop`, `human`\n\n| Value | Meaning |\n|---|---|\n| `loop` | the autonomous run proposed this move |\n| `human` | a human proposed this move — always by_level:ok |\n\n### `authority.supersedes_provenance`\n\nEnum: `human`, `loop`, `none`\n\n| Value | Meaning |\n|---|---|\n| `human` | the ADR being superseded was human-authored |\n| `loop` | the ADR being superseded was loop-authored |\n| `none` | no prior ADR is being superseded |\n\n### `authority.by_level`\n\nEnum: `ok`, `violation`\n\n| Value | Meaning |\n|---|---|\n| `ok` | no recursive-authority violation |\n| `violation` | a loop is attempting to supersede the ADR governing its own current increment — always blocks admit |\n\n### `challenge.outcome`\n\nEnum: `survived`, `overturned`, `absent`\n\n| Value | Meaning |\n|---|---|\n| `survived` | an adversarial (different-model) drift review examined the supersession argument and found it sound |\n| `overturned` | the adversarial review found the supersession argument unsound |\n| `absent` | no adversarial review ran, or it was unreachable after its fallback chain — a missing skeptic is a reject, never a pass |\n\n## Coercion & fail direction\n\nExit codes: `0` conformant · `1` violations · `2` fail-loud.\n\n- an out-of-enum disposition, authority field, or challenge.outcome → fail-loud (exit 2)\n- admit declared without satisfying the two-gate constraint (challenge.outcome==survived ∧ by_level==ok ∧ ¬ratchet.breached ∧ ¬(loop supersedes human)) → conformant:false\n\n## Envelope\n\n- `disposition` (string, required) — one of {admit, propose-only, reject}\n- `authority` (object, required)\n- `challenge` (object, required)\n- `ratchet` (object, required)\n- `reasons` (array, required)\n- `conformant` (boolean, required)\n- `violations` (array, required)\n",
+        "stderr": ""
+      }
+    },
+    {
+      "seq": 2,
+      "name": "describe_contract",
+      "args": {
+        "case_id": "prdr-1"
+      },
+      "case_id": "prdr-1",
+      "result": {
+        "args": [
+          "contract",
+          "prdr-yagni",
+          "--describe"
+        ],
+        "exit_code": 0,
+        "stdout": "# faff contract prdr-yagni\n\nThe UPPER (YAGNI/value) gate of PRDR admission — arbitrates whether a proposed PRDR is warranted (serves its PRD goal without exceeding it), conservative on any doubt.\n\n## Values\n\n### `proposal.verdict`\n\nEnum: `admit`, `reject`\n\n| Value | Meaning |\n|---|---|\n| `admit` | the methodology's Phase-1 proposal judged the PRDR warranted |\n| `reject` | the methodology's Phase-1 proposal judged the PRDR unwarranted or out of scope |\n\n## Coercion & fail direction\n\nExit codes: `0` conformant · `1` violations · `2` fail-loud.\n\n- an out-of-enum proposal.verdict → fail-loud (exit 2) — no safe coerce target\n- admit declared without trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns → conformant:false\n- reject with an empty reason → conformant:false\n\n## Envelope\n\n- `admit` (boolean, required)\n- `reason` (string, required)\n- `trace_to_goal` (boolean, required)\n- `cited_goals` (array, required)\n- `dod_covers` (array, required)\n- `over_scope` (boolean, required)\n- `proposal` (object, required)\n- `challenge` (object, required)\n- `grounding_present` (boolean, required)\n- `conformant` (boolean, required)\n- `violations` (array, required)\n\n## Producer notes\n\n- `grounding_present` is shape-checked but ADVISORY — never gate-decisive; its absence never blocks judgment\n",
+        "stderr": ""
+      }
+    },
+    {
+      "seq": 3,
+      "name": "submit_challenge",
+      "args": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The supersession argument is sound: the old decision rested on an explicit premise (under 20 issues per run, simplicity) that no longer holds at 200+ issues with a parallel concurrency executor. The new design addresses two concrete failure modes the old one did not anticipate (single-lock contention and whole-run loss from one corrupt byte), keeps the same directory root, and adds an index file for discovery. Residual risk to check at build: the index file and per-issue files can diverge on partial writes, so index updates need to be atomic or reconstructable from the directory listing. That is an implementation concern, not a flaw in the decision."
+      },
+      "case_id": "adr-1",
+      "result": {
+        "challenge": {
+          "case_id": "adr-1",
+          "outcome": "survived",
+          "ground": null,
+          "reason": "The supersession argument is sound: the old decision rested on an explicit premise (under 20 issues per run, simplicity) that no longer holds at 200+ issues with a parallel concurrency executor. The new design addresses two concrete failure modes the old one did not anticipate (single-lock contention and whole-run loss from one corrupt byte), keeps the same directory root, and adds an index file for discovery. Residual risk to check at build: the index file and per-issue files can diverge on partial writes, so index updates need to be atomic or reconstructable from the directory listing. That is an implementation concern, not a flaw in the decision."
+        },
+        "calls": [
+          {
+            "args": [
+              "adr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--challenge",
+              "survived"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"admit\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"survived\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": null,
+        "admission": {
+          "disposition": "admit",
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "challenge": {
+            "ran": true,
+            "outcome": "survived"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 4,
+      "name": "submit_challenge",
+      "args": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The supersession argument is unsound. The old decision is a security invariant: secrets are read from the environment only and never written to .faff/. The new decision writes resolved API keys in plain text to .faff/cache/credentials.json, which violates that invariant directly. Being gitignored is not the property the old decision protects: plaintext keys on disk outlive the process, get swept into backups, archives, sandbox mounts and log or evidence bundles, and are readable by anything with filesystem access. The claimed benefit is negligible, since reading process.env is an in-memory lookup that costs nothing next to an LLM network call, and an in-process memo would get the same benefit without persisting anything. The argument calls this a change with no behaviour change, which hides a real change to the security boundary."
+      },
+      "case_id": "adr-2",
+      "result": {
+        "challenge": {
+          "case_id": "adr-2",
+          "outcome": "overturned",
+          "ground": null,
+          "reason": "The supersession argument is unsound. The old decision is a security invariant: secrets are read from the environment only and never written to .faff/. The new decision writes resolved API keys in plain text to .faff/cache/credentials.json, which violates that invariant directly. Being gitignored is not the property the old decision protects: plaintext keys on disk outlive the process, get swept into backups, archives, sandbox mounts and log or evidence bundles, and are readable by anything with filesystem access. The claimed benefit is negligible, since reading process.env is an in-memory lookup that costs nothing next to an LLM network call, and an in-process memo would get the same benefit without persisting anything. The argument calls this a change with no behaviour change, which hides a real change to the security boundary."
+        },
+        "calls": [
+          {
+            "args": [
+              "adr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--challenge",
+              "overturned"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"overturned\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge overturned — the adversarial reviewer found the supersession argument unsound\"],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": null,
+        "admission": {
+          "disposition": "reject",
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "challenge": {
+            "ran": true,
+            "outcome": "overturned"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [
+            "drift challenge overturned — the adversarial reviewer found the supersession argument unsound"
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 5,
+      "name": "submit_challenge",
+      "args": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "No independent opinion was obtained: the provider chain was exhausted without an answer. The absence is preserved and not converted to a pass. A missing skeptic rejects."
+      },
+      "case_id": "adr-unavailable",
+      "result": {
+        "challenge": {
+          "case_id": "adr-unavailable",
+          "outcome": null,
+          "ground": null,
+          "reason": "No independent opinion was obtained: the provider chain was exhausted without an answer. The absence is preserved and not converted to a pass. A missing skeptic rejects."
+        },
+        "calls": [
+          {
+            "args": [
+              "adr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":false,\"outcome\":\"absent\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass\"],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": null,
+        "admission": {
+          "disposition": "reject",
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "challenge": {
+            "ran": false,
+            "outcome": "absent"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [
+            "drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass"
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 6,
+      "name": "submit_challenge",
+      "args": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The PRDR serves the first PRD goal directly: operators can inspect the current merge decision with no risk of a merge, and the test double proves the merge call is never made. It does not go beyond that goal: no storage, history or query. The DoD reuses the existing floor reads instead of reimplementing them, so the floor logic stays the single source of truth and the second goal is respected. One point to check at build is that the dry-run path calls the same floor function rather than a copy, so the two cannot drift."
+      },
+      "case_id": "prdr-1",
+      "result": {
+        "challenge": {
+          "case_id": "prdr-1",
+          "outcome": "survived",
+          "ground": null,
+          "reason": "The PRDR serves the first PRD goal directly: operators can inspect the current merge decision with no risk of a merge, and the test double proves the merge call is never made. It does not go beyond that goal: no storage, history or query. The DoD reuses the existing floor reads instead of reimplementing them, so the floor logic stays the single source of truth and the second goal is respected. One point to check at build is that the dry-run path calls the same floor function rather than a copy, so the two cannot drift."
+        },
+        "calls": [
+          {
+            "args": [
+              "prdr",
+              "yagni",
+              "--prd-goal",
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+              "--prd-goals",
+              "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+              "--proposal",
+              "admit",
+              "--proposal-reason",
+              "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+              "--challenge",
+              "survived",
+              "--challenge-reason",
+              "The PRDR serves the first PRD goal directly: operators can inspect the current merge decision with no risk of a merge, and the test double proves the merge call is never made. It does not go beyond that goal: no storage, history or query. The DoD reuses the existing floor reads instead of reimplementing them, so the floor logic stays the single source of truth and the second goal is respected. One point to check at build is that the dry-run path calls the same floor function rather than a copy, so the two cannot drift."
+            ],
+            "exit_code": 0,
+            "stdout": "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"The PRDR serves the first PRD goal directly: operators can inspect the current merge decision with no risk of a merge, and the test double proves the merge call is never made. It does not go beyond that goal: no storage, history or query. The DoD reuses the existing floor reads instead of reimplementing them, so the floor logic stays the single source of truth and the second goal is respected. One point to check at build is that the dry-run path calls the same floor function rather than a copy, so the two cannot drift.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          },
+          {
+            "args": [
+              "prdr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--upper",
+              "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"}"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": {
+          "admit": true,
+          "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+          "trace_to_goal": true,
+          "cited_goals": [
+            "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+          ],
+          "dod_covers": [],
+          "over_scope": false,
+          "proposal": {
+            "serves_goal": false,
+            "within_scope": false,
+            "verdict": "admit",
+            "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+          },
+          "challenge": {
+            "ran": true,
+            "overturns": false,
+            "reason": "The PRDR serves the first PRD goal directly: operators can inspect the current merge decision with no risk of a merge, and the test double proves the merge call is never made. It does not go beyond that goal: no storage, history or query. The DoD reuses the existing floor reads instead of reimplementing them, so the floor logic stays the single source of truth and the second goal is respected. One point to check at build is that the dry-run path calls the same floor function rather than a copy, so the two cannot drift.",
+            "ground": "other"
+          },
+          "grounding_present": false,
+          "conformant": true,
+          "violations": []
+        },
+        "admission": {
+          "disposition": "admit",
+          "upper": {
+            "admit": true,
+            "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+          },
+          "lower": {
+            "covered": true,
+            "uncovered_goals": []
+          },
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 7,
+      "name": "submit_challenge",
+      "args": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+      },
+      "case_id": "prdr-2",
+      "result": {
+        "challenge": {
+          "case_id": "prdr-2",
+          "outcome": "overturned",
+          "ground": "over-scope",
+          "reason": "The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+        },
+        "calls": [
+          {
+            "args": [
+              "prdr",
+              "yagni",
+              "--prd-goal",
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+              "--prd-goals",
+              "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+              "--proposal",
+              "admit",
+              "--proposal-reason",
+              "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.",
+              "--challenge",
+              "overturned",
+              "--challenge-ground",
+              "over-scope",
+              "--challenge-reason",
+              "The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+            ],
+            "exit_code": 0,
+            "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\",\"ground\":\"over-scope\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          },
+          {
+            "args": [
+              "prdr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--upper",
+              "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\"}"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\"],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": {
+          "admit": false,
+          "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.",
+          "trace_to_goal": true,
+          "cited_goals": [
+            "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+          ],
+          "dod_covers": [],
+          "over_scope": false,
+          "proposal": {
+            "serves_goal": false,
+            "within_scope": false,
+            "verdict": "admit",
+            "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+          },
+          "challenge": {
+            "ran": true,
+            "overturns": true,
+            "reason": "The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.",
+            "ground": "over-scope"
+          },
+          "grounding_present": false,
+          "conformant": true,
+          "violations": []
+        },
+        "admission": {
+          "disposition": "reject",
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+          },
+          "lower": {
+            "covered": true,
+            "uncovered_goals": []
+          },
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [
+            "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 8,
+      "name": "submit_challenge",
+      "args": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both DoD items fall within the PRD declared goals: one CSV row per transaction serves Export transactions as CSV, and the date-range restriction serves Filter transaction exports by date, which is a declared PRD goal even though the PRDR does not cite it. Covering more declared goals than the PRDR cites is under-citation, not over-scope; the DoD covers both export and date filtering, which the CLI set test should take as dod-covers. The cited goal is served and nothing in the DoD goes outside the PRD."
+      },
+      "case_id": "prdr-under-citation",
+      "result": {
+        "challenge": {
+          "case_id": "prdr-under-citation",
+          "outcome": "survived",
+          "ground": null,
+          "reason": "Both DoD items fall within the PRD declared goals: one CSV row per transaction serves Export transactions as CSV, and the date-range restriction serves Filter transaction exports by date, which is a declared PRD goal even though the PRDR does not cite it. Covering more declared goals than the PRDR cites is under-citation, not over-scope; the DoD covers both export and date filtering, which the CLI set test should take as dod-covers. The cited goal is served and nothing in the DoD goes outside the PRD."
+        },
+        "calls": [
+          {
+            "args": [
+              "prdr",
+              "yagni",
+              "--prd-goal",
+              "Export transactions as CSV",
+              "--prd-goals",
+              "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+              "--proposal",
+              "admit",
+              "--proposal-reason",
+              "The export and filter both serve declared PRD goals.",
+              "--challenge",
+              "survived",
+              "--challenge-reason",
+              "Both DoD items fall within the PRD declared goals: one CSV row per transaction serves Export transactions as CSV, and the date-range restriction serves Filter transaction exports by date, which is a declared PRD goal even though the PRDR does not cite it. Covering more declared goals than the PRDR cites is under-citation, not over-scope; the DoD covers both export and date filtering, which the CLI set test should take as dod-covers. The cited goal is served and nothing in the DoD goes outside the PRD.",
+              "--dod-covers",
+              "[\"Export transactions as CSV\",\"Filter transaction exports by date\"]"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\"],\"dod_covers\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The export and filter both serve declared PRD goals.\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"Both DoD items fall within the PRD declared goals: one CSV row per transaction serves Export transactions as CSV, and the date-range restriction serves Filter transaction exports by date, which is a declared PRD goal even though the PRDR does not cite it. Covering more declared goals than the PRDR cites is under-citation, not over-scope; the DoD covers both export and date filtering, which the CLI set test should take as dod-covers. The cited goal is served and nothing in the DoD goes outside the PRD.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          },
+          {
+            "args": [
+              "prdr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--upper",
+              "{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\"}"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": {
+          "admit": true,
+          "reason": "The export and filter both serve declared PRD goals.",
+          "trace_to_goal": true,
+          "cited_goals": [
+            "Export transactions as CSV"
+          ],
+          "dod_covers": [
+            "Export transactions as CSV",
+            "Filter transaction exports by date"
+          ],
+          "over_scope": false,
+          "proposal": {
+            "serves_goal": false,
+            "within_scope": false,
+            "verdict": "admit",
+            "reason": "The export and filter both serve declared PRD goals."
+          },
+          "challenge": {
+            "ran": true,
+            "overturns": false,
+            "reason": "Both DoD items fall within the PRD declared goals: one CSV row per transaction serves Export transactions as CSV, and the date-range restriction serves Filter transaction exports by date, which is a declared PRD goal even though the PRDR does not cite it. Covering more declared goals than the PRDR cites is under-citation, not over-scope; the DoD covers both export and date filtering, which the CLI set test should take as dod-covers. The cited goal is served and nothing in the DoD goes outside the PRD.",
+            "ground": "other"
+          },
+          "grounding_present": false,
+          "conformant": true,
+          "violations": []
+        },
+        "admission": {
+          "disposition": "admit",
+          "upper": {
+            "admit": true,
+            "reason": "The export and filter both serve declared PRD goals."
+          },
+          "lower": {
+            "covered": true,
+            "uncovered_goals": []
+          },
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 9,
+      "name": "submit_challenge",
+      "args": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped."
+      },
+      "case_id": "prdr-unserved",
+      "result": {
+        "challenge": {
+          "case_id": "prdr-unserved",
+          "outcome": "overturned",
+          "ground": "unserved",
+          "reason": "The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped."
+        },
+        "calls": [
+          {
+            "args": [
+              "prdr",
+              "yagni",
+              "--prd-goal",
+              "Export transactions as CSV,Filter transaction exports by date",
+              "--prd-goals",
+              "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+              "--proposal",
+              "admit",
+              "--proposal-reason",
+              "Export serves both cited goals.",
+              "--challenge",
+              "overturned",
+              "--challenge-ground",
+              "unserved",
+              "--challenge-reason",
+              "The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.",
+              "--dod-covers",
+              "[\"Export transactions as CSV\"]"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"dod_covers\":[\"Export transactions as CSV\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"Export serves both cited goals.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.\",\"ground\":\"unserved\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          },
+          {
+            "args": [
+              "prdr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--upper",
+              "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.\"}"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.\"],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": {
+          "admit": false,
+          "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.",
+          "trace_to_goal": true,
+          "cited_goals": [
+            "Export transactions as CSV",
+            "Filter transaction exports by date"
+          ],
+          "dod_covers": [
+            "Export transactions as CSV"
+          ],
+          "over_scope": false,
+          "proposal": {
+            "serves_goal": false,
+            "within_scope": false,
+            "verdict": "admit",
+            "reason": "Export serves both cited goals."
+          },
+          "challenge": {
+            "ran": true,
+            "overturns": true,
+            "reason": "The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.",
+            "ground": "unserved"
+          },
+          "grounding_present": false,
+          "conformant": true,
+          "violations": []
+        },
+        "admission": {
+          "disposition": "reject",
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped."
+          },
+          "lower": {
+            "covered": true,
+            "uncovered_goals": []
+          },
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [
+            "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped."
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "seq": 10,
+      "name": "submit_challenge",
+      "args": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "No independent opinion was obtained: the provider chain was exhausted without an answer. The challenge is omitted, so the caller rejects and parks it as phase2-inconclusive. A missing skeptic is never a pass."
+      },
+      "case_id": "prdr-unavailable",
+      "result": {
+        "challenge": {
+          "case_id": "prdr-unavailable",
+          "outcome": null,
+          "ground": null,
+          "reason": "No independent opinion was obtained: the provider chain was exhausted without an answer. The challenge is omitted, so the caller rejects and parks it as phase2-inconclusive. A missing skeptic is never a pass."
+        },
+        "calls": [
+          {
+            "args": [
+              "prdr",
+              "yagni",
+              "--prd-goal",
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+              "--prd-goals",
+              "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+              "--proposal",
+              "admit",
+              "--proposal-reason",
+              "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+              "--challenge-reason",
+              "No independent opinion was obtained: the provider chain was exhausted without an answer. The challenge is omitted, so the caller rejects and parks it as phase2-inconclusive. A missing skeptic is never a pass."
+            ],
+            "exit_code": 0,
+            "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":false,\"overturns\":false,\"reason\":\"No independent opinion was obtained: the provider chain was exhausted without an answer. The challenge is omitted, so the caller rejects and parks it as phase2-inconclusive. A missing skeptic is never a pass.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          },
+          {
+            "args": [
+              "prdr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--upper",
+              "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"}"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": {
+          "admit": false,
+          "reason": "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade",
+          "trace_to_goal": true,
+          "cited_goals": [
+            "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+          ],
+          "dod_covers": [],
+          "over_scope": false,
+          "proposal": {
+            "serves_goal": false,
+            "within_scope": false,
+            "verdict": "admit",
+            "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+          },
+          "challenge": {
+            "ran": false,
+            "overturns": false,
+            "reason": "No independent opinion was obtained: the provider chain was exhausted without an answer. The challenge is omitted, so the caller rejects and parks it as phase2-inconclusive. A missing skeptic is never a pass.",
+            "ground": "other"
+          },
+          "grounding_present": false,
+          "conformant": true,
+          "violations": []
+        },
+        "admission": {
+          "disposition": "reject",
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade"
+          },
+          "lower": {
+            "covered": true,
+            "uncovered_goals": []
+          },
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [
+            "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade"
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "cases": [
+    {
+      "id": "adr-1",
+      "result": {
+        "challenge": {
+          "case_id": "adr-1",
+          "outcome": "survived",
+          "ground": null,
+          "reason": "The supersession argument is sound: the old decision rested on an explicit premise (under 20 issues per run, simplicity) that no longer holds at 200+ issues with a parallel concurrency executor. The new design addresses two concrete failure modes the old one did not anticipate (single-lock contention and whole-run loss from one corrupt byte), keeps the same directory root, and adds an index file for discovery. Residual risk to check at build: the index file and per-issue files can diverge on partial writes, so index updates need to be atomic or reconstructable from the directory listing. That is an implementation concern, not a flaw in the decision."
+        },
+        "calls": [
+          {
+            "args": [
+              "adr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--challenge",
+              "survived"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"admit\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"survived\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": null,
+        "admission": {
+          "disposition": "admit",
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "challenge": {
+            "ran": true,
+            "outcome": "survived"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "id": "adr-2",
+      "result": {
+        "challenge": {
+          "case_id": "adr-2",
+          "outcome": "overturned",
+          "ground": null,
+          "reason": "The supersession argument is unsound. The old decision is a security invariant: secrets are read from the environment only and never written to .faff/. The new decision writes resolved API keys in plain text to .faff/cache/credentials.json, which violates that invariant directly. Being gitignored is not the property the old decision protects: plaintext keys on disk outlive the process, get swept into backups, archives, sandbox mounts and log or evidence bundles, and are readable by anything with filesystem access. The claimed benefit is negligible, since reading process.env is an in-memory lookup that costs nothing next to an LLM network call, and an in-process memo would get the same benefit without persisting anything. The argument calls this a change with no behaviour change, which hides a real change to the security boundary."
+        },
+        "calls": [
+          {
+            "args": [
+              "adr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--challenge",
+              "overturned"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"overturned\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge overturned — the adversarial reviewer found the supersession argument unsound\"],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": null,
+        "admission": {
+          "disposition": "reject",
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "challenge": {
+            "ran": true,
+            "outcome": "overturned"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [
+            "drift challenge overturned — the adversarial reviewer found the supersession argument unsound"
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "id": "adr-unavailable",
+      "result": {
+        "challenge": {
+          "case_id": "adr-unavailable",
+          "outcome": null,
+          "ground": null,
+          "reason": "No independent opinion was obtained: the provider chain was exhausted without an answer. The absence is preserved and not converted to a pass. A missing skeptic rejects."
+        },
+        "calls": [
+          {
+            "args": [
+              "adr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":false,\"outcome\":\"absent\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass\"],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": null,
+        "admission": {
+          "disposition": "reject",
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "challenge": {
+            "ran": false,
+            "outcome": "absent"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [
+            "drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass"
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "id": "prdr-1",
+      "result": {
+        "challenge": {
+          "case_id": "prdr-1",
+          "outcome": "survived",
+          "ground": null,
+          "reason": "The PRDR serves the first PRD goal directly: operators can inspect the current merge decision with no risk of a merge, and the test double proves the merge call is never made. It does not go beyond that goal: no storage, history or query. The DoD reuses the existing floor reads instead of reimplementing them, so the floor logic stays the single source of truth and the second goal is respected. One point to check at build is that the dry-run path calls the same floor function rather than a copy, so the two cannot drift."
+        },
+        "calls": [
+          {
+            "args": [
+              "prdr",
+              "yagni",
+              "--prd-goal",
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+              "--prd-goals",
+              "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+              "--proposal",
+              "admit",
+              "--proposal-reason",
+              "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+              "--challenge",
+              "survived",
+              "--challenge-reason",
+              "The PRDR serves the first PRD goal directly: operators can inspect the current merge decision with no risk of a merge, and the test double proves the merge call is never made. It does not go beyond that goal: no storage, history or query. The DoD reuses the existing floor reads instead of reimplementing them, so the floor logic stays the single source of truth and the second goal is respected. One point to check at build is that the dry-run path calls the same floor function rather than a copy, so the two cannot drift."
+            ],
+            "exit_code": 0,
+            "stdout": "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"The PRDR serves the first PRD goal directly: operators can inspect the current merge decision with no risk of a merge, and the test double proves the merge call is never made. It does not go beyond that goal: no storage, history or query. The DoD reuses the existing floor reads instead of reimplementing them, so the floor logic stays the single source of truth and the second goal is respected. One point to check at build is that the dry-run path calls the same floor function rather than a copy, so the two cannot drift.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          },
+          {
+            "args": [
+              "prdr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--upper",
+              "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"}"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": {
+          "admit": true,
+          "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+          "trace_to_goal": true,
+          "cited_goals": [
+            "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+          ],
+          "dod_covers": [],
+          "over_scope": false,
+          "proposal": {
+            "serves_goal": false,
+            "within_scope": false,
+            "verdict": "admit",
+            "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+          },
+          "challenge": {
+            "ran": true,
+            "overturns": false,
+            "reason": "The PRDR serves the first PRD goal directly: operators can inspect the current merge decision with no risk of a merge, and the test double proves the merge call is never made. It does not go beyond that goal: no storage, history or query. The DoD reuses the existing floor reads instead of reimplementing them, so the floor logic stays the single source of truth and the second goal is respected. One point to check at build is that the dry-run path calls the same floor function rather than a copy, so the two cannot drift.",
+            "ground": "other"
+          },
+          "grounding_present": false,
+          "conformant": true,
+          "violations": []
+        },
+        "admission": {
+          "disposition": "admit",
+          "upper": {
+            "admit": true,
+            "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+          },
+          "lower": {
+            "covered": true,
+            "uncovered_goals": []
+          },
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "id": "prdr-2",
+      "result": {
+        "challenge": {
+          "case_id": "prdr-2",
+          "outcome": "overturned",
+          "ground": "over-scope",
+          "reason": "The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+        },
+        "calls": [
+          {
+            "args": [
+              "prdr",
+              "yagni",
+              "--prd-goal",
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+              "--prd-goals",
+              "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+              "--proposal",
+              "admit",
+              "--proposal-reason",
+              "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.",
+              "--challenge",
+              "overturned",
+              "--challenge-ground",
+              "over-scope",
+              "--challenge-reason",
+              "The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+            ],
+            "exit_code": 0,
+            "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\",\"ground\":\"over-scope\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          },
+          {
+            "args": [
+              "prdr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--upper",
+              "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\"}"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.\"],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": {
+          "admit": false,
+          "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.",
+          "trace_to_goal": true,
+          "cited_goals": [
+            "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+          ],
+          "dod_covers": [],
+          "over_scope": false,
+          "proposal": {
+            "serves_goal": false,
+            "within_scope": false,
+            "verdict": "admit",
+            "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+          },
+          "challenge": {
+            "ran": true,
+            "overturns": true,
+            "reason": "The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for.",
+            "ground": "over-scope"
+          },
+          "grounding_present": false,
+          "conformant": true,
+          "violations": []
+        },
+        "admission": {
+          "disposition": "reject",
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+          },
+          "lower": {
+            "covered": true,
+            "uncovered_goals": []
+          },
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [
+            "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The --dry-run DoD item serves the inspection goal, but the other two DoD items go beyond the declared goals. A persisted .faff/merge-gate-history/<pr>.jsonl log, and an --explain timeline with --since and --format, are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. No other declared goal covers them. The Phase-1 claim that history is a natural extension of inspection ignores that exclusion: the goal is to inspect the current decision, not past ones. Appending history on every real merge-gate evaluation also widens the merge path beyond what any goal asks for."
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "id": "prdr-under-citation",
+      "result": {
+        "challenge": {
+          "case_id": "prdr-under-citation",
+          "outcome": "survived",
+          "ground": null,
+          "reason": "Both DoD items fall within the PRD declared goals: one CSV row per transaction serves Export transactions as CSV, and the date-range restriction serves Filter transaction exports by date, which is a declared PRD goal even though the PRDR does not cite it. Covering more declared goals than the PRDR cites is under-citation, not over-scope; the DoD covers both export and date filtering, which the CLI set test should take as dod-covers. The cited goal is served and nothing in the DoD goes outside the PRD."
+        },
+        "calls": [
+          {
+            "args": [
+              "prdr",
+              "yagni",
+              "--prd-goal",
+              "Export transactions as CSV",
+              "--prd-goals",
+              "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+              "--proposal",
+              "admit",
+              "--proposal-reason",
+              "The export and filter both serve declared PRD goals.",
+              "--challenge",
+              "survived",
+              "--challenge-reason",
+              "Both DoD items fall within the PRD declared goals: one CSV row per transaction serves Export transactions as CSV, and the date-range restriction serves Filter transaction exports by date, which is a declared PRD goal even though the PRDR does not cite it. Covering more declared goals than the PRDR cites is under-citation, not over-scope; the DoD covers both export and date filtering, which the CLI set test should take as dod-covers. The cited goal is served and nothing in the DoD goes outside the PRD.",
+              "--dod-covers",
+              "[\"Export transactions as CSV\",\"Filter transaction exports by date\"]"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\"],\"dod_covers\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The export and filter both serve declared PRD goals.\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"Both DoD items fall within the PRD declared goals: one CSV row per transaction serves Export transactions as CSV, and the date-range restriction serves Filter transaction exports by date, which is a declared PRD goal even though the PRDR does not cite it. Covering more declared goals than the PRDR cites is under-citation, not over-scope; the DoD covers both export and date filtering, which the CLI set test should take as dod-covers. The cited goal is served and nothing in the DoD goes outside the PRD.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          },
+          {
+            "args": [
+              "prdr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--upper",
+              "{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\"}"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": {
+          "admit": true,
+          "reason": "The export and filter both serve declared PRD goals.",
+          "trace_to_goal": true,
+          "cited_goals": [
+            "Export transactions as CSV"
+          ],
+          "dod_covers": [
+            "Export transactions as CSV",
+            "Filter transaction exports by date"
+          ],
+          "over_scope": false,
+          "proposal": {
+            "serves_goal": false,
+            "within_scope": false,
+            "verdict": "admit",
+            "reason": "The export and filter both serve declared PRD goals."
+          },
+          "challenge": {
+            "ran": true,
+            "overturns": false,
+            "reason": "Both DoD items fall within the PRD declared goals: one CSV row per transaction serves Export transactions as CSV, and the date-range restriction serves Filter transaction exports by date, which is a declared PRD goal even though the PRDR does not cite it. Covering more declared goals than the PRDR cites is under-citation, not over-scope; the DoD covers both export and date filtering, which the CLI set test should take as dod-covers. The cited goal is served and nothing in the DoD goes outside the PRD.",
+            "ground": "other"
+          },
+          "grounding_present": false,
+          "conformant": true,
+          "violations": []
+        },
+        "admission": {
+          "disposition": "admit",
+          "upper": {
+            "admit": true,
+            "reason": "The export and filter both serve declared PRD goals."
+          },
+          "lower": {
+            "covered": true,
+            "uncovered_goals": []
+          },
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "id": "prdr-unserved",
+      "result": {
+        "challenge": {
+          "case_id": "prdr-unserved",
+          "outcome": "overturned",
+          "ground": "unserved",
+          "reason": "The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped."
+        },
+        "calls": [
+          {
+            "args": [
+              "prdr",
+              "yagni",
+              "--prd-goal",
+              "Export transactions as CSV,Filter transaction exports by date",
+              "--prd-goals",
+              "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+              "--proposal",
+              "admit",
+              "--proposal-reason",
+              "Export serves both cited goals.",
+              "--challenge",
+              "overturned",
+              "--challenge-ground",
+              "unserved",
+              "--challenge-reason",
+              "The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.",
+              "--dod-covers",
+              "[\"Export transactions as CSV\"]"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"dod_covers\":[\"Export transactions as CSV\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"Export serves both cited goals.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.\",\"ground\":\"unserved\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          },
+          {
+            "args": [
+              "prdr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--upper",
+              "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.\"}"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.\"],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": {
+          "admit": false,
+          "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.",
+          "trace_to_goal": true,
+          "cited_goals": [
+            "Export transactions as CSV",
+            "Filter transaction exports by date"
+          ],
+          "dod_covers": [
+            "Export transactions as CSV"
+          ],
+          "over_scope": false,
+          "proposal": {
+            "serves_goal": false,
+            "within_scope": false,
+            "verdict": "admit",
+            "reason": "Export serves both cited goals."
+          },
+          "challenge": {
+            "ran": true,
+            "overturns": true,
+            "reason": "The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped.",
+            "ground": "unserved"
+          },
+          "grounding_present": false,
+          "conformant": true,
+          "violations": []
+        },
+        "admission": {
+          "disposition": "reject",
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped."
+          },
+          "lower": {
+            "covered": true,
+            "uncovered_goals": []
+          },
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [
+            "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites Filter transaction exports by date, but its own DoD states that no date input or date filtering is implemented. That cited goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD. Export as CSV is served; date filtering is not. Either the DoD should add date-range filtering or the citation should be dropped."
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    },
+    {
+      "id": "prdr-unavailable",
+      "result": {
+        "challenge": {
+          "case_id": "prdr-unavailable",
+          "outcome": null,
+          "ground": null,
+          "reason": "No independent opinion was obtained: the provider chain was exhausted without an answer. The challenge is omitted, so the caller rejects and parks it as phase2-inconclusive. A missing skeptic is never a pass."
+        },
+        "calls": [
+          {
+            "args": [
+              "prdr",
+              "yagni",
+              "--prd-goal",
+              "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+              "--prd-goals",
+              "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+              "--proposal",
+              "admit",
+              "--proposal-reason",
+              "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+              "--challenge-reason",
+              "No independent opinion was obtained: the provider chain was exhausted without an answer. The challenge is omitted, so the caller rejects and parks it as phase2-inconclusive. A missing skeptic is never a pass."
+            ],
+            "exit_code": 0,
+            "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":false,\"overturns\":false,\"reason\":\"No independent opinion was obtained: the provider chain was exhausted without an answer. The challenge is omitted, so the caller rejects and parks it as phase2-inconclusive. A missing skeptic is never a pass.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          },
+          {
+            "args": [
+              "prdr",
+              "admit",
+              "fixture",
+              "--actor",
+              "loop",
+              "--supersedes-provenance",
+              "loop",
+              "--upper",
+              "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"}"
+            ],
+            "exit_code": 0,
+            "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"],\"conformant\":true,\"violations\":[]}\n",
+            "stderr": ""
+          }
+        ],
+        "upper": {
+          "admit": false,
+          "reason": "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade",
+          "trace_to_goal": true,
+          "cited_goals": [
+            "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+          ],
+          "dod_covers": [],
+          "over_scope": false,
+          "proposal": {
+            "serves_goal": false,
+            "within_scope": false,
+            "verdict": "admit",
+            "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+          },
+          "challenge": {
+            "ran": false,
+            "overturns": false,
+            "reason": "No independent opinion was obtained: the provider chain was exhausted without an answer. The challenge is omitted, so the caller rejects and parks it as phase2-inconclusive. A missing skeptic is never a pass.",
+            "ground": "other"
+          },
+          "grounding_present": false,
+          "conformant": true,
+          "violations": []
+        },
+        "admission": {
+          "disposition": "reject",
+          "upper": {
+            "admit": false,
+            "reason": "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade"
+          },
+          "lower": {
+            "covered": true,
+            "uncovered_goals": []
+          },
+          "authority": {
+            "actor": "loop",
+            "supersedes_provenance": "loop",
+            "by_level": "ok"
+          },
+          "ratchet": {
+            "lineage_supersessions": 0,
+            "breached": false
+          },
+          "reasons": [
+            "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade"
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      }
+    }
+  ]
+}

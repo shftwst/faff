@@ -1,0 +1,362 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:16:03.565673+00:00",
+  "status": "completed-bounded-calibration-not-model-equivalence",
+  "samples_per_policy_arm_per_task": 5,
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "reference_model": "claude-opus-5-5",
+  "reference_effort": "medium",
+  "summaries": [
+    {
+      "path": "gateway-sol-calibration-v1-results.json",
+      "sha256": "4aa6204b5ab20835f443ad9f4e0b6d032eb589f74cf22ea754e24d8d772865f6"
+    },
+    {
+      "path": "rendering-sol-calibration-v1-results.json",
+      "sha256": "4988158b56ff25b0365d74997a19c3b31855b7f92292ac883ff0c5d2043b9d13"
+    }
+  ],
+  "reference_results": [
+    {
+      "path": "gateway-context-v3-results.json",
+      "sha256": "cf58fa0a40bdd0f04a91a2dcb95f75918489e7abbe2b653ac2061bf84c1052ba"
+    },
+    {
+      "path": "gateway-context-v3-native-log-review.json",
+      "sha256": "ea312a55a3cf0cd0ee9f3dc5ef25b5ced789eee9f45fbbf2f1ca66690b30d93f"
+    },
+    {
+      "path": "rendering-v2-protocol-and-rubric-review.json",
+      "sha256": "a81df829e4fbae022dea418bd417be1f0797e6d8346e7d436dfa18671357ac56"
+    },
+    {
+      "path": "rendering-v2-artifact-review.json",
+      "sha256": "7e37df828d41f0cb4bf564f7d896827150f898231fccac5bc4be8f0fe1de5ff2"
+    }
+  ],
+  "manual_review": {
+    "path": "manual-artifact-reviews/rendering-sol-calibration-independent.json",
+    "sha256": "d0b910e57f872941a97a6435fc9c00aba2f8831639f74aec4b1482684a114d07"
+  },
+  "native_samples_passed": 20,
+  "runs": [
+    {
+      "name": "gateway-sol-calibration-v1-baseline-1",
+      "task": "gateway",
+      "arm": "baseline",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/gateway-sol-calibration-v1-baseline-1/native-audit.json",
+        "sha256": "5c24646656bed88a58c8688bb4601d2d5af152e82b8388248b014652deb2e618"
+      },
+      "source_sha256": "744ef7c36e48f5efddcade301fa67ba217b1fdf981317d1e748b85805a80c364",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 26
+    },
+    {
+      "name": "gateway-sol-calibration-v1-candidate-1",
+      "task": "gateway",
+      "arm": "candidate",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/gateway-sol-calibration-v1-candidate-1/native-audit.json",
+        "sha256": "4e0edd1d8203749741db3ce7ededddfd4e46aa09c0efff6f656fabf98cd90ced"
+      },
+      "source_sha256": "2d3f9e9289b12fcf8ca2f47dc1743b586ecd5bd220c266e78c30c1e2ac53d114",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 24
+    },
+    {
+      "name": "gateway-sol-calibration-v1-candidate-2",
+      "task": "gateway",
+      "arm": "candidate",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/gateway-sol-calibration-v1-candidate-2/native-audit.json",
+        "sha256": "f0f65d87f0bd51adac9602062b49e943bc0dfcdaaf9617afa668641cfaa68019"
+      },
+      "source_sha256": "973e5074fcb8e0387c41faa41aedb1d1b048f18f07d7362beccbd1cb2f3e10f8",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 24
+    },
+    {
+      "name": "gateway-sol-calibration-v1-baseline-2",
+      "task": "gateway",
+      "arm": "baseline",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/gateway-sol-calibration-v1-baseline-2/native-audit.json",
+        "sha256": "335c279dda265250961f538f2a729ac8429dd1123584df481211de0b7f4f7c42"
+      },
+      "source_sha256": "4f329c1b5ca22d04b249975fc50e8d4975fcab3f1b4d009d008280f433fc1609",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 26
+    },
+    {
+      "name": "gateway-sol-calibration-v1-baseline-3",
+      "task": "gateway",
+      "arm": "baseline",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/gateway-sol-calibration-v1-baseline-3/native-audit.json",
+        "sha256": "6df24f34d35fc655cd776453ae6fdb719d498e740fa115664b557bc724f8d598"
+      },
+      "source_sha256": "f71b98aea3fe0c36ee523521afb2d6f0480e1818338b6bad4222f38226d9e53f",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 26
+    },
+    {
+      "name": "gateway-sol-calibration-v1-candidate-3",
+      "task": "gateway",
+      "arm": "candidate",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/gateway-sol-calibration-v1-candidate-3/native-audit.json",
+        "sha256": "4cfabb47f77a38b6d28fc45404e2547107f4b55037d3b4697490e97b147c394c"
+      },
+      "source_sha256": "325634f877cecfcc71d89b17b0f3452b68a915021c079008d14faeb125b9fed2",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 24
+    },
+    {
+      "name": "gateway-sol-calibration-v1-candidate-4",
+      "task": "gateway",
+      "arm": "candidate",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/gateway-sol-calibration-v1-candidate-4/native-audit.json",
+        "sha256": "f609ef003833ff70d3bbe46e1e5f044f241c012ab2a9afaf1f3b0571b5d31f1f"
+      },
+      "source_sha256": "80c16c3bbf0d214cfcf2f1f7b79f1fc946ea18803143dbc6918fcef240a2e257",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 24
+    },
+    {
+      "name": "gateway-sol-calibration-v1-baseline-4",
+      "task": "gateway",
+      "arm": "baseline",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/gateway-sol-calibration-v1-baseline-4/native-audit.json",
+        "sha256": "bd9ec0fef59d268f4af8dc2955c93fa931c7e166d0f44c549a5e15a39826fcc5"
+      },
+      "source_sha256": "1c96620ace6261faba0a0ba47aeaedd1b2dd634a80edd20bbac5b1b940b61cab",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 26
+    },
+    {
+      "name": "gateway-sol-calibration-v1-baseline-5",
+      "task": "gateway",
+      "arm": "baseline",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/gateway-sol-calibration-v1-baseline-5/native-audit.json",
+        "sha256": "c3e7a7029f1cf85a34bcc426cdaacb11502478848f650c82af8ed8bc112d4124"
+      },
+      "source_sha256": "7a4735e4716a37ee7febf534a9c8a093994b4f91324dfae0b2b04e65fd331572",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 27
+    },
+    {
+      "name": "gateway-sol-calibration-v1-candidate-5",
+      "task": "gateway",
+      "arm": "candidate",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/gateway-sol-calibration-v1-candidate-5/native-audit.json",
+        "sha256": "6b7d130167a42d8e9f324df936591e11d136da06fd68edcfd0c52631fc7dafad"
+      },
+      "source_sha256": "7d4a0f6b1c39330bb3537738237a17e0b83e4c86164985311f25ab8c28e0f941",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 24
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-1",
+      "task": "rendering",
+      "arm": "baseline",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/rendering-sol-calibration-v1-baseline-1/native-audit.json",
+        "sha256": "7329cc105e7f94d6ace09287b41c51b103b4810f0e4a131fe30cae0e0dfbaada"
+      },
+      "source_sha256": "79cc205be557f965dc7969d169a558574a00741fc08fa16ca38d57ecd7c51bf6",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 37
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-1",
+      "task": "rendering",
+      "arm": "candidate",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/rendering-sol-calibration-v1-candidate-1/native-audit.json",
+        "sha256": "ec70dff980304368e5302471921095ed038c60c3c21ea3cd41804efd89b84f9c"
+      },
+      "source_sha256": "0bfd844b8f20c37f2f849d91c37a8a5424feff7b13439b12e0572803cafd35e8",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 34
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-2",
+      "task": "rendering",
+      "arm": "baseline",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/rendering-sol-calibration-v1-baseline-2/native-audit.json",
+        "sha256": "1848fd0e34196fc42dbcaafb047db94a93e370aaf6ccc782a49c8af1f5742cfa"
+      },
+      "source_sha256": "c79ffd1c49e651f88ffe564534a0d29145b7e95bf708360e8ad52b66311f1cfd",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 37
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-2",
+      "task": "rendering",
+      "arm": "candidate",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/rendering-sol-calibration-v1-candidate-2/native-audit.json",
+        "sha256": "b476f101870b84fac795d31ab1341e5f224a73f9556893abe76065b3c3320664"
+      },
+      "source_sha256": "553a1cd74ca1cf37cb2d6a1ac55a7f2448f31cb93928680b33818d3ffe07b177",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 34
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-3",
+      "task": "rendering",
+      "arm": "baseline",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/rendering-sol-calibration-v1-baseline-3/native-audit.json",
+        "sha256": "c7e6550ca7755ff552177a3ddab5ed1030fcbea5bc0f6c3e655876c42e1c512c"
+      },
+      "source_sha256": "a65c848d6caff484ffdaa2ea2e28f7c6ab5d1ad9e58d728bf68c9444198e131a",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 37
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-3",
+      "task": "rendering",
+      "arm": "candidate",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/rendering-sol-calibration-v1-candidate-3/native-audit.json",
+        "sha256": "bd426e60005b98fff5a18b2afd4721d82b225c0b8c3579025b739520c1649c89"
+      },
+      "source_sha256": "d37da04e58ba5e7ce82636a7029099ee8fc0c7c1bc9d542ab26a0089bb10eb77",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 34
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-4",
+      "task": "rendering",
+      "arm": "baseline",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/rendering-sol-calibration-v1-baseline-4/native-audit.json",
+        "sha256": "ffaa8daf1396f19c839808ace64e034673e7b0da5dbb953d4f56ef52b09861fd"
+      },
+      "source_sha256": "7a8fc7832311514f8685c6f3d759750297a936b62e3ac5cec876bae6e3b8113d",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 37
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-4",
+      "task": "rendering",
+      "arm": "candidate",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/rendering-sol-calibration-v1-candidate-4/native-audit.json",
+        "sha256": "ea5ad4605638d9158136172d93b74106ad979a4d0a7bb6f35e51fac78d5bb0a4"
+      },
+      "source_sha256": "68053c2bcd7978513717108b60a3c5b4bc03ef1a4a91ba4d3320c02874f5d389",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 34
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-5",
+      "task": "rendering",
+      "arm": "baseline",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/rendering-sol-calibration-v1-baseline-5/native-audit.json",
+        "sha256": "87c2348f29abf9abcf99ddf9a04bd8e5344180b761c6c86a3a1b912517a049f0"
+      },
+      "source_sha256": "cd0f3ab1628f7f7722d87d095386e17097ed0a162ffe8f1d0a08df4bc61a9ac7",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 37
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-5",
+      "task": "rendering",
+      "arm": "candidate",
+      "status": "pass",
+      "audit": {
+        "path": "workflow-runs/rendering-sol-calibration-v1-candidate-5/native-audit.json",
+        "sha256": "936f9200c0839f62503116877da2d0437fdc3bdf4f1677a669e631e6f6cb99be"
+      },
+      "source_sha256": "1b2bcd1bf652f7223c660f544607c5f387339286ff30fa2910a15c1344ae9dd1",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "native_tool_calls": 34
+    }
+  ],
+  "common_context": [
+    [
+      "/Users/shftwst/.agents/AGENTS.md",
+      "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+    ]
+  ],
+  "native_base_instruction_sha256": "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518",
+  "observations": {
+    "gateway_execution_each_arm": {
+      "opus": "25/25",
+      "sol": "25/25"
+    },
+    "rendering_artifact_rubrics_each_arm": {
+      "opus": "45/45",
+      "sol": "45/45"
+    },
+    "rendering_assessed_decisions_each_arm": {
+      "opus": "100/100",
+      "sol": "100/100"
+    },
+    "manual_memoising_explanation_missing": {
+      "opus_baseline": 0,
+      "opus_candidate": 0,
+      "sol_baseline": 5,
+      "sol_candidate": 0
+    },
+    "source_fact_losses_or_invented_actions_in_reviewed_artifacts": 0
+  },
+  "limits": [
+    "Original Opus manual review read all 90 outputs and disclosed paragraph-density/style caveats. New review reads all 90 Sol outputs and 18 Opus spot-check artifacts; all 108 current hashes verified.",
+    "Correct rubric scores do not erase five Sol baseline explanation omissions. The original rubric was weaker than the manual plain-language criterion.",
+    "Provider base instructions and delivered operator guidance differ. Opus guidance 21,125 bytes versus GPT 22,605 bytes; shared paths are not proof of shared content.",
+    "Native transport, path reminders and rendering timeout differ across providers.",
+    "Gateway here executes entry cases only; its 85 separate policy decisions per arm were not repeated.",
+    "The original Sol audit used an Astra model expectation; corrected audits reuse identical raw captures, preserve initial failures, and alter only model/effort expectations.",
+    "No full caller workflows, provider independence, statistical equivalence, provider billing or general model substitution claim."
+  ]
+}

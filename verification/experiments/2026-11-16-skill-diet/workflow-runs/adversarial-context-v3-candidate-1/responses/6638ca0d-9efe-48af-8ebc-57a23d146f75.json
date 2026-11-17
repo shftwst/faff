@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "signal": null,
+    "stdout": "## Adversarial findings — openai/fixture-model (chain[0], host: config)\n\n### critical: Unvalidated removal in removeAccount\n\nLocation: src/store.js:2\nThe supplied account ID reaches deletion without the required ownership check.\nAction: Verify ownership before deleting the account.\ncarries: P1\n",
+    "stderr": "budget: backend openai/fixture-model: timeout 10s × ~6 worst-case (~60s) >= per-backend budget 12s (deadline 12s / 1 backends) — retries/truncation may be cut short; lower this backend's timeout or raise --deadline\nnormalized: findings header missing — prepended canonical provenance\n"
+  }
+}

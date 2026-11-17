@@ -1,0 +1,14 @@
+{
+  "status": "pending-paired-measurement",
+  "baseline_bytes": 9460,
+  "candidate_bytes": 8055,
+  "baseline_estimated_tokens": 2345,
+  "candidate_estimated_tokens": 2001,
+  "baseline_sha256": "cf2baaa0193e8f53a1a0ca792440ea471cdd0be5e49a6b320cca9d3b5fbaf58c",
+  "candidate_sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571",
+  "preserved_core_sha256": "b07b1062ccf33c6761e170d63e09aa00776c5b96971e40c29ea897482a1f57f2",
+  "preserved_standalone_sha256": "839aa9481e7f923069c226153ff793bd3e5b840c92432f7a705dce02f2940d21",
+  "fixed_context_sha256": "f6368ad0849bc2873a3b26c3b168ba0c0cd061c8118e9ccf1116a773052ac9ae",
+  "changed_scope": "Repeated role/shape explanations, output examples and level-gradient recap only. Whole Inputs, lens checklist, restraint, enrichment, slug algorithm, methodology consumption and severity/verdict sections unchanged.",
+  "mandatory_dependencies_added": []
+}

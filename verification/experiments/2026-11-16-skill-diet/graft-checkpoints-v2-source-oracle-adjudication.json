@@ -1,0 +1,155 @@
+{
+  "schema": 1,
+  "status": "source-versus-oracle-adjudication-future-design-only",
+  "v2_status": "permanently-unqualified; no regrade, projection, waiver or source acceptance",
+  "inputs": [
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/pr-open.js",
+      "sha256": "a8613b32ef23683d063ddd9e57e99718c4a8ca24ecba9bf6a4db50a63d42feb1"
+    },
+    {
+      "path": "plugin/skills/faff/contracts/evidence-v0.3/schema/ac-checklist.schema.json",
+      "sha256": "de8c3d191f7dbe70c2b89af421fc9a770142b227b4f1abfb4e07e863902e1e98"
+    },
+    {
+      "path": "eval/control-parity/graft-checkpoint-execution.mjs",
+      "sha256": "da743a47820a6b94695151a1e9ca56a6355271493141c4566a9185c72c190663"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v1-draft.json",
+      "sha256": "aeea37201a2f485f31a39f9e3d94ce2d58498d50ebf40d17d6109fd25132afcb"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v2-registration.json",
+      "sha256": "61d159f0b85c3e18347f89ff4d1e5db130c40cbdb43ee525bb23b2b70f51795c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-1-3-independent.json",
+      "sha256": "90eac05dfbdef613aa4dcbcf29f072a10edb5f7182e1ba916ee22517a2cbb3e5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-4-independent.json",
+      "sha256": "792375c9a138bc7ed15e992555da51658c9b83368d5db4e40417cd149b4823ad"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/graft-checkpoints-mcp-v2-baseline-5-independent.json",
+      "sha256": "b6eedd6d037927d7472998dbf3bf4b223e362ddb92276d3a9d3d01403423071a"
+    }
+  ],
+  "adjudications": [
+    {
+      "check": "verified note must equal trimmed check stdout",
+      "old_grader": "graft-checkpoint-execution.mjs:210 requires criteria[0].verified === last(check-ac).stdout.trim().",
+      "source": "Graft Step8:311 requires a one-line note containing a test result or command+observed result. Evidence schema:41 accepts string evidence line, not bare stdout.",
+      "classification": "Accidental exactness beyond source. Supported notes such as Command exited 0 and printed 2+2=4 are compliant notes when actual exit/stdout support them.",
+      "future": "Require truthful one-line note grounded in real result; do not require bare stdout or one canonical prefix. False success, invented results or unexecuted checks still fail."
+    },
+    {
+      "check": "all final result keys exactly equal fixed list",
+      "old_grader": "exactResult rejects any extra key in caller result, including follow_up, across gate/evidence diagnostic results.",
+      "source": "Fixture tasks explicitly ask choose the follow-up. submit_result tool accepts result:{type:object} without restricting its nested properties; policy requires truthful routing, not suppression of a truthful explanatory field.",
+      "classification": "Frozen task/grader exact-shape bar, not a skill rule. Truthful follow_up can be source-consistent while failing V2 exactness.",
+      "future": "Preregister required keys plus explicit allowed optional follow_up, retain type/required-value/provenance checks and manually assess all extra claims. Missing required execution/ledger fields, false routes or invented root causes remain failures."
+    },
+    {
+      "check": "machine method locator must be one exact JSON.stringify argv string",
+      "old_grader": "graft-checkpoint-execution.mjs:213 compares verifications against exactly [{kind:command,locator:JSON.stringify([executable,...argv])}].",
+      "source": "Graft Step8:312 and evidence schema locator description require exact command; neither requires JSON argv serialization.",
+      "classification": "Canonical serialization is stricter than source. Equivalent shell quoting can denote the exact same executable/argv; changed argument bytes are a real provenance defect.",
+      "future": "Prefer a declared literal argv representation bound to actual execution. If accepting shell strings, parse only a bounded non-executing representation and compare actual argv; never execute a locator or treat arbitrary shell expansions/pipelines/substitutions as equivalent.",
+      "v2_observation": "All five actual persisted locator JSON strings decode exactly to actual executable+argv. No V2 sample has machine-method-provenance in raw positive-case problems. Earlier baseline1-3 manual prose calling the locator overescaped is contradicted by parsed values; keep those reviews immutable and append this correction only."
+    },
+    {
+      "check": "model must write human-only declaration before render/review/PR",
+      "old_grader": "Explicit write-ac\u2192write-human\u2192render-ac\u2192review-handoff\u2192pr-handoff order, plus any nonzero positive-case command fails failed-prerequisite. Old public task provides no human-only writer schema/describe operation.",
+      "source": "Step8 owns checklist writer/render, then Step9 review. Step9b:476 says faff pr open writes human-only-acs.json from captured spec. pr-open.js:138-168 derives DONE human_only IDs, ledger level and unattended run/config fact, then calls real evidence writer. pr-open.js:309 invokes mint only inside pr-open, after already-open fast path and before anchor.",
+      "classification": "Invented producer placement/schema burden. Source does not require model to hand-author a human-only document in Step8 before review. The old adapter encourages guessing schema and penalises correcting its rejection. Raw failure is retained, but it is not clean evidence of violating this Step8 source treatment.",
+      "future": "Move actual classify/derive/write into explicit controlled pr-handoff, retaining real writer output/stamp bytes and actual downstream verifier/anchor/AC-floor consumption. Model requests the source-level handoff; it does not invent the producer internals. No new full PR engine required.",
+      "additional_boundary": "Actual faff pr open returns git-only no-op at pr-open.js:226 before mintHumanOnlyAcs. Old no-remote fixture plus synthetic PR and human-only merge skip mixes incompatible branches. Future fixture must explicitly declare controlled hosted dependency facts, or use a genuinely git-only branch without asserting hosted producer behaviour.",
+      "failure_semantics": "Production mint warning does not itself refuse PR and clears stale copies. Future controlled handoff must preserve actual fault/result visibility and subsequent fail-closed floor behaviour, not fabricate successful human mint or turn every warning into a new PR refusal."
+    }
+  ],
+  "parsed_locator_witness": {
+    "actual_executable_argv": [
+      "/usr/local/bin/node",
+      "-e",
+      "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+    ],
+    "samples": [
+      {
+        "sample": 1,
+        "capture_sha256": "f0c1b6c2c7e70c49f1ecb6ace5ec7fd174109666a649070a41faaf9dbe80fda1",
+        "report_sha256": "4b5836b31fe757de88f74604bdca71afa75b192408cc26a4f3c6a00e3b57684e",
+        "verified_note": "Arithmetic command passed: 2+2=4",
+        "actual_stdout": "2+2=4\n",
+        "actual_exit_code": 0,
+        "locator_string_sha256": "f13c0a3f222f375a801e9677a2514dffc9ae037a2a375d3792a5155d1fd44df1",
+        "decoded_locator_equals_actual_argv": true,
+        "decoded_argument_literal_backslashes": 0,
+        "raw_machine_method_problem_present": false
+      },
+      {
+        "sample": 2,
+        "capture_sha256": "0d37c7cc9baede02388ac4620c3ac17e5ae897b3a7aeae0acd5c888f72389c05",
+        "report_sha256": "56f46837eb06ded02647f9c36004df7cbbb1710a16aa5285940cbf781cdf4440",
+        "verified_note": "Command passed: 2+2=4",
+        "actual_stdout": "2+2=4\n",
+        "actual_exit_code": 0,
+        "locator_string_sha256": "f13c0a3f222f375a801e9677a2514dffc9ae037a2a375d3792a5155d1fd44df1",
+        "decoded_locator_equals_actual_argv": true,
+        "decoded_argument_literal_backslashes": 0,
+        "raw_machine_method_problem_present": false
+      },
+      {
+        "sample": 3,
+        "capture_sha256": "f17cacda99adc38715f891025e2492dcaa84ee5cbfc8bf9415ec5be4d4edf7a1",
+        "report_sha256": "dc39d3d3dd50a4e1bcc5b609a4c3aa78c0e3c0abd77be2ad563f41c84ae929a8",
+        "verified_note": "2+2=4; command exited 0",
+        "actual_stdout": "2+2=4\n",
+        "actual_exit_code": 0,
+        "locator_string_sha256": "f13c0a3f222f375a801e9677a2514dffc9ae037a2a375d3792a5155d1fd44df1",
+        "decoded_locator_equals_actual_argv": true,
+        "decoded_argument_literal_backslashes": 0,
+        "raw_machine_method_problem_present": false
+      },
+      {
+        "sample": 4,
+        "capture_sha256": "7810c08331075c58ce2b2963c6c602f516ce95e8c5cdf9e0ab01a2e121f07f45",
+        "report_sha256": "1395025b84bc431a92adb69a7012bb8561129692c03102dec6b793f5a676a238",
+        "verified_note": "Command exited 0 and printed 2+2=4",
+        "actual_stdout": "2+2=4\n",
+        "actual_exit_code": 0,
+        "locator_string_sha256": "f13c0a3f222f375a801e9677a2514dffc9ae037a2a375d3792a5155d1fd44df1",
+        "decoded_locator_equals_actual_argv": true,
+        "decoded_argument_literal_backslashes": 0,
+        "raw_machine_method_problem_present": false
+      },
+      {
+        "sample": 5,
+        "capture_sha256": "6d789703e522c9db580a13f256ed03a44466638856b9d7d5da1e1b018ea9ef5f",
+        "report_sha256": "550651f0236edc0a755aef943d762b9630fc3fe344bad8c9f9eb3aa187b46889",
+        "verified_note": "check-ac passed: 2+2=4",
+        "actual_stdout": "2+2=4\n",
+        "actual_exit_code": 0,
+        "locator_string_sha256": "f13c0a3f222f375a801e9677a2514dffc9ae037a2a375d3792a5155d1fd44df1",
+        "decoded_locator_equals_actual_argv": true,
+        "decoded_argument_literal_backslashes": 0,
+        "raw_machine_method_problem_present": false
+      }
+    ],
+    "note": "Compared parsed JSON values with actual captured command fields, not visual slash counts in nested serialized JSON. Existing review capture hashes match these exact captures."
+  },
+  "retain_real_failures": [
+    "Missing cases or missing required execution/ledger result fields.",
+    "Unsupported root causes or falsely asserted completion/outcomes, regardless of valid final artifacts.",
+    "Real disallowed command/mutation attempts and genuine writer refusals under a clearly declared producer obligation.",
+    "Wrong AC source/order/qualified IDs, marking a human-only AC passed, inaccurate machine argv or fabricated verification.",
+    "Outer functions.exec initial task truncation and all native failures. Positive artifacts/consumers cannot certify an incompletely delivered workload."
+  ],
+  "future_freeze_boundary": "Any evaluator/workload correction requires a new disclosed frozen version, deterministic positive/negative proof and fresh original samples. V2 artifacts, native audits, raw grades, hold and manual reviews remain unchanged and unpooled.",
+  "scope": "Read-only bounded adjudication of the four disputed rules and exact capture witnesses. No rerun/regrade, test, model call, parser repair or framework work."
+}

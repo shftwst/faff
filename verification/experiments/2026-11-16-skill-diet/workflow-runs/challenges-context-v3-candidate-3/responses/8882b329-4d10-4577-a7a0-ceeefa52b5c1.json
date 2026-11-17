@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "adr-2",
+      "outcome": "overturned",
+      "ground": null,
+      "reason": "The old decision is a security invariant: secrets come from environment variables only and are never written to .faff/. The new decision writes resolved API keys in plaintext to .faff/cache/credentials.json, which directly breaks that invariant. Being gitignored only covers the repo-commit path; it does not cover disk persistence after the session, backups, sandbox or cage mounts of .faff/, or log and artifact collection. The justification is a small per-call latency saving from reading process.env, which is an in-memory lookup; an in-process variable would give the same benefit without writing to disk. The why does not show the old rationale has stopped holding, so the supersession argument is unsound."
+    },
+    "calls": [
+      {
+        "args": [
+          "adr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--challenge",
+          "overturned"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"overturned\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge overturned — the adversarial reviewer found the supersession argument unsound\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": null,
+    "admission": {
+      "disposition": "reject",
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "challenge": {
+        "ran": true,
+        "outcome": "overturned"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "drift challenge overturned — the adversarial reviewer found the supersession argument unsound"
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

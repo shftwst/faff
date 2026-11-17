@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"provenance","value":{"model_text":"unknown","version_text":"unknown","omit_harness_model_segment":false,"include_full_spec_tracker_sentence":false,"stamp_directly_under_h1":true,"prep_adds_provenance_present":true,"harness_model_and_version_are_gate_inputs":false}}}

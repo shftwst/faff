@@ -1,0 +1,240 @@
+{
+  "status": "pass",
+  "manual_gate": "all6actual-artifacts-and15decisions-pass",
+  "real_consumption_gate": "6/6 contract outcomes, expected routes and6/6 unfounded mutation rejections pass",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-registration.json",
+      "sha256": "b1175b61f881c888527c30d3250b042906ee89ebad0bfa39d36dca5971861f95"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-candidate-policy.md",
+      "sha256": "a4355933299d216b77e4d5e8de8440628a9178dbe111756e38d210d1be749439"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/spec-review-producer.json",
+      "sha256": "c1b59e4f6f9355e3d447baaec14bed80d6a37d6ae61eb4df155e41ec39d51972"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-main-opus-v1-candidate-1/task.json",
+      "sha256": "650f2ce9feaf3a2c9e8244c3f642a1b9939f5506c705cd5804bb19d0a3b1e469"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-main-opus-v1-candidate-1/capture.json",
+      "sha256": "9815edee6a111a8c619e48c89e1eb50aa91a5b610ecb77b74c546a31c94ef948"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-main-opus-v1-candidate-1/report.json",
+      "sha256": "610ab3f86f15573c76adc768feb2e46933abe4de2e0ed0a803c3f82a2e32aaea"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/spec-review-main-opus-v1-candidate-1/manifest.json",
+      "sha256": "ae2977c5ace5433f2833ad65aa59523e3ea8db27e047d6e7ecac8e1d76a77398"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-candidate-consumption/summary.json",
+      "sha256": "b7c82478c2c41fd3d2b8fdb7a354bf4e3fa76519d30b946570b6ba042aac9f17"
+    }
+  ],
+  "cases": [
+    {
+      "id": "spec-verdict-001",
+      "status": "pass",
+      "artifact_sha256": "2e26c1fd5721fcff11a75d3f8cc2a17e4b7fbb8eeeadeb53c519624c39fda4b7",
+      "consumption_path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-candidate-consumption/spec-verdict-001/consumption.json",
+      "consumption_sha256": "247bcb7ce1c80d9b4d798e099918b0a56e9a78dda6e47c39f6cb3ea118743fb6",
+      "assessment": "Approve with no objection is supported by the opt-in rendering-only change and unchanged shared resolver; no unsupported architecture requirement or ordinary builder task is raised.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "spec-verdict-002",
+      "status": "pass",
+      "artifact_sha256": "25bab3a36e708bb3e45d1daf831c38ff831fbfca822e7d60ac0f07078e14114b",
+      "consumption_path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-candidate-consumption/spec-verdict-002/consumption.json",
+      "consumption_sha256": "a83c47a11a9d00106fa62c009257cc2d0650152f2e4efbb33f800dc3da75711e",
+      "assessment": "Architectural blocker cites the exact shared currentRoles singleton and explains a concrete interleaving consequence. This is a risk inherent in the stated request-shared design, not an invented repository fact. Raw ## HOW -> how; reject-approach -> prep.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "spec-verdict-003",
+      "status": "pass",
+      "artifact_sha256": "51674ae5a070cb8559e9a2872ddde6267a5b087b5272e84b6a7a1ba49c7aed9c",
+      "consumption_path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-candidate-consumption/spec-verdict-003/consumption.json",
+      "consumption_sha256": "0a800ded000e1fe29bcdb842fa7a6342e1eb54995931fe665db7a6029f93d6bd",
+      "assessment": "Infosec blocker cites unrestricted fetch(userUrl) and returned body. Link-local metadata and localhost admin addresses are explicitly illustrative targets (such as), not asserted deployed services. Predicted access is the attack consequence of the supplied unrestricted design; no additional careless implementation is assumed. Raw ## HOW -> how; blocker -> needs-human.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "qa-repo-file",
+      "status": "pass",
+      "artifact_sha256": "ff14515dedb25386b48574c02aef246a1398f456da8cbddef3f8e39725edc34c",
+      "consumption_path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-candidate-consumption/qa-repo-file/consumption.json",
+      "consumption_sha256": "50503eca212538f1b61405cca9378f800868100fc43051bc22c7210895b2e019",
+      "assessment": "QA blocker identifies the exact repository-file check the supplied code-blind holdout cannot execute. Restatement and moving the test-file check into DONE are explicitly required by policy. Unverified means unverified by that holdout; no claim of actual shipment. Raw ### Receipt date -> receipt-date; QA blocker -> revise.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "qa-no-observation",
+      "status": "pass",
+      "artifact_sha256": "30704f9759df43b96ea3133dba5568b324e70ee08e392c16848d464dedccc061",
+      "consumption_path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-candidate-consumption/qa-no-observation/consumption.json",
+      "consumption_sha256": "07fda09b64090d081b830618ce09cd944ac36b0a15dd3d618fa43a1b4240ca4e",
+      "assessment": "QA blocker identifies the exact scenario without an observable result. Incorrect displayed/omitted dates are examples drawn from the supplied HOW and DONE, not new requirements. The phrase still passes describes the vacuous scenario, not an observed execution or a claimed validator default. Raw ### Receipt date -> receipt-date; blocker -> revise.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "methodology-blocker",
+      "status": "pass",
+      "artifact_sha256": "e5f6304f740851f6d4d94808a82159b09ae248d4284dae1987048498ede07f37",
+      "consumption_path": "verification/experiments/2026-11-16-skill-diet/spec-review-main-opus-v1-candidate-consumption/methodology-blocker/consumption.json",
+      "consumption_sha256": "157590db215f59467a782d3bb89ee639dac63da096dfc71e0141199419d3e847",
+      "assessment": "Consumes the attached scope blocker, four concerns and token-issuance first slice without recomputing scope/value. Raw ## HOW -> how identifies the bundled approach; methodology blocker -> reject-approach -> plot.",
+      "unsupported_fields_or_facts": []
+    }
+  ],
+  "decisions": [
+    {
+      "id": "default-lenses",
+      "value": {
+        "lenses": [
+          "architectural",
+          "infosec",
+          "methodology",
+          "QA"
+        ]
+      },
+      "status": "pass",
+      "assessment": "No selected set uses all four in source order."
+    },
+    {
+      "id": "selected-lenses",
+      "value": {
+        "lenses": [
+          "infosec",
+          "QA"
+        ]
+      },
+      "status": "pass",
+      "assessment": "Explicit infosec/QA selection fires that exact set."
+    },
+    {
+      "id": "mandatory-lenses",
+      "value": {
+        "lenses": [
+          "infosec",
+          "QA"
+        ]
+      },
+      "status": "pass",
+      "assessment": "Infosec and QA mandatory at L1-L3."
+    },
+    {
+      "id": "methodology-missing",
+      "value": {
+        "recompute": false,
+        "objections": 0,
+        "note_gap": true
+      },
+      "status": "pass",
+      "assessment": "Missing critique means no recomputation, zero methodology objection and gap note."
+    },
+    {
+      "id": "worst-only",
+      "value": {
+        "maximum": 1
+      },
+      "status": "pass",
+      "assessment": "Worst finding only: maximum one per lens."
+    },
+    {
+      "id": "builder-choice",
+      "value": {
+        "verdict": "approve",
+        "objections": 0
+      },
+      "status": "pass",
+      "assessment": "Builder-settleable choice alone is approve without objections."
+    },
+    {
+      "id": "weak-consequence",
+      "value": {
+        "value": "not separately stated"
+      },
+      "status": "pass",
+      "assessment": "Exact weak consequence sentinel is not separately stated."
+    },
+    {
+      "id": "anchor",
+      "value": {
+        "anchor": "the-spec-anchor-field"
+      },
+      "status": "pass",
+      "assessment": "Raw backticks/underscore become hyphen runs: the-spec-anchor-field."
+    },
+    {
+      "id": "no-anchor",
+      "value": {
+        "omit_spec_anchor": true
+      },
+      "status": "pass",
+      "assessment": "Omit anchor entirely when no single section applies."
+    },
+    {
+      "id": "minor-only",
+      "value": {
+        "verdict": "revise"
+      },
+      "status": "pass",
+      "assessment": "Minor-only findings still require revise."
+    },
+    {
+      "id": "qa-blocker",
+      "value": {
+        "verdict": "revise"
+      },
+      "status": "pass",
+      "assessment": "QA blocker requires revise."
+    },
+    {
+      "id": "infosec-blocker",
+      "value": {
+        "verdict": "needs-human"
+      },
+      "status": "pass",
+      "assessment": "Infosec blocker requires needs-human."
+    },
+    {
+      "id": "founded",
+      "value": {
+        "allowed": false
+      },
+      "status": "pass",
+      "assessment": "Non-approve must be founded by at least one objection."
+    },
+    {
+      "id": "route-owner",
+      "value": {
+        "owner": "consumer"
+      },
+      "status": "pass",
+      "assessment": "Consumer owns prep versus plot route."
+    },
+    {
+      "id": "adversarial",
+      "value": {
+        "launches": false
+      },
+      "status": "pass",
+      "assessment": "Single-pass occupant does not launch adversarial refuters."
+    }
+  ],
+  "findings": [],
+  "method": "Independent reading of actual persisted bodies and answers against complete supplied case snapshots and applicable registered policy, including full spec-review source. Real consumption uses unchanged consumeSpecReviewArtifact with pinned runtime binding; no fixture/harness changes or substitute reference artifacts.",
+  "limits": [
+    "Native policy-delivery/model/guidance gate is owned separately by root; binding any existing native audit does not replace that check.",
+    "One candidate sample only; no statistical equivalence or overall qualification claim.",
+    "No prep loop, hosted tracker mutation, actual human escalation or L4 refuter execution.",
+    "No model calls, retries, source changes, regrading or waivers."
+  ],
+  "candidate_specific_assessment": "Both QA objections use blocker rather than baseline major. Policy allows QA blocker and mandates the same revise result, so this is not a roll-up violation. Concrete consequences remain tied to supplied scenario defects; no unsupported output fields."
+}

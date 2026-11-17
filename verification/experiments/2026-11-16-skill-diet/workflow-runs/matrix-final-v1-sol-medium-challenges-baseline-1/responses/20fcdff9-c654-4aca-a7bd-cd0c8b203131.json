@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "adr-2",
+      "outcome": "overturned",
+      "ground": null,
+      "reason": "Gitignore prevents ordinary tracking but does not prevent secrets being written to disk, read by other processes or retained in backups. The proposal breaks the explicit environment-only and no-.faff-secret constraints for a small latency benefit without establishing that their security rationale has changed. Session caching can remain in memory without persisting credentials. Offline same-provider-family calibration only."
+    },
+    "calls": [
+      {
+        "args": [
+          "adr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--challenge",
+          "overturned"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"overturned\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge overturned — the adversarial reviewer found the supersession argument unsound\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": null,
+    "admission": {
+      "disposition": "reject",
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "challenge": {
+        "ran": true,
+        "outcome": "overturned"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "drift challenge overturned — the adversarial reviewer found the supersession argument unsound"
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

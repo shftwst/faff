@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All four artifact cases and ten rule answers were recorded. Finish succeeded.\n\nOne departure: the first `write_output` command omitted the closing `FAFF_JSON` delimiter. The bridge confirmed the result was saved. No other departures occurred.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e636-2b8b-7411-a090-db3c0277488f"
+    ],
+    "elapsed_seconds": 218.0,
+    "stdout_sha256": "d591a54d8d06d57b4c6282bd470555c706b6d1cd9d0f1688ba5214e5ad880fae",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

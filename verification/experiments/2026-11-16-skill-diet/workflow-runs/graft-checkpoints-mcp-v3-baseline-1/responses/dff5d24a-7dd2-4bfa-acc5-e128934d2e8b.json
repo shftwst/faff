@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "evidence",
+      "write",
+      "ac-checklist",
+      "--run-dir",
+      "/var/tmp/graft-checkpoint-f6Zi2f/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+      "--issue",
+      "FAFF-9"
+    ],
+    "stdin": "{\"all_verified\":false,\"criteria\":[{\"ac\":\"the supplied arithmetic command MUST pass\",\"verified\":\"Command passed: 2+2=4\",\"passed\":true,\"ac_id\":\"faff-9#ac-1\",\"verifications\":[{\"kind\":\"command\",\"locator\":\"[\\\"/usr/local/bin/node\\\",\\\"-e\\\",\\\"if(2+2!==4)process.exit(1);console.log(\\\\\\\"2+2=4\\\\\\\")\\\"]\"}]},{\"ac\":\"Prices match the published pricing page\",\"verified\":\"Needs human verification: published pricing page has not been inspected\",\"passed\":false,\"ac_id\":\"faff-9#ac-2\",\"verifications\":[{\"kind\":\"human\"}]}]}",
+    "cwd": "/var/tmp/graft-checkpoint-f6Zi2f/dispatched-pass",
+    "exit_code": 0,
+    "stdout": "/var/tmp/graft-checkpoint-f6Zi2f/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/ac-checklist.json\n",
+    "stderr": "",
+    "error": null
+  }
+}

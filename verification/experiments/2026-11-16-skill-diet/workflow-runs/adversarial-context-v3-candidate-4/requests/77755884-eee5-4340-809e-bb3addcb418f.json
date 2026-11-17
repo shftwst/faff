@@ -1,0 +1,1 @@
+{"name":"run_command","args":{"case_id":"case-c","executable":"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff","args":["adversarial-backends","--consumer","code_review"],"stdout_path":"/tmp/faff-adversarial-workflow-e4Nvow/case-c/backends.json"}}

@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T02:48:02.459830+00:00",
+  "reviewer": "/root/verify_wtf_scope; independent bounded static source reviewer",
+  "status": "static_review_clear_unmeasured_uninstalled",
+  "bindings": {
+    "verification/experiments/2026-11-16-skill-diet/baseline/prep-review-orchestration-v1.md": {
+      "sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+      "bytes": 104335
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/prep-review-orchestration-v1-draft.md": {
+      "sha256": "e09b63dd8e3eaa078f324dd256f27769229d42a6571f71f007e5257698101cef",
+      "bytes": 93323
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/prep-review-orchestration-v2-draft.md": {
+      "sha256": "4f2643a23b17efbce1787ab3ec30de61feb56767542a708c2261a39205b2bea6",
+      "bytes": 93826
+    },
+    "verification/experiments/2026-11-16-skill-diet/independent-prep-review-orchestration-v1-source-review.json": {
+      "sha256": "bb0d30a47b7ef600c3548a8c8fcc6ed1b017ef795e79f84c3c12b78cbb8c24cd",
+      "bytes": 4972
+    },
+    "verification/experiments/2026-11-16-skill-diet/prep-review-orchestration-v2-source-draft.json": {
+      "sha256": "074ab8e82f9e37b615ff1e23e4fce2b532cdbf4c2709c69be37b7145fc493409",
+      "bytes": 2023
+    },
+    "plugin/skills/faff/bin/lib/validate-adapters.js": {
+      "sha256": "7a26ee73bdb254c03bc97bf4cf67db0620602cad40998a55d7234fd4eb4ffcb0",
+      "bytes": 131208
+    }
+  },
+  "scope": "Exact V1-to-V2 corrections only; unchanged semantic obligation matrix inherits the hash-bound V1 review.",
+  "verified": {
+    "exactly_two_replacements": true,
+    "original_park_causes_paragraph_restored_byte_for_byte": true,
+    "level_argument_restored_to_generic_placeholder": true,
+    "outside_two_regions_unchanged": true,
+    "protected_ratification_carry_reslice_judge_bytes_unchanged": true,
+    "validator_lines": 609,
+    "existing_prep_line_cap": 612,
+    "posture_anchors_retained": true,
+    "pure_enum_lint_findings": [],
+    "potential_bytes_saved": 10509,
+    "estimated_tokens_saved_from_source_record": 2591
+  },
+  "assessment": "Both V1 findings are resolved. Exact plot-refusal and judge cause values and their descriptions are restored, rather than inferred through an invalid pointer. The level placeholder avoids duplicating the full fixed enum while retaining the command and invalid-level refusal requirement. No further semantic change introduced by these corrections.",
+  "verification_method": "Read actual diff and verify exact string replacement equality; invoke existing pure lintInlineEnumRestatement on V2 text. No model calls, tests, integration or full repeated matrix audit.",
+  "remaining_requirements": [
+    "Freeze identical policy context and bounded workload with full source/runtime/helper bindings",
+    "Paired bounded behavioural measurement and fresh actual round/hold/ratified-scope/evidence replay with independent manual review",
+    "Full adapter lint, inventory and exact committed-source integration before installation or accepted savings"
+  ],
+  "limits": [
+    "V1 candidate and review remain preserved, including original findings.",
+    "Static clearance does not certify full lint, model parity, workflow execution or acceptance.",
+    "No source/helpers/fixtures edited; only this review record written."
+  ]
+}

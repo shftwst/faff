@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "adr-unavailable",
+      "outcome": "absent",
+      "ground": null,
+      "reason": "No independent opinion is available: the provider attempt was exhausted after its fallback chain (opinion_available=false). Per the ADR drift policy, an unreachable or unanswered challenge is the absent outcome, which rejects. It is not converted to survived, and no judgement of the supersession argument is substituted for the missing skeptic."
+    },
+    "calls": [
+      {
+        "args": [
+          "adr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":false,\"outcome\":\"absent\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": null,
+    "admission": {
+      "disposition": "reject",
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "challenge": {
+        "ran": false,
+        "outcome": "absent"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "drift challenge absent — no adversarial review ran, or it was unreachable after its fallback chain; a missing skeptic is a reject, never a pass"
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

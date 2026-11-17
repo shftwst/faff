@@ -1,0 +1,1 @@
+ISS-CC: Record each request's cached-input token count, `cache_read_input_tokens`, in the eval harness.

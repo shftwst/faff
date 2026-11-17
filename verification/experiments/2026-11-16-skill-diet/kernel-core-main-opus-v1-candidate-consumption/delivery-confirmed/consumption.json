@@ -1,0 +1,61 @@
+{
+  "case_id": "delivery-confirmed",
+  "artifact": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-candidate-1/artifacts/delivery-confirmed.md",
+  "artifact_sha256": "6c654855a3364433ba549813707b2f2b3af2a34ab093759f8fd4e0c9c2b7c9ef",
+  "producer_input": {
+    "outcome": "shipped",
+    "reason": "Merged and deployed; native result confirms head abc123.",
+    "corroborated": true
+  },
+  "expected_input": {
+    "outcome": "shipped",
+    "corroborated": true
+  },
+  "input_matches_registered_expectations": true,
+  "prohibited_fields": [],
+  "consumer_additions": {},
+  "positive": {
+    "argv": [
+      "node",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "delivery-outcome"
+    ],
+    "stdin": "{\"outcome\": \"shipped\", \"reason\": \"Merged and deployed; native result confirms head abc123.\", \"corroborated\": true}",
+    "exit_code": 0,
+    "stdout": "{\"outcome\":\"shipped\",\"reason\":\"Merged and deployed; native result confirms head abc123.\",\"conformant\":true,\"violations\":[]}\n",
+    "stderr": "",
+    "value": {
+      "outcome": "shipped",
+      "reason": "Merged and deployed; native result confirms head abc123.",
+      "conformant": true,
+      "violations": []
+    }
+  },
+  "negative": {
+    "argv": [
+      "node",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "delivery-outcome"
+    ],
+    "stdin": "{\"outcome\": \"shipped\", \"corroborated\": false}",
+    "exit_code": 1,
+    "stdout": "{\"outcome\":\"failed\",\"reason\":\"unconfirmed merge/deploy\",\"conformant\":false,\"violations\":[\"shipped is not corroborated by the producer's result \u2014 coerced to failed\"]}\n",
+    "stderr": "",
+    "value": {
+      "outcome": "failed",
+      "reason": "unconfirmed merge/deploy",
+      "conformant": false,
+      "violations": [
+        "shipped is not corroborated by the producer's result \u2014 coerced to failed"
+      ]
+    }
+  },
+  "positive_pass": true,
+  "negative_pass": true,
+  "status": "pass",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture_sha256": "b8af47373da31ac4a57ceaa3ff713676f95ade0fc80928c4cb329bd66397a971",
+  "plan_sha256": "8a5b19232e925c6db7e049cb3fd6406a8f9b6ab171131c8541abc3daf811f594"
+}

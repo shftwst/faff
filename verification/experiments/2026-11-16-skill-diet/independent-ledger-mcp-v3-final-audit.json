@@ -1,0 +1,389 @@
+{
+  "schema": 1,
+  "status": "pass-independent-final-bounded-ledger-audit",
+  "accepted_qualification_verified": true,
+  "source_commit": "0188ce71c3c1b4262b31fda5f143e871143ae570",
+  "source_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-final-qualification.json",
+      "sha256": "46f2b73ad6f530e60b1a38b2d971ca17b38968d161ff580e5341612ff4896cad"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-measurement-qualification.json",
+      "sha256": "3a732c51f2150cfa65eb0bb8b1233a7b0c161c566eb4af607e5652eb99d68407"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-main-integration.json",
+      "sha256": "f62eac8d6187e36943235dcde741733b3d58d6a8fb4485fcca26fe25dadafb8a"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/qualify-ledger-mcp-v3.mjs",
+      "sha256": "b42c1f4c4c0fa902bde0ba63b2d21e7273830d352a58cf4c3fb062fe8f1cc61e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/check-ledger-mcp-main-v3.py",
+      "sha256": "e5e66072d49b1af2a80ab0512d7ed4870191f4548cb29d5466752e02c0bbd0a9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/verify-ledger-mcp-arm-v3.mjs",
+      "sha256": "a58912d0020415548d3f8120127db37c9f9daeccd1e668b6bfe12ef370682d15"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/replay-ledger-consumers-v1.mjs",
+      "sha256": "76a997257b184955688a121bb8b812f917b8a2ae5d4f2aa7eba3c50cefd15c23"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-baseline-gate.json",
+      "sha256": "53f912adee2a6665a97d9556cd621854a7b417069b7b1732bc0680f2493801ef"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-candidate-gate.json",
+      "sha256": "a0f327dc9cee3d40ae98fa7a339bead509bd0985255d2c013ac5d1cf723ffbc1"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-registration.json",
+      "sha256": "a5203180236b372c043a5df4f7fa9b77bb30c5a6a46b2b53b9a2f910732b76b8"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-baseline-plan.json",
+      "sha256": "327f78ed794ccdad62b8f4f2c1d20ae85d107c58389ad12728c40acd9ef8186c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-candidate-plan.json",
+      "sha256": "0678f6f9450366c71a6cf137cf01f01a3c571642382fc57bca923e700b2eadb4"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-source-review.json",
+      "sha256": "cdd3220bf17bba29f3dfc61c695429b7050518673b6871667bc9e38028a58a87"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-integration.json",
+      "sha256": "272598d65ebe9f33bc128a160237cf43e980a0fa1951e9c80ec19701da8db5bf"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v2-source-review.json",
+      "sha256": "fe1c5d99523ec12f8f705e11a6f395171fb7f23c6b10ad1d142664b079ed86b3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-ledger-mcp-v3-qualification-review.json",
+      "sha256": "fd5708b7c292e4d2bac7e2a3d338620e77531d5850cc7b9e8e4c88980642f289"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/beep-ledger-mcp-v3-baseline-independent.json",
+      "sha256": "3ea8c3e2ec826af2757fbdcdae4a6442c5412e5bdbd29830f459fbc62323ef10"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/beep-ledger-mcp-v3-candidate-independent.json",
+      "sha256": "897a95916c75f20aeb2ff37a35f3dda5142ca03196a3ae9ca00e4ee5a4551901"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v1-hold.json",
+      "sha256": "d94e96d28716c20de3cf54c0fa878223ddbb64a30e08e80230e87b66d9985d67"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v2-hold.json",
+      "sha256": "eebc2badb42025b72386ae5bb580c150ff81307eba317c8ecbb989892c99f74e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger.json",
+      "sha256": "343be2bca8d0d721f95996a9a45cabc9cd33214fe99347987edad7f5af0b143b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/sizes.json",
+      "sha256": "f2b8aa9eed90a7b9a0e0c59cd537b81532ac5bf80ca9df6347b58a86fd6dfacd"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/loads.json",
+      "sha256": "3a2929ad03b41cdd94fd2deb4b349b4cd47d1d9f688fb5da9b90682df8e14bee"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/load-manifest.json",
+      "sha256": "10f16e936d2fb7332318bea57503965e4e8ca1f5ea0b5425f7dc12646e7b1f5d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-after-source.json",
+      "sha256": "aa9c261470ba339d3b91c83627568e9fa1db686f16bf668691cce6ef2499b2af"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-after-loads.json",
+      "sha256": "5a696ebdf96c387f9721b32c785729e77dd0c377a0400725ba37a4c4db7f3eb3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-mcp-v3-main-tests.txt",
+      "sha256": "7db3606008eba4da53d2b8a276f0824de59b4c1ffcdd742285c71247a0456d4e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-mcp-v3-main-adapter-lint.txt",
+      "sha256": "fe64e7c7e129f03531e7a640d40ec41fe5b9434e6d7caf7c54e3d980fac79994"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-mcp-v3-main-rule-inventory.txt",
+      "sha256": "7b9af22f72b98f92170bfa8358000c34b1db0e6595d7208730fb603a99ca090e"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe"
+    }
+  ],
+  "fresh_qualification_replay": {
+    "status": "pass",
+    "exact_match": true,
+    "accepted": true,
+    "inputs": 1659,
+    "source_commit": "0188ce71c3c1b4262b31fda5f143e871143ae570"
+  },
+  "complete_pair": {
+    "model": "gpt-6-astra",
+    "effort": "medium",
+    "samples_per_arm": 5,
+    "execution_cases_per_arm": 15,
+    "decisions_per_arm": 55,
+    "native_passes_per_arm": 5,
+    "manual_execution_cases_per_arm": 15,
+    "manual_decisions_per_arm": 55,
+    "restored_consumer_samples_per_arm": 5,
+    "extra_detail_claims_per_arm": 0,
+    "all_1659_qualifier_input_hashes_guarded": true,
+    "method": "Invoked qualifyLedger in memory at unchanged installed HEAD. Fresh verifyLedgerArm results, native audit replay, raw grade replay, independent manual bindings and actual restored CLI/summary consumers exactly match final saved qualification after the sole registered runcheck.run_dir relocation."
+  },
+  "integration": {
+    "recorded_main_checks": "Exact commands, six test-source hashes, checker hash and all original log hashes verified by fresh qualifier. Original TAP requires181 tests/pass and0 fail.",
+    "independent_rerun_checks": [
+      {
+        "check": "tests",
+        "command": [
+          "node",
+          "--test",
+          "--test-concurrency=4",
+          "test/control-parity-ledger.test.mjs",
+          "test/control-parity-ledger-v2.test.mjs",
+          "test/control-parity-ledger-replay.test.mjs",
+          "test/run-summary.test.mjs",
+          "test/run-ledger-serialiser.test.mjs",
+          "test/events.test.mjs"
+        ],
+        "exit_code": 0,
+        "path": "/tmp/faff-independent-ledger-final-tests.txt",
+        "sha256": "bd2d3f54504c3296c3bea4ba8a6518428ac8a5b9e63f6b06c3bee4ecc9726e36"
+      },
+      {
+        "check": "adapter-lint",
+        "command": [
+          "node",
+          "plugin/skills/faff/bin/faff",
+          "validate-adapters"
+        ],
+        "exit_code": 0,
+        "path": "/tmp/faff-independent-ledger-final-adapter-lint.txt",
+        "sha256": "fe64e7c7e129f03531e7a640d40ec41fe5b9434e6d7caf7c54e3d980fac79994"
+      },
+      {
+        "check": "rule-inventory",
+        "command": [
+          "node",
+          "plugin/skills/faff/bin/faff",
+          "rule-inventory",
+          "check",
+          "--base",
+          "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+          "--json"
+        ],
+        "exit_code": 0,
+        "path": "/tmp/faff-independent-ledger-final-rule-inventory.txt",
+        "sha256": "7b9af22f72b98f92170bfa8358000c34b1db0e6595d7208730fb603a99ca090e"
+      }
+    ],
+    "independent_tests_passed": 181,
+    "independent_tests_failed": 0,
+    "private_integration_verified": true,
+    "installed_commit_paths": [
+      "plugin/skills/faff-beep-boop/SKILL.md",
+      "plugin/skills/faff/prose-baseline.json",
+      "records/specs/2026-11-16-skill-diet-beep-ledger-design.md"
+    ],
+    "prose_baseline_change": "Only faff-beep-boop/SKILL.md allowance changed156107 to149485; all other parsed allowance data unchanged.",
+    "signed_off_by_present": true,
+    "plugin_clean": true
+  },
+  "accounting": {
+    "status": "pass",
+    "head": "0188ce71c3c1b4262b31fda5f143e871143ae570",
+    "files": 41,
+    "body_reference_cuts": 12,
+    "descriptions": 26,
+    "slices": 13,
+    "increment": {
+      "bytes": 6622,
+      "estimated_tokens": 1625
+    },
+    "source_totals": {
+      "bytes": 1252184,
+      "tokens": 310411
+    },
+    "savings": {
+      "bytes": 117251,
+      "estimated_tokens": 28868
+    },
+    "load_sets": [
+      {
+        "name": "faff",
+        "files": [
+          "plugin/skills/faff/SKILL.md"
+        ],
+        "bytes": 5832,
+        "estimated_tokens": 1458
+      },
+      {
+        "name": "faff-beep-boop",
+        "files": [
+          "plugin/skills/faff-beep-boop/SKILL.md",
+          "plugin/skills/faff/references/kernel.md",
+          "plugin/skills/faff/references/build.md",
+          "plugin/skills/faff/references/tracker.md",
+          "plugin/skills/faff/references/autonomous.md",
+          "plugin/skills/faff/references/methodology.md",
+          "plugin/skills/faff/references/l4.md",
+          "plugin/skills/faff/references/park.md"
+        ],
+        "bytes": 385504,
+        "estimated_tokens": 95579
+      },
+      {
+        "name": "faff-graft",
+        "files": [
+          "plugin/skills/faff-graft/SKILL.md",
+          "plugin/skills/faff/references/kernel.md",
+          "plugin/skills/faff/references/build.md",
+          "plugin/skills/faff/references/tracker.md",
+          "plugin/skills/faff/references/autonomous.md",
+          "plugin/skills/faff/references/review.md",
+          "plugin/skills/faff/references/methodology.md",
+          "plugin/skills/faff/references/l4.md",
+          "plugin/skills/faff/references/park.md"
+        ],
+        "bytes": 419552,
+        "estimated_tokens": 104031
+      },
+      {
+        "name": "faff-jot",
+        "files": [
+          "plugin/skills/faff-jot/SKILL.md",
+          "plugin/skills/faff/references/kernel.md",
+          "plugin/skills/faff/references/tracker.md",
+          "plugin/skills/faff/references/autonomous.md",
+          "plugin/skills/faff/references/methodology.md",
+          "plugin/skills/faff/references/create.md"
+        ],
+        "bytes": 215544,
+        "estimated_tokens": 53427
+      },
+      {
+        "name": "faff-map",
+        "files": [
+          "plugin/skills/faff-map/SKILL.md",
+          "plugin/skills/faff/references/kernel.md",
+          "plugin/skills/faff/references/tracker.md",
+          "plugin/skills/faff/references/methodology.md"
+        ],
+        "bytes": 168245,
+        "estimated_tokens": 41617
+      },
+      {
+        "name": "faff-onboard",
+        "files": [
+          "plugin/skills/faff-onboard/SKILL.md",
+          "plugin/skills/faff/references/kernel.md",
+          "plugin/skills/faff/references/tracker.md"
+        ],
+        "bytes": 131296,
+        "estimated_tokens": 32548
+      },
+      {
+        "name": "faff-plot",
+        "files": [
+          "plugin/skills/faff-plot/SKILL.md",
+          "plugin/skills/faff/references/kernel.md",
+          "plugin/skills/faff/references/tracker.md",
+          "plugin/skills/faff/references/autonomous.md",
+          "plugin/skills/faff/references/methodology.md",
+          "plugin/skills/faff/references/create.md",
+          "plugin/skills/faff/references/park.md"
+        ],
+        "bytes": 252287,
+        "estimated_tokens": 62512
+      },
+      {
+        "name": "faff-prep",
+        "files": [
+          "plugin/skills/faff-prep/SKILL.md",
+          "plugin/skills/faff/references/kernel.md",
+          "plugin/skills/faff/references/tracker.md",
+          "plugin/skills/faff/references/autonomous.md",
+          "plugin/skills/faff/references/methodology.md",
+          "plugin/skills/faff/references/review.md",
+          "plugin/skills/faff/references/park.md"
+        ],
+        "bytes": 306653,
+        "estimated_tokens": 76054
+      },
+      {
+        "name": "faff-tidy",
+        "files": [
+          "plugin/skills/faff-tidy/SKILL.md",
+          "plugin/skills/faff/references/kernel.md",
+          "plugin/skills/faff/references/build.md",
+          "plugin/skills/faff/references/tracker.md",
+          "plugin/skills/faff/references/autonomous.md",
+          "plugin/skills/faff/references/methodology.md",
+          "plugin/skills/faff/references/park.md"
+        ],
+        "bytes": 285670,
+        "estimated_tokens": 70806
+      },
+      {
+        "name": "faff-wtf",
+        "files": [
+          "plugin/skills/faff-wtf/SKILL.md",
+          "plugin/skills/faff/references/kernel.md",
+          "plugin/skills/faff/references/tracker.md",
+          "plugin/skills/faff/references/methodology.md"
+        ],
+        "bytes": 170862,
+        "estimated_tokens": 42363
+      }
+    ],
+    "ledger_chain_exact": true,
+    "single_skill_plus_exact_prose_allowance_and_design_record_commit": true,
+    "held_failures": [
+      {
+        "version": 1,
+        "report_status": "fail",
+        "all_hold_file_hashes_match": true,
+        "binding": {
+          "path": "beep-ledger-mcp-v1-hold.json",
+          "sha256": "d94e96d28716c20de3cf54c0fa878223ddbb64a30e08e80230e87b66d9985d67"
+        }
+      },
+      {
+        "version": 2,
+        "report_status": "fail",
+        "all_hold_file_hashes_match": true,
+        "binding": {
+          "path": "beep-ledger-mcp-v2-hold.json",
+          "sha256": "eebc2badb42025b72386ae5bb580c150ff81307eba317c8ecbb989892c99f74e"
+        }
+      }
+    ]
+  },
+  "held_failures_excluded": true,
+  "scope_limits": [
+    "This is a provenance, gate replay, installed integration and accounting audit. The separate independent manual reviewer read all actual ledger outputs and decisions; this audit verifies that exact completed coverage and its bound sources rather than claiming a second full semantic reread.",
+    "Qualification covers the three registered execution cases and eleven bounded decisions per sample, with controlled dependency observations and restored real consumer states. It does not establish a full unattended loop, actual review/landing/filing, hosted publication or model-run lifecycle proof.",
+    "Original Sol V1/V2 failed reports and native evidence remain held and unpooled. Their bound hashes match hold records and neither savings nor model passes are counted from them.",
+    "Thirteen accounting slices comprise twelve body/reference cuts and one catalogue slice containing26 descriptions. An exact chronological per-file hash/size/token chain from original baseline to current source prevents description or repeated-file double counting.",
+    "All41 committed and working source files match current snapshot. No held draft is installed beyond the specifically qualified exact candidate. Ten load sets count unique declared files per set; sets are not summed across entries.",
+    "Source token estimates use ceil(UTF-16 code units/4) per file. They are not provider billing or statistical equivalence measurements. Opus confirmation remains pending."
+  ],
+  "blockers": []
+}

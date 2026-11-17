@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "{\"controlled\":true,\"pr\":{\"number\":11,\"state\":\"OPEN\",\"draft\":false,\"controlled\":true}}\n",
+    "stderr": "",
+    "error": null
+  }
+}

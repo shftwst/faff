@@ -1,0 +1,63 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 5,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 7885,
+    "utf16_characters": 7885,
+    "sha256": "2cfe6dc0746cfaa3d493d8c656ab0501c03e72b1331c1ca8e7ff76b0fd116e66",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6000,
+        "sha256": "06ecdf2e030eab96deb7d53c8dad94d82d9a032c67b461b68123180f3b77b683"
+      },
+      {
+        "offset": 6000,
+        "end": 7885,
+        "characters": 1885,
+        "bytes": 1885,
+        "sha256": "87d85896d084cd691c1eb9d10aabef30771b2d0c619cd0cf6c19f932ee0508ab"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "literal",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "cost",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "cost": 1.25
+        }
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Structured transport pilot only. No skill fidelity or source savings claim.",
+  "accounting": "unmetered"
+}

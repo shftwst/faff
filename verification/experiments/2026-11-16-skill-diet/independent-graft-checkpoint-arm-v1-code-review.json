@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "status": "code-review-clear-pending-registration-prelaunch-bindings",
+  "accepted": false,
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/verify-graft-checkpoint-arm-v1.mjs",
+      "sha256": "99ebf35c8b8bc3b004b36ce90713b7e98b5e139c4959f0bafe47168513a2c4e9"
+    },
+    {
+      "path": "eval/control-parity/graft-checkpoint-execution.mjs",
+      "sha256": "da743a47820a6b94695151a1e9ca56a6355271493141c4566a9185c72c190663"
+    },
+    {
+      "path": "eval/control-parity/codex-mcp-native-audit.mjs",
+      "sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0"
+    },
+    {
+      "path": "eval/control-parity/candidate-command.mjs",
+      "sha256": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution-v2.mjs",
+      "sha256": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180"
+    }
+  ],
+  "resolved_gaps": [
+    "Exact registered pair plan paths and selected hash, supported Sol-medium/V5 identity, arm-specific5 original sample names, fixed8 execution+6 rule IDs and7 manual criteria now required.",
+    "Required helper/context/fixture/runner/checker entries must exist in frozen_hashes. Each selected policy is exact arm path and frozen. Full transitive closure and8-ref policy construction still require plan/registration prelaunch review.",
+    "Runner and harness source hashes, exact full harness argv/runtime/policy/fixture/sample directory, arm/plan/model/effort and successful exit now bound. Runtime snapshot equals fresh clean pinned binding.",
+    "Native audit requires exact9 evidence keys, current auditor hash, unique persisted native source hash and exact fresh audit replay equality. Saved pass status alone cannot qualify.",
+    "All sampled JSON/JSONL/TXT evidence and raw native file hashes are guarded, collision-checked and rehashed after the last sample. Frozen inputs/plan/manual/checker are also guarded and runtime asserts unchanged at end.",
+    "Manual binds exact8 per-sample evidence files including full capture and consumers, every actual case/rule and criterion with pass/rationale, plus accepted independent ledger detail grounding helper."
+  ],
+  "checks": {
+    "node_syntax_check_exit_code": 0,
+    "new_models_or_workers": 0,
+    "full_arm_gate_executed": false,
+    "new_mutation_tests_run": false
+  },
+  "consumer_boundary": "Original harness executes actual CLI/handler consumers on produced artifacts and binds their captured outputs. This arm gate freshly grades those saved captures and replays native attribution; it does not claim a second restored real-consumer replay.",
+  "remaining_prelaunch_checks": [
+    "Check exact forthcoming registration/plan hashes, source/runtime parity, whole-policy construction from same8 references, both arm source hashes and full transitive frozen input closure.",
+    "Require frozen sample execution/stop/launch rules and registered limitations; candidate launch remains externally conditional on complete passing baseline gate.",
+    "Review actual completed samples manually before arm qualification; this source-code review supplies no sample pass."
+  ],
+  "limits": [
+    "No remaining concrete acceptance loophole identified in reviewed updated code, conditional on the registration/policy closure checks above.",
+    "This is bounded code review and syntax check, not complete fixture/harness semantic review or mutation-test coverage.",
+    "No source installation, measurement qualification, model call or new consumer framework."
+  ]
+}

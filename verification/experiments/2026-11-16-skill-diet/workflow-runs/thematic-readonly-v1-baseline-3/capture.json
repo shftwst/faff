@@ -1,0 +1,863 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "submit_output",
+      "args": {
+        "case_id": "core-order",
+        "value": [
+          "A",
+          "B",
+          "C",
+          "F",
+          "D",
+          "E"
+        ]
+      },
+      "case_id": "core-order",
+      "result": {
+        "persisted": true,
+        "sha256": "517bbaee01b5a93ea820f06f369f607e8b0456ef8cb8ff5b38e93cf267d3b658",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 2,
+      "name": "submit_output",
+      "args": {
+        "case_id": "no-distance",
+        "value": [
+          "H",
+          "B",
+          "N",
+          "C",
+          "T"
+        ]
+      },
+      "case_id": "no-distance",
+      "result": {
+        "persisted": true,
+        "sha256": "75acbffd496d018fd931cb6ce99b8cb1db54f852c5bd58648caea353d4ae0f82",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 3,
+      "name": "submit_output",
+      "args": {
+        "case_id": "within-band-distance",
+        "value": [
+          "H",
+          "C",
+          "N",
+          "B",
+          "T"
+        ]
+      },
+      "case_id": "within-band-distance",
+      "result": {
+        "persisted": true,
+        "sha256": "baf40b5a128de33280520177098c863ea46a1fefac45a5aeee4e70e41046b220",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 4,
+      "name": "submit_output",
+      "args": {
+        "case_id": "promote-ready",
+        "value": "promote"
+      },
+      "case_id": "promote-ready",
+      "result": {
+        "persisted": true,
+        "sha256": "999ddf1706d2fd1baa2b63f29d508a68118da7d6ad3127199b3a9d4435b30a56",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 5,
+      "name": "submit_output",
+      "args": {
+        "case_id": "hold-description-only",
+        "value": "hold"
+      },
+      "case_id": "hold-description-only",
+      "result": {
+        "persisted": true,
+        "sha256": "59110acbdaf235381e072b96f8f9f6dee13c4e15c8fba55fe32e21a4fdd97ebf",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 6,
+      "name": "submit_output",
+      "args": {
+        "case_id": "hold-punt",
+        "value": "hold"
+      },
+      "case_id": "hold-punt",
+      "result": {
+        "persisted": true,
+        "sha256": "59110acbdaf235381e072b96f8f9f6dee13c4e15c8fba55fe32e21a4fdd97ebf",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 7,
+      "name": "submit_output",
+      "args": {
+        "case_id": "hold-false-assumption",
+        "value": "hold"
+      },
+      "case_id": "hold-false-assumption",
+      "result": {
+        "persisted": true,
+        "sha256": "59110acbdaf235381e072b96f8f9f6dee13c4e15c8fba55fe32e21a4fdd97ebf",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 8,
+      "name": "submit_output",
+      "args": {
+        "case_id": "demote-challenged",
+        "value": "demote"
+      },
+      "case_id": "demote-challenged",
+      "result": {
+        "persisted": true,
+        "sha256": "a35d28d0b049323b6311cf5fc7d3264b75fe1c1c13df890c931d823c5c397d42",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 9,
+      "name": "submit_output",
+      "args": {
+        "case_id": "demote-repeat-parked",
+        "value": "demote"
+      },
+      "case_id": "demote-repeat-parked",
+      "result": {
+        "persisted": true,
+        "sha256": "a35d28d0b049323b6311cf5fc7d3264b75fe1c1c13df890c931d823c5c397d42",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 10,
+      "name": "submit_output",
+      "args": {
+        "case_id": "shape-unitary",
+        "value": {
+          "containers": [],
+          "tickets": [
+            {
+              "title": "Add login rate limiting",
+              "description": "Cap how often login requests are accepted.\n\nOpen questions:\n- Which limit should apply?",
+              "container": "Authentication",
+              "status": "Backlog",
+              "blocked_by": []
+            }
+          ],
+          "needs_discovery": false
+        }
+      },
+      "case_id": "shape-unitary",
+      "result": {
+        "persisted": true,
+        "sha256": "4f9393dd9e89361ecd7cf74d3021f0edc7b5af3d24f9759d2631a3bb98fc1103",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 11,
+      "name": "submit_output",
+      "args": {
+        "case_id": "shape-split",
+        "value": {
+          "containers": [],
+          "tickets": [
+            {
+              "title": "Validate session tokens",
+              "description": "Validate session tokens as part of keeping sessions valid.",
+              "container": "Authentication",
+              "status": "Backlog",
+              "blocked_by": []
+            },
+            {
+              "title": "Refresh expired sessions",
+              "description": "Refresh expired sessions as part of keeping sessions valid. Depends on session token validation.",
+              "container": "Authentication",
+              "status": "Backlog",
+              "blocked_by": [
+                "Validate session tokens"
+              ]
+            }
+          ],
+          "needs_discovery": false
+        }
+      },
+      "case_id": "shape-split",
+      "result": {
+        "persisted": true,
+        "sha256": "d4c3e0fcd380094a2cc661741027999857d753efbb161e9f851bace71ffcc47a",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 12,
+      "name": "submit_output",
+      "args": {
+        "case_id": "shape-thin-branch",
+        "value": {
+          "containers": [],
+          "tickets": [],
+          "needs_discovery": true
+        }
+      },
+      "case_id": "shape-thin-branch",
+      "result": {
+        "persisted": true,
+        "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 13,
+      "name": "submit_output",
+      "args": {
+        "case_id": "horizons",
+        "value": {
+          "A": "Now",
+          "B": "Next",
+          "C": "Later"
+        }
+      },
+      "case_id": "horizons",
+      "result": {
+        "persisted": true,
+        "sha256": "9e2e9518df910531bc505d991dac8599658c86d52aa2be2415891332f8b5a3b1",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 14,
+      "name": "submit_output",
+      "args": {
+        "case_id": "optional-critique",
+        "value": "unanswered"
+      },
+      "case_id": "optional-critique",
+      "result": {
+        "persisted": true,
+        "sha256": "52f3fa3f6e165d2aac3e072b26c40d2f45f1b157c2a2cc741d564321a198cc2a",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 15,
+      "name": "submit_output",
+      "args": {
+        "case_id": "empty-rehome",
+        "value": []
+      },
+      "case_id": "empty-rehome",
+      "result": {
+        "persisted": true,
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 16,
+      "name": "submit_output",
+      "args": {
+        "case_id": "termination-policy",
+        "value": {
+          "ladder": [
+            {
+              "test": "non-convergence",
+              "verdict": "escalate"
+            },
+            {
+              "test": "budget-narrow",
+              "verdict": "continue"
+            },
+            {
+              "test": "budget-stop",
+              "verdict": "run-complete"
+            },
+            {
+              "test": "value-inflection",
+              "verdict": "run-complete"
+            },
+            {
+              "test": "work-remaining",
+              "verdict": "continue"
+            },
+            {
+              "test": "clean-complete",
+              "verdict": "run-complete"
+            }
+          ]
+        }
+      },
+      "case_id": "termination-policy",
+      "result": {
+        "persisted": true,
+        "sha256": "d198bde429cec912e11ecbe5f1e5d92859944273fb66f14794aa7bef74238e56",
+        "consumer_calls": 9
+      }
+    },
+    {
+      "seq": 17,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "core-order",
+      "value": [
+        "A",
+        "B",
+        "C",
+        "F",
+        "D",
+        "E"
+      ],
+      "consumed": [],
+      "persisted_sha256": "517bbaee01b5a93ea820f06f369f607e8b0456ef8cb8ff5b38e93cf267d3b658"
+    },
+    {
+      "id": "no-distance",
+      "value": [
+        "H",
+        "B",
+        "N",
+        "C",
+        "T"
+      ],
+      "consumed": [],
+      "persisted_sha256": "75acbffd496d018fd931cb6ce99b8cb1db54f852c5bd58648caea353d4ae0f82"
+    },
+    {
+      "id": "within-band-distance",
+      "value": [
+        "H",
+        "C",
+        "N",
+        "B",
+        "T"
+      ],
+      "consumed": [],
+      "persisted_sha256": "baf40b5a128de33280520177098c863ea46a1fefac45a5aeee4e70e41046b220"
+    },
+    {
+      "id": "promote-ready",
+      "value": "promote",
+      "consumed": [],
+      "persisted_sha256": "999ddf1706d2fd1baa2b63f29d508a68118da7d6ad3127199b3a9d4435b30a56"
+    },
+    {
+      "id": "hold-description-only",
+      "value": "hold",
+      "consumed": [],
+      "persisted_sha256": "59110acbdaf235381e072b96f8f9f6dee13c4e15c8fba55fe32e21a4fdd97ebf"
+    },
+    {
+      "id": "hold-punt",
+      "value": "hold",
+      "consumed": [],
+      "persisted_sha256": "59110acbdaf235381e072b96f8f9f6dee13c4e15c8fba55fe32e21a4fdd97ebf"
+    },
+    {
+      "id": "hold-false-assumption",
+      "value": "hold",
+      "consumed": [],
+      "persisted_sha256": "59110acbdaf235381e072b96f8f9f6dee13c4e15c8fba55fe32e21a4fdd97ebf"
+    },
+    {
+      "id": "demote-challenged",
+      "value": "demote",
+      "consumed": [],
+      "persisted_sha256": "a35d28d0b049323b6311cf5fc7d3264b75fe1c1c13df890c931d823c5c397d42"
+    },
+    {
+      "id": "demote-repeat-parked",
+      "value": "demote",
+      "consumed": [],
+      "persisted_sha256": "a35d28d0b049323b6311cf5fc7d3264b75fe1c1c13df890c931d823c5c397d42"
+    },
+    {
+      "id": "shape-unitary",
+      "value": {
+        "containers": [],
+        "tickets": [
+          {
+            "title": "Add login rate limiting",
+            "description": "Cap how often login requests are accepted.\n\nOpen questions:\n- Which limit should apply?",
+            "container": "Authentication",
+            "status": "Backlog",
+            "blocked_by": []
+          }
+        ],
+        "needs_discovery": false
+      },
+      "consumed": [],
+      "persisted_sha256": "4f9393dd9e89361ecd7cf74d3021f0edc7b5af3d24f9759d2631a3bb98fc1103"
+    },
+    {
+      "id": "shape-split",
+      "value": {
+        "containers": [],
+        "tickets": [
+          {
+            "title": "Validate session tokens",
+            "description": "Validate session tokens as part of keeping sessions valid.",
+            "container": "Authentication",
+            "status": "Backlog",
+            "blocked_by": []
+          },
+          {
+            "title": "Refresh expired sessions",
+            "description": "Refresh expired sessions as part of keeping sessions valid. Depends on session token validation.",
+            "container": "Authentication",
+            "status": "Backlog",
+            "blocked_by": [
+              "Validate session tokens"
+            ]
+          }
+        ],
+        "needs_discovery": false
+      },
+      "consumed": [],
+      "persisted_sha256": "d4c3e0fcd380094a2cc661741027999857d753efbb161e9f851bace71ffcc47a"
+    },
+    {
+      "id": "shape-thin-branch",
+      "value": {
+        "containers": [],
+        "tickets": [],
+        "needs_discovery": true
+      },
+      "consumed": [],
+      "persisted_sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8"
+    },
+    {
+      "id": "horizons",
+      "value": {
+        "A": "Now",
+        "B": "Next",
+        "C": "Later"
+      },
+      "consumed": [],
+      "persisted_sha256": "9e2e9518df910531bc505d991dac8599658c86d52aa2be2415891332f8b5a3b1"
+    },
+    {
+      "id": "optional-critique",
+      "value": "unanswered",
+      "consumed": [],
+      "persisted_sha256": "52f3fa3f6e165d2aac3e072b26c40d2f45f1b157c2a2cc741d564321a198cc2a"
+    },
+    {
+      "id": "empty-rehome",
+      "value": [],
+      "consumed": [],
+      "persisted_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "id": "termination-policy",
+      "value": {
+        "ladder": [
+          {
+            "test": "non-convergence",
+            "verdict": "escalate"
+          },
+          {
+            "test": "budget-narrow",
+            "verdict": "continue"
+          },
+          {
+            "test": "budget-stop",
+            "verdict": "run-complete"
+          },
+          {
+            "test": "value-inflection",
+            "verdict": "run-complete"
+          },
+          {
+            "test": "work-remaining",
+            "verdict": "continue"
+          },
+          {
+            "test": "clean-complete",
+            "verdict": "run-complete"
+          }
+        ]
+      },
+      "consumed": [
+        {
+          "id": "non-convergence",
+          "args": [
+            "run-done",
+            "--non-convergence",
+            "--inflection",
+            "reached",
+            "--policy",
+            "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout": "{\"verdict\":\"escalate\",\"reason\":\"non-convergence\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":null,\"inflection\":\"reached\",\"non_convergence\":true,\"decided_by\":\"non-convergence\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "stderr": "",
+          "validation_exit": 0,
+          "validation_stdout": "{\"verdict\":\"escalate\",\"reason\":\"non-convergence\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":null,\"inflection\":\"reached\",\"non_convergence\":true,\"decided_by\":\"non-convergence\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "validation_stderr": "",
+          "value": {
+            "verdict": "escalate",
+            "reason": "non-convergence",
+            "signals": {
+              "queue_empty": false,
+              "all_parked": false,
+              "ledger_clean": false,
+              "budget": {
+                "breached": [],
+                "outcome": "none"
+              },
+              "prd_satisfied": null,
+              "inflection": "reached",
+              "non_convergence": true,
+              "decided_by": "non-convergence",
+              "floor": false
+            },
+            "policy_source": "methodology",
+            "conformant": true,
+            "violations": []
+          },
+          "pass": true
+        },
+        {
+          "id": "narrow-before-inflection",
+          "args": [
+            "run-done",
+            "--budget",
+            "{\"breached\": [\"tokens\"], \"outcome\": \"narrow\"}",
+            "--inflection",
+            "reached",
+            "--policy",
+            "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout": "{\"verdict\":\"continue\",\"reason\":\"budget-narrow(tokens)\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[\"tokens\"],\"outcome\":\"narrow\"},\"prd_satisfied\":null,\"inflection\":\"reached\",\"non_convergence\":false,\"decided_by\":\"budget-narrow\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "stderr": "",
+          "validation_exit": 0,
+          "validation_stdout": "{\"verdict\":\"continue\",\"reason\":\"budget-narrow(tokens)\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[\"tokens\"],\"outcome\":\"narrow\"},\"prd_satisfied\":null,\"inflection\":\"reached\",\"non_convergence\":false,\"decided_by\":\"budget-narrow\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "validation_stderr": "",
+          "value": {
+            "verdict": "continue",
+            "reason": "budget-narrow(tokens)",
+            "signals": {
+              "queue_empty": false,
+              "all_parked": false,
+              "ledger_clean": false,
+              "budget": {
+                "breached": [
+                  "tokens"
+                ],
+                "outcome": "narrow"
+              },
+              "prd_satisfied": null,
+              "inflection": "reached",
+              "non_convergence": false,
+              "decided_by": "budget-narrow",
+              "floor": false
+            },
+            "policy_source": "methodology",
+            "conformant": true,
+            "violations": []
+          },
+          "pass": true
+        },
+        {
+          "id": "budget-stop",
+          "args": [
+            "run-done",
+            "--budget",
+            "{\"breached\": [\"tokens\"], \"outcome\": \"stop\"}",
+            "--policy",
+            "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout": "{\"verdict\":\"run-complete\",\"reason\":\"budget-hit(tokens)\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[\"tokens\"],\"outcome\":\"stop\"},\"prd_satisfied\":null,\"inflection\":\"none\",\"non_convergence\":false,\"decided_by\":\"budget-stop\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "stderr": "",
+          "validation_exit": 0,
+          "validation_stdout": "{\"verdict\":\"run-complete\",\"reason\":\"budget-hit(tokens)\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[\"tokens\"],\"outcome\":\"stop\"},\"prd_satisfied\":null,\"inflection\":\"none\",\"non_convergence\":false,\"decided_by\":\"budget-stop\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "validation_stderr": "",
+          "value": {
+            "verdict": "run-complete",
+            "reason": "budget-hit(tokens)",
+            "signals": {
+              "queue_empty": false,
+              "all_parked": false,
+              "ledger_clean": false,
+              "budget": {
+                "breached": [
+                  "tokens"
+                ],
+                "outcome": "stop"
+              },
+              "prd_satisfied": null,
+              "inflection": "none",
+              "non_convergence": false,
+              "decided_by": "budget-stop",
+              "floor": false
+            },
+            "policy_source": "methodology",
+            "conformant": true,
+            "violations": []
+          },
+          "pass": true
+        },
+        {
+          "id": "inflection",
+          "args": [
+            "run-done",
+            "--inflection",
+            "reached",
+            "--policy",
+            "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout": "{\"verdict\":\"run-complete\",\"reason\":\"value-inflection\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":null,\"inflection\":\"reached\",\"non_convergence\":false,\"decided_by\":\"value-inflection\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "stderr": "",
+          "validation_exit": 0,
+          "validation_stdout": "{\"verdict\":\"run-complete\",\"reason\":\"value-inflection\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":null,\"inflection\":\"reached\",\"non_convergence\":false,\"decided_by\":\"value-inflection\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "validation_stderr": "",
+          "value": {
+            "verdict": "run-complete",
+            "reason": "value-inflection",
+            "signals": {
+              "queue_empty": false,
+              "all_parked": false,
+              "ledger_clean": false,
+              "budget": {
+                "breached": [],
+                "outcome": "none"
+              },
+              "prd_satisfied": null,
+              "inflection": "reached",
+              "non_convergence": false,
+              "decided_by": "value-inflection",
+              "floor": false
+            },
+            "policy_source": "methodology",
+            "conformant": true,
+            "violations": []
+          },
+          "pass": true
+        },
+        {
+          "id": "work-remaining",
+          "args": [
+            "run-done",
+            "--policy",
+            "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout": "{\"verdict\":\"continue\",\"reason\":\"work-remaining\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":null,\"inflection\":\"none\",\"non_convergence\":false,\"decided_by\":\"work-remaining\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "stderr": "",
+          "validation_exit": 0,
+          "validation_stdout": "{\"verdict\":\"continue\",\"reason\":\"work-remaining\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":null,\"inflection\":\"none\",\"non_convergence\":false,\"decided_by\":\"work-remaining\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "validation_stderr": "",
+          "value": {
+            "verdict": "continue",
+            "reason": "work-remaining",
+            "signals": {
+              "queue_empty": false,
+              "all_parked": false,
+              "ledger_clean": false,
+              "budget": {
+                "breached": [],
+                "outcome": "none"
+              },
+              "prd_satisfied": null,
+              "inflection": "none",
+              "non_convergence": false,
+              "decided_by": "work-remaining",
+              "floor": false
+            },
+            "policy_source": "methodology",
+            "conformant": true,
+            "violations": []
+          },
+          "pass": true
+        },
+        {
+          "id": "drained",
+          "args": [
+            "run-done",
+            "--queue-empty",
+            "--ledger-clean",
+            "--policy",
+            "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout": "{\"verdict\":\"run-complete\",\"reason\":\"drained\",\"signals\":{\"queue_empty\":true,\"all_parked\":false,\"ledger_clean\":true,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":null,\"inflection\":\"none\",\"non_convergence\":false,\"decided_by\":\"clean-complete\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "stderr": "",
+          "validation_exit": 0,
+          "validation_stdout": "{\"verdict\":\"run-complete\",\"reason\":\"drained\",\"signals\":{\"queue_empty\":true,\"all_parked\":false,\"ledger_clean\":true,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":null,\"inflection\":\"none\",\"non_convergence\":false,\"decided_by\":\"clean-complete\",\"floor\":false},\"policy_source\":\"methodology\",\"conformant\":true,\"violations\":[]}\n",
+          "validation_stderr": "",
+          "value": {
+            "verdict": "run-complete",
+            "reason": "drained",
+            "signals": {
+              "queue_empty": true,
+              "all_parked": false,
+              "ledger_clean": true,
+              "budget": {
+                "breached": [],
+                "outcome": "none"
+              },
+              "prd_satisfied": null,
+              "inflection": "none",
+              "non_convergence": false,
+              "decided_by": "clean-complete",
+              "floor": false
+            },
+            "policy_source": "methodology",
+            "conformant": true,
+            "violations": []
+          },
+          "pass": true
+        },
+        {
+          "id": "budget-floor",
+          "args": [
+            "run-done",
+            "--budget",
+            "{\"breached\": [\"tokens\"], \"outcome\": \"escalate\"}",
+            "--non-convergence",
+            "--policy",
+            "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout": "{\"verdict\":\"escalate\",\"reason\":\"budget-escalated(tokens)\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[\"tokens\"],\"outcome\":\"escalate\"},\"prd_satisfied\":null,\"inflection\":\"none\",\"non_convergence\":true,\"decided_by\":\"budget-escalated\",\"floor\":true},\"policy_source\":\"structural-default\",\"conformant\":true,\"violations\":[]}\n",
+          "stderr": "",
+          "validation_exit": 0,
+          "validation_stdout": "{\"verdict\":\"escalate\",\"reason\":\"budget-escalated(tokens)\",\"signals\":{\"queue_empty\":false,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[\"tokens\"],\"outcome\":\"escalate\"},\"prd_satisfied\":null,\"inflection\":\"none\",\"non_convergence\":true,\"decided_by\":\"budget-escalated\",\"floor\":true},\"policy_source\":\"structural-default\",\"conformant\":true,\"violations\":[]}\n",
+          "validation_stderr": "",
+          "value": {
+            "verdict": "escalate",
+            "reason": "budget-escalated(tokens)",
+            "signals": {
+              "queue_empty": false,
+              "all_parked": false,
+              "ledger_clean": false,
+              "budget": {
+                "breached": [
+                  "tokens"
+                ],
+                "outcome": "escalate"
+              },
+              "prd_satisfied": null,
+              "inflection": "none",
+              "non_convergence": true,
+              "decided_by": "budget-escalated",
+              "floor": true
+            },
+            "policy_source": "structural-default",
+            "conformant": true,
+            "violations": []
+          },
+          "pass": true
+        },
+        {
+          "id": "ledger-floor",
+          "args": [
+            "run-done",
+            "--queue-empty",
+            "--no-ledger-clean",
+            "--policy",
+            "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout": "{\"verdict\":\"continue\",\"reason\":\"undispatched-ledger\",\"signals\":{\"queue_empty\":true,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":null,\"inflection\":\"none\",\"non_convergence\":false,\"decided_by\":\"undispatched-ledger\",\"floor\":true},\"policy_source\":\"structural-default\",\"conformant\":true,\"violations\":[]}\n",
+          "stderr": "",
+          "validation_exit": 0,
+          "validation_stdout": "{\"verdict\":\"continue\",\"reason\":\"undispatched-ledger\",\"signals\":{\"queue_empty\":true,\"all_parked\":false,\"ledger_clean\":false,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":null,\"inflection\":\"none\",\"non_convergence\":false,\"decided_by\":\"undispatched-ledger\",\"floor\":true},\"policy_source\":\"structural-default\",\"conformant\":true,\"violations\":[]}\n",
+          "validation_stderr": "",
+          "value": {
+            "verdict": "continue",
+            "reason": "undispatched-ledger",
+            "signals": {
+              "queue_empty": true,
+              "all_parked": false,
+              "ledger_clean": false,
+              "budget": {
+                "breached": [],
+                "outcome": "none"
+              },
+              "prd_satisfied": null,
+              "inflection": "none",
+              "non_convergence": false,
+              "decided_by": "undispatched-ledger",
+              "floor": true
+            },
+            "policy_source": "structural-default",
+            "conformant": true,
+            "violations": []
+          },
+          "pass": true
+        },
+        {
+          "id": "product-floor",
+          "args": [
+            "run-done",
+            "--queue-empty",
+            "--ledger-clean",
+            "--prd-coverage",
+            "{\"satisfied\": false}",
+            "--policy",
+            "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+          ],
+          "exit_code": 0,
+          "stdout": "{\"verdict\":\"escalate\",\"reason\":\"product-incomplete\",\"signals\":{\"queue_empty\":true,\"all_parked\":false,\"ledger_clean\":true,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":false,\"inflection\":\"none\",\"non_convergence\":false,\"decided_by\":\"product-incomplete\",\"floor\":true},\"policy_source\":\"structural-default\",\"conformant\":true,\"violations\":[]}\n",
+          "stderr": "",
+          "validation_exit": 0,
+          "validation_stdout": "{\"verdict\":\"escalate\",\"reason\":\"product-incomplete\",\"signals\":{\"queue_empty\":true,\"all_parked\":false,\"ledger_clean\":true,\"budget\":{\"breached\":[],\"outcome\":\"none\"},\"prd_satisfied\":false,\"inflection\":\"none\",\"non_convergence\":false,\"decided_by\":\"product-incomplete\",\"floor\":true},\"policy_source\":\"structural-default\",\"conformant\":true,\"violations\":[]}\n",
+          "validation_stderr": "",
+          "value": {
+            "verdict": "escalate",
+            "reason": "product-incomplete",
+            "signals": {
+              "queue_empty": true,
+              "all_parked": false,
+              "ledger_clean": true,
+              "budget": {
+                "breached": [],
+                "outcome": "none"
+              },
+              "prd_satisfied": false,
+              "inflection": "none",
+              "non_convergence": false,
+              "decided_by": "product-incomplete",
+              "floor": true
+            },
+            "policy_source": "structural-default",
+            "conformant": true,
+            "violations": []
+          },
+          "pass": true
+        }
+      ],
+      "persisted_sha256": "d198bde429cec912e11ecbe5f1e5d92859944273fb66f14794aa7bef74238e56"
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T21:45:45.747624+00:00",
+  "status": "registered-before-measurement",
+  "purpose": "Qualify bounded roadmap-report prose cut with calibrated Sol-medium stand-in",
+  "inputs": [
+    {
+      "path": "map-report-sol-medium-v1-baseline-plan.json",
+      "sha256": "5bbabf8d117354c03fbc0c62de37ff6a62dda56c5a7104e795906d60d728104b"
+    },
+    {
+      "path": "map-report-sol-medium-v1-candidate-plan.json",
+      "sha256": "5cdd1d17947100444d9e9325f2f88a654658715f032c6aca7dd30611993ade61"
+    },
+    {
+      "path": "run-model-matrix-samples.py",
+      "sha256": "34b5e732717f921e7403940957fcc072b766ff1d870e7521d2b089059edc71c8"
+    },
+    {
+      "path": "workflow-fixtures/map-report.json",
+      "sha256": "eb0cf02d6e14426a696f4374adde6367fead38048881e56af7a466913acf9777"
+    },
+    {
+      "path": "baseline/map-report-with-context.md",
+      "sha256": "9dd5bf205243f546cad7f02ac39bc4673b3a4ab2d840d5041665c10c2be17722"
+    },
+    {
+      "path": "candidates/map-report-v1-with-context.md",
+      "sha256": "429810be6e6372c3130198a6a5acb5f3d01676821fea0f283acfe69e82e5ac39"
+    },
+    {
+      "path": "candidates/map-report-v1.md",
+      "sha256": "c86b9870aa0563821b86ef52198be8a343b68ccea832b72023408adf70aead34"
+    },
+    {
+      "path": "map-report-v1-source-review.json",
+      "sha256": "5f3b4cbd99a7589458b60c19693767a2b5d4b7950ae291737d5f0090e30aa28e"
+    },
+    {
+      "path": "map-report-astra-v1-hold.json",
+      "sha256": "5b4cb8d3365fc96085d765d476a819d013907bc091116ad989c79d94bccf6a73"
+    },
+    {
+      "path": "../../../eval/control-parity/rendering-artifact.mjs",
+      "sha256": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36"
+    },
+    {
+      "path": "../../../eval/control-parity/mailbox-call.mjs",
+      "sha256": "3feb07ca89eb0ddb815a064bac88d10848f05b662f89efbc684d5c51326df49d"
+    },
+    {
+      "path": "../../../eval/control-parity/codex-model-native-audit.mjs",
+      "sha256": "2718b08adf2e517ab2633c9ad82bfa62ac4697a1596c39baa723401700096b43"
+    },
+    {
+      "path": "../../../eval/control-parity/codex-native-audit.mjs",
+      "sha256": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac"
+    }
+  ],
+  "gates": [
+    "Five fresh baseline samples, all30 actual reports manually reviewed before candidates.",
+    "Five fresh candidate samples, all30 actual reports manually reviewed; every automatic artifact/decision and strict native audit must pass.",
+    "Preserve every failure. Stop lane on failure; no substitutions or pooling across models.",
+    "Same reporting boundary, no live tracker acquisition, dispatch or writes and no full caller workflow claim. Source unchanged outside phase2-8 and output explanations.",
+    "No source installation or savings tally before source review, manual/native/artifact fidelity and deterministic integration close. Intended Opus confirmation remains queued after renewal."
+  ]
+}

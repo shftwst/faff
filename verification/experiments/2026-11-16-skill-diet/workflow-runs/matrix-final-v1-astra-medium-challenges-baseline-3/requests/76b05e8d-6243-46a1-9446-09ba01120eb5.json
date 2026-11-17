@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":null,"ground":null,"reason":"opinion_available=false records an exhausted provider attempt without an opinion. Preserve absence and omit the challenge argument; the merits of the proposal cannot substitute for the missing challenge."}}

@@ -1,0 +1,47 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/architecture-proposal.json",
+  "timeout_seconds": 900,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Bounded architecture artifact production from completed profile-show snapshots. Strategy and inputs remain byte-identical. Four actual proposals per sample, ten separate decisions, manual fact/requirement/ADR-intent review and real architecture-proposal contract consumption. No model profile acquisition, procurement, ADR creation or full graft workflow claim.",
+  "acceptance": "Five fresh Sol-medium samples per arm. Require all four artifacts and ten decisions per sample, complete native audit, manual review of all forty artifacts for profile facts, stated requirements, honest assumptions, ADR intent and human review of non-build proposals. Require actual CLI contract consumption. No live acquisition or full workflow claim; preserve failures.",
+  "samples": [
+    {
+      "name": "architecture-proposal-sol-v1-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/architecture-proposal-with-context.md"
+    },
+    {
+      "name": "architecture-proposal-sol-v1-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/architecture-proposal-with-context.md"
+    },
+    {
+      "name": "architecture-proposal-sol-v1-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/architecture-proposal-with-context.md"
+    },
+    {
+      "name": "architecture-proposal-sol-v1-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/architecture-proposal-with-context.md"
+    },
+    {
+      "name": "architecture-proposal-sol-v1-baseline-5",
+      "arm": "baseline",
+      "policy": "baseline/architecture-proposal-with-context.md"
+    }
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "provider_revision": "New provider/effort treatment after Astra-low baseline native-path failure; no prior samples reused.",
+  "purpose": "skill-diet-qualification"
+}

@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "written": true,
+    "path": "/var/tmp/faff-reporting-measure-ifoQyH/cases/unreadable-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc106/summary-facts.json",
+    "sha256": "7bf85a7614031370dd13a97d108a493ba375ee98f847467d3992ac1d3028363d"
+  }
+}

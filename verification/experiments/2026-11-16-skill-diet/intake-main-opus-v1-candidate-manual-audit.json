@@ -1,0 +1,373 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T19:55:46.066839+00:00",
+  "reviewer": {
+    "role": "independent actual-artifact reviewer",
+    "model": "Sol-medium"
+  },
+  "status": "hold",
+  "overall_registered_gate": "hold",
+  "manual_status": "pass",
+  "manual_pass": true,
+  "registered_failure": {
+    "case_id": "greenfield-complete",
+    "problem": "source-facts-or-forbidden-wording",
+    "rubric_vector": [
+      true,
+      true,
+      true,
+      false
+    ],
+    "failed_alternatives": [
+      "retention",
+      "retained",
+      "keep"
+    ],
+    "source_question": "How long should completed checkout records be retained?",
+    "actual_question": "How long should completed checkout records be kept?",
+    "classification": "lexical false negative in recognition of source-fact preservation",
+    "explanation": "Kept and retained express the same unresolved retention-duration question here. The artifact neither omits the uncertainty nor invents a duration. Kept matches none of the exact registered alternatives.",
+    "assessment_status": "fail",
+    "normalisations": [],
+    "gate_effect": "Registered HOLD remains. Existing assessor only covers greenfield-thin exact open-question case and cannot correct this failure. No waiver, retry, new normalisation or regrade authorised/applied."
+  },
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-main-opus-v1-registration.json",
+      "sha256": "a183f6649d1363569619e26bd2b5717349c6cbeb9a65c78e0b5407a525c916d7",
+      "bytes": 18071
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-main-opus-v1-candidate-plan.json",
+      "sha256": "f45f5081e28e70d1e233d816cbe71ba0e023febc47ef897e0b7b817c4f85e784",
+      "bytes": 1886
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/intake-main-opus-v1-candidate-policy.md",
+      "sha256": "21b52d78d0e8c7fbde0590e95de66e27a378829490ad282051d91d303ab34cfc",
+      "bytes": 123548
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/intake-brief-v2.json",
+      "sha256": "d64ac66570717a333c6a7350d947a035d3a5f0372d028003092cc0c304ea91d3",
+      "bytes": 18399
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/assess-intake-questions.mjs",
+      "sha256": "af182da815def8ca4e941ab30ce435abcd50b375d82b010ed0dfcde004748d30",
+      "bytes": 4201
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/INTAKE-QUESTIONS-CORRECTION.md",
+      "sha256": "db3f16a8895ef6b4ed94f1d95e45faaab26969338ad7b09c5f41f8c5e981f69d",
+      "bytes": 1586
+    }
+  ],
+  "run_bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/manifest.json",
+      "sha256": "1f022ca5b345675dfea139a89cd23d183e3d9b1b3216a0c5c862ff6fe126ea7a",
+      "bytes": 82380
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/task.json",
+      "sha256": "bd39059df2274915dfd9dba9cabefc841f7a60ed0dcc2626255d85d453976472",
+      "bytes": 12011
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/capture.json",
+      "sha256": "2d71be1c91ac58fa25c2feeb413238f37af2e33f74cf04f432dbd1ba29917dc2",
+      "bytes": 16249
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/report.json",
+      "sha256": "9cf1782cad6fd75fef5bf5334a75c3b3e4d9a3c0e30fec5f29fb5b59bdd37ba0",
+      "bytes": 9268
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/assessment.json",
+      "sha256": "3354c4813914ba756d1689c63264940af06826934c075a2f0aaaa7934ae706d8",
+      "bytes": 5361
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/worker-final-state.json",
+      "sha256": "2c20425db99deaedeb03d906bfca437e029264af32694e42b2bd45efea4da358",
+      "bytes": 791
+    }
+  ],
+  "native_binding": {
+    "path": "verification/experiments/2026-11-16-skill-diet/native-audits/intake-main-opus-v1-candidate.json",
+    "sha256": "0f4aa4bbe95bbb1e79255c88549d61ec59754f709b4f0334826b77585e1b8033",
+    "bytes": 35621
+  },
+  "native_verification": "Separate root-owned gate; presence/hash does not assert certification.",
+  "case_reviews": [
+    {
+      "id": "greenfield-complete",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/artifacts/greenfield-complete.md",
+        "sha256": "6285b98ff6de7cff25acc3fad107d21d964492f7b824026623ea7ad213b81057",
+        "bytes": 767
+      },
+      "fixture_source_value_sha256": "28e13a85bcb522ce20a7656e76cce86a8674f63af3f3f6d6e06809a7de537518",
+      "persisted_matches_capture": true,
+      "manual_status": "pass",
+      "finding": "All source facts preserved: tool lending/return goal, two capabilities, existing-tool first slice, volunteer/laptop/Python/offline context, marketplace/payments exclusions. Source retention uncertainty is explicitly preserved as how long records should be kept. Payments examples and online-marketplace gloss do not introduce a new goal.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Capabilities",
+        "First slice",
+        "Constraints",
+        "Out of scope",
+        "Open questions"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    },
+    {
+      "id": "greenfield-thin",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/artifacts/greenfield-thin.md",
+        "sha256": "69bc7ea1f87b68bd336dac4d7b192aa1a0d9058a5bb4b4f4a49d79c4044c2094",
+        "bytes": 476
+      },
+      "fixture_source_value_sha256": "338e72fd2a1ddb11dbce2ddfa367cb1a26ef7c6b2d430ea5ae52d3ad396b9eba",
+      "persisted_matches_capture": true,
+      "manual_status": "pass",
+      "finding": "Book tracking for volunteers preserved without choosing platform/language/framework or first slice. Unknown constraints and non-goals marked unstated; both open uncertainties remain. No invented first-slice section.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Capabilities",
+        "Constraints",
+        "Out of scope",
+        "Open questions"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    },
+    {
+      "id": "single-bug",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/artifacts/single-bug.md",
+        "sha256": "7ca89ca9edb5a0a65da4a3deade5a3d6ec0dbf22bd4459f54468d957683bf1d6",
+        "bytes": 686
+      },
+      "fixture_source_value_sha256": "bfea813d3233b8457311fe7d2211ddeb99f7705ede35e4d3f355b614d8d3552a",
+      "persisted_matches_capture": true,
+      "manual_status": "pass",
+      "finding": "CSV empty-row defect and two-record done signal, Reporting/unitary/naming/header/columns constraints and exact supplied REPORT-17 prerequisite retained; no new IDs. UI redesign excluded.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Item",
+        "Constraints",
+        "Dependencies",
+        "Out of scope"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    },
+    {
+      "id": "single-split",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/artifacts/single-split.md",
+        "sha256": "4ff507255266dcfe40de7183cbc7f4855ba5ab66a25b0a796d3836eb7ec78300",
+        "bytes": 736
+      },
+      "fixture_source_value_sha256": "49886ace65821531f8eb11af51a3d02dbf70183190713f094b8747fb3b7d84c5",
+      "persisted_matches_capture": true,
+      "manual_status": "pass",
+      "finding": "Transient retries and exhaustion notification, independent concerns, Data imports, existing runner and nonreplacement boundary retained. Possible split remains methodology-owned, not a forced ticket structure.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Item",
+        "Constraints",
+        "Out of scope",
+        "Open questions"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    },
+    {
+      "id": "minor-ambiguity",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/artifacts/minor-ambiguity.md",
+        "sha256": "130cc307543a9f97b58dc09a1064fd5fb90568bd26661127e103725d63ddf5bb",
+        "bytes": 656
+      },
+      "fixture_source_value_sha256": "eec86272640ebe1a6a5bd0e17541063ada8b4799461112d58e806ec797e45183",
+      "persisted_matches_capture": true,
+      "manual_status": "pass",
+      "finding": "Stored date shown when present and omitted otherwise; Checkout, receipt layout, no estimation logic and timezone uncertainty retained without invented choice.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Item",
+        "Constraints",
+        "Out of scope",
+        "Open questions"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    },
+    {
+      "id": "greenfield-repo-signal",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/intake-main-opus-v1-candidate-1/artifacts/greenfield-repo-signal.md",
+        "sha256": "0210468a5a3951c94fe045064ef2abfae957c2dd6efb40decc275823db9265a8",
+        "bytes": 751
+      },
+      "fixture_source_value_sha256": "aa2a87f2162191d28f211820d9bbb8acfed5b800b823757feb5791dbb66e6dd0",
+      "persisted_matches_capture": true,
+      "manual_status": "pass",
+      "finding": "Catalogue/date-search capabilities and manually selected local recording first slice preserved. Confirmed TypeScript/browser UI/locality, cloud/editing exclusions and missing-date uncertainty retained. Sort/find is a reasonable organiser gloss rather than an added implementation requirement.",
+      "required_sections_present": true,
+      "exclusive_mode_section": true,
+      "sections": [
+        "Goal",
+        "Capabilities",
+        "First slice",
+        "Constraints",
+        "Out of scope",
+        "Open questions"
+      ],
+      "unsupported_goals_choices_or_ids": []
+    }
+  ],
+  "decision_reviews": [
+    {
+      "id": "mode-owner",
+      "value": {
+        "owner": "faff-jot"
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "2351ae58625137b41f20ffb0f792faf0fc6207e99f58d022d6db35544cd097af"
+    },
+    {
+      "id": "ticket-owner",
+      "value": {
+        "slot": "methodology",
+        "producer_creates_tickets": false
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "fe2cbc149223e0cd2374d260ea6aee16c8649951b5fdbf8daea3b3364e71aa3a"
+    },
+    {
+      "id": "open-questions",
+      "value": {
+        "block": false,
+        "carry_forward": true
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "5b49e85c4ec0a6521f6b58f830109168145e397e47636f5ae85e663a5b66b703"
+    },
+    {
+      "id": "required",
+      "value": {
+        "sections": [
+          "Goal",
+          "Constraints",
+          "Out of scope"
+        ]
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "4f8ef55f35647d2c60aa36c6236f4dad14f35e7e51d09df503b8d422495fa336"
+    },
+    {
+      "id": "exclusive",
+      "value": {
+        "both": false,
+        "required": "Item"
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "00a7fd6505e3c0176e1c4583b512f4920bbab4fc33d8b2ba7560a9530e9aee49"
+    },
+    {
+      "id": "empty",
+      "value": {
+        "omit": true
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "dc42dac21f2cd359ca1123bc86cc892521f80128fded3a792bc2d75e57bf104e"
+    },
+    {
+      "id": "invented-goals",
+      "value": {
+        "allowed": false
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "3a60061947d350e063c1e5f3255de367587628dcd0a355766ec128b5b36c4d14"
+    },
+    {
+      "id": "appetite",
+      "value": {
+        "levels": [
+          "low",
+          "medium"
+        ]
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "5461042ecd7d86c5b5a529d08d8ad887804faf93b8afe304a267aaca57e029b5"
+    },
+    {
+      "id": "minor",
+      "value": {
+        "section": "Open questions"
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "7deb5eb52814d3f793eb9e0f5093b3ac3b0fec13ee133b90af913694eece81ec"
+    },
+    {
+      "id": "split",
+      "value": {
+        "force_split": false,
+        "flag_for_methodology": true
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "ba66789389d7432f5e2ceb569bbab7daf189fe1912c2fe229434e3ed17e96fc2"
+    },
+    {
+      "id": "codes",
+      "value": {
+        "use_codes": false
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "c4c8c8baf4646674da88a29c3a358d25cb6b5ed9c3e4f083553c31d5c4123109"
+    },
+    {
+      "id": "implementation",
+      "value": {
+        "skill": "faff-prep"
+      },
+      "source_and_expected_match": true,
+      "value_sha256": "6982ada5a1649c6dad3ac1e940403d1825d5fb2b047170bd499a9acea440169b"
+    }
+  ],
+  "summary": {
+    "briefs_read": 6,
+    "manual_fidelity_and_format_pass": 6,
+    "decisions_read": 12,
+    "decisions_source_match": 12,
+    "raw_status": "fail",
+    "raw_cases_passed": 17,
+    "assessed_status": "fail",
+    "normalisations": [],
+    "policy_delivery_complete": true,
+    "capture_errors": [],
+    "observed_event_names": [
+      "answer_rule",
+      "finish",
+      "write_output"
+    ],
+    "invented_goals_choices_or_ids": 0,
+    "forced_ticket_shaping_or_split_decisions": 0
+  },
+  "limits": [
+    "One candidate diagnostic sample only; registered pair remains held despite manual semantic pass. Historical GPT qualifications and separate baseline audit remain unpooled.",
+    "Completed snapshots, briefs and policy answers only; no elicitation, live acquisition, methodology shaping, tracker mutation, coding or full caller workflow claim.",
+    "Native verification remains separate. No model calls, reruns, source edits or changes to original results."
+  ]
+}

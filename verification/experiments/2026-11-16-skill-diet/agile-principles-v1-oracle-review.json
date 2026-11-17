@@ -1,0 +1,10 @@
+{
+  "status": "oracle-inflection-fault-original-preserved",
+  "run": "agile-principles-astra-v1-baseline-1",
+  "report_sha256": "91269d42e6937a3418af9419febb3bba0b737d904d9c87de30d47f8e37c71da7",
+  "artifact_sha256": "70b245f0b4ba2cb7cacb3e3ef7adbe21cf7d18240b7318ee536f06d36169160a",
+  "native_audit_sha256": "0ee23461064dd5da402ee87f303c8a6e6387e0c06ccfe7715dfa36a36ac28fe6",
+  "observed": "The recommendation correctly says moving BILL to an outcome-led Billing accuracy workstream, preserving ON with onboarding. The regex required split, rehome or move and rejected moving.",
+  "correction": "Accept the move/moving and rehome/rehoming inflections; preserve all other source, principle, banner and tone checks.",
+  "next": "Fresh Astra V2 five-versus-five with identical source candidate and corrected fixture, no V1 pooling."
+}

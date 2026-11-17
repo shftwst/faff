@@ -1,0 +1,100 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-1",
+      "outcome": "survived",
+      "ground": null,
+      "reason": "Calibration judgement only, without provider independence or production eligibility: dry-run reports the current decision through the existing merge-floor logic and suppresses the merge call, directly serving safe inspection. The DoD checks both eligible and blocked decisions and absence of merge invocation. No historical storage, query capability or separate eligibility logic is added."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "--prd-goals",
+          "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+          "--serves-goal",
+          "--within-scope",
+          "--challenge",
+          "survived",
+          "--challenge-reason",
+          "Calibration judgement only, without provider independence or production eligibility: dry-run reports the current decision through the existing merge-floor logic and suppresses the merge call, directly serving safe inspection. The DoD checks both eligible and blocked decisions and absence of merge invocation. No historical storage, query capability or separate eligibility logic is added."
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"Calibration judgement only, without provider independence or production eligibility: dry-run reports the current decision through the existing merge-floor logic and suppresses the merge call, directly serving safe inspection. The DoD checks both eligible and blocked decisions and absence of merge invocation. No historical storage, query capability or separate eligibility logic is added.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": true,
+      "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+      ],
+      "dod_covers": [],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": true,
+        "within_scope": true,
+        "verdict": "admit",
+        "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": false,
+        "reason": "Calibration judgement only, without provider independence or production eligibility: dry-run reports the current decision through the existing merge-floor logic and suppresses the merge call, directly serving safe inspection. The DoD checks both eligible and blocked decisions and absence of merge invocation. No historical storage, query capability or separate eligibility logic is added.",
+        "ground": "other"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "admit",
+      "upper": {
+        "admit": true,
+        "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

@@ -1,0 +1,31 @@
+TAP version 13
+# Subtest: case delivery returns the full existing row and precedes graft and ledger operations
+not ok 1 - case delivery returns the full existing row and precedes graft and ledger operations
+  ---
+  duration_ms: 0.914083
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint-v2.test.mjs:9:1'
+  failureType: 'testCodeFailure'
+  error: "Cannot find module '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/graft-checkpoint-execution-v2.mjs' imported from /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint-v2.test.mjs"
+  code: 'ERR_MODULE_NOT_FOUND'
+  stack: |-
+    finalizeResolution (node:internal/modules/esm/resolve:275:11)
+    moduleResolve (node:internal/modules/esm/resolve:865:10)
+    defaultResolve (node:internal/modules/esm/resolve:989:11)
+    #cachedDefaultResolve (node:internal/modules/esm/loader:747:20)
+    ModuleLoader.resolve (node:internal/modules/esm/loader:724:38)
+    ModuleLoader.getModuleJobForImport (node:internal/modules/esm/loader:320:38)
+    onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:680:36)
+    TracingChannel.tracePromise (node:diagnostics_channel:350:14)
+    ModuleLoader.import (node:internal/modules/esm/loader:679:21)
+    defaultImportModuleDynamicallyForModule (node:internal/modules/esm/utils:222:31)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 29.156763

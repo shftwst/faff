@@ -1,0 +1,7 @@
+{
+  "status": "pass",
+  "candidate_sha256": "d8f81d1e06c6cec429c8fea99c2d2fb50d74fb092af8fa59417f293614b91200",
+  "loaded_rubric_sha256": "7bbbe9f482c192d9bfe8784c8ecfe1eaa786cd037db273272bfa63feaff5dead",
+  "preserved_table_sha256": "b591ffb717bd355688f8b4666bf2be71d40047727523ebbeda4bc67a24927015",
+  "check": "Actual eval routing loader accepts the frozen candidate without an anchor change, includes the complete original six-verdict table and stops before validation."
+}

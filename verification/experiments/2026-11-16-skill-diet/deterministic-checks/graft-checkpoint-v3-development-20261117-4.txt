@@ -1,0 +1,35 @@
+TAP version 13
+# Subtest: controlled PR dependency owns human-only production from real captured spec, run and config facts
+not ok 1 - controlled PR dependency owns human-only production from real captured spec, run and config facts
+  ---
+  duration_ms: 1470.036467
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint-v3.test.mjs:19:1'
+  failureType: 'testCodeFailure'
+  error: 'run-ledger level is write-once: refusing to change level "L3" -> "L4" in /var/tmp/graft-v3-test-Qb2Rk5/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass'
+  code: 'LEVEL_WRITE_ONCE'
+  stack: |-
+    /Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/lib/heartbeat.js:385:11
+    withFileLock (/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/lib/fs-lock.js:81:12)
+    withLedgerLock (/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/lib/heartbeat.js:302:10)
+    Object.mutateLedgerUnderLock (/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/lib/heartbeat.js:359:10)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint-v3.test.mjs:114:13)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# {"consumer_source_discovery":{"removed_committed_anchor_path":"/var/tmp/graft-v3-test-Qb2Rk5/dispatched-pass/.faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/ac-checklist.json","exit_code":1,"stdout":"{\\"verdict\\":\\"refuse\\",\\"blockers\\":[\\"corrective-artifact integrity unasserted at L3 (FAFF-325): no trusted attestation declaration — refused (defence-in-depth; the run-start preflight should already have caught this)\\"],\\"merged\\":false,\\"ci_state\\":\\"ci-green\\",\\"head_sha\\":\\"2703982ab339767ed451c55c372ac34aba316311\\",\\"integrity\\":\\"unasserted\\",\\"ac_called_out\\":[\\"faff-9\#ac-2\\"],\\"warnings\\":[],\\"holdout_posture\\":\\"pass-through\\",\\"holdout_missing\\":[\\"no-born-verifiable-dod-or-standable-sut\\",\\"no-proven-cage\\"],\\"holdout_fault\\":[]}\\n"},"actual_consumer_negative":{"argv":["/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff","merge-gate","--local","--issue","FAFF-9","--run-dir","/var/tmp/graft-v3-test-Qb2Rk5/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass","--level","L3","--branch","feature","--base","main","--json","--check-only"],"removed_live_input":"/var/tmp/graft-v3-test-Qb2Rk5/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/ac-checklist.json","anchor_restored_before_probe":true,"exit_code":1,"stdout":"{\\"verdict\\":\\"refuse\\",\\"blockers\\":[\\"ACs not all verified\\",\\"corrective-artifact integrity unasserted at L3 (FAFF-325): no trusted attestation declaration — refused (defence-in-depth; the run-start preflight should already have caught this)\\"],\\"merged\\":false,\\"ci_state\\":\\"ci-green\\",\\"head_sha\\":\\"45914e136f241ae2051c2f882ec157a4c8b6857c\\",\\"integrity\\":\\"unasserted\\",\\"ac_called_out\\":[],\\"warnings\\":[],\\"holdout_posture\\":\\"pass-through\\",\\"holdout_missing\\":[\\"no-born-verifiable-dod-or-standable-sut\\",\\"no-proven-cage\\"],\\"holdout_fault\\":[]}\\n","stderr":"","refs_unchanged":true}}
+# Subtest: gate diagnostic optional grounded follow-up is allowed while exact contract remains required
+ok 2 - gate diagnostic optional grounded follow-up is allowed while exact contract remains required
+  ---
+  duration_ms: 196.703493
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1722.306053

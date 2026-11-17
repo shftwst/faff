@@ -1,0 +1,514 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T19:34:46.017009+00:00",
+  "reviewer": {
+    "role": "independent actual-output reviewer",
+    "model": "Sol-medium"
+  },
+  "status": "pass",
+  "manual_pass": true,
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/thematic-main-opus-v1-registration.json",
+      "sha256": "ef9ee079278aabae23e39da7327c96c79b5eaf90d2bc8fd527b33d97e09cc39c",
+      "bytes": 11561
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/thematic-main-opus-v1-baseline-plan.json",
+      "sha256": "407b48b9a4fe34c61e5d4fe46e1a0dd34ae28c8a904f1abfc89b3dc9760f1fdb",
+      "bytes": 1476
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/thematic-main-opus-v1-baseline-policy.md",
+      "sha256": "f8528462a649ad295d75f54995b6bee96d193f5118434296f0554594f287f986",
+      "bytes": 150138
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/thematic-readonly.json",
+      "sha256": "4643eec7771d1aadc287620d8130f97e3d274772bcee9e7e14ce5b1e6c504198",
+      "bytes": 21353
+    }
+  ],
+  "run_bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/manifest.json",
+      "sha256": "07f36663c68b8d0e17d308054db4e3960e9cf7bb6019cfe6ecbe4c9d10ebf8e0",
+      "bytes": 82353
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/task.json",
+      "sha256": "206f05bae1348e246d3f9600251e029f33b407a9ac5c09f2078d95762878f7c0",
+      "bytes": 15076
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/capture.json",
+      "sha256": "428a079ccdc88c47cb28dc6eee22567c5642cbcb4636a488ca026ed0f04ab66e",
+      "bytes": 33642
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/report.json",
+      "sha256": "3d185ff39732996ab26d66fb24d6910354ae85e5017e1f4d137fb94c5372b50e",
+      "bytes": 12474
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/worker-final-state.json",
+      "sha256": "6982ab5de9b8761f30b32947793b2538930f5a64808e51a85a741f5f79d4eef0",
+      "bytes": 843
+    }
+  ],
+  "case_reviews": [
+    {
+      "id": "core-order",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/core-order.json",
+        "sha256": "517bbaee01b5a93ea820f06f369f607e8b0456ef8cb8ff5b38e93cf267d3b658",
+        "bytes": 45
+      },
+      "captured_value_sha256": "60dde1d05b972e5c67e2b61fd5826b80db6cd4360914414319d2c3b06108187e",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "A inherits highest priority. B unlocks C,D,E; C unlocks E. F precedes D/E by creation when unlock is zero. Terminal T/U add no live unlocks. Exact supplied issue set, no duplicates.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "no-distance",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/no-distance.json",
+        "sha256": "75acbffd496d018fd931cb6ce99b8cb1db54f852c5bd58648caea353d4ae0f82",
+        "bytes": 38
+      },
+      "captured_value_sha256": "bfd3219a75293a321130c4dfbda557cda89b9a718c3f07b67a953a2a0e8bb567",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Without distance composition, H priority1 precedes priority2 B,N,C,T ordered by descending supplied unlock counts.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "within-band-distance",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/within-band-distance.json",
+        "sha256": "baf40b5a128de33280520177098c863ea46a1fefac45a5aeee4e70e41046b220",
+        "bytes": 38
+      },
+      "captured_value_sha256": "0fca75b65638c85294bc4ebc5d6bdf0de85dd0b3723d213cea78fcddc9da9cb0",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "H stays in priority1; near C and far B swap ranked positions within priority2 while unmatched N and met T retain their existing positions. No cross-band move.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "promote-ready",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/promote-ready.json",
+        "sha256": "999ddf1706d2fd1baa2b63f29d508a68118da7d6ad3127199b3a9d4435b30a56",
+        "bytes": 10
+      },
+      "captured_value_sha256": "06c11b99a8c9486503be5b13aac3fd226a737e333d6a182e535f3bd849990afc",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "All supplied promotion conditions hold: Done blocker, concrete deliverable, real spec and no Punt, false assumption, challenge or drift.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "hold-description-only",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/hold-description-only.json",
+        "sha256": "59110acbdaf235381e072b96f8f9f6dee13c4e15c8fba55fe32e21a4fdd97ebf",
+        "bytes": 7
+      },
+      "captured_value_sha256": "9cddc6a0fc51655602c7da500d349386bf6ecbfdb4972a2f0751ae4fb9c30940",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Concrete description does not substitute for a real tracker-comment or committed spec; correct hold.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "hold-punt",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/hold-punt.json",
+        "sha256": "59110acbdaf235381e072b96f8f9f6dee13c4e15c8fba55fe32e21a4fdd97ebf",
+        "bytes": 7
+      },
+      "captured_value_sha256": "9cddc6a0fc51655602c7da500d349386bf6ecbfdb4972a2f0751ae4fb9c30940",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Open authentication-store Punt blocks promotion; correct hold without inventing a resolution.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "hold-false-assumption",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/hold-false-assumption.json",
+        "sha256": "59110acbdaf235381e072b96f8f9f6dee13c4e15c8fba55fe32e21a4fdd97ebf",
+        "bytes": 7
+      },
+      "captured_value_sha256": "9cddc6a0fc51655602c7da500d349386bf6ecbfdb4972a2f0751ae4fb9c30940",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Explicit assumption conflicts with current state; correct hold.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "demote-challenged",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/demote-challenged.json",
+        "sha256": "a35d28d0b049323b6311cf5fc7d3264b75fe1c1c13df890c931d823c5c397d42",
+        "bytes": 9
+      },
+      "captured_value_sha256": "ed71a0a7d99e8afea0aa524756e3013406831f4f7d1f50129e86ffd12b75cccd",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Unresolved post-spec account-data-loss challenge supports demotion.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "demote-repeat-parked",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/demote-repeat-parked.json",
+        "sha256": "a35d28d0b049323b6311cf5fc7d3264b75fe1c1c13df890c931d823c5c397d42",
+        "bytes": 9
+      },
+      "captured_value_sha256": "ed71a0a7d99e8afea0aa524756e3013406831f4f7d1f50129e86ffd12b75cccd",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Supplied Todo issue has three same-class parks in21days; correct demotion recommendation, no tracker action.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "shape-unitary",
+      "kind": "artifact",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/shape-unitary.json",
+        "sha256": "4f9393dd9e89361ecd7cf74d3021f0edc7b5af3d24f9759d2631a3bb98fc1103",
+        "bytes": 327
+      },
+      "captured_value_sha256": "68ebd65bcc163e472c04653dd380be5efd276cec0b1921607e44dc30daa3a015",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Exactly one item-derived Backlog proposal in existing Authentication home. Carries unresolved limit question without inventing its value; no new container or dependency.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "shape-split",
+      "kind": "artifact",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/shape-split.json",
+        "sha256": "4953c3423b5b5431ac6d3e0d4b3065c615204d6d9e7382e6193b1b2d1f139839",
+        "bytes": 703
+      },
+      "captured_value_sha256": "5af302362640692e4e32640761db071ce587215814a760e56c972df066b767ff",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Exactly two named concerns, both Backlog in existing Authentication. Refresh depends on Validate; dependency order and link direction correct. Descriptions repeat supplied session facts only.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "shape-thin-branch",
+      "kind": "artifact",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/shape-thin-branch.json",
+        "sha256": "e7ccbb808eeb87c52702cfb7204af84fd416b50558b5b7d17f6ecb70e8d99aa8",
+        "bytes": 67
+      },
+      "captured_value_sha256": "8b66876d7455fbfcc6bafed96c11bd9f9a5209304658c67e83040f1994259c29",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "No concrete first slice/capabilities: emits no speculative epic, ticket or container and requests discovery.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "horizons",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/horizons.json",
+        "sha256": "9e2e9518df910531bc505d991dac8599658c86d52aa2be2415891332f8b5a3b1",
+        "bytes": 48
+      },
+      "captured_value_sha256": "91b62e2870aa5fc282182b0713fba61a14d25217719ec47438336ead0da2b3dd",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Actively built A is Now; specified unblocked Todo B Next; Backlog C Later. No extra assignments.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "optional-critique",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/optional-critique.json",
+        "sha256": "52f3fa3f6e165d2aac3e072b26c40d2f45f1b157c2a2cc741d564321a198cc2a",
+        "bytes": 13
+      },
+      "captured_value_sha256": "0942078bd5561d11c55de0d5586b4d8f9c8a256fd527eab707457ea783b99fae",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Returns unanswered for the optional opinion-based output, as thematic requires.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "empty-rehome",
+      "kind": "decision",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/empty-rehome.json",
+        "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+        "bytes": 3
+      },
+      "captured_value_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Returns no grouping proposal, consistent with opinion-free topology authority.",
+      "invented_facts_or_unsupported_extras": []
+    },
+    {
+      "id": "termination-policy",
+      "kind": "consumer",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-main-opus-v1-baseline-1/artifacts/termination-policy.json",
+        "sha256": "d198bde429cec912e11ecbe5f1e5d92859944273fb66f14794aa7bef74238e56",
+        "bytes": 470
+      },
+      "captured_value_sha256": "a542cfc2cb165768f46e1d4242f4e50db0515461bbd1f6a7cd669911c001f514",
+      "persisted_matches_capture": true,
+      "task_source_matches_fixture": true,
+      "status": "pass",
+      "finding": "Exact six-rung thematic ladder with correct order and verdicts, no extra fields or attempted floor override. Nine captured real CLI and contract results inspected separately.",
+      "invented_facts_or_unsupported_extras": []
+    }
+  ],
+  "consumer_scenario_reviews": [
+    {
+      "id": "non-convergence",
+      "captured_result_sha256": "f73d27f33b9287c123275bd514e3d10e61245d16a14445afd14287e9bd3d44d7",
+      "argv": [
+        "run-done",
+        "--non-convergence",
+        "--inflection",
+        "reached",
+        "--policy",
+        "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+      ],
+      "exit_code": 0,
+      "validation_exit": 0,
+      "stdout_sha256": "f1c6f9945ed537d72b896dbd4f55da606a3f075f2e829334c665a3ab77a6c664",
+      "validation_stdout_sha256": "f1c6f9945ed537d72b896dbd4f55da606a3f075f2e829334c665a3ab77a6c664",
+      "verdict": "escalate",
+      "reason": "non-convergence",
+      "policy_source": "methodology",
+      "floor": false,
+      "status": "pass",
+      "finding": "Actual argv carries the exact captured ladder; exit0, empty stderr, conformant output and exit0 matching contract validation. Outcome matches supplied signals and precedence."
+    },
+    {
+      "id": "narrow-before-inflection",
+      "captured_result_sha256": "a55c924612bc85a1301b69de0cbd4f223ec083d6357da9ac444f0e5f55036ecb",
+      "argv": [
+        "run-done",
+        "--budget",
+        "{\"breached\": [\"tokens\"], \"outcome\": \"narrow\"}",
+        "--inflection",
+        "reached",
+        "--policy",
+        "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+      ],
+      "exit_code": 0,
+      "validation_exit": 0,
+      "stdout_sha256": "21d00093ac24daabed65355354d04d4216f0be69cba076077cc775edeb4c70bb",
+      "validation_stdout_sha256": "21d00093ac24daabed65355354d04d4216f0be69cba076077cc775edeb4c70bb",
+      "verdict": "continue",
+      "reason": "budget-narrow(tokens)",
+      "policy_source": "methodology",
+      "floor": false,
+      "status": "pass",
+      "finding": "Actual argv carries the exact captured ladder; exit0, empty stderr, conformant output and exit0 matching contract validation. Outcome matches supplied signals and precedence."
+    },
+    {
+      "id": "budget-stop",
+      "captured_result_sha256": "836c96a417044c4878ac17b6e18128aa241222ac13060ce2ff7341ef1977afed",
+      "argv": [
+        "run-done",
+        "--budget",
+        "{\"breached\": [\"tokens\"], \"outcome\": \"stop\"}",
+        "--policy",
+        "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+      ],
+      "exit_code": 0,
+      "validation_exit": 0,
+      "stdout_sha256": "07323e6348e9c3c1e59d37f8bf02538574d4f99e37454287a3f68bddaeeb9959",
+      "validation_stdout_sha256": "07323e6348e9c3c1e59d37f8bf02538574d4f99e37454287a3f68bddaeeb9959",
+      "verdict": "run-complete",
+      "reason": "budget-hit(tokens)",
+      "policy_source": "methodology",
+      "floor": false,
+      "status": "pass",
+      "finding": "Actual argv carries the exact captured ladder; exit0, empty stderr, conformant output and exit0 matching contract validation. Outcome matches supplied signals and precedence."
+    },
+    {
+      "id": "inflection",
+      "captured_result_sha256": "07bb2a137d194f88faad4f4ba7445139913ec5910f4add77d8de746f31cca288",
+      "argv": [
+        "run-done",
+        "--inflection",
+        "reached",
+        "--policy",
+        "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+      ],
+      "exit_code": 0,
+      "validation_exit": 0,
+      "stdout_sha256": "082a4d10e815847ee265929e470de42ff9859c2145564c8c288256d371fe68b7",
+      "validation_stdout_sha256": "082a4d10e815847ee265929e470de42ff9859c2145564c8c288256d371fe68b7",
+      "verdict": "run-complete",
+      "reason": "value-inflection",
+      "policy_source": "methodology",
+      "floor": false,
+      "status": "pass",
+      "finding": "Actual argv carries the exact captured ladder; exit0, empty stderr, conformant output and exit0 matching contract validation. Outcome matches supplied signals and precedence."
+    },
+    {
+      "id": "work-remaining",
+      "captured_result_sha256": "f175291bdad8e68ff5ca68cbe2890b1a4408584e806a2e927e8fcf14372c5ae8",
+      "argv": [
+        "run-done",
+        "--policy",
+        "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+      ],
+      "exit_code": 0,
+      "validation_exit": 0,
+      "stdout_sha256": "ec2843dd39c2611cee7770576acc3a9071124b1658f007d989cc32f0bb6afc85",
+      "validation_stdout_sha256": "ec2843dd39c2611cee7770576acc3a9071124b1658f007d989cc32f0bb6afc85",
+      "verdict": "continue",
+      "reason": "work-remaining",
+      "policy_source": "methodology",
+      "floor": false,
+      "status": "pass",
+      "finding": "Actual argv carries the exact captured ladder; exit0, empty stderr, conformant output and exit0 matching contract validation. Outcome matches supplied signals and precedence."
+    },
+    {
+      "id": "drained",
+      "captured_result_sha256": "673d5a92ef8d368773413da91da6ec22aae9e49ec54424864facc6636e081819",
+      "argv": [
+        "run-done",
+        "--queue-empty",
+        "--ledger-clean",
+        "--policy",
+        "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+      ],
+      "exit_code": 0,
+      "validation_exit": 0,
+      "stdout_sha256": "8d800cd872c677f760fceef64e5dc21d1e8436700f1c2f9ab4ce311496be78af",
+      "validation_stdout_sha256": "8d800cd872c677f760fceef64e5dc21d1e8436700f1c2f9ab4ce311496be78af",
+      "verdict": "run-complete",
+      "reason": "drained",
+      "policy_source": "methodology",
+      "floor": false,
+      "status": "pass",
+      "finding": "Actual argv carries the exact captured ladder; exit0, empty stderr, conformant output and exit0 matching contract validation. Outcome matches supplied signals and precedence."
+    },
+    {
+      "id": "budget-floor",
+      "captured_result_sha256": "e8c288ef4a544756f66651085bc1fad38bf33ddf8654853faafdb626f2e205c7",
+      "argv": [
+        "run-done",
+        "--budget",
+        "{\"breached\": [\"tokens\"], \"outcome\": \"escalate\"}",
+        "--non-convergence",
+        "--policy",
+        "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+      ],
+      "exit_code": 0,
+      "validation_exit": 0,
+      "stdout_sha256": "b5a10e2b137c2d95036f05aef188312e71bce6016c1a6f2848de20be76bf9d86",
+      "validation_stdout_sha256": "b5a10e2b137c2d95036f05aef188312e71bce6016c1a6f2848de20be76bf9d86",
+      "verdict": "escalate",
+      "reason": "budget-escalated(tokens)",
+      "policy_source": "structural-default",
+      "floor": true,
+      "status": "pass",
+      "finding": "Actual argv carries the exact captured ladder; exit0, empty stderr, conformant output and exit0 matching contract validation. Outcome matches supplied signals and precedence."
+    },
+    {
+      "id": "ledger-floor",
+      "captured_result_sha256": "40738e97cedaea7e211b72b00d5df12db696fad094478214ee29f1d2d449010c",
+      "argv": [
+        "run-done",
+        "--queue-empty",
+        "--no-ledger-clean",
+        "--policy",
+        "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+      ],
+      "exit_code": 0,
+      "validation_exit": 0,
+      "stdout_sha256": "84bb1f23fc7e2777889cf7f7c71e0a80969bd5cba92e87b4d96db7426f83af94",
+      "validation_stdout_sha256": "84bb1f23fc7e2777889cf7f7c71e0a80969bd5cba92e87b4d96db7426f83af94",
+      "verdict": "continue",
+      "reason": "undispatched-ledger",
+      "policy_source": "structural-default",
+      "floor": true,
+      "status": "pass",
+      "finding": "Actual argv carries the exact captured ladder; exit0, empty stderr, conformant output and exit0 matching contract validation. Outcome matches supplied signals and precedence."
+    },
+    {
+      "id": "product-floor",
+      "captured_result_sha256": "157e07023f2f8d0eb28bad47fa81a3ce84695b98b8de9b0aa0178c7ab9874714",
+      "argv": [
+        "run-done",
+        "--queue-empty",
+        "--ledger-clean",
+        "--prd-coverage",
+        "{\"satisfied\": false}",
+        "--policy",
+        "{\"ladder\":[{\"test\":\"non-convergence\",\"verdict\":\"escalate\"},{\"test\":\"budget-narrow\",\"verdict\":\"continue\"},{\"test\":\"budget-stop\",\"verdict\":\"run-complete\"},{\"test\":\"value-inflection\",\"verdict\":\"run-complete\"},{\"test\":\"work-remaining\",\"verdict\":\"continue\"},{\"test\":\"clean-complete\",\"verdict\":\"run-complete\"}]}"
+      ],
+      "exit_code": 0,
+      "validation_exit": 0,
+      "stdout_sha256": "3c49c2a26d25786cd3ed7f65dacb29117f59ccedaf69ac7d56f1643b074ae69d",
+      "validation_stdout_sha256": "3c49c2a26d25786cd3ed7f65dacb29117f59ccedaf69ac7d56f1643b074ae69d",
+      "verdict": "escalate",
+      "reason": "product-incomplete",
+      "policy_source": "structural-default",
+      "floor": true,
+      "status": "pass",
+      "finding": "Actual argv carries the exact captured ladder; exit0, empty stderr, conformant output and exit0 matching contract validation. Outcome matches supplied signals and precedence."
+    }
+  ],
+  "summary": {
+    "outputs_read": 16,
+    "decisions": 12,
+    "ticket_artifacts": 3,
+    "termination_policy": 1,
+    "real_cli_scenarios_read": 9,
+    "raw_status": "pass",
+    "policy_delivery_complete": true,
+    "capture_errors": [],
+    "forbidden_mutation_attempts": [],
+    "unsupported_facts_or_extra_fields": 0
+  },
+  "scope_limits": [
+    "One baseline diagnostic sample; no candidate conclusion, statistical equivalence or historical qualification replacement.",
+    "Native model/guidance gate is separately owned by root and is not independently certified by this semantic audit.",
+    "Existing fixture does not execute all L4-drain, parked-issue or build-queue branches, tracker mutation, caller acquisition, PRDR authoring or full workflow.",
+    "CLI results were inspected from immutable capture; no commands or tests were rerun."
+  ]
+}

@@ -1,0 +1,1 @@
+ISS-CC: Make the eval harness record cache_read_input_tokens for each request, so cached-token use is visible request by request.

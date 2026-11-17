@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"gate-none","result":{"continued":false,"gate_contract":"{\"signal\":\"needs-human\",\"rungs\":[],\"conformant\":false,\"violations\":[\"needs-human carries no rungs\"]}\n","follow_up":"Park needs-human with no PR because no declared gates were found under fail-closed fallback."}}}

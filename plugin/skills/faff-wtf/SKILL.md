@@ -1,6 +1,6 @@
 ---
 name: faff-wtf
-description: "Where to focus — what shipped, what's stuck, what to work on next, and what an overnight beep-boop run parked. Trigger for: 'wtf' / 'what should I work on' / 'catch me up' / 'what happened' / 'what's blocked' / 'what's next', 'Where to focus', 'what's happening', 'where are we', 'where we at', 'whats up', 'the 411', 'lowdown'."
+description: "Brief on what shipped, what is blocked, what to work on next and what an unattended run parked. Use for catch me up, current focus or what happened."
 ---
 
 # Faff — WTF (Where To Focus)
@@ -165,137 +165,31 @@ Keep the tracker in sync with reality. No one starts building without a spec.
 
 ## Output Format
 
-Tabular output follows the `rendering_adaptor` slot's table-vs-definition-list rule (gateway → **Rendering → `rendering_adaptor`**; default `faffidavit-rendering`).
+Follow the configured `rendering_adaptor` table-vs-definition-list rule (gateway → **Rendering → `rendering_adaptor`**). Keep the brief concise and scannable.
 
-Keep it concise and scannable. Use this structure:
+If a methodology skill is configured, start with `Methodology: [skill-name]`. Then use `## What's up: [date]` and, when applicable, **[Y] days to [next milestone]**.
 
-(when a `methodology` skill is configured, the first line is)
+Render these sections in order, using the numbered phases above for their content and gates:
 
-```
-Methodology: [skill-name]
-```
+| Section | Content and form |
+|---|---|
+| Milestones | One table per project: `Milestone \| Target \| Progress`, with ID/name, YYYY-MM-DD and percentage from the live tracker. |
+| Shipped | Issue glosses plus newly unlocked issues and their glosses. |
+| In progress | Issue gloss and status. |
+| Blocked | Issue gloss and blocker reason. |
+| Parked work | All park sources; gloss, cause, unpark route and autonomous log path when present. Include the applicable follow-up offer for each manual and autonomous park. |
+| Awaiting review (adversarial outage) | Build review wait, attempt n/N, next-drain auto-resume and no action needed. |
+| Awaiting spec-review (adversarial outage) | Durable spec review wait, held drain n/N, next-prep-drain auto-resume and no action needed. |
+| ADR supersession proposals awaiting ratification | New/old ADR numbers and titles, authoring issue, why and the ratification gate. Refusals follow appetite-graded surfacing. |
+| Do this | Two or three methodology-ordered focus items, issue gloss, priority source, unlock consequence and "just unlocked by" annotation where applicable. Respect WIP/headroom. |
+| Methodology findings | Configured lens only; WIP, optional sequencing diagnosis and at most two severity-ordered structural findings; link excess to `/faff-tidy`. |
+| Heads up | Repeat-parks, orphaned repeat-parks, chain gaps tagged by sub-type, and risks/deadlines. Report actions only when the source records them. |
+| Automation preview | Value chains when the threshold is met; Build queue; Needs your call grouped/diagnosed as Phase 5b specifies; Prep queue. |
+| Structural diagnostics | Clean status line or the full findings in the methodology's defined form. |
+| Calibration signals | Threshold-crossed signals only, each with count, pattern, period and three suggested actions. |
+| Ready to pick up | Top one or two methodology-ordered candidates, gloss, readiness reason and applicable unlock annotations. Include "Promote to Todo? (y/n)" for each candidate. |
 
-(followed by the standard layout below)
-
-```
-## What's up — [date]
-
-**[Y] days to [next milestone]**
-
-### Milestones
-
-Source of truth is the configured issue tracker. Snapshot below — re-query via the tracker MCP's list-milestones equivalent per project / workstream id for the live view.
-
-#### [Project Name]
-
-| Milestone | Target | Progress |
-|-----------|--------|----------|
-| [ID · Name] | YYYY-MM-DD | NN% |
-
-(Repeat one table per project.)
-
-### Shipped
-- ISSUE-XX  [synthesis gloss for the shipped issue] · unlocked: ISSUE-AA, ISSUE-BB ([synthesis gloss for the unlocked issues])
-
-### In progress
-- ISSUE-XX  [synthesis gloss] — [brief status note]
-
-### Blocked
-- ISSUE-XX  [synthesis gloss] — blocked by [reason]
-
-### Parked overnight
-- ISSUE-XX  [synthesis gloss] — parked: [cause summary] (log: .faff/runs/…/ISSUE-XX/)
-
-### Awaiting review (adversarial outage)
-- ISSUE-XX  [synthesis gloss] — review provider unavailable, attempt n/N; auto-resumes next drain, no action needed
-
-### Awaiting spec-review (adversarial outage)
-- ISSUE-XX  [synthesis gloss] — spec-review provider unavailable, held drain n/N; auto-resumes next prep drain, no action needed
-
-### ADR supersession proposals awaiting ratification
-- ADR-NNNN proposes to supersede ADR-MMMM (authored by ISSUE-XX): [why]. Ratify? (y/n)
-- N supersession(s) refused by the admit gate — see the log (appetite `high`/`full` itemises)
-
-### Do this
-Ordered by the configured methodology's `pick-ordering`. Items freshly unblocked by recent shipping are annotated as just-appeared leverage.
-
-1. ISSUE-XX  [synthesis gloss + unlock-chain consequence in plain English]. (Priority source: issue/ancestor; "just unlocked by ISSUE-YY" if applicable.)
-2. ISSUE-YY  …
-3. ISSUE-ZZ  …
-
-### Methodology findings (rendered only when a methodology skill is configured)
-
-WIP at 2 (cap 3). Below cap — recommending one new start.
-
-Sequencing: current order would ship value at week 6. Value-aware ordering (ISSUE-A → ISSUE-B first) would ship at week 3. ISSUE-X (currently first) creates no standalone value; ISSUE-A unlocks the same downstream and ships value itself.
-
-Workstream "Bugs Q2" is activity-named — sequencing inside it has no shared outcome. Consider regrouping by user-facing change.
-
-(more in /faff-tidy)
-
-### Heads up
-- Repeat-park ⚠: ISSUE-VV  [gloss] — parked 4 runs same root cause; demoted to Backlog (decide via /faff-prep --refresh)
-- Orphaned + repeat-parked ⚠: ISSUE-ZZ  [gloss] — parent project cancelled; parked 3 times; is this still wanted?
-- Chain gap ⚠ (sub-ticket): ISSUE-AA  [gloss] — umbrella In Progress; spec enumerates 8 deliverables, 3 covered (2 PRs direct + 1 carved sub-ticket), 5 un-ticketed. No actionable next-step sub-ticket — /faff-graft can't advance it. (auto-carves the missing sub-tickets at default appetite; low appetite surfaces them to file.)
-- Chain gap ⚠ (upstream): ISSUE-CC  [gloss] — spec assumes "auth refresh has shipped" prereq, but no ticket exists for that work. (auto-files the prereq + blocker link at default appetite; low appetite offers "file gap issue".)
-- Chain gap ⚠ (peer): ISSUE-EE  [gloss] — spec references "consumer-side changes in billing-events service", no peer ticket in workstream. (auto-files the peer at default appetite; low appetite offers "file gap issue".)
-- [Any risks, approaching deadlines, or flags]
-
-### Automation preview — fire `/faff-beep-boop`?
-
-**Value chains to unlock** (when any ready issue gates ≥ 2)
-  SHF-12  add auth-token service  →  unlocks SHF-18 → SHF-19 → SHF-23  (3, blocked only by SHF-12)
-
-**Build queue** (4 ready · 2 fire-and-forget · 2 likely-fire serialised)
-
-  fire-and-forget
-    ISSUE-XX  [synthesis gloss] · unlocks 3 alerting tickets
-    ISSUE-YY  [synthesis gloss]
-
-  likely-fire [ISSUE-A → ISSUE-B] (both touch src/auth/)
-    ISSUE-A   [synthesis gloss]
-    ISSUE-B   [synthesis gloss]
-
-**Needs your call before automation can pick up:**
-
-  needs-decision-first
-    (architecture)
-      ISSUE-ZZ  [synthesis gloss] — Punt in spec: [decision asked] (decide in N min)
-    (product)
-      ISSUE-PP  [synthesis gloss] — Punt in spec: cron vs queue-driven send
-    (unowned)
-      ISSUE-YY  [synthesis gloss] — Punt in spec: pino vs winston (no decides: tag)
-      ISSUE-QQ  [synthesis gloss] — confidence: medium (spec thin on [area]); prep attached for review
-
-  gap-blocked
-    ISSUE-WW  [synthesis gloss] — spec assumes [named gap]; [recommended fix]
-
-  circular-blocked
-    ISSUE-AA  [synthesis gloss] — sits in cycle [AA → BB → CC → AA]; recommend [break-edge]
-
-  repeat-parked ⚠
-    ISSUE-VV  [synthesis gloss] (parked N runs with same root cause: [class]). Decide.
-
-**Prep queue** (N candidates, drained by default `/faff-beep-boop`)
-- ISSUE-ZZ  [synthesis gloss] — [no spec | stale spec | superseded spec]
-
-(Render "(none)" under any empty subsection rather than omitting it.)
-
-### Structural diagnostics
-
-Structural diagnostics: clean ✓
-
-(Or, when findings exist, render the full block in the format the methodology slot's `backlog-diagnostics` output defines.)
-
-### Calibration signals
-
-(Skipped when no signals threshold-crossed; otherwise render each signal as a paragraph.)
-
-### Ready to pick up
-- ISSUE-XX  [synthesis gloss] — [why it's ready now; flag "(just unlocked by ISSUE-YY)" if applicable, "(unlocks N)" if it gates downstream work]
-```
-
-Skip any section that has nothing to report — **except the automation preview (§5b)**, which is always rendered. If both queues are empty, write "Build queue: (none)" and "Prep queue: (none)" so the human can see the run would have no work.
+Omit empty optional sections. Always render the automation preview with `(none)` under empty subsections, including the `Needs your call before automation can pick up` header when it has no items; even with no work, show `Build queue: (none)` and `Prep queue: (none)`. Within a non-empty Build queue, show both `fire-and-forget (independents)` and `likely-fire (serialised)` partitions, using `(none)` for an empty partition. Always render at least the structural-diagnostics status line. Finish with the applicable Chaining offers. Check every surfaced parked item and Ready-to-pick-up candidate has its offer; include start/build/prep and ADR ratification gates when applicable. Check Chaining's full-groom offer as well. Offers never claim an action has already occurred.
 
 ## Autonomous Mode
 
@@ -310,13 +204,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 Log the query results and the returned lists to `.faff/logs/YYYY-MM-DD/HHMMSS-wtf.md`. This narrative `HHMMSS-wtf.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`).
 
 ## Notes
+
 - Don't over-query — pull what's needed, synthesize, present
 - If the project's ambient context (e.g. `CLAUDE.md`) states working-pattern or scheduling preferences, respect them when timing recommendations — faff keeps no separate config channel for this; the human's stated preference is the source.
-- Ordering everywhere is delegated to the configured methodology's `pick-ordering` (gateway → **Ordering & judgement delegation**); `/faff-wtf` states no ordering of its own.
-- Recent ships unlock latent potential — surface what each shipped issue unblocked and annotate just-unlocked issues; the methodology's `pick-ordering` decides where they land
-- Every surfaced issue uses the synthesis contract — plain-English gloss + unlock-chain consequence when non-trivial. Tracker IDs are breadcrumbs, not the load-bearing handle.
-- Build-queue and prep-queue sections render as the queue partition grid per the visualisation contract — never as long prose lists.
-- Structural diagnostics and calibration signals are pulled from the latest tidy log (or computed inline if tidy didn't run this pass). Repeat-parks, orphaned+repeat-parked, and chain gaps (any sub-type — sub-ticket / upstream / downstream / peer) always surface in `### Heads up`, not just in the diagnostics dump — a chain gap means a focus pick on the ticket leaves the broader purpose unfulfilled with no breadcrumb for what's next, and the human needs that visible before picking it up.
-- When a `methodology` slot is configured, wtf adds a `### 5a. Methodology findings` section after Today's Focus (display convention: gateway).
 - WIP recommendations are human-facing only. Autonomous in-flight work (issues `/faff-beep-boop` is currently building or has a PR open for) does not count against the human's WIP cap — the human reviews one PR at a time.
-- The Methodology findings section is the highlight, not the firehose. At most two structural findings; `/faff-tidy` surfaces the full set.

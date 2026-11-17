@@ -1,0 +1,9 @@
+{
+  "accepted": false,
+  "status": "held-native-path-protocol-failure",
+  "reason": "Baseline one mistyped a policy-read run-directory path and received ENOENT before retrying correctly. The strict native audit rejects the out-of-bridge path. All four artifact rubrics and ten decisions pass, but that does not override native protocol failure.",
+  "native_audit_sha256": "fca92aa4bcdcdcb7b693831dc68988894032794a31142dbbc773f33d14ea10df",
+  "candidate_measured": false,
+  "savings_counted": false,
+  "full_manual_artifact_review_complete": false
+}

@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "contract",
+      "automation-routing"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"verdict\":\"fire-and-forget\",\"root_cause\":null,\"conformant\":true,\"violations\":[]}\n",
+    "stderr": "",
+    "value": {
+      "verdict": "fire-and-forget",
+      "root_cause": null,
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

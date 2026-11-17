@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All cases were recorded, and the measurement finished successfully. No departures from the stated restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5b5-7fbf-7ea0-b01c-f8fe63699c6d"
+    ],
+    "elapsed_seconds": 173.5,
+    "stdout_sha256": "21fa64eb8787f55c2336c061735e579dd5a2424dfe771ad5493950e126a88235",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

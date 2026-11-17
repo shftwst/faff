@@ -1,6 +1,6 @@
 ---
 name: faffidavit-routing
-description: "Default `routing_adaptor` — assigns the automation-routing verdict to a spec-gated issue (from diagnostics + confidence + markers + park history), renders it, and validates assignments. Runs as a configured slot, not the user `/` menu."
+description: "Default routing_adaptor slot: assign and render automation verdicts from diagnostics, confidence, markers and park history; validate assignments."
 user-invocable: false
 judgement_seam: routing
 ---

@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{ "verdict": "revise", "objections": [ { "lens": "QA", "severity": "major", "claim": "The Receipt date scenario has no observable Then, MUST or comparator, so it cannot be judged code-blind.", "evidence": "Scenarios, Receipt date: Given a stored receipt, when its receipt is opened.", "predicted_consequence": "Nobody can decide whether the Receipt date scenario passes or fails.", "spec_anchor": "receipt-date" } ] }
+```

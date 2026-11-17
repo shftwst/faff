@@ -1,0 +1,107 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-unserved",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "reason": "The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Export transactions as CSV,Filter transaction exports by date",
+          "--prd-goals",
+          "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "Export serves both cited goals.",
+          "--challenge",
+          "overturned",
+          "--challenge-ground",
+          "unserved",
+          "--challenge-reason",
+          "The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims.",
+          "--dod-covers",
+          "[\"Export transactions as CSV\"]"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"dod_covers\":[\"Export transactions as CSV\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"Export serves both cited goals.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims.\",\"ground\":\"unserved\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims.\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims.\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": false,
+      "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims.",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Export transactions as CSV",
+        "Filter transaction exports by date"
+      ],
+      "dod_covers": [
+        "Export transactions as CSV"
+      ],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": false,
+        "within_scope": false,
+        "verdict": "admit",
+        "reason": "Export serves both cited goals."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims.",
+        "ground": "unserved"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "reject",
+      "upper": {
+        "admit": false,
+        "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims."
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

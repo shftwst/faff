@@ -1,0 +1,1130 @@
+TAP version 13
+# Subtest: exact restored state reproduces real consumers and incomplete-work refusal
+ok 1 - exact restored state reproduces real consumers and incomplete-work refusal
+  ---
+  duration_ms: 812.553838
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects empty case set
+ok 2 - snapshot replay rejects empty case set
+  ---
+  duration_ms: 3.135552
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects omitted case
+ok 3 - snapshot replay rejects omitted case
+  ---
+  duration_ms: 2.359924
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects changed ledger bytes
+ok 4 - snapshot replay rejects changed ledger bytes
+  ---
+  duration_ms: 88.066651
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects changed event value
+ok 5 - snapshot replay rejects changed event value
+  ---
+  duration_ms: 80.055959
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects changed event order
+ok 6 - snapshot replay rejects changed event order
+  ---
+  duration_ms: 98.5506
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects changed append head
+ok 7 - snapshot replay rejects changed append head
+  ---
+  duration_ms: 89.37653
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects changed event read
+ok 8 - snapshot replay rejects changed event read
+  ---
+  duration_ms: 71.058222
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects missing summary record despite coherent dependency hash
+ok 9 - snapshot replay rejects missing summary record despite coherent dependency hash
+  ---
+  duration_ms: 274.057484
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects invented persisted summary
+ok 10 - snapshot replay rejects invented persisted summary
+  ---
+  duration_ms: 265.491748
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects wrong incomplete runcheck
+ok 11 - snapshot replay rejects wrong incomplete runcheck
+  ---
+  duration_ms: 375.483218
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects summary for incomplete work
+ok 12 - snapshot replay rejects summary for incomplete work
+  ---
+  duration_ms: 375.399426
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects runtime artifact substitution
+ok 13 - snapshot replay rejects runtime artifact substitution
+  ---
+  duration_ms: 86.933189
+  type: 'test'
+  ...
+# Subtest: real consumers accept source-grounded details while retaining the legacy failures
+ok 14 - real consumers accept source-grounded details while retaining the legacy failures
+  ---
+  duration_ms: 848.828951
+  type: 'test'
+  ...
+# Subtest: reject removed supplied detail map
+ok 15 - reject removed supplied detail map
+  ---
+  duration_ms: 1.938881
+  type: 'test'
+  ...
+# Subtest: reject removed supplied tests
+ok 16 - reject removed supplied tests
+  ---
+  duration_ms: 4.738264
+  type: 'test'
+  ...
+# Subtest: reject changed supplied head
+ok 17 - reject changed supplied head
+  ---
+  duration_ms: 2.029132
+  type: 'test'
+  ...
+# Subtest: reject extra unsupplied test in required array
+ok 18 - reject extra unsupplied test in required array
+  ---
+  duration_ms: 1.416087
+  type: 'test'
+  ...
+# Subtest: reject array detail map
+ok 19 - reject array detail map
+  ---
+  duration_ms: 3.78022
+  type: 'test'
+  ...
+# Subtest: reject null issue entry
+ok 20 - reject null issue entry
+  ---
+  duration_ms: 2.573133
+  type: 'test'
+  ...
+# Subtest: reject unknown issue
+ok 21 - reject unknown issue
+  ---
+  duration_ms: 1.436337
+  type: 'test'
+  ...
+# Subtest: reject prep issue
+ok 22 - reject prep issue
+  ---
+  duration_ms: 2.195632
+  type: 'test'
+  ...
+# Subtest: reject changed terminal outcome
+ok 23 - reject changed terminal outcome
+  ---
+  duration_ms: 1.398046
+  type: 'test'
+  ...
+# Subtest: reject changed command authority
+ok 24 - reject changed command authority
+  ---
+  duration_ms: 2.82055
+  type: 'test'
+  ...
+# Subtest: reject changed ledger bytes
+ok 25 - reject changed ledger bytes
+  ---
+  duration_ms: 1.45838
+  type: 'test'
+  ...
+# Subtest: extra empty containers and arbitrary field names are visible to manual review
+ok 26 - extra empty containers and arbitrary field names are visible to manual review
+  ---
+  duration_ms: 1.768547
+  type: 'test'
+  ...
+# Subtest: a structurally valid fabricated claim cannot pass a rejecting manual judgement
+ok 27 - a structurally valid fabricated claim cannot pass a rejecting manual judgement
+  ---
+  duration_ms: 4.938724
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects missing case
+ok 28 - manual grounding gate rejects missing case
+  ---
+  duration_ms: 0.713419
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects duplicate case
+ok 29 - manual grounding gate rejects duplicate case
+  ---
+  duration_ms: 0.579002
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects missing claim
+ok 30 - manual grounding gate rejects missing claim
+  ---
+  duration_ms: 0.506251
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects duplicate claim
+ok 31 - manual grounding gate rejects duplicate claim
+  ---
+  duration_ms: 0.286585
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects changed detail hash
+ok 32 - manual grounding gate rejects changed detail hash
+  ---
+  duration_ms: 0.279876
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects changed source hash
+ok 33 - manual grounding gate rejects changed source hash
+  ---
+  duration_ms: 0.179417
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects changed value hash
+ok 34 - manual grounding gate rejects changed value hash
+  ---
+  duration_ms: 0.50946
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects changed displayed value
+ok 35 - manual grounding gate rejects changed displayed value
+  ---
+  duration_ms: 0.205626
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects absent citation
+ok 36 - manual grounding gate rejects absent citation
+  ---
+  duration_ms: 3.464636
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects nonexistent citation
+ok 37 - manual grounding gate rejects nonexistent citation
+  ---
+  duration_ms: 0.115917
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects absent rationale
+ok 38 - manual grounding gate rejects absent rationale
+  ---
+  duration_ms: 0.2675
+  type: 'test'
+  ...
+# Subtest: real ledger/event producer fixture and all decisions pass
+ok 39 - real ledger/event producer fixture and all decisions pass
+  ---
+  duration_ms: 820.50132
+  type: 'test'
+  ...
+# Subtest: public task cases do not expose oracle or fixture-private fields
+ok 40 - public task cases do not expose oracle or fixture-private fields
+  ---
+  duration_ms: 0.232375
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned level
+ok 41 - reject changed command-owned level
+  ---
+  duration_ms: 1.64588
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned owner
+ok 42 - reject changed command-owned owner
+  ---
+  duration_ms: 1.423463
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned budget
+ok 43 - reject changed command-owned budget
+  ---
+  duration_ms: 2.411883
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned schema_version
+ok 44 - reject changed command-owned schema_version
+  ---
+  duration_ms: 1.046461
+  type: 'test'
+  ...
+# Subtest: reject missing ledger-write
+ok 45 - reject missing ledger-write
+  ---
+  duration_ms: 1.15917
+  type: 'test'
+  ...
+# Subtest: reject ledger-write before edit
+ok 46 - reject ledger-write before edit
+  ---
+  duration_ms: 1.007544
+  type: 'test'
+  ...
+# Subtest: reject caller-supplied ledger hash
+ok 47 - reject caller-supplied ledger hash
+  ---
+  duration_ms: 1.740672
+  type: 'test'
+  ...
+# Subtest: reject object outcome
+ok 48 - reject object outcome
+  ---
+  duration_ms: 1.260879
+  type: 'test'
+  ...
+# Subtest: reject unknown outcome
+ok 49 - reject unknown outcome
+  ---
+  duration_ms: 0.867836
+  type: 'test'
+  ...
+# Subtest: reject invented incomplete outcome
+ok 50 - reject invented incomplete outcome
+  ---
+  duration_ms: 3.536887
+  type: 'test'
+  ...
+# Subtest: reject removed incomplete admission
+ok 51 - reject removed incomplete admission
+  ---
+  duration_ms: 0.976628
+  type: 'test'
+  ...
+# Subtest: reject admitted prep hold
+ok 52 - reject admitted prep hold
+  ---
+  duration_ms: 0.712461
+  type: 'test'
+  ...
+# Subtest: reject swapped prep distinction
+ok 53 - reject swapped prep distinction
+  ---
+  duration_ms: 0.785419
+  type: 'test'
+  ...
+# Subtest: reject human landing made resumable
+ok 54 - reject human landing made resumable
+  ---
+  duration_ms: 0.984587
+  type: 'test'
+  ...
+# Subtest: reject changed post-merge details
+ok 55 - reject changed post-merge details
+  ---
+  duration_ms: 1.029378
+  type: 'test'
+  ...
+# Subtest: reject wrong filing count
+ok 56 - reject wrong filing count
+  ---
+  duration_ms: 1.800756
+  type: 'test'
+  ...
+# Subtest: reject duplicate admission
+ok 57 - reject duplicate admission
+  ---
+  duration_ms: 1.261796
+  type: 'test'
+  ...
+# Subtest: reject missing event
+ok 58 - reject missing event
+  ---
+  duration_ms: 1.734631
+  type: 'test'
+  ...
+# Subtest: reject duplicate event
+ok 59 - reject duplicate event
+  ---
+  duration_ms: 1.319004
+  type: 'test'
+  ...
+# Subtest: reject micro-action event
+ok 60 - reject micro-action event
+  ---
+  duration_ms: 1.238337
+  type: 'test'
+  ...
+# Subtest: reject extra genesis
+ok 61 - reject extra genesis
+  ---
+  duration_ms: 0.979879
+  type: 'test'
+  ...
+# Subtest: reject wrong event phase
+ok 62 - reject wrong event phase
+  ---
+  duration_ms: 0.757753
+  type: 'test'
+  ...
+# Subtest: reject missing closing tokens flag
+ok 63 - reject missing closing tokens flag
+  ---
+  duration_ms: 0.738294
+  type: 'test'
+  ...
+# Subtest: reject opening tokens flag
+ok 64 - reject opening tokens flag
+  ---
+  duration_ms: 1.226504
+  type: 'test'
+  ...
+# Subtest: reject missing gate metadata
+ok 65 - reject missing gate metadata
+  ---
+  duration_ms: 0.783169
+  type: 'test'
+  ...
+# Subtest: reject gate on clean ship
+ok 66 - reject gate on clean ship
+  ---
+  duration_ms: 0.746544
+  type: 'test'
+  ...
+# Subtest: reject changed supplied budget
+ok 67 - reject changed supplied budget
+  ---
+  duration_ms: 2.311216
+  type: 'test'
+  ...
+# Subtest: reject unknown caller field even when output is unchanged
+ok 68 - reject unknown caller field even when output is unchanged
+  ---
+  duration_ms: 1.311338
+  type: 'test'
+  ...
+# Subtest: reject frozen token delta
+ok 69 - reject frozen token delta
+  ---
+  duration_ms: 1.244003
+  type: 'test'
+  ...
+# Subtest: reject missing transcript misreported as metered zero
+ok 70 - reject missing transcript misreported as metered zero
+  ---
+  duration_ms: 1.063378
+  type: 'test'
+  ...
+# Subtest: reject missing case
+ok 71 - reject missing case
+  ---
+  duration_ms: 0.569585
+  type: 'test'
+  ...
+# Subtest: reject missing decision
+ok 72 - reject missing decision
+  ---
+  duration_ms: 0.893544
+  type: 'test'
+  ...
+# Subtest: reject unknown operation
+ok 73 - reject unknown operation
+  ---
+  duration_ms: 0.817586
+  type: 'test'
+  ...
+# Subtest: reject early finish
+ok 74 - reject early finish
+  ---
+  duration_ms: 0.676627
+  type: 'test'
+  ...
+# Subtest: reordered unique ledger collections remain equivalent
+ok 75 - reordered unique ledger collections remain equivalent
+  ---
+  duration_ms: 0.997295
+  type: 'test'
+  ...
+# Subtest: reordered outcome keys pass through the actual producer and summary consumer
+ok 76 - reordered outcome keys pass through the actual producer and summary consumer
+  ---
+  duration_ms: 556.740495
+  type: 'test'
+  ...
+# Subtest: real token accounting advances and retains missing-transcript estimate
+ok 77 - real token accounting advances and retains missing-transcript estimate
+  ---
+  duration_ms: 0.128208
+  type: 'test'
+  ...
+# Subtest: real incomplete ledger consumer leaves only OPEN-1 undispatched
+ok 78 - real incomplete ledger consumer leaves only OPEN-1 undispatched
+  ---
+  duration_ms: 0.063167
+  type: 'test'
+  ...
+# Subtest: ports reject command-owned writes and wrong root/session
+ok 79 - ports reject command-owned writes and wrong root/session
+  ---
+  duration_ms: 0.366126
+  type: 'test'
+  ...
+# Subtest: event invocation allows flag order and refuses missing, duplicate or wrong binding
+ok 80 - event invocation allows flag order and refuses missing, duplicate or wrong binding
+  ---
+  duration_ms: 0.079292
+  type: 'test'
+  ...
+# Subtest: summary clock comparison accepts midnight rollover and rejects an invented date or duration
+ok 81 - summary clock comparison accepts midnight rollover and rejects an invented date or duration
+  ---
+  duration_ms: 0.849502
+  type: 'test'
+  ...
+# faff events anchor: precondition failed — ledger fold mismatch: run-ledger.json hashes 9ff49fb5b153… but the last ledger-write recorded e1b7df768a2a…; append a ledger-write to re-sync the ledger fold before anchoring (echo '{"phase":"run","type":"ledger-write"}' | faff events append --run faff-events-verify-Vx9Uax), then re-run
+# faff events anchor-run: self-verify failed for /tmp/faff-events-verify-yj6cMO/run-anchorrun-shipped/FAFF-1 (governance-check exit 1):
+# run faff-events-verify-S2tHAQ/FAFF-1  (/tmp/faff-events-verify-yj6cMO/run-anchorrun-shipped/FAFF-1)
+#   completeness: pass — n/a — anchor snapshot (completeness runs on live run dirs only)
+#   budget:       pass — n/a — anchor snapshot (budget runs on live run dirs only)
+#   merge_floor:  FAIL — FAFF-1:ac-checklist.json missing/incomplete,review-verdict missing
+#   coherence:    clean (report-only)
+#   liveness:     pass — n/a — anchor snapshot (liveness runs on live run dirs only)
+#   integrity:    pass — chain verified from genesis
+#   evidence_schema: legacy (report-only) — legacy anchor (no evidence document carries schema_version)
+# verdict: FAIL
+#   ✗ faff-events-verify-S2tHAQ/FAFF-1: merge_floor — FAFF-1: ac-checklist.json missing/incomplete; review-verdict missing
+# faff events anchor-run: precondition failed — no ledger-write event in /tmp/faff-events-verify-8o1E0n/events.jsonl; the run-close edit must be chained before anchor-run runs
+# faff events anchor-run: precondition failed — ledger fold mismatch: run-ledger.json hashes ca618a94f081… but the last ledger-write recorded 5be265f8bae2…
+# faff events anchor-run: run-ledger.json missing/unreadable in /tmp/faff-events-verify-bRwuAB: ENOENT: no such file or directory, open '/tmp/faff-events-verify-bRwuAB/run-ledger.json'
+# faff events anchor-run: run-ledger.json missing/unreadable in /tmp/faff-events-verify-wy7fls: Expected property name or '}' in JSON at position 2 (line 1 column 3)
+# faff events anchor-run: --run-dir is required
+# faff events anchor-run: no events.jsonl in /tmp/faff-events-verify-wws0Dq — nothing to anchor
+# - type 'containment-check' is issue-scoped but missing required field 'issue'
+# - type 'build-start' is issue-scoped but missing required field 'issue'
+# - type 'frobnicate' not in EventType {run-start, run-end, tidy-done, issue-admitted, prep-start, prep-done, build-start, issue-outcome, discovered-scope-filed, budget-checkpoint, park, sentry-checkpoint, corrective-authored, corrective-consumed, containment-check, self-intake-check, run-resume, run-claim-abandoned, park-reconsidered, ledger-write, agent-dispatch, sentry-trip, bundle-store-unavailable, decision-capture, decision-capture-action, runner-identity, evidence-terminal-only, human-only-acs-stamp}
+# - phase 'nope' not in Phase {run, tidy, prep, build, plot}
+# - issue-outcome.data.outcome 'bogus' not in ledger outcome vocabulary {shipped, pr-open, parked, errored, routed-out, unreached-budget, claimed-by-peer, superseded, parked-window}
+# faff events append: malformed payload (invalid JSON)
+# faff events append: run dir missing (.faff/runs/run-Y) — initialise the run first
+# faff events append: run dir missing (.faff/runs/run-F) — initialise the run first
+# faff events append: --run is required
+# line 1: type 'containment-check' is issue-scoped but missing required field 'issue'
+# line 2: type 'frobnicate' not in EventType {run-start, run-end, tidy-done, issue-admitted, prep-start, prep-done, build-start, issue-outcome, discovered-scope-filed, budget-checkpoint, park, sentry-checkpoint, corrective-authored, corrective-consumed, containment-check, self-intake-check, run-resume, run-claim-abandoned, park-reconsidered, ledger-write, agent-dispatch, sentry-trip, bundle-store-unavailable, decision-capture, decision-capture-action, runner-identity, evidence-terminal-only, human-only-acs-stamp}
+# line 2: malformed (invalid JSON)
+# line 2: non-contiguous seq (expected 1, got 2) [advisory]
+# faff events read: no events for this run
+# - data.tokens.input must be a non-negative integer (got -1)
+# Subtest: events --selftest passes
+ok 82 - events --selftest passes
+  ---
+  duration_ms: 774.48776
+  type: 'test'
+  ...
+# Subtest: append: first event → seq 0, schema 2, run_id, ts, genesis prev; exit 0 (FAFF-564)
+ok 83 - append: first event → seq 0, schema 2, run_id, ts, genesis prev; exit 0 (FAFF-564)
+  ---
+  duration_ms: 42.7123
+  type: 'test'
+  ...
+# Subtest: append: seq is the current line count, gap-free across appends
+ok 84 - append: seq is the current line count, gap-free across appends
+  ---
+  duration_ms: 145.944749
+  type: 'test'
+  ...
+# Subtest: append: issue-scoped issue-outcome carries issue + data.outcome
+ok 85 - append: issue-scoped issue-outcome carries issue + data.outcome
+  ---
+  duration_ms: 42.21909
+  type: 'test'
+  ...
+# Subtest: append: FAFF-352 sentry-checkpoint is run-scoped (no issue required) and carries the sentry payload verbatim under data
+ok 86 - append: FAFF-352 sentry-checkpoint is run-scoped (no issue required) and carries the sentry payload verbatim under data
+  ---
+  duration_ms: 49.524822
+  type: 'test'
+  ...
+# Subtest: append: FAFF-354 containment-check is issue-scoped (issue = mandate) and carries the contain record verbatim under data
+ok 87 - append: FAFF-354 containment-check is issue-scoped (issue = mandate) and carries the contain record verbatim under data
+  ---
+  duration_ms: 38.204453
+  type: 'test'
+  ...
+# Subtest: append: FAFF-354 containment-check missing issue → exit 1 (issue-scoped)
+ok 88 - append: FAFF-354 containment-check missing issue → exit 1 (issue-scoped)
+  ---
+  duration_ms: 30.158053
+  type: 'test'
+  ...
+# Subtest: append: issue-scoped type missing issue → exit 1, nothing appended
+ok 89 - append: issue-scoped type missing issue → exit 1, nothing appended
+  ---
+  duration_ms: 32.51931
+  type: 'test'
+  ...
+# Subtest: append: unknown type → exit 1
+ok 90 - append: unknown type → exit 1
+  ---
+  duration_ms: 33.55498
+  type: 'test'
+  ...
+# Subtest: append: unknown phase → exit 1
+ok 91 - append: unknown phase → exit 1
+  ---
+  duration_ms: 27.588753
+  type: 'test'
+  ...
+# Subtest: append: issue-outcome with outcome outside the ledger vocab → exit 1
+ok 92 - append: issue-outcome with outcome outside the ledger vocab → exit 1
+  ---
+  duration_ms: 26.226708
+  type: 'test'
+  ...
+# Subtest: append: malformed JSON payload → exit 2
+ok 93 - append: malformed JSON payload → exit 2
+  ---
+  duration_ms: 29.621676
+  type: 'test'
+  ...
+# Subtest: append: missing run dir → exit 3, no dir/file created
+ok 94 - append: missing run dir → exit 3, no dir/file created
+  ---
+  duration_ms: 31.898225
+  type: 'test'
+  ...
+# Subtest: append: run path exists as a file (not a dir) → exit 3, no crash
+ok 95 - append: run path exists as a file (not a dir) → exit 3, no crash
+  ---
+  duration_ms: 34.379482
+  type: 'test'
+  ...
+# Subtest: append: --run is required → exit 2
+ok 96 - append: --run is required → exit 2
+  ---
+  duration_ms: 26.223999
+  type: 'test'
+  ...
+# Subtest: validate: a well-formed log → exit 0
+ok 97 - validate: a well-formed log → exit 0
+  ---
+  duration_ms: 108.204464
+  type: 'test'
+  ...
+# Subtest: validate: FAFF-354 accepts a well-formed containment-check record
+ok 98 - validate: FAFF-354 accepts a well-formed containment-check record
+  ---
+  duration_ms: 82.032549
+  type: 'test'
+  ...
+# Subtest: validate: FAFF-354 rejects a containment-check record missing the required issue field
+ok 99 - validate: FAFF-354 rejects a containment-check record missing the required issue field
+  ---
+  duration_ms: 31.764475
+  type: 'test'
+  ...
+# Subtest: validate: an unknown type on line 2 → exit 1, line-numbered
+ok 100 - validate: an unknown type on line 2 → exit 1, line-numbered
+  ---
+  duration_ms: 31.044972
+  type: 'test'
+  ...
+# Subtest: validate: malformed line → exit 1, line-numbered
+ok 101 - validate: malformed line → exit 1, line-numbered
+  ---
+  duration_ms: 34.99861
+  type: 'test'
+  ...
+# Subtest: validate: non-contiguous seq → advisory violation (exit 1)
+ok 102 - validate: non-contiguous seq → advisory violation (exit 1)
+  ---
+  duration_ms: 27.829963
+  type: 'test'
+  ...
+# Subtest: read: filters by --type and returns matching events as JSON
+ok 103 - read: filters by --type and returns matching events as JSON
+  ---
+  duration_ms: 110.145887
+  type: 'test'
+  ...
+# Subtest: read: absent log → exit 3 (no events), not an error
+ok 104 - read: absent log → exit 3 (no events), not an error
+  ---
+  duration_ms: 23.785908
+  type: 'test'
+  ...
+# Subtest: ordering is by seq, independent of ts (out-of-order ts keeps ascending seq)
+ok 105 - ordering is by seq, independent of ts (out-of-order ts keeps ascending seq)
+  ---
+  duration_ms: 73.170938
+  type: 'test'
+  ...
+# Subtest: append --tokens: four-class delta from transcript; checkpoint advances
+ok 106 - append --tokens: four-class delta from transcript; checkpoint advances
+  ---
+  duration_ms: 39.357249
+  type: 'test'
+  ...
+# Subtest: append --tokens twice: second delta is baselined against the first (checkpoint advance)
+ok 107 - append --tokens twice: second delta is baselined against the first (checkpoint advance)
+  ---
+  duration_ms: 87.493941
+  type: 'test'
+  ...
+# Subtest: append --tokens with NO transcript → null delta, estimate source, checkpoint NOT advanced
+ok 108 - append --tokens with NO transcript → null delta, estimate source, checkpoint NOT advanced
+  ---
+  duration_ms: 38.389662
+  type: 'test'
+  ...
+# Subtest: append --tokens with a transcript but NO ledger → degrades to estimate (no fabricated delta), event still writes
+ok 109 - append --tokens with a transcript but NO ledger → degrades to estimate (no fabricated delta), event still writes
+  ---
+  duration_ms: 45.033599
+  type: 'test'
+  ...
+# Subtest: append WITHOUT --tokens: no data.tokens, ledger untouched (byte-identical path)
+ok 110 - append WITHOUT --tokens: no data.tokens, ledger untouched (byte-identical path)
+  ---
+  duration_ms: 38.558787
+  type: 'test'
+  ...
+# Subtest: append: a malformed data.tokens payload is rejected (exit 1)
+ok 111 - append: a malformed data.tokens payload is rejected (exit 1)
+  ---
+  duration_ms: 26.129706
+  type: 'test'
+  ...
+# Subtest: non-leak: a tagged event line carries no prompt/response payload, only the 4 classes
+ok 112 - non-leak: a tagged event line carries no prompt/response payload, only the 4 classes
+  ---
+  duration_ms: 39.505665
+  type: 'test'
+  ...
+# Subtest: parity: the --tokens delta sum equals budget check's total on the same transcript
+ok 113 - parity: the --tokens delta sum equals budget check's total on the same transcript
+  ---
+  duration_ms: 94.194003
+  type: 'test'
+  ...
+# Subtest: S5 (FAFF-488): --session-id (no ambient CLAUDE_CODE_SESSION_ID) selects the transcript for --tokens without leaking; events validate confirms exactly the four classes
+ok 114 - S5 (FAFF-488): --session-id (no ambient CLAUDE_CODE_SESSION_ID) selects the transcript for --tokens without leaking; events validate confirms exactly the four classes
+  ---
+  duration_ms: 68.377756
+  type: 'test'
+  ...
+# run-ledger: schema_version is not 1; written unchanged and unvalidated (warn mode)
+# Subtest: a mint writes schema_version: 1 as the first key and the file validates
+ok 115 - a mint writes schema_version: 1 as the first key and the file validates
+  ---
+  duration_ms: 11.227535
+  type: 'test'
+  ...
+# Subtest: a mint with an unlisted key throws LEDGER_SCHEMA and creates no file
+ok 116 - a mint with an unlisted key throws LEDGER_SCHEMA and creates no file
+  ---
+  duration_ms: 1.600005
+  type: 'test'
+  ...
+# Subtest: a mutation adding an unlisted key throws and leaves ledger and events byte-identical, copy or in place
+ok 117 - a mutation adding an unlisted key throws and leaves ledger and events byte-identical, copy or in place
+  ---
+  duration_ms: 4.57864
+  type: 'test'
+  ...
+# Subtest: with { schema: 'warn' } the same mutation writes the ledger and warns
+ok 118 - with { schema: 'warn' } the same mutation writes the ledger and warns
+  ---
+  duration_ms: 3.718387
+  type: 'test'
+  ...
+# Subtest: changing an already invalid value to another invalid value at the same path is introduced
+ok 119 - changing an already invalid value to another invalid value at the same path is introduced
+  ---
+  duration_ms: 10.441283
+  type: 'test'
+  ...
+# Subtest: a ledger with outcomes.FAFF-1 = promoted still accepts record-style writes elsewhere in the map
+ok 120 - a ledger with outcomes.FAFF-1 = promoted still accepts record-style writes elsewhere in the map
+  ---
+  duration_ms: 8.137442
+  type: 'test'
+  ...
+# Subtest: removing a required key is introduced; an unrelated write onto a ledger already missing one succeeds
+ok 121 - removing a required key is introduced; an unrelated write onto a ledger already missing one succeeds
+  ---
+  duration_ms: 3.342969
+  type: 'test'
+  ...
+# Subtest: a numeric outcome_details entry the mutation added is introduced
+ok 122 - a numeric outcome_details entry the mutation added is introduced
+  ---
+  duration_ms: 1.732255
+  type: 'test'
+  ...
+# Subtest: an outcome_details entry with an unlisted key and a nested object writes
+ok 123 - an outcome_details entry with an unlisted key and a nested object writes
+  ---
+  duration_ms: 2.584758
+  type: 'test'
+  ...
+# Subtest: a pre-existing unlisted key is reported and left alone; dotted issue keys compare as single segments
+ok 124 - a pre-existing unlisted key is reported and left alone; dotted issue keys compare as single segments
+  ---
+  duration_ms: 2.992343
+  type: 'test'
+  ...
+# Subtest: a mutation that deletes schema_version, or sets it, still writes the snapshot's version
+ok 125 - a mutation that deletes schema_version, or sets it, still writes the snapshot's version
+  ---
+  duration_ms: 3.393803
+  type: 'test'
+  ...
+# Subtest: a fenced-stale or null-returning mutation writes nothing and runs no validation
+ok 126 - a fenced-stale or null-returning mutation writes nothing and runs no validation
+  ---
+  duration_ms: 1.392587
+  type: 'test'
+  ...
+# Subtest: a ledger at schema_version 2 refuses in enforce mode, and warn mode keeps the 2
+ok 127 - a ledger at schema_version 2 refuses in enforce mode, and warn mode keeps the 2
+  ---
+  duration_ms: 3.166052
+  type: 'test'
+  ...
+# Subtest: the ledger-write event hashes the stamped bytes (faff events verify reports the fold verified)
+ok 128 - the ledger-write event hashes the stamped bytes (faff events verify reports the fold verified)
+  ---
+  duration_ms: 33.13702
+  type: 'test'
+  ...
+# Subtest: the schema is loaded before the lock is taken
+ok 129 - the schema is loaded before the lock is taken
+  ---
+  duration_ms: 5.548517
+  type: 'test'
+  ...
+# Subtest: an unavailable schema refuses in enforce mode and writes with a warning in warn mode
+ok 130 - an unavailable schema refuses in enforce mode and writes with a warning in warn mode
+  ---
+  duration_ms: 140.655399
+  type: 'test'
+  ...
+# Subtest: no serialiser message or stderr line contains a field value, including a known secret
+ok 131 - no serialiser message or stderr line contains a field value, including a known secret
+  ---
+  duration_ms: 38.887539
+  type: 'test'
+  ...
+# Subtest: two known secrets that redact to the same placeholder in an integer field still count as a change
+ok 132 - two known secrets that redact to the same placeholder in an integer field still count as a change
+  ---
+  duration_ms: 39.664833
+  type: 'test'
+  ...
+# Subtest: a known secret in a field is written redacted
+ok 133 - a known secret in a field is written redacted
+  ---
+  duration_ms: 34.968859
+  type: 'test'
+  ...
+# Subtest: a known secret nested inside an outcome_details entry is written redacted
+ok 134 - a known secret nested inside an outcome_details entry is written redacted
+  ---
+  duration_ms: 34.621025
+  type: 'test'
+  ...
+# Subtest: the three run-state schemas contain no discriminator keyword
+ok 135 - the three run-state schemas contain no discriminator keyword
+  ---
+  duration_ms: 0.391334
+  type: 'test'
+  ...
+# Subtest: validateEvidenceDocument matches validate-schema.mjs messages and reports unavailable when the manifest is missing
+ok 136 - validateEvidenceDocument matches validate-schema.mjs messages and reports unavailable when the manifest is missing
+  ---
+  duration_ms: 1.592588
+  type: 'test'
+  ...
+# Subtest: detailed paths for required and additionalProperties violations end in the property name
+ok 137 - detailed paths for required and additionalProperties violations end in the property name
+  ---
+  duration_ms: 0.189834
+  type: 'test'
+  ...
+# Subtest: introducedViolations: ownership is per changed path
+ok 138 - introducedViolations: ownership is per changed path
+  ---
+  duration_ms: 0.171334
+  type: 'test'
+  ...
+# Subtest: removing a required owner key is introduced (path owner.status); a write onto an owner already missing one succeeds
+ok 139 - removing a required owner key is introduced (path owner.status); a write onto an owner already missing one succeeds
+  ---
+  duration_ms: 102.483529
+  type: 'test'
+  ...
+# Subtest: a minItems violation on an array the mutation shrank is introduced
+ok 140 - a minItems violation on an array the mutation shrank is introduced
+  ---
+  duration_ms: 90.668826
+  type: 'test'
+  ...
+# Subtest: scenario: no facts file — first line is the facts warning; awaiting landing renders, spec-review holds do not
+ok 141 - scenario: no facts file — first line is the facts warning; awaiting landing renders, spec-review holds do not
+  ---
+  duration_ms: 244.895559
+  type: 'test'
+  ...
+# Subtest: scenario: a shipped id flagged by both annotations renders only under post-merge flagged (the A9 tie-break)
+ok 142 - scenario: a shipped id flagged by both annotations renders only under post-merge flagged (the A9 tie-break)
+  ---
+  duration_ms: 140.683774
+  type: 'test'
+  ...
+# Subtest: scenario: superseded cites the delivering ids
+ok 143 - scenario: superseded cites the delivering ids
+  ---
+  duration_ms: 142.140196
+  type: 'test'
+  ...
+# Subtest: scenario: an L4 phantom merge escalates
+ok 144 - scenario: an L4 phantom merge escalates
+  ---
+  duration_ms: 126.857105
+  type: 'test'
+  ...
+# Subtest: scenario: hostile title and park record create no banned heading
+ok 145 - scenario: hostile title and park record create no banned heading
+  ---
+  duration_ms: 127.26269
+  type: 'test'
+  ...
+# Subtest: A1: install-health warning first when doctor reports unclean; absent when clean; a throwing doctor renders its could-not-read line
+ok 146 - A1: install-health warning first when doctor reports unclean; absent when clean; a throwing doctor renders its could-not-read line
+  ---
+  duration_ms: 92.077788
+  type: 'test'
+  ...
+# Subtest: A2/A5: methodology line and findings only when configured
+ok 147 - A2/A5: methodology line and findings only when configured
+  ---
+  duration_ms: 93.44471
+  type: 'test'
+  ...
+# Subtest: A3: header — mode, duration, sentry count and max, waves, stop reason; unreadable events marked
+ok 148 - A3: header — mode, duration, sentry count and max, waves, stop reason; unreadable events marked
+  ---
+  duration_ms: 125.929895
+  type: 'test'
+  ...
+# Subtest: A4: economics renders its figures, ZERO-SHIP and warnings; a throwing function renders unavailable
+ok 149 - A4: economics renders its figures, ZERO-SHIP and warnings; a throwing function renders unavailable
+  ---
+  duration_ms: 123.69368
+  type: 'test'
+  ...
+# Subtest: A6/A7: verdict counts and routed-out classes
+ok 150 - A6/A7: verdict counts and routed-out classes
+  ---
+  duration_ms: 221.33011
+  type: 'test'
+  ...
+# Subtest: A8: resolve-attempts only when reported
+ok 151 - A8: resolve-attempts only when reported
+  ---
+  duration_ms: 93.896669
+  type: 'test'
+  ...
+# Subtest: A9/A10: adversarial-skipped and post-merge sections only when their arrays say so
+ok 152 - A9/A10: adversarial-skipped and post-merge sections only when their arrays say so
+  ---
+  duration_ms: 375.750802
+  type: 'test'
+  ...
+# Subtest: A11: superseded absent without a superseded outcome; a missing record is named
+ok 153 - A11: superseded absent without a superseded outcome; a missing record is named
+  ---
+  duration_ms: 217.08393
+  type: 'test'
+  ...
+# Subtest: A12: PR-open vs awaiting landing
+ok 154 - A12: PR-open vs awaiting landing
+  ---
+  duration_ms: 262.621614
+  type: 'test'
+  ...
+# Subtest: A13: the parks block is `[]` for zero parks and carries the records
+ok 155 - A13: the parks block is `[]` for zero parks and carries the records
+  ---
+  duration_ms: 205.062685
+  type: 'test'
+  ...
+# Subtest: A13: a park record holding a backtick run still round-trips through park-history
+ok 156 - A13: a park record holding a backtick run still round-trips through park-history
+  ---
+  duration_ms: 115.804738
+  type: 'test'
+  ...
+# Subtest: A14/A15: the outage and slow-fan-out holds render only when their arrays are non-empty
+ok 157 - A14/A15: the outage and slow-fan-out holds render only when their arrays are non-empty
+  ---
+  duration_ms: 201.59134
+  type: 'test'
+  ...
+# Subtest: A16: errored with its reported reason
+ok 158 - A16: errored with its reported reason
+  ---
+  duration_ms: 118.610663
+  type: 'test'
+  ...
+# Subtest: A17: unreached only on an unreached-budget outcome; tokens_source on a tokens breach; a throwing budget degrades
+ok 159 - A17: unreached only on an unreached-budget outcome; tokens_source on a tokens breach; a throwing budget degrades
+  ---
+  duration_ms: 203.102137
+  type: 'test'
+  ...
+# Subtest: A18: product-incomplete only when the holdout record exists; environment gaps apart from human-only; unknown codes named
+ok 160 - A18: product-incomplete only when the holdout record exists; environment gaps apart from human-only; unknown codes named
+  ---
+  duration_ms: 185.848665
+  type: 'test'
+  ...
+# Subtest: A19: ground-truth divergences render only when reconcile found one (or a read failed); warn at L3
+ok 161 - A19: ground-truth divergences render only when reconcile found one (or a read failed); warn at L3
+  ---
+  duration_ms: 120.102043
+  type: 'test'
+  ...
+# Subtest: A20/A21/A22: inferred deps, discovered scope and follow-ups only when present
+ok 162 - A20/A21/A22: inferred deps, discovered scope and follow-ups only when present
+  ---
+  duration_ms: 177.994307
+  type: 'test'
+  ...
+# Subtest: A23: prep summary and tidy only in full mode
+ok 163 - A23: prep summary and tidy only in full mode
+  ---
+  duration_ms: 176.122427
+  type: 'test'
+  ...
+# Subtest: A24: no banned heading appears for any fixture in this file's shapes
+ok 164 - A24: no banned heading appears for any fixture in this file's shapes
+  ---
+  duration_ms: 143.968284
+  type: 'test'
+  ...
+# Subtest: facts problems: absent, invalid JSON, format missing, an unknown key — each exits 0 with its ⚠ line
+ok 165 - facts problems: absent, invalid JSON, format missing, an unknown key — each exits 0 with its ⚠ line
+  ---
+  duration_ms: 137.396638
+  type: 'test'
+  ...
+# Subtest: facts problems: a malformed facts file whose bytes include a heading yields one ⚠ line and no heading
+ok 166 - facts problems: a malformed facts file whose bytes include a heading yields one ⚠ line and no heading
+  ---
+  duration_ms: 86.625021
+  type: 'test'
+  ...
+# Subtest: ledger faults: missing admitted exits 2; a mistyped annotation array renders its could-not-read line
+ok 167 - ledger faults: missing admitted exits 2; a mistyped annotation array renders its could-not-read line
+  ---
+  duration_ms: 147.300378
+  type: 'test'
+  ...
+# Subtest: neutralisation: x\\n\#\# Deferred in every facts string field creates no heading
+ok 168 - neutralisation: x\\n\#\# Deferred in every facts string field creates no heading
+  ---
+  duration_ms: 211.82408
+  type: 'test'
+  ...
+# Subtest: labelling: facts-sourced lines end _(reported)_, the ⚠ facts diagnostics do not, disk-only lines do not
+ok 169 - labelling: facts-sourced lines end _(reported)_, the ⚠ facts diagnostics do not, disk-only lines do not
+  ---
+  duration_ms: 151.429308
+  type: 'test'
+  ...
+# Subtest: determinism: two renders at different clocks and ambient session ids, same forge responses, are byte-identical
+ok 170 - determinism: two renders at different clocks and ambient session ids, same forge responses, are byte-identical
+  ---
+  duration_ms: 174.342838
+  type: 'test'
+  ...
+# Subtest: reconcile in-process: a phantom merge, and the result deep-equals `faff reconcile --json` on the same input
+ok 171 - reconcile in-process: a phantom merge, and the result deep-equals `faff reconcile --json` on the same input
+  ---
+  duration_ms: 131.93083
+  type: 'test'
+  ...
+# Subtest: forge failure: a failing gh renders could-not-read-forge lines and the render still exits 0
+ok 172 - forge failure: a failing gh renders could-not-read-forge lines and the render still exits 0
+  ---
+  duration_ms: 144.557452
+  type: 'test'
+  ...
+# Subtest: no tracker facts: superseded and siblings with a readable baseline fabricate no divergence and say the checks did not run
+ok 173 - no tracker facts: superseded and siblings with a readable baseline fabricate no divergence and say the checks did not run
+  ---
+  duration_ms: 115.397153
+  type: 'test'
+  ...
+# Subtest: missing baseline: no sibling-baseline.json renders exactly one sibling-check-unproven line
+ok 174 - missing baseline: no sibling-baseline.json renders exactly one sibling-check-unproven line
+  ---
+  duration_ms: 117.071242
+  type: 'test'
+  ...
+# Subtest: PR lookup order: merge-record wins over landing-loop, which wins over the forge; a forge hit on another branch is ignored
+ok 175 - PR lookup order: merge-record wins over landing-loop, which wins over the forge; a forge hit on another branch is ignored
+  ---
+  duration_ms: 171.710788
+  type: 'test'
+  ...
+# Subtest: doctor in-process: the real install-health path renders doctor's own RESULT text when unclean
+ok 176 - doctor in-process: the real install-health path renders doctor's own RESULT text when unclean
+  ---
+  duration_ms: 90.893326
+  type: 'test'
+  ...
+# Subtest: no faff subprocess: with every child_process spawn but gh made to throw, the CLI still renders economics and install health
+ok 177 - no faff subprocess: with every child_process spawn but gh made to throw, the CLI still renders economics and install health
+  ---
+  duration_ms: 163.899513
+  type: 'test'
+  ...
+# Subtest: an unwritable --out exits 2 with a cannot-write line
+ok 178 - an unwritable --out exits 2 with a cannot-write line
+  ---
+  duration_ms: 182.581405
+  type: 'test'
+  ...
+# Subtest: `faff run bogus` exits 2 with a usage line naming summary
+ok 179 - `faff run bogus` exits 2 with a usage line naming summary
+  ---
+  duration_ms: 45.433601
+  type: 'test'
+  ...
+# Subtest: synthetic reference fixture renders the committed golden (in-process, stubbed forge, clean doctor)
+ok 180 - synthetic reference fixture renders the committed golden (in-process, stubbed forge, clean doctor)
+  ---
+  duration_ms: 208.034694
+  type: 'test'
+  ...
+# Subtest: integration smoke: the CLI on the reference fixture equals the golden outside install health and ground truth
+ok 181 - integration smoke: the CLI on the reference fixture equals the golden outside install health and ground truth
+  ---
+  duration_ms: 254.206213
+  type: 'test'
+  ...
+1..181
+# tests 181
+# suites 0
+# pass 181
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 9327.572762

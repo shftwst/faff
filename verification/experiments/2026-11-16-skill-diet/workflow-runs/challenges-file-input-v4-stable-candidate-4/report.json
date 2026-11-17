@@ -1,0 +1,126 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 14,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 22259,
+    "utf16_characters": 22259,
+    "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6000,
+        "sha256": "e9ef767f34365fe1b53fd6fafe5480a895d61a51041251fffba7548f9bef01bd"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6000,
+        "sha256": "ecd06cffdb77b69e684126b389b31561b6326a384261bf858061d20c1ab023dd"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6000,
+        "sha256": "7017c34c620c4b9120687e6a0dfb90907bd03d8efeff894a4b737a9935ee5c5d"
+      },
+      {
+        "offset": 18000,
+        "end": 22259,
+        "characters": 4259,
+        "bytes": 4259,
+        "sha256": "7e7d3cabd77063f1f0db7d56b8cd3b5ff8c59af196a5dcdb5a14db81e103ce92"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "adr-1",
+        "pass": true,
+        "problems": [],
+        "outcome": "survived",
+        "ground": null,
+        "disposition": "admit",
+        "upper_admit": null
+      },
+      {
+        "id": "adr-2",
+        "pass": true,
+        "problems": [],
+        "outcome": "overturned",
+        "ground": null,
+        "disposition": "reject",
+        "upper_admit": null
+      },
+      {
+        "id": "adr-unavailable",
+        "pass": true,
+        "problems": [],
+        "outcome": null,
+        "ground": null,
+        "disposition": "reject",
+        "upper_admit": null
+      },
+      {
+        "id": "prdr-1",
+        "pass": true,
+        "problems": [],
+        "outcome": "survived",
+        "ground": null,
+        "disposition": "admit",
+        "upper_admit": true
+      },
+      {
+        "id": "prdr-2",
+        "pass": true,
+        "problems": [],
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "disposition": "reject",
+        "upper_admit": false
+      },
+      {
+        "id": "prdr-under-citation",
+        "pass": true,
+        "problems": [],
+        "outcome": "survived",
+        "ground": null,
+        "disposition": "admit",
+        "upper_admit": true
+      },
+      {
+        "id": "prdr-unserved",
+        "pass": true,
+        "problems": [],
+        "outcome": "overturned",
+        "ground": "unserved",
+        "disposition": "reject",
+        "upper_admit": false
+      },
+      {
+        "id": "prdr-unavailable",
+        "pass": true,
+        "problems": [],
+        "outcome": null,
+        "ground": null,
+        "disposition": "reject",
+        "upper_admit": false
+      }
+    ],
+    "errors": []
+  },
+  "scope": "ADR/PRDR judgement and caller consumption: model returns the independent challenge result; the real pinned CLI consumes it through adr admit or prdr yagni -> prdr admit. No hosted provider transport, tracker change or record publication. The model is the independent reviewer of a fixture primary from a different model family.",
+  "accounting": "unmetered"
+}

@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "kind": "decision-smoke",
+  "skill": "faffter-dark-adversarial-review",
+  "arm": "control",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "context_reset_requested": true,
+  "source_baseline_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "input_sha256": "49ea797d6f97383db887cbd75c72e52ca5a5036fe171120f95ca1fb0bd8e68ea",
+  "policy_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "policy_bytes": 0,
+  "estimated_policy_tokens": 0,
+  "prompt_sha256": "220b42a5fd1cb59b9587835b203e31177a5b35d7d4b7d1565a7bb112d9512110",
+  "limitations": [
+    "interactive worker decisions, not workflow effects",
+    "provider usage unmetered",
+    "cases within a response are correlated"
+  ]
+}

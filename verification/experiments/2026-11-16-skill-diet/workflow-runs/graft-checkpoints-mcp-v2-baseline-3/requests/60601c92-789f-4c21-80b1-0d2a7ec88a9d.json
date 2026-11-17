@@ -1,0 +1,1 @@
+{"name":"run_command","args":{"case_id":"evidence-refusal","command_id":"write-ac","input":"{\"all_verified\":true,\"criteria\":[{\"ac\":\"supplied unverified criterion\",\"verified\":\"not verified\",\"passed\":false,\"ac_id\":\"faff-9#ac-1\",\"verifications\":[{\"kind\":\"human\"}]}]}"}}

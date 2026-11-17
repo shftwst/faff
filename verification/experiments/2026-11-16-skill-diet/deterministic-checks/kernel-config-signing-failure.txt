@@ -1,0 +1,2449 @@
+TAP version 13
+# faff: base config resolved from the deprecated location .faffrc.yaml
+#       (faff now uses .faff/config.yaml). Resolution and values are unchanged.
+#       To migrate:  git mv .faffrc.yaml .faff/config.yaml
+# Subtest: config defaults --selftest passes (registry covers slots + scalars)
+ok 1 - config defaults --selftest passes (registry covers slots + scalars)
+  ---
+  duration_ms: 79.228068
+  type: 'test'
+  ...
+# Subtest: unset registry SCALAR resolves to its baked default, exit 0 (no -d needed)
+ok 2 - unset registry SCALAR resolves to its baked default, exit 0 (no -d needed)
+  ---
+  duration_ms: 120.877939
+  type: 'test'
+  ...
+# Subtest: unset registry SLOT resolves to its default occupant, exit 0
+ok 3 - unset registry SLOT resolves to its default occupant, exit 0
+  ---
+  duration_ms: 60.39199
+  type: 'test'
+  ...
+# Subtest: unset slots.prd resolves to its default occupant faffter-noon-prd, exit 0
+ok 4 - unset slots.prd resolves to its default occupant faffter-noon-prd, exit 0
+  ---
+  duration_ms: 54.055228
+  type: 'test'
+  ...
+# Subtest: unset graft.review_outage_retry_limit resolves to its baked default "3", exit 0
+ok 5 - unset graft.review_outage_retry_limit resolves to its baked default "3", exit 0
+  ---
+  duration_ms: 64.258914
+  type: 'test'
+  ...
+# Subtest: unset autonomous.engine_bounded resolves to its baked default "false", exit 0
+ok 6 - unset autonomous.engine_bounded resolves to its baked default "false", exit 0
+  ---
+  duration_ms: 57.038067
+  type: 'test'
+  ...
+# Subtest: configured autonomous.engine_bounded: true wins over the registry default
+ok 7 - configured autonomous.engine_bounded: true wins over the registry default
+  ---
+  duration_ms: 49.549595
+  type: 'test'
+  ...
+# Subtest: config resolved surfaces a non-default autonomous.engine_bounded
+ok 8 - config resolved surfaces a non-default autonomous.engine_bounded
+  ---
+  duration_ms: 58.845779
+  type: 'test'
+  ...
+# Subtest: unset containment.self_hosting_intake resolves to its baked default "false", exit 0
+ok 9 - unset containment.self_hosting_intake resolves to its baked default "false", exit 0
+  ---
+  duration_ms: 46.120629
+  type: 'test'
+  ...
+# Subtest: configured containment.self_hosting_intake: true wins over the registry default
+ok 10 - configured containment.self_hosting_intake: true wins over the registry default
+  ---
+  duration_ms: 44.512002
+  type: 'test'
+  ...
+# Subtest: a configured value wins over the registry default (the bug this fixes)
+ok 11 - a configured value wins over the registry default (the bug this fixes)
+  ---
+  duration_ms: 63.032204
+  type: 'test'
+  ...
+# Subtest: an unset NON-registry key keeps the old behaviour: exit 3, empty (no silent guess)
+ok 12 - an unset NON-registry key keeps the old behaviour: exit 3, empty (no silent guess)
+  ---
+  duration_ms: 51.459599
+  type: 'test'
+  ...
+# Subtest: config defaults prints the registry as JSON
+ok 13 - config defaults prints the registry as JSON
+  ---
+  duration_ms: 48.061092
+  type: 'test'
+  ...
+# Subtest: config get --json returns a real array for a block sequence of maps
+ok 14 - config get --json returns a real array for a block sequence of maps
+  ---
+  duration_ms: 41.470704
+  type: 'test'
+  ...
+# Subtest: config get --json returns a real array for a block sequence of scalars
+ok 15 - config get --json returns a real array for a block sequence of scalars
+  ---
+  duration_ms: 51.914724
+  type: 'test'
+  ...
+# Subtest: block sequences don't regress scalars, nested maps, or JSON-string scalars
+ok 16 - block sequences don't regress scalars, nested maps, or JSON-string scalars
+  ---
+  duration_ms: 159.779179
+  type: 'test'
+  ...
+# faff: base config resolved from the deprecated location .faffrc.yaml
+#       (faff now uses .faff/config.yaml). Resolution and values are unchanged.
+#       To migrate:  git mv .faffrc.yaml .faff/config.yaml
+# faff config: expected one of adr-docs-path|adr-superseded-docs-path|check|defaults|dump|get|init|path|prd-docs-path|prdr-docs-path|resolved|set|spec-docs-path|spike-docs-path|templates-path|unset
+# faff config: expected one of adr-docs-path|adr-superseded-docs-path|check|defaults|dump|get|init|path|prd-docs-path|prdr-docs-path|resolved|set|spec-docs-path|spike-docs-path|templates-path|unset
+# faff config init: nothing to set (pass --set KEY=VALUE).
+# faff config unset: requires exactly one <dotted.key>
+# faff config set: 'adversarial.refs' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)
+# faff config set: 'adversarial.fallbacks' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)
+# faff config set: 'adversarial.spec_review.refs' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)
+# faff: base config resolved from the deprecated location .faffrc.yaml
+#       (faff now uses .faff/config.yaml). Resolution and values are unchanged.
+#       To migrate:  git mv .faffrc.yaml .faff/config.yaml
+# faff: base config resolved from the deprecated location .faffrc.yaml
+#       (faff now uses .faff/config.yaml). Resolution and values are unchanged.
+#       To migrate:  git mv .faffrc.yaml .faff/config.yaml
+# faff: base config resolved from the deprecated location .faffrc.yaml
+#       (faff now uses .faff/config.yaml). Resolution and values are unchanged.
+#       To migrate:  git mv .faffrc.yaml .faff/config.yaml
+# faff config set: 'adversarial.refs' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)
+# faff config set: 'tracking.teams' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)
+# faff config set: 'tracking.team_routing' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)
+# config dispatch.build.model: invalid model token "gpt-5" — legal set: inherit | sonnet | opus | haiku | fable (fail-loud, no silent inherit)
+# faff: base config resolved from the deprecated location .faffrc.yaml
+#       (faff now uses .faff/config.yaml). Resolution and values are unchanged.
+#       To migrate:  git mv .faffrc.yaml .faff/config.yaml
+# faff config set: refusing to overwrite appetite ('high' -> 'low') without --force
+# faff: base config resolved from the deprecated location .faffrc.yaml
+#       (faff now uses .faff/config.yaml). Resolution and values are unchanged.
+#       To migrate:  git mv .faffrc.yaml .faff/config.yaml
+# faff: base config resolved from the deprecated location .faffrc.yaml
+#       (faff now uses .faff/config.yaml). Resolution and values are unchanged.
+#       To migrate:  git mv .faffrc.yaml .faff/config.yaml
+# faff config set: unknown config namespace 'bogus' — writable namespaces: adr, adversarial, andon, appetite, autonomous, backends, bridge, budget, bundle_store, concurrency_max, containment, conventions, convergence, dispatch, engines, eval, gates, graft, install, intake_gate, lanes, logging, post_merge, prdr, producer_tick_max_secs, sentry, slots, tracking, verification, worktree_root
+# faff: overlay resolved from the deprecated location .faffrc.local.yaml
+#       (faff now uses .faff/config.local.yaml). Resolution and values are unchanged.
+#       To migrate:  mv .faffrc.local.yaml .faff/config.local.yaml
+#       (plain mv, not git mv: the overlay is untracked and may hold machine-local values.)
+# faff: overlay resolved from the deprecated location .faffrc.local.yaml
+#       (faff now uses .faff/config.local.yaml). Resolution and values are unchanged.
+#       To migrate:  mv .faffrc.local.yaml .faff/config.local.yaml
+#       (plain mv, not git mv: the overlay is untracked and may hold machine-local values.)
+# config models.spec: removed; set dispatch.spec.model instead, then remove the old block with `faff config unset models` (ADR-0134)
+# config effort.build_by_tier.complex: removed; set dispatch.build.by_tier.complex.effort instead, then remove the old block with `faff config unset effort` (ADR-0134)
+# Subtest: config set: backends.cx.provider then backends.cx.model produces a nested, unflattened map
+ok 17 - config set: backends.cx.provider then backends.cx.model produces a nested, unflattened map
+  ---
+  duration_ms: 241.431211
+  type: 'test'
+  ...
+# Subtest: config set: a write into an existing file leaves other blocks + comments byte-intact
+ok 18 - config set: a write into an existing file leaves other blocks + comments byte-intact
+  ---
+  duration_ms: 110.31321
+  type: 'test'
+  ...
+# Subtest: config (no subcommand) and config bogus print an identical verb list, matching the dispatcher
+ok 19 - config (no subcommand) and config bogus print an identical verb list, matching the dispatcher
+  ---
+  duration_ms: 813.650428
+  type: 'test'
+  ...
+# Subtest: schema coverage: every .faff/config.example.yaml top-level key is a writable namespace
+ok 20 - schema coverage: every .faff/config.example.yaml top-level key is a writable namespace
+  ---
+  duration_ms: 29.002764
+  type: 'test'
+  ...
+# Subtest: holdout: refuses a block-sequence carve-out key, file byte-unchanged
+ok 21 - holdout: refuses a block-sequence carve-out key, file byte-unchanged
+  ---
+  duration_ms: 37.310655
+  type: 'test'
+  ...
+# Subtest: holdout: refuses the documented JSON-string fallbacks form, even with --force, file byte-unchanged
+ok 22 - holdout: refuses the documented JSON-string fallbacks form, even with --force, file byte-unchanged
+  ---
+  duration_ms: 41.931538
+  type: 'test'
+  ...
+# Subtest: holdout: refuses a PER-CONSUMER refs write (adversarial.spec_review.refs), file byte-unchanged
+ok 23 - holdout: refuses a PER-CONSUMER refs write (adversarial.spec_review.refs), file byte-unchanged
+  ---
+  duration_ms: 45.131877
+  type: 'test'
+  ...
+# Subtest: per-consumer timeout IS a writable scalar leaf (not caught by the refs carve-out)
+ok 24 - per-consumer timeout IS a writable scalar leaf (not caught by the refs carve-out)
+  ---
+  duration_ms: 49.115594
+  type: 'test'
+  ...
+# Subtest: adversarial.max_tokens IS a writable scalar leaf
+ok 25 - adversarial.max_tokens IS a writable scalar leaf
+  ---
+  duration_ms: 86.131081
+  type: 'test'
+  ...
+# Subtest: adversarial.spec_review.max_tokens IS a writable per-consumer scalar leaf
+ok 26 - adversarial.spec_review.max_tokens IS a writable per-consumer scalar leaf
+  ---
+  duration_ms: 121.519356
+  type: 'test'
+  ...
+# Subtest: adversarial.max_tokens falls back to the -d default when unset
+ok 27 - adversarial.max_tokens falls back to the -d default when unset
+  ---
+  duration_ms: 39.3312
+  type: 'test'
+  ...
+# Subtest: max_tokens guard: a non-positive-integer value normalises to 2000, a positive integer passes
+ok 28 - max_tokens guard: a non-positive-integer value normalises to 2000, a positive integer passes
+  ---
+  duration_ms: 11.633147
+  type: 'test'
+  ...
+# Subtest: holdout: refuses the inline-flow refs form, even with --force, file byte-unchanged
+ok 29 - holdout: refuses the inline-flow refs form, even with --force, file byte-unchanged
+  ---
+  duration_ms: 45.088377
+  type: 'test'
+  ...
+# Subtest: holdout: refuses tracking.teams (block-sequence), file byte-unchanged
+ok 30 - holdout: refuses tracking.teams (block-sequence), file byte-unchanged
+  ---
+  duration_ms: 36.696486
+  type: 'test'
+  ...
+# Subtest: holdout: refuses tracking.team_routing (nested map), file byte-unchanged
+ok 31 - holdout: refuses tracking.team_routing (nested map), file byte-unchanged
+  ---
+  duration_ms: 33.982523
+  type: 'test'
+  ...
+# Subtest: config set: tracking.default_team is a plain writable scalar (the team_key pattern)
+ok 32 - config set: tracking.default_team is a plain writable scalar (the team_key pattern)
+  ---
+  duration_ms: 76.54598
+  type: 'test'
+  ...
+# Subtest: config init --set tracking.default_team=PRODUCT is accepted (same allowlist as team_key)
+ok 33 - config init --set tracking.default_team=PRODUCT is accepted (same allowlist as team_key)
+  ---
+  duration_ms: 37.237029
+  type: 'test'
+  ...
+# Subtest: resolveTeams: team-set / legacy team_key / zero-config resolution table
+ok 34 - resolveTeams: team-set / legacy team_key / zero-config resolution table
+  ---
+  duration_ms: 0.399167
+  type: 'test'
+  ...
+# Subtest: config get --json tracking.teams / tracking.team_routing return structured values (array / object)
+ok 35 - config get --json tracking.teams / tracking.team_routing return structured values (array / object)
+  ---
+  duration_ms: 112.199547
+  type: 'test'
+  ...
+# Subtest: config check: a team_routing KEY with no taxonomy match is harmless — only VALUES are membership-validated
+ok 36 - config check: a team_routing KEY with no taxonomy match is harmless — only VALUES are membership-validated
+  ---
+  duration_ms: 35.233275
+  type: 'test'
+  ...
+# Subtest: config set on dispatch.* runs the same validator config get runs, refuses off-vocab before writing
+ok 37 - config set on dispatch.* runs the same validator config get runs, refuses off-vocab before writing
+  ---
+  duration_ms: 162.625061
+  type: 'test'
+  ...
+# Subtest: config set --dry-run prints the would-be text and writes nothing
+ok 38 - config set --dry-run prints the would-be text and writes nothing
+  ---
+  duration_ms: 73.097015
+  type: 'test'
+  ...
+# Subtest: config set: conflict without --force refuses; --force overwrites in place
+ok 39 - config set: conflict without --force refuses; --force overwrites in place
+  ---
+  duration_ms: 152.331207
+  type: 'test'
+  ...
+# Subtest: config set: an identical value is idempotent (exit 0, no write)
+ok 40 - config set: an identical value is idempotent (exit 0, no write)
+  ---
+  duration_ms: 36.056444
+  type: 'test'
+  ...
+# Subtest: config set: refuses a dotted key whose first segment is not a writable namespace
+ok 41 - config set: refuses a dotted key whose first segment is not a writable namespace
+  ---
+  duration_ms: 32.325311
+  type: 'test'
+  ...
+# Subtest: config set: creates .faff/config.yaml with the header when absent
+ok 42 - config set: creates .faff/config.yaml with the header when absent
+  ---
+  duration_ms: 105.843243
+  type: 'test'
+  ...
+# Subtest: config set --root writes under the named directory regardless of cwd (the FAFF-665 --root /tmp/... case)
+ok 43 - config set --root writes under the named directory regardless of cwd (the FAFF-665 --root /tmp/... case)
+  ---
+  duration_ms: 104.003198
+  type: 'test'
+  ...
+# Subtest: config set --local writes .faff/config.local.yaml, never .faff/config.yaml
+ok 44 - config set --local writes .faff/config.local.yaml, never .faff/config.yaml
+  ---
+  duration_ms: 61.817285
+  type: 'test'
+  ...
+# Subtest: config set without --local still writes .faff/config.yaml (regression)
+ok 45 - config set without --local still writes .faff/config.yaml (regression)
+  ---
+  duration_ms: 30.253058
+  type: 'test'
+  ...
+# Subtest: config set --local merges into an existing overlay, base file untouched
+ok 46 - config set --local merges into an existing overlay, base file untouched
+  ---
+  duration_ms: 32.321187
+  type: 'test'
+  ...
+# Subtest: config init --local writes .faff/config.local.yaml, never .faff/config.yaml
+ok 47 - config init --local writes .faff/config.local.yaml, never .faff/config.yaml
+  ---
+  duration_ms: 30.917726
+  type: 'test'
+  ...
+# Subtest: config init without --local still writes .faff/config.yaml (regression)
+ok 48 - config init without --local still writes .faff/config.yaml (regression)
+  ---
+  duration_ms: 30.737725
+  type: 'test'
+  ...
+# Subtest: config init --local merges into an existing overlay, base file untouched
+ok 49 - config init --local merges into an existing overlay, base file untouched
+  ---
+  duration_ms: 32.504145
+  type: 'test'
+  ...
+# Subtest: config set --selftest passes (writer pure-helper + carve-out + drift table)
+ok 50 - config set --selftest passes (writer pure-helper + carve-out + drift table)
+  ---
+  duration_ms: 32.175603
+  type: 'test'
+  ...
+# Subtest: config set refuses a removed models.* / effort.* key before the namespace check, naming the dispatch key
+ok 51 - config set refuses a removed models.* / effort.* key before the namespace check, naming the dispatch key
+  ---
+  duration_ms: 91.398758
+  type: 'test'
+  ...
+# Subtest: strict: top-level-sequence base → config get exits 2, stderr warning, stdout empty
+ok 52 - strict: top-level-sequence base → config get exits 2, stderr warning, stdout empty
+  ---
+  duration_ms: 83.334118
+  type: 'test'
+  ...
+# Subtest: strict: wholly mis-indented base → config get exits 2 with the warning
+ok 53 - strict: wholly mis-indented base → config get exits 2 with the warning
+  ---
+  duration_ms: 64.822748
+  type: 'test'
+  ...
+# Subtest: strict: unreadable base → exits 2 with detail 'unreadable'
+ok 54 - strict: unreadable base → exits 2 with detail 'unreadable'
+  ---
+  duration_ms: 51.451681
+  type: 'test'
+  ...
+# Subtest: back-compat: absent / empty / comment-only base all resolve defaults silently, exit 0
+ok 55 - back-compat: absent / empty / comment-only base all resolve defaults silently, exit 0
+  ---
+  duration_ms: 168.448155
+  type: 'test'
+  ...
+# Subtest: documented limit (negative): bare scalar line parses as a one-key map — NOT flagged
+ok 56 - documented limit (negative): bare scalar line parses as a one-key map — NOT flagged
+  ---
+  duration_ms: 52.478683
+  type: 'test'
+  ...
+# Subtest: hatch: FAFF_CONFIG_BASE_LENIENT=1 → proceeds on defaults, exit 0, warning still fires, stdout clean
+ok 57 - hatch: FAFF_CONFIG_BASE_LENIENT=1 → proceeds on defaults, exit 0, warning still fires, stdout clean
+  ---
+  duration_ms: 42.185456
+  type: 'test'
+  ...
+# Subtest: governance: budget check on a malformed base exits 2 with the governance-flavoured message
+ok 58 - governance: budget check on a malformed base exits 2 with the governance-flavoured message
+  ---
+  duration_ms: 22.062292
+  type: 'test'
+  ...
+# Subtest: config check: malformed base is an error finding (exit 1) naming file + detail — never an exit-2 abort
+ok 59 - config check: malformed base is an error finding (exit 1) naming file + detail — never an exit-2 abort
+  ---
+  duration_ms: 105.522909
+  type: 'test'
+  ...
+# Subtest: sentry check: malformed base → exits as it otherwise would, default thresholds, config_malformed: true
+ok 60 - sentry check: malformed base → exits as it otherwise would, default thresholds, config_malformed: true
+  ---
+  duration_ms: 38.940408
+  type: 'test'
+  ...
+# Subtest: sentry check: healthy base → config_malformed: false rides the payload
+ok 61 - sentry check: healthy base → config_malformed: false rides the payload
+  ---
+  duration_ms: 31.722894
+  type: 'test'
+  ...
+# Subtest: chokepoint: the stderr warning is written BEFORE the throw (a catching caller cannot re-silence it)
+ok 62 - chokepoint: the stderr warning is written BEFORE the throw (a catching caller cannot re-silence it)
+  ---
+  duration_ms: 1.490711
+  type: 'test'
+  ...
+# Subtest: chokepoint: hatch env (in-process) → warns and returns {} instead of throwing
+ok 63 - chokepoint: hatch env (in-process) → warns and returns {} instead of throwing
+  ---
+  duration_ms: 0.996169
+  type: 'test'
+  ...
+# Subtest: overlay: parseOverlayStrict keeps its exact error name + detail wording (byte-identical behaviour)
+ok 64 - overlay: parseOverlayStrict keeps its exact error name + detail wording (byte-identical behaviour)
+  ---
+  duration_ms: 0.641168
+  type: 'test'
+  ...
+# Subtest: lights-out preflight: FAFF_CONFIG_BASE_LENIENT armed → config-base-lenient refusal
+ok 65 - lights-out preflight: FAFF_CONFIG_BASE_LENIENT armed → config-base-lenient refusal
+  ---
+  duration_ms: 47.699299
+  type: 'test'
+  ...
+# faff config: /tmp/faff387-t0G6Ds/.faff/config.local.yaml failed to parse (does not parse to a mapping (malformed YAML — an overlay must be a key:value mapping)) — an overlay parse failure is never silently skipped (FAFF-387).
+# faff config: /tmp/faff387-t0G6Ds/.faff/config.local.yaml failed to parse (does not parse to a mapping (malformed YAML — an overlay must be a key:value mapping)) — an overlay parse failure is never silently skipped (FAFF-387).
+# faff config: /tmp/faff387-t0G6Ds/.faff/config.local.yaml failed to parse (does not parse to a mapping (malformed YAML — an overlay must be a key:value mapping)) — an overlay parse failure is never silently skipped (FAFF-387).
+# faff config check: /tmp/faff387-t0G6Ds/.faff/config.local.yaml failed to parse (does not parse to a mapping (malformed YAML — an overlay must be a key:value mapping))
+# faff config: legacy overlay config filename found (.faffrc.local.yml). faff uses only `.faff/config.local.yaml` — rename it to `.faff/config.local.yaml`. (FAFF-387: single canonical overlay name; never a silent default.)
+# faff config set: 'tracking.team_routing.spike' is a list-valued key — hand-edit the committed base (config set writes scalar leaves only)
+# Subtest: merge: overlay overrides a nested leaf; the sibling leaf still resolves from base
+ok 66 - merge: overlay overrides a nested leaf; the sibling leaf still resolves from base
+  ---
+  duration_ms: 147.064697
+  type: 'test'
+  ...
+# Subtest: merge: overlay replaces a sequence WHOLESALE (never element-merged)
+ok 67 - merge: overlay replaces a sequence WHOLESALE (never element-merged)
+  ---
+  duration_ms: 53.395768
+  type: 'test'
+  ...
+# Subtest: merge: an overlay-only key is added; a base-only key survives
+ok 68 - merge: an overlay-only key is added; a base-only key survives
+  ---
+  duration_ms: 89.869422
+  type: 'test'
+  ...
+# Subtest: overlay-only, no base file → valid (all-overlay config), exit 0
+ok 69 - overlay-only, no base file → valid (all-overlay config), exit 0
+  ---
+  duration_ms: 89.10617
+  type: 'test'
+  ...
+# Subtest: back-compat: no overlay → config get / dump identical to single-file behaviour
+ok 70 - back-compat: no overlay → config get / dump identical to single-file behaviour
+  ---
+  duration_ms: 172.581371
+  type: 'test'
+  ...
+# Subtest: back-compat: no overlay → `config path` is a single line; `config resolved` has NO `config local:` line
+ok 71 - back-compat: no overlay → `config path` is a single line; `config resolved` has NO `config local:` line
+  ---
+  duration_ms: 106.69062
+  type: 'test'
+  ...
+# Subtest: neither file → config path exit 3 (first-run offer semantics preserved)
+ok 72 - neither file → config path exit 3 (first-run offer semantics preserved)
+  ---
+  duration_ms: 61.133742
+  type: 'test'
+  ...
+# Subtest: config path is multi-line (base first, overlay second) when both exist
+ok 73 - config path is multi-line (base first, overlay second) when both exist
+  ---
+  duration_ms: 48.741009
+  type: 'test'
+  ...
+# Subtest: config resolved echoes both `config:` and `config local:` paths
+ok 74 - config resolved echoes both `config:` and `config local:` paths
+  ---
+  duration_ms: 61.582159
+  type: 'test'
+  ...
+# Subtest: overlay that is a top-level sequence (malformed) → exit 2 on every read path
+ok 75 - overlay that is a top-level sequence (malformed) → exit 2 on every read path
+  ---
+  duration_ms: 205.276975
+  type: 'test'
+  ...
+# Subtest: comment-only / empty overlay is allowed (valid no-op overlay), exit 0
+ok 76 - comment-only / empty overlay is allowed (valid no-op overlay), exit 0
+  ---
+  duration_ms: 95.31839
+  type: 'test'
+  ...
+# Subtest: legacy-shaped overlay name (.faffrc.local.yml) → loud exit 2, never a silent load
+ok 77 - legacy-shaped overlay name (.faffrc.local.yml) → loud exit 2, never a silent load
+  ---
+  duration_ms: 45.678295
+  type: 'test'
+  ...
+# Subtest: config check --selftest passes (secret + merge + posture tables)
+ok 78 - config check --selftest passes (secret + merge + posture tables)
+  ---
+  duration_ms: 104.578616
+  type: 'test'
+  ...
+# Subtest: config check: base present but untracked → exit 1 with a posture finding + the 3 migration steps
+ok 79 - config check: base present but untracked → exit 1 with a posture finding + the 3 migration steps
+  ---
+  duration_ms: 63.489913
+  type: 'test'
+  ...
+# Subtest: config check: base committed + overlay ignored → clean, exit 0
+not ok 80 - config check: base committed + overlay ignored → clean, exit 0
+  ---
+  duration_ms: 19.552454
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:231:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:232:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: overlay present but NOT git-ignored → hygiene finding, exit 1
+not ok 81 - config check: overlay present but NOT git-ignored → hygiene finding, exit 1
+  ---
+  duration_ms: 19.024328
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:244:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:245:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: a secret in the BASE file → exit 1, REDACTED (raw value NEVER in output)
+not ok 82 - config check: a secret in the BASE file → exit 1, REDACTED (raw value NEVER in output)
+  ---
+  duration_ms: 13.94536
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:259:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:261:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: secret redaction holds under --json too (raw value absent)
+not ok 83 - config check: secret redaction holds under --json too (raw value absent)
+  ---
+  duration_ms: 21.393582
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:280:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:282:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: not a git repo → posture checks skipped (reported), parse/secret still run, exit 0 when clean
+ok 84 - config check: not a git repo → posture checks skipped (reported), parse/secret still run, exit 0 when clean
+  ---
+  duration_ms: 51.489806
+  type: 'test'
+  ...
+# Subtest: config check: not a git repo BUT a secret present → still exit 1 (secret scan runs regardless)
+ok 85 - config check: not a git repo BUT a secret present → still exit 1 (secret scan runs regardless)
+  ---
+  duration_ms: 41.76283
+  type: 'test'
+  ...
+# Subtest: config check: no config at all → exit 0 (defaults)
+ok 86 - config check: no config at all → exit 0 (defaults)
+  ---
+  duration_ms: 50.363096
+  type: 'test'
+  ...
+# Subtest: config check: root `.faff/` line → one warn on .gitignore echoing the line and naming `.faff/*`, exit 1
+not ok 87 - config check: root `.faff/` line → one warn on .gitignore echoing the line and naming `.faff/*`, exit 1
+  ---
+  duration_ms: 14.466194
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:339:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:340:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: `**/.faff/` is a hazard too
+not ok 88 - config check: `**/.faff/` is a hazard too
+  ---
+  duration_ms: 14.642778
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:352:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:353:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: `.faff/*` with a carve-out → no .gitignore finding, no .faff/.gitignore finding, exit 0
+not ok 89 - config check: `.faff/*` with a carve-out → no .gitignore finding, no .faff/.gitignore finding, exit 0
+  ---
+  duration_ms: 13.73536
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:358:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:359:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check --json: two hazard lines → exactly one .gitignore finding with the plural slot and only the three keys
+not ok 90 - config check --json: two hazard lines → exactly one .gitignore finding with the plural slot and only the three keys
+  ---
+  duration_ms: 15.900281
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:368:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:369:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: not a git repo with a `.faff` line → over-ignore finding AND the posture skip line
+ok 91 - config check: not a git repo with a `.faff` line → over-ignore finding AND the posture skip line
+  ---
+  duration_ms: 41.332621
+  type: 'test'
+  ...
+# Subtest: config check: no root .gitignore and no .faff/ → neither finding, exit 0
+not ok 92 - config check: no root .gitignore and no .faff/ → neither finding, exit 0
+  ---
+  duration_ms: 7.191139
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:390:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:391:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: .faff/ present and nothing ignores run state → one warn on .faff/.gitignore naming gitignore-ensure, exit 1
+not ok 93 - config check: .faff/ present and nothing ignores run state → one warn on .faff/.gitignore naming gitignore-ensure, exit 1
+  ---
+  duration_ms: 11.94819
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:398:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:399:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: root `.faff/*`, .faff/ present, no inner file (this repo today) → silent, exit 0
+not ok 94 - config check: root `.faff/*`, .faff/ present, no inner file (this repo today) → silent, exit 0
+  ---
+  duration_ms: 9.414726
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:410:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:411:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: a correct `--local` install (.git/info/exclude has `.faff/`, no inner file) → silent, exit 0
+not ok 95 - config check: a correct `--local` install (.git/info/exclude has `.faff/`, no inner file) → silent, exit 0
+  ---
+  duration_ms: 8.075682
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:416:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:417:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: a hand-seeded `.faff/.gitignore` reading `!/anchors/` then `/*` is dead — one warn finding naming `!/anchors/`, and `git check-ignore` confirms the anchor is really ignored
+not ok 96 - config check: a hand-seeded `.faff/.gitignore` reading `!/anchors/` then `/*` is dead — one warn finding naming `!/anchors/`, and `git check-ignore` confirms the anchor is really ignored
+  ---
+  duration_ms: 8.326683
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:430:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:431:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: a correctly-ordered `.faff/.gitignore` → no dead-carve-out finding, exit 0
+not ok 97 - config check: a correctly-ordered `.faff/.gitignore` → no dead-carve-out finding, exit 0
+  ---
+  duration_ms: 14.752903
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:447:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:448:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check smoke: over-ignore, then under-ignore none / ineffective-or-untracked / committed
+not ok 98 - config check smoke: over-ignore, then under-ignore none / ineffective-or-untracked / committed
+  ---
+  duration_ms: 12.760733
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:457:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    faffIgnoreDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:329:15)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:458:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff\\n" → predicate flags, agreeing with git
+not ok 99 - oracle: ".faff\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 10.071727
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/\\n" → predicate flags, agreeing with git
+not ok 100 - oracle: ".faff/\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 11.100938
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/**\\n" → predicate flags, agreeing with git
+not ok 101 - oracle: ".faff/**\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 8.916017
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/**/\\n" → predicate flags, agreeing with git
+not ok 102 - oracle: ".faff/**/\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 8.869142
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/*/**\\n" → predicate flags, agreeing with git
+not ok 103 - oracle: ".faff/*/**\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 9.773644
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/**/*\\n" → predicate flags, agreeing with git
+not ok 104 - oracle: ".faff/**/*\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 9.29831
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/*\\n" → predicate is silent, agreeing with git
+not ok 105 - oracle: ".faff/*\\n" → predicate is silent, agreeing with git
+  ---
+  duration_ms: 8.546642
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/.faff\\n" → predicate flags, agreeing with git
+not ok 106 - oracle: "/.faff\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 7.89839
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/.faff/\\n" → predicate flags, agreeing with git
+not ok 107 - oracle: "/.faff/\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 11.439731
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/.faff/**\\n" → predicate flags, agreeing with git
+not ok 108 - oracle: "/.faff/**\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 10.59277
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/.faff/**/\\n" → predicate flags, agreeing with git
+not ok 109 - oracle: "/.faff/**/\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 9.148434
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/.faff/*/**\\n" → predicate flags, agreeing with git
+not ok 110 - oracle: "/.faff/*/**\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 11.736731
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/.faff/**/*\\n" → predicate flags, agreeing with git
+not ok 111 - oracle: "/.faff/**/*\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 10.693854
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/.faff/*\\n" → predicate is silent, agreeing with git
+not ok 112 - oracle: "/.faff/*\\n" → predicate is silent, agreeing with git
+  ---
+  duration_ms: 8.076099
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "**/.faff\\n" → predicate flags, agreeing with git
+not ok 113 - oracle: "**/.faff\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 8.139307
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "**/.faff/\\n" → predicate flags, agreeing with git
+not ok 114 - oracle: "**/.faff/\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 9.622976
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "**/.faff/**\\n" → predicate flags, agreeing with git
+not ok 115 - oracle: "**/.faff/**\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 8.221891
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "**/.faff/**/\\n" → predicate flags, agreeing with git
+not ok 116 - oracle: "**/.faff/**/\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 8.089682
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "**/.faff/*/**\\n" → predicate flags, agreeing with git
+not ok 117 - oracle: "**/.faff/*/**\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 7.81964
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "**/.faff/**/*\\n" → predicate flags, agreeing with git
+not ok 118 - oracle: "**/.faff/**/*\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 8.206307
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "**/.faff/*\\n" → predicate is silent, agreeing with git
+not ok 119 - oracle: "**/.faff/*\\n" → predicate is silent, agreeing with git
+  ---
+  duration_ms: 13.446026
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/**/.faff\\n" → predicate flags, agreeing with git
+not ok 120 - oracle: "/**/.faff\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 11.972856
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/**/.faff/\\n" → predicate flags, agreeing with git
+not ok 121 - oracle: "/**/.faff/\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 16.415115
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/**/.faff/**\\n" → predicate flags, agreeing with git
+not ok 122 - oracle: "/**/.faff/**\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 17.490616
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/**/.faff/**/\\n" → predicate flags, agreeing with git
+not ok 123 - oracle: "/**/.faff/**/\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 16.845657
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/**/.faff/*/**\\n" → predicate flags, agreeing with git
+not ok 124 - oracle: "/**/.faff/*/**\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 21.161666
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/**/.faff/**/*\\n" → predicate flags, agreeing with git
+not ok 125 - oracle: "/**/.faff/**/*\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 12.037189
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "/**/.faff/*\\n" → predicate is silent, agreeing with git
+not ok 126 - oracle: "/**/.faff/*\\n" → predicate is silent, agreeing with git
+  ---
+  duration_ms: 11.500855
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "" → predicate is silent, agreeing with git
+not ok 127 - oracle: "" → predicate is silent, agreeing with git
+  ---
+  duration_ms: 14.272152
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "\# .faff/\\n" → predicate is silent, agreeing with git
+not ok 128 - oracle: "\# .faff/\\n" → predicate is silent, agreeing with git
+  ---
+  duration_ms: 17.428866
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "!.faff/\\n" → predicate is silent, agreeing with git
+not ok 129 - oracle: "!.faff/\\n" → predicate is silent, agreeing with git
+  ---
+  duration_ms: 19.221912
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/   \\n" → predicate flags, agreeing with git
+not ok 130 - oracle: ".faff/   \\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 18.188202
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/*\\n.faff/\\n" → predicate flags, agreeing with git
+not ok 131 - oracle: ".faff/*\\n.faff/\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 13.521818
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/\\n.faff/*\\n" → predicate flags, agreeing with git
+not ok 132 - oracle: ".faff/\\n.faff/*\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 9.902811
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: "node_modules/\\n.faff/\\ndist/\\n" → predicate flags, agreeing with git
+not ok 133 - oracle: "node_modules/\\n.faff/\\ndist/\\n" → predicate flags, agreeing with git
+  ---
+  duration_ms: 7.935015
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/*/*/**\\n" → predicate is silent (pinned gap: git still blocks)
+not ok 134 - oracle: ".faff/*/*/**\\n" → predicate is silent (pinned gap: git still blocks)
+  ---
+  duration_ms: 8.361141
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/**/**\\n" → predicate is silent (pinned gap: git still blocks)
+not ok 135 - oracle: ".faff/**/**\\n" → predicate is silent (pinned gap: git still blocks)
+  ---
+  duration_ms: 8.633267
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: oracle: ".faff/*/*\\n" → predicate is silent (pinned gap: git still blocks)
+not ok 136 - oracle: ".faff/*/*\\n" → predicate is silent (pinned gap: git still blocks)
+  ---
+  duration_ms: 8.341683
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:520:3'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:521:17)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: config check: a well-formed team-set (teams + default_team member + team_routing values all members) → exit 0
+ok 137 - config check: a well-formed team-set (teams + default_team member + team_routing values all members) → exit 0
+  ---
+  duration_ms: 37.613906
+  type: 'test'
+  ...
+# Subtest: config check: default_team not a member of teams → exit 1, naming the value + member set
+ok 138 - config check: default_team not a member of teams → exit 1, naming the value + member set
+  ---
+  duration_ms: 39.929492
+  type: 'test'
+  ...
+# Subtest: config check: a team_routing value not a member of teams → exit 1, naming the key + value + member set
+ok 139 - config check: a team_routing value not a member of teams → exit 1, naming the key + value + member set
+  ---
+  duration_ms: 38.23949
+  type: 'test'
+  ...
+# Subtest: config check: tracking.teams present but empty → exit 1
+ok 140 - config check: tracking.teams present but empty → exit 1
+  ---
+  duration_ms: 45.978005
+  type: 'test'
+  ...
+# Subtest: config check: default_team set without teams (and without legacy team_key) → exit 1
+ok 141 - config check: default_team set without teams (and without legacy team_key) → exit 1
+  ---
+  duration_ms: 41.666204
+  type: 'test'
+  ...
+# Subtest: config check: legacy team_key ALONE (no teams, no default_team) → exit 0, unaffected by the new validation
+ok 142 - config check: legacy team_key ALONE (no teams, no default_team) → exit 0, unaffected by the new validation
+  ---
+  duration_ms: 40.601203
+  type: 'test'
+  ...
+# Subtest: config check: inline-flow bare teams (the ticket's literal [IDEAS, PRODUCT, RISKS]) reads as a string, not a list — rejected loudly, never a silent degrade
+ok 143 - config check: inline-flow bare teams (the ticket's literal [IDEAS, PRODUCT, RISKS]) reads as a string, not a list — rejected loudly, never a silent degrade
+  ---
+  duration_ms: 39.204616
+  type: 'test'
+  ...
+# Subtest: config check: a scalar (non-map) team_routing is rejected loudly, not silently skipped (adversarial review finding)
+ok 144 - config check: a scalar (non-map) team_routing is rejected loudly, not silently skipped (adversarial review finding)
+  ---
+  duration_ms: 33.573981
+  type: 'test'
+  ...
+# Subtest: config set: refuses a nested team_routing LEAF write (tracking.team_routing.spike), not just the exact key (adversarial review finding)
+ok 145 - config set: refuses a nested team_routing LEAF write (tracking.team_routing.spike), not just the exact key (adversarial review finding)
+  ---
+  duration_ms: 31.671352
+  type: 'test'
+  ...
+# Subtest: config check: a *_env value is NOT flagged (name-indirection is exempt by design)
+not ok 146 - config check: a *_env value is NOT flagged (name-indirection is exempt by design)
+  ---
+  duration_ms: 10.770646
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:626:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:627:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: scenario: a committed base survives a wholesale rewrite — diff visible, checkout restores
+not ok 147 - scenario: a committed base survives a wholesale rewrite — diff visible, checkout restores
+  ---
+  duration_ms: 11.197522
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:642:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q --allow-empty -m init failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    gitDir (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:65:5)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:643:15)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: integration smoke: merge → check exit 1 (untracked) → commit → check exit 0 → secret → check exit 1 redacted
+not ok 148 - integration smoke: merge → check exit 1 (untracked) → commit → check exit 0 → secret → check exit 1 redacted
+  ---
+  duration_ms: 83.679409
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:664:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q -m commit base failed: error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:33:29)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/config-two-file.test.mjs:678:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: unset removes a block and keeps the surrounding comments and separators
+ok 149 - unset removes a block and keeps the surrounding comments and separators
+  ---
+  duration_ms: 104.760867
+  type: 'test'
+  ...
+# Subtest: unset works outside WRITABLE_NAMESPACES (no namespace guard)
+ok 150 - unset works outside WRITABLE_NAMESPACES (no namespace guard)
+  ---
+  duration_ms: 57.234985
+  type: 'test'
+  ...
+# Subtest: unset --local edits only the overlay and notes the base still sets the key
+ok 151 - unset --local edits only the overlay and notes the base still sets the key
+  ---
+  duration_ms: 53.001059
+  type: 'test'
+  ...
+# Subtest: unset on the base notes a lingering overlay value; no note when the other file is clean
+ok 152 - unset on the base notes a lingering overlay value; no note when the other file is clean
+  ---
+  duration_ms: 111.748922
+  type: 'test'
+  ...
+# Subtest: unset prunes emptied parents and names them
+ok 153 - unset prunes emptied parents and names them
+  ---
+  duration_ms: 55.695564
+  type: 'test'
+  ...
+# Subtest: unset handles a 4-space-indented body
+ok 154 - unset handles a 4-space-indented body
+  ---
+  duration_ms: 54.161478
+  type: 'test'
+  ...
+# Subtest: --dry-run prints the edited text and leaves the file byte-identical
+ok 155 - --dry-run prints the edited text and leaves the file byte-identical
+  ---
+  duration_ms: 47.134007
+  type: 'test'
+  ...
+# Subtest: null leaves (key: and key: null) are removed
+ok 156 - null leaves (key: and key: null) are removed
+  ---
+  duration_ms: 103.522947
+  type: 'test'
+  ...
+# Subtest: usage errors exit 2
+ok 157 - usage errors exit 2
+  ---
+  duration_ms: 164.521981
+  type: 'test'
+  ...
+# Subtest: a missing target exits 3 and creates nothing
+ok 158 - a missing target exits 3 and creates nothing
+  ---
+  duration_ms: 96.292767
+  type: 'test'
+  ...
+# Subtest: absent key, absent ancestor and scalar ancestor exit 3 and leave the file alone
+ok 159 - absent key, absent ancestor and scalar ancestor exit 3 and leave the file alone
+  ---
+  duration_ms: 195.86679
+  type: 'test'
+  ...
+# Subtest: list-valued keys by name and by shape exit 2 and leave the file alone
+ok 160 - list-valued keys by name and by shape exit 2 and leave the file alone
+  ---
+  duration_ms: 273.283938
+  type: 'test'
+  ...
+# Subtest: an unindented block sequence is refused as list-valued and the file is untouched
+ok 161 - an unindented block sequence is refused as list-valued and the file is untouched
+  ---
+  duration_ms: 37.319321
+  type: 'test'
+  ...
+# Subtest: a shallower comment inside a block does not hide later keys
+ok 162 - a shallower comment inside a block does not hide later keys
+  ---
+  duration_ms: 86.837332
+  type: 'test'
+  ...
+# Subtest: an inherited property name is not a key
+ok 163 - an inherited property name is not a key
+  ---
+  duration_ms: 40.27566
+  type: 'test'
+  ...
+# Subtest: a block scalar whose text starts with a dash is not a list
+ok 164 - a block scalar whose text starts with a dash is not a list
+  ---
+  duration_ms: 41.721455
+  type: 'test'
+  ...
+# Subtest: a map subtree that holds a list is removed whole
+ok 165 - a map subtree that holds a list is removed whole
+  ---
+  duration_ms: 43.069165
+  type: 'test'
+  ...
+# Subtest: inline flow map: ancestor refused, leaf removed, partial path absent
+ok 166 - inline flow map: ancestor refused, leaf removed, partial path absent
+  ---
+  duration_ms: 130.085623
+  type: 'test'
+  ...
+# Subtest: a duplicate key fails the round-trip proof: exit 2, no write, no values in the message
+ok 167 - a duplicate key fails the round-trip proof: exit 2, no write, no values in the message
+  ---
+  duration_ms: 38.267198
+  type: 'test'
+  ...
+# Subtest: config and config bogus list unset in the verb list
+ok 168 - config and config bogus list unset in the verb list
+  ---
+  duration_ms: 68.968048
+  type: 'test'
+  ...
+# Subtest: integration smoke: base and overlay, dry run, prune, then already-gone
+ok 169 - integration smoke: base and overlay, dry run, prune, then already-gone
+  ---
+  duration_ms: 184.648852
+  type: 'test'
+  ...
+# Subtest: config unset --selftest passes
+ok 170 - config unset --selftest passes
+  ---
+  duration_ms: 46.441505
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: tier matcher outranks confidence matcher when both configured and tier present
+ok 171 - resolveDispatch build: tier matcher outranks confidence matcher when both configured and tier present
+  ---
+  duration_ms: 1.215627
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: absent tier skips the tier matcher entirely, falls through to confidence
+ok 172 - resolveDispatch build: absent tier skips the tier matcher entirely, falls through to confidence
+  ---
+  duration_ms: 0.287292
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: a tier with no leaf takes by_tier.default before the confidence matcher
+ok 173 - resolveDispatch build: a tier with no leaf takes by_tier.default before the confidence matcher
+  ---
+  duration_ms: 0.157958
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: legacy spec (no build-tier) + tier matcher configured -> tier matcher skipped, falls through cleanly
+ok 174 - resolveDispatch build: legacy spec (no build-tier) + tier matcher configured -> tier matcher skipped, falls through cleanly
+  ---
+  duration_ms: 0.119084
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: tier given but no tier matcher -> falls through to the confidence matcher
+ok 175 - resolveDispatch build: tier given but no tier matcher -> falls through to the confidence matcher
+  ---
+  duration_ms: 0.13475
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: no matchers -> the scalar / inherit chain
+ok 176 - resolveDispatch build: no matchers -> the scalar / inherit chain
+  ---
+  duration_ms: 0.074667
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: bucket keys match case-insensitively
+ok 177 - resolveDispatch build: bucket keys match case-insensitively
+  ---
+  duration_ms: 0.494167
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: invalid token in ANY leaf (including a tier that never resolves) fails loud at first resolution
+ok 178 - resolveDispatch build: invalid token in ANY leaf (including a tier that never resolves) fails loud at first resolution
+  ---
+  duration_ms: 0.151209
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: an invalid tier-matcher leaf fails loud even with no tier passed at all
+ok 179 - resolveDispatch build: an invalid tier-matcher leaf fails loud even with no tier passed at all
+  ---
+  duration_ms: 0.269917
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: effort resolves by tier leaf, then by_tier.default, then the scalar, then inherit
+ok 180 - resolveDispatch build: effort resolves by tier leaf, then by_tier.default, then the scalar, then inherit
+  ---
+  duration_ms: 1.207127
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: tier absent still consults by_tier.default for effort
+ok 181 - resolveDispatch build: tier absent still consults by_tier.default for effort
+  ---
+  duration_ms: 0.13475
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: a by_tier node holding only effort lets model fall through the rest of the chain
+ok 182 - resolveDispatch build: a by_tier node holding only effort lets model fall through the rest of the chain
+  ---
+  duration_ms: 0.094042
+  type: 'test'
+  ...
+# Subtest: resolveDispatch build: invalid effort tokens fail loud, in any leaf, and a model token is not an effort
+ok 183 - resolveDispatch build: invalid effort tokens fail loud, in any leaf, and a model token is not an effort
+  ---
+  duration_ms: 0.074958
+  type: 'test'
+  ...
+# Subtest: dispatch resolve build --tier resolves via the by_tier matcher
+ok 184 - dispatch resolve build --tier resolves via the by_tier matcher
+  ---
+  duration_ms: 113.914676
+  type: 'test'
+  ...
+# Subtest: dispatch resolve build --tier + --confidence: tier wins (the two matchers return DIFFERENT tokens)
+ok 185 - dispatch resolve build --tier + --confidence: tier wins (the two matchers return DIFFERENT tokens)
+  ---
+  duration_ms: 57.978527
+  type: 'test'
+  ...
+# Subtest: dispatch resolve build with NO --tier falls through to --confidence for model and by_tier.default for effort
+ok 186 - dispatch resolve build with NO --tier falls through to --confidence for model and by_tier.default for effort
+  ---
+  duration_ms: 57.542068
+  type: 'test'
+  ...
+# Subtest: dispatch resolve build with no flags falls through to by_confidence.default and the effort chain
+ok 187 - dispatch resolve build with no flags falls through to by_confidence.default and the effort chain
+  ---
+  duration_ms: 62.139035
+  type: 'test'
+  ...
+# Subtest: integration smoke: faff tier -> set matchers -> dispatch resolve build --tier -> unset matchers -> inherit
+ok 188 - integration smoke: faff tier -> set matchers -> dispatch resolve build --tier -> unset matchers -> inherit
+  ---
+  duration_ms: 133.527713
+  type: 'test'
+  ...
+# Subtest: dispatch resolve build fails loud on an invalid by_tier model leaf (exit 2, names value + legal set)
+ok 189 - dispatch resolve build fails loud on an invalid by_tier model leaf (exit 2, names value + legal set)
+  ---
+  duration_ms: 45.304253
+  type: 'test'
+  ...
+# Subtest: dispatch resolve build fails loud on an invalid leaf even for a tier that never resolves
+ok 190 - dispatch resolve build fails loud on an invalid leaf even for a tier that never resolves
+  ---
+  duration_ms: 52.128141
+  type: 'test'
+  ...
+# Subtest: dispatch resolve build fails loud on an invalid by_tier effort leaf (exit 2, names value + legal set)
+ok 191 - dispatch resolve build fails loud on an invalid by_tier effort leaf (exit 2, names value + legal set)
+  ---
+  duration_ms: 57.740069
+  type: 'test'
+  ...
+# Subtest: config get reads a dispatch.build.by_tier leaf directly
+ok 192 - config get reads a dispatch.build.by_tier leaf directly
+  ---
+  duration_ms: 99.639773
+  type: 'test'
+  ...
+# Subtest: config resolved echoes every configured dispatch.build.by_tier leaf
+ok 193 - config resolved echoes every configured dispatch.build.by_tier leaf
+  ---
+  duration_ms: 56.009691
+  type: 'test'
+  ...
+# Subtest: config resolved with no by_tier config emits no build.by_tier line (no-config byte-identity)
+ok 194 - config resolved with no by_tier config emits no build.by_tier line (no-config byte-identity)
+  ---
+  duration_ms: 77.742065
+  type: 'test'
+  ...
+# Subtest: dispatch resolve build with only a scalar model and no by_tier config is unchanged
+ok 195 - dispatch resolve build with only a scalar model and no by_tier config is unchanged
+  ---
+  duration_ms: 46.972923
+  type: 'test'
+  ...
+# Subtest: dispatch --selftest passes
+ok 196 - dispatch --selftest passes
+  ---
+  duration_ms: 42.926832
+  type: 'test'
+  ...
+# Subtest: no dispatch.* key is registered in DEFAULTS; an unset dispatch key reads as absent (exit 3)
+ok 197 - no dispatch.* key is registered in DEFAULTS; an unset dispatch key reads as absent (exit 3)
+  ---
+  duration_ms: 62.319702
+  type: 'test'
+  ...
+# Subtest: config set dispatch.spec.effort low writes a block-form node and exits 0
+ok 198 - config set dispatch.spec.effort low writes a block-form node and exits 0
+  ---
+  duration_ms: 97.236602
+  type: 'test'
+  ...
+# Subtest: config get and config set both refuse invalid dispatch keys and values with exit 2
+ok 199 - config get and config set both refuse invalid dispatch keys and values with exit 2
+  ---
+  duration_ms: 602.22694
+  type: 'test'
+  ...
+# Subtest: config get refuses invalid dispatch values already in the file
+ok 200 - config get refuses invalid dispatch values already in the file
+  ---
+  duration_ms: 353.964383
+  type: 'test'
+  ...
+# Subtest: config get dispatch.build (a node) validates leaves only and reads as before
+ok 201 - config get dispatch.build (a node) validates leaves only and reads as before
+  ---
+  duration_ms: 46.394172
+  type: 'test'
+  ...
+# Subtest: config get dispatch.methodology.model accepts a resolvable engine value
+ok 202 - config get dispatch.methodology.model accepts a resolvable engine value
+  ---
+  duration_ms: 50.723138
+  type: 'test'
+  ...
+# Subtest: dispatch resolve returns a settable effort for all eight lanes
+ok 203 - dispatch resolve returns a settable effort for all eight lanes
+  ---
+  duration_ms: 343.156071
+  type: 'test'
+  ...
+# Subtest: dispatch resolve refuses --tier/--confidence off the build lane, eval and unknown lanes (exit 2)
+ok 204 - dispatch resolve refuses --tier/--confidence off the build lane, eval and unknown lanes (exit 2)
+  ---
+  duration_ms: 227.751059
+  type: 'test'
+  ...
+# Subtest: the more specific dispatch.build position wins over a less specific one
+ok 205 - the more specific dispatch.build position wins over a less specific one
+  ---
+  duration_ms: 111.398962
+  type: 'test'
+  ...
+# Subtest: field independence: a node with only effort leaves model to the rest of the chain, and the reverse
+ok 206 - field independence: a node with only effort leaves model to the rest of the chain, and the reverse
+  ---
+  duration_ms: 117.702349
+  type: 'test'
+  ...
+# Subtest: tier-absent behaviour is unchanged per field
+ok 207 - tier-absent behaviour is unchanged per field
+  ---
+  duration_ms: 105.583243
+  type: 'test'
+  ...
+# Subtest: dispatch resolve build honours dispatch.build.* at every position
+ok 208 - dispatch resolve build honours dispatch.build.* at every position
+  ---
+  duration_ms: 159.013845
+  type: 'test'
+  ...
+# Subtest: engine call honours dispatch.<lane>.model / .effort and names the dispatch key in the refusal
+ok 209 - engine call honours dispatch.<lane>.model / .effort and names the dispatch key in the refusal
+  ---
+  duration_ms: 46.37888
+  type: 'test'
+  ...
+# Subtest: every resolver validates the whole dispatch tree: a typo'd lane elsewhere exits 2
+ok 210 - every resolver validates the whole dispatch tree: a typo'd lane elsewhere exits 2
+  ---
+  duration_ms: 108.492374
+  type: 'test'
+  ...
+# Subtest: a {...} string at a node position exits 2 with the block-form message naming the node
+ok 211 - a {...} string at a node position exits 2 with the block-form message naming the node
+  ---
+  duration_ms: 34.816733
+  type: 'test'
+  ...
+# Subtest: dispatch effort by confidence in a file fails every resolver (ADR-0108)
+ok 212 - dispatch effort by confidence in a file fails every resolver (ADR-0108)
+  ---
+  duration_ms: 69.992967
+  type: 'test'
+  ...
+# Subtest: config resolved prints dispatch lines only for set values, annotating unapplied effort
+ok 213 - config resolved prints dispatch lines only for set values, annotating unapplied effort
+  ---
+  duration_ms: 38.664366
+  type: 'test'
+  ...
+# Subtest: config resolved flags an invalid dispatch tree instead of staying silent
+ok 214 - config resolved flags an invalid dispatch tree instead of staying silent
+  ---
+  duration_ms: 39.400325
+  type: 'test'
+  ...
+# Subtest: with no dispatch key the config resolved banner gains no line
+ok 215 - with no dispatch key the config resolved banner gains no line
+  ---
+  duration_ms: 34.579107
+  type: 'test'
+  ...
+# Subtest: config get and config set exit 2 for every removed key, naming the dispatch replacement, whether or not it is set
+ok 216 - config get and config set exit 2 for every removed key, naming the dispatch replacement, whether or not it is set
+  ---
+  duration_ms: 2812.668824
+  type: 'test'
+  ...
+# Subtest: the eval keys keep their moved-to message and removedKeyError leaves other keys alone
+ok 217 - the eval keys keep their moved-to message and removedKeyError leaves other keys alone
+  ---
+  duration_ms: 0.159292
+  type: 'test'
+  ...
+# Subtest: config unset removes a legacy tree, including an empty header, and is never refused as a removed key
+ok 218 - config unset removes a legacy tree, including an empty header, and is never refused as a removed key
+  ---
+  duration_ms: 90.146755
+  type: 'test'
+  ...
+# Subtest: legacyTreeError names the file, each leaf with its replacement and the exact unset command
+ok 219 - legacyTreeError names the file, each leaf with its replacement and the exact unset command
+  ---
+  duration_ms: 0.268501
+  type: 'test'
+  ...
+# Subtest: a legacy tree in the base makes every resolver exit 2, and the named command clears it
+ok 220 - a legacy tree in the base makes every resolver exit 2, and the named command clears it
+  ---
+  duration_ms: 271.625935
+  type: 'test'
+  ...
+# Subtest: an empty effort: header is a legacy tree: exit 2 with no set clause, cleared by unset
+ok 221 - an empty effort: header is a legacy tree: exit 2 with no set clause, cleared by unset
+  ---
+  duration_ms: 95.019598
+  type: 'test'
+  ...
+# Subtest: a legacy tree in the overlay names .faff/config.local.yaml and the --local command
+ok 222 - a legacy tree in the overlay names .faff/config.local.yaml and the --local command
+  ---
+  duration_ms: 85.517746
+  type: 'test'
+  ...
+# Subtest: the resolvers also refuse a merged legacy tree, naming both unset commands
+ok 223 - the resolvers also refuse a merged legacy tree, naming both unset commands
+  ---
+  duration_ms: 0.195417
+  type: 'test'
+  ...
+# Subtest: config resolved annotates every Agent-dispatched effort and no engine lane's
+ok 224 - config resolved annotates every Agent-dispatched effort and no engine lane's
+  ---
+  duration_ms: 32.576604
+  type: 'test'
+  ...
+# Subtest: faff models and faff effort are unknown commands
+ok 225 - faff models and faff effort are unknown commands
+  ---
+  duration_ms: 56.902442
+  type: 'test'
+  ...
+# Subtest: legacyTreeError maps the eval leaves to their eval: keys instead of dropping them
+ok 226 - legacyTreeError maps the eval leaves to their eval: keys instead of dropping them
+  ---
+  duration_ms: 0.174292
+  type: 'test'
+  ...
+# Subtest: kernel fixture executes real layered reads, surgical writes, refusals and dispatch resolution
+ok 227 - kernel fixture executes real layered reads, surgical writes, refusals and dispatch resolution
+  ---
+  duration_ms: 668.014608
+  type: 'test'
+  ...
+# Subtest: kernel file ports expose in-fixture choices but refuse paths outside the case
+ok 228 - kernel file ports expose in-fixture choices but refuse paths outside the case
+  ---
+  duration_ms: 103.847782
+  type: 'test'
+  ...
+1..228
+# tests 228
+# suites 0
+# pass 172
+# fail 56
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6214.473354

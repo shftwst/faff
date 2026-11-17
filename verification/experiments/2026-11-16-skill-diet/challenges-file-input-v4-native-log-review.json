@@ -1,0 +1,272 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "ADR/PRDR challenge judgement and real CLI admission consumption; no hosted record publication.",
+  "audit": "native-audits/second-complete-v2.json",
+  "audit_sha256": "cb3fa730892cd524831f2e37030c7bc11a7a8d8be7aec41aae292a2e89928e70",
+  "auditor_sha256": "3f40f2fe4bc5094e14bb6f5796b2f5e46d9c9730b7fcbf8c04dfca03cacf5027",
+  "plan_sha256": "5f82ed720ae0a3d0e19062aeabc4f5bfd7a482564cdac7234ed302b43eaf8252",
+  "runs": [
+    {
+      "name": "challenges-file-input-v4-stable-baseline-1",
+      "native_status": "pass",
+      "tool_calls": 50,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-file-input-v4-stable-baseline-1/task.json",
+          "complete": true,
+          "content_sha256": "42aa14e39232efa7deddd25bde9434cc8a4d408875b6f2940c3c9fba967bd724",
+          "content_bytes": 13612
+        }
+      ]
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-1",
+      "native_status": "pass",
+      "tool_calls": 32,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-file-input-v4-stable-candidate-1/task.json",
+          "complete": true,
+          "content_sha256": "715aa8224f6c59e1e43f71395ca2ccd0dfebc8d29a1374ea05a8dfd0850ae3fc",
+          "content_bytes": 13612
+        }
+      ]
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-2",
+      "native_status": "pass",
+      "tool_calls": 32,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-file-input-v4-stable-candidate-2/task.json",
+          "complete": true,
+          "content_sha256": "715aa8224f6c59e1e43f71395ca2ccd0dfebc8d29a1374ea05a8dfd0850ae3fc",
+          "content_bytes": 13612
+        }
+      ]
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-2",
+      "native_status": "pass",
+      "tool_calls": 50,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-file-input-v4-stable-baseline-2/task.json",
+          "complete": true,
+          "content_sha256": "42aa14e39232efa7deddd25bde9434cc8a4d408875b6f2940c3c9fba967bd724",
+          "content_bytes": 13612
+        }
+      ]
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-3",
+      "native_status": "pass",
+      "tool_calls": 50,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-file-input-v4-stable-baseline-3/task.json",
+          "complete": true,
+          "content_sha256": "42aa14e39232efa7deddd25bde9434cc8a4d408875b6f2940c3c9fba967bd724",
+          "content_bytes": 13612
+        }
+      ]
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-3",
+      "native_status": "pass",
+      "tool_calls": 32,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-file-input-v4-stable-candidate-3/task.json",
+          "complete": true,
+          "content_sha256": "715aa8224f6c59e1e43f71395ca2ccd0dfebc8d29a1374ea05a8dfd0850ae3fc",
+          "content_bytes": 13612
+        }
+      ]
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-4",
+      "native_status": "pass",
+      "tool_calls": 30,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-file-input-v4-stable-candidate-4/task.json",
+          "complete": true,
+          "content_sha256": "715aa8224f6c59e1e43f71395ca2ccd0dfebc8d29a1374ea05a8dfd0850ae3fc",
+          "content_bytes": 13612
+        }
+      ]
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-4",
+      "native_status": "pass",
+      "tool_calls": 50,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-file-input-v4-stable-baseline-4/task.json",
+          "complete": true,
+          "content_sha256": "42aa14e39232efa7deddd25bde9434cc8a4d408875b6f2940c3c9fba967bd724",
+          "content_bytes": 13612
+        }
+      ]
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-5",
+      "native_status": "pass",
+      "tool_calls": 50,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-file-input-v4-stable-baseline-5/task.json",
+          "complete": true,
+          "content_sha256": "42aa14e39232efa7deddd25bde9434cc8a4d408875b6f2940c3c9fba967bd724",
+          "content_bytes": 13612
+        }
+      ]
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-5",
+      "native_status": "pass",
+      "tool_calls": 32,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-file-input-v4-stable-candidate-5/task.json",
+          "complete": true,
+          "content_sha256": "715aa8224f6c59e1e43f71395ca2ccd0dfebc8d29a1374ea05a8dfd0850ae3fc",
+          "content_bytes": 13612
+        }
+      ]
+    }
+  ],
+  "common_worker_guidance": {
+    "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+    "content_bytes": 21125,
+    "scope": "Actual native Read payload, same in all paired samples. The orchestrator-side requested-file hash records a different container view (22605 bytes); it is not the delivered payload hash."
+  },
+  "limits": [
+    "Native metadata is exported from selected local Claude session logs; thought and assistant prose content are excluded.",
+    "Repeated log records with the same tool ID are deduplicated; source log hashes are retained.",
+    "Initial native task reads match the exact task source bytes.",
+    "No provider token/cost or full downstream workflow claim."
+  ]
+}

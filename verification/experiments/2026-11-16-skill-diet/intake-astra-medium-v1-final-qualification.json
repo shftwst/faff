@@ -1,0 +1,834 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T22:12:34.590Z",
+  "accepted": true,
+  "status": "qualified-bounded-intake-brief-production",
+  "model": "gpt-6-astra",
+  "effort": "medium",
+  "source_sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b",
+  "source_review": "intake-brief-v1-source-review.json",
+  "source_review_sha256": "9382f3c896286b79358af9e188e1c290b98351a75d50b9ce8792ce762f535f0b",
+  "fixed_context_sha256": "5c783630961e6546e783e1f2d2743ad8ba5d07856420303b464459301cf8afe8",
+  "before": {
+    "samples": 5,
+    "artifacts_passed": 30,
+    "artifacts_total": 30,
+    "raw_artifacts_passed": 29,
+    "decisions_passed": 60,
+    "decisions_total": 60,
+    "native_samples_passed": 5,
+    "manual_artifacts_passed": 30,
+    "normalisations": 1
+  },
+  "after": {
+    "samples": 5,
+    "artifacts_passed": 30,
+    "artifacts_total": 30,
+    "raw_artifacts_passed": 29,
+    "decisions_passed": 60,
+    "decisions_total": 60,
+    "native_samples_passed": 5,
+    "manual_artifacts_passed": 30,
+    "normalisations": 1
+  },
+  "samples": [
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-1",
+      "arm": "baseline",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "normalisations": [],
+      "artifacts": [
+        {
+          "id": "greenfield-complete",
+          "sha256": "dc1c8aa820138f752110eb68c07d0b0c86b1df174ccaa0dace5c8477c3a12a4d"
+        },
+        {
+          "id": "greenfield-thin",
+          "sha256": "cd8bf44d1cce40a4fe293680d48234e0ca4eb5192b2d5ba868c618bab4de2a74"
+        },
+        {
+          "id": "single-bug",
+          "sha256": "8747d5f28359b9cfa274571e8f913d343608cbbefbd01e99282bf50a556196be"
+        },
+        {
+          "id": "single-split",
+          "sha256": "28a676df510753e46a83cb86ef3656bc671d6a2ea0320f592dc278d4304586ec"
+        },
+        {
+          "id": "minor-ambiguity",
+          "sha256": "0af9537b456f3ea9b5fe897ac083a2456628ad321ccc8a742726902e071e241c"
+        },
+        {
+          "id": "greenfield-repo-signal",
+          "sha256": "a7a8c4182f53b9536a4de14fbaaac0d62e8ae8894e4d36688c861f446dcc88ac"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-1/manifest.json",
+          "sha256": "8ccb24ced5cd251bee143eebc0f46259eae1cf47f8d207023d24c796ef4c38b9"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-1/capture.json",
+          "sha256": "9461d33e580c9107256ad01800494a30bcc6bb90e0cf35618db12d8a853f3c0b"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-1/report.json",
+          "sha256": "e58e1f671dc384e0ec1fd34e280b0c13e9a1e72ab9f668a76d4ab1f56e614f10"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-1/assessment.json",
+          "sha256": "8f6107a52499b46db98e3b45a5c0fd5b74e19ee6a8025bc1033d53fe6554487f"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-1/native-audit.json",
+          "sha256": "7dd6e64a0fbc911579f07c537b311236d1fc6bfc596ff9568718da49e7f2ffe3"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-1/native-audit-sample.json",
+          "sha256": "cb04bdf6cbd2edd636e0362905c853bf5f037467dde8d6d5d835502874074b56"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-1/worker-manifest.json",
+          "sha256": "0c816da746de44958993311ecddacadc01ee75813825ba794835551d6e25ecf9"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-1/worker-final-state.json",
+          "sha256": "323bff9d33bde3706a728fc1ad6b05e51f2d3051097340bc613f64d05493d3e0"
+        }
+      ]
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-2",
+      "arm": "baseline",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "normalisations": [
+        {
+          "case_id": "greenfield-thin",
+          "rule": "Both exact unresolved questions occur inside Open questions; all original non-lexical requirements remain."
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "greenfield-complete",
+          "sha256": "0138bd9fc92e2f743e3da9c85fccae9f61d714d1a9bcd3c40af9dcf8282cc34b"
+        },
+        {
+          "id": "greenfield-thin",
+          "sha256": "ad526e1eadddb7b826d57108dbc23a020d7fbeb8ca70f981d97289b94d033518"
+        },
+        {
+          "id": "single-bug",
+          "sha256": "45fac919fc125b3df34c41ffb918c886cdcc016dac0a2adc9e52b7b50b6e823b"
+        },
+        {
+          "id": "single-split",
+          "sha256": "c756268de3e37ddf6169be715c6b8a768207aa9002fedb93f179d5846b773102"
+        },
+        {
+          "id": "minor-ambiguity",
+          "sha256": "dc833b1ce7fbf7f85690e1fc1f944ce50a4b5097e086747af5e5cc126ff34f5b"
+        },
+        {
+          "id": "greenfield-repo-signal",
+          "sha256": "ab0e0ada14a3f2005052c7d455afd800392a970904bbc6697a76549f961c522b"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-2/manifest.json",
+          "sha256": "8ccb24ced5cd251bee143eebc0f46259eae1cf47f8d207023d24c796ef4c38b9"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-2/capture.json",
+          "sha256": "5fac7786adb44ed7411b369e8f4cd4910784255e56f281062bc5ea134190a7d8"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-2/report.json",
+          "sha256": "89d37db71c0a0e9c039124a29e9519f1578e3acbc7dbea27a7a34072d4282349"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-2/assessment.json",
+          "sha256": "08ee9f2503d86e30d4a71b59611d6f42265c83a85a6ec3fb9ce546d585a83b11"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-2/native-audit.json",
+          "sha256": "9ea87f3c22c04a4e9d478e5e35e5efccc637a4c24f516a85e6bb89c2a30e79e4"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-2/native-audit-sample.json",
+          "sha256": "3ac40acb6f773051b45c5c9e3b7f7e28ec7e09e3e33bec61ebfaca343a613738"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-2/worker-manifest.json",
+          "sha256": "64ff93d979111400a44bff70117093130ec8f9ba00c7e6ff43901b1c8cbc5b17"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-2/worker-final-state.json",
+          "sha256": "f98593c316fca02f165898130a898f56111c7cf1d12b106a12d7aaf9e1e86f9e"
+        }
+      ]
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-3",
+      "arm": "baseline",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "normalisations": [],
+      "artifacts": [
+        {
+          "id": "greenfield-complete",
+          "sha256": "c527cf15920fe42c59b99ca5ee1be95d2d7df833b9a6563332277a1672529a03"
+        },
+        {
+          "id": "greenfield-thin",
+          "sha256": "8b0560b8848c1674c2c3ecafa5a45c7c46395f02b966fcb08d45e355c4298199"
+        },
+        {
+          "id": "single-bug",
+          "sha256": "f4845d91e2961348357f7f921b06a2bd82c55811da19096b5677f9f6c046d815"
+        },
+        {
+          "id": "single-split",
+          "sha256": "1faf7994f7f5e8bd7f3b06d13af3086351fda655a224c9a46ac89a1ad0c122cc"
+        },
+        {
+          "id": "minor-ambiguity",
+          "sha256": "48ec323d5706b4176692f80a8ae16e4a3259dd2a2901eababed3f724030262f0"
+        },
+        {
+          "id": "greenfield-repo-signal",
+          "sha256": "46f38d2cf694eedc5ee15877ded3929b358d0088f2c01594868728e6c1c6e50e"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-3/manifest.json",
+          "sha256": "8ccb24ced5cd251bee143eebc0f46259eae1cf47f8d207023d24c796ef4c38b9"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-3/capture.json",
+          "sha256": "2aa937428bb1297d088f39887cccadbaa17be47206030dc4b5865f22ddf8971b"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-3/report.json",
+          "sha256": "e58e1f671dc384e0ec1fd34e280b0c13e9a1e72ab9f668a76d4ab1f56e614f10"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-3/assessment.json",
+          "sha256": "7c18064fe2089e0742c2ef59aa9a682fff25a3655e1b25f5a7b0939f6ee5c2ec"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-3/native-audit.json",
+          "sha256": "95c663360845ebf3459e6c750af11920b888635e8888bd68664badd314e26d45"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-3/native-audit-sample.json",
+          "sha256": "d965db0e9ac1edf633ee409d166aef6a454e93e19befc2ad4d02b274d0b90cdd"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-3/worker-manifest.json",
+          "sha256": "65e1c38ca926cf1ff52de386af4b39f9038784f434b3e011f5ea686ee88f1ffa"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-3/worker-final-state.json",
+          "sha256": "4c148af77d7aa856d288dce1c64262f0701b95756c39b0f80afc3ca967f22552"
+        }
+      ]
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-4",
+      "arm": "baseline",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "normalisations": [],
+      "artifacts": [
+        {
+          "id": "greenfield-complete",
+          "sha256": "f4044996bf7307b2ac5d5c7a42679930e00b2fc0bd717e161de505030fc85df0"
+        },
+        {
+          "id": "greenfield-thin",
+          "sha256": "3a1509415c1d4e5fc49efbc5e3621be6a36bd6ca57abc9a3900325eeb9a081fd"
+        },
+        {
+          "id": "single-bug",
+          "sha256": "517e1996e3c38755bb5ac8808bf7533bc195d4e75cee016e8895f7facf8cdda6"
+        },
+        {
+          "id": "single-split",
+          "sha256": "38a3b33b97676a17438eeacba50b2a62d4199a943646248766f34da89d4545ca"
+        },
+        {
+          "id": "minor-ambiguity",
+          "sha256": "564d3cc013dbf4331879df689f40703be18a6b55647585ff003b77f009f5822a"
+        },
+        {
+          "id": "greenfield-repo-signal",
+          "sha256": "a23734d308dd81b5e435782ffae646b5437b6b27fdd318e9ab47599182871f1d"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-4/manifest.json",
+          "sha256": "8ccb24ced5cd251bee143eebc0f46259eae1cf47f8d207023d24c796ef4c38b9"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-4/capture.json",
+          "sha256": "369bac0dbf834e98349c11dce4cac8785fbdcd2bb6fdee5b0005ac6fb3ec99fd"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-4/report.json",
+          "sha256": "e58e1f671dc384e0ec1fd34e280b0c13e9a1e72ab9f668a76d4ab1f56e614f10"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-4/assessment.json",
+          "sha256": "017930741cf13c2eb9171263d1a001f86d26e7766ad62e9026d60a949ef160da"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-4/native-audit.json",
+          "sha256": "078124e0f0db0a392e623ac0db5ec821579d1f5d38585adcca9becf4e199c4cb"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-4/native-audit-sample.json",
+          "sha256": "04284d870f310358a47e7c2450fe2e9ae6def428affceefeb3a9c7ee30cc1196"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-4/worker-manifest.json",
+          "sha256": "e0e16d617b04e61002f9bd8a8318e6194902ba65a3b4ad56ec7262fd1d0fb8b6"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-4/worker-final-state.json",
+          "sha256": "984c57264b7b9149ac303cd43ca48862d04b78f215f33c9e5fced3f5dcd9704f"
+        }
+      ]
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-baseline-5",
+      "arm": "baseline",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "normalisations": [],
+      "artifacts": [
+        {
+          "id": "greenfield-complete",
+          "sha256": "742d74a0d158935ce7fcd3b205fd04261f15d60a5ce1d601ba71ab1320036099"
+        },
+        {
+          "id": "greenfield-thin",
+          "sha256": "59b137f52a7c9fe5d833e03c5542a6bd36a9295a9e65800e8fae86b697dc0ba8"
+        },
+        {
+          "id": "single-bug",
+          "sha256": "2c68f4a27e7b2cb89e167b0365b30ac042cf339ba882c25ff440885a33e7a1a5"
+        },
+        {
+          "id": "single-split",
+          "sha256": "632800bee10a421ab61d9d8f3b69f90823c823b7b914a53438c6a8f844db3c60"
+        },
+        {
+          "id": "minor-ambiguity",
+          "sha256": "f207e5adee477f00eb488112f1c671962b5172d6e7154e1391ab62056e28c935"
+        },
+        {
+          "id": "greenfield-repo-signal",
+          "sha256": "69c290be8a6351d5312491d3dabe674a6b42bfbb364b755adeea4a1816f11bd0"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-5/manifest.json",
+          "sha256": "8ccb24ced5cd251bee143eebc0f46259eae1cf47f8d207023d24c796ef4c38b9"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-5/capture.json",
+          "sha256": "edfa60faf358c6c79e211445c25d49945fe4c9ba86880ce7319664c5e6deb11b"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-5/report.json",
+          "sha256": "e58e1f671dc384e0ec1fd34e280b0c13e9a1e72ab9f668a76d4ab1f56e614f10"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-5/assessment.json",
+          "sha256": "898d0ac8ca2a3230383a8d1cd4b3d872b392c5adbb17a0a6daf861d9a09f3bc5"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-5/native-audit.json",
+          "sha256": "70e055671a161959b9195197ac1a8dba86fa60629f4cce8ff822058c291e6728"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-5/native-audit-sample.json",
+          "sha256": "0052887390a8fbae188c248bb7e2791748de07bc1db23f70b01aeeb7ad87815d"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-5/worker-manifest.json",
+          "sha256": "5f5b530460eddb7b0b1b760539f23b2aadd51cff307d13ffc82dc6fa1a5b873f"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-baseline-5/worker-final-state.json",
+          "sha256": "9f7c44daae460b1d8582cfe36335856af394ad4f99f3ac0d091e60f354a2e283"
+        }
+      ]
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-candidate-1",
+      "arm": "candidate",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "normalisations": [],
+      "artifacts": [
+        {
+          "id": "greenfield-complete",
+          "sha256": "2368e9f9a4a1bdec727bfda49fc955508a3992e0621fa2b6ba20b6363bc1178e"
+        },
+        {
+          "id": "greenfield-thin",
+          "sha256": "a73d7e4787b0bc0e4f575d56aad7ba9996de631768722093f7a79d72fe645d05"
+        },
+        {
+          "id": "single-bug",
+          "sha256": "cf4dd29662dd79a1bed78fd7bf033b749e7c3afc6f5de018d73a9c3824c9ee4e"
+        },
+        {
+          "id": "single-split",
+          "sha256": "d24a6643a06a8a3bba4046aef0114c67b532609933460f15a6ff2c5f81dc1fd1"
+        },
+        {
+          "id": "minor-ambiguity",
+          "sha256": "d577e1e10b34a7e353c92c5fca115075bf397cc7e3ce34673cd51ed3c921df62"
+        },
+        {
+          "id": "greenfield-repo-signal",
+          "sha256": "8f3347e5ba833191e9a968c75b4fa53f16853498ddd58ef45d0692a497306405"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/manifest.json",
+          "sha256": "52ff903100f56af07ff3d58ed2218359f07b1501d8b0893d4887336373797f34"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/capture.json",
+          "sha256": "5fc90577170993266997db4babbd6aa9846c2d82e857a0a8a1c3a1353676118f"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/report.json",
+          "sha256": "be4fb5613f9984bc7eb54d21b5a0322a5ce995498e8638aab8d04fc947116d80"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/assessment.json",
+          "sha256": "125b7342ca515c72d8f5574d5fdbdb6b2dff88f1f241c09c2487bde2c558de0c"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/native-audit.json",
+          "sha256": "2a70a8b68727ac3f24437f0cb1383a21bf278d00fd9fa368584e2ee66aba5582"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/native-audit-sample.json",
+          "sha256": "6abb603f3128e5b005e35b8e44561f9bc1049dd33c3c4a6202de9c51b74b2b89"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/worker-manifest.json",
+          "sha256": "bb97a1099e6970872c7352ed73ab9dfd117e5f3013baf6f22e7779198654299f"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-1/worker-final-state.json",
+          "sha256": "0b86e98d6dd420c50193ac880cd322ba86e107192b9145c91e77a6b8241205b1"
+        }
+      ]
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-candidate-2",
+      "arm": "candidate",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "normalisations": [],
+      "artifacts": [
+        {
+          "id": "greenfield-complete",
+          "sha256": "4a7dd08033447ab28d829cb3333c78c54e5d149c43dd68883ed188727910cafd"
+        },
+        {
+          "id": "greenfield-thin",
+          "sha256": "dd7e4740b38d9802a7693f75be2c15042c1ba6743e932b7753ddaaac1b2fb3f1"
+        },
+        {
+          "id": "single-bug",
+          "sha256": "7c3e74bb3d4914de8b0e799db9623605a35c81e0d125621e5b560b502e81e12f"
+        },
+        {
+          "id": "single-split",
+          "sha256": "f1bc394f6e0b3504510eed3077624f73740f44c7486a5f391702a8dea8c0d6ad"
+        },
+        {
+          "id": "minor-ambiguity",
+          "sha256": "cc9aeb8de31822a3f3827080c2ac82395f148165ca272ba83909a202272726d5"
+        },
+        {
+          "id": "greenfield-repo-signal",
+          "sha256": "8f3347e5ba833191e9a968c75b4fa53f16853498ddd58ef45d0692a497306405"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-2/manifest.json",
+          "sha256": "52ff903100f56af07ff3d58ed2218359f07b1501d8b0893d4887336373797f34"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-2/capture.json",
+          "sha256": "4a0b613885eb1e03852a821eabc8e04fd20a0f454fda222c99b74ae0e5895a98"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-2/report.json",
+          "sha256": "be4fb5613f9984bc7eb54d21b5a0322a5ce995498e8638aab8d04fc947116d80"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-2/assessment.json",
+          "sha256": "dd94f7e83d4faf16ecf565ded57aefae5b1c705c550a4ced5a4527a0c576434b"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-2/native-audit.json",
+          "sha256": "66f0a553d0f71814d7847f6673ca4c79b934d76b1cb1e20c352f2dc222be1dba"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-2/native-audit-sample.json",
+          "sha256": "fc1bffb8369bac1a1f9766f9a1a22f5eeaa8b7960e98feeae9076d6e2567c5b1"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-2/worker-manifest.json",
+          "sha256": "44959a3a1e4c67cc7f0ae9a7c6954a58623671753394f88bf37a188de3bd6641"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-2/worker-final-state.json",
+          "sha256": "036c783eb882be0ab490ce738268a2586e6d97d62e379d7ed4a134cfe14b968a"
+        }
+      ]
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-candidate-3",
+      "arm": "candidate",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "normalisations": [
+        {
+          "case_id": "greenfield-thin",
+          "rule": "Both exact unresolved questions occur inside Open questions; all original non-lexical requirements remain."
+        }
+      ],
+      "artifacts": [
+        {
+          "id": "greenfield-complete",
+          "sha256": "2fd19c8005c66f6eb9e31425450018d71c0942739232f49b6381cae475515469"
+        },
+        {
+          "id": "greenfield-thin",
+          "sha256": "aa021d0382834f9ff67224b49fc3092d0a543e7ceac8fc3adf060a603b94a95f"
+        },
+        {
+          "id": "single-bug",
+          "sha256": "5a609ce46594dc4babe3884e31710df56b94f3491ece4ffe74930a9795ad9aa1"
+        },
+        {
+          "id": "single-split",
+          "sha256": "4fd43f510be765edd7786ad14c6a54eb9e211d555010a1f338c71728447cd823"
+        },
+        {
+          "id": "minor-ambiguity",
+          "sha256": "d88d7b293fc1e78ba68428bec5bac8116c47cecbb7186f1309f2e0074ded87d3"
+        },
+        {
+          "id": "greenfield-repo-signal",
+          "sha256": "3d0c0f0a04d4eea37dec228152e79ea958791e6b4ef4ce8a868021e365388ea9"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-3/manifest.json",
+          "sha256": "52ff903100f56af07ff3d58ed2218359f07b1501d8b0893d4887336373797f34"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-3/capture.json",
+          "sha256": "7d2339b6598f8208955eca1a2af3cbcfbc1bebc7d45392f4e068381b4c435394"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-3/report.json",
+          "sha256": "4c18765721f5ef92c18efd08c3ff91c079654afa8d0b7621e0e93d55980f4738"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-3/assessment.json",
+          "sha256": "469269e4d9db6828de5c9802c1d8a0d0ce987d13020be573e7e57fb08d3bdb57"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-3/native-audit.json",
+          "sha256": "360909cce021ded34d9bf5bc2df7b05f61d75af20bc589856559fa71b442b86f"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-3/native-audit-sample.json",
+          "sha256": "af28c881bc4f487ee087742613c86284d870e2ab2250338feff11266baab43bf"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-3/worker-manifest.json",
+          "sha256": "1437fc81385fe6a40dd48d0f541d94ffeeff36bd7e71052e50a7318656a9ce39"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-3/worker-final-state.json",
+          "sha256": "ea2b7d59b0ae5117c3dcecc9f17abbf4afd6d58c4d8271e169ddd06e0b740925"
+        }
+      ]
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-candidate-4",
+      "arm": "candidate",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "normalisations": [],
+      "artifacts": [
+        {
+          "id": "greenfield-complete",
+          "sha256": "421704313b398daa6069888a6fefc75a262612232a97609124e01c0666dcd295"
+        },
+        {
+          "id": "greenfield-thin",
+          "sha256": "31e5a2df7ea3c6f0858f78fd65f60801e4fd3d9ebe1b3383515e2a346d88de5b"
+        },
+        {
+          "id": "single-bug",
+          "sha256": "bedd3342733bd0cceb79f1b757d243b7c1bd00dd5f60428bf79e9c584f11fe64"
+        },
+        {
+          "id": "single-split",
+          "sha256": "2ee2470a04d9a4a041f030f42a57da00d817b22984da4722d2e31590c5e2376e"
+        },
+        {
+          "id": "minor-ambiguity",
+          "sha256": "bd95db0cb5e7591b057f55277909217bc17dd8d481e7cf209932244ee6917d76"
+        },
+        {
+          "id": "greenfield-repo-signal",
+          "sha256": "a956a530af4d1d816ad97a3897c4b1ab305f4cc78a9a4ba7f9598a89a933862a"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-4/manifest.json",
+          "sha256": "52ff903100f56af07ff3d58ed2218359f07b1501d8b0893d4887336373797f34"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-4/capture.json",
+          "sha256": "745e17f3bb3be8c366947c5025862ada1ef7b80a681cd69c687032b15095320b"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-4/report.json",
+          "sha256": "be4fb5613f9984bc7eb54d21b5a0322a5ce995498e8638aab8d04fc947116d80"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-4/assessment.json",
+          "sha256": "41c83335a4b6cc770f21c50bdca20aec123799988c859603ba34fa7c7d0d9299"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-4/native-audit.json",
+          "sha256": "eca6e98467d8da57ae5d6a6479702cd1cf788fcfe928d4ce6b2223030bd996f0"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-4/native-audit-sample.json",
+          "sha256": "4d7735b4c485e6a8fd9fd55436a8a4a454c5333cdc9ea33b41dd16e88171f8f2"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-4/worker-manifest.json",
+          "sha256": "e95922fe8d7d53d9b5ec8b59b948951a90f5ddb0afcb24cddb9b5617fa0584f1"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-4/worker-final-state.json",
+          "sha256": "8af89ff4f90e1ebdf6be733cbee99badb12bdc55174a95d55a8de7ac0ef4e0c3"
+        }
+      ]
+    },
+    {
+      "name": "intake-brief-astra-medium-v1-candidate-5",
+      "arm": "candidate",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "normalisations": [],
+      "artifacts": [
+        {
+          "id": "greenfield-complete",
+          "sha256": "6c0fcba1d304365f38a28b0e8fae45d2e004491420d32571b3826b26352309d8"
+        },
+        {
+          "id": "greenfield-thin",
+          "sha256": "e713a532a0f12b95ce4e2aa607178fe213f66b70a4a14aa680b322c2aec9b713"
+        },
+        {
+          "id": "single-bug",
+          "sha256": "f4845d91e2961348357f7f921b06a2bd82c55811da19096b5677f9f6c046d815"
+        },
+        {
+          "id": "single-split",
+          "sha256": "e6b0bffc2a0777a8e7b927392f04dfc34b70cd585a543f6a7cca6e75b80a85f8"
+        },
+        {
+          "id": "minor-ambiguity",
+          "sha256": "23ee3af69f6cec42da28abebd19a4e24f436c3a59cad2d943d805d0b5207d365"
+        },
+        {
+          "id": "greenfield-repo-signal",
+          "sha256": "a7a8c4182f53b9536a4de14fbaaac0d62e8ae8894e4d36688c861f446dcc88ac"
+        }
+      ],
+      "bindings": [
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-5/manifest.json",
+          "sha256": "52ff903100f56af07ff3d58ed2218359f07b1501d8b0893d4887336373797f34"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-5/capture.json",
+          "sha256": "c775afbc22c01cef0c153e29a058de3abcb4ca54036a4ef47e1f4bb59eaab428"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-5/report.json",
+          "sha256": "be4fb5613f9984bc7eb54d21b5a0322a5ce995498e8638aab8d04fc947116d80"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-5/assessment.json",
+          "sha256": "df36b6426a80cc35352cd200274355441a344993c431d5fe2022af81b2ad5b24"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-5/native-audit.json",
+          "sha256": "59f31e3e2073e634b22ed4923a333c8d5f965562000d30e03a6983b2e5cb9026"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-5/native-audit-sample.json",
+          "sha256": "1aabcacf7bde6f79165660940c7eaa8bbda6ca9c81568e25ed968ab5525a36b8"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-5/worker-manifest.json",
+          "sha256": "ee6e00c835b5b9c9931fb3bc5b6987aa94a96f471d37248f7cd133a76cd2f79a"
+        },
+        {
+          "path": "workflow-runs/intake-brief-astra-medium-v1-candidate-5/worker-final-state.json",
+          "sha256": "e3f0662c3927204da3e48816ec513aabafce33f69a6d6307b78942b446cb3a0e"
+        }
+      ]
+    }
+  ],
+  "manual_artifact_reviews": [
+    {
+      "path": "manual-artifact-reviews/intake-astra-medium-v1-independent.json",
+      "sha256": "feaff4b6c63cd96427b3f9595be2b4f264cd3d6ec48eb62cc377b6e23435372a"
+    },
+    {
+      "path": "manual-artifact-reviews/intake-astra-medium-v1-continuation-independent.json",
+      "sha256": "b5777cac504a2824fad0405a86824bfa4601f69693074fad2dce5cf2c5f57d87"
+    }
+  ],
+  "root_spotcheck": {
+    "path": "manual-artifact-reviews/intake-astra-medium-v1-root-spotcheck.json",
+    "sha256": "6197a652c002719a49a73605f5ec78951b4f1faba60bfb328a2efbeb0ecbd3bf"
+  },
+  "question_correction": {
+    "path": "intake-astra-medium-v1-question-correction.json",
+    "sha256": "32a5651fd5358e47fb35d5142a8ed4638d247d8fc0b2feb7ed271355fb8608b6"
+  },
+  "integration": {
+    "record": {
+      "path": "intake-astra-medium-v1-integration.json",
+      "sha256": "708449344c916ca51eca80504dbc95e3e4557c8dc3d0a78bf1ad5f7c2474f2c5"
+    },
+    "tests_passed": 632,
+    "tests_failed": 0,
+    "checks": [
+      {
+        "check": "tests",
+        "command": [
+          "node",
+          "--test",
+          "--test-concurrency=4",
+          "test/eval-affected.test.mjs",
+          "test/eval-baseline-gate.test.mjs",
+          "test/eval-cli-driver.test.mjs",
+          "test/eval-coverage-gate.test.mjs",
+          "test/eval-diff-baselines.test.mjs",
+          "test/eval-explanatory-order-drysmoke.test.mjs",
+          "test/eval-finding-identity.test.mjs",
+          "test/eval-gate.test.mjs",
+          "test/eval-grader.test.mjs",
+          "test/eval-holdout-live.test.mjs",
+          "test/eval-judgement-capture.test.mjs",
+          "test/eval-live-driver.test.mjs",
+          "test/eval-modedetect-drysmoke.test.mjs",
+          "test/eval-ollama-model.test.mjs",
+          "test/eval-prefix-planner.test.mjs",
+          "test/eval-readme-freshness.test.mjs",
+          "test/eval-reconciliation-drysmoke.test.mjs",
+          "test/eval-resume.test.mjs",
+          "test/eval-routing.test.mjs",
+          "test/eval-run-live-evals.test.mjs",
+          "test/eval-shaping-decomposition-drysmoke.test.mjs",
+          "test/eval-size-census.test.mjs",
+          "test/eval-tokenomics.test.mjs",
+          "test/eval-verdict-build-drysmoke.test.mjs",
+          "test/eval-zero-case-guard.test.mjs",
+          "test/evaluate-call.test.mjs",
+          "test/evaluator-preflight.test.mjs",
+          "test/intake-brief-artifact.test.mjs",
+          "test/intakecheck.test.mjs",
+          "test/self-intake.test.mjs",
+          "test/control-parity-intake-assessment.test.mjs"
+        ],
+        "exit_code": 0,
+        "path": "deterministic-checks/intake-astra-medium-v1-tests.txt",
+        "sha256": "a00460bbb7aebb5096b7199e42ed9560bf5e665920f9d077956f2ba9922ecfd3"
+      },
+      {
+        "check": "adapter-lint",
+        "command": [
+          "node",
+          "plugin/skills/faff/bin/faff",
+          "validate-adapters"
+        ],
+        "exit_code": 0,
+        "path": "deterministic-checks/intake-astra-medium-v1-adapter-lint.txt",
+        "sha256": "bb4d1a24e82014e354b443a671613ccbfff3359e4e424d6bf8508de9c22e43ec"
+      },
+      {
+        "check": "rule-inventory",
+        "command": [
+          "node",
+          "plugin/skills/faff/bin/faff",
+          "rule-inventory",
+          "check",
+          "--base",
+          "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+          "--json"
+        ],
+        "exit_code": 0,
+        "path": "deterministic-checks/intake-astra-medium-v1-rule-inventory.txt",
+        "sha256": "339b3b7652e4c229d136a0fdcb68493bdc0c2fffa35c0bffc5cbc2fe9f34501d"
+      }
+    ]
+  },
+  "mandatory_dependencies_added": [],
+  "limits": [
+    "Fresh five-versus-five Astra-medium comparison. Older Sol native failures and Astra-low usage-limit samples remain excluded and preserved.",
+    "All60actualbriefs manually read; independently verify source facts, required/optional sections, dependencies, unresolved questions and no invented goals/tickets. Root additionally read candidate1 sixbriefs.",
+    "Raw lexical failures remain in baseline2andcandidate3. The identical frozen exact-question assessment applies symmetrically; no sample replaced or semantic requirement relaxed.",
+    "There is no executable semantic discovery-brief consumer. This measures persisted brief production and contract regrading, not elicitation, methodology ticket shaping, tracker mutation or a complete jot/plot workflow.",
+    "Shared context is fixed to the registered context for both arms; this is a bounded comparison, not a model proof of every combined skill context or statistical equivalence.",
+    "Intended daily-driver Opus confirmation remains pending allowance renewal; no general Opus parity or provider billing savings claimed."
+  ],
+  "main_source_commit": "c650c72bc5c4b602a187d619249277325c7d2ce7",
+  "main_integration": [
+    {
+      "path": "deterministic-checks/intake-astra-medium-v1-main-adapter-lint.txt",
+      "sha256": "bb4d1a24e82014e354b443a671613ccbfff3359e4e424d6bf8508de9c22e43ec",
+      "status": "pass"
+    },
+    {
+      "path": "deterministic-checks/intake-astra-medium-v1-main-rule-inventory.txt",
+      "sha256": "339b3b7652e4c229d136a0fdcb68493bdc0c2fffa35c0bffc5cbc2fe9f34501d",
+      "status": "pass"
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "acquired_at": "2026-11-16T00:00:00Z",
+  "acquired_by": "fixture-acquirer",
+  "runtimes": [
+    {
+      "name": "node",
+      "version": "22",
+      "evidence": "package.json"
+    }
+  ],
+  "ci": [
+    {
+      "name": "github-actions",
+      "evidence": ".github/workflows/ci.yml"
+    }
+  ],
+  "deploy_targets": [
+    {
+      "kind": "docker-compose",
+      "evidence": "compose.yaml"
+    }
+  ],
+  "datastores": [
+    {
+      "kind": "postgres",
+      "evidence": "compose.yaml"
+    }
+  ],
+  "paas_available": [],
+  "notes": [
+    "Local-first preference. No managed service entitlement recorded."
+  ]
+}

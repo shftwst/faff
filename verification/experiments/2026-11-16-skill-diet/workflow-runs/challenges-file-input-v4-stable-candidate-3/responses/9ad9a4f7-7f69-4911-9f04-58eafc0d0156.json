@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "adr-2",
+      "outcome": "overturned",
+      "ground": null,
+      "reason": "The supersession argument is unsound. The old decision is a security invariant: secrets come from environment variables only and are never written to the repo or to .faff/. The new decision writes resolved API keys in plaintext to .faff/cache/credentials.json, which breaks the 'never written to .faff/' clause directly; the why only addresses the repo-commit half. Being gitignored does not stop the file being read by other local processes, copied by backups, swept into run-directory archives or bug-report bundles, or left behind after a key is rotated or revoked, so a stale key keeps being used. The claim of 'no behaviour change a user would notice' is false for exactly those cases. The benefit is not established: process.env is an in-memory lookup in Node, so per-call cost is negligible next to an LLM network round trip, and if it mattered, caching the value in process memory for the session gives the same saving without persisting a secret to disk. The why does not show that the old decision's premise has stopped holding; it trades a standing security guarantee for an unmeasured micro-optimisation."
+    },
+    "calls": [
+      {
+        "args": [
+          "adr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--challenge",
+          "overturned"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"overturned\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge overturned — the adversarial reviewer found the supersession argument unsound\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": null,
+    "admission": {
+      "disposition": "reject",
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "challenge": {
+        "ran": true,
+        "outcome": "overturned"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "drift challenge overturned — the adversarial reviewer found the supersession argument unsound"
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"malformed-overlay","status":"blocked","values":{},"reason":"faff config get exited 2: .faff/config.local.yaml does not parse to a mapping. An overlay parse failure is never silently skipped; no repair authorised, so no producer was invoked."}}

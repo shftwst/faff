@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "task": "Apply only the supplied gateway policy to each independent situation. Do not execute the workflow or inspect other files. Return a JSON object with answers, an array of {id, route, args, offer, config_actions, resume_original, level_command}. route is the skill name without slash or null. args is a string array. offer is boolean. config_actions is an ordered array of exact faff command strings without executable paths; omit the faff prefix. resume_original is boolean. level_command is a string or null. Fields not relevant to a situation are null, false or empty arrays. Config already exists unless stated otherwise. Route means what to invoke next, not every later workflow step.",
+  "cases": [
+    {"id":"bare","situation":"The user invokes /faff without further context."},
+    {"id":"focus","situation":"The user asks: what should I work on today?"},
+    {"id":"strategy","situation":"The user asks for the strategic roadmap view and how the workstreams join up."},
+    {"id":"application","situation":"The user asks to decompose a whole application idea into initiatives, projects and first-slice epics."},
+    {"id":"feature","situation":"The user asks to capture a new feature idea as a ticket."},
+    {"id":"bug","situation":"The user asks to file a newly discovered bug."},
+    {"id":"existing-jot","situation":"The user invokes /faff-jot ISS-42 to freeze its automation hold."},
+    {"id":"prep","situation":"The user asks to write a spec and acceptance criteria for existing ticket ISS-42."},
+    {"id":"build","situation":"The user asks to start building prepared ticket ISS-42."},
+    {"id":"tidy","situation":"The user asks to groom the backlog."},
+    {"id":"unattended","situation":"The user asks to chew through the ready backlog unattended overnight."},
+    {"id":"onboard","situation":"The user asks to configure faff for this repo."},
+    {"id":"first-offer","situation":"An interactive entry has resolved its executable and faff config path exits 3. The user has not answered the setup offer yet. Describe the next action only."},
+    {"id":"decline","situation":"The interactive user declined the missing-config setup offer. List the required local config/housekeeping commands in order. The originally requested command is waiting to continue."},
+    {"id":"accept","situation":"The interactive user accepted the missing-config setup offer. State the skill to invoke and whether to resume the original command afterwards."},
+    {"id":"autonomous-no-config","situation":"An autonomous beep-boop run finds no config. State whether it offers setup, initializes a stub, or invokes onboarding. The original run should continue if allowed."},
+    {"id":"lights-out","situation":"The user explicitly asks for the L4 preview entry point rather than an ordinary L3 run. Give the command; do not treat a slot or appetite change as promotion."}
+  ]
+}

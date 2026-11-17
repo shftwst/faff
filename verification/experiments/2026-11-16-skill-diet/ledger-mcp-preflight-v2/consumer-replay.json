@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "Exact final-state restoration and real consumers. Only runcheck run_dir relocates. No lifecycle, token acquisition or original model qualification claim.",
+  "inputs": [
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2/capture.json",
+      "sha256": "ee1f1db59e1035339808e431c7b2fa6becfc4a41e08b40e9c4865935e9d0373f"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2/manifest.json",
+      "sha256": "fc97bda05687f893cc9b03daf784fe2c63ce1c2877777b51d7c285fb0c5ef069"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+      "sha256": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5"
+    },
+    {
+      "path": "file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/replay-ledger-consumers-v1.mjs",
+      "sha256": "daa10823b22e6fc6cb659da37eeeab20abddd8a858d920635e9ae9185ba86e4b"
+    },
+    {
+      "path": "file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs",
+      "sha256": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58"
+    }
+  ],
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "runtime_artifacts_sha256": "5b73ba7359fb1e432c33a7fcbb36a522cc055e4edb45d9348184f16d5e6fccd8",
+  "cases": [
+    {
+      "id": "mixed-ledger",
+      "status": "pass",
+      "ledger_sha256": "93acf0b64cb690c788b4f83312f8ea4c7a6cfcf2564c2f44430a361d5ccdf3bc",
+      "events_sha256": "ae95a4a7a00bcbee59164167a103dd84135b685ab145d19b6a6b921ca1475eef",
+      "heartbeat_sha256": null,
+      "results": {
+        "runcheck": {
+          "exit_code": 0,
+          "stdout": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc100\",\n  \"admitted\": [\n    \"SKIP-1\",\n    \"HOLD-1\",\n    \"LAND-1\",\n    \"HUMAN-1\",\n    \"POST-1\",\n    \"UNKNOWN-1\",\n    \"RESOLVE-1\",\n    \"SUPER-1\"\n  ],\n  \"undispatched\": [],\n  \"invalid_outcomes\": [],\n  \"clean\": true,\n  \"run_dir\": \"/var/tmp/faff-ledger-replay-V66sKL/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100\"\n}\n",
+          "stderr": "",
+          "error": null
+        },
+        "validate": {
+          "exit_code": 0,
+          "stdout": "OK — run-event log valid.\n",
+          "stderr": "",
+          "error": null
+        },
+        "event_read": {
+          "exit_code": 0,
+          "stdout": "[{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":0,\"ts\":\"2026-11-17T00:19:53.228Z\",\"prev\":\"55485a6a62c1cc3d28de29b7fef98422fccec83ff5f2b7b6da967ac8b49ec608\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"cb87b42df2a20323e3d3fb0454399ea40a2e2020df18421e0e4da843f7cd873a\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":1,\"ts\":\"2026-11-17T00:19:53.228Z\",\"prev\":\"d6c8fdaefe11583d347456c739a40baf257d98db841399602ac4b51b0d6092ef\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":2,\"ts\":\"2026-11-17T00:19:53.229Z\",\"prev\":\"47cae23e78f1ecd6f7be531dd4533ec09e0844fdc398cc7948a19ffab394a153\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":3,\"ts\":\"2026-11-17T00:19:56.740Z\",\"prev\":\"f55d064d7c9de333403f133f51bbd9e0ed1c561ea980900fed953a3b17108cad\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"93acf0b64cb690c788b4f83312f8ea4c7a6cfcf2564c2f44430a361d5ccdf3bc\"}}]\n",
+          "stderr": "",
+          "error": null
+        },
+        "verify": {
+          "exit_code": 0,
+          "stdout": "{\"schema_floor\":2,\"line_count\":4,\"head_sha256\":\"0f9986332a2d77ccd3a1eeb5f61896711edbf30a2cd137a94a34cd3299cdb714\",\"first_break\":null,\"ledger_fold\":\"match\",\"torn_tail\":false,\"witness\":\"absent\",\"status\":\"verified\",\"detail\":\"chain verified from genesis\"}\n",
+          "stderr": "",
+          "error": null
+        },
+        "summary": {
+          "exit_code": 0,
+          "stdout": "# Beep-Boop Run — 2026-11-17 00:19:53\nMode: explicit-list · Duration: 0h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 1 _(reported)_\nStop reason: (not recorded)\n\n## Unit economics\nRun spend 1.2K (estimate) · $3.00 · per shipped 400 · $1.00 · per attempt 150 (8) · per bucket shipped 3·pr-open 2·parked 2·superseded 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 8 total)\n\n## Shipped (auto-merged): 0\n\n## Shipped (adversarial review skipped — chain outage): 1\n- SKIP-1 (PR #500) — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped)\n\n## Shipped (post-merge verification flagged): 2\n- POST-1 (PR #501) — merged main HEAD failed its own declared test command on re-run: `npm test` (sha `aaaaaaa`); tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures)\n- UNKNOWN-1 (PR #502) — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified)\n\n## Superseded (delivered by prior tickets): 1\n- SUPER-1 — deliverables already on `main` via PRIOR-7 (supersession: `.faff/runs/run-20260101-000000-beepboop-list-abc100/SUPER-1/supersession.json`)\n\n## PR open for human review: 1\n- HUMAN-1 (PR #504)\n\n## Awaiting landing (resumable): 1\n- LAND-1 (PR #503) — landing-time budget elapsed mid-CI-wait; PR open, non-draft; a later drain resumes the landing loop via the recovery-claim (ledger: landing_resumable)\n\n## Parked: 1 _(reported)_\n- RESOLVE-1 — reason: root cause needs-decision-first _(reported)_\n```faff-parks\n[{\"issue_id\":\"RESOLVE-1\",\"root_cause_class\":\"needs-decision-first\",\"timestamp\":\"2026-01-01T00:00:00Z\"}]\n```\n\n## Awaiting review (adversarial outage): 1\n- HOLD-1 — review provider unavailable; build held (branch pushed, checkpoint intact); auto-resumes at review next drain (ledger: review_outage_pending)\n\n## Awaiting spec-review (adversarial outage): 1\n- PREP-OUT — spec-review provider unavailable; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_outage_pending)\n\n## Awaiting spec-review (slow fan-out): 1\n- PREP-SLOW — spec-review did not finish this turn; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_turn_budget_pending)\n\n## Errored: 0\n\n## Discovered scope (execution-reported): 2 filed\n",
+          "stderr": "",
+          "error": null,
+          "persisted": "# Beep-Boop Run — 2026-11-17 00:19:53\nMode: explicit-list · Duration: 0h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 1 _(reported)_\nStop reason: (not recorded)\n\n## Unit economics\nRun spend 1.2K (estimate) · $3.00 · per shipped 400 · $1.00 · per attempt 150 (8) · per bucket shipped 3·pr-open 2·parked 2·superseded 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 8 total)\n\n## Shipped (auto-merged): 0\n\n## Shipped (adversarial review skipped — chain outage): 1\n- SKIP-1 (PR #500) — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped)\n\n## Shipped (post-merge verification flagged): 2\n- POST-1 (PR #501) — merged main HEAD failed its own declared test command on re-run: `npm test` (sha `aaaaaaa`); tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures)\n- UNKNOWN-1 (PR #502) — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified)\n\n## Superseded (delivered by prior tickets): 1\n- SUPER-1 — deliverables already on `main` via PRIOR-7 (supersession: `.faff/runs/run-20260101-000000-beepboop-list-abc100/SUPER-1/supersession.json`)\n\n## PR open for human review: 1\n- HUMAN-1 (PR #504)\n\n## Awaiting landing (resumable): 1\n- LAND-1 (PR #503) — landing-time budget elapsed mid-CI-wait; PR open, non-draft; a later drain resumes the landing loop via the recovery-claim (ledger: landing_resumable)\n\n## Parked: 1 _(reported)_\n- RESOLVE-1 — reason: root cause needs-decision-first _(reported)_\n```faff-parks\n[{\"issue_id\":\"RESOLVE-1\",\"root_cause_class\":\"needs-decision-first\",\"timestamp\":\"2026-01-01T00:00:00Z\"}]\n```\n\n## Awaiting review (adversarial outage): 1\n- HOLD-1 — review provider unavailable; build held (branch pushed, checkpoint intact); auto-resumes at review next drain (ledger: review_outage_pending)\n\n## Awaiting spec-review (adversarial outage): 1\n- PREP-OUT — spec-review provider unavailable; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_outage_pending)\n\n## Awaiting spec-review (slow fan-out): 1\n- PREP-SLOW — spec-review did not finish this turn; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_turn_budget_pending)\n\n## Errored: 0\n\n## Discovered scope (execution-reported): 2 filed\n"
+        }
+      }
+    },
+    {
+      "id": "incomplete-ledger",
+      "status": "pass",
+      "ledger_sha256": "10ca5f8042842df9638af17e263ebb9c39b6f1e8543aebb544e1d34c79b804ba",
+      "events_sha256": "1608d2a40c0c4f34326bb2998b8a7aa61e3cf9ef4954017d7cf56528b9b2ed26",
+      "heartbeat_sha256": null,
+      "results": {
+        "runcheck": {
+          "exit_code": 3,
+          "stdout": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc101\",\n  \"admitted\": [\n    \"SKIP-1\",\n    \"HOLD-1\",\n    \"LAND-1\",\n    \"HUMAN-1\",\n    \"POST-1\",\n    \"UNKNOWN-1\",\n    \"RESOLVE-1\",\n    \"SUPER-1\",\n    \"OPEN-1\"\n  ],\n  \"undispatched\": [\n    \"OPEN-1\"\n  ],\n  \"invalid_outcomes\": [],\n  \"clean\": false,\n  \"run_dir\": \"/var/tmp/faff-ledger-replay-V66sKL/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101\"\n}\n",
+          "stderr": "",
+          "error": null
+        },
+        "validate": {
+          "exit_code": 0,
+          "stdout": "OK — run-event log valid.\n",
+          "stderr": "",
+          "error": null
+        },
+        "event_read": {
+          "exit_code": 0,
+          "stdout": "[{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":0,\"ts\":\"2026-11-17T00:19:53.522Z\",\"prev\":\"44f11e6822ac814800c49f57b0013ef035a32fb972f02971bc5c432127d30f32\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"f86a6787c584bcea089bfedd353727b9a02b3bebc4acd0a199242c24229443e3\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":1,\"ts\":\"2026-11-17T00:19:53.522Z\",\"prev\":\"3075173a92879202a87869e024f2fc28d9a2a4a51071c8e6482a5498c65ecbc9\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":2,\"ts\":\"2026-11-17T00:19:53.524Z\",\"prev\":\"6d1c3c1de755bbc405f1424bea2d3404bbcfdef3ac34fc3619a565c58e345293\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":3,\"ts\":\"2026-11-17T00:19:56.956Z\",\"prev\":\"268821c181213d23b96856ab40b33d9861ba782df0a9f7a4480169b59f7129cf\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"10ca5f8042842df9638af17e263ebb9c39b6f1e8543aebb544e1d34c79b804ba\"}}]\n",
+          "stderr": "",
+          "error": null
+        },
+        "verify": {
+          "exit_code": 0,
+          "stdout": "{\"schema_floor\":2,\"line_count\":4,\"head_sha256\":\"5885b2d495af07eaa809ab10e5c659fb768b677ae8b87b252cfb213fadea90a1\",\"first_break\":null,\"ledger_fold\":\"match\",\"torn_tail\":false,\"witness\":\"absent\",\"status\":\"verified\",\"detail\":\"chain verified from genesis\"}\n",
+          "stderr": "",
+          "error": null
+        },
+        "summary": null
+      }
+    },
+    {
+      "id": "phase-events",
+      "status": "pass",
+      "ledger_sha256": "04eb9fe8b2ffd20e5446d79f3c3e19c6c2616e7c7f94fb6dac1a7804a35abbb6",
+      "events_sha256": "1112279606bd6bb58b0319923266522e4e57d75045683d0020505e8be4b8b2af",
+      "heartbeat_sha256": null,
+      "results": {
+        "runcheck": {
+          "exit_code": 0,
+          "stdout": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc102\",\n  \"admitted\": [],\n  \"undispatched\": [],\n  \"invalid_outcomes\": [],\n  \"clean\": true,\n  \"run_dir\": \"/var/tmp/faff-ledger-replay-V66sKL/phase-events/.faff/runs/run-20260101-000000-beepboop-list-abc102\"\n}\n",
+          "stderr": "",
+          "error": null
+        },
+        "validate": {
+          "exit_code": 0,
+          "stdout": "OK — run-event log valid.\n",
+          "stderr": "",
+          "error": null
+        },
+        "event_read": {
+          "exit_code": 0,
+          "stdout": "[{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":0,\"ts\":\"2026-11-17T00:19:53.756Z\",\"prev\":\"07fc1c502ce1ce69b38c509f9bf820858630d1a083ed585f21445212fe34f4ec\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"372a49fee52ec205ff683e3e34bda85826498846ad2575adc6e7bc66fe08b1fc\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":1,\"ts\":\"2026-11-17T00:19:53.756Z\",\"prev\":\"9a8576102ef55ed91790ac98983c3c92b2d98775bc7a5d84edb79f3e8a128223\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":2,\"ts\":\"2026-11-17T00:19:53.758Z\",\"prev\":\"67d3f7bc68f6a02168de4bfdb2b24755406febd44ebd089e647bbaede90db64c\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":3,\"ts\":\"2026-11-17T00:19:57.110Z\",\"prev\":\"513443e0d72beb176925e8f64d9b34462d4da4c2bf88c0f8b92766704ad722ce\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"0ed04bcc806ab02085742a869deb8850e52cca08a42fea64bae4948b1c459776\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":4,\"ts\":\"2026-11-17T00:19:57.110Z\",\"prev\":\"157b06c4e896fb3c99f5de16b76d526502f349d8336ec7d4dd916ee9a5417a4d\",\"phase\":\"tidy\",\"type\":\"tidy-done\",\"data\":{\"tokens\":{\"input\":201,\"output\":21,\"cache_write_5m\":4,\"cache_write_1h\":2,\"cache_read\":8},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"372a49fee52ec205ff683e3e34bda85826498846ad2575adc6e7bc66fe08b1fc\",\"ledger_sha256_after\":\"0ed04bcc806ab02085742a869deb8850e52cca08a42fea64bae4948b1c459776\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":5,\"ts\":\"2026-11-17T00:19:57.197Z\",\"prev\":\"5c766804513dc978f82d3d75486b7a59a115edc81912b1d0a580b08f28aabb96\",\"phase\":\"prep\",\"type\":\"prep-start\",\"issue\":\"PREP-1\"},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":6,\"ts\":\"2026-11-17T00:19:57.291Z\",\"prev\":\"1a4a44b6100c4c980ff55a441b4050cc663bc1657e18aaeff130df1d254a5995\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"2a5a430d56c77889a8cbc45ab24c6ebab40e8a5a7280daa737ce02875df21e24\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":7,\"ts\":\"2026-11-17T00:19:57.291Z\",\"prev\":\"0e12d4fb1d4332d727d1b1c7377b8b6d344f0e2a1eef6f73ed9001e478f24319\",\"phase\":\"prep\",\"type\":\"prep-done\",\"issue\":\"PREP-1\",\"data\":{\"tokens\":{\"input\":205,\"output\":25,\"cache_write_5m\":4,\"cache_write_1h\":2,\"cache_read\":8},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"0ed04bcc806ab02085742a869deb8850e52cca08a42fea64bae4948b1c459776\",\"ledger_sha256_after\":\"2a5a430d56c77889a8cbc45ab24c6ebab40e8a5a7280daa737ce02875df21e24\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":8,\"ts\":\"2026-11-17T00:19:57.376Z\",\"prev\":\"94fb725ec3721f5383cf48530c557a6722c21d42b4bdcdb1f79fce8ea54bb7be\",\"phase\":\"build\",\"type\":\"build-start\",\"issue\":\"BUILD-1\"},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":9,\"ts\":\"2026-11-17T00:19:57.528Z\",\"prev\":\"1df1b07db37efd2cd056a25195f96e64324b563ca1bb22fde8aa4f2f8bc5523c\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"8a6a4e41d83c56e9ffa597fa250cb273408bfd03b98df080e5fdd46b64c0e9fd\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":10,\"ts\":\"2026-11-17T00:19:57.528Z\",\"prev\":\"63378dc65548c53dc91ef44078dfe4d7b901ab33485ccdb4313faa9e5008addb\",\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-1\",\"data\":{\"outcome\":\"parked\",\"gate\":\"adversarial\",\"rework_turns\":2,\"tokens\":{\"input\":315,\"output\":45,\"cache_write_5m\":6,\"cache_write_1h\":3,\"cache_read\":12},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"2a5a430d56c77889a8cbc45ab24c6ebab40e8a5a7280daa737ce02875df21e24\",\"ledger_sha256_after\":\"8a6a4e41d83c56e9ffa597fa250cb273408bfd03b98df080e5fdd46b64c0e9fd\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":11,\"ts\":\"2026-11-17T00:19:57.616Z\",\"prev\":\"c0ccf43694b278b9f061e4073a68816fdb49dee0e333a3c4c51e1413eda74a5d\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"ba694784bf76f22c013090a4eb98f6e28e525643311a36b0de1a716b4bd8fbf0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":12,\"ts\":\"2026-11-17T00:19:57.616Z\",\"prev\":\"b18f6e8d31c76000a48b7cbeb2245c0079c5e934d66120679dfa2376547a07b2\",\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-2\",\"data\":{\"outcome\":\"shipped\",\"rework_turns\":0,\"tokens\":{\"input\":107,\"output\":17,\"cache_write_5m\":2,\"cache_write_1h\":1,\"cache_read\":4},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"8a6a4e41d83c56e9ffa597fa250cb273408bfd03b98df080e5fdd46b64c0e9fd\",\"ledger_sha256_after\":\"ba694784bf76f22c013090a4eb98f6e28e525643311a36b0de1a716b4bd8fbf0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":13,\"ts\":\"2026-11-17T00:19:57.711Z\",\"prev\":\"85c24d39fb97c6a6dba2e277dc354fce48db63ce81342a785de5772062d8b37e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"53edcbbb6987f0bc98f6c410787272fc2a4e0ca5faa9b9e069456dc1477aa74e\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":14,\"ts\":\"2026-11-17T00:19:57.711Z\",\"prev\":\"d212293e10d7926ce2361319c46a9750f9ff93ab97fdbdf0feac9286ac6986a0\",\"phase\":\"build\",\"type\":\"issue-outcome\",\"issue\":\"BUILD-3\",\"data\":{\"outcome\":\"parked\",\"rework_turns\":0,\"tokens\":{\"input\":108,\"output\":18,\"cache_write_5m\":2,\"cache_write_1h\":1,\"cache_read\":4},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"ba694784bf76f22c013090a4eb98f6e28e525643311a36b0de1a716b4bd8fbf0\",\"ledger_sha256_after\":\"53edcbbb6987f0bc98f6c410787272fc2a4e0ca5faa9b9e069456dc1477aa74e\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":15,\"ts\":\"2026-11-17T00:19:57.799Z\",\"prev\":\"facd0992da74a672d9113d10d6f45b22dd9b4027b484468658ec723e23263fa4\",\"phase\":\"build\",\"type\":\"park\",\"issue\":\"PARK-1\",\"data\":{\"tokens\":null,\"tokens_source\":\"estimate\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":16,\"ts\":\"2026-11-17T00:19:57.889Z\",\"prev\":\"0cfdac8e63034766571689d3ee8e25150fe65d0de95ba295669a3864d7712ac0\",\"phase\":\"run\",\"type\":\"discovered-scope-filed\"},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":17,\"ts\":\"2026-11-17T00:19:57.976Z\",\"prev\":\"b8a79128abcc34cf276c3c4d9f5abc6748b1293b1895a12f170bf92b535e8335\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"04eb9fe8b2ffd20e5446d79f3c3e19c6c2616e7c7f94fb6dac1a7804a35abbb6\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":18,\"ts\":\"2026-11-17T00:19:57.976Z\",\"prev\":\"fd5c26ef1c9b886081ed64602f028d5535d0d6420fc80d320e20b48ee9069aef\",\"phase\":\"run\",\"type\":\"budget-checkpoint\",\"data\":{\"spent\":{\"elapsed_ms\":1000,\"attempts\":1,\"tokens\":120,\"cost\":0.25},\"tokens_source\":\"transcript\",\"breached\":[],\"outcome\":\"continue\",\"warnings\":[],\"tokens\":{\"input\":330,\"output\":60,\"cache_write_5m\":6,\"cache_write_1h\":3,\"cache_read\":12},\"ledger_sha256_before\":\"53edcbbb6987f0bc98f6c410787272fc2a4e0ca5faa9b9e069456dc1477aa74e\",\"ledger_sha256_after\":\"04eb9fe8b2ffd20e5446d79f3c3e19c6c2616e7c7f94fb6dac1a7804a35abbb6\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":19,\"ts\":\"2026-11-17T00:19:58.067Z\",\"prev\":\"6b8fefb8d870a0365507b659d55b3f500bb2811e5867020e45497cb9504db4a3\",\"phase\":\"run\",\"type\":\"sentry-checkpoint\",\"data\":{\"run_dir\":null,\"verdicts\":[]}}]\n",
+          "stderr": "",
+          "error": null
+        },
+        "verify": {
+          "exit_code": 0,
+          "stdout": "{\"schema_floor\":2,\"line_count\":20,\"head_sha256\":\"da7a68642fee6e56041a76e76ca78afb7f0977c8549eca7ca7e35ca962fd9b82\",\"first_break\":null,\"ledger_fold\":\"match\",\"torn_tail\":false,\"witness\":\"absent\",\"status\":\"verified\",\"detail\":\"chain verified from genesis\"}\n",
+          "stderr": "",
+          "error": null
+        },
+        "summary": null
+      }
+    }
+  ]
+}

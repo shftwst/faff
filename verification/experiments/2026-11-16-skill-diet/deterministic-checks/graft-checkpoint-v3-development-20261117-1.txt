@@ -1,0 +1,38 @@
+TAP version 13
+# Subtest: controlled PR dependency owns human-only production from real captured spec, run and config facts
+not ok 1 - controlled PR dependency owns human-only production from real captured spec, run and config facts
+  ---
+  duration_ms: 1050.658487
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint-v3.test.mjs:18:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    {"status":"fail","manual_grounding_required":true,"cases":[{"id":"dispatched-pass","kind":"execution","pass":false,"problems":["dispatcher-consumers"]}],"errors":[],"problems":[],"reconciliation":null}
+    
+    'fail' !== 'pass'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'pass'
+  actual: 'fail'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint-v3.test.mjs:55:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: gate diagnostic optional grounded follow-up is allowed while exact contract remains required
+ok 2 - gate diagnostic optional grounded follow-up is allowed while exact contract remains required
+  ---
+  duration_ms: 202.045453
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 1
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1304.588906

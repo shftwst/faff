@@ -1,0 +1,6 @@
+{
+  "ok": true,
+  "value": {
+    "content": "export function removeAccount(db, id) {\n  return db.delete(id);\n}\n"
+  }
+}

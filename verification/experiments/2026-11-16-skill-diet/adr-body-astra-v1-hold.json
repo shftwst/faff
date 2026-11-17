@@ -1,0 +1,14 @@
+{
+  "accepted": false,
+  "status": "held-baseline-source-fact",
+  "baseline_sample": "adr-body-astra-v1-baseline-1",
+  "artifact_forms_passed": 6,
+  "artifact_forms_total": 6,
+  "manual_source_facts_passed": 5,
+  "manual_source_facts_total": 6,
+  "reason": "The related-decision body promotes a record date to an acceptance-event date, unsupported by the supplied snapshot.",
+  "oracle_issues": "Four correct policy answers fail exact free-form matching: faff-graft versus graft, faff-graft Step 4b versus graft Step 4b, and a full explanation of shipped implementation versus the short what shipped string. They are oracle false negatives, not reasoning failures. No correction is applied because the independent artifact fact failure already holds the comparison.",
+  "candidate_measured": false,
+  "source_changed": false,
+  "savings_counted": false
+}

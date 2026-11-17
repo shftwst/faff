@@ -1,0 +1,28 @@
+{
+  "ladder": [
+    {
+      "test": "non-convergence",
+      "verdict": "escalate"
+    },
+    {
+      "test": "budget-narrow",
+      "verdict": "continue"
+    },
+    {
+      "test": "budget-stop",
+      "verdict": "run-complete"
+    },
+    {
+      "test": "value-inflection",
+      "verdict": "run-complete"
+    },
+    {
+      "test": "work-remaining",
+      "verdict": "continue"
+    },
+    {
+      "test": "clean-complete",
+      "verdict": "run-complete"
+    }
+  ]
+}

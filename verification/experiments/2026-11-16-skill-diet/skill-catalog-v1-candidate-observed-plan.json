@@ -1,0 +1,23 @@
+{
+  "harness": "eval/control-parity/skill-catalog-selection.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/skill-catalog.json",
+  "timeout_seconds": 750,
+  "worker": "claude-challenges",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "All 32 current installed names, descriptions and invocability flags as one fixed catalogue. Only descriptions outside already-qualified prompts and the pending thematic slice are eligible for shortening. Both initial guidance files are explicitly preloaded. No skill body execution is claimed.",
+  "acceptance": "Five candidate samples must preserve all intended discovery choices and pass native tool audit. Preserve every baseline failure without rerolling. Keep this metadata-only qualification distinct from workflow/body evidence.",
+  "samples": [
+    {
+      "name": "skill-catalog-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/skill-catalog-v1.json"
+    }
+  ]
+}

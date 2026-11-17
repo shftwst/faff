@@ -1,0 +1,353 @@
+{
+  "schema": 1,
+  "qualification_status": "requires-separate-native-protocol-review",
+  "status": "pass",
+  "plans": [
+    "verification/experiments/2026-11-16-skill-diet/matrix-v1-astra-medium-gateway-plan.json",
+    "verification/experiments/2026-11-16-skill-diet/matrix-final-v1-astra-medium-gateway-plan.json"
+  ],
+  "arms": {
+    "baseline": {
+      "case_kinds": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "runs": 5,
+      "passed": 25,
+      "total": 25,
+      "recorded_data_bytes": 100121,
+      "estimated_recorded_data_tokens": 24942
+    },
+    "candidate": {
+      "case_kinds": {
+        "execution": {
+          "passed": 25,
+          "total": 25
+        }
+      },
+      "runs": 5,
+      "passed": 25,
+      "total": 25,
+      "recorded_data_bytes": 62210,
+      "estimated_recorded_data_tokens": 15580
+    }
+  },
+  "missing": [],
+  "problems": [],
+  "normalised_effect_state_gate_projections_equal": true,
+  "bounded_output_projections_equal": null,
+  "artifact_rubric_projections_equal": null,
+  "runs": [
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "name": "matrix-v1-astra-medium-gateway-baseline-1",
+      "arm": "baseline",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 5,
+      "diagnostics": [],
+      "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 3,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 20003,
+      "estimated_recorded_data_tokens": 4983
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "name": "matrix-v1-astra-medium-gateway-candidate-1",
+      "arm": "candidate",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 5,
+      "diagnostics": [],
+      "policy_sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 1,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 12450,
+      "estimated_recorded_data_tokens": 3118
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "name": "matrix-v1-astra-medium-gateway-candidate-2",
+      "arm": "candidate",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 5,
+      "diagnostics": [],
+      "policy_sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 1,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 12450,
+      "estimated_recorded_data_tokens": 3118
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "name": "matrix-v1-astra-medium-gateway-baseline-2",
+      "arm": "baseline",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 5,
+      "diagnostics": [],
+      "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 3,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 20003,
+      "estimated_recorded_data_tokens": 4983
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "name": "matrix-final-v1-astra-medium-gateway-baseline-3",
+      "arm": "baseline",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "0140f0fb89f61ce6ab011e95861d71599e9cbee3b80af8f17a3e385664c26bd8",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 5,
+      "diagnostics": [],
+      "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 3,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 6,
+      "event_counts": {
+        "run_faff": 12,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 20109,
+      "estimated_recorded_data_tokens": 5010
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "name": "matrix-final-v1-astra-medium-gateway-candidate-3",
+      "arm": "candidate",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 5,
+      "diagnostics": [],
+      "policy_sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 1,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 12450,
+      "estimated_recorded_data_tokens": 3118
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "name": "matrix-final-v1-astra-medium-gateway-baseline-4",
+      "arm": "baseline",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 5,
+      "diagnostics": [],
+      "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 3,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 20003,
+      "estimated_recorded_data_tokens": 4983
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "name": "matrix-final-v1-astra-medium-gateway-candidate-4",
+      "arm": "candidate",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "771890dde0e2c76fd9d753b5cf9126dabafc798185275b2ab0bb864712cf4f5c",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 5,
+      "diagnostics": [],
+      "policy_sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 1,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 4,
+      "event_counts": {
+        "run_faff": 10,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 12410,
+      "estimated_recorded_data_tokens": 3108
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "name": "matrix-final-v1-astra-medium-gateway-baseline-5",
+      "arm": "baseline",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 5,
+      "diagnostics": [],
+      "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 3,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 20003,
+      "estimated_recorded_data_tokens": 4983
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "name": "matrix-final-v1-astra-medium-gateway-candidate-5",
+      "arm": "candidate",
+      "kind": "gateway-entry-execution",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 5,
+      "diagnostics": [],
+      "policy_sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2",
+      "projection_sha256": "9e7bb6b3dabf7eaf5790f5632b8484232d1eb7e1ec809b91f9d8f5c34191224b",
+      "policy_chunks": 1,
+      "cases_passed": 5,
+      "cases_total": 5,
+      "config_path_reads": 5,
+      "event_counts": {
+        "run_faff": 11,
+        "offer_onboarding": 3,
+        "invoke_skill": 6,
+        "finish": 1
+      },
+      "recorded_data_bytes": 12450,
+      "estimated_recorded_data_tokens": 3118
+    }
+  ],
+  "limits": [
+    "Payload proxy counts task JSON plus compact successful bridge-response values, including policy chunks, each counted once. It excludes native tool framing, system/catalog/history, model output and cached reprocessing; it is not provider usage or billed cost.",
+    "Token estimate is ceil(UTF-16 characters/4) per payload, summed.",
+    "Effect and state comparison uses only the predeclared path/time/read normalisations. Finding prose varies and is graded separately by the fixture.",
+    "Native screens are retained separately and require protocol review; this numerical summary does not certify absence of out-of-bridge activity.",
+    "Rendering compares persisted artifact integrity and fact/form rubric outcomes, not byte-identical prose or subjective quality. Artifact, execution and decision counts are reported separately.",
+    "Named-output comparisons project only the requested fields and consumer outcomes; free-form artifact descriptions require a separate reading. Catalogue choices do not execute workflows.",
+    "Small correlated samples do not establish statistical equivalence."
+  ]
+}

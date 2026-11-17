@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"slot-validation-procedure","value":{"invoke_authoring_validate_face":true,"pass_occupant_and_slot":true,"cache_fail_verdict_this_run":true}}}

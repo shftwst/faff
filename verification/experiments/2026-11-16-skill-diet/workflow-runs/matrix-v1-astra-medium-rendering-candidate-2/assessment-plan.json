@@ -1,0 +1,33 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/rendering.json",
+  "timeout_seconds": 900,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Persisted rendering artifacts plus separate bounded rule questions; full policy via bounded reader and common operator guidance as preloaded voice context.",
+  "acceptance": "Run all five preregistered samples per arm and retain every functional/native failure. Compare separate execution/artifact/decision scores with Opus on the exact same policy and fixture bytes. Native tool transports and model providers differ; no model interchangeability or statistical equivalence claim. Never replace a failed sample.",
+  "samples": [
+    {
+      "name": "matrix-v1-astra-medium-rendering-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/rendering-v2.md"
+    }
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6-astra",
+  "effort": "medium",
+  "purpose": "cross-model-calibration",
+  "original_opus_plans": [
+    "rendering-baseline-plan.json",
+    "rendering-v2-candidate-plan.json"
+  ],
+  "assessment": "assess-rendering-artifacts.mjs",
+  "matrix": "gpt-opus-standin-matrix-v1.json",
+  "matrix_combination": "astra-medium",
+  "screening_only": true
+}

@@ -1,0 +1,72 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T18:44:12.095262+00:00",
+  "status": "frozen-before-new-model-screening",
+  "purpose": "Compare practical GPT substitutes for the preserved Opus skill-diet measurements; determine tomorrow Opus rerun priorities.",
+  "combinations": [
+    {
+      "id": "sol-low",
+      "model": "gpt-6.1-sol",
+      "effort": "low"
+    },
+    {
+      "id": "sol-medium",
+      "model": "gpt-6.1-sol",
+      "effort": "medium"
+    },
+    {
+      "id": "sol-high",
+      "model": "gpt-6.1-sol",
+      "effort": "high"
+    },
+    {
+      "id": "astra-low",
+      "model": "gpt-6-astra",
+      "effort": "low"
+    },
+    {
+      "id": "astra-medium",
+      "model": "gpt-6-astra",
+      "effort": "medium"
+    },
+    {
+      "id": "terra-medium",
+      "model": "gpt-6.1-terra",
+      "effort": "medium"
+    }
+  ],
+  "screen": {
+    "tasks": [
+      "gateway execution",
+      "rendering artifacts"
+    ],
+    "samples_per_policy_arm": 2,
+    "policy_arms": [
+      "original",
+      "shortened"
+    ],
+    "sol_medium": "Existing five-per-arm calibration continues; first two per arm are the comparable screen subset.",
+    "failed_samples": "Retain every planned functional/native failure; never reroll. Missing complete capture stops its lane and remains a resource/protocol failure."
+  },
+  "promotion": {
+    "maximum_finalists": 2,
+    "additional_samples_per_policy_arm": 3,
+    "new_task": "challenge-execution.mjs with workflow-fixtures/challenges.json and the exact policies from challenges-file-input-v4-stable-plan.json; five samples per policy arm for each finalist",
+    "ranking": [
+      "critical incorrect effects or authority decisions",
+      "source fidelity and required behaviour",
+      "native compliance and completion",
+      "elapsed time for matching work"
+    ],
+    "ties": "Do not claim a winner on an unresolved tie; recommend the lower effort only when correctness evidence does not worsen.",
+    "harder_task_original_opus_plan": "challenges-file-input-v4-stable-plan.json",
+    "harder_task_transport_difference": "Opus used the authorised file-input bridge; GPT uses the literal JSON-stdin bridge already employed by this matrix. Same fixture, policy, runtime and outcome/effect oracles; disclose transport difference."
+  },
+  "limits": [
+    "Screening is small and selected on these fixtures; finalists require further repetitions and a distinct harder task.",
+    "Model/provider/system guidance differences prevent pure model-only causal attribution to Opus.",
+    "All GPT matrix combinations use the same current guidance and bridge protocol.",
+    "No provider-cost claim; recorded payload token estimates and elapsed time are proxies, not billed usage.",
+    "All new skill cuts still require their separately frozen same-model before/after checks."
+  ]
+}

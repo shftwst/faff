@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T22:08:56.043647+00:00",
+  "status": "registered-before-model-measurement",
+  "inputs": [
+    {
+      "path": "nlspec-format-sol-medium-v1-baseline-plan.json",
+      "sha256": "6fd453d58b608ed3a06e0763852f2e71c153fc29332bb1672b5af05183392079"
+    },
+    {
+      "path": "nlspec-format-sol-medium-v1-candidate-plan.json",
+      "sha256": "b73258c6d2e585ccc304a70b43051972689d1ccb1cc90993794adcb1bbdcb243"
+    },
+    {
+      "path": "run-spec-production-samples-v1.py",
+      "sha256": "ce03807c4930953fc6baaf172ebce632f8ce4d12c034e1b2c6a113ebb70e2b84"
+    },
+    {
+      "path": "run-model-matrix-samples.py",
+      "sha256": "34b5e732717f921e7403940957fcc072b766ff1d870e7521d2b089059edc71c8"
+    },
+    {
+      "path": "workflow-fixtures/nlspec-format-v1.json",
+      "sha256": "168cdf2176d61f598747dd15581e7dfc1dc08340c9d57f6028976f25ad1cb73a"
+    },
+    {
+      "path": "baseline/nlspec-format.md",
+      "sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af"
+    },
+    {
+      "path": "baseline/nlspec-format-with-context.md",
+      "sha256": "73ae4d3301da2e648c43b5ccc2693c4a8d9fd016ac82c53ba57397021588cb94"
+    },
+    {
+      "path": "candidates/nlspec-format-v1.md",
+      "sha256": "2b5b91c33b6e644d8e8e5720aa0aa6b6fb39d7f864fd2a8ee69a8b991a5975c9"
+    },
+    {
+      "path": "candidates/nlspec-format-v1-with-context.md",
+      "sha256": "bce805641a06b7baba3bf0c0ace392324fbd68935954bcc78c56402aa027a1f1"
+    },
+    {
+      "path": "nlspec-format-v1-source-review.json",
+      "sha256": "f7850c673c9fe17ace65614e5f63f63d9732072a98064fa79b56c15eda8f4723"
+    },
+    {
+      "path": "independent-nlspec-format-v1-source-review.json",
+      "sha256": "80ed90e01853005f5d9aea943951a10c4c255c3fb19009f8a8299a4c86f1352d"
+    },
+    {
+      "path": "independent-nlspec-fixture-review-v1.json",
+      "sha256": "1e1182f01148af8fe309226bccb08ac8bb70d653b95f1945e5f0437f7b475d09"
+    },
+    {
+      "path": "nlspec-reference-consumer-preflight-v3/report.json",
+      "sha256": "bbb88da1e20efd4cdfef7228c914b95bd7d73a002ff8de204ae923e749536460"
+    },
+    {
+      "path": "pending-designs/nlspec-format-design.md",
+      "sha256": "1591466033275c6081d09a8c7b8f79e0a871edf5626dedbbb1727cec3144ec2b"
+    },
+    {
+      "path": "../../../eval/control-parity/nlspec-replay.mjs",
+      "sha256": "d737b0c93427d98a698c7127a92c787f7f7ae9f47ce6fed453ca5b5687e0c26b"
+    },
+    {
+      "path": "../../../test/control-parity-nlspec.test.mjs",
+      "sha256": "04a7dc9e090c8d8b3cc672f6f851f47604fa42f00f77cd066893d969c8ac2cbf"
+    },
+    {
+      "path": "../../../eval/control-parity/rendering-artifact.mjs",
+      "sha256": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36"
+    },
+    {
+      "path": "../../../eval/control-parity/policy-reader.mjs",
+      "sha256": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a"
+    },
+    {
+      "path": "../../../eval/control-parity/mailbox-call.mjs",
+      "sha256": "3feb07ca89eb0ddb815a064bac88d10848f05b662f89efbc684d5c51326df49d"
+    },
+    {
+      "path": "../../../eval/control-parity/codex-model-native-audit.mjs",
+      "sha256": "2718b08adf2e517ab2633c9ad82bfa62ac4697a1596c39baa723401700096b43"
+    },
+    {
+      "path": "../../../eval/control-parity/codex-native-audit.mjs",
+      "sha256": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac"
+    }
+  ],
+  "runner_difference": "Generic matrix runner plus deterministic nlspec consumer replay after each sample; model-facing prompt unchanged. Previous runners remain frozen.",
+  "preflight": "Four references, twenty real pinned consumer commands, thirteen tests including twelve rejected mutations. Initial reference preflight and failed negative test preserved.",
+  "gates": [
+    "All5baselines automatic/native/consumer/manual pass before candidates.",
+    "All5candidates automatic/native/consumer/manual pass before source acceptance.",
+    "No source installation or counted savings until qualified pair, all40actualspecsreviewed, deterministic integration and rule inventory close.",
+    "No scenario/review/contract/failure-mode policy weakened; no statistical equivalence or Opus-parity claim."
+  ]
+}

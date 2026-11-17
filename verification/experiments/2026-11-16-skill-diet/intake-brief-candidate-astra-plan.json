@@ -1,0 +1,45 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/intake-brief.json",
+  "timeout_seconds": 900,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Bounded final discovery-brief production from completed conversation snapshots. Core discovery steps, formal output template and appetite behaviour stay byte-identical. No elicitation conversation, methodology ticket-shaping, tracker mutation or full jot/plot workflow claim.",
+  "acceptance": "Five fresh Astra-low samples per arm, six actual briefs and twelve separate decisions per sample. Require all form checks and manual reading of all sixty artifacts for source facts, scope, assumptions, dependencies and no invented goals/tickets. Complete native audit and integration lint. Conversation and downstream ticket shaping are outside the cut and unchanged; no workflow execution claim.",
+  "samples": [
+    {
+      "name": "intake-brief-astra-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/intake-brief-v1-with-context.md"
+    },
+    {
+      "name": "intake-brief-astra-v1-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/intake-brief-v1-with-context.md"
+    },
+    {
+      "name": "intake-brief-astra-v1-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/intake-brief-v1-with-context.md"
+    },
+    {
+      "name": "intake-brief-astra-v1-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/intake-brief-v1-with-context.md"
+    },
+    {
+      "name": "intake-brief-astra-v1-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/intake-brief-v1-with-context.md"
+    }
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6-astra",
+  "effort": "low"
+}

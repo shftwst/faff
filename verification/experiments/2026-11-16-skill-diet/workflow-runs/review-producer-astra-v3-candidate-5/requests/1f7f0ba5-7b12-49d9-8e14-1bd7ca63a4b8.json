@@ -1,0 +1,1 @@
+{"name":"submit_review","args":{"case_id":"clean","text":"signal: pass\n\n## Findings\n\nNone. The pure multiplication implements the spec; tests cover positive, zero and negative inputs. The caller reports passing tests, and all changes are in scope.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```"}}

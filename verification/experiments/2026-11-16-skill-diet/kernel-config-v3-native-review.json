@@ -1,0 +1,331 @@
+{
+  "status": "not-qualified",
+  "reason": "Functional cases passed in both arms. Strict native audit failed one baseline and two candidate samples, including shell-variable abbreviations and one unrecognised command. No failures are waived, pooled or replaced. V4 uses explicit literal-command restrictions in both arms.",
+  "baseline": [
+    {
+      "name": "kernel-config-v3-baseline-1",
+      "status": "pass",
+      "problems": []
+    },
+    {
+      "name": "kernel-config-v3-baseline-2",
+      "status": "pass",
+      "problems": []
+    },
+    {
+      "name": "kernel-config-v3-baseline-3",
+      "status": "fail",
+      "problems": [
+        {
+          "id": "toolu_01FwMv5iF13bhwxT7x52XGcW",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_019acCzKG1d49s6VhRsryxb6",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01EDYftSGqzaFCie4JtS1v4M",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01VMgMLya2iv6NLWqZEK1gXN",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01PwoSK3wtwByeBDQHT4G52B",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01C3f6Tmh7sJFqAkmKGLmy4B",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_015rwUJFNEZRuGDzYR3zh8Le",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_019xhwCjwnepzv8BDRWsH8TR",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01HnUF5rAHY9n8fU9LAHxkw4",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01M4HhVvc2w3DYeLrL4kxBMe",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01GJ3jE4XcgvhoBXmPDKHQWP",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01Q62ikAPkXxwAj6oyeuzTBf",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01VZ7ENJqC4Us29mGcbDETCz",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01E2nRw3PerbDsgEUo75cHnm",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01RNmzjJ7FCsoFmNAvQsENE3",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01U4Nryi7Gx6f2ib1n8JPk5m",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_015tGoxnHU8HfuFwHvwxjqHG",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01Uw3VLyZ7yWsqRACQweHPA6",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01UVZctosK6LHx3mu8hGUs9o",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01X43iQ1zwZsDzhNBMUnqTx5",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_019brNz5ATzrD5XyTuMsAsxb",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01KQb8w4U88q9FKR6tuqXomp",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01Rv6WgrsZEtjUeaqmagFDqi",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01KN9uTGUA7fhe6atPdF3Zgq",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01Ewxvm4tkSUB8cDhr1oQthr",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01BJHovyVw9c4M8Bn6peexbF",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01USKJkougbdaQMpMEQ97hXt",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01USemcUTZoXeNn8eEyxGNnC",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_0152aMN4nyjHfEH6hn6c5vTg",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01R45KEtrbKMs4nGhdjj1vzH",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01TZhGY6cTtf7UT8hMVjhsMd",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01USU4YMQtnmBzqmVoEJdLmt",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01MsK4VPgXN4dc87pWFPZa1c",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01PaLxQdiTEGKH33yUfqTYsZ",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01PeUVQ5KhKivEKzLF2kwt94",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01G3bkgtLj3v19zK2sBNuH6Q",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01ANrRksJt1xGG2u8nZtyw3U",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_018HDufSxYmvkPE4ZsiRjSNn",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01RJvZXhLqLqU6uovgGYvyDp",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01A32HuvZeKLFdEHqjx2L9ys",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01NF5TJxV8Bqn8ah7P6nUovk",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_015YqAQW5sJe9kvy4m6qr5Wv",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01YT6jqWQBEYCoyTRGB7H2zZ",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_017WCqhQSUcSjVXAKuCHjnG1",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01WpNusLHiKXYFxetzHekC1A",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01VQLqXauinNCwjZqAufUgmf",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01BsjYza9bCQ3aaD291w7snj",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01BYe44L6ZkJ4nPeTtCQ7uKC",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01UP2XBFweiFUKq3GV5sGcsz",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_01Vu7DmHQsVrKqKWFEVKnwjq",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_013jYAfjp6YMHxZukvdycejm",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        },
+        {
+          "id": "toolu_011NY54x1Q8kmWgNWvtnAtiB",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        }
+      ]
+    },
+    {
+      "name": "kernel-config-v3-baseline-4",
+      "status": "pass",
+      "problems": []
+    },
+    {
+      "name": "kernel-config-v3-baseline-5",
+      "status": "pass",
+      "problems": []
+    }
+  ],
+  "candidate": [
+    {
+      "name": "kernel-config-v3-candidate-1",
+      "status": "pass",
+      "problems": []
+    },
+    {
+      "name": "kernel-config-v3-candidate-2",
+      "status": "pass",
+      "problems": []
+    },
+    {
+      "name": "kernel-config-v3-candidate-3",
+      "status": "fail",
+      "problems": [
+        {
+          "id": "toolu_01KSCeh6HhaNgNcQeyoDFSBB",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        }
+      ]
+    },
+    {
+      "name": "kernel-config-v3-candidate-4",
+      "status": "fail",
+      "problems": [
+        {
+          "id": "toolu_01JKb7uJ1gVTUGZMQxdmynPf",
+          "name": "Bash",
+          "problem": "outside-fixed-bridge-command"
+        }
+      ]
+    },
+    {
+      "name": "kernel-config-v3-candidate-5",
+      "status": "pass",
+      "problems": []
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"holdout-boundary","value":{"read_source":false,"criterion_value":"needs-human","reason_code_required":true,"verdict_before_teardown":true}}}

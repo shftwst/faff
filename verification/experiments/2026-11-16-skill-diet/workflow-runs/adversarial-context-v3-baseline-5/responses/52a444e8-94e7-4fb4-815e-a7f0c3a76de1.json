@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "signal": null,
+    "stdout": "12\n",
+    "stderr": ""
+  }
+}

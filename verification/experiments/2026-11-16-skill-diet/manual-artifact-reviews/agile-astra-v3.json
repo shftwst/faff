@@ -1,0 +1,249 @@
+{
+  "status": "held-baseline-semantic-failure",
+  "updated_utc": "2026-11-16T11:59:36.969535+00:00",
+  "read_artifacts": 40,
+  "notes": "All forty baseline diagnoses were read: thirty-nine pass, baseline-three late-risk remains held for the unsupported dependency qualifier. All five baseline native audits and mechanical checks pass. The candidate was not run and no agile body savings are counted.",
+  "rows": [
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-1/artifacts/activity-name.json",
+      "sha256": "d9eb25150f9b372e618fe24e275b57d7992857fa90dd9d0412aa6be42f65e61a",
+      "status": "read-source-faithful",
+      "rubric": "Name W1 as an activity/category grouping rather than one outcome; explain that unrelated work cannot be sequenced toward a shared result; recommend outcome naming or grouping without writing changes."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-1/artifacts/human-wip.json",
+      "sha256": "c989de9369a370e0bc3688fbe5499e76fc2341c82de18499fcfb6da9db069322",
+      "status": "read-source-faithful",
+      "rubric": "Recognise Alex has four human in-flight issues against cap three; exclude queued reviews and autonomous tasks; recommend finishing existing work before any new pull; invent no preferred ticket without evidence."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-1/artifacts/right-size.json",
+      "sha256": "cd2e66616883291d912f571dcc51dafcbe57dbfa174c487864246a9386ff5d9c",
+      "status": "read-source-faithful",
+      "rubric": "Recognise BIG combines independent session and recovery concerns; recommend separate 1-3 day units and explain that independent value can ship without waiting for the other concern; preserve both concerns."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-1/artifacts/cohesion.json",
+      "sha256": "d55ec21245286c71e37df1de374cb7880192ac8588f1522b900c2b5a44c2804b",
+      "status": "read-source-faithful",
+      "rubric": "Recognise W2 combines ON onboarding and BILL billing, with distinct completion criteria and sequencing; propose separate outcome homes, preserving ON and BILL and requiring the low-appetite human decision; never claim a move was made."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-1/artifacts/implicit-dependency.json",
+      "sha256": "6f72c128391fbf88d3df2e677540f4ad3ff2eb4e54c10ef446421a09b507e7a4",
+      "status": "read-source-faithful",
+      "rubric": "Recognise CLIENT needs SCHEMA output but lacks the blocker edge; explain premature-ready risk; recommend declaring SCHEMA as CLIENT blocker if the dependency is real, or removing the reference if it is not; do not reverse the dependency or claim a write."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-1/artifacts/late-risk.json",
+      "sha256": "f5899a9c5e38ae6d8f7124c8fb458fb7b2136752e293d3e0ad54bc32400a02b2",
+      "status": "read-source-faithful",
+      "rubric": "Recognise PAY leaves BANK, the unproven bank integration, late; explain the late uncertainty and recommend earlier work or a bounded investigation; invent no delivery dates or external results."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-1/artifacts/wip-at-cap.json",
+      "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+      "status": "read-source-faithful",
+      "rubric": "With three human in-flight items and no requested new pull, report no WIP violation; queued review and autonomous tasks do not increase the human count."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-1/artifacts/autonomous-unbounded.json",
+      "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+      "status": "read-source-faithful",
+      "rubric": "Autonomous concurrency alone creates no human WIP finding and no artificial cap."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-2/artifacts/activity-name.json",
+      "sha256": "72a3dc2d8c6aa16999d198572b535a762452889c6b91e985e67d4d1071ae88de",
+      "status": "read-source-faithful",
+      "rubric": "Name W1 as an activity/category grouping rather than one outcome; explain that unrelated work cannot be sequenced toward a shared result; recommend outcome naming or grouping without writing changes."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-2/artifacts/human-wip.json",
+      "sha256": "36e7aafa7e725a0c1e0a87de6012d32c491bb4e62818585a2c0e45ad3f887fba",
+      "status": "read-source-faithful",
+      "rubric": "Recognise Alex has four human in-flight issues against cap three; exclude queued reviews and autonomous tasks; recommend finishing existing work before any new pull; invent no preferred ticket without evidence."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-2/artifacts/right-size.json",
+      "sha256": "8c1115715c7ce72a9a6ea6ae6ecbccba424ba6b9bb58029f0c77dc4160d69048",
+      "status": "read-source-faithful",
+      "rubric": "Recognise BIG combines independent session and recovery concerns; recommend separate 1-3 day units and explain that independent value can ship without waiting for the other concern; preserve both concerns."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-2/artifacts/cohesion.json",
+      "sha256": "fe18e94156f07c4bd4bff653966cac55cdf3b6143e4a2f183ea375464892559d",
+      "status": "read-source-faithful",
+      "rubric": "Recognise W2 combines ON onboarding and BILL billing, with distinct completion criteria and sequencing; propose separate outcome homes, preserving ON and BILL and requiring the low-appetite human decision; never claim a move was made."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-2/artifacts/implicit-dependency.json",
+      "sha256": "3b129cf4540633b057ecbeae13b2d6585c810715d73107bd4e8a0fabbdd2286c",
+      "status": "read-source-faithful",
+      "rubric": "Recognise CLIENT needs SCHEMA output but lacks the blocker edge; explain premature-ready risk; recommend declaring SCHEMA as CLIENT blocker if the dependency is real, or removing the reference if it is not; do not reverse the dependency or claim a write."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-2/artifacts/late-risk.json",
+      "sha256": "1ae4c9490fed6ea89e7dae96c7e5d8b84779339f06a4619dbdd7dc4db72cb3c5",
+      "status": "read-source-faithful",
+      "rubric": "Recognise PAY leaves BANK, the unproven bank integration, late; explain the late uncertainty and recommend earlier work or a bounded investigation; invent no delivery dates or external results."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-2/artifacts/wip-at-cap.json",
+      "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+      "status": "read-source-faithful",
+      "rubric": "With three human in-flight items and no requested new pull, report no WIP violation; queued review and autonomous tasks do not increase the human count."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-2/artifacts/autonomous-unbounded.json",
+      "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+      "status": "read-source-faithful",
+      "rubric": "Autonomous concurrency alone creates no human WIP finding and no artificial cap."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-3/artifacts/activity-name.json",
+      "sha256": "94ee6481100b4b45654e8ed134e63b7ce27a7be13719e573c52a492b722e0050",
+      "status": "read-source-faithful",
+      "rubric": "Name W1 as an activity/category grouping rather than one outcome; explain that unrelated work cannot be sequenced toward a shared result; recommend outcome naming or grouping without writing changes."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-3/artifacts/human-wip.json",
+      "sha256": "732b619d308c544e62e6c660a3e4a9374daf15bbad8a45f724582b186ae56a36",
+      "status": "read-source-faithful",
+      "rubric": "Recognise Alex has four human in-flight issues against cap three; exclude queued reviews and autonomous tasks; recommend finishing existing work before any new pull; invent no preferred ticket without evidence."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-3/artifacts/right-size.json",
+      "sha256": "166dde142d02285cda452d76c98ec359ffbb0e447f179f56d451cfc1e34e8aea",
+      "status": "read-source-faithful",
+      "rubric": "Recognise BIG combines independent session and recovery concerns; recommend separate 1-3 day units and explain that independent value can ship without waiting for the other concern; preserve both concerns."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-3/artifacts/cohesion.json",
+      "sha256": "7df941bba9cb547fca2f00d614c6642bf2693e7a283c57de241570b05167cfea",
+      "status": "read-source-faithful",
+      "rubric": "Recognise W2 combines ON onboarding and BILL billing, with distinct completion criteria and sequencing; propose separate outcome homes, preserving ON and BILL and requiring the low-appetite human decision; never claim a move was made."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-3/artifacts/implicit-dependency.json",
+      "sha256": "8f95eed8b73e1a4842e66273d603e95952ebc6f42855473e84b0e736df2d9196",
+      "status": "read-source-faithful",
+      "rubric": "Recognise CLIENT needs SCHEMA output but lacks the blocker edge; explain premature-ready risk; recommend declaring SCHEMA as CLIENT blocker if the dependency is real, or removing the reference if it is not; do not reverse the dependency or claim a write."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-3/artifacts/late-risk.json",
+      "sha256": "b3c64f3efdee47e683de5d8255d83693c1e4c562cabb24f83b063ef7dcbf6eee",
+      "status": "held-unsupported-qualifier",
+      "rubric": "Recognise PAY leaves BANK, the unproven bank integration, late; explain the late uncertainty and recommend earlier work or a bounded investigation; invent no delivery dates or external results.",
+      "note": "The recommendation calls UI work dependent. The supplied sequence UI,COPY,BANK does not establish a dependency edge or say UI depends on BANK. The central late-integration risk and recommendation are supported, but this added qualifier remains outside the supplied facts; do not count this artifact as passing the frozen no-invented-facts rubric."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-3/artifacts/wip-at-cap.json",
+      "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+      "status": "read-source-faithful",
+      "rubric": "With three human in-flight items and no requested new pull, report no WIP violation; queued review and autonomous tasks do not increase the human count."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-3/artifacts/autonomous-unbounded.json",
+      "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+      "status": "read-source-faithful",
+      "rubric": "Autonomous concurrency alone creates no human WIP finding and no artificial cap."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-4/artifacts/activity-name.json",
+      "sha256": "95fc8c9bd0796f5fdb25767263082378e5d3c2c97d92a01d7f6e8828d2607a24",
+      "status": "read-source-faithful",
+      "rubric": "Name W1 as an activity/category grouping rather than one outcome; explain that unrelated work cannot be sequenced toward a shared result; recommend outcome naming or grouping without writing changes."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-4/artifacts/human-wip.json",
+      "sha256": "89f9fbb2e0a48cce6f0caf44e497b131ecdaefcf41819b570e455449b5276b09",
+      "status": "read-source-faithful",
+      "rubric": "Recognise Alex has four human in-flight issues against cap three; exclude queued reviews and autonomous tasks; recommend finishing existing work before any new pull; invent no preferred ticket without evidence."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-4/artifacts/right-size.json",
+      "sha256": "16426139d818285fe2017d227512a86eb9f833afdbdfa6633bf46e4425140b51",
+      "status": "read-source-faithful",
+      "rubric": "Recognise BIG combines independent session and recovery concerns; recommend separate 1-3 day units and explain that independent value can ship without waiting for the other concern; preserve both concerns."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-4/artifacts/cohesion.json",
+      "sha256": "e109229dd5f437378ba01cf072880c339b813c3189631e166f3616e89f8aec0a",
+      "status": "read-source-faithful",
+      "rubric": "Recognise W2 combines ON onboarding and BILL billing, with distinct completion criteria and sequencing; propose separate outcome homes, preserving ON and BILL and requiring the low-appetite human decision; never claim a move was made."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-4/artifacts/implicit-dependency.json",
+      "sha256": "66d456ee5e945fb680ef258efe4f4021c09464f7fd1ce51c7d5d582b08ec6528",
+      "status": "read-source-faithful",
+      "rubric": "Recognise CLIENT needs SCHEMA output but lacks the blocker edge; explain premature-ready risk; recommend declaring SCHEMA as CLIENT blocker if the dependency is real, or removing the reference if it is not; do not reverse the dependency or claim a write."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-4/artifacts/late-risk.json",
+      "sha256": "604a23820f04527fa2cf2951dbf55ca8536ba29a7a8f3e3d695196baf4425d5b",
+      "status": "read-source-faithful",
+      "rubric": "Recognise PAY leaves BANK, the unproven bank integration, late; explain the late uncertainty and recommend earlier work or a bounded investigation; invent no delivery dates or external results."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-4/artifacts/wip-at-cap.json",
+      "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+      "status": "read-source-faithful",
+      "rubric": "With three human in-flight items and no requested new pull, report no WIP violation; queued review and autonomous tasks do not increase the human count."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-4/artifacts/autonomous-unbounded.json",
+      "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+      "status": "read-source-faithful",
+      "rubric": "Autonomous concurrency alone creates no human WIP finding and no artificial cap."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-5/artifacts/activity-name.json",
+      "sha256": "70802dd7bef964ce8d90c2510248fa505d6ba19077e077f796e7a257fb85b94c",
+      "status": "read-source-faithful",
+      "rubric": "Name W1 as an activity/category grouping rather than one outcome; explain that unrelated work cannot be sequenced toward a shared result; recommend outcome naming or grouping without writing changes."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-5/artifacts/human-wip.json",
+      "sha256": "32e6085b2ab118ae53c5a7c93f869dc75c8532128c03aaf33c52b0e6e2f4ddd6",
+      "status": "read-source-faithful",
+      "rubric": "Recognise Alex has four human in-flight issues against cap three; exclude queued reviews and autonomous tasks; recommend finishing existing work before any new pull; invent no preferred ticket without evidence."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-5/artifacts/right-size.json",
+      "sha256": "5d2d80704dd73fdce4f8b1d30a87c176b8f00985b51c2dc1c5c33477aaac0e7c",
+      "status": "read-source-faithful",
+      "rubric": "Recognise BIG combines independent session and recovery concerns; recommend separate 1-3 day units and explain that independent value can ship without waiting for the other concern; preserve both concerns."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-5/artifacts/cohesion.json",
+      "sha256": "b182a5a8f547e4eb0521d1454de70ab1c3f2c87b68b92f8f1f74598088e9b1f9",
+      "status": "read-source-faithful",
+      "rubric": "Recognise W2 combines ON onboarding and BILL billing, with distinct completion criteria and sequencing; propose separate outcome homes, preserving ON and BILL and requiring the low-appetite human decision; never claim a move was made."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-5/artifacts/implicit-dependency.json",
+      "sha256": "15163f3b1a3190f0fe809a1de959a3ccb6fbcfade402b926208aec4241f09e10",
+      "status": "read-source-faithful",
+      "rubric": "Recognise CLIENT needs SCHEMA output but lacks the blocker edge; explain premature-ready risk; recommend declaring SCHEMA as CLIENT blocker if the dependency is real, or removing the reference if it is not; do not reverse the dependency or claim a write."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-5/artifacts/late-risk.json",
+      "sha256": "bad17520038437d100f56a3f287bca42a45859e13ba2d5591c5f8faa841f5ab6",
+      "status": "read-source-faithful",
+      "rubric": "Recognise PAY leaves BANK, the unproven bank integration, late; explain the late uncertainty and recommend earlier work or a bounded investigation; invent no delivery dates or external results."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-5/artifacts/wip-at-cap.json",
+      "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+      "status": "read-source-faithful",
+      "rubric": "With three human in-flight items and no requested new pull, report no WIP violation; queued review and autonomous tasks do not increase the human count."
+    },
+    {
+      "path": "workflow-runs/agile-principles-astra-v3-baseline-5/artifacts/autonomous-unbounded.json",
+      "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+      "status": "read-source-faithful",
+      "rubric": "Autonomous concurrency alone creates no human WIP finding and no artificial cap."
+    }
+  ]
+}

@@ -1,0 +1,381 @@
+{
+  "cases": [
+    {
+      "id": "complete-lifecycle",
+      "status": "pass",
+      "open": {
+        "run-ledger.json": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20261116-230710-beepboop-full-c9f004\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20261116-230710-beepboop-full-c9f004\",\n    \"pid\": 1220074,\n    \"started_at\": \"2026-11-16T23:07:10.928Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:07:10.928Z\",\n    \"faff_version\": \"0.45.0\",\n    \"harness\": \"claude-code\",\n    \"model\": \"unknown\"\n  },\n  \"budget\": {\n    \"envelope\": {\n      \"ceilings\": {\n        \"until\": null,\n        \"max_attempts\": null,\n        \"tokens\": null,\n        \"cost\": null\n      },\n      \"until_invalid\": null,\n      \"price_per_mtok_removed\": null,\n      \"at_ceiling\": \"stop\",\n      \"price_per_mtok\": 0,\n      \"pricing\": \"map\",\n      \"window\": null,\n      \"allow_unmetered\": []\n    },\n    \"measure_root\": \"/var/tmp/faff-ledger-lifecycle-12kViq\",\n    \"measure_session_id\": \"ledger-preflight-complete\",\n    \"tokens_at_start_by_model_class\": {},\n    \"tokens_at_start\": 0\n  }\n}\n",
+        "events.jsonl": "{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":0,\"ts\":\"2026-11-16T23:07:10.963Z\",\"prev\":\"895767b98f4596f28150685a8612354165e933f1362607787dd0ace17deb67cf\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"90a169f137ceee98cce548d4798d8f915829272ee52ea79c14678aa133d0db45\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":1,\"ts\":\"2026-11-16T23:07:10.963Z\",\"prev\":\"a22902f874d4a82ab63e0528b426e6a00fb11970f9b09e67dbce1afe2b1876e0\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":2,\"ts\":\"2026-11-16T23:07:10.965Z\",\"prev\":\"0e9d9a1ec5ebb3b3811fd754f283d0bd0b8ca51d2ff9e068723597370f1110ee\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":3,\"ts\":\"2026-11-16T23:07:11.008Z\",\"prev\":\"316af81b891bcf7baf3f25d83381d8152dfbb193edf5a03f231da0eb38084592\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"72efe9046404abf32b2534e35a92bbce40974697b8f7e075d1ded599ed9ca4f3\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":4,\"ts\":\"2026-11-16T23:07:11.039Z\",\"prev\":\"659a910b87e46c54d795e092f0eaa232cf68c28e63510221a0532109fe3fa0a5\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"72efe9046404abf32b2534e35a92bbce40974697b8f7e075d1ded599ed9ca4f3\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":5,\"ts\":\"2026-11-16T23:07:11.044Z\",\"prev\":\"22cd491b5275c32ea2c37e8a8f1367806e93cfe65a5931c5f8c2b886cd7ec0b7\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"56026da34687197e59d6b33b08f22ac3489b0231742ddb92c003edf195b537f6\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":6,\"ts\":\"2026-11-16T23:07:11.071Z\",\"prev\":\"f04c7966e37157178d2fcec66e2678bcf4df997365ed24c03fe3dc61bfb7b87e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"56026da34687197e59d6b33b08f22ac3489b0231742ddb92c003edf195b537f6\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":7,\"ts\":\"2026-11-16T23:07:11.103Z\",\"prev\":\"fbe711701ceb4700cca66891bb7fa6a39876d0225edc5d2c7a9a796409cdcc4b\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3f11d0d4f5a89913efc2ffe9fe3db6d4ee7dd13d8c7946f185b057582ca958cd\"}}\n",
+        "heartbeat": null
+      },
+      "final": {
+        "run-ledger.json": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20261116-230710-beepboop-full-c9f004\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"LIFE-A\",\n    \"LIFE-B\"\n  ],\n  \"outcomes\": {\n    \"LIFE-A\": \"parked\",\n    \"LIFE-B\": \"superseded\"\n  },\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"done\",\n    \"session_id\": \"run-20261116-230710-beepboop-full-c9f004\",\n    \"pid\": 1220074,\n    \"started_at\": \"2026-11-16T23:07:10.928Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:07:11.499Z\",\n    \"faff_version\": \"0.45.0\",\n    \"harness\": \"claude-code\",\n    \"model\": \"unknown\"\n  },\n  \"budget\": {\n    \"envelope\": {\n      \"ceilings\": {\n        \"until\": null,\n        \"max_attempts\": null,\n        \"tokens\": null,\n        \"cost\": null\n      },\n      \"until_invalid\": null,\n      \"price_per_mtok_removed\": null,\n      \"at_ceiling\": \"stop\",\n      \"price_per_mtok\": 0,\n      \"pricing\": \"map\",\n      \"window\": null,\n      \"allow_unmetered\": []\n    },\n    \"measure_root\": \"/var/tmp/faff-ledger-lifecycle-12kViq\",\n    \"measure_session_id\": \"ledger-preflight-complete\",\n    \"tokens_at_start_by_model_class\": {},\n    \"tokens_at_start\": 0\n  },\n  \"stop_reason\": \"queue-drained\"\n}\n",
+        "events.jsonl": "{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":0,\"ts\":\"2026-11-16T23:07:10.963Z\",\"prev\":\"895767b98f4596f28150685a8612354165e933f1362607787dd0ace17deb67cf\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"90a169f137ceee98cce548d4798d8f915829272ee52ea79c14678aa133d0db45\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":1,\"ts\":\"2026-11-16T23:07:10.963Z\",\"prev\":\"a22902f874d4a82ab63e0528b426e6a00fb11970f9b09e67dbce1afe2b1876e0\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":2,\"ts\":\"2026-11-16T23:07:10.965Z\",\"prev\":\"0e9d9a1ec5ebb3b3811fd754f283d0bd0b8ca51d2ff9e068723597370f1110ee\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":3,\"ts\":\"2026-11-16T23:07:11.008Z\",\"prev\":\"316af81b891bcf7baf3f25d83381d8152dfbb193edf5a03f231da0eb38084592\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"72efe9046404abf32b2534e35a92bbce40974697b8f7e075d1ded599ed9ca4f3\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":4,\"ts\":\"2026-11-16T23:07:11.039Z\",\"prev\":\"659a910b87e46c54d795e092f0eaa232cf68c28e63510221a0532109fe3fa0a5\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"72efe9046404abf32b2534e35a92bbce40974697b8f7e075d1ded599ed9ca4f3\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":5,\"ts\":\"2026-11-16T23:07:11.044Z\",\"prev\":\"22cd491b5275c32ea2c37e8a8f1367806e93cfe65a5931c5f8c2b886cd7ec0b7\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"56026da34687197e59d6b33b08f22ac3489b0231742ddb92c003edf195b537f6\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":6,\"ts\":\"2026-11-16T23:07:11.071Z\",\"prev\":\"f04c7966e37157178d2fcec66e2678bcf4df997365ed24c03fe3dc61bfb7b87e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"56026da34687197e59d6b33b08f22ac3489b0231742ddb92c003edf195b537f6\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":7,\"ts\":\"2026-11-16T23:07:11.103Z\",\"prev\":\"fbe711701ceb4700cca66891bb7fa6a39876d0225edc5d2c7a9a796409cdcc4b\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3f11d0d4f5a89913efc2ffe9fe3db6d4ee7dd13d8c7946f185b057582ca958cd\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":8,\"ts\":\"2026-11-16T23:07:11.424Z\",\"prev\":\"5bd68b054f13fe016642e06813a716c548eef87ee7faf751312085d0dc16502e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"af98c4adcf444ce2c3e44327276e6bac5d285c35d0bff4b616558190629b8dd2\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":9,\"ts\":\"2026-11-16T23:07:11.458Z\",\"prev\":\"511f069cc72f159e0ff11ecc3be003df945af2e083fcc569c5cc45d654dd136d\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"409cbda74cfe22da57f992fd43bafd3e3c265f007cf04e5e13136c575bbdebef\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":10,\"ts\":\"2026-11-16T23:07:11.510Z\",\"prev\":\"8212481cc81c854554365b8b25bba258d6cac32da6c67d89816b47dc39f21f79\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"c3817f8782abb00757c50dde118383831f66df37094e7280d869ec00b6d36800\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":11,\"ts\":\"2026-11-16T23:07:11.602Z\",\"prev\":\"e60215295b1cd26b4e1e5c81a1cf3beea04d32352dbb73d4172fe9ca94c239e3\",\"phase\":\"run\",\"type\":\"run-end\",\"data\":{\"stop_reason\":\"queue-drained\",\"shipped\":0,\"parked\":1,\"tokens\":null,\"tokens_source\":\"estimate\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":12,\"ts\":\"2026-11-16T23:07:11.613Z\",\"prev\":\"243e8f6e49665c62f1d1e42debe76814307691f97fee9243d6f599dc0d5640fe\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3e657fa53111759755be7525a2c90e493351f94e592174abeee942fb5839937b\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":13,\"ts\":\"2026-11-16T23:07:11.640Z\",\"prev\":\"67329bde64564ce931e41600723d581745d812179f1c98bc2522964d45911d9f\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3e657fa53111759755be7525a2c90e493351f94e592174abeee942fb5839937b\"}}\n",
+        "heartbeat": "2026-11-16T23:07:11.477Z\n"
+      },
+      "heartbeat_ledger_unchanged": true,
+      "event_schemas": [
+        2
+      ]
+    },
+    {
+      "id": "incomplete-close-refusal",
+      "status": "pass",
+      "before": {
+        "run-ledger.json": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20261116-230711-beepboop-full-fffbd5\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"LIFE-A\",\n    \"LIFE-B\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20261116-230711-beepboop-full-fffbd5\",\n    \"pid\": 1220396,\n    \"started_at\": \"2026-11-16T23:07:11.968Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:07:11.968Z\",\n    \"faff_version\": \"0.45.0\",\n    \"harness\": \"claude-code\",\n    \"model\": \"unknown\"\n  },\n  \"budget\": {\n    \"envelope\": {\n      \"ceilings\": {\n        \"until\": null,\n        \"max_attempts\": null,\n        \"tokens\": null,\n        \"cost\": null\n      },\n      \"until_invalid\": null,\n      \"price_per_mtok_removed\": null,\n      \"at_ceiling\": \"stop\",\n      \"price_per_mtok\": 0,\n      \"pricing\": \"map\",\n      \"window\": null,\n      \"allow_unmetered\": []\n    },\n    \"measure_root\": \"/var/tmp/faff-ledger-lifecycle-ahlcxj\",\n    \"measure_session_id\": \"ledger-preflight-incomplete\",\n    \"tokens_at_start_by_model_class\": {},\n    \"tokens_at_start\": 0\n  }\n}\n",
+        "events.jsonl": "{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":0,\"ts\":\"2026-11-16T23:07:12.002Z\",\"prev\":\"a98fef524ca526a3fba82cc03fbbc18caca1d7908c0d7932acca7c22060f7c9e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"825ad21931a938561c04748d07523dc74a12ffcf8c00d1341330d28283f3a32e\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":1,\"ts\":\"2026-11-16T23:07:12.003Z\",\"prev\":\"41c4f0d28fa45dd0646cb3e6829643ca5b802107b13e72239e284da088661f5f\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":2,\"ts\":\"2026-11-16T23:07:12.005Z\",\"prev\":\"8236b300152f3e575a5afdc6825a8271768a83f31c6ba317e8861a864d4cd4dd\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":3,\"ts\":\"2026-11-16T23:07:12.046Z\",\"prev\":\"60a82ea32d75a19f1f21349faf64f7e077ee05ad5ea3b9a9873f012854c49b5c\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"e403b53d411486b69da7729f87fea04eb8962dc43efff743a430b3818f2cb220\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":4,\"ts\":\"2026-11-16T23:07:12.073Z\",\"prev\":\"6939458cd2288a8117f60c0099983f5b910a4d731560d29e389b9330a452e906\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"e403b53d411486b69da7729f87fea04eb8962dc43efff743a430b3818f2cb220\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":5,\"ts\":\"2026-11-16T23:07:12.078Z\",\"prev\":\"6fec732a95c655a1c65291823ecef20c1d77863082f5b693f24bfaf5e845cdd7\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3adb0aa8903e89d01bedb70d49d82d076c57973efe2bd8e30a503f1395ea8250\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":6,\"ts\":\"2026-11-16T23:07:12.107Z\",\"prev\":\"939c99e7c55eb01ff54bda08a4feb62662e2fd32d8f69fe19f0c09d4b6a7f4bf\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3adb0aa8903e89d01bedb70d49d82d076c57973efe2bd8e30a503f1395ea8250\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":7,\"ts\":\"2026-11-16T23:07:12.140Z\",\"prev\":\"ee289a89ed28a8ba3a3fa8b9cbec3679e776756cb01c6458cb959ac122d89a7f\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"8077cc57c6da27b1bbe0effc5d1b2a32c325abf2fdc86cbd8bf96fdd8b31a06b\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":8,\"ts\":\"2026-11-16T23:07:12.460Z\",\"prev\":\"4470730e84f8e161c0ef1a9e93da6adf3b196b1245cf4f8056249bdad604b3c4\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"45007c769c09f733812edb184d3aeeb4cf7cf3507a5ced1fbf8055ff0905c607\"}}\n",
+        "heartbeat": null
+      },
+      "after": {
+        "run-ledger.json": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20261116-230711-beepboop-full-fffbd5\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"LIFE-A\",\n    \"LIFE-B\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20261116-230711-beepboop-full-fffbd5\",\n    \"pid\": 1220396,\n    \"started_at\": \"2026-11-16T23:07:11.968Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:07:11.968Z\",\n    \"faff_version\": \"0.45.0\",\n    \"harness\": \"claude-code\",\n    \"model\": \"unknown\"\n  },\n  \"budget\": {\n    \"envelope\": {\n      \"ceilings\": {\n        \"until\": null,\n        \"max_attempts\": null,\n        \"tokens\": null,\n        \"cost\": null\n      },\n      \"until_invalid\": null,\n      \"price_per_mtok_removed\": null,\n      \"at_ceiling\": \"stop\",\n      \"price_per_mtok\": 0,\n      \"pricing\": \"map\",\n      \"window\": null,\n      \"allow_unmetered\": []\n    },\n    \"measure_root\": \"/var/tmp/faff-ledger-lifecycle-ahlcxj\",\n    \"measure_session_id\": \"ledger-preflight-incomplete\",\n    \"tokens_at_start_by_model_class\": {},\n    \"tokens_at_start\": 0\n  }\n}\n",
+        "events.jsonl": "{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":0,\"ts\":\"2026-11-16T23:07:12.002Z\",\"prev\":\"a98fef524ca526a3fba82cc03fbbc18caca1d7908c0d7932acca7c22060f7c9e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"825ad21931a938561c04748d07523dc74a12ffcf8c00d1341330d28283f3a32e\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":1,\"ts\":\"2026-11-16T23:07:12.003Z\",\"prev\":\"41c4f0d28fa45dd0646cb3e6829643ca5b802107b13e72239e284da088661f5f\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":2,\"ts\":\"2026-11-16T23:07:12.005Z\",\"prev\":\"8236b300152f3e575a5afdc6825a8271768a83f31c6ba317e8861a864d4cd4dd\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":3,\"ts\":\"2026-11-16T23:07:12.046Z\",\"prev\":\"60a82ea32d75a19f1f21349faf64f7e077ee05ad5ea3b9a9873f012854c49b5c\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"e403b53d411486b69da7729f87fea04eb8962dc43efff743a430b3818f2cb220\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":4,\"ts\":\"2026-11-16T23:07:12.073Z\",\"prev\":\"6939458cd2288a8117f60c0099983f5b910a4d731560d29e389b9330a452e906\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"e403b53d411486b69da7729f87fea04eb8962dc43efff743a430b3818f2cb220\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":5,\"ts\":\"2026-11-16T23:07:12.078Z\",\"prev\":\"6fec732a95c655a1c65291823ecef20c1d77863082f5b693f24bfaf5e845cdd7\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3adb0aa8903e89d01bedb70d49d82d076c57973efe2bd8e30a503f1395ea8250\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":6,\"ts\":\"2026-11-16T23:07:12.107Z\",\"prev\":\"939c99e7c55eb01ff54bda08a4feb62662e2fd32d8f69fe19f0c09d4b6a7f4bf\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3adb0aa8903e89d01bedb70d49d82d076c57973efe2bd8e30a503f1395ea8250\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":7,\"ts\":\"2026-11-16T23:07:12.140Z\",\"prev\":\"ee289a89ed28a8ba3a3fa8b9cbec3679e776756cb01c6458cb959ac122d89a7f\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"8077cc57c6da27b1bbe0effc5d1b2a32c325abf2fdc86cbd8bf96fdd8b31a06b\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":8,\"ts\":\"2026-11-16T23:07:12.460Z\",\"prev\":\"4470730e84f8e161c0ef1a9e93da6adf3b196b1245cf4f8056249bdad604b3c4\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"45007c769c09f733812edb184d3aeeb4cf7cf3507a5ced1fbf8055ff0905c607\"}}\n",
+        "heartbeat": null
+      },
+      "exit_code": 3
+    },
+    {
+      "id": "unreadable-close-refusal",
+      "status": "pass",
+      "before": {
+        "run-ledger.json": "{broken",
+        "events.jsonl": "{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":0,\"ts\":\"2026-11-16T23:07:12.618Z\",\"prev\":\"baa7b9c69713ba5414c2996b6dde15142defde5a9b802a12b08dfb6a17c3f5fa\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"506819d712af89693ef8a3f939f08ad260a90fc69a419627af98590bf40acae8\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":1,\"ts\":\"2026-11-16T23:07:12.618Z\",\"prev\":\"3f21faa3cb400edf41611552ecc321cae3aaf2fc1174244190113509123be81c\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":2,\"ts\":\"2026-11-16T23:07:12.620Z\",\"prev\":\"0f6de57a537533b97accef9623cd3ece2a19cfb8e9b763be147a1a41b4b7b12f\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":3,\"ts\":\"2026-11-16T23:07:12.661Z\",\"prev\":\"a7ceab0b0168df5f0423e7ef1e4758a766e074b579760355ee7e41a220e30af8\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"24d2f7aa1eaa50aa8bb7c1f8b2608eb6620b49863fe1224bbba994baeb4c0b21\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":4,\"ts\":\"2026-11-16T23:07:12.689Z\",\"prev\":\"c048f5352ebd8ac5d4182767373a3f3aaafc73c1bb4ac4ca3f6d1133741b73ba\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"24d2f7aa1eaa50aa8bb7c1f8b2608eb6620b49863fe1224bbba994baeb4c0b21\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":5,\"ts\":\"2026-11-16T23:07:12.693Z\",\"prev\":\"19bea67174ade1d20497ba9e464f0eda3c2432d1183c337024724c33a276acb3\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1b1af4fe080ab37cd9073108a89c5436c47357206ec972b5cfd527c60ad1853a\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":6,\"ts\":\"2026-11-16T23:07:12.724Z\",\"prev\":\"6ec30e24987b60951a254baf42025e0d14b4e3a1e5f525d72f1c333184637b34\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1b1af4fe080ab37cd9073108a89c5436c47357206ec972b5cfd527c60ad1853a\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":7,\"ts\":\"2026-11-16T23:07:12.755Z\",\"prev\":\"989a1d710307646768b9d297a4220cda85aa4698e35957695b42eac23b31ffb6\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1f2cf4fad4e39a7cd275c65998a40f9debac84775706ced6b60ab84d0b9c522f\"}}\n",
+        "heartbeat": null
+      },
+      "after": {
+        "run-ledger.json": "{broken",
+        "events.jsonl": "{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":0,\"ts\":\"2026-11-16T23:07:12.618Z\",\"prev\":\"baa7b9c69713ba5414c2996b6dde15142defde5a9b802a12b08dfb6a17c3f5fa\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"506819d712af89693ef8a3f939f08ad260a90fc69a419627af98590bf40acae8\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":1,\"ts\":\"2026-11-16T23:07:12.618Z\",\"prev\":\"3f21faa3cb400edf41611552ecc321cae3aaf2fc1174244190113509123be81c\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":2,\"ts\":\"2026-11-16T23:07:12.620Z\",\"prev\":\"0f6de57a537533b97accef9623cd3ece2a19cfb8e9b763be147a1a41b4b7b12f\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":3,\"ts\":\"2026-11-16T23:07:12.661Z\",\"prev\":\"a7ceab0b0168df5f0423e7ef1e4758a766e074b579760355ee7e41a220e30af8\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"24d2f7aa1eaa50aa8bb7c1f8b2608eb6620b49863fe1224bbba994baeb4c0b21\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":4,\"ts\":\"2026-11-16T23:07:12.689Z\",\"prev\":\"c048f5352ebd8ac5d4182767373a3f3aaafc73c1bb4ac4ca3f6d1133741b73ba\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"24d2f7aa1eaa50aa8bb7c1f8b2608eb6620b49863fe1224bbba994baeb4c0b21\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":5,\"ts\":\"2026-11-16T23:07:12.693Z\",\"prev\":\"19bea67174ade1d20497ba9e464f0eda3c2432d1183c337024724c33a276acb3\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1b1af4fe080ab37cd9073108a89c5436c47357206ec972b5cfd527c60ad1853a\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":6,\"ts\":\"2026-11-16T23:07:12.724Z\",\"prev\":\"6ec30e24987b60951a254baf42025e0d14b4e3a1e5f525d72f1c333184637b34\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1b1af4fe080ab37cd9073108a89c5436c47357206ec972b5cfd527c60ad1853a\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":7,\"ts\":\"2026-11-16T23:07:12.755Z\",\"prev\":\"989a1d710307646768b9d297a4220cda85aa4698e35957695b42eac23b31ffb6\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1f2cf4fad4e39a7cd275c65998a40f9debac84775706ced6b60ab84d0b9c522f\"}}\n",
+        "heartbeat": null
+      },
+      "exit_code": 2
+    }
+  ],
+  "commands": [
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "args": [
+        "run",
+        "open",
+        "--mode",
+        "full",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-12kViq",
+        "--session-id",
+        "ledger-preflight-complete",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "{\"run_dir\":\"/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004\",\"governance\":\"admitted\",\"fail_closed_cause\":null,\"budget_envelope\":{\"ceilings\":{\"until\":null,\"max_attempts\":null,\"tokens\":null,\"cost\":null},\"until_invalid\":null,\"price_per_mtok_removed\":null,\"at_ceiling\":\"stop\",\"price_per_mtok\":0,\"pricing\":\"map\",\"window\":null,\"allow_unmetered\":[]},\"steps\":{\"mint\":\"ok\",\"enrich\":\"ok\",\"envelope\":\"ok\",\"baseline\":\"ok\",\"governance\":\"ok\",\"poller\":\"ok\",\"hooks\":\"ok\"},\"hooks_report\":\"added runcheck, prepcheck, inflightcheck, resumecheck, sentrycheck, turncheck, Bash::merge-fence, Bash::background-fence, Monitor::background-fence → /var/tmp/faff-ledger-lifecycle-12kViq/.claude/settings.json\",\"faults\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "args": [
+        "events",
+        "append",
+        "--run",
+        "run-20261116-230710-beepboop-full-c9f004",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-12kViq"
+      ],
+      "input": "{\"phase\":\"run\",\"type\":\"ledger-write\"}",
+      "exit_code": 0,
+      "stdout": "{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":8,\"ts\":\"2026-11-16T23:07:11.424Z\",\"prev\":\"5bd68b054f13fe016642e06813a716c548eef87ee7faf751312085d0dc16502e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"af98c4adcf444ce2c3e44327276e6bac5d285c35d0bff4b616558190629b8dd2\"}}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "args": [
+        "run-ledger",
+        "record-outcome",
+        "--issue",
+        "LIFE-A",
+        "--outcome",
+        "parked",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-12kViq"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "recorded LIFE-A=parked (owner running) in /var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "args": [
+        "heartbeat",
+        "/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "args": [
+        "run-ledger",
+        "record-outcome",
+        "--issue",
+        "LIFE-B",
+        "--outcome",
+        "superseded",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-12kViq"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "recorded LIFE-B=superseded (owner done) in /var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "args": [
+        "runcheck",
+        "/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "{\n  \"run_id\": \"run-20261116-230710-beepboop-full-c9f004\",\n  \"admitted\": [\n    \"LIFE-A\",\n    \"LIFE-B\"\n  ],\n  \"undispatched\": [],\n  \"invalid_outcomes\": [],\n  \"clean\": true,\n  \"run_dir\": \"/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004\"\n}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "args": [
+        "run",
+        "close",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004",
+        "--stop-reason",
+        "queue-drained",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-12kViq",
+        "--session-id",
+        "ledger-preflight-complete",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "{\"closed\":true,\"undispatched\":[],\"abort_exempt\":false,\"owner_status\":\"done\",\"steps\":{\"run_end\":\"ok\",\"owner_close\":\"ok\",\"poller_stop\":\"ok\",\"governance_probe\":\"ok\",\"conclude\":[{\"issue\":\"LIFE-A\",\"reconcile_exit\":0,\"conclude_exit\":0},{\"issue\":\"LIFE-B\",\"reconcile_exit\":0,\"conclude_exit\":0}],\"anchor_run\":\"skipped\",\"anchor_commit\":\"skipped\",\"bundle_publish\":\"skipped\",\"judge_trail\":\"ok\",\"andon\":\"ok\"},\"faults\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "args": [
+        "sentry-poller",
+        "status",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "{\"running\":true,\"pid\":1220215,\"started_at\":\"2026-11-16T23:07:11.390Z\",\"interval_secs\":90}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-ahlcxj",
+      "args": [
+        "run",
+        "open",
+        "--mode",
+        "full",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-ahlcxj",
+        "--session-id",
+        "ledger-preflight-incomplete",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "{\"run_dir\":\"/var/tmp/faff-ledger-lifecycle-ahlcxj/.faff/runs/run-20261116-230711-beepboop-full-fffbd5\",\"governance\":\"admitted\",\"fail_closed_cause\":null,\"budget_envelope\":{\"ceilings\":{\"until\":null,\"max_attempts\":null,\"tokens\":null,\"cost\":null},\"until_invalid\":null,\"price_per_mtok_removed\":null,\"at_ceiling\":\"stop\",\"price_per_mtok\":0,\"pricing\":\"map\",\"window\":null,\"allow_unmetered\":[]},\"steps\":{\"mint\":\"ok\",\"enrich\":\"ok\",\"envelope\":\"ok\",\"baseline\":\"ok\",\"governance\":\"ok\",\"poller\":\"ok\",\"hooks\":\"ok\"},\"hooks_report\":\"added runcheck, prepcheck, inflightcheck, resumecheck, sentrycheck, turncheck, Bash::merge-fence, Bash::background-fence, Monitor::background-fence → /var/tmp/faff-ledger-lifecycle-ahlcxj/.claude/settings.json\",\"faults\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-ahlcxj",
+      "args": [
+        "events",
+        "append",
+        "--run",
+        "run-20261116-230711-beepboop-full-fffbd5",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-ahlcxj"
+      ],
+      "input": "{\"phase\":\"run\",\"type\":\"ledger-write\"}",
+      "exit_code": 0,
+      "stdout": "{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":8,\"ts\":\"2026-11-16T23:07:12.460Z\",\"prev\":\"4470730e84f8e161c0ef1a9e93da6adf3b196b1245cf4f8056249bdad604b3c4\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"45007c769c09f733812edb184d3aeeb4cf7cf3507a5ced1fbf8055ff0905c607\"}}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-ahlcxj",
+      "args": [
+        "run",
+        "close",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-ahlcxj/.faff/runs/run-20261116-230711-beepboop-full-fffbd5",
+        "--stop-reason",
+        "queue-drained",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-ahlcxj",
+        "--session-id",
+        "ledger-preflight-incomplete",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 3,
+      "stdout": "{\"closed\":false,\"undispatched\":[\"LIFE-A\",\"LIFE-B\"],\"abort_exempt\":false,\"owner_status\":\"running\",\"steps\":{\"run_end\":\"skipped\",\"owner_close\":\"skipped\",\"poller_stop\":\"skipped\",\"governance_probe\":\"skipped\",\"conclude\":\"skipped\",\"anchor_run\":\"skipped\",\"anchor_commit\":\"skipped\",\"bundle_publish\":\"skipped\",\"judge_trail\":\"skipped\",\"andon\":\"skipped\"},\"faults\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-g4jF5K",
+      "args": [
+        "run",
+        "open",
+        "--mode",
+        "full",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-g4jF5K",
+        "--session-id",
+        "ledger-preflight-corrupt",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "{\"run_dir\":\"/var/tmp/faff-ledger-lifecycle-g4jF5K/.faff/runs/run-20261116-230712-beepboop-full-2f95c3\",\"governance\":\"admitted\",\"fail_closed_cause\":null,\"budget_envelope\":{\"ceilings\":{\"until\":null,\"max_attempts\":null,\"tokens\":null,\"cost\":null},\"until_invalid\":null,\"price_per_mtok_removed\":null,\"at_ceiling\":\"stop\",\"price_per_mtok\":0,\"pricing\":\"map\",\"window\":null,\"allow_unmetered\":[]},\"steps\":{\"mint\":\"ok\",\"enrich\":\"ok\",\"envelope\":\"ok\",\"baseline\":\"ok\",\"governance\":\"ok\",\"poller\":\"ok\",\"hooks\":\"ok\"},\"hooks_report\":\"added runcheck, prepcheck, inflightcheck, resumecheck, sentrycheck, turncheck, Bash::merge-fence, Bash::background-fence, Monitor::background-fence → /var/tmp/faff-ledger-lifecycle-g4jF5K/.claude/settings.json\",\"faults\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-g4jF5K",
+      "args": [
+        "run",
+        "close",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-g4jF5K/.faff/runs/run-20261116-230712-beepboop-full-2f95c3",
+        "--stop-reason",
+        "queue-drained",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-g4jF5K",
+        "--session-id",
+        "ledger-preflight-corrupt",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 2,
+      "stdout": "{\"closed\":false,\"undispatched\":[],\"abort_exempt\":false,\"owner_status\":null,\"steps\":{\"run_end\":\"skipped\",\"owner_close\":\"skipped\",\"poller_stop\":\"skipped\",\"governance_probe\":\"skipped\",\"conclude\":\"skipped\",\"anchor_run\":\"skipped\",\"anchor_commit\":\"skipped\",\"bundle_publish\":\"skipped\",\"judge_trail\":\"skipped\",\"andon\":\"skipped\"},\"faults\":[\"/var/tmp/faff-ledger-lifecycle-g4jF5K/.faff/runs/run-20261116-230712-beepboop-full-2f95c3/run-ledger.json is not a JSON object\"]}\n",
+      "stderr": "faff run close: /var/tmp/faff-ledger-lifecycle-g4jF5K/.faff/runs/run-20261116-230712-beepboop-full-2f95c3/run-ledger.json is not a JSON object\n",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "args": [
+        "sentry-poller",
+        "stop",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "faff sentry-poller: stop sentinel written (pid 1220215, alive)\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-ahlcxj",
+      "args": [
+        "sentry-poller",
+        "stop",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-ahlcxj/.faff/runs/run-20261116-230711-beepboop-full-fffbd5"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "faff sentry-poller: stop sentinel written (pid 1220537, alive)\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-g4jF5K",
+      "args": [
+        "sentry-poller",
+        "stop",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-g4jF5K/.faff/runs/run-20261116-230712-beepboop-full-2f95c3"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "faff sentry-poller: stop sentinel written (pid 1220740, alive)\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "final_snapshots": [
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "run": "/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004",
+      "files": {
+        "run-ledger.json": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20261116-230710-beepboop-full-c9f004\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"LIFE-A\",\n    \"LIFE-B\"\n  ],\n  \"outcomes\": {\n    \"LIFE-A\": \"parked\",\n    \"LIFE-B\": \"superseded\"\n  },\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"done\",\n    \"session_id\": \"run-20261116-230710-beepboop-full-c9f004\",\n    \"pid\": 1220074,\n    \"started_at\": \"2026-11-16T23:07:10.928Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:07:11.499Z\",\n    \"faff_version\": \"0.45.0\",\n    \"harness\": \"claude-code\",\n    \"model\": \"unknown\"\n  },\n  \"budget\": {\n    \"envelope\": {\n      \"ceilings\": {\n        \"until\": null,\n        \"max_attempts\": null,\n        \"tokens\": null,\n        \"cost\": null\n      },\n      \"until_invalid\": null,\n      \"price_per_mtok_removed\": null,\n      \"at_ceiling\": \"stop\",\n      \"price_per_mtok\": 0,\n      \"pricing\": \"map\",\n      \"window\": null,\n      \"allow_unmetered\": []\n    },\n    \"measure_root\": \"/var/tmp/faff-ledger-lifecycle-12kViq\",\n    \"measure_session_id\": \"ledger-preflight-complete\",\n    \"tokens_at_start_by_model_class\": {},\n    \"tokens_at_start\": 0\n  },\n  \"stop_reason\": \"queue-drained\"\n}\n",
+        "events.jsonl": "{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":0,\"ts\":\"2026-11-16T23:07:10.963Z\",\"prev\":\"895767b98f4596f28150685a8612354165e933f1362607787dd0ace17deb67cf\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"90a169f137ceee98cce548d4798d8f915829272ee52ea79c14678aa133d0db45\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":1,\"ts\":\"2026-11-16T23:07:10.963Z\",\"prev\":\"a22902f874d4a82ab63e0528b426e6a00fb11970f9b09e67dbce1afe2b1876e0\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":2,\"ts\":\"2026-11-16T23:07:10.965Z\",\"prev\":\"0e9d9a1ec5ebb3b3811fd754f283d0bd0b8ca51d2ff9e068723597370f1110ee\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":3,\"ts\":\"2026-11-16T23:07:11.008Z\",\"prev\":\"316af81b891bcf7baf3f25d83381d8152dfbb193edf5a03f231da0eb38084592\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"72efe9046404abf32b2534e35a92bbce40974697b8f7e075d1ded599ed9ca4f3\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":4,\"ts\":\"2026-11-16T23:07:11.039Z\",\"prev\":\"659a910b87e46c54d795e092f0eaa232cf68c28e63510221a0532109fe3fa0a5\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"72efe9046404abf32b2534e35a92bbce40974697b8f7e075d1ded599ed9ca4f3\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":5,\"ts\":\"2026-11-16T23:07:11.044Z\",\"prev\":\"22cd491b5275c32ea2c37e8a8f1367806e93cfe65a5931c5f8c2b886cd7ec0b7\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"56026da34687197e59d6b33b08f22ac3489b0231742ddb92c003edf195b537f6\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":6,\"ts\":\"2026-11-16T23:07:11.071Z\",\"prev\":\"f04c7966e37157178d2fcec66e2678bcf4df997365ed24c03fe3dc61bfb7b87e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"56026da34687197e59d6b33b08f22ac3489b0231742ddb92c003edf195b537f6\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":7,\"ts\":\"2026-11-16T23:07:11.103Z\",\"prev\":\"fbe711701ceb4700cca66891bb7fa6a39876d0225edc5d2c7a9a796409cdcc4b\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3f11d0d4f5a89913efc2ffe9fe3db6d4ee7dd13d8c7946f185b057582ca958cd\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":8,\"ts\":\"2026-11-16T23:07:11.424Z\",\"prev\":\"5bd68b054f13fe016642e06813a716c548eef87ee7faf751312085d0dc16502e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"af98c4adcf444ce2c3e44327276e6bac5d285c35d0bff4b616558190629b8dd2\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":9,\"ts\":\"2026-11-16T23:07:11.458Z\",\"prev\":\"511f069cc72f159e0ff11ecc3be003df945af2e083fcc569c5cc45d654dd136d\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"409cbda74cfe22da57f992fd43bafd3e3c265f007cf04e5e13136c575bbdebef\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":10,\"ts\":\"2026-11-16T23:07:11.510Z\",\"prev\":\"8212481cc81c854554365b8b25bba258d6cac32da6c67d89816b47dc39f21f79\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"c3817f8782abb00757c50dde118383831f66df37094e7280d869ec00b6d36800\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":11,\"ts\":\"2026-11-16T23:07:11.602Z\",\"prev\":\"e60215295b1cd26b4e1e5c81a1cf3beea04d32352dbb73d4172fe9ca94c239e3\",\"phase\":\"run\",\"type\":\"run-end\",\"data\":{\"stop_reason\":\"queue-drained\",\"shipped\":0,\"parked\":1,\"tokens\":null,\"tokens_source\":\"estimate\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":12,\"ts\":\"2026-11-16T23:07:11.613Z\",\"prev\":\"243e8f6e49665c62f1d1e42debe76814307691f97fee9243d6f599dc0d5640fe\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3e657fa53111759755be7525a2c90e493351f94e592174abeee942fb5839937b\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230710-beepboop-full-c9f004\",\"seq\":13,\"ts\":\"2026-11-16T23:07:11.640Z\",\"prev\":\"67329bde64564ce931e41600723d581745d812179f1c98bc2522964d45911d9f\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3e657fa53111759755be7525a2c90e493351f94e592174abeee942fb5839937b\"}}\n",
+        "heartbeat": "2026-11-16T23:07:11.477Z\n"
+      }
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-ahlcxj",
+      "run": "/var/tmp/faff-ledger-lifecycle-ahlcxj/.faff/runs/run-20261116-230711-beepboop-full-fffbd5",
+      "files": {
+        "run-ledger.json": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20261116-230711-beepboop-full-fffbd5\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"LIFE-A\",\n    \"LIFE-B\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20261116-230711-beepboop-full-fffbd5\",\n    \"pid\": 1220396,\n    \"started_at\": \"2026-11-16T23:07:11.968Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-16T23:07:11.968Z\",\n    \"faff_version\": \"0.45.0\",\n    \"harness\": \"claude-code\",\n    \"model\": \"unknown\"\n  },\n  \"budget\": {\n    \"envelope\": {\n      \"ceilings\": {\n        \"until\": null,\n        \"max_attempts\": null,\n        \"tokens\": null,\n        \"cost\": null\n      },\n      \"until_invalid\": null,\n      \"price_per_mtok_removed\": null,\n      \"at_ceiling\": \"stop\",\n      \"price_per_mtok\": 0,\n      \"pricing\": \"map\",\n      \"window\": null,\n      \"allow_unmetered\": []\n    },\n    \"measure_root\": \"/var/tmp/faff-ledger-lifecycle-ahlcxj\",\n    \"measure_session_id\": \"ledger-preflight-incomplete\",\n    \"tokens_at_start_by_model_class\": {},\n    \"tokens_at_start\": 0\n  }\n}\n",
+        "events.jsonl": "{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":0,\"ts\":\"2026-11-16T23:07:12.002Z\",\"prev\":\"a98fef524ca526a3fba82cc03fbbc18caca1d7908c0d7932acca7c22060f7c9e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"825ad21931a938561c04748d07523dc74a12ffcf8c00d1341330d28283f3a32e\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":1,\"ts\":\"2026-11-16T23:07:12.003Z\",\"prev\":\"41c4f0d28fa45dd0646cb3e6829643ca5b802107b13e72239e284da088661f5f\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":2,\"ts\":\"2026-11-16T23:07:12.005Z\",\"prev\":\"8236b300152f3e575a5afdc6825a8271768a83f31c6ba317e8861a864d4cd4dd\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":3,\"ts\":\"2026-11-16T23:07:12.046Z\",\"prev\":\"60a82ea32d75a19f1f21349faf64f7e077ee05ad5ea3b9a9873f012854c49b5c\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"e403b53d411486b69da7729f87fea04eb8962dc43efff743a430b3818f2cb220\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":4,\"ts\":\"2026-11-16T23:07:12.073Z\",\"prev\":\"6939458cd2288a8117f60c0099983f5b910a4d731560d29e389b9330a452e906\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"e403b53d411486b69da7729f87fea04eb8962dc43efff743a430b3818f2cb220\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":5,\"ts\":\"2026-11-16T23:07:12.078Z\",\"prev\":\"6fec732a95c655a1c65291823ecef20c1d77863082f5b693f24bfaf5e845cdd7\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3adb0aa8903e89d01bedb70d49d82d076c57973efe2bd8e30a503f1395ea8250\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":6,\"ts\":\"2026-11-16T23:07:12.107Z\",\"prev\":\"939c99e7c55eb01ff54bda08a4feb62662e2fd32d8f69fe19f0c09d4b6a7f4bf\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"3adb0aa8903e89d01bedb70d49d82d076c57973efe2bd8e30a503f1395ea8250\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":7,\"ts\":\"2026-11-16T23:07:12.140Z\",\"prev\":\"ee289a89ed28a8ba3a3fa8b9cbec3679e776756cb01c6458cb959ac122d89a7f\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"8077cc57c6da27b1bbe0effc5d1b2a32c325abf2fdc86cbd8bf96fdd8b31a06b\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230711-beepboop-full-fffbd5\",\"seq\":8,\"ts\":\"2026-11-16T23:07:12.460Z\",\"prev\":\"4470730e84f8e161c0ef1a9e93da6adf3b196b1245cf4f8056249bdad604b3c4\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"45007c769c09f733812edb184d3aeeb4cf7cf3507a5ced1fbf8055ff0905c607\"}}\n",
+        "heartbeat": null
+      }
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-g4jF5K",
+      "run": "/var/tmp/faff-ledger-lifecycle-g4jF5K/.faff/runs/run-20261116-230712-beepboop-full-2f95c3",
+      "files": {
+        "run-ledger.json": "{broken",
+        "events.jsonl": "{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":0,\"ts\":\"2026-11-16T23:07:12.618Z\",\"prev\":\"baa7b9c69713ba5414c2996b6dde15142defde5a9b802a12b08dfb6a17c3f5fa\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"506819d712af89693ef8a3f939f08ad260a90fc69a419627af98590bf40acae8\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":1,\"ts\":\"2026-11-16T23:07:12.618Z\",\"prev\":\"3f21faa3cb400edf41611552ecc321cae3aaf2fc1174244190113509123be81c\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":2,\"ts\":\"2026-11-16T23:07:12.620Z\",\"prev\":\"0f6de57a537533b97accef9623cd3ece2a19cfb8e9b763be147a1a41b4b7b12f\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":3,\"ts\":\"2026-11-16T23:07:12.661Z\",\"prev\":\"a7ceab0b0168df5f0423e7ef1e4758a766e074b579760355ee7e41a220e30af8\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"24d2f7aa1eaa50aa8bb7c1f8b2608eb6620b49863fe1224bbba994baeb4c0b21\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":4,\"ts\":\"2026-11-16T23:07:12.689Z\",\"prev\":\"c048f5352ebd8ac5d4182767373a3f3aaafc73c1bb4ac4ca3f6d1133741b73ba\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"24d2f7aa1eaa50aa8bb7c1f8b2608eb6620b49863fe1224bbba994baeb4c0b21\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":5,\"ts\":\"2026-11-16T23:07:12.693Z\",\"prev\":\"19bea67174ade1d20497ba9e464f0eda3c2432d1183c337024724c33a276acb3\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1b1af4fe080ab37cd9073108a89c5436c47357206ec972b5cfd527c60ad1853a\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":6,\"ts\":\"2026-11-16T23:07:12.724Z\",\"prev\":\"6ec30e24987b60951a254baf42025e0d14b4e3a1e5f525d72f1c333184637b34\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1b1af4fe080ab37cd9073108a89c5436c47357206ec972b5cfd527c60ad1853a\"}}\n{\"schema\":2,\"run_id\":\"run-20261116-230712-beepboop-full-2f95c3\",\"seq\":7,\"ts\":\"2026-11-16T23:07:12.755Z\",\"prev\":\"989a1d710307646768b9d297a4220cda85aa4698e35957695b42eac23b31ffb6\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1f2cf4fad4e39a7cd275c65998a40f9debac84775706ced6b60ab84d0b9c522f\"}}\n",
+        "heartbeat": null
+      }
+    }
+  ],
+  "cleanup": [
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-12kViq",
+      "run": "/var/tmp/faff-ledger-lifecycle-12kViq/.faff/runs/run-20261116-230710-beepboop-full-c9f004",
+      "pid": 1220215,
+      "signal": "SIGTERM to exact fixture-owned command after stop signal",
+      "stopped": true
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-ahlcxj",
+      "run": "/var/tmp/faff-ledger-lifecycle-ahlcxj/.faff/runs/run-20261116-230711-beepboop-full-fffbd5",
+      "pid": 1220537,
+      "signal": "SIGTERM to exact fixture-owned command after stop signal",
+      "stopped": true
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-g4jF5K",
+      "run": "/var/tmp/faff-ledger-lifecycle-g4jF5K/.faff/runs/run-20261116-230712-beepboop-full-2f95c3",
+      "pid": 1220740,
+      "signal": "SIGTERM to exact fixture-owned command after stop signal",
+      "stopped": true
+    }
+  ],
+  "failure": null
+}

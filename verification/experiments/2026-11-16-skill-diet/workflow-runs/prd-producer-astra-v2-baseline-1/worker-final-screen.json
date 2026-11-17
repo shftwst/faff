@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All six cases and eight policy questions finished successfully. Results were persisted through the authorised ports. No departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e411-a6ff-7500-8653-770a8e3f0e78"
+    ],
+    "elapsed_seconds": 254.0,
+    "stdout_sha256": "a07636cff5fe73685afc7cfc61a1d1cf42336e5bbc8b9b995563bf8bef142b5f",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

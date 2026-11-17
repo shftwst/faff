@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "source_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+  "source_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+  "checker_sha256": "8b6979d89e85b784abf1675c36ea58dcd7a8881fb71ddc1a627cf5cd412cd93a",
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=4",
+        "test/control-parity-reporting.test.mjs",
+        "test/run-summary.test.mjs",
+        "test/rendering-routing.test.mjs",
+        "test/control-parity-mcp-bridge.test.mjs",
+        "test/control-parity-mcp-native.test.mjs",
+        "test/control-parity-reporting-drafts.test.mjs",
+        "test/control-parity-reporting-provenance.test.mjs"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-reporting-mcp-v1-main-tests.txt",
+      "sha256": "8754d7df141efb1d865bdff6e4681070a873de768c3c4b8b2f1a54d32e4b06c0"
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-reporting-mcp-v1-main-adapter-lint.txt",
+      "sha256": "bb4d1a24e82014e354b443a671613ccbfff3359e4e424d6bf8508de9c22e43ec"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-reporting-mcp-v1-main-rule-inventory.txt",
+      "sha256": "7a80d1f6d1ad814c7e4e983f14eb1cdc5902e423e45c1512dbbc5be9613ba02f"
+    }
+  ]
+}

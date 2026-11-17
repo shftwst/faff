@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "scope": "Native structured transport and unchanged mailbox attribution. Semantic fidelity, case completion and production runtime binding require the separately recorded workflow grade and integration checks. No reasoning or tool content is exported.",
+  "auditor_sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+  "source_sha256": "622f46d415dfc515f7993f6d607e5c37773f7d5bcde6b6bc88cf30376a4d904c",
+  "evidence_hashes": {
+    "task.json": "77277d0ff72ae848d0ea43ee1808721bac2f46d58f0197aa98f2d746dcd65063",
+    "startup-binding.json": "e893a1373b86882a2b450a922d70a7a8f39f57758fcee305a8de22ce2dd9fefa",
+    "worker-manifest.json": "1f16626f99e6d2e8cb8f703d2f29159f4d782ae6bebd21712cdae82c7b28cd15",
+    "worker-final-state.json": "c4e61c0d67ab41f5863c41c8e125ca86bb1409bc03c35b9f490ec4ca25a7cc5e",
+    "mcp-server-manifest.json": "5ba1bac9440a06444299a588f6e1e87c9b326e57ff2a834a153b931c87f5529f",
+    "mcp-trace.jsonl": "285876eeda4052521a786389bf24db22150df85fa59d404d0989dae228467043",
+    "mcp-protocol-errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "capture.json": "d927bc6d14ac10f890c31f5176b493f041378b9236f5c41b207d130485a54fb5",
+    "report.json": "ed4458d22c6b046ea7d0b775545d108c7fe70cdd7d6795863f112ab0a93b5f6d"
+  },
+  "runs": [
+    {
+      "status": "pass",
+      "session_id": "01a1e713-3715-7d81-8dd1-1ca5398edd14",
+      "model_ids": [
+        "gpt-6-astra"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "f4219f703a1cd39f9deed7b9030e97d7d8e263d3c01c6a291bec1849642995e8"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-candidate-2/task.json",
+          "complete": true,
+          "sha256": "77277d0ff72ae848d0ea43ee1808721bac2f46d58f0197aa98f2d746dcd65063"
+        }
+      ],
+      "native_calls": 73,
+      "mcp_calls": 70,
+      "policy_reads": 39,
+      "problems": []
+    }
+  ]
+}

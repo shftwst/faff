@@ -1,0 +1,8 @@
+{
+  "status": "failed-native-pilot",
+  "functional_cases": "2/2 pass",
+  "native_problem": "unsupported-native-response-item: additional_tools",
+  "cause": "Auditor treated a pre-task developer tool-definition advertisement as an unsupported native event. No extra tool invocation occurred.",
+  "next": "V4 will bind the declaration content hash and exact shape/order, and reject changed or late declarations. Original V3 report and failed audit remain unchanged.",
+  "scope": "Transport development pilot only. No skill fidelity or savings claim."
+}

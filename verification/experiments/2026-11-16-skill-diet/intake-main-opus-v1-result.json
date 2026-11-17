@@ -1,0 +1,110 @@
+{
+  "status": "held-registered-candidate-lexical-failure",
+  "qualified": false,
+  "registration_sha256": "a183f6649d1363569619e26bd2b5717349c6cbeb9a65c78e0b5407a525c916d7",
+  "before": {
+    "bytes": 7594,
+    "sha256": "4c0ac1a434a46ec5f388fc17e652c4463e63ffa75eec0cae37ddf6e99f6e3562"
+  },
+  "after": {
+    "bytes": 5567,
+    "sha256": "a7025288c28087551f6817e43978a68613b9bb2eb9d1090411220611adacd6d4"
+  },
+  "local_saving_excluded_from_merge_totals": {
+    "bytes": 2027,
+    "estimated_tokens": 501
+  },
+  "arms": {
+    "baseline": {
+      "samples": 1,
+      "raw_status": "pass",
+      "raw_passed": 18,
+      "raw_total": 18,
+      "assessed_status": "pass",
+      "normalisations": 0,
+      "native": "pass",
+      "manual_semantics": "pass",
+      "manual_sha256": "25082443ce95ee2b48f81ad37c435468522cddbdad527a6bd4c222696e9c0e80"
+    },
+    "candidate": {
+      "samples": 1,
+      "raw_status": "fail",
+      "raw_passed": 17,
+      "raw_total": 18,
+      "assessed_status": "fail",
+      "normalisations": 0,
+      "native": "pass",
+      "manual_semantics": "pass",
+      "manual_sha256": "badca390c26fa3d6acd4373d9cdc64316c13cc0bb27a77d389c1b5bdf5cf60cb"
+    }
+  },
+  "failure": {
+    "case": "greenfield-complete",
+    "required_alternatives": [
+      "retention",
+      "retained",
+      "keep"
+    ],
+    "actual_question": "How long should completed checkout records be kept?",
+    "manual_finding": "Meaning preserved; no invented duration or lost uncertainty.",
+    "registered_result": "Fail unchanged; existing assessor does not cover this case."
+  },
+  "evidence": [
+    {
+      "path": "workflow-runs/intake-main-opus-v1-baseline-1/report.json",
+      "sha256": "875f6198750e54e1c4f45c4477ba0385bef9b9e7a0d6c490275edc58f5d99d00"
+    },
+    {
+      "path": "workflow-runs/intake-main-opus-v1-baseline-1/capture.json",
+      "sha256": "f85c458b4e1434a9e2de25dcd02075bd29482466f2b96aab39431b0b25708684"
+    },
+    {
+      "path": "workflow-runs/intake-main-opus-v1-baseline-1/manifest.json",
+      "sha256": "3bb7d9e06e9efe818ae2d549dd855e41847372faa85f3a98f7fa5f66477d84ed"
+    },
+    {
+      "path": "workflow-runs/intake-main-opus-v1-baseline-1/assessment.json",
+      "sha256": "5f52e81d701b6a5391dad3e22a15b2c2a8d9dd6188076bf3034eabe296cff804"
+    },
+    {
+      "path": "native-audits/intake-main-opus-v1-baseline.json",
+      "sha256": "be756a63ab3096d2d72bcab648a579617a71b0ac3a7555d0d19661b47182654c"
+    },
+    {
+      "path": "intake-main-opus-v1-baseline-manual-audit.json",
+      "sha256": "25082443ce95ee2b48f81ad37c435468522cddbdad527a6bd4c222696e9c0e80"
+    },
+    {
+      "path": "workflow-runs/intake-main-opus-v1-candidate-1/report.json",
+      "sha256": "9cf1782cad6fd75fef5bf5334a75c3b3e4d9a3c0e30fec5f29fb5b59bdd37ba0"
+    },
+    {
+      "path": "workflow-runs/intake-main-opus-v1-candidate-1/capture.json",
+      "sha256": "2d71be1c91ac58fa25c2feeb413238f37af2e33f74cf04f432dbd1ba29917dc2"
+    },
+    {
+      "path": "workflow-runs/intake-main-opus-v1-candidate-1/manifest.json",
+      "sha256": "1f022ca5b345675dfea139a89cd23d183e3d9b1b3216a0c5c862ff6fe126ea7a"
+    },
+    {
+      "path": "workflow-runs/intake-main-opus-v1-candidate-1/assessment.json",
+      "sha256": "3354c4813914ba756d1689c63264940af06826934c075a2f0aaaa7934ae706d8"
+    },
+    {
+      "path": "native-audits/intake-main-opus-v1-candidate.json",
+      "sha256": "0f4aa4bbe95bbb1e79255c88549d61ec59754f709b4f0334826b77585e1b8033"
+    },
+    {
+      "path": "intake-main-opus-v1-candidate-manual-audit.json",
+      "sha256": "badca390c26fa3d6acd4373d9cdc64316c13cc0bb27a77d389c1b5bdf5cf60cb"
+    }
+  ],
+  "retries": 0,
+  "waivers": 0,
+  "new_normalisations": 0,
+  "limits": [
+    "One fixed fresh sample per arm, bounded diagnostic with limited replication; all historical GPT cohorts and failed/partial samples remain separate and unpooled.",
+    "Brief-production and separate policy decisions only; no elicitation interview, methodology ticket shaping, live tracker writes, full caller workflow, statistical equivalence or billing claim.",
+    "Unchanged literal runner performs no automatic assessment; its raw failure exit remains preserved. Frozen assessor pass is separate and never waives native/manual or source-grounding gates."
+  ]
+}

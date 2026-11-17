@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "value": {
+    "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-candidate-5/prds/scenario-broad.md",
+    "text": "# Product goal\nLet account owners download their data.\n\n## Done\nGiven an authenticated account owner, when they request an export, then the download contains every record owned by that account and no other account records.\n"
+  }
+}

@@ -1,0 +1,82 @@
+TAP version 13
+# Subtest: Codex audit binds actual low-effort model, complete initial reads and literal bridge calls
+ok 1 - Codex audit binds actual low-effort model, complete initial reads and literal bridge calls
+  ---
+  duration_ms: 1.133418
+  type: 'test'
+  ...
+# Subtest: Codex audit rejects extra commands, wrong effort, truncated reads and absent results
+ok 2 - Codex audit rejects extra commands, wrong effort, truncated reads and absent results
+  ---
+  duration_ms: 0.848751
+  type: 'test'
+  ...
+# Subtest: Codex audit supports the CLI text envelope without accepting incomplete command sessions
+ok 3 - Codex audit supports the CLI text envelope without accepting incomplete command sessions
+  ---
+  duration_ms: 0.967959
+  type: 'test'
+  ...
+# Subtest: Codex audit accepts one literal command in the actual exec transport envelope
+ok 4 - Codex audit accepts one literal command in the actual exec transport envelope
+  ---
+  duration_ms: 1.022876
+  type: 'test'
+  ...
+# Subtest: exec transport parsing never evaluates scripts or accepts extra operations and forged output
+ok 5 - exec transport parsing never evaluates scripts or accepts extra operations and forged output
+  ---
+  duration_ms: 0.516959
+  type: 'test'
+  ...
+# Subtest: named-output oracle detects reordered priority, lost discovery questions and invented tickets
+ok 6 - named-output oracle detects reordered priority, lost discovery questions and invented tickets
+  ---
+  duration_ms: 0.924043
+  type: 'test'
+  ...
+# Subtest: real termination consumer respects the supplied order and keeps its fixed safety floor
+ok 7 - real termination consumer respects the supplied order and keeps its fixed safety floor
+  ---
+  duration_ms: 1367.597205
+  type: 'test'
+  ...
+# Subtest: producer outputs persist exactly and refuse tracker writes or duplicate submissions
+ok 8 - producer outputs persist exactly and refuse tracker writes or duplicate submissions
+  ---
+  duration_ms: 651.255423
+  type: 'test'
+  ...
+# Subtest: agile V2 accepts moving between named outcomes without admitting a missing re-grouping action
+ok 9 - agile V2 accepts moving between named outcomes without admitting a missing re-grouping action
+  ---
+  duration_ms: 1.935711
+  type: 'test'
+  ...
+# Subtest: routing assignments use the real Punt scanner and canonical validator output
+ok 10 - routing assignments use the real Punt scanner and canonical validator output
+  ---
+  duration_ms: 572.910175
+  type: 'test'
+  ...
+# Subtest: routing comparison rejects changed eligibility, missing scanning, wrong assignment and altered output
+ok 11 - routing comparison rejects changed eligibility, missing scanning, wrong assignment and altered output
+  ---
+  duration_ms: 562.786207
+  type: 'test'
+  ...
+# Subtest: routing comparison records forbidden tracker writes and repeated assignment
+ok 12 - routing comparison records forbidden tracker writes and repeated assignment
+  ---
+  duration_ms: 562.401957
+  type: 'test'
+  ...
+1..12
+# tests 12
+# suites 0
+# pass 12
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2071.912391

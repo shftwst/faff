@@ -1,0 +1,76 @@
+{
+  "head": "f95c89a6fef976e02044f45f1a390ebe711d7489",
+  "pr": "https://github.com/shftwst/faff/pull/1202",
+  "checks": [
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119553/job/133095178867",
+      "name": "coverage-report",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119553/job/133095178889",
+      "name": "validate",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119514/job/133094260313",
+      "name": "deploy",
+      "state": "SKIPPED"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119535/job/133093999263",
+      "name": "Validate PR title (Conventional Commits)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119553/job/133093996485",
+      "name": "unit (3)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119532/job/133093996421",
+      "name": "dco",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119553/job/133093996895",
+      "name": "unit (1)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119553/job/133093996721",
+      "name": "validate-macos",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119553/job/133093996794",
+      "name": "env-rootless",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119553/job/133093996801",
+      "name": "typecheck",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119608/job/133093996611",
+      "name": "governance-check",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119514/job/133093996874",
+      "name": "docs-build",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119553/job/133093996684",
+      "name": "unit (2)",
+      "state": "SUCCESS"
+    },
+    {
+      "link": "https://github.com/shftwst/faff/actions/runs/43805119553/job/133093996635",
+      "name": "unit (4)",
+      "state": "SUCCESS"
+    }
+  ]
+}

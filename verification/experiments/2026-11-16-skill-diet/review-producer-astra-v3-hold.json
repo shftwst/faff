@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "status": "held-integration-lint",
+  "source_sha256": "0e6c8722045bf695f0febb369f2b8668f217865bcad31702bb408505502a0676",
+  "functional": "All 70 artifacts, 200 decisions and 70 downstream connector replays passed. All 70 prose/JSON title sets matched.",
+  "integration": "638/641 pass. One enum lint failure; two tests require committed clean plugin and correctly reject the dirty integration tree. No linter relaxation.",
+  "next": "Reformat judgement rules to separate existing conditions; fresh candidate samples against the unchanged completed five-sample baseline, with no replacement or reroll of failed samples. New comparison V4 retains V3 evidence."
+}

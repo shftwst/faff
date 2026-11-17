@@ -1,0 +1,95 @@
+TAP version 13
+# Subtest: reporting boundary executes real persistence and rejects altered authority, publication and continuation
+    # Subtest: changed ledger state
+    ok 1 - changed ledger state
+      ---
+      duration_ms: 1.300665
+      type: 'test'
+      ...
+    # Subtest: fabricated facts economics
+    ok 2 - fabricated facts economics
+      ---
+      duration_ms: 0.338125
+      type: 'test'
+      ...
+    # Subtest: dropped follow-up
+    ok 3 - dropped follow-up
+      ---
+      duration_ms: 0.379374
+      type: 'test'
+      ...
+    # Subtest: rewritten persisted summary
+    ok 4 - rewritten persisted summary
+      ---
+      duration_ms: 0.282374
+      type: 'test'
+      ...
+    # Subtest: duplicate summary invocation
+    ok 5 - duplicate summary invocation
+      ---
+      duration_ms: 0.29775
+      type: 'test'
+      ...
+    # Subtest: wrong target
+    ok 6 - wrong target
+      ---
+      duration_ms: 0.266667
+      type: 'test'
+      ...
+    # Subtest: lost economics
+    ok 7 - lost economics
+      ---
+      duration_ms: 0.343874
+      type: 'test'
+      ...
+    # Subtest: lost health banner
+    ok 8 - lost health banner
+      ---
+      duration_ms: 0.629374
+      type: 'test'
+      ...
+    # Subtest: publish without normalisation
+    ok 9 - publish without normalisation
+      ---
+      duration_ms: 0.420875
+      type: 'test'
+      ...
+    # Subtest: capacity deferral
+    ok 10 - capacity deferral
+      ---
+      duration_ms: 0.332916
+      type: 'test'
+      ...
+    # Subtest: omitted ready issue
+    ok 11 - omitted ready issue
+      ---
+      duration_ms: 0.267
+      type: 'test'
+      ...
+    # Subtest: publication after ledger fault
+    ok 12 - publication after ledger fault
+      ---
+      duration_ms: 0.26875
+      type: 'test'
+      ...
+    # Subtest: failed command missing result
+    ok 13 - failed command missing result
+      ---
+      duration_ms: 0.292
+      type: 'test'
+      ...
+    1..13
+ok 1 - reporting boundary executes real persistence and rejects altered authority, publication and continuation
+  ---
+  duration_ms: 2766.787464
+  type: 'test'
+  ...
+1..1
+# tests 14
+# suites 0
+# pass 14
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2813.696046

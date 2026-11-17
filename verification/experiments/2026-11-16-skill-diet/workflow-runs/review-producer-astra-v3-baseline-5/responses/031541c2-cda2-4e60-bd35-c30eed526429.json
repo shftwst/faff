@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "value": {
+    "appetite": "high",
+    "spec": "Implement double(number) as multiplication by 2. Inputs are finite numbers. Chosen: pure function. AC: positive, zero and negative inputs return twice their value. Only src/function.mjs and its test are in scope.",
+    "full_diff": "Added src/function.mjs and test/function.test.mjs exactly as supplied.",
+    "complete_changed_files": {
+      "src/function.mjs": "export const double = value => value * 2;\n",
+      "test/function.test.mjs": "import assert from 'node:assert/strict';\nimport {double} from '../src/function.mjs';\nassert.equal(double(3),6);\nassert.equal(double(0),0);\nassert.equal(double(-2),-4);\n"
+    },
+    "test_results": {
+      "status": "pass",
+      "command": "node --test",
+      "executed_by": "controlled caller, before this review"
+    },
+    "ac_checklist": [
+      {
+        "criterion": "Implement the stated behaviour",
+        "auto_verified": true,
+        "evidence": "test/function.test.mjs"
+      }
+    ],
+    "prior_findings": []
+  }
+}

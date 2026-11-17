@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":"absent","ground":null,"reason":"The provider attempt was exhausted with no independent opinion. Per the ADR admission contract, an unreachable drift review is the absent outcome, which rejects; it is not converted to a pass or a review outage annotation."}}

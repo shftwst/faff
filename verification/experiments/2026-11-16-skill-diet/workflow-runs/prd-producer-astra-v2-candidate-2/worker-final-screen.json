@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All six cases finished and their verdicts were persisted. All eight policy questions were answered. `finish` returned success.\n\nNo departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e428-aad3-7e00-9f80-de1bea98dadc"
+    ],
+    "elapsed_seconds": 266.6,
+    "stdout_sha256": "0c0aa2a0ce66b28d153e30ec66a4fa627d7dd95164a30d15fe86820dbfd1c996",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

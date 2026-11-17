@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "kind": "deterministic-MCP-bridge-reporting-preflight-not-model-sample",
+  "mcp_calls": 69,
+  "mcp_trace_sha256": "de1ead1bb249a792c04f898cd2884bce8ec24a56c2c2dc6d15178d6b19a94410",
+  "mcp_server_manifest_sha256": "3ef83d2fd6e4a36dc790e8d8e993668bbd769e5e819503a26fec52c1c1feba12",
+  "execution_cases": 6,
+  "omitted_case_traces_rejected": 6,
+  "policy_delivery_complete": true,
+  "task_file_sha256_matches_manifest": true,
+  "manifest_sha256": "5a8cfa3c65d1aa81d86283d6ab77476bbb9d2a3034142e7fbba1b6c0750ffb72",
+  "report_sha256": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2",
+  "capture_sha256": "ca411517e0eaebea0e52c83ed1f50696c6cb45e78b5cde55a7b431434ebc3243",
+  "client_sha256": "0a0691a4183b55edefa0e885def5ce0b375a207fae9d749f5f0ae17a29191248"
+}

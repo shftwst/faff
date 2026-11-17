@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: four reference specs preserve distinct real consumer outcomes
+ok 1 - four reference specs preserve distinct real consumer outcomes
+  ---
+  duration_ms: 744.572576
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects missing contract
+ok 2 - consumer replay rejects missing contract
+  ---
+  duration_ms: 147.590234
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects text follows contract
+ok 3 - consumer replay rejects text follows contract
+  ---
+  duration_ms: 183.200888
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects duplicate contract
+ok 4 - consumer replay rejects duplicate contract
+  ---
+  duration_ms: 148.063691
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects contract confidence differs
+ok 5 - consumer replay rejects contract confidence differs
+  ---
+  duration_ms: 181.15035
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects prose confidence differs
+ok 6 - consumer replay rejects prose confidence differs
+  ---
+  duration_ms: 184.82451
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects all scenarios withheld
+ok 7 - consumer replay rejects all scenarios withheld
+  ---
+  duration_ms: 179.208103
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects required visible scenario omitted
+ok 8 - consumer replay rejects required visible scenario omitted
+  ---
+  duration_ms: 186.222384
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects scenario observable removed
+ok 9 - consumer replay rejects scenario observable removed
+  ---
+  duration_ms: 182.191139
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects test file replaces holdout
+ok 10 - consumer replay rejects test file replaces holdout
+  ---
+  duration_ms: 182.914305
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects repository test mixes behaviour
+ok 11 - consumer replay rejects repository test mixes behaviour
+  ---
+  duration_ms: 180.118059
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects nonblocking punt loses tag
+ok 12 - consumer replay rejects nonblocking punt loses tag
+  ---
+  duration_ms: 183.406929
+  type: 'test'
+  ...
+# Subtest: consumer replay rejects blocking punt falsely deferred
+ok 13 - consumer replay rejects blocking punt falsely deferred
+  ---
+  duration_ms: 181.486682
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2938.309197

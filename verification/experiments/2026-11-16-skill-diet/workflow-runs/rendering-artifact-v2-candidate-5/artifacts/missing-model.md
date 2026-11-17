@@ -1,0 +1,2 @@
+- Opening of the explanation → Lead with the load-bearing model → no load-bearing model to lead with; the source states no governing idea, so the producer must supply one (not invented here).
+- The three steps written as one run of sentences → Prose skimmability (three or more enumerable items become a list) → render as a list: 1. Open the dashboard. 2. Copy the displayed number. 3. Close the tab.

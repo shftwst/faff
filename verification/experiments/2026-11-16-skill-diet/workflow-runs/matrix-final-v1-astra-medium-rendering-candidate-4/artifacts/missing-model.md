@@ -1,0 +1,2 @@
+- **Explanation opening:** no load-bearing model to lead with → the producer must supply the governing idea before the steps; none can be derived from this source.
+- **Steps one to three:** prose skimmability → format the three enumerable steps as a markdown list.

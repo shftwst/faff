@@ -1,0 +1,496 @@
+TAP version 13
+# Subtest: exact restored state reproduces real consumers and incomplete-work refusal
+ok 1 - exact restored state reproduces real consumers and incomplete-work refusal
+  ---
+  duration_ms: 499.810629
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects empty case set
+ok 2 - snapshot replay rejects empty case set
+  ---
+  duration_ms: 2.978329
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects omitted case
+ok 3 - snapshot replay rejects omitted case
+  ---
+  duration_ms: 2.744995
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects changed ledger bytes
+ok 4 - snapshot replay rejects changed ledger bytes
+  ---
+  duration_ms: 67.211436
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects changed event value
+ok 5 - snapshot replay rejects changed event value
+  ---
+  duration_ms: 64.430106
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects changed event order
+ok 6 - snapshot replay rejects changed event order
+  ---
+  duration_ms: 67.401519
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects changed append head
+ok 7 - snapshot replay rejects changed append head
+  ---
+  duration_ms: 72.122095
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects changed event read
+ok 8 - snapshot replay rejects changed event read
+  ---
+  duration_ms: 61.692903
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects missing summary record despite coherent dependency hash
+ok 9 - snapshot replay rejects missing summary record despite coherent dependency hash
+  ---
+  duration_ms: 221.433151
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects invented persisted summary
+ok 10 - snapshot replay rejects invented persisted summary
+  ---
+  duration_ms: 236.00967
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects wrong incomplete runcheck
+ok 11 - snapshot replay rejects wrong incomplete runcheck
+  ---
+  duration_ms: 319.662912
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects summary for incomplete work
+ok 12 - snapshot replay rejects summary for incomplete work
+  ---
+  duration_ms: 338.650091
+  type: 'test'
+  ...
+# Subtest: snapshot replay rejects runtime artifact substitution
+ok 13 - snapshot replay rejects runtime artifact substitution
+  ---
+  duration_ms: 67.430935
+  type: 'test'
+  ...
+# Subtest: real consumers accept source-grounded details while retaining the legacy failures
+ok 14 - real consumers accept source-grounded details while retaining the legacy failures
+  ---
+  duration_ms: 715.570456
+  type: 'test'
+  ...
+# Subtest: reject removed supplied detail map
+ok 15 - reject removed supplied detail map
+  ---
+  duration_ms: 1.858789
+  type: 'test'
+  ...
+# Subtest: reject removed supplied tests
+ok 16 - reject removed supplied tests
+  ---
+  duration_ms: 2.738829
+  type: 'test'
+  ...
+# Subtest: reject changed supplied head
+ok 17 - reject changed supplied head
+  ---
+  duration_ms: 1.679956
+  type: 'test'
+  ...
+# Subtest: reject extra unsupplied test in required array
+ok 18 - reject extra unsupplied test in required array
+  ---
+  duration_ms: 1.459331
+  type: 'test'
+  ...
+# Subtest: reject array detail map
+ok 19 - reject array detail map
+  ---
+  duration_ms: 1.728623
+  type: 'test'
+  ...
+# Subtest: reject null issue entry
+ok 20 - reject null issue entry
+  ---
+  duration_ms: 1.675705
+  type: 'test'
+  ...
+# Subtest: reject unknown issue
+ok 21 - reject unknown issue
+  ---
+  duration_ms: 1.375122
+  type: 'test'
+  ...
+# Subtest: reject prep issue
+ok 22 - reject prep issue
+  ---
+  duration_ms: 1.341206
+  type: 'test'
+  ...
+# Subtest: reject changed terminal outcome
+ok 23 - reject changed terminal outcome
+  ---
+  duration_ms: 1.371122
+  type: 'test'
+  ...
+# Subtest: reject changed command authority
+ok 24 - reject changed command authority
+  ---
+  duration_ms: 1.458123
+  type: 'test'
+  ...
+# Subtest: reject changed ledger bytes
+ok 25 - reject changed ledger bytes
+  ---
+  duration_ms: 1.488956
+  type: 'test'
+  ...
+# Subtest: extra empty containers and arbitrary field names are visible to manual review
+ok 26 - extra empty containers and arbitrary field names are visible to manual review
+  ---
+  duration_ms: 1.856039
+  type: 'test'
+  ...
+# Subtest: a structurally valid fabricated claim cannot pass a rejecting manual judgement
+ok 27 - a structurally valid fabricated claim cannot pass a rejecting manual judgement
+  ---
+  duration_ms: 1.369372
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects missing case
+ok 28 - manual grounding gate rejects missing case
+  ---
+  duration_ms: 0.265458
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects duplicate case
+ok 29 - manual grounding gate rejects duplicate case
+  ---
+  duration_ms: 0.216667
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects missing claim
+ok 30 - manual grounding gate rejects missing claim
+  ---
+  duration_ms: 0.211125
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects duplicate claim
+ok 31 - manual grounding gate rejects duplicate claim
+  ---
+  duration_ms: 0.108041
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects changed detail hash
+ok 32 - manual grounding gate rejects changed detail hash
+  ---
+  duration_ms: 0.121959
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects changed source hash
+ok 33 - manual grounding gate rejects changed source hash
+  ---
+  duration_ms: 0.070458
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects changed value hash
+ok 34 - manual grounding gate rejects changed value hash
+  ---
+  duration_ms: 0.203417
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects changed displayed value
+ok 35 - manual grounding gate rejects changed displayed value
+  ---
+  duration_ms: 0.083125
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects absent citation
+ok 36 - manual grounding gate rejects absent citation
+  ---
+  duration_ms: 2.216538
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects nonexistent citation
+ok 37 - manual grounding gate rejects nonexistent citation
+  ---
+  duration_ms: 0.09225
+  type: 'test'
+  ...
+# Subtest: manual grounding gate rejects absent rationale
+ok 38 - manual grounding gate rejects absent rationale
+  ---
+  duration_ms: 0.206833
+  type: 'test'
+  ...
+# Subtest: real ledger/event producer fixture and all decisions pass
+ok 39 - real ledger/event producer fixture and all decisions pass
+  ---
+  duration_ms: 715.691581
+  type: 'test'
+  ...
+# Subtest: public task cases do not expose oracle or fixture-private fields
+ok 40 - public task cases do not expose oracle or fixture-private fields
+  ---
+  duration_ms: 0.18075
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned level
+ok 41 - reject changed command-owned level
+  ---
+  duration_ms: 1.356873
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned owner
+ok 42 - reject changed command-owned owner
+  ---
+  duration_ms: 0.861249
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned budget
+ok 43 - reject changed command-owned budget
+  ---
+  duration_ms: 1.472706
+  type: 'test'
+  ...
+# Subtest: reject changed command-owned schema_version
+ok 44 - reject changed command-owned schema_version
+  ---
+  duration_ms: 0.927207
+  type: 'test'
+  ...
+# Subtest: reject missing ledger-write
+ok 45 - reject missing ledger-write
+  ---
+  duration_ms: 1.529039
+  type: 'test'
+  ...
+# Subtest: reject ledger-write before edit
+ok 46 - reject ledger-write before edit
+  ---
+  duration_ms: 1.002206
+  type: 'test'
+  ...
+# Subtest: reject caller-supplied ledger hash
+ok 47 - reject caller-supplied ledger hash
+  ---
+  duration_ms: 1.086624
+  type: 'test'
+  ...
+# Subtest: reject object outcome
+ok 48 - reject object outcome
+  ---
+  duration_ms: 0.944624
+  type: 'test'
+  ...
+# Subtest: reject unknown outcome
+ok 49 - reject unknown outcome
+  ---
+  duration_ms: 0.697665
+  type: 'test'
+  ...
+# Subtest: reject invented incomplete outcome
+ok 50 - reject invented incomplete outcome
+  ---
+  duration_ms: 0.915165
+  type: 'test'
+  ...
+# Subtest: reject removed incomplete admission
+ok 51 - reject removed incomplete admission
+  ---
+  duration_ms: 0.660208
+  type: 'test'
+  ...
+# Subtest: reject admitted prep hold
+ok 52 - reject admitted prep hold
+  ---
+  duration_ms: 0.630041
+  type: 'test'
+  ...
+# Subtest: reject swapped prep distinction
+ok 53 - reject swapped prep distinction
+  ---
+  duration_ms: 0.717791
+  type: 'test'
+  ...
+# Subtest: reject human landing made resumable
+ok 54 - reject human landing made resumable
+  ---
+  duration_ms: 0.680916
+  type: 'test'
+  ...
+# Subtest: reject changed post-merge details
+ok 55 - reject changed post-merge details
+  ---
+  duration_ms: 0.64829
+  type: 'test'
+  ...
+# Subtest: reject wrong filing count
+ok 56 - reject wrong filing count
+  ---
+  duration_ms: 0.675207
+  type: 'test'
+  ...
+# Subtest: reject duplicate admission
+ok 57 - reject duplicate admission
+  ---
+  duration_ms: 0.697208
+  type: 'test'
+  ...
+# Subtest: reject missing event
+ok 58 - reject missing event
+  ---
+  duration_ms: 0.830999
+  type: 'test'
+  ...
+# Subtest: reject duplicate event
+ok 59 - reject duplicate event
+  ---
+  duration_ms: 0.639541
+  type: 'test'
+  ...
+# Subtest: reject micro-action event
+ok 60 - reject micro-action event
+  ---
+  duration_ms: 0.885082
+  type: 'test'
+  ...
+# Subtest: reject extra genesis
+ok 61 - reject extra genesis
+  ---
+  duration_ms: 0.625374
+  type: 'test'
+  ...
+# Subtest: reject wrong event phase
+ok 62 - reject wrong event phase
+  ---
+  duration_ms: 0.633874
+  type: 'test'
+  ...
+# Subtest: reject missing closing tokens flag
+ok 63 - reject missing closing tokens flag
+  ---
+  duration_ms: 0.624082
+  type: 'test'
+  ...
+# Subtest: reject opening tokens flag
+ok 64 - reject opening tokens flag
+  ---
+  duration_ms: 0.636874
+  type: 'test'
+  ...
+# Subtest: reject missing gate metadata
+ok 65 - reject missing gate metadata
+  ---
+  duration_ms: 0.657415
+  type: 'test'
+  ...
+# Subtest: reject gate on clean ship
+ok 66 - reject gate on clean ship
+  ---
+  duration_ms: 0.626666
+  type: 'test'
+  ...
+# Subtest: reject changed supplied budget
+ok 67 - reject changed supplied budget
+  ---
+  duration_ms: 0.950749
+  type: 'test'
+  ...
+# Subtest: reject unknown caller field even when output is unchanged
+ok 68 - reject unknown caller field even when output is unchanged
+  ---
+  duration_ms: 0.770832
+  type: 'test'
+  ...
+# Subtest: reject frozen token delta
+ok 69 - reject frozen token delta
+  ---
+  duration_ms: 0.824999
+  type: 'test'
+  ...
+# Subtest: reject missing transcript misreported as metered zero
+ok 70 - reject missing transcript misreported as metered zero
+  ---
+  duration_ms: 0.957999
+  type: 'test'
+  ...
+# Subtest: reject missing case
+ok 71 - reject missing case
+  ---
+  duration_ms: 0.516916
+  type: 'test'
+  ...
+# Subtest: reject missing decision
+ok 72 - reject missing decision
+  ---
+  duration_ms: 0.722416
+  type: 'test'
+  ...
+# Subtest: reject unknown operation
+ok 73 - reject unknown operation
+  ---
+  duration_ms: 0.772998
+  type: 'test'
+  ...
+# Subtest: reject early finish
+ok 74 - reject early finish
+  ---
+  duration_ms: 0.775124
+  type: 'test'
+  ...
+# Subtest: reordered unique ledger collections remain equivalent
+ok 75 - reordered unique ledger collections remain equivalent
+  ---
+  duration_ms: 1.031165
+  type: 'test'
+  ...
+# Subtest: reordered outcome keys pass through the actual producer and summary consumer
+ok 76 - reordered outcome keys pass through the actual producer and summary consumer
+  ---
+  duration_ms: 464.612102
+  type: 'test'
+  ...
+# Subtest: real token accounting advances and retains missing-transcript estimate
+ok 77 - real token accounting advances and retains missing-transcript estimate
+  ---
+  duration_ms: 0.106041
+  type: 'test'
+  ...
+# Subtest: real incomplete ledger consumer leaves only OPEN-1 undispatched
+ok 78 - real incomplete ledger consumer leaves only OPEN-1 undispatched
+  ---
+  duration_ms: 0.072042
+  type: 'test'
+  ...
+# Subtest: ports reject command-owned writes and wrong root/session
+ok 79 - ports reject command-owned writes and wrong root/session
+  ---
+  duration_ms: 0.28975
+  type: 'test'
+  ...
+# Subtest: event invocation allows flag order and refuses missing, duplicate or wrong binding
+ok 80 - event invocation allows flag order and refuses missing, duplicate or wrong binding
+  ---
+  duration_ms: 0.07075
+  type: 'test'
+  ...
+# Subtest: summary clock comparison accepts midnight rollover and rejects an invented date or duration
+ok 81 - summary clock comparison accepts midnight rollover and rejects an invented date or duration
+  ---
+  duration_ms: 0.706999
+  type: 'test'
+  ...
+1..81
+# tests 81
+# suites 0
+# pass 81
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2531.79751

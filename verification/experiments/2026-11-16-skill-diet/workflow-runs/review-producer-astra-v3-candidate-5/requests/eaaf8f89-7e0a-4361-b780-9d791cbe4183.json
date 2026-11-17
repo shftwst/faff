@@ -1,0 +1,1 @@
+{"name":"submit_review","args":{"case_id":"planted-fixture","text":"signal: pass\n\n## Findings\n\nNone. The unguarded access is deliberate scanner fixture data, never executed production code. It matches the spec, and the supplied scanner-test evidence verifies the expected diagnostic.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```"}}

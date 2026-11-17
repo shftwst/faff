@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "adr-2",
+      "outcome": "overturned",
+      "ground": null,
+      "reason": "The supersession argument is unsound. The old decision is a security guardrail: secrets come from environment variables only and are never written to .faff/. The new decision writes literal API keys into .faff/cache/credentials.json, which directly violates it. Being gitignored only stops the file reaching the repo; it still leaves plaintext credentials on disk where logs, backups, artifact uploads, sandbox mounts or other tools can read them. The justification is a small per-call latency saving from not reading process.env, which is an in-memory lookup and can be cached in process memory without touching disk. The argument does not engage with why the old rule existed and offers no changed fact that invalidates it."
+    },
+    "calls": [
+      {
+        "args": [
+          "adr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--challenge",
+          "overturned"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"overturned\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge overturned — the adversarial reviewer found the supersession argument unsound\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": null,
+    "admission": {
+      "disposition": "reject",
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "challenge": {
+        "ran": true,
+        "outcome": "overturned"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "drift challenge overturned — the adversarial reviewer found the supersession argument unsound"
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

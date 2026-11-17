@@ -1,0 +1,303 @@
+{
+  "schema": 1,
+  "status": "bounded-read-only-draft-opportunity-not-qualification",
+  "source_commit": "f9f93a7771793954c82fd9a5a541df419767c558",
+  "source": {
+    "path": "plugin/skills/faff-graft/SKILL.md",
+    "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710"
+  },
+  "boundary": {
+    "mechanically_indexed_h3_span_bytes": 35647,
+    "actual_discovered_scope_bytes": 4355,
+    "step10_merge_confidence_bytes": 31292,
+    "explanation": "Actual discovered-scope capture ends at bold Step10 on line524. Step10 is not a Markdown heading, so the H3 index incorrectly appears to attribute31292 merge/landing bytes to discovered scope. This note reviews both logical scopes separately."
+  },
+  "logical_spans": [
+    {
+      "label": "### Discovered scope",
+      "line": 505,
+      "bytes": 4355,
+      "sha256": "588e061a138707d838bb2a9b4a7a7bfd681947a49c8ddc4252e72fec473c98ae"
+    },
+    {
+      "label": "**Step 10: Merge-confidence gate**",
+      "line": 524,
+      "bytes": 36,
+      "sha256": "be15d9351341734b3e11b19e0cec3418635788254718be281b274a72849cb7d6"
+    },
+    {
+      "label": "**Endgame-only entry",
+      "line": 526,
+      "bytes": 1613,
+      "sha256": "5073c3267064a42f9b3a736062060bc78d5d0ad1a45d77b869050c7936263623"
+    },
+    {
+      "label": "**Dispatch-cut split",
+      "line": 528,
+      "bytes": 1193,
+      "sha256": "9720de79d6f749a571bcac026b289a28fe6316741f037fed20c40fccac8a9bea"
+    },
+    {
+      "label": "Merge happens only",
+      "line": 530,
+      "bytes": 1814,
+      "sha256": "3bc0b1440ee086a11e8711485d50b44e1fb50ffc21256ef1b6c326d272c9920d"
+    },
+    {
+      "label": "**Decision:**",
+      "line": 537,
+      "bytes": 6103,
+      "sha256": "a2a0a78dafef03800b48725169c38c8bb1afe084653f16d479bf35cf5913d76c"
+    },
+    {
+      "label": "_**ADR-collision",
+      "line": 545,
+      "bytes": 3238,
+      "sha256": "f59a038e4c86100581e775378da5b30e1fee7c76d8b3884cc96a418c8a1563f6"
+    },
+    {
+      "label": "_**ADR-accept",
+      "line": 554,
+      "bytes": 1415,
+      "sha256": "55f080aeb2bdbfc7a92f3af452dac74c03d10a2a9008276aef14eb31b4fba3d3"
+    },
+    {
+      "label": "_**Self-consistency",
+      "line": 555,
+      "bytes": 2545,
+      "sha256": "5cc0d5768a06d82f115324883334182abd0529411d5bc979c4ca8937e5300bfb"
+    },
+    {
+      "label": "_**Governed merge",
+      "line": 563,
+      "bytes": 2477,
+      "sha256": "952de1ef5d75cc791b46e4a6a45cc84ec71342bf328faf2014350c8fa0021cdb"
+    },
+    {
+      "label": "- **Review returned `fail`",
+      "line": 569,
+      "bytes": 302,
+      "sha256": "5c9a3b1f25788136fe9a7de406235fc8b3b4ddd447a55bf2ea951e78785aee32"
+    },
+    {
+      "label": "- **CI failed",
+      "line": 571,
+      "bytes": 2458,
+      "sha256": "d8a3afd6e7bf3c96f1fcd2d4ead02bc2023698912869609b4e5ad274fa7b7b5b"
+    },
+    {
+      "label": "- **No CI coverage",
+      "line": 574,
+      "bytes": 2446,
+      "sha256": "855e53495005eee367562f46cf25fbd594f129326912d21c853182f3ac8c7a8d"
+    },
+    {
+      "label": "_**Holdout gate",
+      "line": 579,
+      "bytes": 2877,
+      "sha256": "9d806fe16e0da2028f4cc0f0e300721f3abb1fb8cf0d556c565ec70dacfb446d"
+    },
+    {
+      "label": "**The bounded landing loop",
+      "line": 587,
+      "bytes": 2775,
+      "sha256": "d894b7a654f5814f135a17a88bd7b467975d7184f6e094502ac500ad55f5b73d"
+    }
+  ],
+  "already_loaded_rule_sources": [
+    {
+      "source": "plugin/skills/faff-graft/SKILL.md:14",
+      "rule": "Kernel and build/tracker/autonomous/review/methodology/l4/park references are explicitly loaded at this entry. Refer-back cuts to those existing sources add no mandatory load. The routing gateway SKILL.md is explicitly not loaded."
+    },
+    {
+      "source": "plugin/skills/faff/references/kernel.md:139",
+      "rule": "Agent Lanes implements record-only implementor authority. kernel.md:257 distinguishes discovered-scope as lane-writable sensor/resume input from trust-bearing evidence."
+    },
+    {
+      "source": "plugin/skills/faff/references/autonomous.md:91",
+      "rule": "Execution-discovered appetite row owns orchestrator filing of concrete items; autonomous.md:117 owns outward/new-root containment refusal and self-intake exception."
+    },
+    {
+      "source": "plugin/skills/faff/references/kernel.md:392",
+      "rule": "Fixed delivery envelope/consumer fold and nondelegable floor are canonical here; line400 already states green/red/no-coverage and empty-check fail-closed. build.md:19 owns status monotonicity; build.md:30 worktree cleanup; park.md owns park enactment."
+    },
+    {
+      "source": "plugin/skills/faff/references/l4.md:65",
+      "rule": "Concurrency never weakens floor; obligation7 relocates dispatch-cut merge, verifies evidence, stamps custody, invokes ship and routes delivery plus post-merge. Top-level no-cut carve-out retained."
+    }
+  ],
+  "largest_repetition_opportunities": [
+    {
+      "spans": [
+        "Merge happens only",
+        "Decision",
+        "No CI coverage",
+        "Holdout gate"
+      ],
+      "gross_bytes": 13240,
+      "opportunity": "State local ordering and mode-specific routes once; refer to already-loaded floor/CI/delivery/worktree/park rules. The current spans repeat the floor, last holdout check, absent-holdout pass-through and ship interlock multiple times. Gross bytes describe the combined current spans, not achievable savings.",
+      "retain": "Actual capability/freshness/attendedness semantics, no first-time holdout RUN/prompt here, route on canonical delivery result, no empty-CI merge, interactive real-TTY override command and autonomous draft/park. Do not replace with stale L4-only wording in shared references."
+    },
+    {
+      "spans": [
+        "CI failed",
+        "The bounded landing loop"
+      ],
+      "gross_bytes": 5233,
+      "opportunity": "Autonomous landing now delegates observe/retry/BEHIND/heartbeat/deadline/budget to faff land. Avoid narrating that same state machine and old retry algorithm before its concise token table. Keep interactive path placement and source-grounded discovered-scope/quarantine handoffs.",
+      "tests": "test/land.test.mjs:52-198 covers ready, pending slice,25-minute deadline, behind/conflict, main-was-red, flake/persistent/infra, one-per-sha budget and cross-PR isolation; ci-triage.test.mjs:69-143 covers routing, per-check origin and exactly-three quarantine."
+    },
+    {
+      "spans": [
+        "ADR-collision",
+        "ADR-accept"
+      ],
+      "gross_bytes": 4653,
+      "opportunity": "Describe one collision algorithm parameterised by ADR/PRDR verb+docs path rather than repeating it and its historical rationale. Remove ticket/incident history and explanations of why each primitive exists. Keep concrete exact call/order/paths.",
+      "retain": "Only incoming PR-owned collision may be renumbered; pre-existing target duplicate blocks without mutation; scoped references and explicit staging; validate/stage-guard/new-head CI; accept touched Proposed ADRs only after collision and successful holdout/floor."
+    },
+    {
+      "spans": [
+        "Self-consistency",
+        "Dispatch-cut split"
+      ],
+      "gross_bytes": 3738,
+      "opportunity": "Collapse repeated no-cut/cut and local/PR explanations into one applicability row per cell plus exact commands/flags. l4 obligation7 already owns dispatched custody; top-level self-consistency remains a distinct producer path.",
+      "retain": "Unattended and not-dispatched only; snapshot\u2192verify\u2192record-result, retained verdict_sha256 threaded on both local/PR; nonclean/absent refuses; never substitute a fresh trusted snapshot for dispatched held baseline."
+    },
+    {
+      "spans": [
+        "Discovered scope"
+      ],
+      "gross_bytes": 4355,
+      "opportunity": "Keep one compact capture contract and reference Agent Lanes/appetite/containment instead of teaching orchestrator filing here. Tracker priority mapping and write-once priority-reason comment belong to filing owner, not this record-only lane. CLI lookup replaces narrating shared priority table.",
+      "retain": "Concrete/separable vs in-PR/human-verification/vague distinction; exact output paths and triggers; relationship direction/source enum; graft containment:null and no orchestrator source; gate_defect judgement vs regression; priority CLI/failure/vague/legacy absent; never block or create a ticket while capturing."
+    }
+  ],
+  "irreducible_step10_behaviours": [
+    "Endgame cold re-entry takes issue/pr/run_dir plus reconstructed fix_cycles, skips Steps1-9 and new admission/claim; caller owns recovery claim; return original loop token.",
+    "Dispatch cut returns pr-ready with evidence/anchor and never invokes merge/ship or postmerge. No-cut path performs merge locus, parsed delivery contract and postmerge only autonomously.",
+    "Exact merge ordering across collision, new-head CI, holdout, custody, ADR accept, effect declaration/authorization, ship and delivery routing must remain explicit. Do not infer permission from a gate output alone.",
+    "Ungoverned schema2 effects declaration failure is observability-only; governed schema3 authorize denial/error blocks. Do not unify these opposite failure treatments. Observe only after confirmed merge; reconcile/conclude at close; bundle publish already seals.",
+    "Human no-CI/blocked-floor override remains an exact command for the human own real terminal, never agent-mediated TTY bypass.",
+    "Review fail loops; needs-human drafts/parks; not-ready is retry-later with precondition remedy; failed has bounded fix/park route. No new backlog action, remote write or re-run is authorised by shortening prose."
+  ],
+  "existing_proof_reuse": [
+    {
+      "files": [
+        "test/faff-1399-discovered-scope-priority.test.mjs"
+      ],
+      "covers": "Real CLI total priority table, gate-defect override and all filing owners agreeing. Does not prove model identifies concrete scope or obeys record-only authority."
+    },
+    {
+      "files": [
+        "test/merge-gate.test.mjs",
+        "test/merge-gate-local.test.mjs",
+        "test/merge-gate-controlflow.test.mjs",
+        "test/merge-fence.test.mjs",
+        "test/faff-1475-ac-floor.test.mjs"
+      ],
+      "covers": "Actual floor refusals, local no-remote interlock, no CI coverage, check-only no merge, human AC conditional call-out and raw merge fencing."
+    },
+    {
+      "files": [
+        "test/land.test.mjs",
+        "test/ci-triage.test.mjs",
+        "test/landing-progress.test.mjs"
+      ],
+      "covers": "Existing bounded landing/retry/state machine and triage/budget persistence. Reuse real handler with controlled forge inputs; no need for a new framework or eval per explanatory paragraph."
+    },
+    {
+      "files": [
+        "test/adr.test.mjs",
+        "test/prdr.test.mjs",
+        "test/adr-l3.test.mjs"
+      ],
+      "covers": "Actual validate/renumber/scoped-reference collision primitives and accept rules. Model ownership selection and ordering still require source review plus a few representative workflow cases if changed."
+    },
+    {
+      "files": [
+        "test/faff-893-custody-stamp.test.mjs",
+        "test/faff-895-pr-custody-basis.test.mjs",
+        "test/custody-verdict.test.mjs",
+        "test/merge-authorize.test.mjs",
+        "test/merge-gate-commissaire-verify.test.mjs"
+      ],
+      "covers": "Custody byte/hash admission/refusal and governed facts/grants. Retain facts-vs-label distinction; existing L4 examples alone do not prove every unattended/cut cell."
+    },
+    {
+      "files": [
+        "graft-evidence-consumer-reuse-notes.json"
+      ],
+      "covers": "Current separately owned adapter can reuse spec/classify/checklist/render/return/anchor/local-floor proof. It does not by itself cover endgame recovery, collisions, governed effects or postmerge and must not be credited for them."
+    }
+  ],
+  "recommended_review_scope": "Root can draft a single substantial merge-confidence reduction plus smaller record-only capture reduction using existing canonical rules and production commands. Review a compact invariant/route matrix rather than each sentence as an independent experiment. Run only relevant existing deterministic checks, then use the existing infrastructure for a small set of actual authority/ordering cases if the candidate is measured. No new harness is proposed.",
+  "limits": [
+    "Only bounded source span and named canonical excerpts/test assertions were inspected; no full-source semantic audit.",
+    "Duplicate means semantic repetition unless a matching verbatim excerpt is explicitly shown. Current span byte sizes are gross opportunity, not an accepted or predicted savings total.",
+    "No skill changes, harness changes, model calls or test reruns occurred. Existing source acceptance and held records remain unchanged."
+  ],
+  "input_hashes": [
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331"
+    },
+    {
+      "path": "plugin/skills/faff/references/build.md",
+      "sha256": "16760ea2fcff5f06ba910049e51736db01178e72b287f7e09a115946098630b9"
+    },
+    {
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "sha256": "b0e0ef32be783ffa5be27ab74db987ef347fedf1a75dd16bab5db030304d85d7"
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "sha256": "7994061a8ca8e8f23210874c401cf78ed0c4ad4af95b07c852456b6b6bbe5344"
+    },
+    {
+      "path": "plugin/skills/faff/references/park.md",
+      "sha256": "0a59cc9f746bc416dd693f249b7b3c844c85cb8ce660db0f7a907b3387c8ff43"
+    },
+    {
+      "path": "test/land.test.mjs",
+      "sha256": "65a192e703c3f56179c17bb406699095d35d17805a70586979062f447cf50c8b"
+    },
+    {
+      "path": "test/ci-triage.test.mjs",
+      "sha256": "c9d4659f69ce3094609591db40285b2b633ad40eabebfa1ad9a8c8ed63038df8"
+    },
+    {
+      "path": "test/faff-1399-discovered-scope-priority.test.mjs",
+      "sha256": "444564a56a6926fd7c491f1d4eddce4e1c06cbb7d97c914a8ad4187fc7df3320"
+    },
+    {
+      "path": "test/merge-gate-local.test.mjs",
+      "sha256": "05ddca9cfb0ad0a1e1904f689253f23554d9349d177a01c11b4a5bf367b26962"
+    },
+    {
+      "path": "test/faff-1475-ac-floor.test.mjs",
+      "sha256": "39d04aeab6e83b961f5841b33a499dd52da5d0fab28ef2466f2f41622e87af2c"
+    },
+    {
+      "path": "test/adr.test.mjs",
+      "sha256": "b020cd92be0778e3d57606665d8da4323a95319afff23c6b762bbb115f5acd85"
+    },
+    {
+      "path": "test/prdr.test.mjs",
+      "sha256": "1f58913eeae60b7c32f7152dad6446a16b379a8957bf0ce7bfc517567fac4ad3"
+    },
+    {
+      "path": "test/faff-893-custody-stamp.test.mjs",
+      "sha256": "0c1b2627fb91208578673a767a80bd7ef21744a185db7d37caf2f58fdbd862b1"
+    },
+    {
+      "path": "test/faff-895-pr-custody-basis.test.mjs",
+      "sha256": "e15afaf1cf1beae52f1f63ae729cc830cf88af2767d39701c386dab6658a966f"
+    },
+    {
+      "path": "test/merge-authorize.test.mjs",
+      "sha256": "16c99911fc9ebe5054dfc7043e22ea642a43d72513b330913f59a8452a2bf86d"
+    }
+  ]
+}

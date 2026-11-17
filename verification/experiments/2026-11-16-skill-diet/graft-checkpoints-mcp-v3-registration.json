@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "status": "registered-before-launch",
+  "root_commit": "762d968cd60ba9ef64d70ef0025a83aa30555d7d",
+  "plans": [
+    {
+      "path": "graft-checkpoints-mcp-v3-baseline-plan.json",
+      "sha256": "ed9c94c2e778bdc0976aa6a175e067d3b9ff6bd616c6444cede895a3eebdaf36"
+    },
+    {
+      "path": "graft-checkpoints-mcp-v3-candidate-plan.json",
+      "sha256": "786523e1db7970ed2c679e33850aab21f3b529d493a55405c9636ec5262c2720"
+    }
+  ],
+  "frozen_inputs": 104,
+  "prior_experiment": {
+    "registration": "graft-checkpoints-mcp-v2-registration.json",
+    "sha256": "61d159f0b85c3e18347f89ff4d1e5db130c40cbdb43ee525bb23b2b70f51795c",
+    "status": "held-invalid-task-delivery",
+    "hold_sha256": "efb54de2b27a10da50c4e4e040f40f440bd6045220532b09845c365cbe91adc0",
+    "source_policies_unchanged": true
+  },
+  "limits": [
+    "Six new checkpoint cases plus two unmodified reused ledger cases. Long gate budget/resume/timeout variants remain covered by existing tests and are not model-executed here.",
+    "Source assertions and actual output provenance need independent manual review. Deterministic grader remains draft.",
+    "No separate errored-rung producer case; existing gates-budget tests cover real timeout/errored results. Failed and missing gates are actual bounded cases.",
+    "Inherited consumer mismatch: discovery:none yields needs-human/rungs:[] from real gates; the actual quality-gates contract validator refuses that shape. The missing-gates case requires reporting this real refusal, never fabricating rungs or a conformant contract.",
+    "Future evaluator distinguishes source-required fields from optional supported prose; every claim still needs independent semantic grounding. No regrading of held V2.",
+    "The private checkout has no remote for isolation. Supplied hosted facts drive model workflow; the later local-floor call is a separate artifact-consumption check, not a hosted merge simulation.",
+    "Controlled PR handoff exercises captured-spec classification and actual human-only writer from actual run/config facts, not the complete pr open orchestration or hosted effects.",
+    "The actual unattended configuration requires trusted corrective-artifact integrity. This isolated consumer probe supplies no attestation and must refuse solely for unasserted integrity, with evidence verified and no merge. It does not simulate an admitted complete autonomous run or prove a successful floor/custody path.",
+    "For this fresh workload, corrected AC payload re-submission through the sole writer before any dependent operation is permitted; unresolved refusal remains blocking. Source specifies no permanent first-refusal poison or retry mandate. This interpretation never regrades held V2.",
+    "Manual acceptance rejects file bodies and nested EvidenceReturn in the sibling result, even if factually grounded. Optional output must preserve source return authority.",
+    "GPT Sol medium stand-in only; no Claude/Opus confirmation or provider-wide equivalence.",
+    "Five originals required in each arm; serial stopping saves work on failure but never turns a partial arm into a pass."
+  ]
+}

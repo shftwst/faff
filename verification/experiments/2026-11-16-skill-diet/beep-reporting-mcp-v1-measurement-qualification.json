@@ -1,0 +1,169 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T23:57:28.116Z",
+  "accepted": false,
+  "status": "measurement-qualified-pending-source-integration",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "source_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+  "source_review": "beep-reporting-v1-source-review.json",
+  "source_review_sha256": "70b08d471647fc9623d9491ef931dfd9f26779adeb995b430f526d0c2bc26d4e",
+  "before": {
+    "arm": "baseline",
+    "gate": {
+      "path": "beep-reporting-mcp-v1-baseline-gate.json",
+      "sha256": "8e91bf583ea755919ad3c2627f341081b2c9c0f57df3a24d50fa35772024573c"
+    },
+    "samples": 5,
+    "raw_cases_passed": 29,
+    "assessed_cases_passed": 30,
+    "cases_total": 30,
+    "native_samples_passed": 5,
+    "manual_cases_passed": 30,
+    "normalisation_calls": 41,
+    "discarded_drafts": [
+      {
+        "sample": "beep-reporting-mcp-v1-baseline-2",
+        "case_id": "review-holds",
+        "channel": "conversation",
+        "seq": 11,
+        "normalised_id": "review-holds:conversation:1",
+        "input_sha256": "62b7e34ce00daf6cd41be1145d4b9544b89d5230b02d5684991aa3b76a61a1af",
+        "selected_seq": 12,
+        "publication_seq": 13
+      }
+    ]
+  },
+  "after": {
+    "arm": "candidate",
+    "gate": {
+      "path": "beep-reporting-mcp-v1-candidate-gate.json",
+      "sha256": "8c3b42fc298f6bc12fbaa077cf50d9ee7e55615af191741da444cffbb675b76e"
+    },
+    "samples": 5,
+    "raw_cases_passed": 30,
+    "assessed_cases_passed": 30,
+    "cases_total": 30,
+    "native_samples_passed": 5,
+    "manual_cases_passed": 30,
+    "normalisation_calls": 40,
+    "discarded_drafts": []
+  },
+  "bindings": [
+    {
+      "path": "beep-reporting-v1-source-review.json",
+      "sha256": "70b08d471647fc9623d9491ef931dfd9f26779adeb995b430f526d0c2bc26d4e"
+    },
+    {
+      "path": "independent-beep-reporting-candidate-source-review.json",
+      "sha256": "af4e5ba72f64c98ddf83459221414086dc23b5b9cd81141443d5a30b47a37714"
+    },
+    {
+      "path": "beep-reporting-medium-integration.json",
+      "sha256": "40306da7b709857c372d8b6d92bb89da76f3c500fb3b6d9f78486918a8ac7ea4"
+    },
+    {
+      "path": "beep-reporting-mcp-v1-registration.json",
+      "sha256": "9ac4ab8b7b07258b6ebc5e69f6d52bbbdd7899fd87888245067c268f3eebd606"
+    },
+    {
+      "path": "beep-reporting-mcp-v1-hold.json",
+      "sha256": "fca85efac4861519178b4cff012c7afd933a9fcd025c068e18c3643def8fe784"
+    },
+    {
+      "path": "beep-reporting-mcp-v1-draft-assessment-registration.json",
+      "sha256": "b5e445f3e1d1a7ca2cf20bedce8360456762aee83ceb6e58276e63ea79c5f197"
+    },
+    {
+      "path": "independent-reporting-draft-assessment-v1-review.json",
+      "sha256": "09a88e33545ebed9df324358fe9c10ef97b4062e3aa9daa25a83dcdfa0e6eb08"
+    },
+    {
+      "path": "independent-reporting-mcp-arm-gate-v1-review.json",
+      "sha256": "d9695e892be46c3aff854df380feb866738fccff055ec01cb440ed2fd6ad4bd2"
+    },
+    {
+      "path": "mcp-transport-v4-qualification.json",
+      "sha256": "909bb9bff077b2d993b16e36e09fe9ab78b20dffd2a7310fbb2ce60c81fb7018"
+    },
+    {
+      "path": "manual-artifact-reviews/beep-reporting-mcp-v1-baseline-independent.json",
+      "sha256": "113a0c1aeffaf1414f380ccff1f1cf84448be99b6630ba99d4764403c8e110c3"
+    },
+    {
+      "path": "manual-artifact-reviews/beep-reporting-mcp-v1-assessed-independent.json",
+      "sha256": "d92b9ad3e96a2e00a362493454d525e34fa6b0bc7e453e736b517a52193de46c"
+    },
+    {
+      "path": "manual-artifact-reviews/beep-reporting-mcp-v1-candidate-independent.json",
+      "sha256": "67d6509ef102170e2d2ec7c5e9d1c0f98dbbd4f1a0590a57175b7d2194a337ac"
+    }
+  ],
+  "private_integration": {
+    "schema": 1,
+    "status": "pass",
+    "directory": "/var/tmp/faff-beep-reporting-medium-integration",
+    "base_commit": "e0ff6bff35bb5432f8cf36de592b1064b639bff7",
+    "isolated_commit": "7ceb7af630c866baff0115c696f93516ec5f8260",
+    "source_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+    "production_installed": false,
+    "temporary_directory": "/var/tmp/faff-beep-reporting-tests-w35_x9y6",
+    "checks": [
+      {
+        "check": "tests",
+        "command": [
+          "node",
+          "--test",
+          "--test-concurrency=4",
+          "test/control-parity-reporting.test.mjs",
+          "test/run-summary.test.mjs",
+          "test/rendering-routing.test.mjs"
+        ],
+        "exit_code": 0,
+        "path": "deterministic-checks/beep-reporting-medium-integration-tests.txt",
+        "sha256": "48506eac69810c6fb896c42a0f619d26cba1ef72e6844ffd17e5612203ab11d9"
+      },
+      {
+        "check": "adapter-lint",
+        "command": [
+          "node",
+          "plugin/skills/faff/bin/faff",
+          "validate-adapters"
+        ],
+        "exit_code": 0,
+        "path": "deterministic-checks/beep-reporting-medium-integration-adapter-lint.txt",
+        "sha256": "bb4d1a24e82014e354b443a671613ccbfff3359e4e424d6bf8508de9c22e43ec"
+      },
+      {
+        "check": "rule-inventory",
+        "command": [
+          "node",
+          "plugin/skills/faff/bin/faff",
+          "rule-inventory",
+          "check",
+          "--base",
+          "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+          "--json"
+        ],
+        "exit_code": 0,
+        "path": "deterministic-checks/beep-reporting-medium-integration-rule-inventory.txt",
+        "sha256": "628219eddedce474edc89e275f542affd2a0cbff743d39da491cdcb42e592cd5"
+      }
+    ],
+    "limits": [
+      "Deterministic integration only; model-pair native, output and manual checks required before source acceptance."
+    ]
+  },
+  "main_source_commit": null,
+  "main_integration": null,
+  "mandatory_dependencies_added": [],
+  "qualifier_sha256": "7d36f7478a26a197bdab7cc80ae19b7ff5789af8a004f02624670651a05fb124",
+  "limits": [
+    "Five original samples per arm in the fresh structured-MCP cohort. Earlier shell/native failures remain held, unpooled and unchanged. No sample replacement.",
+    "The original baseline2 raw failure remains. A separately frozen post-hoc assessment permits unused successful drafts before the sole canonical publication; it was fixed before remaining baseline and all candidate calls. Raw scores, intermediate typo and call overhead remain disclosed.",
+    "Actual pinned run-summary handler, production ledger setup and summary persistence; fixed forge, install-health, economics, budget and methodology dependencies; controlled identity rendering, publication and build continuation.",
+    "All60execution cases receive independent actual-output review. Strict native replay binds policy delivery and calls to the same runtime/source/fixture; the separate workflow assessment binds their semantics.",
+    "No full build loop, run-close/andon, hosted publication, rendering-quality or pre-write normalisation proof. No statistical or provider-wide equivalence claim.",
+    "Intended-driver Opus confirmation remains pending allowance renewal. Byte and token savings concern loaded source prose, not measured provider billing."
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "instructions": "Read the complete rendering policy through read_policy. For each independent artifact case, transform the supplied draft or source into the requested output and persist it through write_output. These are isolated human-facing outputs; preserve their facts and use the supplied source material. Do not query a tracker or read additional files. Separately answer every bounded rule question. Global operator guidance applies. Finish after every case is recorded.",
+  "policy": {
+    "bytes": 7885,
+    "utf16_characters": 7885,
+    "sha256": "2cfe6dc0746cfaa3d493d8c656ab0501c03e72b1331c1ca8e7ff76b0fd116e66",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_output",
+      "description": "Persist the completed rendering for one artifact case. Write once per case; provide the actual normalised text or violation report requested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "answer_rule",
+      "description": "Answer one separate bounded policy question in its stated value shape. Do not perform hypothetical actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all artifacts and rule answers are recorded.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "literal",
+      "task": "Persist source.text exactly, including punctuation and newline.",
+      "source": {
+        "text": "Line one: $1.25, \"quoted\", and apostrophe's.\nLine two."
+      }
+    }
+  ],
+  "rule_questions": [
+    {
+      "id": "cost",
+      "question": "Return {\"cost\":1.25}."
+    }
+  ]
+}

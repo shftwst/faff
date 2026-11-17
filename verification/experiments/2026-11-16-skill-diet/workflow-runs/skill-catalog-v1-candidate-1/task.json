@@ -1,0 +1,303 @@
+{
+  "instructions": "Read the complete skill catalogue through read_policy. It contains the installed names, descriptions and user-invocable flags. For each independent request, select the one skill that fits its entry-command or configured-slot context. Use only the supplied catalogue and request. Submit the exact listed skill name as a JSON string value through submit_output, once per case. Do not execute or read any skill body, query a tracker, change files or perform the described work. These are discovery choices, not workflow execution. Finish after every selection is recorded.",
+  "policy": {
+    "bytes": 8143,
+    "utf16_characters": 8143,
+    "sha256": "600bf2ed053555f2bf6b640fe47905067e3960979b2eaaf5ff8329c5e65a62da",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "submit_output",
+      "description": "Persist one completed named output in the JSON shape requested by its case. The controlled caller consumes a termination policy through the real CLI. Submit once per case.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after submitting all independent requested outputs.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "selection-01",
+      "request": "The user explicitly invokes /faff with no further request. Select the gateway itself; its body owns any further routing.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-02",
+      "request": "Capture one new bug report and turn it into a useful tracker ticket.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-03",
+      "request": "Start a new empty project through a discovery conversation.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-04",
+      "request": "Interact with an existing ticket to clarify or amend it, without starting implementation.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-05",
+      "request": "Decompose an application-scale idea into a dependency-linked roadmap, descending from initiatives to first-slice epics.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-06",
+      "request": "Group loose Backlog work into proposed outcome-led project homes through the rehoming entry flow.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-07",
+      "request": "Brief me on what shipped, what is stuck and what I should focus on next.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-08",
+      "request": "Show the roadmap, its workstreams, dependency chains and how the pieces fit together.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-09",
+      "request": "Groom the backlog: find stale work, gaps and tickets that need promotion or demotion.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-10",
+      "request": "Turn this vague issue into a buildable specification and resolve its open decisions.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-11",
+      "request": "Build this specified issue in an isolated worktree and drive it through review and a PR.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-12",
+      "request": "Run ready work unattended overnight, parking genuine blockers and continuing the queue.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-13",
+      "request": "Bootstrap the consuming project configuration for the first use of this suite.",
+      "input": {
+        "context": "entry"
+      }
+    },
+    {
+      "id": "selection-14",
+      "request": "Use the default discovery producer to turn an idea into an intake brief.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-15",
+      "request": "Use the default spec producer to turn an issue and resolved decisions into a structured spec.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-16",
+      "request": "Produce a full nlspec-format specification as the alternative spec-slot implementation.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-17",
+      "request": "Use the default single-pass approach review at the spec stage.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-18",
+      "request": "Run each enabled spec-review lens as an independent adversarial refuter and aggregate their results.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-19",
+      "request": "Use the default pre-PR code reviewer in the build flow.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-20",
+      "request": "Get an independent-model adversarial second opinion on code after the primary review.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-21",
+      "request": "Author the Nygard Context, Decision and Consequences body for a settled architecture decision.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-22",
+      "request": "Propose a best-fit architecture from the brief, spec and infrastructure profile; do not provision it.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-23",
+      "request": "Provision a representative environment with compose and seed data for evaluation.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-24",
+      "request": "Provision code-interface reachability for an evaluator when the feature is exercised through a code boundary.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-25",
+      "request": "Resolve how an evaluator reaches the system over a private network across container or machine boundaries.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-26",
+      "request": "Judge the running feature against holdout criteria while remaining blind to its source code.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-27",
+      "request": "Judge only the PRD document for machine-verifiable stop conditions before admitting a lights-out run.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-28",
+      "request": "Execute the build queue sequentially as the default concurrency strategy.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-29",
+      "request": "Execute independent build work concurrently, capped and isolated in worktrees.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-30",
+      "request": "Order by graph structure and unlock value without introducing outcome or delivery opinions.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-31",
+      "request": "Apply the opinionated outcome-led, value-and-risk delivery lens.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-32",
+      "request": "Assign and validate the six automation-routing verdicts used for queue admission.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-33",
+      "request": "Normalise human-facing prose, issue glosses, visual forms and output density without an internal gated contract.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-34",
+      "request": "Perform readiness, merge or deployment and cleanup as the delivery producer after review gates clear.",
+      "input": {
+        "context": "configured-slot"
+      }
+    },
+    {
+      "id": "selection-35",
+      "request": "Scaffold or validate a custom slot skill and its required contract shape.",
+      "input": {
+        "context": "configured-slot"
+      }
+    }
+  ]
+}

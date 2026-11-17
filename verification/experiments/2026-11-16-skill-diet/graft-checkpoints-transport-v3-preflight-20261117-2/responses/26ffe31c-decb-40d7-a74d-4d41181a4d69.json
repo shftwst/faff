@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "{\"controlled\":true,\"pr\":{\"number\":11,\"state\":\"OPEN\",\"draft\":false,\"controlled\":true},\"warnings\":[]}\n",
+    "stderr": "",
+    "error": null,
+    "prior_commands": [
+      {
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "dod",
+          "classify",
+          "--spec",
+          "/var/tmp/graft-checkpoint-mOxjhv/dispatched-pass/.faff/graft/FAFF-9/captured-spec.md",
+          "--issue",
+          "FAFF-9",
+          "--json"
+        ],
+        "stdin": "",
+        "cwd": "/var/tmp/graft-checkpoint-mOxjhv/dispatched-pass",
+        "exit_code": 0,
+        "stdout": "{\"criteria\":[{\"text\":\"the supplied arithmetic command MUST pass\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:1\",\"local_ac_id\":\"ac-1\",\"ac_id\":\"faff-9#ac-1\"},{\"text\":\"Prices match the published pricing page\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":true,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:2\",\"local_ac_id\":\"ac-2\",\"ac_id\":\"faff-9#ac-2\"}],\"counts\":{\"scenario\":0,\"assertion\":1,\"prose\":1},\"holdout_counts\":{\"holdout\":0,\"visible\":2},\"oracle_less_count\":0,\"verification_tier_counts\":{\"running-stack\":1,\"integration\":0,\"delegated\":1},\"judged_count\":1,\"integration_count\":0,\"delegated_count\":1}\n",
+        "stderr": "",
+        "error": null
+      },
+      {
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "evidence",
+          "write",
+          "human-only-acs",
+          "--run-dir",
+          "/var/tmp/graft-checkpoint-mOxjhv/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+          "--issue",
+          "FAFF-9"
+        ],
+        "stdin": "{\"issue\":\"FAFF-9\",\"level\":\"L3\",\"unattended\":true,\"human_only\":[\"faff-9#ac-2\"]}",
+        "cwd": "/var/tmp/graft-checkpoint-mOxjhv/dispatched-pass",
+        "exit_code": 0,
+        "stdout": "/var/tmp/graft-checkpoint-mOxjhv/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/human-only-acs.json\n",
+        "stderr": "",
+        "error": null
+      }
+    ]
+  }
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "id": "dispatched-pass",
+    "status": "not-returned"
+  },
+  {
+    "id": "gate-failure",
+    "status": "not-returned"
+  },
+  {
+    "id": "gate-none",
+    "status": "not-returned"
+  },
+  {
+    "id": "evidence-absence",
+    "status": "not-returned"
+  },
+  {
+    "id": "evidence-refusal",
+    "status": "not-returned"
+  },
+  {
+    "id": "evidence-tamper",
+    "status": "not-returned"
+  }
+]

@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "status": "bounded-static-delta-clear-unmeasured-uninstalled",
+  "accepted": false,
+  "reviewer": {
+    "role": "independent source verifier",
+    "agent": "verify_wtf_scope"
+  },
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/kernel-core-contracts-v1.md",
+      "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v3-draft.md",
+      "sha256": "a12ed2bb9a58cab911996e92ddb49fe1fe71ef8c62ca86fede4ecf3d016910ac"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v4-draft.md",
+      "sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-kernel-core-contracts-v3-source-review.json",
+      "sha256": "67874f80d5e2ec545bdd6fa28e576b0c2cb8bcb1afecbcd9ee26109e42730cb4"
+    }
+  ],
+  "checks": {
+    "v4_sha_matches_requested": true,
+    "exact_only_delta": "### Producer contract consumption becomes **Producer contract consumption.**",
+    "all_instruction_table_and_other_bytes_identical": true,
+    "all_original_baseline_heading_lines_retained": true,
+    "source_prefix_bytes_identical": 55064,
+    "no_new_mandatory_read": true,
+    "prior_v3_obligation_review_applies": true
+  },
+  "assessment": "The heading demotion leaves the unqualified For each row instruction and complete producer-consumption table verbatim in the same Core contracts region. It introduces no condition restricting consumption to foreign occupants or conformance failures. Existing review/spec-review/delivery/readiness headings and applicability remain unchanged. No material scope or authority change found.",
+  "limits": [
+    "Only the exact V3-to-V4 presentation delta and unchanged prefix/original headings were checked; the V3 semantic review is inherited by explicit hash reference.",
+    "No measurement, integration, lint or contract-test result is asserted by this source addendum. New-kernel behavioural qualification remains separate; prior cut results do not qualify it.",
+    "No model calls, source installation, implementation edits or frozen graft input changes were performed."
+  ]
+}

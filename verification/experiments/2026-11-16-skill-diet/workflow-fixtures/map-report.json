@@ -1,0 +1,1072 @@
+{
+  "schema": 1,
+  "scope": "Actual roadmap report generation from completed caller snapshots and methodology outputs. No live tracker acquisition, dispatch, tracker writes or full entry invocation. Only phases 2-8 and presentation explanations may be shortened; configuration, live-acquisition phase, chaining and autonomous rules remain verbatim.",
+  "cases": [
+    {
+      "id": "coherent",
+      "task": "Render the complete interactive /faff-map roadmap from this completed fresh tracker/git snapshot and the already-returned methodology outputs. Acquisition and dispatch finished outside this reporting boundary. Do not fetch, dispatch, invoke skills or mutate anything. Analyse and render the supplied live graph and findings, use the canonical roadmap forms, preserve methodology order, and include applicable follow-on offers as text only. Persist the actual Markdown.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology": "faffter-noon-methodology-thematic",
+        "initiative": {
+          "name": "Reliable recovery",
+          "status": "Active",
+          "success_metric": "Every accepted recovery request produces one durable token"
+        },
+        "projects": [
+          {
+            "name": "Token ledger",
+            "horizon": "Now",
+            "status": "started",
+            "issues": [
+              "MAP-1",
+              "MAP-2"
+            ]
+          },
+          {
+            "name": "Recovery notifications",
+            "horizon": "Next",
+            "status": "planned",
+            "issues": [
+              "MAP-3"
+            ]
+          },
+          {
+            "name": "Recovery reporting",
+            "horizon": "Later",
+            "status": "backlog",
+            "issues": [
+              "MAP-4"
+            ],
+            "rationale": "Intentionally one collapsed Later project until the ledger ships"
+          }
+        ],
+        "issues": [
+          {
+            "id": "MAP-1",
+            "title": "Store recovery tokens",
+            "status": "In Progress",
+            "blocked_by": []
+          },
+          {
+            "id": "MAP-2",
+            "title": "Deduplicate recovery requests",
+            "status": "In Progress",
+            "blocked_by": []
+          },
+          {
+            "id": "MAP-3",
+            "title": "Send recovery notifications",
+            "status": "Todo",
+            "blocked_by": [
+              "MAP-1",
+              "MAP-2"
+            ]
+          },
+          {
+            "id": "MAP-4",
+            "title": "Report recovery delivery",
+            "status": "Backlog",
+            "blocked_by": [
+              "MAP-3"
+            ]
+          }
+        ],
+        "terminal_work": [
+          {
+            "id": "MAP-0",
+            "title": "Prepare token schema",
+            "status": "Done"
+          }
+        ],
+        "satisfied_edges_removed": [
+          [
+            "MAP-0",
+            "MAP-1"
+          ]
+        ],
+        "recent_git": [
+          {
+            "issue": "MAP-2",
+            "event": "commit yesterday on active branch"
+          },
+          {
+            "issue": "MAP-0",
+            "event": "merged two days ago; supports Token ledger"
+          }
+        ],
+        "methodology_outputs": {
+          "pick_ordering": {
+            "Now": [
+              "MAP-2",
+              "MAP-1"
+            ],
+            "Next": [
+              "MAP-3"
+            ],
+            "Later": [
+              "MAP-4"
+            ]
+          },
+          "backlog_diagnostics": {
+            "dependency_cycles": [],
+            "ghost_project_pointers": []
+          },
+          "horizon_findings": []
+        },
+        "independence_verified": true,
+        "tidy_this_pass": false,
+        "explicit_picked_issue": null
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Roadmap"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "Outcome initiatives",
+          "Workstreams",
+          "Dependency chain",
+          "Trigger gates",
+          "Critical path",
+          "TL;DR",
+          "Reliable recovery",
+          "MAP-1",
+          "MAP-2",
+          "Yes[^\\n]*chain joins up",
+          "Critical path(?:(?!\\n###)[\\s\\S])*?MAP-2(?:(?!\\n###)[\\s\\S])*?MAP-1",
+          "Not yet",
+          "Token ledger[\\s\\S]{0,700}Recovery notifications",
+          "intention|deliberate",
+          "/faff-wtf[\\s\\S]{0,80}y/n"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:created|filed|changed|reparented|deleted)",
+          "detection skipped",
+          "\\b[0-9]+ weeks? until",
+          "MAP-0[^\\n]*(?:still blocks|is blocking)"
+        ],
+        "allowed_ids": [
+          "MAP-0",
+          "MAP-1",
+          "MAP-2",
+          "MAP-3",
+          "MAP-4"
+        ]
+      },
+      "reference": "## Roadmap: 2026-11-16\nOne active initiative: Reliable recovery.\n### Outcome initiatives\n| Initiative | Status | Success metric |\n|---|---|---|\n| Reliable recovery | Active | Every accepted recovery request produces one durable token |\n### Workstreams\nReliable recovery\nNow: Token ledger, started, MAP-2 (deduplicate recovery requests), MAP-1 (store recovery tokens).\nNext: Recovery notifications, planned, MAP-3 (send notifications).\nLater: Recovery reporting, backlog, MAP-4 (report delivery); intentionally collapsed until the ledger ships.\nRecent grounding: MAP-2 committed yesterday; MAP-0 (prepare token schema) merged and supports the ledger.\n### Dependency chain\nToken ledger [MAP-2, MAP-1] -> Recovery notifications [MAP-3] -> Recovery reporting [MAP-4]\nYes, the chain joins up.\n### Trigger gates\n| Gate | Who fires it | Currently fireable? | Notes |\n|---|---|---|---|\n| Token ledger to Recovery notifications | initiative-internal | Yes | upstream work is in flight and the downstream project exists |\n| Notifications to reporting | initiative-internal | Not yet | notifications are not yet in flight |\n### Critical path\nNow: MAP-2, then MAP-1, in the supplied methodology order.\nNext: MAP-3 when the ledger ships.\nLater: MAP-4 after notifications.\n### Risks the structure surfaces\nCross-project blockers inside Reliable recovery: MAP-1 and MAP-2 in Token ledger gate MAP-3 in Recovery notifications. Keep those dependencies explicit and verify the internal gate.\n### TL;DR\nOne outcome is active. The chain joins up. The ledger-to-notifications gate is the main dependency; the completed schema is no longer a blocker.\nWant to shift to today's focus via /faff-wtf? (y/n)\n"
+    },
+    {
+      "id": "cycle-on-chain",
+      "task": "Render the complete interactive /faff-map roadmap from this completed fresh tracker/git snapshot and the already-returned methodology outputs. Acquisition and dispatch finished outside this reporting boundary. Do not fetch, dispatch, invoke skills or mutate anything. Analyse and render the supplied live graph and findings, use the canonical roadmap forms, preserve methodology order, and include applicable follow-on offers as text only. Persist the actual Markdown.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology": "faffter-noon-methodology-thematic",
+        "initiative": {
+          "name": "Reliable recovery",
+          "status": "Active",
+          "success_metric": "Every accepted recovery request produces one durable token"
+        },
+        "projects": [
+          {
+            "name": "Token ledger",
+            "horizon": "Now",
+            "status": "started",
+            "issues": [
+              "MAP-1",
+              "MAP-2"
+            ]
+          },
+          {
+            "name": "Recovery notifications",
+            "horizon": "Next",
+            "status": "planned",
+            "issues": [
+              "MAP-3"
+            ]
+          },
+          {
+            "name": "Recovery reporting",
+            "horizon": "Later",
+            "status": "backlog",
+            "issues": [
+              "MAP-4"
+            ],
+            "rationale": "Intentionally one collapsed Later project until the ledger ships"
+          }
+        ],
+        "issues": [
+          {
+            "id": "MAP-1",
+            "title": "Store recovery tokens",
+            "status": "In Progress",
+            "blocked_by": [
+              "MAP-2"
+            ]
+          },
+          {
+            "id": "MAP-2",
+            "title": "Deduplicate recovery requests",
+            "status": "In Progress",
+            "blocked_by": [
+              "MAP-1"
+            ]
+          },
+          {
+            "id": "MAP-3",
+            "title": "Send recovery notifications",
+            "status": "Todo",
+            "blocked_by": [
+              "MAP-1",
+              "MAP-2"
+            ]
+          },
+          {
+            "id": "MAP-4",
+            "title": "Report recovery delivery",
+            "status": "Backlog",
+            "blocked_by": [
+              "MAP-3"
+            ]
+          }
+        ],
+        "terminal_work": [
+          {
+            "id": "MAP-0",
+            "title": "Prepare token schema",
+            "status": "Done"
+          }
+        ],
+        "satisfied_edges_removed": [
+          [
+            "MAP-0",
+            "MAP-1"
+          ]
+        ],
+        "recent_git": [
+          {
+            "issue": "MAP-2",
+            "event": "commit yesterday on active branch"
+          },
+          {
+            "issue": "MAP-0",
+            "event": "merged two days ago; supports Token ledger"
+          }
+        ],
+        "methodology_outputs": {
+          "pick_ordering": {
+            "Now": [
+              "MAP-2",
+              "MAP-1"
+            ],
+            "Next": [
+              "MAP-3"
+            ],
+            "Later": [
+              "MAP-4"
+            ]
+          },
+          "backlog_diagnostics": {
+            "dependency_cycles": [
+              [
+                "MAP-1",
+                "MAP-2",
+                "MAP-1"
+              ]
+            ],
+            "ghost_project_pointers": []
+          },
+          "horizon_findings": []
+        },
+        "independence_verified": true,
+        "tidy_this_pass": false,
+        "explicit_picked_issue": null
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Roadmap"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "Outcome initiatives",
+          "Workstreams",
+          "Dependency chain",
+          "Trigger gates",
+          "Critical path",
+          "TL;DR",
+          "Reliable recovery",
+          "MAP-1",
+          "MAP-2",
+          "No[^\\n]*dependency cycle",
+          "MAP-1[\\s\\S]{0,100}MAP-2[\\s\\S]{0,100}MAP-1",
+          "cut|remove|break",
+          "/faff-plot[\\s\\S]{0,80}y/n"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:created|filed|changed|reparented|deleted)",
+          "detection skipped",
+          "\\b[0-9]+ weeks? until",
+          "Yes[^\\n]*chain joins up"
+        ],
+        "allowed_ids": [
+          "MAP-0",
+          "MAP-1",
+          "MAP-2",
+          "MAP-3",
+          "MAP-4"
+        ]
+      },
+      "reference": "## Roadmap: 2026-11-16\nOne active initiative: Reliable recovery.\n### Outcome initiatives\n| Initiative | Status | Success metric |\n|---|---|---|\n| Reliable recovery | Active | Every accepted recovery request produces one durable token |\n### Workstreams\nReliable recovery\nNow: Token ledger, started, MAP-2 (deduplicate recovery requests), MAP-1 (store recovery tokens).\nNext: Recovery notifications, planned, MAP-3 (send notifications).\nLater: Recovery reporting, backlog, MAP-4 (report delivery); intentionally collapsed until the ledger ships.\nRecent grounding: MAP-2 committed yesterday; MAP-0 (prepare token schema) merged and supports the ledger.\n### Dependency chain\nToken ledger [MAP-2, MAP-1] -> Recovery notifications [MAP-3] -> Recovery reporting [MAP-4]\nNo, a dependency cycle breaks the chain: MAP-1 -> MAP-2 -> MAP-1.\n### Trigger gates\n| Gate | Who fires it | Currently fireable? | Notes |\n|---|---|---|---|\n| Token ledger to Recovery notifications | initiative-internal | Yes | upstream work is in flight and the downstream project exists |\n| Notifications to reporting | initiative-internal | Not yet | notifications are not yet in flight |\n### Critical path\nNow: MAP-2, then MAP-1, in the supplied methodology order.\nNext: MAP-3 when the ledger ships.\nLater: MAP-4 after notifications.\n### Risks the structure surfaces\nDependency cycle: MAP-1 -> MAP-2 -> MAP-1. Cut the MAP-2-to-MAP-1 blocker edge after confirming which task truly depends on the other.\nCross-project blockers inside Reliable recovery: MAP-1 and MAP-2 in Token ledger gate MAP-3 in Recovery notifications. Keep those dependencies explicit and verify the internal gate.\n### TL;DR\nOne outcome is active. A cycle breaks the chain. The ledger-to-notifications gate is the main dependency; the completed schema is no longer a blocker.\nPlan the missing structure via /faff-plot? (y/n)\nWant to shift to today's focus via /faff-wtf? (y/n)\n"
+    },
+    {
+      "id": "cycle-off-chain",
+      "task": "Render the complete interactive /faff-map roadmap from this completed fresh tracker/git snapshot and the already-returned methodology outputs. Acquisition and dispatch finished outside this reporting boundary. Do not fetch, dispatch, invoke skills or mutate anything. Analyse and render the supplied live graph and findings, use the canonical roadmap forms, preserve methodology order, and include applicable follow-on offers as text only. Persist the actual Markdown.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology": "faffter-noon-methodology-thematic",
+        "initiative": {
+          "name": "Reliable recovery",
+          "status": "Active",
+          "success_metric": "Every accepted recovery request produces one durable token"
+        },
+        "projects": [
+          {
+            "name": "Token ledger",
+            "horizon": "Now",
+            "status": "started",
+            "issues": [
+              "MAP-1",
+              "MAP-2"
+            ]
+          },
+          {
+            "name": "Recovery notifications",
+            "horizon": "Next",
+            "status": "planned",
+            "issues": [
+              "MAP-3"
+            ]
+          },
+          {
+            "name": "Recovery reporting",
+            "horizon": "Later",
+            "status": "backlog",
+            "issues": [
+              "MAP-4"
+            ],
+            "rationale": "Intentionally one collapsed Later project until the ledger ships"
+          }
+        ],
+        "issues": [
+          {
+            "id": "MAP-1",
+            "title": "Store recovery tokens",
+            "status": "In Progress",
+            "blocked_by": []
+          },
+          {
+            "id": "MAP-2",
+            "title": "Deduplicate recovery requests",
+            "status": "In Progress",
+            "blocked_by": []
+          },
+          {
+            "id": "MAP-3",
+            "title": "Send recovery notifications",
+            "status": "Todo",
+            "blocked_by": [
+              "MAP-1",
+              "MAP-2"
+            ]
+          },
+          {
+            "id": "MAP-4",
+            "title": "Report recovery delivery",
+            "status": "Backlog",
+            "blocked_by": [
+              "MAP-3"
+            ]
+          }
+        ],
+        "terminal_work": [
+          {
+            "id": "MAP-0",
+            "title": "Prepare token schema",
+            "status": "Done"
+          }
+        ],
+        "satisfied_edges_removed": [
+          [
+            "MAP-0",
+            "MAP-1"
+          ]
+        ],
+        "recent_git": [
+          {
+            "issue": "MAP-2",
+            "event": "commit yesterday on active branch"
+          },
+          {
+            "issue": "MAP-0",
+            "event": "merged two days ago; supports Token ledger"
+          }
+        ],
+        "methodology_outputs": {
+          "pick_ordering": {
+            "Now": [
+              "MAP-2",
+              "MAP-1"
+            ],
+            "Next": [
+              "MAP-3"
+            ],
+            "Later": [
+              "MAP-4"
+            ]
+          },
+          "backlog_diagnostics": {
+            "dependency_cycles": [
+              [
+                "MAP-7",
+                "MAP-8",
+                "MAP-7"
+              ]
+            ],
+            "ghost_project_pointers": []
+          },
+          "horizon_findings": []
+        },
+        "independence_verified": true,
+        "tidy_this_pass": false,
+        "explicit_picked_issue": null,
+        "off_chain_issues": [
+          {
+            "id": "MAP-7",
+            "title": "Rename an internal flag",
+            "status": "Backlog",
+            "blocked_by": [
+              "MAP-8"
+            ]
+          },
+          {
+            "id": "MAP-8",
+            "title": "Refresh old fixture names",
+            "status": "Backlog",
+            "blocked_by": [
+              "MAP-7"
+            ]
+          }
+        ]
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Roadmap"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "Outcome initiatives",
+          "Workstreams",
+          "Dependency chain",
+          "Trigger gates",
+          "Critical path",
+          "TL;DR",
+          "Reliable recovery",
+          "MAP-1",
+          "MAP-2",
+          "Yes[^\\n]*chain joins up",
+          "MAP-7[\\s\\S]{0,100}MAP-8",
+          "off.chain|outside.*chain",
+          "remove|cut|break"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:created|filed|changed|reparented|deleted)",
+          "detection skipped",
+          "\\b[0-9]+ weeks? until",
+          "No[^\\n]*cycle breaks the chain"
+        ],
+        "allowed_ids": [
+          "MAP-0",
+          "MAP-1",
+          "MAP-2",
+          "MAP-3",
+          "MAP-4",
+          "MAP-7",
+          "MAP-8"
+        ]
+      },
+      "reference": "## Roadmap: 2026-11-16\nOne active initiative: Reliable recovery.\n### Outcome initiatives\n| Initiative | Status | Success metric |\n|---|---|---|\n| Reliable recovery | Active | Every accepted recovery request produces one durable token |\n### Workstreams\nReliable recovery\nNow: Token ledger, started, MAP-2 (deduplicate recovery requests), MAP-1 (store recovery tokens).\nNext: Recovery notifications, planned, MAP-3 (send notifications).\nLater: Recovery reporting, backlog, MAP-4 (report delivery); intentionally collapsed until the ledger ships.\nRecent grounding: MAP-2 committed yesterday; MAP-0 (prepare token schema) merged and supports the ledger.\n### Dependency chain\nToken ledger [MAP-2, MAP-1] -> Recovery notifications [MAP-3] -> Recovery reporting [MAP-4]\nYes, the chain joins up.\n### Trigger gates\n| Gate | Who fires it | Currently fireable? | Notes |\n|---|---|---|---|\n| Token ledger to Recovery notifications | initiative-internal | Yes | upstream work is in flight and the downstream project exists |\n| Notifications to reporting | initiative-internal | Not yet | notifications are not yet in flight |\n### Critical path\nNow: MAP-2, then MAP-1, in the supplied methodology order.\nNext: MAP-3 when the ledger ships.\nLater: MAP-4 after notifications.\n### Risks the structure surfaces\nOff-chain dependency cycle: MAP-7 (rename internal flag) -> MAP-8 (refresh fixture names) -> MAP-7. Remove an incorrect blocker edge after confirming the dependency; it does not touch the rendered recovery chain.\nCross-project blockers inside Reliable recovery: MAP-1 and MAP-2 in Token ledger gate MAP-3 in Recovery notifications. Keep those dependencies explicit and verify the internal gate.\n### TL;DR\nOne outcome is active. The chain joins up. The ledger-to-notifications gate is the main dependency; the completed schema is no longer a blocker.\nWant to shift to today's focus via /faff-wtf? (y/n)\n"
+    },
+    {
+      "id": "ghost-next",
+      "task": "Render the complete interactive /faff-map roadmap from this completed fresh tracker/git snapshot and the already-returned methodology outputs. Acquisition and dispatch finished outside this reporting boundary. Do not fetch, dispatch, invoke skills or mutate anything. Analyse and render the supplied live graph and findings, use the canonical roadmap forms, preserve methodology order, and include applicable follow-on offers as text only. Persist the actual Markdown.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology": "faffter-noon-methodology-thematic",
+        "initiative": {
+          "name": "Reliable recovery",
+          "status": "Active",
+          "success_metric": "Every accepted recovery request produces one durable token",
+          "description": "Next: Recovery notifications, to notify users after durable token creation."
+        },
+        "projects": [
+          {
+            "name": "Token ledger",
+            "horizon": "Now",
+            "status": "started",
+            "issues": [
+              "MAP-1",
+              "MAP-2"
+            ]
+          },
+          {
+            "name": "Recovery reporting",
+            "horizon": "Later",
+            "status": "backlog",
+            "issues": [
+              "MAP-4"
+            ],
+            "rationale": "Intentionally one collapsed Later project until the ledger ships"
+          }
+        ],
+        "issues": [
+          {
+            "id": "MAP-1",
+            "title": "Store recovery tokens",
+            "status": "In Progress",
+            "blocked_by": []
+          },
+          {
+            "id": "MAP-2",
+            "title": "Deduplicate recovery requests",
+            "status": "In Progress",
+            "blocked_by": []
+          },
+          {
+            "id": "MAP-4",
+            "title": "Report recovery delivery",
+            "status": "Backlog",
+            "blocked_by": [
+              "MAP-3"
+            ]
+          }
+        ],
+        "terminal_work": [
+          {
+            "id": "MAP-0",
+            "title": "Prepare token schema",
+            "status": "Done"
+          }
+        ],
+        "satisfied_edges_removed": [
+          [
+            "MAP-0",
+            "MAP-1"
+          ]
+        ],
+        "recent_git": [
+          {
+            "issue": "MAP-2",
+            "event": "commit yesterday on active branch"
+          },
+          {
+            "issue": "MAP-0",
+            "event": "merged two days ago; supports Token ledger"
+          }
+        ],
+        "methodology_outputs": {
+          "pick_ordering": {
+            "Now": [
+              "MAP-2",
+              "MAP-1"
+            ],
+            "Next": [],
+            "Later": [
+              "MAP-4"
+            ]
+          },
+          "backlog_diagnostics": {
+            "dependency_cycles": [],
+            "ghost_project_pointers": [
+              {
+                "issue": "MAP-4",
+                "missing_project": "Recovery notifications"
+              }
+            ]
+          },
+          "horizon_findings": []
+        },
+        "independence_verified": true,
+        "tidy_this_pass": false,
+        "explicit_picked_issue": null,
+        "excluded_history": {
+          "cancelled_project_name": "Legacy pager experiment",
+          "deleted_project_name": "Old alert silo"
+        }
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Roadmap"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "Outcome initiatives",
+          "Workstreams",
+          "Dependency chain",
+          "Trigger gates",
+          "Critical path",
+          "TL;DR",
+          "Reliable recovery",
+          "MAP-1",
+          "MAP-2",
+          "no project|missing.*project",
+          "Blocked structurally",
+          "ghost",
+          "/faff-plot[\\s\\S]{0,80}y/n"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:created|filed|changed|reparented|deleted)",
+          "detection skipped",
+          "\\b[0-9]+ weeks? until",
+          "Legacy pager experiment",
+          "Old alert silo",
+          "Yes[^\\n]*chain joins up"
+        ],
+        "allowed_ids": [
+          "MAP-0",
+          "MAP-1",
+          "MAP-2",
+          "MAP-3",
+          "MAP-4"
+        ]
+      },
+      "reference": "## Roadmap: 2026-11-16\nOne active initiative: Reliable recovery.\n### Outcome initiatives\n| Initiative | Status | Success metric |\n|---|---|---|\n| Reliable recovery | Active | Every accepted recovery request produces one durable token |\n### Workstreams\nReliable recovery\nNow: Token ledger, started, MAP-2 (deduplicate recovery requests), MAP-1 (store recovery tokens).\nNext: (no project planned). The initiative description names Recovery notifications, but no project exists.\nLater: Recovery reporting, backlog, MAP-4 (report delivery); intentionally collapsed until the ledger ships.\nRecent grounding: MAP-2 committed yesterday; MAP-0 (prepare token schema) merged and supports the ledger.\n### Dependency chain\nToken ledger [MAP-2, MAP-1] -> MISSING Recovery notifications -> Recovery reporting [MAP-4]\nNo, Reliable recovery has no path through its missing Next project.\n### Trigger gates\n| Gate | Who fires it | Currently fireable? | Notes |\n|---|---|---|---|\n| Token ledger to Recovery notifications | initiative-internal | Blocked structurally | downstream project missing |\n| Missing notifications to reporting | initiative-internal | Blocked structurally | no notifications project exists |\n### Critical path\nNow: MAP-2, then MAP-1, in the supplied methodology order.\nNext: no project planned; Recovery notifications is a missing project.\nLater: MAP-4 after notifications.\n### Risks the structure surfaces\nGhost project: the description names Recovery notifications, but no project exists. MAP-4 points to that same gap. Plan the missing structure once, without resurrecting historical containers.\nCross-project blockers inside Reliable recovery: MAP-1 and MAP-2 in Token ledger gate MAP-3 in Recovery notifications. Keep those dependencies explicit and verify the internal gate.\n### TL;DR\nOne outcome is active. The chain breaks at the missing Recovery notifications project. Plan that structure before its downstream reporting can proceed.\nPlan the missing structure via /faff-plot? (y/n)\nWant to shift to today's focus via /faff-wtf? (y/n)\n"
+    },
+    {
+      "id": "stalled-and-parallel",
+      "task": "Render the complete interactive /faff-map roadmap from this completed fresh tracker/git snapshot and the already-returned methodology outputs. Acquisition and dispatch finished outside this reporting boundary. Do not fetch, dispatch, invoke skills or mutate anything. Analyse and render the supplied live graph and findings, use the canonical roadmap forms, preserve methodology order, and include applicable follow-on offers as text only. Persist the actual Markdown.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology": "faffter-noon-methodology-thematic",
+        "initiative": {
+          "name": "Reliable recovery",
+          "status": "Active",
+          "success_metric": "Every accepted recovery request produces one durable token"
+        },
+        "projects": [
+          {
+            "name": "Token ledger",
+            "horizon": "Now",
+            "status": "started",
+            "issues": [
+              "MAP-1",
+              "MAP-2"
+            ],
+            "days_without_commits": 16
+          },
+          {
+            "name": "Recovery notifications",
+            "horizon": "Next",
+            "status": "planned",
+            "issues": [
+              "MAP-3"
+            ]
+          },
+          {
+            "name": "Recovery reporting",
+            "horizon": "Later",
+            "status": "backlog",
+            "issues": [
+              "MAP-4"
+            ],
+            "rationale": "Intentionally one collapsed Later project until the ledger ships"
+          }
+        ],
+        "issues": [
+          {
+            "id": "MAP-1",
+            "title": "Store recovery tokens",
+            "status": "In Progress",
+            "blocked_by": []
+          },
+          {
+            "id": "MAP-2",
+            "title": "Deduplicate recovery requests",
+            "status": "In Progress",
+            "blocked_by": []
+          },
+          {
+            "id": "MAP-3",
+            "title": "Send recovery notifications",
+            "status": "Todo",
+            "blocked_by": [
+              "MAP-1",
+              "MAP-2"
+            ]
+          },
+          {
+            "id": "MAP-4",
+            "title": "Report recovery delivery",
+            "status": "Backlog",
+            "blocked_by": [
+              "MAP-3"
+            ]
+          }
+        ],
+        "terminal_work": [
+          {
+            "id": "MAP-0",
+            "title": "Prepare token schema",
+            "status": "Done"
+          }
+        ],
+        "satisfied_edges_removed": [
+          [
+            "MAP-0",
+            "MAP-1"
+          ]
+        ],
+        "recent_git": [],
+        "methodology_outputs": {
+          "pick_ordering": {
+            "Now": [
+              "MAP-2",
+              "MAP-1"
+            ],
+            "Next": [
+              "MAP-3"
+            ],
+            "Later": [
+              "MAP-4"
+            ]
+          },
+          "backlog_diagnostics": {
+            "dependency_cycles": [],
+            "ghost_project_pointers": []
+          },
+          "horizon_findings": [
+            {
+              "kind": "delivery-risk",
+              "severity": 1,
+              "diagnosis": "Token ledger has two unverified parallel tasks; a collision could repeat work.",
+              "action": "Verify independence before an overnight run."
+            }
+          ]
+        },
+        "independence_verified": false,
+        "tidy_this_pass": false,
+        "explicit_picked_issue": {
+          "id": "MAP-2",
+          "spec_exists": true
+        }
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Roadmap"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "Outcome initiatives",
+          "Workstreams",
+          "Dependency chain",
+          "Trigger gates",
+          "Critical path",
+          "TL;DR",
+          "Reliable recovery",
+          "MAP-1",
+          "MAP-2",
+          "16 days",
+          "stall|stale",
+          "independen",
+          "/faff-tidy[\\s\\S]{0,140}y/n",
+          "/faff-graft[\\s\\S]{0,80}y/n",
+          "open[\\s\\S]{0,60}skip"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:created|filed|changed|reparented|deleted)",
+          "detection skipped",
+          "\\b[0-9]+ weeks? until",
+          "I moved",
+          "I marked",
+          "demoted Token"
+        ],
+        "allowed_ids": [
+          "MAP-0",
+          "MAP-1",
+          "MAP-2",
+          "MAP-3",
+          "MAP-4"
+        ]
+      },
+      "reference": "## Roadmap: 2026-11-16\nOne active initiative: Reliable recovery.\n### Outcome initiatives\n| Initiative | Status | Success metric |\n|---|---|---|\n| Reliable recovery | Active | Every accepted recovery request produces one durable token |\n### Workstreams\nReliable recovery\nNow: Token ledger, started, MAP-2 (deduplicate recovery requests), MAP-1 (store recovery tokens).\nNext: Recovery notifications, planned, MAP-3 (send notifications).\nLater: Recovery reporting, backlog, MAP-4 (report delivery); intentionally collapsed until the ledger ships.\nRecent grounding: Token ledger has no commits in 16 days; status may be stale or work stalled.\n### Dependency chain\nToken ledger [MAP-2, MAP-1] -> Recovery notifications [MAP-3] -> Recovery reporting [MAP-4]\nYes, the chain joins up.\n### Trigger gates\n| Gate | Who fires it | Currently fireable? | Notes |\n|---|---|---|---|\n| Token ledger to Recovery notifications | initiative-internal | Yes | upstream work is in flight and the downstream project exists |\n| Notifications to reporting | initiative-internal | Not yet | notifications are not yet in flight |\n### Critical path\nNow: MAP-2, then MAP-1, in the supplied methodology order.\nNext: MAP-3 when the ledger ships.\nLater: MAP-4 after notifications.\n### Risks the structure surfaces\nToken ledger has no commits in 16 days: stalled work or stale status. Review its issues before changing status.\nIndependence is unverified for MAP-1 and MAP-2; collisions could repeat work. Verify independence before queuing overnight work.\nCross-project blockers inside Reliable recovery: MAP-1 and MAP-2 in Token ledger gate MAP-3 in Recovery notifications. Keep those dependencies explicit and verify the internal gate.\n### TL;DR\nOne outcome is active. The chain joins up. The ledger-to-notifications gate is the main dependency; the completed schema is no longer a blocker.\nStart building MAP-2 via /faff-graft? (y/n)\nRun /faff-tidy to verify independence before queuing overnight runs? (y/n)\nStalled or stale? Open Token ledger for review (open) / leave (skip)?\nWant to shift to today's focus via /faff-wtf? (y/n)\n"
+    },
+    {
+      "id": "cross-initiative-and-park",
+      "task": "Render the complete interactive /faff-map roadmap from this completed fresh tracker/git snapshot and the already-returned methodology outputs. Acquisition and dispatch finished outside this reporting boundary. Do not fetch, dispatch, invoke skills or mutate anything. Analyse and render the supplied live graph and findings, use the canonical roadmap forms, preserve methodology order, and include applicable follow-on offers as text only. Persist the actual Markdown.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology": "faffter-noon-methodology-thematic",
+        "initiative": {
+          "name": "Reliable recovery",
+          "status": "Active",
+          "success_metric": "Every accepted recovery request produces one durable token"
+        },
+        "projects": [
+          {
+            "name": "Token ledger",
+            "horizon": "Now",
+            "status": "started",
+            "issues": [
+              "MAP-1",
+              "MAP-2"
+            ]
+          },
+          {
+            "name": "Recovery notifications",
+            "horizon": "Next",
+            "status": "planned",
+            "issues": [
+              "MAP-3"
+            ]
+          },
+          {
+            "name": "Recovery reporting",
+            "horizon": "Later",
+            "status": "backlog",
+            "issues": [
+              "MAP-4"
+            ],
+            "rationale": "Intentionally one collapsed Later project until the ledger ships"
+          }
+        ],
+        "issues": [
+          {
+            "id": "MAP-1",
+            "title": "Store recovery tokens",
+            "status": "In Progress",
+            "blocked_by": []
+          },
+          {
+            "id": "MAP-2",
+            "title": "Deduplicate recovery requests",
+            "status": "In Progress",
+            "blocked_by": []
+          },
+          {
+            "id": "MAP-3",
+            "title": "Send recovery notifications",
+            "status": "Todo",
+            "blocked_by": [
+              "MAP-1",
+              "MAP-2"
+            ]
+          },
+          {
+            "id": "MAP-4",
+            "title": "Report recovery delivery",
+            "status": "Backlog",
+            "blocked_by": [
+              "MAP-3"
+            ]
+          }
+        ],
+        "terminal_work": [
+          {
+            "id": "MAP-0",
+            "title": "Prepare token schema",
+            "status": "Done"
+          }
+        ],
+        "satisfied_edges_removed": [
+          [
+            "MAP-0",
+            "MAP-1"
+          ]
+        ],
+        "recent_git": [
+          {
+            "issue": "MAP-2",
+            "event": "commit yesterday on active branch"
+          },
+          {
+            "issue": "MAP-0",
+            "event": "merged two days ago; supports Token ledger"
+          }
+        ],
+        "methodology_outputs": {
+          "pick_ordering": {
+            "Now": [
+              "MAP-2",
+              "MAP-1"
+            ],
+            "Next": [
+              "MAP-3"
+            ],
+            "Later": [
+              "MAP-4"
+            ]
+          },
+          "backlog_diagnostics": {
+            "dependency_cycles": [],
+            "ghost_project_pointers": []
+          },
+          "horizon_findings": []
+        },
+        "independence_verified": true,
+        "tidy_this_pass": false,
+        "explicit_picked_issue": {
+          "id": "MAP-1",
+          "spec_exists": false
+        },
+        "cross_initiative_context": {
+          "initiative": {
+            "name": "Account observability",
+            "status": "Planned",
+            "success_metric": "Operators see failed recovery delivery"
+          },
+          "project": {
+            "name": "Operations dashboard",
+            "horizon": "Next",
+            "status": "planned",
+            "issues": [
+              "MAP-9"
+            ]
+          },
+          "issue": {
+            "id": "MAP-9",
+            "title": "Display failed recovery delivery",
+            "status": "Backlog",
+            "blocked_by": [
+              "MAP-4"
+            ]
+          }
+        },
+        "parked": [
+          {
+            "id": "MAP-6",
+            "title": "Enable delivery alerts",
+            "unpark_condition": "when Alert routing ships",
+            "upstream_project_exists": false
+          }
+        ]
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Roadmap"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "Outcome initiatives",
+          "Workstreams",
+          "Dependency chain",
+          "Trigger gates",
+          "Critical path",
+          "TL;DR",
+          "Reliable recovery",
+          "MAP-1",
+          "MAP-2",
+          "Account observability",
+          "MAP-9",
+          "MAP-6",
+          "Alert routing",
+          "/faff-prep[\\s\\S]{0,80}y/n",
+          "/faff-plot[\\s\\S]{0,80}y/n"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:created|filed|changed|reparented|deleted)",
+          "detection skipped",
+          "\\b[0-9]+ weeks? until"
+        ],
+        "allowed_ids": [
+          "MAP-0",
+          "MAP-1",
+          "MAP-2",
+          "MAP-3",
+          "MAP-4",
+          "MAP-6",
+          "MAP-9"
+        ]
+      },
+      "reference": "## Roadmap: 2026-11-16\nOne active initiative Reliable recovery, and planned Account observability.\n### Outcome initiatives\n| Initiative | Status | Success metric |\n|---|---|---|\n| Reliable recovery | Active | Every accepted recovery request produces one durable token |\n| Account observability | Planned | Operators see failed recovery delivery |\n### Workstreams\nReliable recovery\nNow: Token ledger, started, MAP-2 (deduplicate recovery requests), MAP-1 (store recovery tokens).\nNext: Recovery notifications, planned, MAP-3 (send notifications).\nLater: Recovery reporting, backlog, MAP-4 (report delivery); intentionally collapsed until the ledger ships.\nRecent grounding: MAP-2 committed yesterday; MAP-0 (prepare token schema) merged and supports the ledger.\nAccount observability\nNext: Operations dashboard, planned, MAP-9 (display failed recovery delivery).\nNow: (no project planned). Later: (no project planned). No recent movement supplied.\n### Dependency chain\nRecovery reporting -> Account observability / Operations dashboard (MAP-9: display failed delivery).\nToken ledger [MAP-2, MAP-1] -> Recovery notifications [MAP-3] -> Recovery reporting [MAP-4]\nYes, the chain joins up.\n### Trigger gates\nCross-initiative gate: Recovery reporting -> Account observability, not yet fireable; MAP-4 gates MAP-9. Report it here, not as a same-initiative cross-project risk.\n| Gate | Who fires it | Currently fireable? | Notes |\n|---|---|---|---|\n| Token ledger to Recovery notifications | initiative-internal | Yes | upstream work is in flight and the downstream project exists |\n| Notifications to reporting | initiative-internal | Not yet | notifications are not yet in flight |\n### Critical path\nNow: MAP-2, then MAP-1, in the supplied methodology order.\nNext: MAP-3 when the ledger ships.\nLater: MAP-4 after notifications.\n### Risks the structure surfaces\nMAP-6 (enable delivery alerts) is parked waiting for Alert routing, which has no planned project. The park is permanent until that gap closes; plan the missing structure.\nCross-project blockers inside Reliable recovery: MAP-1 and MAP-2 in Token ledger gate MAP-3 in Recovery notifications. Keep those dependencies explicit and verify the internal gate.\n### TL;DR\nOne outcome is active and a second is planned. The recovery chain joins up; the separate alert-routing gap strands MAP-6. The ledger-to-notifications gate is the main dependency; the completed schema is no longer a blocker.\nPicking up MAP-1. Prep now via /faff-prep? (y/n)\nPlan the missing structure via /faff-plot? (y/n)\nWant to shift to today's focus via /faff-wtf? (y/n)\n"
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "ordering",
+      "question": "Who owns ordering inside horizons: \"map\" or \"methodology\"? Return one string.",
+      "expected": "methodology"
+    },
+    {
+      "id": "horizon-preserve",
+      "question": "Does methodology re-sequencing move items to a different horizon? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "cycle-floor",
+      "question": "Does absence of a tidy log permit skipping cycle/ghost diagnostics? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "off-chain-cycle",
+      "question": "Must a cycle entirely off the rendered chain still appear as a risk? Return a boolean.",
+      "expected": true
+    },
+    {
+      "id": "satisfied-edge",
+      "question": "Does a blocker edge to shipped work count against fireability? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "future-time",
+      "question": "May map invent weeks-until-completion estimates beyond named horizons? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "project-count",
+      "question": "Is three projects per initiative a hard cap that must be enforced? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "cross-initiative",
+      "question": "Should a cross-initiative blocker also be reported as a same-value-stream cross-project risk? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "later-collapse",
+      "question": "Is a single collapsed Later project automatically a defect despite an explicit intentional rationale? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "status-write",
+      "question": "May map itself change tracker project status after finding staleness? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "no-risk",
+      "question": "If no risks exist, should TL;DR explicitly say none surfaced? Return a boolean.",
+      "expected": true
+    },
+    {
+      "id": "fresh-scope",
+      "question": "If fetching the whole roadmap exceeds budget, should map use a complete single-initiative snapshot rather than mixed freshness? Return a boolean.",
+      "expected": true
+    }
+  ]
+}

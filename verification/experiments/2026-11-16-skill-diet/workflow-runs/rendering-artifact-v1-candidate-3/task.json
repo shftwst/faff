@@ -1,0 +1,262 @@
+{
+  "instructions": "Read the complete rendering policy through read_policy. For each independent artifact case, transform the supplied draft or source into the requested output and persist it through write_output. These are isolated human-facing outputs; preserve their facts and use the supplied source material. Do not query a tracker or read additional files. Separately answer every bounded rule question. Global operator guidance applies. Finish after every case is recorded.",
+  "policy": {
+    "bytes": 10999,
+    "utf16_characters": 10819,
+    "sha256": "6b0612709b481bc67c6b503ed656fbc1591ba9b0881186db11ebaac430cbb017",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_output",
+      "description": "Persist the completed rendering for one artifact case. Write once per case; provide the actual normalised text or violation report requested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "answer_rule",
+      "description": "Answer one separate bounded policy question in its stated value shape. Do not perform hypothetical actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all artifacts and rule answers are recorded.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "gloss-001",
+      "task": "Write the one-line synthesis gloss for ISS-Z. Include the tracker ID. Do not invent source details.",
+      "source": {
+        "version": 1,
+        "issues": [
+          {
+            "id": "ISS-Z",
+            "title": "Add rate limiting to the login endpoint",
+            "state": "Todo",
+            "relations": {
+              "blocks": [
+                "ISS-AA"
+              ],
+              "blockedBy": [],
+              "relatedTo": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "gloss-002",
+      "task": "Write the one-line gloss for ISS-BB. Include the tracker ID. Do not invent source details.",
+      "source": {
+        "version": 1,
+        "issues": [
+          {
+            "id": "ISS-BB",
+            "title": "Memoise the config resolver to cut cold-start",
+            "state": "Todo",
+            "relations": {
+              "blocks": [],
+              "blockedBy": [],
+              "relatedTo": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "gloss-003",
+      "task": "Write the one-line synthesis gloss for ISS-CC. Include the tracker ID. Do not invent source details.",
+      "source": {
+        "version": 1,
+        "issues": [
+          {
+            "id": "ISS-CC",
+            "title": "Record cache_read_input_tokens per request in the eval harness",
+            "state": "Todo",
+            "relations": {
+              "blocks": [],
+              "blockedBy": [],
+              "relatedTo": []
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "long-table",
+      "task": "Normalise this tracker comment. Preserve each row and all facts. Source issue descriptions are supplied for grounding.",
+      "source": {
+        "draft": "| Ticket | State | Scope |\n|---|---|---|\n| ISS-101 | Done | Add cache_read_input_tokens to every eval request log. Retain the raw provider count. |\n| ISS-102 | Todo | Publish a cached-token comparison for maintainers. Read the raw provider count from request logs. |",
+        "issues": {
+          "ISS-101": "Record the raw cached-token count in each eval request log.",
+          "ISS-102": "Publish a cached-token comparison from request logs."
+        }
+      }
+    },
+    {
+      "id": "short-table",
+      "task": "Normalise this terminal status-count table without changing the counts.",
+      "source": "| State | Count |\n|---|---:|\n| Done | 3 |\n| Todo | 2 |"
+    },
+    {
+      "id": "enumeration",
+      "task": "Normalise this tracker comment, preserving all three questions.",
+      "source": "Here is the list you asked for. Open questions: Which team owns the queue? · How long should leases last? · Which metric detects lost work? Let me know if you would like more."
+    },
+    {
+      "id": "model-hoist",
+      "task": "Normalise this explanation. Preserve its existing governing statement and the concrete metric name.",
+      "source": "The SDK checks the longest matching request prefix and recomputes its suffix. Measure hits using cache_read_input_tokens. Prompt caching depends on an identical leading token sequence. Therefore put stable system text before the volatile user turn."
+    },
+    {
+      "id": "missing-model",
+      "task": "Validate this draft explanation and report violations only. Do not create an explanation absent from the source.",
+      "source": "Step one: open the dashboard. Step two: copy the displayed number. Step three: close the tab."
+    },
+    {
+      "id": "cycle",
+      "task": "Normalise this three-edge dependency cycle for terminal output. Ground all issue IDs from their supplied descriptions. No recommendation is supplied.",
+      "source": {
+        "draft": "ISS-201 depends on ISS-202, which depends on ISS-203, which depends on ISS-201.",
+        "issues": {
+          "ISS-201": "Build the login form.",
+          "ISS-202": "Validate session tokens.",
+          "ISS-203": "Refresh expired sessions."
+        }
+      }
+    }
+  ],
+  "rule_questions": [
+    {
+      "id": "scope",
+      "question": "Which surfaces are covered? Return {\"terminal\":boolean,\"tracker_description\":boolean,\"tracker_comment\":boolean,\"skill_source\":boolean,\"internal_log\":boolean}."
+    },
+    {
+      "id": "contract",
+      "question": "Does rendering have a fixed internal contract that controls pipeline gates? Return a boolean."
+    },
+    {
+      "id": "normalise-authority",
+      "question": "A normalisation pass dislikes a delivery recommendation in the source. May it replace that recommendation with its own? Return a boolean."
+    },
+    {
+      "id": "two-item-dependency",
+      "question": "For a simple two-item dependency, choose \"prose\", \"cycle-bracket\", or \"cycle-box\"."
+    },
+    {
+      "id": "branching-cycle",
+      "question": "A dependency cycle has branching and five edges. Choose \"cycle-bracket\" or \"cycle-box\"."
+    },
+    {
+      "id": "closed-catalogue",
+      "question": "May a caller invent a new visual form inline before adding it to the catalogue? Return a boolean."
+    },
+    {
+      "id": "density",
+      "question": "Return the numeric caps {\"cycle_visualisations\":number,\"queue_rows\":number,\"live_initiatives\":number}."
+    },
+    {
+      "id": "overflow",
+      "question": "There are twelve queue rows. Return {\"visible_rows\":number,\"overflow_marker\":string,\"full_list_location\":string}."
+    },
+    {
+      "id": "gloss-source",
+      "question": "A spec has a one-line summary, while the title and description use older wording. Choose the preferred source: \"spec-summary\", \"title\", or \"description\"."
+    },
+    {
+      "id": "gloss-grounding",
+      "question": "An issue ID appears twice; only its first appearance has a clear gloss. Is the once-per-whole-output mechanical grounding requirement met? Return a boolean."
+    },
+    {
+      "id": "later-humanisation",
+      "question": "A later bare issue reference becomes unintelligible in its new section, although grounded earlier. Should that section re-ground it for the reader? Return a boolean."
+    },
+    {
+      "id": "unlock-one",
+      "question": "An issue has exactly one isolated dependent and no longer chain. Should its gloss include an unlock consequence line? Return a boolean."
+    },
+    {
+      "id": "unlock-chain",
+      "question": "An issue has one direct dependent that gates two more issues. Should a consequence be described in human terms? Return a boolean."
+    },
+    {
+      "id": "unlock-count",
+      "question": "Choose the permitted consequence: \"Unlocks 3 issues\" or \"The alerting work can now use a real log schema\"."
+    },
+    {
+      "id": "ambiguous-gloss",
+      "question": "The spec is ambiguous between extending a logger and replacing it. Return {\"state_ambiguity\":boolean,\"invent_resolution\":boolean}."
+    },
+    {
+      "id": "gloss-cache",
+      "question": "Return {\"reuse_within_invocation\":boolean,\"reuse_across_invocations\":boolean}."
+    },
+    {
+      "id": "surface-concrete",
+      "question": "A source contains a category label but no field name. May the renderer invent a precise field to make it sound concrete? Return a boolean."
+    },
+    {
+      "id": "voice-source",
+      "question": "Return the fixed repository file and heading that own the prose voice as {\"file\":string,\"heading\":string}."
+    },
+    {
+      "id": "voice-swap",
+      "question": "Does swapping rendering_adaptor alone change the fixed voice-source path? Return a boolean."
+    },
+    {
+      "id": "prose-carveouts",
+      "question": "Which of these stay prose? Return {\"synthesis_gloss\":boolean,\"diagnosis\":boolean,\"TLDR\":boolean}."
+    }
+  ]
+}

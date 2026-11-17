@@ -1,0 +1,827 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "independent actual-facts, persisted-summary and publication verifier",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "scope": "Bounded beep-boop Reporting: actual pinned run-summary command handler, production ledger writers and summary file persistence; fixed forge/health/metering dependencies; controlled rendering/publication and build continuation. No real run-close/andon, hosted tracker, full build loop, rendering quality or pre-write normalisation claim. Claimed-by-peer prose remains unchanged and outside this boundary.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json",
+      "sha256": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-baseline-plan.json",
+      "sha256": "8ce3a0631cfa6aa74faed7797cdb6ee4c52ed79905041e21b72de4d51eb0a764"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-registration.json",
+      "sha256": "9ac4ab8b7b07258b6ebc5e69f6d52bbbdd7899fd87888245067c268f3eebd606"
+    }
+  ],
+  "samples": [
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-1",
+      "raw_status": "pass",
+      "native_status": [
+        "pass"
+      ],
+      "workflow_replay_status": "pass",
+      "case_count": 6,
+      "capture.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/capture.json",
+        "sha256": "365e3b0782b4e596304b923a517d16fe547366c085e0d2fb6cbada410820a0bb"
+      },
+      "report.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/report.json",
+        "sha256": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2"
+      },
+      "native-audit.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/native-audit.json",
+        "sha256": "ea8fa7110a5c1a58693612c50ba7bd10fa5405212e535a3129c4f8adedb1fdd1"
+      },
+      "workflow-replay.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/workflow-replay.json",
+        "sha256": "25fb74e86e6ecac2d80869a97255c22816c6beca9632121a4da512fa616aacc3"
+      },
+      "manifest.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/manifest.json",
+        "sha256": "50578d6a9a616b20c3c6186f8b44797fea0dd48b40ec837ddd8c8961ae8f9e67"
+      },
+      "worker-manifest.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/worker-manifest.json",
+        "sha256": "4d8d83fe984e0cd8c6f15a35dc27f375edd17df895a9e251fbb3d9fb66c43c9c"
+      },
+      "mcp-trace.jsonl": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/mcp-trace.jsonl",
+        "sha256": "9eb06100facbcb3f37aefb36652a8051889df81a4c84480fa27f0217a213246f"
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-2",
+      "raw_status": "fail",
+      "native_status": [
+        "pass"
+      ],
+      "workflow_replay_status": "fail",
+      "case_count": 6,
+      "capture.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/capture.json",
+        "sha256": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4"
+      },
+      "report.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/report.json",
+        "sha256": "cb9701a060f899614bbbc766297142ceef59b639f3d050d34cface64a9b80b38"
+      },
+      "native-audit.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/native-audit.json",
+        "sha256": "06742504daec6f7c2d71ae3b09c0608e963e16b080bb199ba642b1759efafba5"
+      },
+      "workflow-replay.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/workflow-replay.json",
+        "sha256": "5660f318fc2faf7b72050d15d5464ae121e919a27bb65cb1394e1a525430ab0b"
+      },
+      "manifest.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/manifest.json",
+        "sha256": "4def8ef11cc99505855238d33ca1a9cadcb35fdafafa2ec895bb502411d39bfd"
+      },
+      "worker-manifest.json": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/worker-manifest.json",
+        "sha256": "b9c949dc73f13831ccc0a0b9a0e4058cdae14a08401388f41704c4d5afa2298c"
+      },
+      "mcp-trace.jsonl": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/mcp-trace.jsonl",
+        "sha256": "33db33d2d3b1c31d71d535535c69afe100ea000ed5e177426574f04642cccb8f"
+      }
+    }
+  ],
+  "case_reviews": [
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-1",
+      "case_id": "shipped-precedence",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "Facts use supplied titles, prior-delivery observation, two waves and worktree follow-up only; outcomes, annotations and economics remain command-owned.",
+        "Primary membership is SHP-1 auto-merged, SHP-2 skipped adversarial review, SHP-3 and SHP-5 verification flagged, SHP-4 human-only AC, SUP-1 delivered by PRIOR-1. Failure/unknown verification takes precedence without hiding SHP-3 human ACs.",
+        "Persisted report, conversation and tracker retain the canonical buckets. Tracker economics preserve 1,200 estimated tokens, $3 total, five shipped, 240 tokens and $0.60 per shipped."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/capture.json",
+          "sha256": "365e3b0782b4e596304b923a517d16fe547366c085e0d2fb6cbada410820a0bb"
+        },
+        "case_pointer": "/cases/0",
+        "facts_structured_sha256": "c1b4493d5e14420c6e43e53a60478af2258186ea280dd8d580748825fc20d07a",
+        "facts_write_acknowledgement_sha256": "1a6e120e5f6dda42c6821a7b6d36d88b4b961975f3cd95ac8508d6a875b57913",
+        "persisted_summary_utf8_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+        "authoritative_before_sha256": "bd5d57b7560f1d4acadff85480b3d68ebc9504996ce0e4c66991334485c8316d",
+        "authoritative_after_sha256": "bd5d57b7560f1d4acadff85480b3d68ebc9504996ce0e4c66991334485c8316d",
+        "command_events": [
+          {
+            "seq": 2,
+            "arguments_sha256": "ccf66dec39579187588620525c6ea3313271616e2cc94f327f638f2a59b32695",
+            "result_sha256": "bab0dfff3f57d8446eb8c2218dbbb0f03bd39bfcd52fffe2cbacd0d077ebb3b4",
+            "exit_code": 0,
+            "stdout_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "publications": [
+          {
+            "event_seq": 4,
+            "channel": "tracker",
+            "target": "project:fixture-reporting",
+            "normalised_id": "shipped-precedence:tracker:0",
+            "text_utf8_sha256": "d35f7bfd7ab3035e20dd9a7a42fb27ac1b30da30e75048cc1ee7ca389a58bc78"
+          },
+          {
+            "event_seq": 6,
+            "channel": "conversation",
+            "target": "conversation",
+            "normalised_id": "shipped-precedence:conversation:1",
+            "text_utf8_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780"
+          }
+        ],
+        "other_effects": [],
+        "normalisation_events": [
+          {
+            "event_seq": 3,
+            "channel": "tracker",
+            "result_id": "shipped-precedence:tracker:0",
+            "text_utf8_sha256": "d35f7bfd7ab3035e20dd9a7a42fb27ac1b30da30e75048cc1ee7ca389a58bc78"
+          },
+          {
+            "event_seq": 5,
+            "channel": "conversation",
+            "result_id": "shipped-precedence:conversation:1",
+            "text_utf8_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780"
+          }
+        ]
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-1",
+      "case_id": "review-holds",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "OPEN-1 remains human-review with three exhausted landing cycles; OPEN-2 remains resumable landing. PARK-1 is the ordinary low-confidence park, PARK-2 is a build-review outage, and PREP-1 is a separate prep-review outage outside admitted outcomes.",
+        "Two waves and the supplied park record/reason remain intact; no outcome or review status is reconstructed in summary facts.",
+        "Zero shipped is labelled ZERO-SHIP with 1,200 estimated tokens and four attempts; no dollar amount is invented. Both publication channels retain the distinct hold buckets."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/capture.json",
+          "sha256": "365e3b0782b4e596304b923a517d16fe547366c085e0d2fb6cbada410820a0bb"
+        },
+        "case_pointer": "/cases/1",
+        "facts_structured_sha256": "11e726f7b0969daf9749c7fd3c15ef47c30d4e6064b87e3e9744ecf1400cedc6",
+        "facts_write_acknowledgement_sha256": "2c7372de060d3f90d669530d47e382ee7b07d174f35880307d68499d674064fe",
+        "persisted_summary_utf8_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+        "authoritative_before_sha256": "f19b07cd0c99a6608ed85d0abb9884226d1d044a1ea921c552e5b7217ac966f7",
+        "authoritative_after_sha256": "f19b07cd0c99a6608ed85d0abb9884226d1d044a1ea921c552e5b7217ac966f7",
+        "command_events": [
+          {
+            "seq": 8,
+            "arguments_sha256": "2b167449375df2990de0c22e395fcbc2613b388952f7e715b11465a60204bdf7",
+            "result_sha256": "4ec92ebe8a2826f045a6a0d7ff646f88d8cf0a6f6d0e4cc0b476ebdef7acc900",
+            "exit_code": 0,
+            "stdout_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "publications": [
+          {
+            "event_seq": 10,
+            "channel": "tracker",
+            "target": "project:fixture-reporting",
+            "normalised_id": "review-holds:tracker:0",
+            "text_utf8_sha256": "8d2947ebf0210c83ef2fbc076fe39bdfc20b8dc4658fa10d15f42230ddc8e292"
+          },
+          {
+            "event_seq": 12,
+            "channel": "conversation",
+            "target": "conversation",
+            "normalised_id": "review-holds:conversation:1",
+            "text_utf8_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5"
+          }
+        ],
+        "other_effects": [],
+        "normalisation_events": [
+          {
+            "event_seq": 9,
+            "channel": "tracker",
+            "result_id": "review-holds:tracker:0",
+            "text_utf8_sha256": "8d2947ebf0210c83ef2fbc076fe39bdfc20b8dc4658fa10d15f42230ddc8e292"
+          },
+          {
+            "event_seq": 11,
+            "channel": "conversation",
+            "result_id": "review-holds:conversation:1",
+            "text_utf8_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5"
+          }
+        ]
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-1",
+      "case_id": "budget-zero-ship",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "BUD-1 remains admitted but undispatched under the breached tokens ceiling; budget-hit stop reason and transcript source are retained.",
+        "Zero shipped is explicit, 1,200 transcript tokens and one attempt are preserved, and no missing dollar cost is invented. No continuation dispatch occurs."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/capture.json",
+          "sha256": "365e3b0782b4e596304b923a517d16fe547366c085e0d2fb6cbada410820a0bb"
+        },
+        "case_pointer": "/cases/2",
+        "facts_structured_sha256": "ef421c4f3ed9ec531269844dc1478d4bfac87805d9809d5c489847354a2d2d95",
+        "facts_write_acknowledgement_sha256": "f791f16ca7f23984fbef8fe7c728acdc20850e7fa3862f74e54d272395cb30df",
+        "persisted_summary_utf8_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+        "authoritative_before_sha256": "cb004ff7301adac8687cf8b7be51011db33d67b54ed66d6d527b42973fcfc9c7",
+        "authoritative_after_sha256": "cb004ff7301adac8687cf8b7be51011db33d67b54ed66d6d527b42973fcfc9c7",
+        "command_events": [
+          {
+            "seq": 14,
+            "arguments_sha256": "cb1bbd92bbef13081cfe051b484e007c76e7d2c34582e70a68619b5763cd8ef4",
+            "result_sha256": "6b0938227983be36c35b07ab11dddcc4634a235456a91bbd6020e5e2b3762bcc",
+            "exit_code": 0,
+            "stdout_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "publications": [
+          {
+            "event_seq": 16,
+            "channel": "tracker",
+            "target": "project:fixture-reporting",
+            "normalised_id": "budget-zero-ship:tracker:0",
+            "text_utf8_sha256": "29b186edadcbe100dd9f1ca02a7ba2d2cb28ebb7689c332faafc53fafd864961"
+          },
+          {
+            "event_seq": 18,
+            "channel": "conversation",
+            "target": "conversation",
+            "normalised_id": "budget-zero-ship:conversation:1",
+            "text_utf8_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f"
+          }
+        ],
+        "other_effects": [],
+        "normalisation_events": [
+          {
+            "event_seq": 15,
+            "channel": "tracker",
+            "result_id": "budget-zero-ship:tracker:0",
+            "text_utf8_sha256": "29b186edadcbe100dd9f1ca02a7ba2d2cb28ebb7689c332faafc53fafd864961"
+          },
+          {
+            "event_seq": 17,
+            "channel": "conversation",
+            "result_id": "budget-zero-ship:conversation:1",
+            "text_utf8_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f"
+          }
+        ]
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-1",
+      "case_id": "dirty-install",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "The install-health warning and sync remediation lead the report and both publication channels; no sync execution is claimed.",
+        "ERR-1 stays errored with Controlled environment error. Its newline/heading-like title is flattened into data and creates no false Deferred bucket.",
+        "Discovered scope stays zero filed, one deduped and one surfaced due to absent tracker permission; the unused-branch follow-up remains. Estimated 1,200 tokens and ZERO-SHIP have no invented dollar cost."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/capture.json",
+          "sha256": "365e3b0782b4e596304b923a517d16fe547366c085e0d2fb6cbada410820a0bb"
+        },
+        "case_pointer": "/cases/3",
+        "facts_structured_sha256": "b67bf8ed6b8ac697e9c864c62e0dc94294651e2ca3f82edfc0c9f4cf1b518356",
+        "facts_write_acknowledgement_sha256": "51eb2a4ec7b46d8249bf7be3dd91bc11f2df4f00557b4af396bede54990e8c25",
+        "persisted_summary_utf8_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+        "authoritative_before_sha256": "4b406dd7916348e610d4a21c44fa5f51164cc2b8dd95f83a09c91be59a3a625b",
+        "authoritative_after_sha256": "4b406dd7916348e610d4a21c44fa5f51164cc2b8dd95f83a09c91be59a3a625b",
+        "command_events": [
+          {
+            "seq": 20,
+            "arguments_sha256": "b47c66a488ea93534ce445503143d96a7aad4b5627a8a1288e56388281d76e57",
+            "result_sha256": "3367242ef1fdef759bab0605ff0cd82c3018cd2512fe8026c42c67c77e8c92d6",
+            "exit_code": 0,
+            "stdout_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "publications": [
+          {
+            "event_seq": 22,
+            "channel": "tracker",
+            "target": "project:fixture-reporting",
+            "normalised_id": "dirty-install:tracker:0",
+            "text_utf8_sha256": "c1c3f9f7c9d21ca77ee1d0fb26ce1b0aec05df9ed40fabeb547c8f5285280178"
+          },
+          {
+            "event_seq": 24,
+            "channel": "conversation",
+            "target": "conversation",
+            "normalised_id": "dirty-install:conversation:1",
+            "text_utf8_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d"
+          }
+        ],
+        "other_effects": [],
+        "normalisation_events": [
+          {
+            "event_seq": 21,
+            "channel": "tracker",
+            "result_id": "dirty-install:tracker:0",
+            "text_utf8_sha256": "c1c3f9f7c9d21ca77ee1d0fb26ce1b0aec05df9ed40fabeb547c8f5285280178"
+          },
+          {
+            "event_seq": 23,
+            "channel": "conversation",
+            "result_id": "dirty-install:conversation:1",
+            "text_utf8_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d"
+          }
+        ]
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-1",
+      "case_id": "no-budget-continuation",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "Only NEXT-1 is dispatched through the controlled continuation port because ready work remains and no budget ceiling is set/breached.",
+        "No facts file, final summary, rendering or publication occurs. No Deferred finalisation is manufactured."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/capture.json",
+          "sha256": "365e3b0782b4e596304b923a517d16fe547366c085e0d2fb6cbada410820a0bb"
+        },
+        "case_pointer": "/cases/4",
+        "facts_structured_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "facts_write_acknowledgement_sha256": null,
+        "persisted_summary_utf8_sha256": null,
+        "authoritative_before_sha256": "60c7972d9373e21f6d8e55cd231037abd84ebeb207fb6cbf4dbf8080ec5243f4",
+        "authoritative_after_sha256": "60c7972d9373e21f6d8e55cd231037abd84ebeb207fb6cbf4dbf8080ec5243f4",
+        "command_events": [],
+        "publications": [],
+        "other_effects": [
+          {
+            "event_seq": 25,
+            "name": "continue_build",
+            "arguments_sha256": "e893e2b727f281d51ddbdd744e271a3f7e423c216ff6961d512cd485b3c7ae0b",
+            "result_sha256": "b3c7d053ec5697d0ab5547a7a63eab1ebade1bfa37a96f69c73204acb36e545c"
+          }
+        ],
+        "normalisation_events": []
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-1",
+      "case_id": "unreadable-ledger",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "The exact pinned command is attempted once after supplied facts are written; malformed run ledger returns exit 2 with cannot-read JSON error.",
+        "The failure is surfaced rather than rewritten as success; no summary, rendering, successful publication or build continuation occurs."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/capture.json",
+          "sha256": "365e3b0782b4e596304b923a517d16fe547366c085e0d2fb6cbada410820a0bb"
+        },
+        "case_pointer": "/cases/5",
+        "facts_structured_sha256": "5b55279c784b067b6228cb8f6bd292f9b7653df821783958546bae97af19b3ee",
+        "facts_write_acknowledgement_sha256": "db7283a810ff0cdeef1e4aeea0f40ae8c1ed55982ce16bdb0b6cb7b051380c41",
+        "persisted_summary_utf8_sha256": null,
+        "authoritative_before_sha256": "04302eefdf00a52b3b88c7c675a670cce85049fe543cdcfd908383d12945ca95",
+        "authoritative_after_sha256": "04302eefdf00a52b3b88c7c675a670cce85049fe543cdcfd908383d12945ca95",
+        "command_events": [
+          {
+            "seq": 27,
+            "arguments_sha256": "2bf3b3a0fd982f72d3b5dbfb2b806b9d524093ff3b7ce202d819c1e94b7f5a30",
+            "result_sha256": "cc947884b0122a67269c18e78f23cffb3f7b89d7691df17ed7007a6e373761e7",
+            "exit_code": 2,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_sha256": "87155522cdce408c3629f7238855519a7c36724bae03b960d1c6eba26b8f00a3"
+          }
+        ],
+        "publications": [],
+        "other_effects": [
+          {
+            "event_seq": 28,
+            "name": "report_failure",
+            "arguments_sha256": "de96a5975d17116e584b0efcc27ae96197de9e34d30dc02c151395b20e38600e",
+            "result_sha256": "4d41e0b4e5e96a167461d82c0b3fe515a66691837de3bb6005db6293c56f5138"
+          }
+        ],
+        "normalisation_events": []
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-2",
+      "case_id": "shipped-precedence",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "Facts use supplied titles, prior-delivery observation, two waves and worktree follow-up only; outcomes, annotations and economics remain command-owned.",
+        "Primary membership is SHP-1 auto-merged, SHP-2 skipped adversarial review, SHP-3 and SHP-5 verification flagged, SHP-4 human-only AC, SUP-1 delivered by PRIOR-1. Failure/unknown verification takes precedence without hiding SHP-3 human ACs.",
+        "Persisted report, conversation and tracker retain the canonical buckets. Tracker economics preserve 1,200 estimated tokens, $3 total, five shipped, 240 tokens and $0.60 per shipped."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/capture.json",
+          "sha256": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4"
+        },
+        "case_pointer": "/cases/0",
+        "facts_structured_sha256": "c1b4493d5e14420c6e43e53a60478af2258186ea280dd8d580748825fc20d07a",
+        "facts_write_acknowledgement_sha256": "1a6e120e5f6dda42c6821a7b6d36d88b4b961975f3cd95ac8508d6a875b57913",
+        "persisted_summary_utf8_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+        "authoritative_before_sha256": "05ec18d3668a6d34eea77d6aa5be470b8753558199a081dcd52c6a709af9e4d7",
+        "authoritative_after_sha256": "05ec18d3668a6d34eea77d6aa5be470b8753558199a081dcd52c6a709af9e4d7",
+        "command_events": [
+          {
+            "seq": 2,
+            "arguments_sha256": "0df0d0c7b9cb29569802ac14795a71de800f106ba28c66de9fae54cdf19405d6",
+            "result_sha256": "bab0dfff3f57d8446eb8c2218dbbb0f03bd39bfcd52fffe2cbacd0d077ebb3b4",
+            "exit_code": 0,
+            "stdout_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "publications": [
+          {
+            "event_seq": 4,
+            "channel": "tracker",
+            "target": "project:fixture-reporting",
+            "normalised_id": "shipped-precedence:tracker:0",
+            "text_utf8_sha256": "3c502a4e5dba38f03e328e84cc523fa39641a39edbcdef9243b3b92a02f7e6db"
+          },
+          {
+            "event_seq": 6,
+            "channel": "conversation",
+            "target": "conversation",
+            "normalised_id": "shipped-precedence:conversation:1",
+            "text_utf8_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780"
+          }
+        ],
+        "other_effects": [],
+        "normalisation_events": [
+          {
+            "event_seq": 3,
+            "channel": "tracker",
+            "result_id": "shipped-precedence:tracker:0",
+            "text_utf8_sha256": "3c502a4e5dba38f03e328e84cc523fa39641a39edbcdef9243b3b92a02f7e6db"
+          },
+          {
+            "event_seq": 5,
+            "channel": "conversation",
+            "result_id": "shipped-precedence:conversation:1",
+            "text_utf8_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780"
+          }
+        ]
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-2",
+      "case_id": "review-holds",
+      "manual_status": "fail-duplicate-conversation-normalisation",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "OPEN-1 remains human-review with three exhausted landing cycles; OPEN-2 remains resumable landing. PARK-1 is the ordinary low-confidence park, PARK-2 is a build-review outage, and PREP-1 is a separate prep-review outage outside admitted outcomes.",
+        "Two waves and the supplied park record/reason remain intact; no outcome or review status is reconstructed in summary facts.",
+        "Zero shipped is labelled ZERO-SHIP with 1,200 estimated tokens and four attempts; no dollar amount is invented. Both publication channels retain the distinct hold buckets."
+      ],
+      "unsupported_assertions": [
+        {
+          "stage": "unpublished intermediate rendering input",
+          "event_seq": 11,
+          "excerpt": "Sentry: nn0 checkpoints",
+          "finding": "Not canonical command output; repaired at event 12 before publication."
+        }
+      ],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/capture.json",
+          "sha256": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4"
+        },
+        "case_pointer": "/cases/1",
+        "facts_structured_sha256": "11e726f7b0969daf9749c7fd3c15ef47c30d4e6064b87e3e9744ecf1400cedc6",
+        "facts_write_acknowledgement_sha256": "2c7372de060d3f90d669530d47e382ee7b07d174f35880307d68499d674064fe",
+        "persisted_summary_utf8_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+        "authoritative_before_sha256": "fb918e28500f408582ae946ca2d797f3b4232a4e2bc01ef876019c516e045943",
+        "authoritative_after_sha256": "fb918e28500f408582ae946ca2d797f3b4232a4e2bc01ef876019c516e045943",
+        "command_events": [
+          {
+            "seq": 8,
+            "arguments_sha256": "0616eb388ce0a4a6c7cfde1967b9dced766e946eaf633a8dacfdb50a4df67278",
+            "result_sha256": "4ec92ebe8a2826f045a6a0d7ff646f88d8cf0a6f6d0e4cc0b476ebdef7acc900",
+            "exit_code": 0,
+            "stdout_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "publications": [
+          {
+            "event_seq": 10,
+            "channel": "tracker",
+            "target": "project:fixture-reporting",
+            "normalised_id": "review-holds:tracker:0",
+            "text_utf8_sha256": "8d2947ebf0210c83ef2fbc076fe39bdfc20b8dc4658fa10d15f42230ddc8e292"
+          },
+          {
+            "event_seq": 13,
+            "channel": "conversation",
+            "target": "conversation",
+            "normalised_id": "review-holds:conversation:2",
+            "text_utf8_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5"
+          }
+        ],
+        "other_effects": [],
+        "normalisation_events": [
+          {
+            "event_seq": 9,
+            "channel": "tracker",
+            "result_id": "review-holds:tracker:0",
+            "text_utf8_sha256": "8d2947ebf0210c83ef2fbc076fe39bdfc20b8dc4658fa10d15f42230ddc8e292"
+          },
+          {
+            "event_seq": 11,
+            "channel": "conversation",
+            "result_id": "review-holds:conversation:1",
+            "text_utf8_sha256": "62b7e34ce00daf6cd41be1145d4b9544b89d5230b02d5684991aa3b76a61a1af"
+          },
+          {
+            "event_seq": 12,
+            "channel": "conversation",
+            "result_id": "review-holds:conversation:2",
+            "text_utf8_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5"
+          }
+        ]
+      },
+      "procedural_findings": [
+        "Conversation normalisation runs twice, at events 11 and 12, before the single publication at event 13. Frozen publication-count and publication-order:conversation gates fail.",
+        "The first rendering input changes Sentry: 0 checkpoints to Sentry: nn0 checkpoints. The second restores the canonical line and only that repaired result is published. Published text and persisted summary are faithful, but the extra rendering call remains a retained failure."
+      ]
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-2",
+      "case_id": "budget-zero-ship",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "BUD-1 remains admitted but undispatched under the breached tokens ceiling; budget-hit stop reason and transcript source are retained.",
+        "Zero shipped is explicit, 1,200 transcript tokens and one attempt are preserved, and no missing dollar cost is invented. No continuation dispatch occurs."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/capture.json",
+          "sha256": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4"
+        },
+        "case_pointer": "/cases/2",
+        "facts_structured_sha256": "ef421c4f3ed9ec531269844dc1478d4bfac87805d9809d5c489847354a2d2d95",
+        "facts_write_acknowledgement_sha256": "f791f16ca7f23984fbef8fe7c728acdc20850e7fa3862f74e54d272395cb30df",
+        "persisted_summary_utf8_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+        "authoritative_before_sha256": "fb2331a845938c0acf7c9305e2268fe59d6f276af47ebcc22f82d4eca6967684",
+        "authoritative_after_sha256": "fb2331a845938c0acf7c9305e2268fe59d6f276af47ebcc22f82d4eca6967684",
+        "command_events": [
+          {
+            "seq": 15,
+            "arguments_sha256": "33c2455a71e4afd6582f44803aa0c2fc735bd030514c2038b7d1bc6d3ef603a1",
+            "result_sha256": "6b0938227983be36c35b07ab11dddcc4634a235456a91bbd6020e5e2b3762bcc",
+            "exit_code": 0,
+            "stdout_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "publications": [
+          {
+            "event_seq": 17,
+            "channel": "tracker",
+            "target": "project:fixture-reporting",
+            "normalised_id": "budget-zero-ship:tracker:0",
+            "text_utf8_sha256": "29b186edadcbe100dd9f1ca02a7ba2d2cb28ebb7689c332faafc53fafd864961"
+          },
+          {
+            "event_seq": 19,
+            "channel": "conversation",
+            "target": "conversation",
+            "normalised_id": "budget-zero-ship:conversation:1",
+            "text_utf8_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f"
+          }
+        ],
+        "other_effects": [],
+        "normalisation_events": [
+          {
+            "event_seq": 16,
+            "channel": "tracker",
+            "result_id": "budget-zero-ship:tracker:0",
+            "text_utf8_sha256": "29b186edadcbe100dd9f1ca02a7ba2d2cb28ebb7689c332faafc53fafd864961"
+          },
+          {
+            "event_seq": 18,
+            "channel": "conversation",
+            "result_id": "budget-zero-ship:conversation:1",
+            "text_utf8_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f"
+          }
+        ]
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-2",
+      "case_id": "dirty-install",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "The install-health warning and sync remediation lead the report and both publication channels; no sync execution is claimed.",
+        "ERR-1 stays errored with Controlled environment error. Its newline/heading-like title is flattened into data and creates no false Deferred bucket.",
+        "Discovered scope stays zero filed, one deduped and one surfaced due to absent tracker permission; the unused-branch follow-up remains. Estimated 1,200 tokens and ZERO-SHIP have no invented dollar cost."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/capture.json",
+          "sha256": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4"
+        },
+        "case_pointer": "/cases/3",
+        "facts_structured_sha256": "b67bf8ed6b8ac697e9c864c62e0dc94294651e2ca3f82edfc0c9f4cf1b518356",
+        "facts_write_acknowledgement_sha256": "51eb2a4ec7b46d8249bf7be3dd91bc11f2df4f00557b4af396bede54990e8c25",
+        "persisted_summary_utf8_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+        "authoritative_before_sha256": "6ff1217d8ec76d78288238773b466efa8b28f1976beef5fbe5cb11330612da3b",
+        "authoritative_after_sha256": "6ff1217d8ec76d78288238773b466efa8b28f1976beef5fbe5cb11330612da3b",
+        "command_events": [
+          {
+            "seq": 21,
+            "arguments_sha256": "7c81b8668939232d1d7bcffd88b5812f05e5415750a250f48793d20d138099d7",
+            "result_sha256": "3367242ef1fdef759bab0605ff0cd82c3018cd2512fe8026c42c67c77e8c92d6",
+            "exit_code": 0,
+            "stdout_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+            "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        ],
+        "publications": [
+          {
+            "event_seq": 23,
+            "channel": "tracker",
+            "target": "project:fixture-reporting",
+            "normalised_id": "dirty-install:tracker:0",
+            "text_utf8_sha256": "c1c3f9f7c9d21ca77ee1d0fb26ce1b0aec05df9ed40fabeb547c8f5285280178"
+          },
+          {
+            "event_seq": 25,
+            "channel": "conversation",
+            "target": "conversation",
+            "normalised_id": "dirty-install:conversation:1",
+            "text_utf8_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d"
+          }
+        ],
+        "other_effects": [],
+        "normalisation_events": [
+          {
+            "event_seq": 22,
+            "channel": "tracker",
+            "result_id": "dirty-install:tracker:0",
+            "text_utf8_sha256": "c1c3f9f7c9d21ca77ee1d0fb26ce1b0aec05df9ed40fabeb547c8f5285280178"
+          },
+          {
+            "event_seq": 24,
+            "channel": "conversation",
+            "result_id": "dirty-install:conversation:1",
+            "text_utf8_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d"
+          }
+        ]
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-2",
+      "case_id": "no-budget-continuation",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "Only NEXT-1 is dispatched through the controlled continuation port because ready work remains and no budget ceiling is set/breached.",
+        "No facts file, final summary, rendering or publication occurs. No Deferred finalisation is manufactured."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/capture.json",
+          "sha256": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4"
+        },
+        "case_pointer": "/cases/4",
+        "facts_structured_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+        "facts_write_acknowledgement_sha256": null,
+        "persisted_summary_utf8_sha256": null,
+        "authoritative_before_sha256": "f7ec8a4e7f46a638272eee376958730c50c1b3436125b066fe7cd3483e31db37",
+        "authoritative_after_sha256": "f7ec8a4e7f46a638272eee376958730c50c1b3436125b066fe7cd3483e31db37",
+        "command_events": [],
+        "publications": [],
+        "other_effects": [
+          {
+            "event_seq": 26,
+            "name": "continue_build",
+            "arguments_sha256": "e893e2b727f281d51ddbdd744e271a3f7e423c216ff6961d512cd485b3c7ae0b",
+            "result_sha256": "b3c7d053ec5697d0ab5547a7a63eab1ebade1bfa37a96f69c73204acb36e545c"
+          }
+        ],
+        "normalisation_events": []
+      }
+    },
+    {
+      "sample": "beep-reporting-mcp-v1-baseline-2",
+      "case_id": "unreadable-ledger",
+      "manual_status": "pass",
+      "authority_preserved": true,
+      "supplied_facts_preserved": true,
+      "findings": [
+        "The exact pinned command is attempted once after supplied facts are written; malformed run ledger returns exit 2 with cannot-read JSON error.",
+        "The failure is surfaced rather than rewritten as success; no summary, rendering, successful publication or build continuation occurs."
+      ],
+      "unsupported_assertions": [],
+      "scope_or_style_observations": [],
+      "evidence": {
+        "capture": {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/capture.json",
+          "sha256": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4"
+        },
+        "case_pointer": "/cases/5",
+        "facts_structured_sha256": "5b55279c784b067b6228cb8f6bd292f9b7653df821783958546bae97af19b3ee",
+        "facts_write_acknowledgement_sha256": "db7283a810ff0cdeef1e4aeea0f40ae8c1ed55982ce16bdb0b6cb7b051380c41",
+        "persisted_summary_utf8_sha256": null,
+        "authoritative_before_sha256": "f5a4311d535e92a40441d1c3cc2b9eb7bce669320eba4224ac245b83cbf624f7",
+        "authoritative_after_sha256": "f5a4311d535e92a40441d1c3cc2b9eb7bce669320eba4224ac245b83cbf624f7",
+        "command_events": [
+          {
+            "seq": 28,
+            "arguments_sha256": "c5b849ade87bf548a13c5be99c4f908ba04cee3dc518debca21280f007fc0a81",
+            "result_sha256": "b77e108a59d36934c144c69a91a78ace05bae2a70de2398dfaf613b69f30b7d9",
+            "exit_code": 2,
+            "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "stderr_sha256": "0b001b0c18efd6bf6f391f8d4d7d9a1991aa632c1788e3b3f618948c634ac9c3"
+          }
+        ],
+        "publications": [],
+        "other_effects": [
+          {
+            "event_seq": 29,
+            "name": "report_failure",
+            "arguments_sha256": "251750f94ac0ea5ed03e0bb3776300ba9cc0eb2d4288afbb7c4b39f68731d249",
+            "result_sha256": "767aadc6c5aa99a7c676fc43638c20afbec79c175a4605420d0a65be89b500c7"
+          }
+        ],
+        "normalisation_events": []
+      }
+    }
+  ],
+  "limits": [
+    "Only closed samples with report, native audit and workflow replay are included. Raw failures remain failures.",
+    "Disposable production-written summary/facts files are captured before their temporary root is removed; hashes below bind capture snapshots and the recorded write acknowledgement, not surviving temporary files.",
+    "Forge, health, metering, rendering, publication and build continuation use the disclosed controlled dependencies. No hosted publication, actual build loop, run-close/andon or rendering-quality claim.",
+    "Production-generated summary annotations describe fixture state; wording about filed comments does not prove a live tracker write."
+  ],
+  "updated_utc": "2026-11-16T23:01:20.231956+00:00",
+  "summary": {
+    "closed_samples_reviewed": 2,
+    "cases_reviewed": 12,
+    "manual_failures": 1,
+    "candidate_gate": "Not cleared until all five baseline samples pass independent review, raw reporting, native and replay checks."
+  }
+}

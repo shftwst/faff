@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "-e",
+      "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+    ],
+    "stdin": "",
+    "cwd": "/var/tmp/graft-checkpoint-dZGICt/dispatched-pass",
+    "exit_code": 0,
+    "stdout": "2+2=4\n",
+    "stderr": "",
+    "error": null
+  }
+}

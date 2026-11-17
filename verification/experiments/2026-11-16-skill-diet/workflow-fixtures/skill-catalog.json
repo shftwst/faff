@@ -1,0 +1,461 @@
+{
+  "schema": 1,
+  "scope": "Catalogue selection decisions only. Names, invocability flags and bodies remain unchanged; no selected workflow is executed. This cannot qualify a body edit.",
+  "cases": [
+    {
+      "id": "selection-01",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "The user explicitly invokes /faff with no further request. Select the gateway itself; its body owns any further routing.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff"
+      },
+      "reference": "faff"
+    },
+    {
+      "id": "selection-02",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Capture one new bug report and turn it into a useful tracker ticket.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-jot"
+      },
+      "reference": "faff-jot"
+    },
+    {
+      "id": "selection-03",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Start a new empty project through a discovery conversation.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-jot"
+      },
+      "reference": "faff-jot"
+    },
+    {
+      "id": "selection-04",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Interact with an existing ticket to clarify or amend it, without starting implementation.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-jot"
+      },
+      "reference": "faff-jot"
+    },
+    {
+      "id": "selection-05",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Decompose an application-scale idea into a dependency-linked roadmap, descending from initiatives to first-slice epics.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-plot"
+      },
+      "reference": "faff-plot"
+    },
+    {
+      "id": "selection-06",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Group loose Backlog work into proposed outcome-led project homes through the rehoming entry flow.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-plot"
+      },
+      "reference": "faff-plot"
+    },
+    {
+      "id": "selection-07",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Brief me on what shipped, what is stuck and what I should focus on next.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-wtf"
+      },
+      "reference": "faff-wtf"
+    },
+    {
+      "id": "selection-08",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Show the roadmap, its workstreams, dependency chains and how the pieces fit together.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-map"
+      },
+      "reference": "faff-map"
+    },
+    {
+      "id": "selection-09",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Groom the backlog: find stale work, gaps and tickets that need promotion or demotion.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-tidy"
+      },
+      "reference": "faff-tidy"
+    },
+    {
+      "id": "selection-10",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Turn this vague issue into a buildable specification and resolve its open decisions.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-prep"
+      },
+      "reference": "faff-prep"
+    },
+    {
+      "id": "selection-11",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Build this specified issue in an isolated worktree and drive it through review and a PR.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-graft"
+      },
+      "reference": "faff-graft"
+    },
+    {
+      "id": "selection-12",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Run ready work unattended overnight, parking genuine blockers and continuing the queue.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-beep-boop"
+      },
+      "reference": "faff-beep-boop"
+    },
+    {
+      "id": "selection-13",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Bootstrap the consuming project configuration for the first use of this suite.",
+      "input": {
+        "context": "entry"
+      },
+      "oracle": {
+        "required": "faff-onboard"
+      },
+      "reference": "faff-onboard"
+    },
+    {
+      "id": "selection-14",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Use the default discovery producer to turn an idea into an intake brief.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-intake"
+      },
+      "reference": "faffter-noon-intake"
+    },
+    {
+      "id": "selection-15",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Use the default spec producer to turn an issue and resolved decisions into a structured spec.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-spec"
+      },
+      "reference": "faffter-noon-spec"
+    },
+    {
+      "id": "selection-16",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Produce a full nlspec-format specification as the alternative spec-slot implementation.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-dark-nlspec"
+      },
+      "reference": "faffter-dark-nlspec"
+    },
+    {
+      "id": "selection-17",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Use the default single-pass approach review at the spec stage.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-spec-review"
+      },
+      "reference": "faffter-noon-spec-review"
+    },
+    {
+      "id": "selection-18",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Run each enabled spec-review lens as an independent adversarial refuter and aggregate their results.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-dark-spec-review"
+      },
+      "reference": "faffter-dark-spec-review"
+    },
+    {
+      "id": "selection-19",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Use the default pre-PR code reviewer in the build flow.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-review"
+      },
+      "reference": "faffter-noon-review"
+    },
+    {
+      "id": "selection-20",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Get an independent-model adversarial second opinion on code after the primary review.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-dark-adversarial-review"
+      },
+      "reference": "faffter-dark-adversarial-review"
+    },
+    {
+      "id": "selection-21",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Author the Nygard Context, Decision and Consequences body for a settled architecture decision.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-adr"
+      },
+      "reference": "faffter-noon-adr"
+    },
+    {
+      "id": "selection-22",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Propose a best-fit architecture from the brief, spec and infrastructure profile; do not provision it.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-architecture"
+      },
+      "reference": "faffter-noon-architecture"
+    },
+    {
+      "id": "selection-23",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Provision a representative environment with compose and seed data for evaluation.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-env-compose"
+      },
+      "reference": "faffter-noon-env-compose"
+    },
+    {
+      "id": "selection-24",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Provision code-interface reachability for an evaluator when the feature is exercised through a code boundary.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-env-code-interface"
+      },
+      "reference": "faffter-noon-env-code-interface"
+    },
+    {
+      "id": "selection-25",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Resolve how an evaluator reaches the system over a private network across container or machine boundaries.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-transport-private-network"
+      },
+      "reference": "faffter-noon-transport-private-network"
+    },
+    {
+      "id": "selection-26",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Judge the running feature against holdout criteria while remaining blind to its source code.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-evaluate"
+      },
+      "reference": "faffter-noon-evaluate"
+    },
+    {
+      "id": "selection-27",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Judge only the PRD document for machine-verifiable stop conditions before admitting a lights-out run.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-prd"
+      },
+      "reference": "faffter-noon-prd"
+    },
+    {
+      "id": "selection-28",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Execute the build queue sequentially as the default concurrency strategy.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-concurrency-sequential"
+      },
+      "reference": "faffter-noon-concurrency-sequential"
+    },
+    {
+      "id": "selection-29",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Execute independent build work concurrently, capped and isolated in worktrees.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-dark-concurrency-parallel"
+      },
+      "reference": "faffter-dark-concurrency-parallel"
+    },
+    {
+      "id": "selection-30",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Order by graph structure and unlock value without introducing outcome or delivery opinions.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-methodology-thematic"
+      },
+      "reference": "faffter-noon-methodology-thematic"
+    },
+    {
+      "id": "selection-31",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Apply the opinionated outcome-led, value-and-risk delivery lens.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-dark-methodology-agile-delivery"
+      },
+      "reference": "faffter-dark-methodology-agile-delivery"
+    },
+    {
+      "id": "selection-32",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Assign and validate the six automation-routing verdicts used for queue admission.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffidavit-routing"
+      },
+      "reference": "faffidavit-routing"
+    },
+    {
+      "id": "selection-33",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Normalise human-facing prose, issue glosses, visual forms and output density without an internal gated contract.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffidavit-rendering"
+      },
+      "reference": "faffidavit-rendering"
+    },
+    {
+      "id": "selection-34",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Perform readiness, merge or deployment and cleanup as the delivery producer after review gates clear.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-noon-ship"
+      },
+      "reference": "faffter-noon-ship"
+    },
+    {
+      "id": "selection-35",
+      "kind": "decision",
+      "output": "skill-selection",
+      "request": "Scaffold or validate a custom slot skill and its required contract shape.",
+      "input": {
+        "context": "configured-slot"
+      },
+      "oracle": {
+        "required": "faffter-dark-authoring-adaptors"
+      },
+      "reference": "faffter-dark-authoring-adaptors"
+    }
+  ]
+}

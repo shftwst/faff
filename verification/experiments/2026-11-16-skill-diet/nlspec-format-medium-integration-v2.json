@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "directory": "/var/tmp/faff-nlspec-format-medium-integration",
+  "base_commit": "3cbd784148e35408bacb271da5821c392c988a69",
+  "isolated_commit": "4717174dde9af0f88f128ce3a2e77626e75fc833",
+  "source_sha256": "2b5b91c33b6e644d8e8e5720aa0aa6b6fb39d7f864fd2a8ee69a8b991a5975c9",
+  "production_installed": false,
+  "temporary_directory": "/var/tmp/faff-nlspec-format-tests-hyjiiiwn",
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=4",
+        "test/control-parity-nlspec.test.mjs",
+        "test/admissible.test.mjs",
+        "test/dod.test.mjs",
+        "test/punt-scan.test.mjs",
+        "test/prep-attach.test.mjs",
+        "test/contract-golden.test.mjs"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/nlspec-format-medium-integration-v2-tests.txt",
+      "sha256": "901715c53551cf4f07e79e72350b2c5978d8c4466082c400def1af8170e4fb76"
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/nlspec-format-medium-integration-v2-adapter-lint.txt",
+      "sha256": "bb4d1a24e82014e354b443a671613ccbfff3359e4e424d6bf8508de9c22e43ec"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/nlspec-format-medium-integration-v2-rule-inventory.txt",
+      "sha256": "46fd3b6c598f984450d89fd81633b271743561b83aaeb1949153b7ba6461569e"
+    }
+  ],
+  "limits": [
+    "Deterministic integration only; model-pair native, output and manual checks required before source acceptance."
+  ],
+  "prior_record": "nlspec-format-medium-integration.json",
+  "revision": "Only inventory quoting/short-anchor cleanup and inherited test Git signing disabled. Measured skill/policy/fixture/consumer unchanged.",
+  "test_git_override": "commit.gpgsign=false for child fixture commits only, per operator instruction; no global configuration changed."
+}

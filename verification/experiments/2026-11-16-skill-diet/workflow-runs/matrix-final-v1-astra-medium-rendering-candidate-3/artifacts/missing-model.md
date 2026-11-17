@@ -1,0 +1,2 @@
+- **Explanation opening:** no load-bearing model to lead with → ask the producer for the governing idea; none is supplied.
+- **Three steps:** three or more enumerable items require a markdown list → put each step in a separate bold-lead list item.

@@ -1,0 +1,2 @@
+- **Explanation lead:** Entire draft → no load-bearing model to lead with → the producer must supply the missing governing statement; none can be hoisted from the source.
+- **Step sequence:** Three steps in one paragraph → 3+ items must be a list → render the existing steps as a numbered list.

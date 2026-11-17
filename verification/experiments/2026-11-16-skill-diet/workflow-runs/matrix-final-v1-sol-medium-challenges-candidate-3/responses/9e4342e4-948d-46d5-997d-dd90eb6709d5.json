@@ -1,0 +1,49 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "adr-1",
+      "outcome": "survived",
+      "ground": null,
+      "reason": "The supersession argument survives calibration review: the original small-run assumption no longer holds at 200+ issues with concurrent writers. Per-issue files address the stated lock contention and corruption blast radius while retaining run discovery through an index. This is same-provider-family judgement only, not evidence of production challenge independence."
+    },
+    "calls": [
+      {
+        "args": [
+          "adr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--challenge",
+          "survived"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"admit\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"survived\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": null,
+    "admission": {
+      "disposition": "admit",
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "challenge": {
+        "ran": true,
+        "outcome": "survived"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

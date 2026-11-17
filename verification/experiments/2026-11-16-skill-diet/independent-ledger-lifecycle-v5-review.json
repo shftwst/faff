@@ -1,0 +1,74 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only verifier",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "pass-for-bounded-deterministic-lifecycle-feasibility",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/preflight-ledger-lifecycle-v5.mjs",
+      "sha256": "405937d6f898f67baff825d35906ee21d48a5537c0951cce45b93a0c573037f9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-lifecycle-preflight-v5/report.json",
+      "sha256": "047451a92ce885442005b84b97ab995e681836893a9be8cbfbf019e62a2ffd62"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-lifecycle-preflight-v5/capture.json",
+      "sha256": "ac2a1b87759133e7ce55a7c4e4036ca0f198c5511356c865f685735896d7b143"
+    }
+  ],
+  "verification": {
+    "client_and_capture_hashes_match_report": true,
+    "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "runtime_bound_artifact_count": 578,
+    "runtime_artifact_hash_mismatches": 0,
+    "cases_complete": 3,
+    "command_count": 16,
+    "command_transport_errors": 0
+  },
+  "findings": [
+    {
+      "id": "real-open-and-admission",
+      "status": "pass",
+      "evidence": "Three actual run open calls exit0 and mint distinct L3 runs with empty admission, genesis events, running owner and pinned budget.measure_root. Admission is an explicit controlled direct write of LIFE-A/LIFE-B followed by actual events append ledger-write; not a model-generated mint or admission CLI claim."
+    },
+    {
+      "id": "heartbeat-before-drain",
+      "status": "pass",
+      "evidence": "Complete run records LIFE-A=parked with owner running, calls heartbeat, then records LIFE-B=superseded with owner done. Heartbeat timestamp23:07:11.477Z lies between A ledger-write23:07:11.458Z and B ledger-write23:07:11.510Z. Script asserts exact ledger byte equality around heartbeat and captures heartbeat_ledger_unchanged:true.",
+      "limit": "Raw intermediate ledger-before-tick bytes are not separately persisted; byte equality is a hash-bound script assertion, supplemented by command order, sidecar timestamp and owner response evidence."
+    },
+    {
+      "id": "terminal-outcomes-and-close",
+      "status": "pass",
+      "evidence": "Final outcomes are exactly bare strings LIFE-A:parked and LIFE-B:superseded. Real runcheck exits0 with no undispatched or invalid outcomes. Real close exits0, owner done, stop_reason queue-drained and one run-end event."
+    },
+    {
+      "id": "refusal-preservation",
+      "status": "pass",
+      "evidence": "Incomplete close exits3, names both admitted issues and skips all close steps; unreadable close exits2 with JSON-object diagnostic and skips all close steps. Captured before/after ledger, events and heartbeat strings are exactly equal in each refusal."
+    },
+    {
+      "id": "events",
+      "status": "pass",
+      "evidence": "Complete final event sequence is exactly0..13, all schema2. Exactly one run-start exists at seq1; seq0 is the CLI genesis ledger-write. Caller does not construct envelope sequence or timestamps. No claim that run-start must be seq0."
+    },
+    {
+      "id": "owned-cleanup",
+      "status": "pass-for-this-linux-execution",
+      "evidence": "All three captured cleanup entries use the PID read from that run sentry-poller.json; source verifies /proc PID cmdline equals the pinned CLI sentry-poller run --run-dir exact-run before SIGTERM. Each sends stop first, waits, then conditionally terminates and waits again. Root removal occurs only after the exact command is no longer live. All three required SIGTERM after stop, all stopped:true. Independent inspection now finds all three roots and /proc PID entries absent.",
+      "limit": "run close signals asynchronous stop; the immediately captured status still reports running:true. This is not evidence that close synchronously terminates the poller. Ownership check depends on Linux /proc, is not portable process supervision, and does not bind a process birth-time token against theoretical PID reuse."
+    }
+  ],
+  "limits": [
+    "No summary command is present in these16 captured commands; no summary production, publication, facts authority or annotation rendering claim.",
+    "No phase-token or quality-flag production is exercised; events here establish lifecycle emissions and zero-based envelope sequence only.",
+    "No model calls, candidate measurement, skill fidelity or savings qualification.",
+    "No L4 adoption, governor outage, epoch race, sentry-abort exemption, git-only bundle or concurrent writer qualification.",
+    "Earlier V1-V4 failures remain separate historical evidence and were not rewritten.",
+    "Report binding.command is the generic review-comment binding; actual lifecycle commands are enumerated in capture.commands, not inferred from that generic descriptor."
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "signal": null,
+    "stdout": "{\"issue\":\"FAFF-7001\",\"phase1\":{\"status\":\"done\",\"verdict\":\"pass\",\"diff_hash\":\"247af7c3d4bfc40187dc54017c136a783654089d7aa708c023f4bef2ddb1dbca\"},\"phase2\":{\"status\":\"complete\",\"attempts\":0,\"findings_ref\":\"/tmp/faff-adversarial-workflow-V4sehl/case-b/findings.md\"},\"updated_at\":\"2026-11-16T08:17:29.100Z\"}\n",
+    "stderr": ""
+  }
+}

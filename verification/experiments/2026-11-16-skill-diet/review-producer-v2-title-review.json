@@ -1,0 +1,362 @@
+{
+  "status": "revision-required",
+  "source_rule": "title is the [title] part of the finding heading, without its category.",
+  "normalisation": "Strip inline code markers and collapse whitespace only.",
+  "baseline_artifacts": 35,
+  "candidate_artifacts": 21,
+  "baseline_mismatches": 0,
+  "candidate_mismatches": 4,
+  "rows": [
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-1/artifacts/adjacent-high.md",
+      "sha256": "7e6ab177477cf02d45e6206363ac1aabf1b1621cff272ee18d5888d256314e84",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-1/artifacts/adjacent-low.md",
+      "sha256": "19fe8fb0c39d577e04f9d90a881ee4402c57bf5d70d212663786459d04c7c894",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-1/artifacts/boundary-bug.md",
+      "sha256": "0695b81fd0c1296772e49d76b67bf4184966cdedcb4bc5ae4eae83284cd83401",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-1/artifacts/clean.md",
+      "sha256": "401baecfa9d8422d5d818dafad835109ef3223a341e587153c894b02376a6d61",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-1/artifacts/missing-coverage.md",
+      "sha256": "39b0d29e3a1523426e31e64d80f8df373636f5a89660687f1dc7a464ab566568",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-1/artifacts/planted-fixture.md",
+      "sha256": "a019eb86b162fc4b51af7ff7eccbc85621884af51a02db24b9704f6f160b1510",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-1/artifacts/prior-findings.md",
+      "sha256": "8f66aa08646d6e4c2579afa509bb39a765002b86c7beec98dd352bb74f547f65",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-2/artifacts/adjacent-high.md",
+      "sha256": "1c198ab30a968c69edd674194e9b3070a185b4588e7bcc3c613127dd9150d5e3",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-2/artifacts/adjacent-low.md",
+      "sha256": "4283af9f55f1ec75cd860211fdab75a54d4f240977e695a743902a399dc3b3d1",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-2/artifacts/boundary-bug.md",
+      "sha256": "d2be22c7173d482f3b86da003e125a0c243ded3e677988d7db96a9d0ffb3fbf8",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-2/artifacts/clean.md",
+      "sha256": "81200307406fd03111d6fa4af3e957b1844b9aa2f9d73e175a7bd2462616517b",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-2/artifacts/missing-coverage.md",
+      "sha256": "a72208993a8d9c2ba02e69f3c86e9a22926fd03323aa803249724765763b1dea",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-2/artifacts/planted-fixture.md",
+      "sha256": "5c37e9fd75f2924263f0c7fda94e0351957dbdf642009748edb33353a1916001",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-2/artifacts/prior-findings.md",
+      "sha256": "9fadcabd7dfbd0aede243590cbab773a129feb3c23999d70df03b13b84aa679e",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-3/artifacts/adjacent-high.md",
+      "sha256": "a8ea3284635c40bd039ff2c524d20aa05acc15f8e3cab7fdde6db8f852cab00b",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-3/artifacts/adjacent-low.md",
+      "sha256": "a1efc2b14a8c798bb0871bdc4450761cda93d37871144c7751f4871db2ebdf7e",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-3/artifacts/boundary-bug.md",
+      "sha256": "c07811e53a7d4f15efc8b82b1839e58c20849068fa2584a0293e039d2f748956",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-3/artifacts/clean.md",
+      "sha256": "d0687ec892e1500174aee286f1ec127b228086deb2f42a97f88c3093764f523e",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-3/artifacts/missing-coverage.md",
+      "sha256": "04969bcb5a2f7e5d8efbce4d80b20e2d701f8a99e197e89f9f290b3d83bcbbfd",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-3/artifacts/planted-fixture.md",
+      "sha256": "bd1327c2e27e9af188b0f60791f1a24aecb1538b06822744973835ba013cefb0",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-3/artifacts/prior-findings.md",
+      "sha256": "07107e06edbb54a900a2817d5a3e654556c493ca08043f5bead60a4deea47ef0",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-4/artifacts/adjacent-high.md",
+      "sha256": "9242c9da9f26d9e4bee60650ee9b300b9a4fbddf412f8f9e454a142b8ab321a8",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-4/artifacts/adjacent-low.md",
+      "sha256": "6035221bbfc99bfb711f44ccb1e1a17a53bfa2ba433d28575bd48eeba56d00f3",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-4/artifacts/boundary-bug.md",
+      "sha256": "a98cd21c5d91ee413da81b0222a3d4806794ed089ff5b458071e0355513fd4d9",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-4/artifacts/clean.md",
+      "sha256": "333275eb996d9847689ac1c2556da8a83424667b7dba508d2f78f88e47bbe054",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-4/artifacts/missing-coverage.md",
+      "sha256": "7fbf3ca0dcfc75a7de187636ff5135938fc56d4aaa6e0c0d6f88e4a32f81c320",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-4/artifacts/planted-fixture.md",
+      "sha256": "fc0c51fb5e2174c9802a1496b0772dbc5ef0a3d30ebda2ee57a3d4df6c080f89",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-4/artifacts/prior-findings.md",
+      "sha256": "001dcb59e56527191c7a71f249d6d78b9a822072f33c9f24e49ee6d9b8d523bd",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-5/artifacts/adjacent-high.md",
+      "sha256": "d16944669bdf36fe6139e30776d13b4ccb22bc13a33f7a260261a41731a0b1ac",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-5/artifacts/adjacent-low.md",
+      "sha256": "52a5f218308f6aa6cdce6719574b656753e709d70a31dffde380d1191fe90fe3",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-5/artifacts/boundary-bug.md",
+      "sha256": "f8e716cd1773c2131a60b3026676dafc699faa27febd50b7766c4bf60b4f5b53",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-5/artifacts/clean.md",
+      "sha256": "9d51f20a3d360100a10ea6f812d68b6783e48a0b6c353230a6e53a734e8e062e",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-5/artifacts/missing-coverage.md",
+      "sha256": "97eb85a96193585e6357e4ca3c2095dce4262396a91e0deb484a2eeadd539cbb",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-5/artifacts/planted-fixture.md",
+      "sha256": "e32a1f589ce824edbe10841475a6e3c6ec280ad8ce1505f8fd96897bf86d785c",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-baseline-5/artifacts/prior-findings.md",
+      "sha256": "c27bbe81b99d1bf5a2e1c14e28ebb26d6fb17ae73a4cb4180d6838c676fb762a",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-1/artifacts/adjacent-high.md",
+      "sha256": "d263bc8c6c69bd820a27587fc00f71ce8d26cb66602d9b28981a00b76c5705dd",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-1/artifacts/adjacent-low.md",
+      "sha256": "14114f0e521921a37b7de3431daed27d8443d743c8995b5c52c12ef56b3a1fe4",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-1/artifacts/boundary-bug.md",
+      "sha256": "5952f77dde6f10273b264362bdd906767aaddeb74e5ea00dcfe688fadbda1a38",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-1/artifacts/clean.md",
+      "sha256": "4003584e540e34f18adefefd6102c3678222e6d02573de1c7861774c43942659",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-1/artifacts/missing-coverage.md",
+      "sha256": "d903a591121c1db73d750cb8cd37d2546e5e175823019724dcc94e77a8346b7e",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-1/artifacts/planted-fixture.md",
+      "sha256": "130dec322095c2fe492f8feeff4ab30e7eb979a2422b258bd1080ca625301ff8",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-1/artifacts/prior-findings.md",
+      "sha256": "39ffcd6ebb459bde2f3a222b689b281ddf8a55285620ad5e9cf41f2fdc5ff0fc",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-2/artifacts/adjacent-high.md",
+      "sha256": "1002b8e22742fa4f03457cca63b5eba3af2877eef519ee287bdad60190d49203",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-2/artifacts/adjacent-low.md",
+      "sha256": "53c43908d4f7d322bed0b5713131d530c4f330044589542b8913a2e026b7f158",
+      "status": "title-mismatch",
+      "unmatched_titles": [
+        "Out-of-scope comment typo fix above multiply"
+      ]
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-2/artifacts/boundary-bug.md",
+      "sha256": "db14cd816ac839766298ff00670f32106bbb0930975766450696be54c2133435",
+      "status": "title-mismatch",
+      "unmatched_titles": [
+        "Missing equality boundary test for belowLimit"
+      ]
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-2/artifacts/clean.md",
+      "sha256": "71fe7a40ab4f74a74b19aa736cecfd9bc4b928694207f389175279beb98853fa",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-2/artifacts/missing-coverage.md",
+      "sha256": "198a31b572471eae99cd08a38624c8f8bbe4ac87bcbfc250ec6fa1abdd2fe661",
+      "status": "title-mismatch",
+      "unmatched_titles": [
+        "Missing mixed-case test for lower"
+      ]
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-2/artifacts/planted-fixture.md",
+      "sha256": "3dc42dea96aea61a9978625e6f54affc5540e324440c63ae95ace0ca43f9f92c",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-2/artifacts/prior-findings.md",
+      "sha256": "8e6f54c878cc613a72948fc1b2e8e1e0ac339da14c15a3bad1b7baeb769f9b5a",
+      "status": "title-mismatch",
+      "unmatched_titles": [
+        "Unguarded profile dereference in lookup",
+        "lookup rebuilds matched user instead of returning it unchanged",
+        "Missing matching-user test for lookup"
+      ]
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-3/artifacts/adjacent-high.md",
+      "sha256": "3b5e303f80961e7128e2f0940842ee3bd63bf98791ed7ad078d8fb955d19c26c",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-3/artifacts/adjacent-low.md",
+      "sha256": "8d415902ed051c32a3b0260fcdffc9564e37bdd8107cfaf09ebb1716be0c3522",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-3/artifacts/boundary-bug.md",
+      "sha256": "3c976b56083197f61190aff787d9c1d7bf67ec6668a7e048fe9c67744e579568",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-3/artifacts/clean.md",
+      "sha256": "bb9951f0145419816ae92fe9c525bcbb559d1cf1446cdf32894abb7c1a5c4599",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-3/artifacts/missing-coverage.md",
+      "sha256": "bdd1586c94b58916b0e8c1ae8951c8b30e6c370210dae1f5a30b0eccea29d6ab",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-3/artifacts/planted-fixture.md",
+      "sha256": "f461c4667cdf449a82b557cf6997de7848e57c750e603a7e947f1de6db495176",
+      "status": "title-match",
+      "unmatched_titles": []
+    },
+    {
+      "path": "workflow-runs/review-producer-v2-candidate-3/artifacts/prior-findings.md",
+      "sha256": "83f6c616752ac4c28f311e15e1e2f7a3571aa273d09d6b14ee95c09d52e05be0",
+      "status": "title-match",
+      "unmatched_titles": []
+    }
+  ],
+  "manual_notes": [
+    "All 56 completed artifacts were read against the seven source fixtures. Signals, bugs, AC coverage, fixture exemption, appetite handling, prior P2 carry and omission of fixed P1/injected P99 are faithful.",
+    "Candidate sample 2 changes several titles between prose and JSON. Its prior-findings prose also has an awkward relative clause about dropped fields; the defect and fix remain clear from the surrounding text and JSON.",
+    "The cut stays unaccepted. Restore an explicit verbatim-title rule and require every candidate artifact to match its prose headings in the next separate provider comparison."
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "status": "amended-assessment-registered-before-continuation",
+  "registered_at": "2026-11-16T23:08:52.011867+00:00",
+  "post_hoc": true,
+  "trigger": "Original baseline2 produced an unused typo draft, corrected it, and published only canonical content; exact-one normalisation was an extra grader restriction. Two independent source reviews confirmed that the written contract permits pre-publication draft correction.",
+  "original_registration_sha256": "9ac4ab8b7b07258b6ebc5e69f6d52bbbdd7899fd87888245067c268f3eebd606",
+  "original_hold_sha256": "fca85efac4861519178b4cff012c7afd933a9fcd025c068e18c3643def8fe784",
+  "independent_assessor_review_sha256": "09a88e33545ebed9df324358fe9c10ef97b4062e3aa9daa25a83dcdfa0e6eb08",
+  "assessor_sha256": "f1dc98f052da42022faf2aa72ff0f926c725e44d5513d7f33bc1f20fd374afd1",
+  "tests": {
+    "passed": 27,
+    "total": 27,
+    "sha256": "65ece17000d2e500092a79bc6464d7a0492fea4eca6cd5229ad1e683ddd552b8"
+  },
+  "plan_hashes": {
+    "beep-reporting-mcp-v1-assessed-continuation-plan.json": "971526263cb86a1ba19a14d12086b033adffb66a141d187db5af0f6be8b2230c",
+    "beep-reporting-mcp-v1-assessed-candidate-plan.json": "8838fb5ad0f8e3fc390950a3cfc0afd9baddf178e56e3615fa73b13e1118368c"
+  },
+  "existing_samples": {
+    "beep-reporting-mcp-v1-baseline-1": {
+      "capture.json": "365e3b0782b4e596304b923a517d16fe547366c085e0d2fb6cbada410820a0bb",
+      "expected.json": "b992be2971661798d337ce62901c4c8cec534f1fd6d89b5b33d40fca7fbacd94",
+      "report.json": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2",
+      "native-audit.json": "ea8fa7110a5c1a58693612c50ba7bd10fa5405212e535a3129c4f8adedb1fdd1",
+      "workflow-replay.json": "25fb74e86e6ecac2d80869a97255c22816c6beca9632121a4da512fa616aacc3",
+      "draft-assessment-v1.json": "6766c2d072bdc9778f42fc2ea053573bf30544c3cfe549643bfcb6116d55ebad"
+    },
+    "beep-reporting-mcp-v1-baseline-2": {
+      "capture.json": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4",
+      "expected.json": "df63682002dc9b2d82dedcd17070171600fcb2977a625a24d11e21823f3e7de0",
+      "report.json": "cb9701a060f899614bbbc766297142ceef59b639f3d050d34cface64a9b80b38",
+      "native-audit.json": "06742504daec6f7c2d71ae3b09c0608e963e16b080bb199ba642b1759efafba5",
+      "workflow-replay.json": "5660f318fc2faf7b72050d15d5464ae121e919a27bb65cb1394e1a525430ab0b",
+      "draft-assessment-v1.json": "c9ae0be9e357021c2d2e8e7d9838c7bea290d0c213a0780929728b5ea3fbea54"
+    }
+  },
+  "new_model_runs_before_this_amendment": 0,
+  "retention": "All original raw/manual/replay failures and call counts stay unchanged. No reroll, sample replacement or candidate cherry-picking. Apply the same frozen assessment to baseline1-5 and candidate1-5.",
+  "candidate_gate": "Five assessed baselines plus strict native, exact source bindings, reproduced raw grades and independent actual-output reading. Candidate remains unlaunched until this gate is recorded.",
+  "claims": "Controlled reporting boundary only, not rendering quality, a full build loop or hosted publication. Intermediate errors and extra normalisation calls are disclosed, not counted as flawless first attempts."
+}

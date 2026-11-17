@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "config init: created .faff/config.yaml with 1 key(s).\n",
+    "stderr": ""
+  }
+}

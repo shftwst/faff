@@ -1,0 +1,13 @@
+{
+  "containers": [],
+  "tickets": [
+    {
+      "title": "Add login rate limiting",
+      "description": "Cap how often login requests are accepted. Open question for prep: which limit should apply?",
+      "container": "Authentication",
+      "status": "Backlog",
+      "blocked_by": []
+    }
+  ],
+  "needs_discovery": false
+}

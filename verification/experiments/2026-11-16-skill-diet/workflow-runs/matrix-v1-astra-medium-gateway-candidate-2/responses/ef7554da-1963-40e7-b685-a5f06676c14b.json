@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "added runcheck, prepcheck, inflightcheck, resumecheck, sentrycheck, turncheck, Bash::merge-fence, Bash::background-fence, Monitor::background-fence → /tmp/faff-gateway-workflow-F5YBiS/cases/case-a/.claude/settings.json\n",
+    "stderr": ""
+  }
+}

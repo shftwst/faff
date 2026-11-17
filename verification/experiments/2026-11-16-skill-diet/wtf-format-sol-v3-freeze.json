@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:12:17.559394+00:00",
+  "status": "frozen-before-sourceV5-measurement",
+  "prior_candidate": "wtf-format-sol-v2-candidate-plan.json",
+  "finding": "SourceV4 candidate2 operations and WIP-cap outputs omit the empty likely-fire partition from non-empty Build queues. Both retained rendering form(c) and the original report example show the partition. Prior outputs remain, and V4 is not accepted.",
+  "change": "Make the existing queue partition grid explicit for a non-empty Build queue. Preserve both partition labels even when one is empty; all non-format source bytes remain unchanged.",
+  "candidate_sha256": "8df715340ed14eabc072dc6c063bb6ef69682341c0e48f7e05cbf1f700df87bb",
+  "required": "Five new candidate samples, all15reports fully read, every expected fact, offer, automation header and queue partition present, all70decisions and native audits pass. Preserve all baseline failures in before scores.",
+  "unchanged": "Fixed context, baseline, fixture, model/effort, runtime, assessor, protocol and rule inventory scope. No new dependency."
+}

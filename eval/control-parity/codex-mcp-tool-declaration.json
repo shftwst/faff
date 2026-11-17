@@ -1,0 +1,6 @@
+{
+  "schema": 1,
+  "cli_version": "0.169.0",
+  "tools_sha256": "5b67d918ca863b9fc8dda5be6f9f54cc355f7c47e9a466db76ee5c530f321d9c",
+  "source": "Identical pre-task native tool declarations in transport pilots V2 and V3. This is tool availability metadata; actual invocation remains restricted by the native audit."
+}

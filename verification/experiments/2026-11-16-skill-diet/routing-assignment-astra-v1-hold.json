@@ -1,0 +1,52 @@
+{
+  "accepted": false,
+  "status": "held-baseline-projection-variance",
+  "reason": "The frozen comparison includes root_cause in the exact assignment projection. Baseline three uses punt-not-closed for the medium-confidence case, while baselines one and two use spec-ambiguous-external. The unchanged baseline therefore fails that stability gate before candidate measurement.",
+  "observed": [
+    {
+      "run": "routing-assignment-astra-v1-baseline-1",
+      "extraction": {
+        "verdict": "needs-decision-first",
+        "root_cause": "spec-ambiguous-external"
+      },
+      "report_sha256": "b2384d3e0dd94513b938dc0bb14a1ad2351da736d7b8420a038737955a70b6eb"
+    },
+    {
+      "run": "routing-assignment-astra-v1-baseline-2",
+      "extraction": {
+        "verdict": "needs-decision-first",
+        "root_cause": "spec-ambiguous-external"
+      },
+      "report_sha256": "b2384d3e0dd94513b938dc0bb14a1ad2351da736d7b8420a038737955a70b6eb"
+    },
+    {
+      "run": "routing-assignment-astra-v1-baseline-3",
+      "extraction": {
+        "verdict": "needs-decision-first",
+        "root_cause": "punt-not-closed"
+      },
+      "report_sha256": "c35b3f4c4c2f21c0531b1cf284b7497e6117d7450697c22dac4401468a9a62f0"
+    },
+    {
+      "run": "routing-assignment-astra-v1-baseline-4",
+      "extraction": {
+        "verdict": "needs-decision-first",
+        "root_cause": "punt-not-closed"
+      },
+      "report_sha256": "c35b3f4c4c2f21c0531b1cf284b7497e6117d7450697c22dac4401468a9a62f0"
+    },
+    {
+      "run": "routing-assignment-astra-v1-baseline-5",
+      "extraction": {
+        "verdict": "needs-decision-first",
+        "root_cause": "spec-ambiguous-external"
+      },
+      "report_sha256": "b2384d3e0dd94513b938dc0bb14a1ad2351da736d7b8420a038737955a70b6eb"
+    }
+  ],
+  "candidate_measured": false,
+  "candidate_controller_stopped": true,
+  "baseline_capture_continues": false,
+  "savings_counted": false,
+  "baseline_capture_complete": true
+}

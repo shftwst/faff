@@ -1,0 +1,11 @@
+{
+  "command": "cat -- verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/task.json",
+  "max_output_tokens": 12000,
+  "yield_time_ms": 10000,
+  "exit_code": 0,
+  "original_token_count": 10561,
+  "returned_characters": 42244,
+  "truncation_marker_present": false,
+  "returned_json_parseable": true,
+  "scope": "Exact initial read without model. No workflow qualification; deliberate immediate finish retains expected raw failure."
+}

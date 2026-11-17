@@ -1,0 +1,51 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "adr-2",
+      "outcome": "overturned",
+      "ground": null,
+      "reason": "The old decision is a security rule: secrets come from environment variables only and are never written to .faff/. The new decision writes resolved API keys in plaintext to .faff/cache/credentials.json, which breaks that rule directly. Being gitignored does not keep the file out of backups, sandbox mounts, shared workspaces, artifact uploads, or a force-add, and it adds a stale-credential problem after key rotation. The why claims a measurable latency cost, but reading process.env is an in-memory lookup that is negligible next to an LLM network call, and an in-process memo would give the same saving without touching disk. The supersession argument does not hold."
+    },
+    "calls": [
+      {
+        "args": [
+          "adr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--challenge",
+          "overturned"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"challenge\":{\"ran\":true,\"outcome\":\"overturned\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"drift challenge overturned — the adversarial reviewer found the supersession argument unsound\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": null,
+    "admission": {
+      "disposition": "reject",
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "challenge": {
+        "ran": true,
+        "outcome": "overturned"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "drift challenge overturned — the adversarial reviewer found the supersession argument unsound"
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

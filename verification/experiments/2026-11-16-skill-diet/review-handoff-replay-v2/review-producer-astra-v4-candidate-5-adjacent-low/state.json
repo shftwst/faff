@@ -1,0 +1,23 @@
+{
+  "schema": 2,
+  "issues": {
+    "ISS-111": [
+      {
+        "id": "ISS-111-c1",
+        "created_at": "2026-11-14T08:00:00Z",
+        "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nsignal: fail\n\n## Findings\n\n### Scope: Unrequested comment cleanup in multiply\n\nsrc/function.mjs:1 corrects 'Calculte' to 'Calculate'. Documentation cleanup is outside this spec, and low appetite permits no out-of-scope lines. Revert the comment-only change while retaining the product implementation and tests, which match the requested behaviour.\n\n```faff-contract:review-verdict\n{\"signal\":\"fail\",\"findings\":[{\"title\":\"Unrequested comment cleanup in multiply\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment-only typo correction.\",\"location_present\":true,\"action_present\":true,\"source\":\"standard\"}]}\n```\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"
+      }
+    ]
+  },
+  "next_comment_id": "ISS-111-c9",
+  "now": "2026-11-15T12:00:00Z",
+  "creates": 0,
+  "op_counts": {
+    "save_comment": 1
+  },
+  "faults": [],
+  "finished": {
+    "status": "completed",
+    "reason": "updated"
+  }
+}

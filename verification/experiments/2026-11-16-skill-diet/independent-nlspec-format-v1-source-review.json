@@ -1,0 +1,122 @@
+{
+  "schema": 1,
+  "status": "pass-narrowed-static-source-equivalence-pending-frozen-spec-measurement",
+  "updated_utc": "2026-11-16T22:04:54.891414+00:00",
+  "reviewer": {
+    "role": "independent nlspec source verifier",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "bindings": [
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/nlspec-format-v1.md",
+      "sha256": "2b5b91c33b6e644d8e8e5720aa0aa6b6fb39d7f864fd2a8ee69a8b991a5975c9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/nlspec-format-v1-source-review.json",
+      "sha256": "ae88f4a350ba6b1bc4ee7fe462546bb9864866a3891ee69f969b2e468ccdaf67"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "sha256": "cc268664fa8b1789242fb898e2236c2301c937520805c1fd8a6cf6b48be99696"
+    }
+  ],
+  "sizes": {
+    "source_bytes": 18819,
+    "candidate_bytes": 16448,
+    "potential_saved_bytes": 2371,
+    "potential_saved_estimated_tokens": 586,
+    "savings_counted": false
+  },
+  "unchanged_blocks_verified": [
+    "### 5. SCENARIOS \u2014 born-verifiable main objectives",
+    "### 7. OPEN QUESTIONS AND ASSUMPTIONS",
+    "## Confidence self-rating",
+    "Original Failure modes through Rule inventory",
+    "Original temporal-anchor paragraph"
+  ],
+  "findings": [],
+  "other_rules_review": "Type/constraint/mutability notation, interface precision, decision markers, behaviour overview/pseudocode, error precedence/categories, complexity-gated failure modes, anti-patterns, rule inventory, rationale/temporal anchors and requirement/DONE coverage remain represented. Domain example removal itself loses no source requirement.",
+  "new_mandatory_reads": [],
+  "proof_required": [
+    "Freeze corrected source and complete fixture/expected behaviours before any model baseline/candidate pairing.",
+    "Persist actual final spec bytes plus exact source context; manually verify body requirements, exclusions/extension points, existing-system references, marker ownership and1:1DONE coverage without invented requirements.",
+    "Exercise trivial/no-scenario, complex behaviour/error precedence, nonfunctional assertions, holdout body-grounding/minority, eligible nonblocking versus blocking Punt and review-cap cases.",
+    "Consume actual output through pinned admissible/dod classify/punt-scan/prep attach, checking emitted readiness block equals prose and stage provenance; expected outcomes may legitimately refuse lights-out on trivial specs.",
+    "If using controlled review, bind findings to the actual persisted draft/review hash and record resolutions. Do not claim execution of full explore/self-review/prep lifecycle from pre-supplied review results.",
+    "Existing spec-review-artifact harness tests refutation, not this writer. Scenario-format repository tests pin examples/counter grammar, not generated-spec semantic fidelity."
+  ],
+  "limits": [
+    "Read-only static review. No candidate installation, source edit, model launch or generated-spec fidelity proof.",
+    "Record applies to the hashed prepared candidate; later revisions need separate recheck."
+  ],
+  "revision_history": [
+    {
+      "candidate_sha256": "fe9b20db9ce63afe69707f9ffbacc191d31f5fa7fe4d8be7cd2f891914b1a8b8",
+      "status": "initial-four-source-findings",
+      "findings": [
+        {
+          "severity": "required-source-correction",
+          "topic": "Conditional Punt ownership",
+          "before": "When the punt's class is clear, emit the optional `(decides: <owner>)` suffix",
+          "after": "When its class is clear, optionally append `(decides: <owner>)`",
+          "effect": "Known-class emission requirement becomes discretionary. Preserve the conditional emit instruction; ambiguity still omits, never guesses."
+        },
+        {
+          "severity": "source-trigger-narrowing",
+          "topic": "Reference context",
+          "before": "if the implementation touches or mirrors existing systems",
+          "after": "when extending or mirroring existing systems",
+          "effect": "Touching/modifying an existing system need not extend it. Retain touches or mirrors as trigger."
+        },
+        {
+          "severity": "format-strengthening",
+          "topic": "Vocabulary",
+          "before": "A two-column table (term \u2192 definition) is sufficient.",
+          "after": "define them ... in a term/definition table",
+          "effect": "Sufficient example form becomes mandatory. Keep table optional unless separately authorised."
+        },
+        {
+          "severity": "format-obligation-omission",
+          "topic": "Preamble",
+          "before": "Opening paragraph naming the artifact",
+          "after": "Name the artifact",
+          "effect": "Opening-paragraph requirement no longer stated. Retain it."
+        }
+      ]
+    },
+    {
+      "candidate_sha256": "2d3f6903415f16b92fe92e3aa55f1c34deebe4edeea99190c467d26fd5ad5fa8",
+      "status": "four-corrections-verified-one-additional-scope-narrowing",
+      "findings": [
+        {
+          "severity": "source-scope-narrowing",
+          "topic": "Out of scope",
+          "before": "For each excluded item; every related-but-not-this-issue explore item belongs here.",
+          "after": "For every related item excluded by explore",
+          "effect": "Could omit producer-identified exclusions not explicitly excluded by explore. Preserve all-excluded-items obligation plus explore coverage."
+        }
+      ]
+    },
+    {
+      "candidate_sha256": "4f7b841dc264c062a59af02c87c58a97d3dea20ebd6b9aa5be9fcec10b7189fb",
+      "status": "all-five-source-equivalence-findings-corrected",
+      "checks": [
+        "Opening paragraph restored",
+        "Touching/mirroring trigger restored",
+        "Vocabulary table sufficient, not mandatory",
+        "Known-class ownership suffix emission restored",
+        "All excluded items covered, including every related-but-out-of-scope explore item"
+      ]
+    },
+    {
+      "candidate_sha256": "2b5b91c33b6e644d8e8e5720aa0aa6b6fb39d7f864fd2a8ee69a8b991a5975c9",
+      "status": "narrowed-cut-static-pass",
+      "change": "Original Failure modes through anti-pattern/rule-inventory block and original temporal-anchor paragraph restored verbatim; their unexercised activation branches excluded from this cut."
+    }
+  ]
+}

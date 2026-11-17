@@ -1,0 +1,1 @@
+{"name":"submit_verdict","args":{"case_id":"missing","text":"The PRD states a goal and a scope exclusion but declares no stop conditions. Implementation choices remain open.\n\n```faff-contract:prd-readiness\n{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\"}\n```"}}

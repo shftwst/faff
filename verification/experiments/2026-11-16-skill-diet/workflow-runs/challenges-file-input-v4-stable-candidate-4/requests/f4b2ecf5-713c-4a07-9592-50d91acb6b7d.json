@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":"absent","ground":null,"reason":"No independent opinion was obtained: the provider chain was exhausted (opinion_available=false). The absence is preserved as the absent outcome, which rejects; it is not converted to a pass."}}

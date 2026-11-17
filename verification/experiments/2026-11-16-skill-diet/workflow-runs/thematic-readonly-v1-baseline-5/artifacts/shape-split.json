@@ -1,0 +1,22 @@
+{
+  "containers": [],
+  "tickets": [
+    {
+      "title": "Validate session tokens",
+      "description": "Validate session tokens. Part of keeping sessions valid: validate session tokens and refresh expired sessions.",
+      "container": "Authentication",
+      "status": "Backlog",
+      "blocked_by": []
+    },
+    {
+      "title": "Refresh expired sessions",
+      "description": "Refresh expired sessions. Part of keeping sessions valid: validate session tokens and refresh expired sessions. Depends on Validate session tokens.",
+      "container": "Authentication",
+      "status": "Backlog",
+      "blocked_by": [
+        "Validate session tokens"
+      ]
+    }
+  ],
+  "needs_discovery": false
+}

@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"opinion_available=false records an exhausted provider attempt. Preserve the absent opinion and omit the challenge. Phase-1 approval and apparent proposal merit cannot replace the unavailable opinion; the upper gate must remain inconclusive."}}

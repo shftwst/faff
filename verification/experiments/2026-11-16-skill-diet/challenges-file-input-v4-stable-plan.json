@@ -1,0 +1,65 @@
+{
+  "harness": "eval/control-parity/challenge-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/challenges.json",
+  "samples": [
+    {
+      "name": "challenges-file-input-v4-stable-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-5",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    }
+  ],
+  "worker": "claude-challenges",
+  "treatment": "file-input-v4: same operator guidance and bounded policy delivery; native Write creates one authorised bridge-arguments.json, then fixed Bash command calls the port with no JSON data in its command text. All source policies, fixtures, production runtime and effect oracles unchanged.",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md"
+  ],
+  "bridge": "eval/control-parity/mailbox-file-call.mjs",
+  "infrastructure_note": "Fresh full paired set on established worker. Prior claude-interfaces startup handshake timed out and removed it during candidate-1; that interrupted sample remains incomplete and is not pooled."
+}

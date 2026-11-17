@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"delivery-preflight","value":{"graft_checks_before_build":true,"ship_rechecks_at_delivery":true,"return_outcome":"not-ready","retry_later":true,"burn_code_fix_attempt":false,"change_judgement_needs_human":false}}}

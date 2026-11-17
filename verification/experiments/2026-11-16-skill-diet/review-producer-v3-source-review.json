@@ -1,0 +1,14 @@
+{
+  "status": "pending-astra-v4-candidate",
+  "baseline_bytes": 13405,
+  "candidate_bytes": 8045,
+  "baseline_estimated_tokens": 3327,
+  "candidate_estimated_tokens": 2008,
+  "baseline_sha256": "f85023d05cd5c6de9ed09ce54a7c5a88d7a31b8d66f640f8b630b84ad85bc6fe",
+  "candidate_sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f",
+  "preserved_human_pass_sha256": "3bc568b7fbbb7bf7dbfd3025912bf2bf10fd97f993e4031c6d8e5fe79882d2b4",
+  "preserved_appetite_table_sha256": "7865fc732522904aaa2bff4cf971211cf184530d86b971873896504e24389824",
+  "changed_scope": "Consolidate pre-PR/contract explanations and passes 1-4. Human pass and appetite table remain byte-identical.",
+  "proof_required": "Five new V4 candidates versus the five successful unchanged V3 baselines; native audits, manual artifacts, exact titles, downstream connector replay and clean committed integration.",
+  "revision": "Separate existing verdict conditions and finding-cardinality rules to satisfy existing inline-enum lint; no linter change."
+}

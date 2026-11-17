@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "scope": "Native structured transport and unchanged mailbox attribution. Semantic fidelity, case completion and production runtime binding require the separately recorded workflow grade and integration checks. No reasoning or tool content is exported.",
+  "auditor_sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+  "source_sha256": "8c7284a7ca5cf50d51535696612925fdd6e1fb15291099f8283fd1d4257d15f3",
+  "evidence_hashes": {
+    "task.json": "0bdf579a454e0e7f382658ba3cfe8b3b4f805e302f2620ecb0e65ff4805f5ebe",
+    "startup-binding.json": "ce95d982b2e344169b0ed4cfb1aca8b2b2ef62888ec4f49a0c3b5ecb49b77110",
+    "worker-manifest.json": "b53999c590a26d61cdff712c128942242dc1008199fa32fa31c546a918797462",
+    "worker-final-state.json": "2c1411047c70bb849ca575650e747add7fe3bc8370ac7c7fad9c1c1d0456f7ac",
+    "mcp-server-manifest.json": "0529dcc88cd23b4ba7298df3b90d9db667e7ade41b9b9c08c25e09692e617e20",
+    "mcp-trace.jsonl": "e1a57ce2b14ba22fb8e4b4af6535b498130600fd24031915dc409689c480935b",
+    "mcp-protocol-errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "capture.json": "6d51b04a93e84b3abf3a40946da81ab46a1e38ff76d077984038769e02221c3c",
+    "report.json": "58cad9db34ac94db87e32fa2dda3ab19f101cc15b7be9b5be8a0e861818a5493"
+  },
+  "runs": [
+    {
+      "status": "fail",
+      "session_id": "01a1e7b1-7c3f-73b3-95fe-d3b979458f0b",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v3-baseline-1/task.json",
+          "complete": true,
+          "sha256": "0bdf579a454e0e7f382658ba3cfe8b3b4f805e302f2620ecb0e65ff4805f5ebe"
+        }
+      ],
+      "native_calls": 135,
+      "mcp_calls": 132,
+      "policy_reads": 70,
+      "problems": [
+        {
+          "code": "trace-order-or-error",
+          "detail": 82
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 82
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 82
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 113
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 113
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 113
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 121
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 121
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 121
+        },
+        {
+          "code": "reported-policy-delivery-differs",
+          "detail": null
+        },
+        {
+          "code": "bridge-report-differs",
+          "detail": null
+        },
+        {
+          "code": "capture-operation-bijection-differs",
+          "detail": null
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "status": "preliminary-ownership-run-facts-review",
+  "registered": false,
+  "accepted": false,
+  "reviewed_adapter": {
+    "path": "eval/control-parity/graft-checkpoint-execution-v3.mjs",
+    "sha256": "c10a3ff8c46c3df5cdd814c98b33aca7feb9c7531c01c61d349321e0228f285f",
+    "controlled_handoff_span_sha256": "dbe3a3a657334edf1a33e856ab64b45693687dfb5ac863975ecf512a8a064cd9"
+  },
+  "earlier_inspected_adapter_sha256": "2c0e3e750b6dc9d6a6d1230bcf85fce44a2ac4cd574849f1d10783fc5baa1741",
+  "inputs": [
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/lib/pr-open.js",
+      "sha256": "a8613b32ef23683d063ddd9e57e99718c4a8ca24ecba9bf6a4db50a63d42feb1"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/lib/merge-gate-floor.js",
+      "sha256": "573813c2da857a5964d611d0e222131f11d7292c4a5fc4f3b064301baec4c365"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/lib/config.js",
+      "sha256": "d7b61efed863d04e387fd02e48c6f61d4577a7bb827f47d8c69d2f22885f7121"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff-graft/SKILL.md",
+      "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v2-source-oracle-adjudication.json",
+      "sha256": "b182fa2280e0c5ca9da57f4db5d5adb3a14b76e7a505f4e5c8eebc478deb00b0"
+    }
+  ],
+  "findings": [
+    {
+      "status": "clear-fresh-controlled-path",
+      "topic": "producer ownership",
+      "evidence": "write-human removed from model command allowlist and ordering. Model performs checklist write/render then controlled review/pr handoffs. controlledPrHandoff derives and writes human declaration internally before model EvidenceReturn, matching source Step9b producer placement."
+    },
+    {
+      "status": "clear-fresh-controlled-path",
+      "topic": "source/run/config facts",
+      "evidence": "Setup persists exact supplied captured-spec.md. Controlled handoff runs actual pinned dod classify on captured copy, takes DONE human_only rows, reads actual ledger level and actual config, invokes pinned merge-gate-floor.resolveUnattended, then real evidence writer with derived issue/level/unattended/IDs. No model-provided human schema or authority assertion."
+    },
+    {
+      "status": "matches-pinned-production-definition",
+      "topic": "attendedness",
+      "evidence": "Pinned pr-open.js defaultUnattendedFor(level,mainRoot) calls floor.resolveUnattended(level,config.loadConfig(mainRoot)[0]); same underlying rule used here. Seed config explicitly declares L3 autonomous unattended. Inspected current and pinned production files have equal SHA256."
+    },
+    {
+      "status": "scope-clarified-in-latest-task",
+      "topic": "no-remote sandbox vs hosted dependency",
+      "evidence": "Latest task instructions explicitly declare supplied hosted facts/review/PR opening as controlled dependencies with no hosted operation, and separately describe local-floor consumption. This avoids selling the no-remote fixture as actual pr-open execution. Actual pinned pr-open.js:226 remains git-only no-op before mint."
+    }
+  ],
+  "parity_limits": [
+    "Controlled dependency does not invoke full faff pr open. It omits stale-copy removal, already-open fast path and production guarded missing/malformed spec/level fault handling. Production mint faults warn rather than refuse PR, and stale copies are cleared. Current successful fresh fixture can be bounded to that path; no stale/invalid-run-fact or whole-pr-open equivalence claim is supported.",
+    "The handoff records actual classifier/writer prior_commands and resulting snapshot. Future grade/manual gate must bind and inspect these actual results rather than treating controlled exit0 alone as human-evidence success.",
+    "This preliminary review covers producer ownership and run/config fact derivation only. It does not qualify new transport/read_case, grader, full negative suite, manual output coverage or a model arm. Root is still editing the unregistered source; any later SHA requires final frozen prelaunch review."
+  ],
+  "defects_for_reviewed_fresh_path": [],
+  "no_models_tests_source_edits_commits": true
+}

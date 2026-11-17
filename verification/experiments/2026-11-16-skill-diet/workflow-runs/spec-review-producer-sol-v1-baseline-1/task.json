@@ -1,0 +1,236 @@
+{
+  "instructions": "Read the complete rendering policy through read_policy. For each independent artifact case, transform the supplied draft or source into the requested output and persist it through write_output. These are isolated human-facing outputs; preserve their facts and use the supplied source material. Do not query a tracker or read additional files. Separately answer every bounded rule question. Global operator guidance applies. Finish after every case is recorded.",
+  "policy": {
+    "bytes": 179704,
+    "utf16_characters": 178150,
+    "sha256": "e835731036913af33136af53d5a90a40f437c161242e566e8204545a24f49545",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_output",
+      "description": "Persist the completed rendering for one artifact case. Write once per case; provide the actual normalised text or violation report requested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "answer_rule",
+      "description": "Answer one separate bounded policy question in its stated value shape. Do not perform hypothetical actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all artifacts and rule answers are recorded.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "spec-verdict-001",
+      "task": "Review this supplied confidence-rated spec in one pass using the selected lenses. Persist the actual spec-review verdict contract artifact. Use only this supplied repository context and attached critique; do not write code, revise the spec, query files or run another reviewer.",
+      "source": {
+        "spec_body": "# Add a `--json` flag to `faff eligible`\n\n## WHY\n`faff eligible` prints a bare `true`/`false` on stdout. Callers that want the resolved precedence (which label won, what the default was) have to re-derive it. A structured mode lets tooling read the reasoning without parsing prose.\n\n## WHAT\nAdd an opt-in `--json` flag. Default output is unchanged (bare `true`/`false`). With `--json`, print a one-line object `{ \"eligible\": bool, \"basis\": \"hold|automate|default\", \"default\": \"opt-in|opt-out\" }` to stdout and nothing else.\n\n## HOW\n**Chosen:** thread a `json` boolean through the existing `cmdEligible` handler. The verdict + basis are already computed by the shared `resolveEligibility` helper; `--json` only changes the *rendering* of that result, never the resolution. Bare mode stays byte-identical.\n\n## Scenarios\n1. `faff eligible --label faff-automate --json` → `{ \"eligible\": true, \"basis\": \"automate\", \"default\": \"opt-in\" }`, exit 0.\n2. `faff eligible --label faff-automation-hold --label faff-automate --json` → `{ \"eligible\": false, \"basis\": \"hold\", \"default\": \"opt-in\" }` (hold wins).\n3. `faff eligible --label faff-automate` (no `--json`) → bare `true` (unchanged).\n\n## DONE\n- [ ] `--json` emits the object shape above; bare mode is byte-identical to today.\n- [ ] `basis` reflects the winning precedence tier (hold > automate > default).\n- [ ] a unit test covers all three scenarios.",
+        "methodology_critique": "## Methodology critique\nThe scope is one useful increment at the existing priority. No value, scope or risk objection.",
+        "selected_lenses": [
+          "architectural",
+          "infosec",
+          "methodology",
+          "QA"
+        ],
+        "mode": "single-pass",
+        "level": 2,
+        "repository_context": "Only the system details stated in the spec are available. No additional architecture decision changes the supplied design."
+      }
+    },
+    {
+      "id": "spec-verdict-002",
+      "task": "Review this supplied confidence-rated spec in one pass using the selected lenses. Persist the actual spec-review verdict contract artifact. Use only this supplied repository context and attached critique; do not write code, revise the spec, query files or run another reviewer.",
+      "source": {
+        "spec_body": "# Memoise per-request auth state in a module-level singleton\n\n## WHY\nEach request re-resolves the caller's roles from the token, which repeats work within a single request's fan-out of internal calls.\n\n## WHAT\nCache the resolved roles so the fan-out reuses them instead of re-resolving per hop.\n\n## HOW\n**Chosen:** a module-level mutable singleton `let currentRoles` set at the start of request handling and read by every downstream helper. The request handler writes it on entry; helpers read the module global directly rather than threading the value through call arguments.\n\n## Scenarios\n1. Two internal helpers in one request read the same roles without re-resolving.\n\n## DONE\n- [ ] downstream helpers read roles from the shared holder\n- [ ] roles are resolved once per request",
+        "methodology_critique": "## Methodology critique\nThe scope is one useful increment at the existing priority. No value, scope or risk objection.",
+        "selected_lenses": [
+          "architectural",
+          "infosec",
+          "methodology",
+          "QA"
+        ],
+        "mode": "single-pass",
+        "level": 2,
+        "repository_context": "Only the system details stated in the spec are available. No additional architecture decision changes the supplied design."
+      }
+    },
+    {
+      "id": "spec-verdict-003",
+      "task": "Review this supplied confidence-rated spec in one pass using the selected lenses. Persist the actual spec-review verdict contract artifact. Use only this supplied repository context and attached critique; do not write code, revise the spec, query files or run another reviewer.",
+      "source": {
+        "spec_body": "# Add a webhook that fetches a user-supplied URL and returns its body\n\n## WHY\nUsers want to register an external callback and preview what it returns, so the app should fetch a URL they provide and echo the response body back into the UI.\n\n## WHAT\nAccept a `url` field on the webhook-registration form. Server-side, issue an HTTP GET to that exact URL and return the response body to the caller for preview.\n\n## HOW\n**Chosen:** on registration, the backend performs `fetch(userUrl)` and streams the body back in the API response. No allow-list — the point is that any URL the user names is previewable.\n\n## Scenarios\n1. A user registers `https://example.com/hook` and sees its body echoed in the preview pane.\n\n## DONE\n- [ ] the registration endpoint fetches the supplied URL server-side\n- [ ] the fetched body is returned to the caller for preview",
+        "methodology_critique": "## Methodology critique\nThe scope is one useful increment at the existing priority. No value, scope or risk objection.",
+        "selected_lenses": [
+          "architectural",
+          "infosec",
+          "methodology",
+          "QA"
+        ],
+        "mode": "single-pass",
+        "level": 2,
+        "repository_context": "Only the system details stated in the spec are available. No additional architecture decision changes the supplied design."
+      }
+    },
+    {
+      "id": "qa-repo-file",
+      "task": "Review this supplied confidence-rated spec in one pass using the selected lenses. Persist the actual spec-review verdict contract artifact. Use only this supplied repository context and attached critique; do not write code, revise the spec, query files or run another reviewer.",
+      "source": {
+        "spec_body": "# Show stored receipt date\n\n## WHY\nCustomers need the already stored date.\n\n## HOW\nRender the existing deliveryDate in the existing receipt component; omit it when absent. No schema or network changes.\n\n## Scenarios\n### Receipt date\nGiven a stored receipt, when verification runs, then test/receipt.test.mjs passes.\n\n## DONE\n- Existing date renders and absent date omits the field.",
+        "methodology_critique": "## Methodology critique\nThe scope is one useful increment at the existing priority. No value, scope or risk objection.",
+        "selected_lenses": [
+          "infosec",
+          "QA"
+        ],
+        "mode": "single-pass",
+        "level": 2,
+        "repository_context": "The code-blind holdout cannot read or execute repository test files."
+      }
+    },
+    {
+      "id": "qa-no-observation",
+      "task": "Review this supplied confidence-rated spec in one pass using the selected lenses. Persist the actual spec-review verdict contract artifact. Use only this supplied repository context and attached critique; do not write code, revise the spec, query files or run another reviewer.",
+      "source": {
+        "spec_body": "# Show stored receipt date\n\n## WHY\nCustomers need the already stored date.\n\n## HOW\nRender the existing deliveryDate in the existing receipt component; omit it when absent. No schema or network changes.\n\n## Scenarios\n### Receipt date\nGiven a stored receipt, when its receipt is opened.\n\n## DONE\n- Existing date renders and absent date omits the field.",
+        "methodology_critique": "## Methodology critique\nThe scope is one useful increment at the existing priority. No value, scope or risk objection.",
+        "selected_lenses": [
+          "infosec",
+          "QA"
+        ],
+        "mode": "single-pass",
+        "level": 2,
+        "repository_context": "The code-blind holdout cannot read or execute repository test files."
+      }
+    },
+    {
+      "id": "methodology-blocker",
+      "task": "Review this supplied confidence-rated spec in one pass using the selected lenses. Persist the actual spec-review verdict contract artifact. Use only this supplied repository context and attached critique; do not write code, revise the spec, query files or run another reviewer.",
+      "source": {
+        "spec_body": "# Account recovery bundle\n\n## WHY\nRestore access to locked accounts.\n\n## HOW\nDeliver token issuance, recovery email delivery, account policy administration and migration of old recovery records in one ticket, using existing authenticated services.\n\n## Scenarios\nGiven a locked test account, when its valid recovery token is redeemed, then the account can sign in and the token cannot be reused.\n\n## DONE\n- Token redemption restores access once.",
+        "methodology_critique": "## Methodology critique\nSeverity: blocker. The ticket combines four independently deliverable concerns; the mandatory increment limit is one independently useful recovery step. Split the increment before building. Keep token issuance as the first useful slice.",
+        "selected_lenses": [
+          "methodology",
+          "QA"
+        ],
+        "mode": "single-pass",
+        "level": 2,
+        "repository_context": "The existing services support the stated approach; no conflicting architecture decision is supplied."
+      }
+    }
+  ],
+  "rule_questions": [
+    {
+      "id": "default-lenses",
+      "question": "With no selected lens-set, list the lenses in source order. Return {\"lenses\": string[]}."
+    },
+    {
+      "id": "selected-lenses",
+      "question": "The caller selects infosec and QA. Which lenses fire? Return {\"lenses\": string[]} in that order."
+    },
+    {
+      "id": "mandatory-lenses",
+      "question": "Which lenses always fire at L1-L3? Return {\"lenses\": string[]} in source order."
+    },
+    {
+      "id": "methodology-missing",
+      "question": "No methodology critique is attached. Return {\"recompute\": boolean, \"objections\": number, \"note_gap\": boolean}."
+    },
+    {
+      "id": "worst-only",
+      "question": "How many objections may one lens emit? Return {\"maximum\": number}."
+    },
+    {
+      "id": "builder-choice",
+      "question": "The only concern is a choice the builder can settle without a new decision. Return {\"verdict\": string, \"objections\": number}."
+    },
+    {
+      "id": "weak-consequence",
+      "question": "Give the exact predicted_consequence value when no concrete consequence can be named. Return {\"value\": string}."
+    },
+    {
+      "id": "anchor",
+      "question": "Give the spec_anchor for raw heading ### The `spec_anchor` field. Return {\"anchor\": string}."
+    },
+    {
+      "id": "no-anchor",
+      "question": "No single section can be named. Return {\"omit_spec_anchor\": boolean}."
+    },
+    {
+      "id": "minor-only",
+      "question": "Only minor objections remain. Return {\"verdict\": string}."
+    },
+    {
+      "id": "qa-blocker",
+      "question": "Only a QA blocker remains. Return {\"verdict\": string}."
+    },
+    {
+      "id": "infosec-blocker",
+      "question": "Only an infosec blocker remains. Return {\"verdict\": string}."
+    },
+    {
+      "id": "founded",
+      "question": "Can a non-approve verdict have an empty objection array? Return {\"allowed\": boolean}."
+    },
+    {
+      "id": "route-owner",
+      "question": "Who decides whether reject-approach routes to prep or plot? Return {\"owner\": \"producer\" or \"consumer\"}."
+    },
+    {
+      "id": "adversarial",
+      "question": "Does this L1-L3 occupant launch independent adversarial refuters? Return {\"launches\": boolean}."
+    }
+  ]
+}

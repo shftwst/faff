@@ -1,0 +1,21 @@
+{
+  "answers": [
+    {"id": "bare", "route": "faff-wtf", "args": [], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "focus", "route": "faff-wtf", "args": [], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "strategy", "route": "faff-map", "args": [], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "application", "route": "faff-plot", "args": [], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "feature", "route": "faff-jot", "args": [], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "bug", "route": "faff-jot", "args": [], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "existing-jot", "route": "faff-jot", "args": ["ISS-42"], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "prep", "route": "faff-prep", "args": ["ISS-42"], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "build", "route": "faff-graft", "args": ["ISS-42"], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "tidy", "route": "faff-tidy", "args": [], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "unattended", "route": "faff-beep-boop", "args": [], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "onboard", "route": "faff-onboard", "args": [], "offer": false, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "first-offer", "route": null, "args": [], "offer": true, "config_actions": [], "resume_original": false, "level_command": null},
+    {"id": "decline", "route": null, "args": [], "offer": false, "config_actions": ["config init --set tracking.spec_docs_path=", "gitignore-ensure", "hooks-ensure"], "resume_original": true, "level_command": null},
+    {"id": "accept", "route": "faff-onboard", "args": [], "offer": false, "config_actions": [], "resume_original": true, "level_command": null},
+    {"id": "autonomous-no-config", "route": null, "args": [], "offer": false, "config_actions": [], "resume_original": true, "level_command": null},
+    {"id": "lights-out", "route": null, "args": [], "offer": false, "config_actions": [], "resume_original": false, "level_command": "faff lights-out"}
+  ]
+}

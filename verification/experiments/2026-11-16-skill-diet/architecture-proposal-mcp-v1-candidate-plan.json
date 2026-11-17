@@ -1,0 +1,80 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/architecture-proposal.json",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "purpose": "skill-diet-qualification",
+  "timeout_seconds": 900,
+  "bridge": "eval/control-parity/mailbox-mcp.mjs",
+  "runner": "run-mcp-workflow-samples-v1.py",
+  "treatment": "Fresh structured-MCP transport cohort with unchanged full architecture policies, profile snapshots, source fixture and semantic contract. All previous Astra/Sol shell-transport failures remain held and unpooled. No replacement of any sample.",
+  "acceptance": "Five baseline samples must pass native replay, all four artifacts and ten decisions, actual contract/profile consumption and independent manual review before any candidate launch. Then require the same five candidate samples. Freeze all inputs, preserve every failure and stop on a failed sample. Final replay consumes all forty actual artifacts with the real CLI and rejects invalid recommendations. Integration and main lint/inventory precede acceptance. No full graft, profile acquisition, architectural quality, procurement or ADR creation claim.",
+  "manual_criteria": [
+    "All stated needs covered without invented profile facts.",
+    "One design, no alternative recommendation list.",
+    "No-profile case uses an explicit honest assumption.",
+    "ADR candidates agree exactly with expressed architecture intent.",
+    "Non-build recommendations remain human-only and perform no procurement.",
+    "Every produced artifact is read; all hashes and native metadata bind the same frozen cohort."
+  ],
+  "frozen_hashes": {
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-native-audit.mjs": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-startup-context.json": "01d2e7e23dd2555aee16496dbc8313609de76ca80407438d1f46cdb7dbb85a8f",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-tool-declaration.json": "62f1512b6a3813318cfd88dbd35b74fea6a07212eea397725efbd66031713645",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-native-audit.mjs": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/interactive-handoff.mjs": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/policy-reader.mjs": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/rendering-artifact.mjs": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/schema.mjs": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/architecture-artifact.mjs": "db6d655637d5474f4f1e0d58c29d1b300ec3d0042d046c9ff035079f86d54dbb",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/grader.mjs": "d952e359b0464f8905c7706cd2bf08573c7a3406dbe218dba9b4c02109ba07b0",
+    "/Users/shftwst/.agents/AGENTS.md": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v1.py": "6a621e5b735676d1dae51c786dd6eeca6be183951857b0afbaef6b3898cec4ec",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/preflight-artifact-mcp-v1.mjs": "8c4e81b6b2708b52f641bf0cfa99f42bc680b2a73affcb18aed17afdadc8c3ca",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/preflight.json": "aa48fcdd748590e55d8b176321dd56a1bfbc2903d08557c143f40f0330f01b95",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-proposal-astra-v1-hold.json": "d08569b44d7dd4785adb7dc522b086d0e942c802f45fd1c50593de52a1c4c32b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-proposal-sol-v1-hold.json": "f43d19336e1fc7926da18b3824f739c3e45d3c7ed3697da76b6a4cf25b64bb95",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/architecture-proposal.json": "f1b3185a451858a9b6692207c9dd333b1b6e46364c55a6425a157706acca5025",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/architecture-proposal-with-context.md": "97038604a7eff768d3b5baad782f0103bca9ebefd074de68c08f7cbb1446fa02",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/architecture-proposal-v1-with-context.md": "75b2c5776b5dc290c1271befbb1903990c9df67782c2fb51ff921738b93592fd",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/architecture-proposal-v1.md": "43ee9b702de2ed3c7d6a5e2076aa1c5780b16aa6b6e223b3d186aa8e6cda5ba2",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/replay-architecture-proposals.mjs": "741b4f9894969f4011db7080fa7ee164e58bd8df9b85b5eeb143f9884a902a7d"
+  },
+  "samples": [
+    {
+      "name": "architecture-proposal-mcp-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/architecture-proposal-v1-with-context.md"
+    },
+    {
+      "name": "architecture-proposal-mcp-v1-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/architecture-proposal-v1-with-context.md"
+    },
+    {
+      "name": "architecture-proposal-mcp-v1-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/architecture-proposal-v1-with-context.md"
+    },
+    {
+      "name": "architecture-proposal-mcp-v1-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/architecture-proposal-v1-with-context.md"
+    },
+    {
+      "name": "architecture-proposal-mcp-v1-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/architecture-proposal-v1-with-context.md"
+    }
+  ]
+}

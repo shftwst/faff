@@ -1,0 +1,189 @@
+{
+  "ok": true,
+  "value": {
+    "id": "evidence-tamper",
+    "kind": "evidence-tamper",
+    "task": "Setup wrote a schema-valid zero-AC checklist through the real writer and captured its actual EvidenceReturn, then appended one newline to that file. Verify supplied returned_before_change exactly. Apply the supplied policy to classify the real result and choose the follow-up.",
+    "source": {
+      "spec": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+      "review": {
+        "signal": "pass",
+        "findings": []
+      },
+      "pr": {
+        "number": 11,
+        "state": "OPEN",
+        "draft": false,
+        "controlled": true
+      },
+      "check_command": "check-ac prints the arithmetic result and exits nonzero if 2+2 differs from 4; the published pricing page has not been inspected",
+      "gate_scripts": "Declared lint and test scripts increment counters under .faff and pass. Gate counters are outside gate fingerprints. Trusted dispatcher local check may run its own safe tests after the lane return.",
+      "hosting": {
+        "remote_available": true,
+        "mode": "controlled fixture dependency; actual hosted operations are not performed"
+      },
+      "check_locator": "[\"/usr/local/bin/node\",\"-e\",\"if(2+2!==4)process.exit(1);console.log(\\\"2+2=4\\\")\"]",
+      "returned_before_change": "{\"issue\":\"FAFF-9\",\"ac_checklist\":{\"present\":true,\"sha256\":\"f23aeeb06d1d0f42c2844c1355873cd8496f9fc3b8b5847b440100942b140a47\"},\"review_verdict\":{\"present\":false,\"sha256\":null},\"human_only_acs\":{\"present\":false,\"sha256\":null}}\n"
+    },
+    "root": "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper",
+    "run_dir": "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+    "issue": "FAFF-9",
+    "commands": [
+      {
+        "id": "heartbeat",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "heartbeat",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+          "--unit",
+          "FAFF-9"
+        ]
+      },
+      {
+        "id": "gates",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "gates",
+          "run",
+          "--root",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper",
+          "--json"
+        ]
+      },
+      {
+        "id": "quality-contract",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "quality-gates"
+        ]
+      },
+      {
+        "id": "spec-verify",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "spec",
+          "verify",
+          "--issue",
+          "FAFF-9",
+          "--spec",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper-source-spec.md",
+          "--worktree",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper",
+          "--run-dir",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+          "--json"
+        ]
+      },
+      {
+        "id": "classify",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "dod",
+          "classify",
+          "--issue",
+          "FAFF-9",
+          "--spec",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper/docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md",
+          "--json"
+        ]
+      },
+      {
+        "id": "write-ac",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "evidence",
+          "write",
+          "ac-checklist",
+          "--run-dir",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+          "--issue",
+          "FAFF-9"
+        ]
+      },
+      {
+        "id": "render-ac",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "evidence",
+          "render",
+          "ac-checklist",
+          "--run-dir",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+          "--issue",
+          "FAFF-9"
+        ]
+      },
+      {
+        "id": "evidence-return",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "evidence",
+          "return",
+          "--run-dir",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+          "--issue",
+          "FAFF-9"
+        ]
+      },
+      {
+        "id": "verify-return",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "evidence",
+          "verify-return",
+          "--run-dir",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+          "--issue",
+          "FAFF-9"
+        ]
+      },
+      {
+        "id": "review-handoff",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "evidence",
+          "write",
+          "review-verdict",
+          "--terminal-only",
+          "--run-dir",
+          "/var/tmp/graft-checkpoint-Ms9NfH/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+          "--issue",
+          "FAFF-9"
+        ]
+      },
+      {
+        "id": "check-ac",
+        "executable": "/usr/local/bin/node",
+        "argv": [
+          "-e",
+          "if(2+2!==4)process.exit(1);console.log(\"2+2=4\")"
+        ]
+      },
+      {
+        "id": "pr-handoff",
+        "controlled": "Controlled hosted PR opening; derives human-only evidence from captured spec and actual run/config facts through real classifier/writer before recording supplied PR. Other PR-opening effects are outside this checkpoint."
+      },
+      {
+        "id": "lane-merge",
+        "executable": "git",
+        "argv": [
+          "merge",
+          "--ff-only",
+          "feature"
+        ],
+        "controlled": "Actually fast-forward disposable main to feature; records the attempt and changed refs."
+      }
+    ]
+  }
+}

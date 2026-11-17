@@ -1,0 +1,1349 @@
+{
+  "schema": 1,
+  "updated_utc": "2026-11-16T19:06:17.807312+00:00",
+  "reviewer": {
+    "role": "independent manual artifact verifier",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "scope": "All 36 persisted Terra-medium rendering artifacts across four completed harness reports/captures, fully read and matched to capture hashes. Same bounded facts, invented-action and presentation checks used by rendering-v2-artifact-review.json. No statistical, full workflow or native compatibility claim.",
+  "policy": [
+    "baseline/rendering.md",
+    "candidates/rendering-v2.md"
+  ],
+  "fixture": "workflow-fixtures/rendering.json",
+  "bounded_reference": "rendering-v2-artifact-review.json",
+  "status": "bounded-artifact-facts-and-assessed-decisions-pass; native-certification-fails",
+  "observations": [
+    "All 36 artifact deterministic grades pass and all manually checked facts are retained; no invented delivery actions or cycle repair recommendations.",
+    "Both baseline memoise glosses omit computed-result reuse explanation; both candidate glosses explain it.",
+    "Baseline1 model-hoist uses four sentences in one paragraph; the other three split after three.",
+    "No repeated separate title-and-body gloss presentation regression found. Long-table definition fields preserve requested source facts.",
+    "All four native audits fail with complete false, including outside-authorised-native-tools entries for exec. Model/effort metadata are Terra/medium. Native incompatibility is separate from finished capture content and manual artifact facts.",
+    "Both candidate raw reports fail only voice-source heading # Writing style. Existing preregistered RENDERING-ORACLE-CORRECTION.md accepts this exact spelling in both arms; assessment decision sets pass20/20. Raw failures retained; no unresolved decision/fidelity failure. Native certification remains separately failed."
+  ],
+  "runs": [
+    {
+      "name": "matrix-v1-terra-medium-rendering-baseline-1",
+      "arm": "baseline",
+      "capture_path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/capture.json",
+      "capture_sha256": "c2deeec3d73c4830671880351885bd5a4e0ec9b1f43d829a2cdeea2aee4b8ee3",
+      "report_path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/report.json",
+      "report_sha256": "a2f52249e4bb2b24f81c1725d3cac5c44fa597c4447c6ec2fd4f26a332420c32",
+      "artifact_count": 9,
+      "capture_outputs_complete": true,
+      "artifact_grades_pass": true,
+      "retained_functional_failure_cases": [],
+      "native_audit": {
+        "status": "fail",
+        "complete": false,
+        "model_ids": [
+          "gpt-6.1-terra"
+        ],
+        "efforts": [
+          "medium"
+        ],
+        "problems": [
+          {
+            "id": "call_60f5c803e3c748a4975a761088d245a3",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_8dc175b33870445c98ad0790d3f68252",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_5c9129ef6886429797af2b81670279c6",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_d886f095df73420fad20948770e4f156",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_7c3b62048b4548a8aec9549abd5bac9a",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_a0d3e2cc460b4c8bb325056ef5eb24d1",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_b90d13a37f994ced98f019c68be5fdc8",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_1c4e20bfaec642daa8313fe38db49158",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f90d2c0c3a164635b84ed2540ec629cd",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_79b29f5afcc74844b52902e5fedb4150",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_796af3e30d4946f0aba70ecbb1d9bfa1",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_54a07f3be55b474994cf0ed25afea905",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_4026a4f17baa4cd0a3b10d902fabdc16",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_cc20746641ae4a3f848b0f9f9566730e",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_58abc8d7dd3f449ab5000a35c0f3fd33",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_a14776aa81cb413cb14400322737bc60",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_145f44f6264a4155a3aef456283a96a8",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e6ca5cd49090490fb47de778112055e7",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_172f45dea8b544ac86a5328a9e72fcbc",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_db2c787ab7df4926aad7a29ce8e86309",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_86e7b76b22b84aa7b23605cee31fd956",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_334e8f56236642649bd74425b00deb40",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_c9b5be2e6c3548769758e6e1cb8270f3",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_34b23b8392154d1088efd9104fae1c99",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_6cb9f47a22864dd88acdef84ad479147",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_9878f6bf240540bf892e8f0ee68d495d",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_aca532581b1746b28ab48935caccb16f",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_76bd07623f194efba69ffd893100495b",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_86afbedc011d4a13ac6aad3c9854d5c3",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f10c2e268cf64b4ba3208d4a1f32b804",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_5a454186fe8e4faaa052bbaab96f596d",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_39096c8449684f90b332750e60004049",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e83d5944688a4c79891c7c333db6f001",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_70507467f5914b029f2fa6e54480f659",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_fe041b9371964a10857b7fb3aaab4997",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_21d36b1bb0734d178c8b383c1352eee1",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_c6aca02d4c8f49e38dd79bd8d7b61967",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "problem": "initial-read-missing-incomplete-or-truncated"
+          }
+        ],
+        "separate_from_manual_artifact_review": true
+      },
+      "frozen_assessment": {
+        "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/assessment.json",
+        "sha256": "6a30bc85b8d5b9d181c29af4f9168c2beb30f75286c6620eed34552e9e56b231",
+        "status": "pass",
+        "decisions_passed": 20,
+        "normalisations": []
+      }
+    },
+    {
+      "name": "matrix-v1-terra-medium-rendering-baseline-2",
+      "arm": "baseline",
+      "capture_path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/capture.json",
+      "capture_sha256": "4199101a7be1d4e05c02d34ccdd41cdf7d82c3297b1fcbf15957d0ff681fa896",
+      "report_path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/report.json",
+      "report_sha256": "a2f52249e4bb2b24f81c1725d3cac5c44fa597c4447c6ec2fd4f26a332420c32",
+      "artifact_count": 9,
+      "capture_outputs_complete": true,
+      "artifact_grades_pass": true,
+      "retained_functional_failure_cases": [],
+      "native_audit": {
+        "status": "fail",
+        "complete": false,
+        "model_ids": [
+          "gpt-6.1-terra"
+        ],
+        "efforts": [
+          "medium"
+        ],
+        "problems": [
+          {
+            "id": "call_4ca02a3d47ed43bdb9980d498e783861",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_0f35edf5a91341138f21bb23219d66a2",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_9cbd75638a2549fba27ffd1734d334eb",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f7308fb364c94494a193090b25659c83",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_50765498865c461796c36e71958a615c",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_a96bfb456e51485da154a0f684d90cac",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_09528d159c2a44e1af1e3c513a62dd5d",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f60eb683f22d4932a90aff2053025b25",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_7e7237257800495ea45843ba4db56daa",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_21947181d0d140d4a9024ddb87baca9e",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_2abbd4b70b524ece874f869e9487ee01",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_cc4aa442010146558758964fe3a77fb0",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_17bbba0c0bc44c00909030d5862b9781",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_07fb178f565647a09593ed554ad18c49",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_859c1a3c428d4d6ea7a54aced4623964",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_7490a6b1be8c4aecb5c3fc175a97b292",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_ba48d9e252684b64aa7862d48aea40a5",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_68044fafe087465585a3ad10ff90b8e7",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_8a7e7ea880424d3a94cfeba82e36d38e",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e0a731199e194d32b262a7d4f78c5fd7",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e5ee53a70af14efbbac1c410e15f0618",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e423cbdf22c34964b1757c37eae3c5bb",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_25bb998750c44360a334b62d12a637e1",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_2e93ea27045d4795bbb874115987f187",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_a9520df8a12045d0aed6385ee96c7329",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_0a758ba7f3d54918b5ac2d8d8b7ef9f7",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_7997dc3d61534637b2d7e2cfc1159b74",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_6248babeaf304c638cf3bad8d9c010e2",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f294b42cf7784637945a5239aa09d99f",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_b3d4ea162eb8406398b3186b16ce4b90",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_beeab00119d145528c53d4511f751b08",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_589cbcc658ad4a96abb2e574e15d8f9b",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_8a516dbb66964d9ca09a8961e3a85e62",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_d63a36e79be0403984641056d1e973df",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_ce99cffd4b244a619e04ceb9bc848ee4",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_02df6ef809ac419d8d59bbc2c4131af7",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f3d9fbf9e6534beaa4773579a48a3f9e",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "problem": "initial-read-missing-incomplete-or-truncated"
+          }
+        ],
+        "separate_from_manual_artifact_review": true
+      },
+      "frozen_assessment": {
+        "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/assessment.json",
+        "sha256": "cff3115875136910ee88a9ee8d0fdc7d7f35b1cf6019df0b0677aabe49c0b24f",
+        "status": "pass",
+        "decisions_passed": 20,
+        "normalisations": []
+      }
+    },
+    {
+      "name": "matrix-v1-terra-medium-rendering-candidate-1",
+      "arm": "candidate",
+      "capture_path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/capture.json",
+      "capture_sha256": "cc3d0dca3cee57e0dd676c3e0486e95834d1c72c6dbf24b72fa931583b33396f",
+      "report_path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/report.json",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "artifact_count": 9,
+      "capture_outputs_complete": true,
+      "artifact_grades_pass": true,
+      "retained_functional_failure_cases": [
+        {
+          "id": "voice-source",
+          "kind": "decision",
+          "pass": false,
+          "problems": [
+            "rule-answer"
+          ],
+          "value": {
+            "file": "AGENTS.md",
+            "heading": "# Writing style"
+          }
+        }
+      ],
+      "native_audit": {
+        "status": "fail",
+        "complete": false,
+        "model_ids": [
+          "gpt-6.1-terra"
+        ],
+        "efforts": [
+          "medium"
+        ],
+        "problems": [
+          {
+            "id": "call_8a65667568b942d09927119bf241d8c8",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_d67497ade46246e0857ce2ed0a34ad58",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_5126742f2ce7447a88baea85fcd36d03",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_7d42b0386504492fb512d6f3863b670c",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_ff4aa0148c884ffea52bd7628577f48c",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e1f3e4ed97334f5fbdd93af7d5e90a6f",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_b8ed26ce6f5a42c2b035c3bdb6891ce9",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_4dfa8df7a5384d6ba4177b840551a2c0",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_5c60083752ef4e409394be09bd20ed66",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_3c4a7eb8cd89467cbe5cf50ae5271df3",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_8fcd4b17a9484c30a30bec48ced3f3b1",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_fa0a149e52e8403285b753e6494d75e2",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_72aea5f3b7bb411095ee4e4edfd1dcd7",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f6cb591b2a3c4f788fb5a556a90e0e0d",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_78bce19e7746499db3cae76bb33d6d72",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_485919f1a08c4983b084a8f41521d4ef",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_5866f8c3fc9745d08f501598525bffd1",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_acb34bf613374a9da129489ff4566847",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_4cf5ec988b5c48dd89db4e1733fd4118",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_da27b1aee91d41cfafb703cc008f76eb",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_214878ca25f740d89239319b4032fa78",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e2f0b36c03ba4ce887cc87d1ef96c7a6",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_b8efb9fc512a4cb2be29724d8177b32a",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_5e28a4d9adeb4d7ba20ffba09462d998",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f32d6f9907224f72a05d67ed378d1dc4",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_38397547bffb45dba4ff01a44ed0f1d2",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_51a579c49292460986a26005ac39589e",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_b1a965a30dc54284a3e6b5b0509f7fcf",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_b35f41fbeb1e4d21a638ccc67d50a40a",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e955babc10464aa5bce57e49d018ed15",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e5abc8c76d5844d28cd8d5a44be4defa",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_dc2e8fa05a7d4c7d909970ccc5f6aaa9",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_74b908e0d19f44aeaa48e006cd2a59fd",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_437cc0bf47714bcfa1e41a16adac944a",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "problem": "initial-read-missing-incomplete-or-truncated"
+          }
+        ],
+        "separate_from_manual_artifact_review": true
+      },
+      "frozen_assessment": {
+        "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/assessment.json",
+        "sha256": "eacec2c0fce09ca4b6f9f8cbaad4a88c9e0e0b068ba5aaa4ebf3a45fe8184492",
+        "status": "pass",
+        "decisions_passed": 20,
+        "normalisations": [
+          {
+            "case_id": "voice-source",
+            "original": {
+              "file": "AGENTS.md",
+              "heading": "# Writing style"
+            },
+            "rule": "Markdown heading marker is not part of the section name."
+          }
+        ]
+      }
+    },
+    {
+      "name": "matrix-v1-terra-medium-rendering-candidate-2",
+      "arm": "candidate",
+      "capture_path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/capture.json",
+      "capture_sha256": "53515483422345a29082e272a7f1508ccd3160c0968de7cc975a3bfdee0e198a",
+      "report_path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/report.json",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "artifact_count": 9,
+      "capture_outputs_complete": true,
+      "artifact_grades_pass": true,
+      "retained_functional_failure_cases": [
+        {
+          "id": "voice-source",
+          "kind": "decision",
+          "pass": false,
+          "problems": [
+            "rule-answer"
+          ],
+          "value": {
+            "file": "AGENTS.md",
+            "heading": "# Writing style"
+          }
+        }
+      ],
+      "native_audit": {
+        "status": "fail",
+        "complete": false,
+        "model_ids": [
+          "gpt-6.1-terra"
+        ],
+        "efforts": [
+          "medium"
+        ],
+        "problems": [
+          {
+            "id": "call_d540461bba6b4cb083959adf2cfb1958",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_be8c242fb00349008d8b19525f0cbaf6",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_af937d34419444b398746f89d1d711d5",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f60af3a33b9d4963b696c52543778bd2",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_1e3956864b6740ecb2ec359f7f6d624e",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_983e1c6c344142709038946b99e5c007",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_3cf3faef30a5472093140d6207c8be77",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_af4de6e2e4ad46df93aef012555b5724",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_0cf223e7bf594ed093aa30beea8f8fcb",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e36c0ea72d21446e959ea325f850f7b3",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_de8d104acd544a02941cbfa2cc157eaf",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_10cd4532b5d0447fb820ea5f4b4fe2a6",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_89c3cbc371114273b066066e5bc84395",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_e546b39f00ea42c1b2fe78e02e28fff7",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_eb9165e1e88d46518f32833239c8115f",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_d6e57ebaf1124c73a3f2ab1def2e2d40",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_3038b4392bd746968c203738848abb0e",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_28e50ab75d1343c49ca84920f925de88",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f1e3bc46ba2446b09d4da69d60701e0f",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_a495f0e7c7aa4808bfcb2a663e08939e",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_dd9497a3ce4a43e9a1c528cc202c627f",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_ac64ad95d5994172a845e1e8667ea47b",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_9f571c2dc5b9428db8f107a7cf3b24bd",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_4d2ea51695334ceea6fe1d19c4dff2e4",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_d780cf999e664a29afd29188e39bda92",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_1ea123ce4b0a426a91519a0d16d48c93",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_ec455d823cbe4a65aff3e2589954638e",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_764b3d3d5c234e40a265ef22a50f9231",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_6afe3cf0d65041b9b898c0cc19bfcb41",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_f3ba1f7dd733443ea7b230fbfa433ac7",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_db2678def78a4d5c92715966401c0e8a",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_67e7c053c6ca4fc0bbd4fb9e0ca15f24",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_40fd8010d40a47c9bb10464d27de54ce",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "id": "call_cba8eea6f7cd4af5ab43d0aad952171c",
+            "name": "exec",
+            "problem": "outside-authorised-native-tools"
+          },
+          {
+            "problem": "initial-read-missing-incomplete-or-truncated"
+          }
+        ],
+        "separate_from_manual_artifact_review": true
+      },
+      "frozen_assessment": {
+        "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/assessment.json",
+        "sha256": "30a07fa550213dbe7b1bab9f760e1c7251c040c1a4192a042775316bd122df2b",
+        "status": "pass",
+        "decisions_passed": 20,
+        "normalisations": [
+          {
+            "case_id": "voice-source",
+            "original": {
+              "file": "AGENTS.md",
+              "heading": "# Writing style"
+            },
+            "rule": "Markdown heading marker is not part of the section name."
+          }
+        ]
+      }
+    }
+  ],
+  "rows": [
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/artifacts/gloss-001.md",
+      "sha256": "79902dc2e6836f558bd026b6396a3bcbf6e82634ed5b97447da6da324a1530cf",
+      "run": "matrix-v1-terra-medium-rendering-baseline-1",
+      "case": "gloss-001",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/artifacts/gloss-002.md",
+      "sha256": "9c7c8d6fa691c2be8a0bc308ce12dd599eb51adbe61b0e58c9fd12051d23fd18",
+      "run": "matrix-v1-terra-medium-rendering-baseline-1",
+      "case": "gloss-002",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-facts-and-form-with-presentation-variance",
+      "notes": [
+        "Memoise/cold-start retained, but reuse of computed result is not explained; fails bounded memoise-explanation presentation check."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/artifacts/gloss-003.md",
+      "sha256": "763b0d99dea4fa0daded772fb358cbee6d2b93ff80d7f4ed3fc59c999302a3a4",
+      "run": "matrix-v1-terra-medium-rendering-baseline-1",
+      "case": "gloss-003",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/artifacts/long-table.md",
+      "sha256": "0a722c629c8b17e36be46a5e0a9075e9b1a9f3b2b0c5ef809eb96cfa5b67305e",
+      "run": "matrix-v1-terra-medium-rendering-baseline-1",
+      "case": "long-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Both rows, states, raw provider counts, exact metric, request-log source and maintainer audience retained as separated definitions."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "run": "matrix-v1-terra-medium-rendering-baseline-1",
+      "case": "short-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/artifacts/enumeration.md",
+      "sha256": "155c088ddac2e35226dd29b140d7b0a88f06629996663281842c87ff321fd344",
+      "run": "matrix-v1-terra-medium-rendering-baseline-1",
+      "case": "enumeration",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/artifacts/model-hoist.md",
+      "sha256": "11e816f164a1bbfa16b0174e379c96f2e40d7d9a80d2cb033aa48ac45fad0a73",
+      "run": "matrix-v1-terra-medium-rendering-baseline-1",
+      "case": "model-hoist",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-facts-and-form-with-presentation-variance",
+      "notes": [
+        "Four sentences in one prose paragraph; exceeds approximate three-sentence density target."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/artifacts/missing-model.md",
+      "sha256": "431233cb8fcc03555509d01640c4e06b559a953717e9cbd25bf3e4f8bd115d7e",
+      "run": "matrix-v1-terra-medium-rendering-baseline-1",
+      "case": "missing-model",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Flags missing governing idea without fabricating it; any added list violation diagnosis describes supplied three-step source."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-1/artifacts/cycle.md",
+      "sha256": "bf993fe4098d4b5e962ecb1bc405b9c8143fab3f0af6609e6a02569e39986486",
+      "run": "matrix-v1-terra-medium-rendering-baseline-1",
+      "case": "cycle",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "All three directed cycle edges and issue meanings preserved; no break-edge recommendation added."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/artifacts/gloss-001.md",
+      "sha256": "255d84a35d6bd426157300d6e7804fba0175994b10c5ec3e1c8d1e3cb6c949c6",
+      "run": "matrix-v1-terra-medium-rendering-baseline-2",
+      "case": "gloss-001",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/artifacts/gloss-002.md",
+      "sha256": "059d39e419f4a8690d49c4a3ea296557c43550d8fb8415936552e4efdcc2d84b",
+      "run": "matrix-v1-terra-medium-rendering-baseline-2",
+      "case": "gloss-002",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-facts-and-form-with-presentation-variance",
+      "notes": [
+        "Memoise/cold-start retained, but reuse of computed result is not explained; fails bounded memoise-explanation presentation check."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/artifacts/gloss-003.md",
+      "sha256": "763b0d99dea4fa0daded772fb358cbee6d2b93ff80d7f4ed3fc59c999302a3a4",
+      "run": "matrix-v1-terra-medium-rendering-baseline-2",
+      "case": "gloss-003",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/artifacts/long-table.md",
+      "sha256": "0a722c629c8b17e36be46a5e0a9075e9b1a9f3b2b0c5ef809eb96cfa5b67305e",
+      "run": "matrix-v1-terra-medium-rendering-baseline-2",
+      "case": "long-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Both rows, states, raw provider counts, exact metric, request-log source and maintainer audience retained as separated definitions."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "run": "matrix-v1-terra-medium-rendering-baseline-2",
+      "case": "short-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/artifacts/enumeration.md",
+      "sha256": "6ce8a04df2a47dcdb9e107e49bc4c4dcc7362e3c18b64a54a5cb32567e7c33db",
+      "run": "matrix-v1-terra-medium-rendering-baseline-2",
+      "case": "enumeration",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/artifacts/model-hoist.md",
+      "sha256": "b149a098519ab2de279216e06d459aab33d231d01e6f4fbee108e4046131c718",
+      "run": "matrix-v1-terra-medium-rendering-baseline-2",
+      "case": "model-hoist",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/artifacts/missing-model.md",
+      "sha256": "f434ccd6d8a7b69c707f5ff9fe61631f92d0e316a0dfcc639d98604ab295b339",
+      "run": "matrix-v1-terra-medium-rendering-baseline-2",
+      "case": "missing-model",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Flags missing governing idea without fabricating it; any added list violation diagnosis describes supplied three-step source."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-baseline-2/artifacts/cycle.md",
+      "sha256": "92c65d8d12cbd125f5598e13ed16b2b8d5e9d3fe6ffbf76dd3df8f8e3f381e9c",
+      "run": "matrix-v1-terra-medium-rendering-baseline-2",
+      "case": "cycle",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "All three directed cycle edges and issue meanings preserved; no break-edge recommendation added."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/artifacts/gloss-001.md",
+      "sha256": "17fb0f6d97bed58e3995111ba4ad619a1a80a86c3f56aaf0633e4afea548982b",
+      "run": "matrix-v1-terra-medium-rendering-candidate-1",
+      "case": "gloss-001",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/artifacts/gloss-002.md",
+      "sha256": "de7a8ba58d286516a5b6ad010f218239843a928cebace3142270a0590eb7b3a9",
+      "run": "matrix-v1-terra-medium-rendering-candidate-1",
+      "case": "gloss-002",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/artifacts/gloss-003.md",
+      "sha256": "c5768012787497840397167e5c2063bf98cfd1eafef5946f1c2e74b83a1e8456",
+      "run": "matrix-v1-terra-medium-rendering-candidate-1",
+      "case": "gloss-003",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/artifacts/long-table.md",
+      "sha256": "1ade6b5779a0a334999e8792f4a4e899b86accc75470fc6d12da94ebaa0e5783",
+      "run": "matrix-v1-terra-medium-rendering-candidate-1",
+      "case": "long-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Both rows, states, raw provider counts, exact metric, request-log source and maintainer audience retained as separated definitions."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "run": "matrix-v1-terra-medium-rendering-candidate-1",
+      "case": "short-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/artifacts/enumeration.md",
+      "sha256": "6ce8a04df2a47dcdb9e107e49bc4c4dcc7362e3c18b64a54a5cb32567e7c33db",
+      "run": "matrix-v1-terra-medium-rendering-candidate-1",
+      "case": "enumeration",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/artifacts/model-hoist.md",
+      "sha256": "b149a098519ab2de279216e06d459aab33d231d01e6f4fbee108e4046131c718",
+      "run": "matrix-v1-terra-medium-rendering-candidate-1",
+      "case": "model-hoist",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/artifacts/missing-model.md",
+      "sha256": "ade7fc09e2fdd5d64e88c87c77b262ff29557ac6ea2055323d4a9759188f74bd",
+      "run": "matrix-v1-terra-medium-rendering-candidate-1",
+      "case": "missing-model",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Flags missing governing idea without fabricating it; any added list violation diagnosis describes supplied three-step source."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-1/artifacts/cycle.md",
+      "sha256": "f1c30878ca0c8be52b77407cb3c3b094f300cb75064b0a547e467aa88a0dec82",
+      "run": "matrix-v1-terra-medium-rendering-candidate-1",
+      "case": "cycle",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "All three directed cycle edges and issue meanings preserved; no break-edge recommendation added."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/artifacts/gloss-001.md",
+      "sha256": "bf2c2a986b48fc55a2d06622136281e50d0e5e1ea1a574b13a7083d7de1a14d2",
+      "run": "matrix-v1-terra-medium-rendering-candidate-2",
+      "case": "gloss-001",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/artifacts/gloss-002.md",
+      "sha256": "df9e7eebcbfc595ffc8a24a8abf7de9134e7493103f1d9517c0840c535fb1b03",
+      "run": "matrix-v1-terra-medium-rendering-candidate-2",
+      "case": "gloss-002",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/artifacts/gloss-003.md",
+      "sha256": "763b0d99dea4fa0daded772fb358cbee6d2b93ff80d7f4ed3fc59c999302a3a4",
+      "run": "matrix-v1-terra-medium-rendering-candidate-2",
+      "case": "gloss-003",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/artifacts/long-table.md",
+      "sha256": "0a722c629c8b17e36be46a5e0a9075e9b1a9f3b2b0c5ef809eb96cfa5b67305e",
+      "run": "matrix-v1-terra-medium-rendering-candidate-2",
+      "case": "long-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Both rows, states, raw provider counts, exact metric, request-log source and maintainer audience retained as separated definitions."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "run": "matrix-v1-terra-medium-rendering-candidate-2",
+      "case": "short-table",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/artifacts/enumeration.md",
+      "sha256": "9caa70399d1415dcf5198b3eb1c6fed03c88555ae2841b7fc66550bab0f1b623",
+      "run": "matrix-v1-terra-medium-rendering-candidate-2",
+      "case": "enumeration",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/artifacts/model-hoist.md",
+      "sha256": "b149a098519ab2de279216e06d459aab33d231d01e6f4fbee108e4046131c718",
+      "run": "matrix-v1-terra-medium-rendering-candidate-2",
+      "case": "model-hoist",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/artifacts/missing-model.md",
+      "sha256": "7c86991014fa4ebfa440f686904725a66fc27803bc9a56fea4961c40e40181db",
+      "run": "matrix-v1-terra-medium-rendering-candidate-2",
+      "case": "missing-model",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "Flags missing governing idea without fabricating it; any added list violation diagnosis describes supplied three-step source."
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-terra-medium-rendering-candidate-2/artifacts/cycle.md",
+      "sha256": "9daf9d11d69c27688be3035cf0458b2b21002cbbc389e6eb006ed0299bdf2c53",
+      "run": "matrix-v1-terra-medium-rendering-candidate-2",
+      "case": "cycle",
+      "read_complete": true,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "status": "pass-bounded-artifact-review",
+      "notes": [
+        "All three directed cycle edges and issue meanings preserved; no break-edge recommendation added."
+      ]
+    }
+  ]
+}

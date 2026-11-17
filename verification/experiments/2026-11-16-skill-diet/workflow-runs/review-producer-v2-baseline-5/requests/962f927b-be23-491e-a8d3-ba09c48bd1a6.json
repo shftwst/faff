@@ -1,0 +1,1 @@
+{"name":"submit_review","args":{"case_id":"clean","text":"signal: pass\n\n## Findings\n\nNone. double multiplies by 2 as the spec chooses, the test covers positive, zero and negative inputs, and the diff touches only the two in-scope files.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```"}}

@@ -1,0 +1,606 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 83,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 212265,
+    "utf16_characters": 210382,
+    "sha256": "12142d20de015ad7333b74f49e1c7f3fcd884c53f948a92ce8f82687a2b66bf7",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6066,
+        "sha256": "f5a35ea0e52ae7e211dc7e4263ccf62b4db380d744617f535a6f206f34c0f427"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "21925eb2b3effcfac4d9478e1fe9684cb2ade191cb04025a5e8c3951b1479b5e"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "808bc5034b5da70917c72e6dbe29638bbb6b9f96154cea707a9a9a50948bb334"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6032,
+        "sha256": "ea3a905be27caca358e1fb05ab411638469227e1ece742f337d70e87f940def4"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "b8a8b5314a8ef10346ca6107315938d52b4b677d31d182d45c80fc917c513a88"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "0840bcc235075a19b349a06ac35f33b0d9f62e1b5808ceff7e6490123eaaf903"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "1269bf2aa8a3aef5fc825073741b1fba6ee3a1ad616fdba0d51e77e04663eb83"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6047,
+        "sha256": "282a884d9baee56b1fa59b20f0b516407388abaf2068c2d76bc061ce5ce348d5"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "f30e6af4ae7cffb4a8036d7f94df89f4dbaa0473e52ce7cb2472956fdd0e33c4"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "5c5f56ae66690d0678df31d7e930c05b8fd49dc0b77cbca02a550261eb67ff04"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "f34ca8e527c4c29b97b185b49c7d65f4a822503f01a8332872654f006c3f2850"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "dcf3ff13649c6d0911045d773c4559cc71a8a61faf949830e144d8f680d1eb7f"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "247ca12a76b7db555798401b81c4e6e8fd613cbb3272222df566802d6c1d1c29"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "d652dcd86edf0912a61af454bf53d16294946ca442025bc6cab523726455f777"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "d07f1538c1f32148340b1c9252cc6ef2da672a627f5a3b188da8de1198df411d"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6061,
+        "sha256": "e2d0447a3d1db56a438c129d9c7453e420aa519c2d0f88c23e829640adf654b4"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6032,
+        "sha256": "0260a7aa1adcd532d8914d77fe98d0476f525707d45db3f8c0130a08a2bcbbf0"
+      },
+      {
+        "offset": 102000,
+        "end": 108000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "b20835f56443372f0ae40627285c7c02bdd17537655155008123c43f4621b685"
+      },
+      {
+        "offset": 108000,
+        "end": 114000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "0670e71680f182e6637f79928399a7e4908c8c14d11a260dc5ee08cb9f21bfd7"
+      },
+      {
+        "offset": 114000,
+        "end": 120000,
+        "characters": 6000,
+        "bytes": 6055,
+        "sha256": "5069b692e180097d3f80dced5cd6751236ab0add13d676d5d9048ad4d85c5698"
+      },
+      {
+        "offset": 120000,
+        "end": 126000,
+        "characters": 6000,
+        "bytes": 6058,
+        "sha256": "3dc5f7d8ed831d3917de7329cfd9a3e69b333cb089afff37abbc480fb4e2a05a"
+      },
+      {
+        "offset": 126000,
+        "end": 132000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "2b060f3bb552d02d2ff854267cabb87d579313aff8dd42046917c1d1bca4a0d8"
+      },
+      {
+        "offset": 132000,
+        "end": 138000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "5b77cd74aa944e558b078c77c5a106e05c2b3393b92b665d2d87ba2265a2e775"
+      },
+      {
+        "offset": 138000,
+        "end": 144000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "b14c891b5ea6b410cacaecaab39a338e0876042fcfcd6d65232e8e39a73fee75"
+      },
+      {
+        "offset": 144000,
+        "end": 150000,
+        "characters": 6000,
+        "bytes": 6076,
+        "sha256": "d100eceb33ab28b21868ee194302533d364bd28c62816c964c40bf3f900e4b13"
+      },
+      {
+        "offset": 150000,
+        "end": 156000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "a0f9d44edc7d5f1b67ce662795576fc689b91523e034f299be69293ef90648d9"
+      },
+      {
+        "offset": 156000,
+        "end": 162000,
+        "characters": 6000,
+        "bytes": 6072,
+        "sha256": "b6d89f2975f2ade2d30cf726897d12c02c357e7a689b575ad696dc6a00966922"
+      },
+      {
+        "offset": 162000,
+        "end": 168000,
+        "characters": 6000,
+        "bytes": 6040,
+        "sha256": "d19eb9cc93111d04cc555fbbeaee1c4ec29855c875e06928125d1335a5613c69"
+      },
+      {
+        "offset": 168000,
+        "end": 174000,
+        "characters": 6000,
+        "bytes": 6026,
+        "sha256": "208c8232257c66510b2d826afbf3bbb6d010c91f212a6f59cbdfc65159b96aba"
+      },
+      {
+        "offset": 174000,
+        "end": 180000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "2db83b04beb755242dd72aac640b5f1184ddd1c62d274f2d85d5c39fe3af4904"
+      },
+      {
+        "offset": 180000,
+        "end": 186000,
+        "characters": 6000,
+        "bytes": 6040,
+        "sha256": "3c58f09e6d6eb648deea5f264b181d6d54fb1a2c80f13b765451d8f59bd5fee1"
+      },
+      {
+        "offset": 186000,
+        "end": 192000,
+        "characters": 6000,
+        "bytes": 6098,
+        "sha256": "0261966d9bd10aa9bee72dd626fbe52a632998eefe0f602ca3e9126cb46f9b97"
+      },
+      {
+        "offset": 192000,
+        "end": 198000,
+        "characters": 6000,
+        "bytes": 6012,
+        "sha256": "bc67980fa822fef5c90a65a729001fe67542b52366086fec2196019396f74a6e"
+      },
+      {
+        "offset": 198000,
+        "end": 204000,
+        "characters": 6000,
+        "bytes": 6122,
+        "sha256": "93d13390401654f47ca26a97726b4c444735776c7ed3a6220e169615d185fa89"
+      },
+      {
+        "offset": 204000,
+        "end": 210000,
+        "characters": 6000,
+        "bytes": 6067,
+        "sha256": "f6c790f5edc0caff3d497757fa12dc317c8d53b20f03389c7115a57973cd241c"
+      },
+      {
+        "offset": 210000,
+        "end": 210382,
+        "characters": 382,
+        "bytes": 382,
+        "sha256": "697a856e9d8c1b4b447b823d8362e61b96e62b62c5a9a8ce99c464884967ce3d"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "independent",
+        "kind": "routing-assignment",
+        "pass": true,
+        "problems": [],
+        "extraction": {
+          "verdict": "fire-and-forget",
+          "root_cause": null
+        },
+        "consumer_results": [
+          {
+            "id": "automation-routing",
+            "pass": true,
+            "value": {
+              "verdict": "fire-and-forget",
+              "root_cause": null,
+              "conformant": true,
+              "violations": []
+            }
+          }
+        ]
+      },
+      {
+        "id": "collision",
+        "kind": "routing-assignment",
+        "pass": true,
+        "problems": [],
+        "extraction": {
+          "verdict": "likely-fire",
+          "root_cause": null
+        },
+        "consumer_results": [
+          {
+            "id": "automation-routing",
+            "pass": true,
+            "value": {
+              "verdict": "likely-fire",
+              "root_cause": null,
+              "conformant": true,
+              "violations": []
+            }
+          }
+        ]
+      },
+      {
+        "id": "blocking-punt",
+        "kind": "routing-assignment",
+        "pass": true,
+        "problems": [],
+        "extraction": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed"
+        },
+        "consumer_results": [
+          {
+            "id": "automation-routing",
+            "pass": true,
+            "value": {
+              "verdict": "needs-decision-first",
+              "root_cause": "punt-not-closed",
+              "conformant": true,
+              "violations": []
+            }
+          }
+        ]
+      },
+      {
+        "id": "eligible-punt",
+        "kind": "routing-assignment",
+        "pass": true,
+        "problems": [],
+        "extraction": {
+          "verdict": "fire-and-forget",
+          "root_cause": null
+        },
+        "consumer_results": [
+          {
+            "id": "automation-routing",
+            "pass": true,
+            "value": {
+              "verdict": "fire-and-forget",
+              "root_cause": null,
+              "conformant": true,
+              "violations": []
+            }
+          }
+        ]
+      },
+      {
+        "id": "tag-without-crossref",
+        "kind": "routing-assignment",
+        "pass": true,
+        "problems": [],
+        "extraction": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed"
+        },
+        "consumer_results": [
+          {
+            "id": "automation-routing",
+            "pass": true,
+            "value": {
+              "verdict": "needs-decision-first",
+              "root_cause": "punt-not-closed",
+              "conformant": true,
+              "violations": []
+            }
+          }
+        ]
+      },
+      {
+        "id": "non-punt-marker",
+        "kind": "routing-assignment",
+        "pass": true,
+        "problems": [],
+        "extraction": {
+          "verdict": "needs-decision-first",
+          "root_cause": "punt-not-closed"
+        },
+        "consumer_results": [
+          {
+            "id": "automation-routing",
+            "pass": true,
+            "value": {
+              "verdict": "needs-decision-first",
+              "root_cause": "punt-not-closed",
+              "conformant": true,
+              "violations": []
+            }
+          }
+        ]
+      },
+      {
+        "id": "medium-confidence",
+        "kind": "routing-assignment",
+        "pass": true,
+        "problems": [],
+        "extraction": {
+          "verdict": "needs-decision-first",
+          "root_cause": "spec-ambiguous-external"
+        },
+        "consumer_results": [
+          {
+            "id": "automation-routing",
+            "pass": true,
+            "value": {
+              "verdict": "needs-decision-first",
+              "root_cause": "spec-ambiguous-external",
+              "conformant": true,
+              "violations": []
+            }
+          }
+        ]
+      },
+      {
+        "id": "named-gap",
+        "kind": "routing-assignment",
+        "pass": true,
+        "problems": [],
+        "extraction": {
+          "verdict": "gap-blocked",
+          "root_cause": "gap"
+        },
+        "consumer_results": [
+          {
+            "id": "automation-routing",
+            "pass": true,
+            "value": {
+              "verdict": "gap-blocked",
+              "root_cause": "gap",
+              "conformant": true,
+              "violations": []
+            }
+          }
+        ]
+      },
+      {
+        "id": "cycle",
+        "kind": "routing-assignment",
+        "pass": true,
+        "problems": [],
+        "extraction": {
+          "verdict": "circular-blocked",
+          "root_cause": "cycle"
+        },
+        "consumer_results": [
+          {
+            "id": "automation-routing",
+            "pass": true,
+            "value": {
+              "verdict": "circular-blocked",
+              "root_cause": "cycle",
+              "conformant": true,
+              "violations": []
+            }
+          }
+        ]
+      },
+      {
+        "id": "repeat-park",
+        "kind": "routing-assignment",
+        "pass": true,
+        "problems": [],
+        "extraction": {
+          "verdict": "repeat-parked",
+          "root_cause": "punt-not-closed"
+        },
+        "consumer_results": [
+          {
+            "id": "automation-routing",
+            "pass": true,
+            "value": {
+              "verdict": "repeat-parked",
+              "root_cause": "punt-not-closed",
+              "conformant": true,
+              "violations": []
+            }
+          }
+        ]
+      },
+      {
+        "id": "bad-root",
+        "kind": "validation",
+        "pass": true,
+        "problems": [],
+        "exit_code": 1
+      },
+      {
+        "id": "bad-verdict",
+        "kind": "validation",
+        "pass": true,
+        "problems": [],
+        "exit_code": 2
+      },
+      {
+        "id": "admission",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": [
+          "fire-and-forget",
+          "likely-fire"
+        ]
+      },
+      {
+        "id": "repeat-attempt",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "fresh-pass",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "same-pass",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "standalone-wtf",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "pipeline-path",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": ".faff/runs/<run-id>/automation-verdicts.md"
+      },
+      {
+        "id": "standalone-path",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": ".faff/logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md"
+      },
+      {
+        "id": "eligibility-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "root-normalisation",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": 1
+      },
+      {
+        "id": "verdict-fail-loud",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": 2
+      },
+      {
+        "id": "shape-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "detection-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "methodology"
+      },
+      {
+        "id": "no-queue-policy-in-validator",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Actual assignment from complete caller snapshots, real Punt scanning and real routing-contract consumption; display and tracker/build/park workflows are outside the changed boundary.",
+  "accounting": "unmetered"
+}

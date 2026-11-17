@@ -1,0 +1,12 @@
+{
+  "status": "pass",
+  "runner_sha256": "b576807c3adc1b5e7c0e2f5d09917caa8ab290ec1dc6da2b05ae85713245ec21",
+  "replay_code_sha256": "9fa891a926afa9895e6b414788a091b8ac3a0d576dc45ff9eb8ab018e1e7b45a",
+  "exit_code": 0,
+  "parsed_status": "pass",
+  "actual_trailing_newline": true,
+  "literal_backslash_n_tail": false,
+  "recorded_grade_matches": true,
+  "stderr": "",
+  "model_calls": 0
+}

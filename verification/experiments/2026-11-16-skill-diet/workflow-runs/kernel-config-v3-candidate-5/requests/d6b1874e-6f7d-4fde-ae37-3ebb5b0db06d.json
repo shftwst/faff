@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"posture","value":{"run_check":true,"block_on_posture_finding":false,"recommend_base_committed":true,"recommend_overlay_ignored":true}}}

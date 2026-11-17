@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"revise","objections":[{"lens":"QA","severity":"major","claim":"The Receipt date scenario checks a repository test file instead of observable receipt behaviour. Restate the scenario observably and move the test-file check to its own DONE item.","evidence":"Scenarios, Receipt date: then test/receipt.test.mjs passes; the supplied holdout context forbids reading or executing repository tests.","predicted_consequence":"The code-blind holdout cannot execute the scenario's check or decide whether it passes.","spec_anchor":"receipt-date"}]}
+```

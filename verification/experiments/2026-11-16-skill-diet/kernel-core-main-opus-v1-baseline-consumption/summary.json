@@ -1,0 +1,8 @@
+{
+  "status": "pass",
+  "artifacts": 9,
+  "input_matches": 9,
+  "positive_passed": 9,
+  "invalid_controls_passed": 9,
+  "failed": []
+}

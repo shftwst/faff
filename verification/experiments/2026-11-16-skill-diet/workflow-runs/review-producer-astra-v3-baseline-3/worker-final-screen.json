@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All seven review cases and 20 policy answers were persisted. Finish succeeded.\n\nNo departures from the restrictions. No output files were inspected.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e417-a4b0-7f50-b5b4-68092894fdad"
+    ],
+    "elapsed_seconds": 393.2,
+    "stdout_sha256": "5af9bd0efb6ba21d8421cb8c560d249c3cc2421d04b983d2774f85e361af38ec",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

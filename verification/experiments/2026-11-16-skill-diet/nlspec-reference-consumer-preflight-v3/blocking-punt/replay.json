@@ -1,0 +1,102 @@
+{
+  "id": "blocking-punt",
+  "status": "pass",
+  "problems": [],
+  "source_sha256": "c07d1ddb6cc3194bef0c786210190b06db2fabe6793bf1827f46c93f46d954ac",
+  "attached_sha256": "ce4b3bfe19e5f07145d9fb2bb460d6bd40a94b252d67e5e26c6858a20c541fed",
+  "artifact": {
+    "pass": true,
+    "problems": [],
+    "rubric": {
+      "score": 1,
+      "checks": 4,
+      "passed": 4,
+      "vector": [
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "commands": [
+    {
+      "name": "contract",
+      "argv": [
+        "contract",
+        "spec-readiness"
+      ],
+      "stdin_sha256": "c3c661a1d111a3f92f7331c31aef86e5b005406cddb1454c179113c517977e60",
+      "exit_code": 0,
+      "stdout": "{\"confidence\":\"medium\",\"decisions\":[{\"classification\":\"closed\"},{\"classification\":\"open\"}],\"markers_valid\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "name": "admissible",
+      "argv": [
+        "admissible",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v3/blocking-punt/spec.md",
+        "--lights-out",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"admissible\":true,\"reasons\":[],\"checks\":[{\"id\":\"R1.scenarios\",\"pass\":true,\"detail\":\"1 born-verifiable scenario(s) (need >=1)\"},{\"id\":\"R2a.done-present\",\"pass\":true,\"detail\":\"3 DONE checklist item(s) (need >=1)\"},{\"id\":\"R2b.done-concrete\",\"pass\":true,\"detail\":\"0 vague DONE item(s)\"},{\"id\":\"R2c.human-judgement-untagged\",\"pass\":true,\"detail\":\"0 untagged human-judgement DONE item(s)\"},{\"id\":\"R2d.not-all-human-only\",\"pass\":true,\"detail\":\"3 DONE item(s) not tagged human-only (need at least 1)\"},{\"id\":\"R2e.human-marker-reason\",\"pass\":true,\"detail\":\"0 DONE item(s) begin needs-human: with no reason\"}],\"warnings\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "name": "dod",
+      "argv": [
+        "dod",
+        "classify",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v3/blocking-punt/spec.md",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"criteria\":[{\"text\":\"Given a token was accepted and the service restarted\\nWhen get reads its id\\nThen it returns the stored token\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:1\"},{\"text\":\"Accepted tokens MUST survive restart.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:1\",\"local_ac_id\":\"done:1\"},{\"text\":\"get MUST return the stored token or null when absent.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:2\",\"local_ac_id\":\"done:2\"},{\"text\":\"TokenStore interface MUST remain unchanged.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:3\",\"local_ac_id\":\"done:3\"}],\"counts\":{\"scenario\":1,\"assertion\":3,\"prose\":0},\"holdout_counts\":{\"holdout\":0,\"visible\":4},\"oracle_less_count\":0,\"verification_tier_counts\":{\"running-stack\":4,\"integration\":0,\"delegated\":0},\"judged_count\":4,\"integration_count\":0,\"delegated_count\":0}\n",
+      "stderr": ""
+    },
+    {
+      "name": "punt",
+      "argv": [
+        "punt-scan",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v3/blocking-punt/spec.md"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"punts\":[{\"topic\":\"SQLite or PostgreSQL for durable token storage; the increment depends on this unresolved choice .\",\"decides\":\"architecture\",\"non_blocking\":false,\"out_of_scope_crossref\":false,\"eligible\":false}],\"eligible_count\":0,\"blocking_open_count\":1}\n",
+      "stderr": ""
+    },
+    {
+      "name": "attach",
+      "argv": [
+        "prep",
+        "attach",
+        "--issue",
+        "SPEC-3",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v3/blocking-punt/spec.md",
+        "--mode",
+        "interactive",
+        "--root",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v3/blocking-punt",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"issue\":\"SPEC-3\",\"token\":\"ready-to-post\",\"body_path\":\"/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v3/blocking-punt/spec.md\",\"spec_sha256\":\"ce4b3bfe19e5f07145d9fb2bb460d6bd40a94b252d67e5e26c6858a20c541fed\",\"confidence\":\"medium\",\"build_tier\":\"standard\",\"admissibility\":{\"admissible\":true,\"reasons\":[],\"scenarios_prose\":[]}}\n",
+      "stderr": ""
+    }
+  ],
+  "expected": {
+    "confidence": "medium",
+    "admissible": true,
+    "blocking_punts": 1,
+    "eligible_punts": 0,
+    "holdouts": false,
+    "review_test_item": false
+  }
+}

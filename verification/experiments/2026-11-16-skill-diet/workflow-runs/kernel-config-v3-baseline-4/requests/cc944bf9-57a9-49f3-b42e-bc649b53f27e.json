@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"legacy-name","status":"blocked","values":{},"reason":"faff config get exited 2: legacy config filename .faffrc.yml found, which is a loud error and never a silent default. Renaming or migration is not authorised, so the spec producer was not invoked."}}

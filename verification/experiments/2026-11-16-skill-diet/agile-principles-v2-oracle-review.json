@@ -1,0 +1,22 @@
+{
+  "status": "lexical-grader-inadequate-original-preserved",
+  "run": "agile-principles-astra-v2-baseline-1",
+  "report_sha256": "684752eab85894dd657db0ee4ceb425044d75efc8ac1de40bd9f568eca4cca64",
+  "native_audit_sha256": "3066c731181c688e527951d3de052f5e81e565b488dee4499d45fdd5c44ac5b7",
+  "artifacts": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/agile-principles-astra-v2-baseline-1/artifacts/cohesion.json",
+      "sha256": "21cbd9ad4e2e34aa6049717020e4416fcd666f0d7251671cf11b07e1062c716b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/agile-principles-astra-v2-baseline-1/artifacts/implicit-dependency.json",
+      "sha256": "aed90824369152b056d9c087d8fb0296688d91568961affaf9d4a106aa926b9a"
+    }
+  ],
+  "observed": [
+    "Propose an outcome-led Billing accuracy home for BILL correctly separates the outcomes without using split/rehome/move.",
+    "Declare SCHEMA as a blocker of CLIENT if real, otherwise remove the dependency reference, correctly expresses the conditional edge without link/add."
+  ],
+  "correction": "V3 stops treating a verb whitelist as a semantic judge. Mechanical checks retain banner, source identifiers, principle and nonempty diagnosis/action; all advice, source facts, consequences and authority are now explicit mandatory per-artifact manual rubric items. No semantic pass is inferred from mechanical scores.",
+  "next": "Fresh five-versus-five Astra V3; all eighty artifact reviews required. No V1/V2 pooling."
+}

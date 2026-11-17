@@ -1,0 +1,296 @@
+{
+  "schema": 1,
+  "commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+  "token_estimator": "ceil(UTF-16 character count / 4) per file, summed; estimates, not provider usage",
+  "total_bytes": 1258806,
+  "estimated_tokens": 312036,
+  "files": [
+    {
+      "path": "plugin/skills/faff/SKILL.md",
+      "bytes": 5832,
+      "characters": 5832,
+      "estimated_tokens": 1458,
+      "sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2"
+    },
+    {
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "bytes": 39233,
+      "characters": 38916,
+      "estimated_tokens": 9729,
+      "sha256": "b0e0ef32be783ffa5be27ab74db987ef347fedf1a75dd16bab5db030304d85d7"
+    },
+    {
+      "path": "plugin/skills/faff/references/build.md",
+      "bytes": 12080,
+      "characters": 11970,
+      "estimated_tokens": 2993,
+      "sha256": "16760ea2fcff5f06ba910049e51736db01178e72b287f7e09a115946098630b9"
+    },
+    {
+      "path": "plugin/skills/faff/references/create.md",
+      "bytes": 9145,
+      "characters": 9059,
+      "estimated_tokens": 2265,
+      "sha256": "c65b76c6db60f6162986de266c7504390327c82e857c07bdb9e0deaa34197cdd"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "bytes": 84072,
+      "characters": 83427,
+      "estimated_tokens": 20857,
+      "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331"
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "bytes": 26377,
+      "characters": 26149,
+      "estimated_tokens": 6538,
+      "sha256": "7994061a8ca8e8f23210874c401cf78ed0c4ad4af95b07c852456b6b6bbe5344"
+    },
+    {
+      "path": "plugin/skills/faff/references/methodology.md",
+      "bytes": 35453,
+      "characters": 35109,
+      "estimated_tokens": 8778,
+      "sha256": "51188b58858080ab4a28801c946ff47dced68c25ad675453efde346113e97f8b"
+    },
+    {
+      "path": "plugin/skills/faff/references/park.md",
+      "bytes": 14619,
+      "characters": 14507,
+      "estimated_tokens": 3627,
+      "sha256": "0a59cc9f746bc416dd693f249b7b3c844c85cb8ce660db0f7a907b3387c8ff43"
+    },
+    {
+      "path": "plugin/skills/faff/references/review.md",
+      "bytes": 4756,
+      "characters": 4744,
+      "estimated_tokens": 1186,
+      "sha256": "b2e82efe53cdbb303f173b0465eea4dc878037870eebe7a50896489e088e84b2"
+    },
+    {
+      "path": "plugin/skills/faff/references/tracker.md",
+      "bytes": 24185,
+      "characters": 23973,
+      "estimated_tokens": 5994,
+      "sha256": "f98c08368032e6c4053800551a64b7927439a16f7f57c02925c4e0f37847289c"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "bytes": 156107,
+      "characters": 154752,
+      "estimated_tokens": 38688,
+      "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "bytes": 178777,
+      "characters": 177313,
+      "estimated_tokens": 44329,
+      "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710"
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "bytes": 23456,
+      "characters": 23216,
+      "estimated_tokens": 5804,
+      "sha256": "3258c873a3ddae74a97d17f34812748a564655b34cbbae36a3753d52d329ce78"
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "bytes": 24535,
+      "characters": 23950,
+      "estimated_tokens": 5988,
+      "sha256": "55e5aa388261b226e011f45d16d3b88d6e61a9e9bba0f1831b2cfdf57ce308c6"
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "bytes": 23039,
+      "characters": 22787,
+      "estimated_tokens": 5697,
+      "sha256": "61b542661d1a6d20e5d50ba8912deda6a3633c82e00b5040916d49a6e38c429b"
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "bytes": 45580,
+      "characters": 45045,
+      "estimated_tokens": 11262,
+      "sha256": "57c8efe868e470b21d70f5787025457fed8ab70766d1a8115e721645e37fa25c"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "bytes": 104335,
+      "characters": 103531,
+      "estimated_tokens": 25883,
+      "sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "bytes": 76028,
+      "characters": 75310,
+      "estimated_tokens": 18828,
+      "sha256": "9e2d98e3f7d1de13c74866115cd433ae62854f95e2bf2ae4617185d24123d757"
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "bytes": 27152,
+      "characters": 26935,
+      "estimated_tokens": 6734,
+      "sha256": "8df715340ed14eabc072dc6c063bb6ef69682341c0e48f7e05cbf1f700df87bb"
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "bytes": 11288,
+      "characters": 11108,
+      "estimated_tokens": 2777,
+      "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4"
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "bytes": 11144,
+      "characters": 11039,
+      "estimated_tokens": 2760,
+      "sha256": "d6e7f37d231ea6a42a336cdc268717fe2e788ac290dc17d5948a673d9d698735"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "bytes": 22259,
+      "characters": 22259,
+      "estimated_tokens": 5565,
+      "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "bytes": 12321,
+      "characters": 12213,
+      "estimated_tokens": 3054,
+      "sha256": "74251c96bb33e9b5f15f370f994256a0ed25a588cd7a186ecca80d13eed98ae0"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "bytes": 25665,
+      "characters": 25443,
+      "estimated_tokens": 6361,
+      "sha256": "4706d07b456a00e1b9e4e47dada91182950f6f716c610123977525f7d7471ef9"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "bytes": 44947,
+      "characters": 44551,
+      "estimated_tokens": 11138,
+      "sha256": "73358ee7786bf114f34e0fe69912dc644fb809a35ae27841f222164bad09aff3"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "bytes": 18819,
+      "characters": 18681,
+      "estimated_tokens": 4671,
+      "sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af"
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "bytes": 40496,
+      "characters": 40249,
+      "estimated_tokens": 10063,
+      "sha256": "d0eb7dfabc221c9a3822336eef239e4d0a2537ae68b254c4581a99be25ab6200"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "bytes": 4238,
+      "characters": 4206,
+      "estimated_tokens": 1052,
+      "sha256": "19620bd0d1588ea9f4e1d8f6486e368f75da3c5f3a08add1165f03dbcef78346"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "bytes": 4787,
+      "characters": 4765,
+      "estimated_tokens": 1192,
+      "sha256": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "bytes": 18512,
+      "characters": 18360,
+      "estimated_tokens": 4590,
+      "sha256": "1e0e8c86860a2e962e4f022225c5c23148539afa2075981d1148c9069e3af2d8"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "bytes": 9602,
+      "characters": 9556,
+      "estimated_tokens": 2389,
+      "sha256": "f4dc693965a2e49f2765d745a343e5c9e5df3282cc439fb762781a5ed49ece75"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "bytes": 12232,
+      "characters": 12170,
+      "estimated_tokens": 3043,
+      "sha256": "311f5695a82a15e3be90ebe15878a0f9a67fb7c710ef178c7f37d8f557a651d9"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "bytes": 15939,
+      "characters": 15843,
+      "estimated_tokens": 3961,
+      "sha256": "155185589d5cd019fce35b657f11c751326e44b1f7de0836890f057293c60d22"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "bytes": 5689,
+      "characters": 5645,
+      "estimated_tokens": 1412,
+      "sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "bytes": 29418,
+      "characters": 29122,
+      "estimated_tokens": 7281,
+      "sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "bytes": 2465,
+      "characters": 2465,
+      "estimated_tokens": 617,
+      "sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "bytes": 8045,
+      "characters": 8029,
+      "estimated_tokens": 2008,
+      "sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "bytes": 14027,
+      "characters": 13923,
+      "estimated_tokens": 3481,
+      "sha256": "7df6adee9b0220feec53dc794cc9f047fcdfdde5906f98dfe87a77e1bc444e2b"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "bytes": 17847,
+      "characters": 17705,
+      "estimated_tokens": 4427,
+      "sha256": "cc268664fa8b1789242fb898e2236c2301c937520805c1fd8a6cf6b48be99696"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "bytes": 8055,
+      "characters": 8001,
+      "estimated_tokens": 2001,
+      "sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "bytes": 6250,
+      "characters": 6218,
+      "estimated_tokens": 1555,
+      "sha256": "8187ee3fb166c1d0f0355f38452f007e70c7aa4b1e516a79a12161487c699284"
+    }
+  ]
+}

@@ -1,0 +1,638 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T20:28:20.653Z",
+  "reviewer": {
+    "role": "independent reporting source-fidelity and actual-output reviewer",
+    "agent": "verify_wtf_scope"
+  },
+  "sample": "beep-reporting-main-opus-v1-baseline-1",
+  "arm": "baseline",
+  "status": "pass-bounded-reporting-baseline",
+  "pass": true,
+  "combined_candidate_qualified": false,
+  "candidate_launch_allowed": false,
+  "candidate_gate_note": "Reporting baseline alone passes. Combined candidate remains held by independent ledger baseline raw/native failures; no candidate launch follows this record.",
+  "scope": "Read all six supplied checkpoints,29actual trace operations,facts,actual command args/stdout/stderr/persistence,four canonical summaries,eight normalised/publication texts and economics,continuation/refusal and authority snapshots. Native and existing assessment independently bound.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-main-opus-v1-registration.json",
+      "sha256": "f5c41965b27c14563acc798968f68609e8881f0b3c6fa1f0055f16e2b7a84228"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-main-opus-v1-baseline-plan.json",
+      "sha256": "d7d4cfaa1c591538283c0966aef5c47fd8c9bbc2e208ddefc85e12f55196ec46"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-main-opus-v1-baseline-policy.md",
+      "sha256": "56f48a229880e4513955945611f1725b9285ae668f1c0893d270bb0776e71cb9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json",
+      "sha256": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-main-opus-v1-baseline-assessment.json",
+      "sha256": "eb27f54cd66fea229a401ec09e4e3f556948ff76c30632e7b8bac566ca262fd9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/native-audits/beep-reporting-main-opus-v1-baseline.json",
+      "sha256": "009c73f843923401ceb61c846733b5bd5d4801477bc1e16e8a784d5aa4e378ca"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/assess-reporting-drafts-v1.mjs",
+      "sha256": "f1dc98f052da42022faf2aa72ff0f926c725e44d5513d7f33bc1f20fd374afd1"
+    },
+    {
+      "path": "eval/control-parity/reporting-execution.mjs",
+      "sha256": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58"
+    },
+    {
+      "path": "eval/control-parity/native-tool-audit.mjs",
+      "sha256": "3f40f2fe4bc5094e14bb6f5796b2f5e46d9c9730b7fcbf8c04dfca03cacf5027"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1/task.json",
+      "sha256": "fb6da1781b08faeba59581bc33218866f49a222b5117c9ff0b54916791be9b8d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1/capture.json",
+      "sha256": "01f71c0228299be9c55baf57648e9273d720a37e1e36abdbf7d454fc1642366c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1/expected.json",
+      "sha256": "ad3b0b64a802e4f114298d4245261990ede1ff152d02983feb87698d0b716a25"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1/report.json",
+      "sha256": "c670cf99fcec365f147c45fc63353fc8c4e6e2fe2e658cf4d3daf3aa51dbb081"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1/manifest.json",
+      "sha256": "685165356551d950044e9fcefaf007faa73d978a71a0b754033fa72017621011"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1/native-audit.json",
+      "sha256": "009c73f843923401ceb61c846733b5bd5d4801477bc1e16e8a784d5aa4e378ca"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1/worker-prompt.txt",
+      "sha256": "2079df981ff7ede0d2c9627ae06cf9be07313a8c32dee3f1cf402d5068bce421"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1/worker-manifest.json",
+      "sha256": "c737762712ee17a3533f5120c50c630292d96af767209c13dcc6e9d2158a0db0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1/worker-final-state.json",
+      "sha256": "0de67ea1493b73bcf72e94121cbccb037cee336e6ab4e16ad51e9af1b33a981e"
+    }
+  ],
+  "raw_status": "pass",
+  "raw_cases_passed": 6,
+  "raw_cases_total": 6,
+  "fresh_unchanged_grade_matches_raw": true,
+  "assessment": {
+    "status": "pass",
+    "discarded_drafts": [],
+    "normalisation_calls": 8,
+    "source_hashes_verified": true,
+    "scope": "Existing symmetric draft assessor; raw already passes, zero discarded drafts, no correction or waiver needed."
+  },
+  "native": {
+    "status": "pass",
+    "model_ids": [
+      "claude-opus-5-5"
+    ],
+    "versions": [
+      "2.1.325"
+    ],
+    "initial_reads": [
+      {
+        "path": "/Users/shftwst/.agents/AGENTS.md",
+        "complete": true,
+        "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+        "content_bytes": 21125
+      },
+      {
+        "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+        "complete": true,
+        "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+        "content_bytes": 5591
+      },
+      {
+        "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1/task.json",
+        "complete": true,
+        "content_sha256": "fb6da1781b08faeba59581bc33218866f49a222b5117c9ff0b54916791be9b8d",
+        "content_bytes": 19578
+      }
+    ],
+    "problems": [],
+    "source_sha256": "33eb7fc383f318f6bc2976a48ab53f9a7d094e5bd9bb009c55f287a786284b94",
+    "complete": true,
+    "run_native_audit_copy_exact": true,
+    "requested_effort": "medium",
+    "actual_effort_claim": null
+  },
+  "policy_delivery": {
+    "complete": true,
+    "sha256": "56f48a229880e4513955945611f1725b9285ae668f1c0893d270bb0776e71cb9",
+    "bytes": 241331,
+    "reads": 40,
+    "errors": []
+  },
+  "case_reviews": [
+    {
+      "case_id": "shipped-precedence",
+      "status": "pass",
+      "pass": true,
+      "source_sha256": "87d7b87041c4f191b8cfa8009bb64d82a5e39f22b294706b4aa4562956e0f624",
+      "fixture_case_sha256": "f1a42cd7e3c7f6f0ac4306081ff1c586b99af327e559123add0e381206ba8e85",
+      "facts_sha256": "c13a5a93a7f615e0b243c073939366b7aa051d5cbc39a62c5059d742742d2346",
+      "canonical_summary_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+      "before_authority_snapshot_sha256": "cf89654175d5631e2c28f87af8c2ece04ab9a8e3ff1f90e975d04e197d851f3d",
+      "after_authority_snapshot_sha256": "cf89654175d5631e2c28f87af8c2ece04ab9a8e3ff1f90e975d04e197d851f3d",
+      "authority_files_preserved": true,
+      "trace_sha256": "652b931f357b963187faff622961dcefbfb10f4c74989cee820210bf245832e3",
+      "operations": [
+        {
+          "seq": 1,
+          "name": "write_facts",
+          "args_sha256": "6ec1a36ccd9c762241d0512dffdf0607318b552e67e9ad66554a1d40ad520819",
+          "result_sha256": "8aa4fd84ca63f5192bab76fe9f5dfc905886b0bc21921dfa5c7983df2d83b9d8"
+        },
+        {
+          "seq": 2,
+          "name": "run_faff",
+          "args_sha256": "4669da0aea69ef8158c0458e0ee91e38b89128e113d1e597541e9e8b5e652036",
+          "result_sha256": "f8133e33363c03f89622efb5d56d274f6ffe112ab0f59a0d1e6e66baa276b264"
+        },
+        {
+          "seq": 3,
+          "name": "normalise_output",
+          "args_sha256": "5fa722731450fb811e5063bacc4308eeaf238003b811e4a372d1d651e73701ab",
+          "result_sha256": "a7268660fa15f9319d44f71434a228777713224efc65688a69f66606efe11add"
+        },
+        {
+          "seq": 4,
+          "name": "normalise_output",
+          "args_sha256": "bd88651fe2f2e2b9335bc9e3c99019b65caed4c6c6403e020bd42a51a864c993",
+          "result_sha256": "34427beef4c41cac7e3674dfdac589e5b04224e066cd819e0d6e471737f6dc88"
+        },
+        {
+          "seq": 5,
+          "name": "publish",
+          "args_sha256": "f34848d8126288034efe2f6db71c8cede37a299ad6b92bee70b753cb950e49db",
+          "result_sha256": "0ad61134fa3b2bcd6f78c8b2533864374bcb9a6d87fbcb7bafa504bc284b6018"
+        },
+        {
+          "seq": 6,
+          "name": "publish",
+          "args_sha256": "8b2941106bf0658166b901eeda8602e6fa2fa0d76ac4b6eef8addd0e4fca52d0",
+          "result_sha256": "fd56788026e6023e28730fdc3c61919863188789c769009d9ce4902857d957a6"
+        }
+      ],
+      "commands": [
+        {
+          "seq": 2,
+          "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "args": [
+            "run",
+            "summary",
+            "--run-dir",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/shipped-precedence/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+            "--facts",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/shipped-precedence/.faff/runs/run-20260101-000000-beepboop-list-abc101/summary-facts.json",
+            "--root",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/shipped-precedence"
+          ],
+          "exit_code": 0,
+          "stderr": "",
+          "error": null,
+          "stdout_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+          "persisted_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780"
+        }
+      ],
+      "publications": [
+        {
+          "channel": "tracker",
+          "seq": 5,
+          "normalisation_seq": 3,
+          "target": "project:fixture-reporting",
+          "text_sha256": "4c5e2492222a6577a796ff7e74174198f0c76d6a1cb9a578a6bbfcd2972f61fb",
+          "normalised_id": "shipped-precedence:tracker:0",
+          "full_canonical_preserved": true,
+          "economics_suffix": "Economics: 1200 tokens (estimate), $3.00 · 5 shipped · $0.60 per shipped",
+          "pass": true
+        },
+        {
+          "channel": "conversation",
+          "seq": 6,
+          "normalisation_seq": 4,
+          "target": "conversation",
+          "text_sha256": "c9d7a88ba2f9f3935ce4d59d4697109245d9c3c18fa5695fa80c1a8976cbf780",
+          "normalised_id": "shipped-precedence:conversation:1",
+          "full_canonical_preserved": true,
+          "economics_suffix": null,
+          "pass": true
+        }
+      ],
+      "notes": [
+        "Six admitted outcomes: five shipped and one superseded. Printed subsection partition is correct and nonduplicating: SHP-1 ordinary, SHP-2 review-skip, SHP-3 post-merge flagged with human-only AC note, SHP-4 human-only (takes precedence over review-skip), SHP-5 unverified post-merge. SUP-1 separately names PRIOR-1 delivery.",
+        "Human follow-up is retained. No invented outcome bucket. Canonical economics1200estimate/$3 total,240tokens/$0.60 per shipped,200tokens over6attempts match controlled inputs. Tracker condensed line preserves five shipped and currency; conversation remains exact canonical summary."
+      ]
+    },
+    {
+      "case_id": "review-holds",
+      "status": "pass",
+      "pass": true,
+      "source_sha256": "46573778525a075bbca24b88d2ec4054f9f48794fc0e98b1c1c2528a83708b5d",
+      "fixture_case_sha256": "5633e820694100b953fe12b9e6092ff6e31b94c5e969b87c8fba3c075aa2b608",
+      "facts_sha256": "83ce9426a712529beef3af65d0530ebd75f4425d62ae577665f70238d4edf256",
+      "canonical_summary_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+      "before_authority_snapshot_sha256": "9e3d918d04347a88060c06b0408d00130e0e440e270dbd7166f65ec6acdb555f",
+      "after_authority_snapshot_sha256": "9e3d918d04347a88060c06b0408d00130e0e440e270dbd7166f65ec6acdb555f",
+      "authority_files_preserved": true,
+      "trace_sha256": "a5567bf747a126434658d9832a5c45794661818d65b17758c730173abdc00660",
+      "operations": [
+        {
+          "seq": 7,
+          "name": "write_facts",
+          "args_sha256": "c3f52b27dc9abe20f62f21ba6507969ab51bdd170875a794b46825153697c5c9",
+          "result_sha256": "d131a9457f5d9823f3fe2acb536ae21b3d93bd59db37fc98f416ee0a6af6ee67"
+        },
+        {
+          "seq": 8,
+          "name": "run_faff",
+          "args_sha256": "4d4e148ad03f6c651b502a8bbfad17c382088ce5fabfda1072ddeefb5ccb3615",
+          "result_sha256": "ef9352c2c997544c1e58a6a0593494eda90599b33c6db1eae3bfc2d0f6ec148a"
+        },
+        {
+          "seq": 9,
+          "name": "normalise_output",
+          "args_sha256": "cb3efd404ae09e86af18c2e90eeac5c65f99e4a9ecb5eb7ed430df91af7095ca",
+          "result_sha256": "08a6a03446c83cac81a2bf6b95b8b33c77537bd6aad7e516b6d1528b6e3dc0ae"
+        },
+        {
+          "seq": 10,
+          "name": "normalise_output",
+          "args_sha256": "763e6b436835420c809bd425bea5f154088bbff1feae0cbdd7c02264a6dc1c55",
+          "result_sha256": "7e228fe461281d54a96a720362b9c76076f8c61d9419472128ff94cfc46aec65"
+        },
+        {
+          "seq": 11,
+          "name": "publish",
+          "args_sha256": "9403c7515dc2bc759c6c69c08b2b70b626c7cf91c694d505a9509b25f3607f0f",
+          "result_sha256": "8df26650bc5233e1c056158f1d56001c628201d35fbfa42150c00e398598c92d"
+        },
+        {
+          "seq": 12,
+          "name": "publish",
+          "args_sha256": "389262d0e011bfece2745673c3f39d390557e7f41197a9d2acbd12b09bd570a1",
+          "result_sha256": "24250d27deffdf1160ef798979d72e12448e64beb945dac3f6972438914a077c"
+        }
+      ],
+      "commands": [
+        {
+          "seq": 8,
+          "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "args": [
+            "run",
+            "summary",
+            "--run-dir",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/review-holds/.faff/runs/run-20260101-000000-beepboop-list-abc102",
+            "--facts",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/review-holds/.faff/runs/run-20260101-000000-beepboop-list-abc102/summary-facts.json",
+            "--root",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/review-holds"
+          ],
+          "exit_code": 0,
+          "stderr": "",
+          "error": null,
+          "stdout_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+          "persisted_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5"
+        }
+      ],
+      "publications": [
+        {
+          "channel": "tracker",
+          "seq": 11,
+          "normalisation_seq": 9,
+          "target": "project:fixture-reporting",
+          "text_sha256": "8d2947ebf0210c83ef2fbc076fe39bdfc20b8dc4658fa10d15f42230ddc8e292",
+          "normalised_id": "review-holds:tracker:0",
+          "full_canonical_preserved": true,
+          "economics_suffix": "Economics: 1200 tokens (estimate) · 0 shipped · ZERO-SHIP",
+          "pass": true
+        },
+        {
+          "channel": "conversation",
+          "seq": 12,
+          "normalisation_seq": 10,
+          "target": "conversation",
+          "text_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+          "normalised_id": "review-holds:conversation:1",
+          "full_canonical_preserved": true,
+          "economics_suffix": null,
+          "pass": true
+        }
+      ],
+      "notes": [
+        "OPEN-1 remains human review after three exhausted cycles; OPEN-2 is resumable landing, not a human park. PARK-1 is the genuine low-confidence park. PARK-2 is awaiting review outage, distinct from ordinary park. PREP-1 is a separate prep-review outage and is not counted as build admission/outcome.",
+        "Admission4,zero shipped,1200estimate tokens,300per4attempts and ZERO-SHIP are preserved in canonical and published output. No budget-unreached or deferred fabrication."
+      ]
+    },
+    {
+      "case_id": "budget-zero-ship",
+      "status": "pass",
+      "pass": true,
+      "source_sha256": "cc45e5de9c9386c93aba463f2b466bc65f2f07ec8a449837da56ff044e23176e",
+      "fixture_case_sha256": "0ab359ff1fffcee990128ad3bb8e34e93ee3cc4f6fdbce0666e276c559561904",
+      "facts_sha256": "27b085b5680f25e4fd1668d65e21ff8d965b7dd4de31d6f7dbeb4d45eeb5c570",
+      "canonical_summary_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+      "before_authority_snapshot_sha256": "fb8e4e42ed18529b95fe1a74ae5bd1883df1bd2bd07033e6e711fb29c5967596",
+      "after_authority_snapshot_sha256": "fb8e4e42ed18529b95fe1a74ae5bd1883df1bd2bd07033e6e711fb29c5967596",
+      "authority_files_preserved": true,
+      "trace_sha256": "1468196b0f872adc6a37c3f3994e4a5c5c306b6255a3f955fef3348ca5f049a5",
+      "operations": [
+        {
+          "seq": 13,
+          "name": "write_facts",
+          "args_sha256": "b87d0ac55896bd04155b8d601f7698cf31a264f97691ef91d53f66146d339af1",
+          "result_sha256": "7751332dcb2c13f509dc86b8353143feaab80c193ec9176dcbd91ec113247684"
+        },
+        {
+          "seq": 14,
+          "name": "run_faff",
+          "args_sha256": "1ce65916e5aef3397815be621ecc8be6b51afd05c479e5c73778a5663054eca9",
+          "result_sha256": "6dd8e08317a9c04d610e6c3fc0d65255d7ed98a95c664d860e150342924a36a3"
+        },
+        {
+          "seq": 15,
+          "name": "normalise_output",
+          "args_sha256": "c1009a75270fa9f715b6bd4cd167be44d9d5e4aa6f6b12dc0a59f80f4c5d8e59",
+          "result_sha256": "1069503c3122b312f57fffcdb6f0ff742e0ebdb5590e3fa6652e67edbefc4abc"
+        },
+        {
+          "seq": 16,
+          "name": "normalise_output",
+          "args_sha256": "2148f6cc60eca96e19e129a601b1e37173dd99b0486bea19f4c3dc65c1c5da46",
+          "result_sha256": "5eaf6170217313d5813064d0101aee18db8bd296450132fc88467837a88328b0"
+        },
+        {
+          "seq": 17,
+          "name": "publish",
+          "args_sha256": "5f3b3dadbc04c22f733cb4b2ddb4e649cb8fd66eefb52a97c23e3499c48f8ed4",
+          "result_sha256": "44f7cbfed2cee9ca8ba4e331cd64a37f4b917bcc399d3b350c01636dabfffb71"
+        },
+        {
+          "seq": 18,
+          "name": "publish",
+          "args_sha256": "bb7466de3a909c5c3d32c194ad8abdb923a55247bbf380846bcd43ab3e226eae",
+          "result_sha256": "4aa5aa1e5d8908eb0f5bf06057cb712cfbbcb5ee3c2acdee1ada79e5e4599da5"
+        }
+      ],
+      "commands": [
+        {
+          "seq": 14,
+          "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "args": [
+            "run",
+            "summary",
+            "--run-dir",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/budget-zero-ship/.faff/runs/run-20260101-000000-beepboop-list-abc103",
+            "--facts",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/budget-zero-ship/.faff/runs/run-20260101-000000-beepboop-list-abc103/summary-facts.json",
+            "--root",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/budget-zero-ship"
+          ],
+          "exit_code": 0,
+          "stderr": "",
+          "error": null,
+          "stdout_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+          "persisted_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f"
+        }
+      ],
+      "publications": [
+        {
+          "channel": "tracker",
+          "seq": 17,
+          "normalisation_seq": 15,
+          "target": "project:fixture-reporting",
+          "text_sha256": "29b186edadcbe100dd9f1ca02a7ba2d2cb28ebb7689c332faafc53fafd864961",
+          "normalised_id": "budget-zero-ship:tracker:0",
+          "full_canonical_preserved": true,
+          "economics_suffix": "Economics: 1200 tokens (transcript) · 0 shipped · ZERO-SHIP",
+          "pass": true
+        },
+        {
+          "channel": "conversation",
+          "seq": 18,
+          "normalisation_seq": 16,
+          "target": "conversation",
+          "text_sha256": "be3324c4adceeb1d15cb161db016a4ea36eedc892b7a93518ab031e8385f1b1f",
+          "normalised_id": "budget-zero-ship:conversation:1",
+          "full_canonical_preserved": true,
+          "economics_suffix": null,
+          "pass": true
+        }
+      ],
+      "notes": [
+        "Only BUD-1 is unreached-budget because a configured token ceiling breached; it is not mislabelled capacity/WIP/session deferral. Stop reason budget-hit(tokens) and breached tokens/source transcript are preserved.",
+        "1200transcript tokens,zero shipped,ZERO-SHIP,1200per1attempt and no invented currency or per-ship denominator. Tracker condensed line matches supplied source and zero-ship facts."
+      ]
+    },
+    {
+      "case_id": "dirty-install",
+      "status": "pass",
+      "pass": true,
+      "source_sha256": "9fa26cb39b689a178eff28d5a7f03e5fc6f0c941d018b4bde72dc71b0b8de21e",
+      "fixture_case_sha256": "52382e5a778eeae816bded763cf8d5052443e5d5882c8c0bc9067a6086687ef4",
+      "facts_sha256": "c05c156727738904adfea2af1aaaf462360aef0f1eb6c29a2c34017876a0e51e",
+      "canonical_summary_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+      "before_authority_snapshot_sha256": "a02cd64c02212b7dd524fdc50ba40f45d9de230264ec95958239cb4534056674",
+      "after_authority_snapshot_sha256": "a02cd64c02212b7dd524fdc50ba40f45d9de230264ec95958239cb4534056674",
+      "authority_files_preserved": true,
+      "trace_sha256": "423443a33edd9b5b4231332b0e5db39eac3e9fef3155bcc163360afee0f5e532",
+      "operations": [
+        {
+          "seq": 19,
+          "name": "write_facts",
+          "args_sha256": "9b001cdefa618b75bdc82c86a763344ecca0e6942be36b2ec9637fc70c566fff",
+          "result_sha256": "1dd662e3a953f32972895b820458df29cf28ba3b08c8c435f9fde468797a1a18"
+        },
+        {
+          "seq": 20,
+          "name": "run_faff",
+          "args_sha256": "94b829e455d0647f92d4a4034bdf6f115907f59f2330ecf5e885c06b9b5709cf",
+          "result_sha256": "ea8cb1d68bed77f0b04c2b95d379381e839c7f724f413069e5654fc45cbc5ae2"
+        },
+        {
+          "seq": 21,
+          "name": "normalise_output",
+          "args_sha256": "c59d67d696dfebbb7821f00c6d32d5a6aee1e7ad18bfe50cb91fe85a07dd062c",
+          "result_sha256": "f4e08eacfbd50bf589985faa96d700eadf5f439035b0243bbfabbb345feac578"
+        },
+        {
+          "seq": 22,
+          "name": "normalise_output",
+          "args_sha256": "79023c1d66de756591a09b0c78490500665f3141c6dde7b0f87dee7a034fbf1d",
+          "result_sha256": "1a517fcd130dc7f62d43d198324ce5ce0f79c2a814cdb31c0e6ef3887ec5dd6e"
+        },
+        {
+          "seq": 23,
+          "name": "publish",
+          "args_sha256": "31e14cc3bf7490388f649392722b8bd6d2136a09f65470f3161171a5d2a3cda9",
+          "result_sha256": "c8f52621294328a42cc1e9e445d12a8ddb8f840264e0c842d7c7390c58dc8eb2"
+        },
+        {
+          "seq": 24,
+          "name": "publish",
+          "args_sha256": "9c06f548592263ac155d375c113a64eeac4e320070c546f7d4b0457b50aeb0b7",
+          "result_sha256": "8c88b253d8af4c9a9c715b13b01c9bf9e5c68bce56c42786d3f7ff779991c234"
+        }
+      ],
+      "commands": [
+        {
+          "seq": 20,
+          "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "args": [
+            "run",
+            "summary",
+            "--run-dir",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/dirty-install/.faff/runs/run-20260101-000000-beepboop-list-abc104",
+            "--facts",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/dirty-install/.faff/runs/run-20260101-000000-beepboop-list-abc104/summary-facts.json",
+            "--root",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/dirty-install"
+          ],
+          "exit_code": 0,
+          "stderr": "",
+          "error": null,
+          "stdout_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+          "persisted_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d"
+        }
+      ],
+      "publications": [
+        {
+          "channel": "tracker",
+          "seq": 23,
+          "normalisation_seq": 21,
+          "target": "project:fixture-reporting",
+          "text_sha256": "c1c3f9f7c9d21ca77ee1d0fb26ce1b0aec05df9ed40fabeb547c8f5285280178",
+          "normalised_id": "dirty-install:tracker:0",
+          "full_canonical_preserved": true,
+          "economics_suffix": "Economics: 1200 tokens (estimate) · 0 shipped · ZERO-SHIP",
+          "pass": true
+        },
+        {
+          "channel": "conversation",
+          "seq": 24,
+          "normalisation_seq": 22,
+          "target": "conversation",
+          "text_sha256": "8ccc7658a2f6af9c8316b10bde60d9cf014a8b5fb6467d15d545b088a0544f2d",
+          "normalised_id": "dirty-install:conversation:1",
+          "full_canonical_preserved": true,
+          "economics_suffix": null,
+          "pass": true
+        }
+      ],
+      "notes": [
+        "Install-health warning and faff sync remedy remain the first canonical/publication line. ERR-1 remains errored with supplied reason. Malicious newline title is flattened to Fixture title ## Deferred inside the row and creates no Deferred heading/bucket.",
+        "Deduped1,surfaced-only1,filed0 and human worktree/branch follow-up remain source-grounded. No claim that inaccessible discovered work was filed. Economics1200estimate/zero shipped/ZERO-SHIP and1attempt are correct."
+      ]
+    },
+    {
+      "case_id": "no-budget-continuation",
+      "status": "pass",
+      "pass": true,
+      "source_sha256": "d4a9036241bf480a9002f3b3af046705550ffd52129f3e0c25201ad348e25772",
+      "fixture_case_sha256": "3437ef5437083b38dd780923e0c1e0b252b8c4c70741037464a1defb91862b7e",
+      "facts_sha256": null,
+      "canonical_summary_sha256": null,
+      "before_authority_snapshot_sha256": "d3780da4b51e564c915741c22c7a7cfa3bd594b82b9386b2632c0523f13cc564",
+      "after_authority_snapshot_sha256": "d3780da4b51e564c915741c22c7a7cfa3bd594b82b9386b2632c0523f13cc564",
+      "authority_files_preserved": true,
+      "trace_sha256": "6ba07fab6927e542c92000c07185c55d03ffbecaf788369d940d6c53941a2ee8",
+      "operations": [
+        {
+          "seq": 25,
+          "name": "continue_build",
+          "args_sha256": "e893e2b727f281d51ddbdd744e271a3f7e423c216ff6961d512cd485b3c7ae0b",
+          "result_sha256": "55cd22907780ebe6086c64b791e4233ca686276ae88e29e7eeac67c402e9a34b"
+        }
+      ],
+      "commands": [],
+      "publications": [],
+      "notes": [
+        "Exactly one controlled continue_build call dispatches supplied NEXT-1. No ceiling set/breached means no final facts,run-summary call,normalisation,publication or fabricated Deferred bucket. Existing authority files stay byte-identical."
+      ]
+    },
+    {
+      "case_id": "unreadable-ledger",
+      "status": "pass",
+      "pass": true,
+      "source_sha256": "d4a9036241bf480a9002f3b3af046705550ffd52129f3e0c25201ad348e25772",
+      "fixture_case_sha256": "cbb75c6265a23c3daa159fe8146d3a1fa2ce29d58bc91fa1ba32b777e506fec2",
+      "facts_sha256": "03184f1e0629d10aa6669ce0386bd065b813be1daeb2736aea1c9d2a5cc55381",
+      "canonical_summary_sha256": null,
+      "before_authority_snapshot_sha256": "b03e4d192330082861f8bd52360939378bf297e580f4f1c50217b0caba52f8ad",
+      "after_authority_snapshot_sha256": "b03e4d192330082861f8bd52360939378bf297e580f4f1c50217b0caba52f8ad",
+      "authority_files_preserved": true,
+      "trace_sha256": "c80e84b09eff8d341c0e2e1a33d288cc1a38afeff12ad021f491e6c47f4c72ba",
+      "operations": [
+        {
+          "seq": 26,
+          "name": "write_facts",
+          "args_sha256": "113a8dfc88921d43b21f000eeb9750dd6413c01f89ec105fb44526ac392f5c57",
+          "result_sha256": "dca4b22bf07bd179118e18e49c8b21f2d832e123a67290f25a0703d9a24caecc"
+        },
+        {
+          "seq": 27,
+          "name": "run_faff",
+          "args_sha256": "273504bef55f476ab03de0f694e2daacbdd12440af2db9e66670a64fba1ecc70",
+          "result_sha256": "e1d555caad7c267fb8c1c057ddeb9ca95a8a087c686a99054d3c7334064fe438"
+        },
+        {
+          "seq": 28,
+          "name": "report_failure",
+          "args_sha256": "625eac77acdee4f4cd3c17ceb516eb6042b5c1ecd59b01c3d628bb2318ed6a28",
+          "result_sha256": "10cf373e1ad2284c30132417d50a2437199c9a28119293f306c0bfbbdcfa8c7b"
+        }
+      ],
+      "commands": [
+        {
+          "seq": 27,
+          "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "args": [
+            "run",
+            "summary",
+            "--run-dir",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/unreadable-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc106",
+            "--facts",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/unreadable-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc106/summary-facts.json",
+            "--root",
+            "/var/tmp/faff-reporting-measure-ifoQyH/cases/unreadable-ledger"
+          ],
+          "exit_code": 2,
+          "stderr": "faff run summary: cannot read /var/tmp/faff-reporting-measure-ifoQyH/cases/unreadable-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc106/run-ledger.json: Expected property name or '}' in JSON at position 2 (line 1 column 3)\n",
+          "error": null,
+          "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "persisted_sha256": null
+        }
+      ],
+      "publications": [],
+      "notes": [
+        "Facts contain only allowed supplied observations. Exactly one actual summary handler invocation returns exit2,empty stdout and explicit JSON parse/read failure; no transport error.",
+        "report_failure faithfully surfaces that domain error, with no fallback summary,normalisation/publication or guessed facts. Persisted summary stays absent; corrupt ledger and all authority files remain byte-identical."
+      ]
+    }
+  ],
+  "findings": [],
+  "limits": [
+    "Baseline reporting boundary only; no combined-candidate qualification or candidate behavior claim.",
+    "Pinned actual cmdRunSummary handler with fixed injected dependencies and real file persistence; not external dependency acquisition/full CLI dispatcher or original workflow lifecycle.",
+    "Rendering is controlled identity and publication a controlled sink. Passing pre-publication port use establishes ordering/content, not rendering quality,hosted tracker writes or actual builds.",
+    "Economics are controlled fixture inputs, not measured provider billing.",
+    "Earlier closure/forge/tracker observations are supplied preconditions; no independent execution of those earlier phases claimed."
+  ]
+}

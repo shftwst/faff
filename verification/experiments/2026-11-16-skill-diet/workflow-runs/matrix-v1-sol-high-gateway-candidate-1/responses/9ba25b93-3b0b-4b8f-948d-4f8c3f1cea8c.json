@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "/tmp/faff-gateway-workflow-Z5tUty/cases/case-a/.gitignore needs no faff lines (nothing in this target's pattern set)\ncreated /tmp/faff-gateway-workflow-Z5tUty/cases/case-a/.faff/.gitignore — added: /*, !/.gitignore, !/anchors/, !/templates/, !/decisions.md, !/conventions.md, !/config.yaml, !/config.example.yaml\n",
+    "stderr": ""
+  }
+}

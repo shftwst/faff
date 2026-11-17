@@ -1,0 +1,24 @@
+# Discovery brief: Neighbourhood tool lending
+
+mode: greenfield
+
+## Goal
+Track tools lent to neighbours and their return for a neighbourhood tool library. One volunteer operates the lending desk on a laptop.
+
+## Capabilities
+- Tool catalogue: keep a record of the library's tools.
+- Checkout and return log: record tool loans and returns.
+
+## First slice
+Record a checkout and its return for an existing tool.
+
+## Constraints
+- Python CLI, as specified in the existing README.
+- Operate offline on one laptop.
+
+## Out of scope
+- Online marketplace.
+- Payments.
+
+## Open questions
+- How long should completed checkout records be retained? Carry forward for prep.

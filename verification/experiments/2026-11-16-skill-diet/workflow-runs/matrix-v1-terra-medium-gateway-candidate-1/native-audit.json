@@ -1,0 +1,413 @@
+{
+  "schema": 1,
+  "scope": "Metadata only. Explicit model/effort expectation with unchanged native transport and delivery checks.",
+  "auditor_sha256": "2718b08adf2e517ab2633c9ad82bfa62ac4697a1596c39baa723401700096b43",
+  "core_auditor_sha256": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+  "classifier_sha256": "3f40f2fe4bc5094e14bb6f5796b2f5e46d9c9730b7fcbf8c04dfca03cacf5027",
+  "expectation_sha256": "23095b399bfc47fedf7877df9efd2cc98a95afa27e97522798af1ca506270604",
+  "source_sha256": "433b20b425815b4e1149e9f8dd31d6401254a6d20c353e6816f97123a2f1b5a7",
+  "runs": [
+    {
+      "name": "matrix-v1-terra-medium-gateway-candidate-1",
+      "session_id": "01a1e5b0-502a-7d72-ae78-9e2931d03551",
+      "prompt_matches": 1,
+      "model_ids": [
+        "gpt-6.1-terra"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "52bfe420e63b0ccc6e2c7cef481da314f7048e6ff31ffa94565bca6bea53f36f"
+      ],
+      "tools": [
+        {
+          "id": "call_2da139a70c8e4828b0ff1ac5a9af382d",
+          "name": "exec",
+          "input_sha256": "c92b6ad54967c27baea19280b5caa5636638bd05389cda02cd383b85b471f144",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "87e23d41e52c1803fcf7ea5a84d5d712497fad92b017af3ca5f1bc0fa2c5d43c",
+          "is_error": true
+        },
+        {
+          "id": "call_fb405e2a3a1e4fd08e538c879bb708fa",
+          "name": "exec",
+          "input_sha256": "f256e3a38e4959027b6a5c5a46501892b1c5b68fbdf6bedb03b4ec532bc89291",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "ab5ab06ad489ce072bac63e10a2089ec390cc04d70c2c1350fdbbe4d359f1407",
+          "is_error": true
+        },
+        {
+          "id": "call_acde22e7330c4ae0beb99f7d14db8a55",
+          "name": "exec",
+          "input_sha256": "27ceb5856a9426ab1e30f43a296fa82ef5b7bf4d0f9d94e70200499e2bbc95f8",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "59360be154b2f039f8fd1deb391c1d4f5d532e81c1cfc188585184f211209d2f",
+          "is_error": true
+        },
+        {
+          "id": "call_3e2d086b0850487997ac66a7e2eb3708",
+          "name": "exec",
+          "input_sha256": "112b2ea4b491c137884e7bea8ad99c24c343cf3d7da80ae173f699ae60dbdf3a",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "55820f81cff4314d989868b525a2800c1ede7f2958138d17488ae7fda6728f8d",
+          "is_error": true
+        },
+        {
+          "id": "call_32789d04d149458d9554ef2418a29a72",
+          "name": "exec",
+          "input_sha256": "9a88b1484c9e74eccc496ddc2efb58b4a868862c109310f55dc0f51a1221065d",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "e399dc2a4b8ebbaeb412325398d5d90c0ebc2865aea14d2009639ddff9cad0f0",
+          "is_error": true
+        },
+        {
+          "id": "call_2ffdb360612b43bf9d19fb61a1efaee6",
+          "name": "exec",
+          "input_sha256": "9420b80e469297f43a91eb001480397775b276733d92f0b32adcaad74700d195",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "76fdc951ab44d95e3c4c0d90d10d79ce842b785e63d738f6b210c19fbeae841f",
+          "is_error": true
+        },
+        {
+          "id": "call_4e1f6cb2889c457c91be15763593a0c1",
+          "name": "exec",
+          "input_sha256": "aa1f7b8b7588e452ec7f5865dfc1b14fbc1fcaacd93d678b85fdb40e73c0a025",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "78a476da92c65f045128e17bd05358ac2283e73801735a2718814b50d6cfeea9",
+          "is_error": true
+        },
+        {
+          "id": "call_557c2430aa314bbc8c168a0c974136f8",
+          "name": "exec",
+          "input_sha256": "69cd1f244e9ec390071651bb0a52bf6b8346d1c660ee8330312e3ac4e72af89b",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "37acc0333a8915e49df99c3c791cdafdca2344e35eec81ca9798f62071e0c7cd",
+          "is_error": true
+        },
+        {
+          "id": "call_143b8c64509843a7859a1af65b9e62ef",
+          "name": "exec",
+          "input_sha256": "e6b593971f6b10f699b0a581362219d36635b47bbebc4004008b4443bfc2fcfb",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "2479e036a1b94bb683121a1b73247dfc3824d23b7917a4921b81ba8ef7c4313a",
+          "is_error": true
+        },
+        {
+          "id": "call_047e9815acb741f3af3dcba43bf90780",
+          "name": "exec",
+          "input_sha256": "0180afc1aa1b5758f21675a393443759e725ae75961d7e1253da0b725159c7ec",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "55820f81cff4314d989868b525a2800c1ede7f2958138d17488ae7fda6728f8d",
+          "is_error": true
+        },
+        {
+          "id": "call_2aaa09c50b0c4ca28a4c0976f2a1e8b0",
+          "name": "exec",
+          "input_sha256": "f37cdf8d86f9a91fd06095a0011746c51b641b0ef98361e7262e7d30b9d27b39",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "b9fa692863e919bfc0c8c73e6397b372f04f1a8fd2b1cc440d1d8500b17a7fb9",
+          "is_error": true
+        },
+        {
+          "id": "call_281046679c8c4d90a3d3b638402eea4c",
+          "name": "exec",
+          "input_sha256": "84f3aee1eb8db02e17fc3da91fcd6ffb313e42bc86f6085dbfd2fc32c1a52e28",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "243baa565cdace538887bbf211f2546aadaedd4514c22e9b85a36d8bf8362189",
+          "is_error": true
+        },
+        {
+          "id": "call_451b22e8d48d44b2b68f645cee2710dc",
+          "name": "exec",
+          "input_sha256": "b5bec4f9d4a0617f003692c14e758ecc5a0264d55917e05daff0ced952efe9ea",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "3f11a92224285fc688d1849d6869bf91a930da4c5b63bf24c12fdaa1b723bc98",
+          "is_error": true
+        },
+        {
+          "id": "call_a85ca0b95d9948649c39d7e71e32a2ea",
+          "name": "exec",
+          "input_sha256": "ca1ceb632ba557705d9646af7a59ce8dfe7c3d83192bdc51380852337ffa13ec",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "902f2beca0a0aea4dd9a5dc020fb3d660af1f8406bcb6b4a33b100c063fbcff7",
+          "is_error": true
+        },
+        {
+          "id": "call_b3734b7f900e46a9af8bee1e5cd7049f",
+          "name": "exec",
+          "input_sha256": "ec94affc2870825b5a3dafafd765bac2476fb1049d07e4ad613a340523eb7bb3",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "2479e036a1b94bb683121a1b73247dfc3824d23b7917a4921b81ba8ef7c4313a",
+          "is_error": true
+        },
+        {
+          "id": "call_e60c67d33c8646348cc8e2b639e98db0",
+          "name": "exec",
+          "input_sha256": "e69d23ac9c206f449de6ca3c8aa0a0631d44bffb8d4f5f8b1651451419e73489",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "fd2338f4d9b595a7959b886bc3bec3761a86f2012c534548efb9f377164c2a2f",
+          "is_error": true
+        },
+        {
+          "id": "call_1621fd6b233e48e2b73426a33e1eacba",
+          "name": "exec",
+          "input_sha256": "b43fe2fd1c3d388fd47de95834e6fce55c70b8c77c15d065d601ffe907582c66",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "0951c2cd38a1293f938019d7a454fbd7658260c29c1728d978eba1c493357849",
+          "is_error": true
+        },
+        {
+          "id": "call_1ecef5ce79654e7fa9a033377f08d8cc",
+          "name": "exec",
+          "input_sha256": "189e1eac03d0f32a45532cc97e99c312dc491ef38ee6024dc9a3c90af65e62a3",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "00871943e70397d770e7fbf9a36d02b175a59882c3668c304a9f36f05c5bc57a",
+          "is_error": true
+        },
+        {
+          "id": "call_93fb9f179eed4ab3b0c4700fdcc75227",
+          "name": "exec",
+          "input_sha256": "d62e04a3d1c0389c6302edd9ff5e74211bf895c80a899a63031f5b69902991de",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "3724b9f41fe19b6e4a139c6be5ad2ac37dcb3e117efb60acd04bd30d32c7edbf",
+          "is_error": true
+        },
+        {
+          "id": "call_866d0b898d254e1fb8dd107a6c027af3",
+          "name": "exec",
+          "input_sha256": "a61911ef262f47bf60b6cae73d89ae676a8bff62ee5547f31a849621fb6fe990",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "e8d17ba86d5a8dbcb59faa69cdc9bd229a489313cadc997625a5b4de148de5a3",
+          "is_error": true
+        },
+        {
+          "id": "call_f1398e994ed54e2f83b9f07ec0974170",
+          "name": "exec",
+          "input_sha256": "f3dfa71a86a9e3c49bd50d911e673aaeb658a06414d9f2c3277fa0c368d86eb2",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "f520e1a683e57824b96dfedbf1bfbd009b30f0521ebd492d940a5b56ba66f9a0",
+          "is_error": true
+        },
+        {
+          "id": "call_471b8f479d49482785527b4cbd6e2700",
+          "name": "exec",
+          "input_sha256": "d702734e3537ecd4f5e52696f1620025b9173242d7cab702dc17813c52bc28dd",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "73816420d9ea47cd60061c3d7c1fa18ccfebb7918cca75bbf5d1b4c615e45d71",
+          "is_error": true
+        },
+        {
+          "id": "call_b5228e2fff1c4852a8995cab240b7634",
+          "name": "exec",
+          "input_sha256": "f9c9bfa08270040cd69aec654734ddcca444e7ba7538ad2442eae47c215b49e2",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "2479e036a1b94bb683121a1b73247dfc3824d23b7917a4921b81ba8ef7c4313a",
+          "is_error": true
+        },
+        {
+          "id": "call_ddac601cfcd645239df3d9c3eab6b676",
+          "name": "exec",
+          "input_sha256": "f0fd8c74c618d7f3e8659e39387c98c0386a03b3c9b974b5603b69123b0555e6",
+          "allowed": false,
+          "result_seen": true,
+          "problem": "outside-authorised-native-tools",
+          "result_sha256": "5bb49e0ac6a7989a5931964c5757e489e800d2ae4430d98316f52fda2e048328",
+          "is_error": true
+        }
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": false,
+          "content_sha256": null,
+          "content_bytes": null
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/matrix-v1-terra-medium-gateway-candidate-1/task.json",
+          "complete": false,
+          "content_sha256": null,
+          "content_bytes": null
+        }
+      ],
+      "complete": false,
+      "status": "fail",
+      "problems": [
+        {
+          "id": "call_2da139a70c8e4828b0ff1ac5a9af382d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_fb405e2a3a1e4fd08e538c879bb708fa",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_acde22e7330c4ae0beb99f7d14db8a55",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_3e2d086b0850487997ac66a7e2eb3708",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_32789d04d149458d9554ef2418a29a72",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2ffdb360612b43bf9d19fb61a1efaee6",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4e1f6cb2889c457c91be15763593a0c1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_557c2430aa314bbc8c168a0c974136f8",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_143b8c64509843a7859a1af65b9e62ef",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_047e9815acb741f3af3dcba43bf90780",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2aaa09c50b0c4ca28a4c0976f2a1e8b0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_281046679c8c4d90a3d3b638402eea4c",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_451b22e8d48d44b2b68f645cee2710dc",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a85ca0b95d9948649c39d7e71e32a2ea",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b3734b7f900e46a9af8bee1e5cd7049f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e60c67d33c8646348cc8e2b639e98db0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1621fd6b233e48e2b73426a33e1eacba",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1ecef5ce79654e7fa9a033377f08d8cc",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_93fb9f179eed4ab3b0c4700fdcc75227",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_866d0b898d254e1fb8dd107a6c027af3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f1398e994ed54e2f83b9f07ec0974170",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_471b8f479d49482785527b4cbd6e2700",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b5228e2fff1c4852a8995cab240b7634",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ddac601cfcd645239df3d9c3eab6b676",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "expected_model": "gpt-6.1-terra",
+      "expected_effort": "medium"
+    }
+  ]
+}

@@ -1,0 +1,1757 @@
+{
+  "schema": 1,
+  "baseline_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "deadline_utc": "2026-11-16 16:13:53 UTC",
+  "token_estimator": "ceil(UTF-16 character count / 4) per file, summed; estimates, not provider usage",
+  "slices": [
+    {
+      "skill": "faff",
+      "path": "plugin/skills/faff/SKILL.md",
+      "status": "draft-qualified-gateway-entry-boundary",
+      "before": {
+        "path": "plugin/skills/faff/SKILL.md",
+        "bytes": 12984,
+        "sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+        "characters": 12886,
+        "estimated_tokens": 3222
+      },
+      "after": {
+        "path": "plugin/skills/faff/SKILL.md",
+        "bytes": 5832,
+        "characters": 5832,
+        "estimated_tokens": 1458,
+        "sha256": "122858afa54cc46458ec6a2ad646b73a62a63791c95a71dba731905fbe6ee3d2"
+      },
+      "bytes_saved": 7152,
+      "estimated_tokens_saved": 1764,
+      "fidelity": {
+        "kind": "decision-smoke",
+        "model": "claude-opus-5-5",
+        "effort": "medium",
+        "control": {
+          "runs": 1,
+          "passed": 9,
+          "total": 17
+        },
+        "baseline": {
+          "runs": 5,
+          "passed": 85,
+          "total": 85
+        },
+        "candidate": {
+          "runs": 5,
+          "passed": 85,
+          "total": 85
+        },
+        "limits": [
+          "17 cases within each response are correlated",
+          "not workflow execution or statistical equivalence",
+          "provider token usage and cost not metered"
+        ]
+      },
+      "mandatory_dependencies_added": [],
+      "tests": {
+        "passed": 64,
+        "failed": 0
+      },
+      "workflow_execution": {
+        "schema": 1,
+        "status": "pass",
+        "samples_per_arm": 5,
+        "cases_per_sample": 5,
+        "baseline_passed": 25,
+        "candidate_passed": 25,
+        "normalised_effects_dispatches_and_final_states_equal": true,
+        "config_path_reads": {
+          "baseline": 34,
+          "candidate": 25
+        },
+        "runs": [
+          {
+            "run": "gateway-baseline-1",
+            "arm": "baseline",
+            "passed": 5,
+            "report_sha256": "826e85d64bcd668db499af8cec65a3a79f8d1a27ce9c8282acac9c12704e6e3c",
+            "config_path_reads": 8
+          },
+          {
+            "run": "gateway-baseline-2",
+            "arm": "baseline",
+            "passed": 5,
+            "report_sha256": "9b02bec5ed58f74c8a0711d899dc283b2040c0af53f598b8e116e5e78a43d2f2",
+            "config_path_reads": 7
+          },
+          {
+            "run": "gateway-baseline-3",
+            "arm": "baseline",
+            "passed": 5,
+            "report_sha256": "e8a464d7b6283316243e26d1bb44fbe6beb85aea6bc5ead135aa7075aed8300c",
+            "config_path_reads": 7
+          },
+          {
+            "run": "gateway-baseline-4",
+            "arm": "baseline",
+            "passed": 5,
+            "report_sha256": "9b02bec5ed58f74c8a0711d899dc283b2040c0af53f598b8e116e5e78a43d2f2",
+            "config_path_reads": 7
+          },
+          {
+            "run": "gateway-baseline-5",
+            "arm": "baseline",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          },
+          {
+            "run": "gateway-candidate-1",
+            "arm": "candidate",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          },
+          {
+            "run": "gateway-candidate-2",
+            "arm": "candidate",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          },
+          {
+            "run": "gateway-candidate-3",
+            "arm": "candidate",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          },
+          {
+            "run": "gateway-candidate-4",
+            "arm": "candidate",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          },
+          {
+            "run": "gateway-candidate-5",
+            "arm": "candidate",
+            "passed": 5,
+            "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+            "config_path_reads": 5
+          }
+        ],
+        "scope": "Gateway first-run and dispatch boundary. Real CLI mutations; downstream skill stubs. No full downstream workflow or statistical-equivalence claim.",
+        "provider_usage": "unmetered",
+        "qualification": "effect comparison passed; policy-delivery qualification superseded by delivery-v2"
+      },
+      "delivery_v2": {
+        "effect_summary": "gateway-delivery-v2-results.json",
+        "protocol_review": "gateway-delivery-v2-protocol-review.json",
+        "qualification": "fail: three reported global-guidance reads contradicted the fixture-only restriction"
+      },
+      "context_v3": {
+        "qualification": "pass-for-declared-entry-boundary",
+        "effect_summary": "gateway-context-v3-results.json",
+        "native_review": "gateway-context-v3-native-review.json",
+        "samples_per_arm": 5,
+        "baseline": {
+          "passed": 25,
+          "total": 25
+        },
+        "candidate": {
+          "passed": 25,
+          "total": 25
+        },
+        "normalised_effects_and_final_states_equal": true,
+        "config_path_reads": {
+          "baseline": 25,
+          "candidate": 23
+        },
+        "limits": [
+          "Full downstream workflows are not exercised.",
+          "Small correlated samples do not establish statistical equivalence.",
+          "Recorded task/bridge payload proxy excludes native guidance-file reads and other native framing. It is not provider usage or cost.",
+          "Complete selected native tool logs now supplement the earlier screen review; actual common guidance payload hashes match across arms."
+        ],
+        "native_log_review": "gateway-context-v3-native-log-review.json"
+      }
+    },
+    {
+      "skill": "faffter-dark-adversarial-review",
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "status": "draft-qualified-bounded-adversarial-workflow",
+      "before": {
+        "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+        "bytes": 74897,
+        "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+        "characters": 74294,
+        "estimated_tokens": 18574
+      },
+      "after": {
+        "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+        "bytes": 22259,
+        "characters": 22259,
+        "estimated_tokens": 5565,
+        "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba"
+      },
+      "bytes_saved": 52638,
+      "estimated_tokens_saved": 13009,
+      "fidelity": {
+        "kind": "decision-and-artifact-smoke",
+        "model": "claude-opus-5-5",
+        "effort": "medium",
+        "workflow": {
+          "fixture": "adversarial-input-v5.json",
+          "baseline": {
+            "runs": 5,
+            "passed": 185,
+            "total": 185
+          },
+          "candidate": {
+            "runs": 5,
+            "passed": 185,
+            "total": 185
+          }
+        },
+        "review_judgement": {
+          "baseline": {
+            "runs": 5,
+            "passed": 40,
+            "total": 40
+          },
+          "candidate": {
+            "runs": 5,
+            "passed": 40,
+            "total": 40
+          }
+        },
+        "limits": [
+          "cases within each response are correlated",
+          "eight quality fixtures, not full independent-model pipeline execution",
+          "quality fixtures frozen after candidate authoring, before either arm responded",
+          "preliminary controls and formatting failures retained separately",
+          "provider usage and cost unmetered"
+        ],
+        "candidate_policy": "candidates/adversarial-v3.md",
+        "candidate_remeasurement": {
+          "decisions": {
+            "runs": 5,
+            "passed": 185,
+            "total": 185,
+            "plan": "adversarial-policy-v3-decisions-plan.json"
+          },
+          "review_judgement": {
+            "runs": 5,
+            "passed": 40,
+            "total": 40,
+            "plan": "adversarial-policy-v3-quality-plan.json"
+          },
+          "baseline": "Unchanged original policy and fixtures; compare to the previously recorded five baseline samples. Candidate-v2 evidence remains historical."
+        }
+      },
+      "mandatory_dependencies_added": [],
+      "operator_reference": "docs/reference/adversarial-backends.md",
+      "mechanical_baseline_tests": {
+        "passed": 551,
+        "failed": 0
+      },
+      "qualification_pending": null,
+      "tests": {
+        "ci_correction_and_adapters": {
+          "passed": 158,
+          "failed": 0
+        }
+      },
+      "challenge_execution": {
+        "status": "qualified-bounded-challenge-consumption",
+        "baseline": {
+          "runs": 5,
+          "passed": 40,
+          "total": 40
+        },
+        "candidate": {
+          "runs": 5,
+          "passed": 40,
+          "total": 40
+        },
+        "results": "challenges-file-input-v4-stable-results.json",
+        "native_protocol": "challenges-file-input-v4-native-log-review.json",
+        "normalised_consumption_equal": true,
+        "limits": [
+          "Real CLI admission consumption with controlled cases; no hosted record publication.",
+          "Small correlated samples, not statistical equivalence or provider usage."
+        ]
+      },
+      "workflow_execution": {
+        "status": "qualified-bounded-adversarial-workflow",
+        "qualification": "adversarial-context-v3-qualification.json",
+        "effect_summary": "adversarial-context-v3-assessed-results.json",
+        "baseline": {
+          "case_kinds": {
+            "execution": {
+              "passed": 50,
+              "total": 50
+            }
+          },
+          "runs": 5,
+          "passed": 50,
+          "total": 50,
+          "recorded_data_bytes": 668278,
+          "estimated_recorded_data_tokens": 166518
+        },
+        "candidate": {
+          "case_kinds": {
+            "execution": {
+              "passed": 50,
+              "total": 50
+            }
+          },
+          "runs": 5,
+          "passed": 50,
+          "total": 50,
+          "recorded_data_bytes": 382505,
+          "estimated_recorded_data_tokens": 95824
+        },
+        "normalised_signals_helper_exits_checkpoints_and_merge_gates_equal": true,
+        "recorded_diagnostics": 3,
+        "limits": [
+          "Controlled local provider responses and a stub primary reviewer exercise control flow, not independent model judgement. Existing separate artifact-review probes cover the bounded judgement cases.",
+          "Actual native tool metadata, bridge calls, files and merge-floor consumption are checked. Read counts, optional interactive findings files and prompt wording can differ within declared rules.",
+          "Original reports and native errors are retained. Two explicit oracle corrections are applied to both arms through hash-bound assessments; no guard rejection or other error is waived.",
+          "Actual delivered operator guidance is common across arms; the orchestrator-side file hash describes a separate container view.",
+          "No live GitHub/tracker publication, full graft/ship workflow, statistical equivalence or provider billing claim."
+        ]
+      }
+    },
+    {
+      "skill": "faffidavit-rendering",
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "status": "draft-qualified-bounded-rendering-transform",
+      "before": {
+        "bytes": 24639,
+        "characters": 24159,
+        "estimated_tokens": 6040,
+        "sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce"
+      },
+      "after": {
+        "bytes": 11288,
+        "characters": 11108,
+        "estimated_tokens": 2777,
+        "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4"
+      },
+      "bytes_saved": 13351,
+      "estimated_tokens_saved": 3263,
+      "mandatory_dependencies_added": [],
+      "qualification": "rendering-v2-qualification.json",
+      "fidelity": {
+        "kind": "persisted-artifact-and-decision-comparison",
+        "baseline": {
+          "case_kinds": {
+            "artifact": {
+              "passed": 45,
+              "total": 45
+            },
+            "decision": {
+              "passed": 100,
+              "total": 100
+            }
+          },
+          "runs": 5,
+          "passed": 145,
+          "total": 145,
+          "recorded_data_bytes": 185815,
+          "estimated_recorded_data_tokens": 45940
+        },
+        "candidate": {
+          "case_kinds": {
+            "artifact": {
+              "passed": 45,
+              "total": 45
+            },
+            "decision": {
+              "passed": 100,
+              "total": 100
+            }
+          },
+          "runs": 5,
+          "passed": 145,
+          "total": 145,
+          "recorded_data_bytes": 116206,
+          "estimated_recorded_data_tokens": 28911
+        },
+        "raw_scores_each_arm": {
+          "artifacts": {
+            "passed": 45,
+            "total": 45
+          },
+          "decisions": {
+            "passed": 95,
+            "total": 100
+          }
+        },
+        "normalisation": "Only the documented Markdown heading-marker equivalence; original reports and captures remain unchanged.",
+        "artifact_review": "rendering-v2-artifact-review.json",
+        "limits": [
+          "Five correlated samples per arm; no statistical equivalence.",
+          "Actual text transforms and persisted artifacts, not full caller workflow or tracker publication.",
+          "Common operator voice guidance was preloaded; gateway voice injection is outside this boundary.",
+          "V1 was revised after manual artifact review and is not pooled with the accepted candidate.",
+          "Estimates are not provider token usage or billing."
+        ]
+      }
+    },
+    {
+      "skill": "catalogue descriptions (26 skills)",
+      "kind": "description-only",
+      "status": "draft-qualified-bounded-catalogue-selection",
+      "qualification": "catalog-v2-final-qualification.json",
+      "bytes_saved": 4324,
+      "estimated_tokens_saved": 1067,
+      "mandatory_dependencies_added": [],
+      "files": [
+        {
+          "path": "plugin/skills/faff-beep-boop/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faff-beep-boop/SKILL.md",
+            "bytes": 157720,
+            "sha256": "7340b6f3cc1dc51887fcfdb710785e59e287406f6c3f89f45510abade3e0f69d",
+            "characters": 156329,
+            "estimated_tokens": 39083
+          },
+          "after": {
+            "path": "plugin/skills/faff-beep-boop/SKILL.md",
+            "bytes": 157561,
+            "characters": 156176,
+            "estimated_tokens": 39044,
+            "sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28"
+          },
+          "bytes_saved": 159,
+          "estimated_tokens_saved": 39,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faff-graft/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faff-graft/SKILL.md",
+            "bytes": 178859,
+            "sha256": "401252f1a2bce5d68e972b83eaaffc1d2f1ce1dc1d47dc53f15488eb12c591ca",
+            "characters": 177393,
+            "estimated_tokens": 44349
+          },
+          "after": {
+            "path": "plugin/skills/faff-graft/SKILL.md",
+            "bytes": 178777,
+            "characters": 177313,
+            "estimated_tokens": 44329,
+            "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710"
+          },
+          "bytes_saved": 82,
+          "estimated_tokens_saved": 20,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faff-map/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faff-map/SKILL.md",
+            "bytes": 24782,
+            "sha256": "ad434e473fefdebb9e38b4ec003269875e31471cda65d542d920478ecc4a588c",
+            "characters": 24195,
+            "estimated_tokens": 6049
+          },
+          "after": {
+            "path": "plugin/skills/faff-map/SKILL.md",
+            "bytes": 24535,
+            "characters": 23950,
+            "estimated_tokens": 5988,
+            "sha256": "55e5aa388261b226e011f45d16d3b88d6e61a9e9bba0f1831b2cfdf57ce308c6"
+          },
+          "bytes_saved": 247,
+          "estimated_tokens_saved": 61,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faff-onboard/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faff-onboard/SKILL.md",
+            "bytes": 23185,
+            "sha256": "093c997b1c26f1d98f68e11e23e01cae9cd7f4cfa9616a1280303a30d835a810",
+            "characters": 22931,
+            "estimated_tokens": 5733
+          },
+          "after": {
+            "path": "plugin/skills/faff-onboard/SKILL.md",
+            "bytes": 23039,
+            "characters": 22787,
+            "estimated_tokens": 5697,
+            "sha256": "61b542661d1a6d20e5d50ba8912deda6a3633c82e00b5040916d49a6e38c429b"
+          },
+          "bytes_saved": 146,
+          "estimated_tokens_saved": 36,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faff-plot/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faff-plot/SKILL.md",
+            "bytes": 45906,
+            "sha256": "1739242fe22980f02a0697bb958f9845739117e85a6708664d68f1d761db578e",
+            "characters": 45365,
+            "estimated_tokens": 11342
+          },
+          "after": {
+            "path": "plugin/skills/faff-plot/SKILL.md",
+            "bytes": 45580,
+            "characters": 45045,
+            "estimated_tokens": 11262,
+            "sha256": "57c8efe868e470b21d70f5787025457fed8ab70766d1a8115e721645e37fa25c"
+          },
+          "bytes_saved": 326,
+          "estimated_tokens_saved": 80,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faff-tidy/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faff-tidy/SKILL.md",
+            "bytes": 76181,
+            "sha256": "a8e8608fe6f9a43f36b9f523e54ae1b1c66dc5e6ba03dc3be255127fab2cf3a4",
+            "characters": 75461,
+            "estimated_tokens": 18866
+          },
+          "after": {
+            "path": "plugin/skills/faff-tidy/SKILL.md",
+            "bytes": 76028,
+            "characters": 75310,
+            "estimated_tokens": 18828,
+            "sha256": "9e2d98e3f7d1de13c74866115cd433ae62854f95e2bf2ae4617185d24123d757"
+          },
+          "bytes_saved": 153,
+          "estimated_tokens_saved": 38,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faff-wtf/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faff-wtf/SKILL.md",
+            "bytes": 31551,
+            "sha256": "92583ba51c7ed42b9729c23b7c2e3367ab830ca023e68103845094e127478b54",
+            "characters": 31224,
+            "estimated_tokens": 7806
+          },
+          "after": {
+            "path": "plugin/skills/faff-wtf/SKILL.md",
+            "bytes": 31369,
+            "characters": 31044,
+            "estimated_tokens": 7761,
+            "sha256": "f33cbda1169044be17045ad448ebdb0ba9db04801d8f18d23a0f8779463ffa33"
+          },
+          "bytes_saved": 182,
+          "estimated_tokens_saved": 45,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffidavit-routing/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffidavit-routing/SKILL.md",
+            "bytes": 11236,
+            "sha256": "13ea361878b5986ee805af4f8bd95a6d9c916bb2218fa784c6d86c9e82729b4d",
+            "characters": 11129,
+            "estimated_tokens": 2783
+          },
+          "after": {
+            "path": "plugin/skills/faffidavit-routing/SKILL.md",
+            "bytes": 11144,
+            "characters": 11039,
+            "estimated_tokens": 2760,
+            "sha256": "d6e7f37d231ea6a42a336cdc268717fe2e788ac290dc17d5948a673d9d698735"
+          },
+          "bytes_saved": 92,
+          "estimated_tokens_saved": 23,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+            "bytes": 12540,
+            "sha256": "9a2e3fd87f6f7d2d00586adec5f7d9a4d0a8415fabd5966104addf6d480d1fb3",
+            "characters": 12432,
+            "estimated_tokens": 3108
+          },
+          "after": {
+            "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+            "bytes": 12321,
+            "characters": 12213,
+            "estimated_tokens": 3054,
+            "sha256": "74251c96bb33e9b5f15f370f994256a0ed25a588cd7a186ecca80d13eed98ae0"
+          },
+          "bytes_saved": 219,
+          "estimated_tokens_saved": 54,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+            "bytes": 25766,
+            "sha256": "a292b72b94a582f65fb8f9fc9cfd5fa4a9be09a449f95b35ac19a007d962d423",
+            "characters": 25542,
+            "estimated_tokens": 6386
+          },
+          "after": {
+            "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+            "bytes": 25665,
+            "characters": 25443,
+            "estimated_tokens": 6361,
+            "sha256": "4706d07b456a00e1b9e4e47dada91182950f6f716c610123977525f7d7471ef9"
+          },
+          "bytes_saved": 101,
+          "estimated_tokens_saved": 25,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+            "bytes": 45057,
+            "sha256": "371ad208c15856e0da8a58ac929f5894bf614b44331a031cb89a76012a490eb3",
+            "characters": 44659,
+            "estimated_tokens": 11165
+          },
+          "after": {
+            "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+            "bytes": 44947,
+            "characters": 44551,
+            "estimated_tokens": 11138,
+            "sha256": "73358ee7786bf114f34e0fe69912dc644fb809a35ae27841f222164bad09aff3"
+          },
+          "bytes_saved": 110,
+          "estimated_tokens_saved": 27,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+            "bytes": 18823,
+            "sha256": "4cc4f0a6613802f34749f6cd367f4818dd9aef34641cb5fb812a39fe71a6c519",
+            "characters": 18683,
+            "estimated_tokens": 4671
+          },
+          "after": {
+            "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+            "bytes": 18819,
+            "characters": 18681,
+            "estimated_tokens": 4671,
+            "sha256": "af81549bd251bace400ebf5d976d65a15e9a9c258e83f318cbbc55fc034691af"
+          },
+          "bytes_saved": 4,
+          "estimated_tokens_saved": 0,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+            "bytes": 40715,
+            "sha256": "21cb7cdfebd5b73f59f5b6e0aeda877e96f75cbe5780535e1ca740e1996d9dee",
+            "characters": 40466,
+            "estimated_tokens": 10117
+          },
+          "after": {
+            "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+            "bytes": 40496,
+            "characters": 40249,
+            "estimated_tokens": 10063,
+            "sha256": "d0eb7dfabc221c9a3822336eef239e4d0a2537ae68b254c4581a99be25ab6200"
+          },
+          "bytes_saved": 219,
+          "estimated_tokens_saved": 54,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+            "bytes": 4460,
+            "sha256": "f58e9b3f16a23a3869d7a642d3547cd8baede891c3a1cfe7d3e2de27c97b7157",
+            "characters": 4426,
+            "estimated_tokens": 1107
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+            "bytes": 4238,
+            "characters": 4206,
+            "estimated_tokens": 1052,
+            "sha256": "19620bd0d1588ea9f4e1d8f6486e368f75da3c5f3a08add1165f03dbcef78346"
+          },
+          "bytes_saved": 222,
+          "estimated_tokens_saved": 55,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+            "bytes": 4967,
+            "sha256": "cdfaaca22d2f577cb3c1496b652c22020c6264dbcc98352512c5d7ae40a7e6ed",
+            "characters": 4943,
+            "estimated_tokens": 1236
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+            "bytes": 4787,
+            "characters": 4765,
+            "estimated_tokens": 1192,
+            "sha256": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88"
+          },
+          "bytes_saved": 180,
+          "estimated_tokens_saved": 44,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+            "bytes": 18605,
+            "sha256": "e3308c33e5cf68379704357f18cdabbbc3d02c40a80534aac4f8b293d2d1e28a",
+            "characters": 18451,
+            "estimated_tokens": 4613
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+            "bytes": 18512,
+            "characters": 18360,
+            "estimated_tokens": 4590,
+            "sha256": "1e0e8c86860a2e962e4f022225c5c23148539afa2075981d1148c9069e3af2d8"
+          },
+          "bytes_saved": 93,
+          "estimated_tokens_saved": 23,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+            "bytes": 9862,
+            "sha256": "0583fd07595fd1e09a407d30514fbbee372c46dfecddab3cbaba2d2b3360b398",
+            "characters": 9814,
+            "estimated_tokens": 2454
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+            "bytes": 9602,
+            "characters": 9556,
+            "estimated_tokens": 2389,
+            "sha256": "f4dc693965a2e49f2765d745a343e5c9e5df3282cc439fb762781a5ed49ece75"
+          },
+          "bytes_saved": 260,
+          "estimated_tokens_saved": 65,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+            "bytes": 12443,
+            "sha256": "279c55c58c16cfee1b74e4ca54711dcd5b97b039dbce2db35e581576a3477046",
+            "characters": 12379,
+            "estimated_tokens": 3095
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+            "bytes": 12232,
+            "characters": 12170,
+            "estimated_tokens": 3043,
+            "sha256": "311f5695a82a15e3be90ebe15878a0f9a67fb7c710ef178c7f37d8f557a651d9"
+          },
+          "bytes_saved": 211,
+          "estimated_tokens_saved": 52,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+            "bytes": 16192,
+            "sha256": "b5309423190169dee6b3499b5891cad7565e1e0378f07590ec6831b929d6925f",
+            "characters": 16094,
+            "estimated_tokens": 4024
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+            "bytes": 15939,
+            "characters": 15843,
+            "estimated_tokens": 3961,
+            "sha256": "155185589d5cd019fce35b657f11c751326e44b1f7de0836890f057293c60d22"
+          },
+          "bytes_saved": 253,
+          "estimated_tokens_saved": 63,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+            "bytes": 7715,
+            "sha256": "7851000ca07fffdb5155f757526f2d5dc636537495be47e43ece8ae9359561ad",
+            "characters": 7651,
+            "estimated_tokens": 1913
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+            "bytes": 7622,
+            "characters": 7560,
+            "estimated_tokens": 1890,
+            "sha256": "b1cfe70da49ff2ae688e936ea03407380a8d61a280e88778cddd1dc10e1a6c79"
+          },
+          "bytes_saved": 93,
+          "estimated_tokens_saved": 23,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+            "bytes": 4517,
+            "sha256": "be742410026685601a5d762c42ff56a430920492314d8eacfdb12628bed12152",
+            "characters": 4489,
+            "estimated_tokens": 1123
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+            "bytes": 4214,
+            "characters": 4188,
+            "estimated_tokens": 1047,
+            "sha256": "0308c148cea49b238d743714f68c947a66306d88830541750cb695283f43ee73"
+          },
+          "bytes_saved": 303,
+          "estimated_tokens_saved": 76,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-review/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-review/SKILL.md",
+            "bytes": 13503,
+            "sha256": "7647654d4336064a5812b7e8fda1bca94fbebc5171f54c05f6f960253c56d98a",
+            "characters": 13401,
+            "estimated_tokens": 3351
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-review/SKILL.md",
+            "bytes": 13405,
+            "characters": 13305,
+            "estimated_tokens": 3327,
+            "sha256": "f85023d05cd5c6de9ed09ce54a7c5a88d7a31b8d66f640f8b630b84ad85bc6fe"
+          },
+          "bytes_saved": 98,
+          "estimated_tokens_saved": 24,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+            "bytes": 14189,
+            "sha256": "0def991641eeffae8fc708e05a4c93a709c9a0dee36aee1280b81eecad2803e4",
+            "characters": 14083,
+            "estimated_tokens": 3521
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+            "bytes": 14027,
+            "characters": 13923,
+            "estimated_tokens": 3481,
+            "sha256": "7df6adee9b0220feec53dc794cc9f047fcdfdde5906f98dfe87a77e1bc444e2b"
+          },
+          "bytes_saved": 162,
+          "estimated_tokens_saved": 40,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+            "bytes": 17919,
+            "sha256": "cb5488f22d8eaafbeb03d867b2b5ba7e55c7f3ac6e2d2cd32e5dd706c2af4494",
+            "characters": 17775,
+            "estimated_tokens": 4444
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+            "bytes": 17847,
+            "characters": 17705,
+            "estimated_tokens": 4427,
+            "sha256": "cc268664fa8b1789242fb898e2236c2301c937520805c1fd8a6cf6b48be99696"
+          },
+          "bytes_saved": 72,
+          "estimated_tokens_saved": 17,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+            "bytes": 9605,
+            "sha256": "4704eea626c039b83490a8ccf87a52d289b97ae2128ac0d0d56adbf7f22895b7",
+            "characters": 9521,
+            "estimated_tokens": 2381
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+            "bytes": 9460,
+            "characters": 9380,
+            "estimated_tokens": 2345,
+            "sha256": "cf2baaa0193e8f53a1a0ca792440ea471cdd0be5e49a6b320cca9d3b5fbaf58c"
+          },
+          "bytes_saved": 145,
+          "estimated_tokens_saved": 36,
+          "body_unchanged": true
+        },
+        {
+          "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+          "before": {
+            "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+            "bytes": 6442,
+            "sha256": "a7cd58988d8ff5809f7f0348eb4fc617a9f8498e439535b153c9309c68a71779",
+            "characters": 6408,
+            "estimated_tokens": 1602
+          },
+          "after": {
+            "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+            "bytes": 6250,
+            "characters": 6218,
+            "estimated_tokens": 1555,
+            "sha256": "8187ee3fb166c1d0f0355f38452f007e70c7aa4b1e516a79a12161487c699284"
+          },
+          "bytes_saved": 192,
+          "estimated_tokens_saved": 47,
+          "body_unchanged": true
+        }
+      ],
+      "fidelity": {
+        "kind": "discovery-decisions-only",
+        "baseline": {
+          "case_kinds": {
+            "decision": {
+              "passed": 175,
+              "total": 175
+            }
+          },
+          "runs": 5,
+          "passed": 175,
+          "total": 175,
+          "recorded_data_bytes": 135705,
+          "estimated_recorded_data_tokens": 34025
+        },
+        "candidate": {
+          "case_kinds": {
+            "decision": {
+              "passed": 175,
+              "total": 175
+            }
+          },
+          "runs": 5,
+          "passed": 175,
+          "total": 175,
+          "recorded_data_bytes": 112880,
+          "estimated_recorded_data_tokens": 28315
+        },
+        "limits": [
+          "Catalogue requests check discovery choice only; no selected body workflow is executed.",
+          "Five correlated samples per arm do not establish statistical equivalence.",
+          "No new mandatory reads. Token estimates are not provider usage."
+        ]
+      }
+    },
+    {
+      "skill": "faffter-noon-methodology-thematic",
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "status": "draft-qualified-bounded-thematic-readonly",
+      "before": {
+        "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+        "bytes": 35118,
+        "sha256": "5c5ccd71a7bce35a406be9381acd606f3ae8af51622ddedbe0a28a503ba0c797",
+        "characters": 34686,
+        "estimated_tokens": 8672
+      },
+      "after": {
+        "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+        "bytes": 29418,
+        "characters": 29122,
+        "estimated_tokens": 7281,
+        "sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f"
+      },
+      "bytes_saved": 5700,
+      "estimated_tokens_saved": 1391,
+      "mandatory_dependencies_added": [],
+      "qualification": "thematic-v1-qualification.json",
+      "fidelity": {
+        "kind": "named-output-artifacts-decisions-and-cli-consumption",
+        "baseline": {
+          "case_kinds": {
+            "decision": {
+              "passed": 60,
+              "total": 60
+            },
+            "artifact": {
+              "passed": 15,
+              "total": 15
+            },
+            "consumer": {
+              "passed": 5,
+              "total": 5
+            }
+          },
+          "runs": 5,
+          "passed": 80,
+          "total": 80,
+          "recorded_data_bytes": 936540,
+          "estimated_recorded_data_tokens": 232245
+        },
+        "candidate": {
+          "case_kinds": {
+            "decision": {
+              "passed": 60,
+              "total": 60
+            },
+            "artifact": {
+              "passed": 15,
+              "total": 15
+            },
+            "consumer": {
+              "passed": 5,
+              "total": 5
+            }
+          },
+          "runs": 5,
+          "passed": 80,
+          "total": 80,
+          "recorded_data_bytes": 907315,
+          "estimated_recorded_data_tokens": 225115
+        },
+        "actual_cli_consumer_cases": {
+          "baseline": {
+            "passed": 45,
+            "total": 45
+          },
+          "candidate": {
+            "passed": 45,
+            "total": 45
+          }
+        },
+        "artifact_review": "thematic-v1-artifact-review.json",
+        "limits": [
+          "Controlled fresh snapshots; no live tracker acquisition or mutation.",
+          "No unrestricted ticket-shaping quality or full-caller equivalence claim.",
+          "Six mutation/untested sections, appetite table and topology authority are byte-identical.",
+          "Five samples per arm, not statistical equivalence. Source/payload token estimates are not provider billing."
+        ]
+      }
+    },
+    {
+      "skill": "shared kernel configuration",
+      "path": "plugin/skills/faff/references/kernel.md",
+      "status": "draft-qualified-bounded-config-workflow",
+      "before": {
+        "path": "plugin/skills/faff/references/kernel.md",
+        "bytes": 95418,
+        "sha256": "c96e4bfabbab1312565011ef3bad69bb918fbaa00e619c1bca0b1e00f1ce7086",
+        "characters": 94605,
+        "estimated_tokens": 23652
+      },
+      "after": {
+        "path": "plugin/skills/faff/references/kernel.md",
+        "bytes": 84072,
+        "characters": 83427,
+        "estimated_tokens": 20857,
+        "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331"
+      },
+      "bytes_saved": 11346,
+      "estimated_tokens_saved": 2795,
+      "mandatory_dependencies_added": [],
+      "qualification": "kernel-config-v4-qualification.json",
+      "source_review": "kernel-v1-source-review.json",
+      "fidelity": {
+        "schema": 1,
+        "status": "qualified-bounded-config-workflow",
+        "summary": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/kernel-config-v4-results.json",
+        "summary_sha256": "d77f77b8b2e50b401d15371376e684071bd0dd9f02e92549e693956cd47b32d8",
+        "arms": {
+          "baseline": {
+            "case_kinds": {
+              "execution": {
+                "passed": 45,
+                "total": 45
+              },
+              "decision": {
+                "passed": 120,
+                "total": 120
+              }
+            },
+            "runs": 5,
+            "passed": 165,
+            "total": 165,
+            "recorded_data_bytes": 575705,
+            "estimated_recorded_data_tokens": 143045
+          },
+          "candidate": {
+            "case_kinds": {
+              "execution": {
+                "passed": 45,
+                "total": 45
+              },
+              "decision": {
+                "passed": 120,
+                "total": 120
+              }
+            },
+            "runs": 5,
+            "passed": 165,
+            "total": 165,
+            "recorded_data_bytes": 517007,
+            "estimated_recorded_data_tokens": 128561
+          }
+        },
+        "runs": [
+          {
+            "name": "kernel-config-v4-baseline-1",
+            "arm": "baseline",
+            "original_status": "pass",
+            "original_cases_passed": 33,
+            "assessed_cases_passed": 33,
+            "cases_total": 33,
+            "status": "pass",
+            "model_ids": [
+              "claude-opus-5-5"
+            ],
+            "versions": [
+              "2.1.325"
+            ],
+            "native_tool_calls": 71,
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+                "content_bytes": 21125
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+                "content_bytes": 5591
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-config-v4-baseline-1/task.json",
+                "complete": true,
+                "content_sha256": "2fb9fc17a207073a8c45a1f226e9fd1255b8fe6a8587392f00f4566cb0b41eed",
+                "content_bytes": 14198
+              }
+            ],
+            "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/kernel-v4-paired.json",
+            "audit_sha256": "3e0a8447d5da1b71a03296e2f1af25f2869c9914a546a78ea943e3313ba3b921"
+          },
+          {
+            "name": "kernel-config-v4-baseline-2",
+            "arm": "baseline",
+            "original_status": "pass",
+            "original_cases_passed": 33,
+            "assessed_cases_passed": 33,
+            "cases_total": 33,
+            "status": "pass",
+            "model_ids": [
+              "claude-opus-5-5"
+            ],
+            "versions": [
+              "2.1.325"
+            ],
+            "native_tool_calls": 71,
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+                "content_bytes": 21125
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+                "content_bytes": 5591
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-config-v4-baseline-2/task.json",
+                "complete": true,
+                "content_sha256": "2fb9fc17a207073a8c45a1f226e9fd1255b8fe6a8587392f00f4566cb0b41eed",
+                "content_bytes": 14198
+              }
+            ],
+            "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/kernel-v4-paired.json",
+            "audit_sha256": "3e0a8447d5da1b71a03296e2f1af25f2869c9914a546a78ea943e3313ba3b921"
+          },
+          {
+            "name": "kernel-config-v4-baseline-3",
+            "arm": "baseline",
+            "original_status": "pass",
+            "original_cases_passed": 33,
+            "assessed_cases_passed": 33,
+            "cases_total": 33,
+            "status": "pass",
+            "model_ids": [
+              "claude-opus-5-5"
+            ],
+            "versions": [
+              "2.1.325"
+            ],
+            "native_tool_calls": 71,
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+                "content_bytes": 21125
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+                "content_bytes": 5591
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-config-v4-baseline-3/task.json",
+                "complete": true,
+                "content_sha256": "2fb9fc17a207073a8c45a1f226e9fd1255b8fe6a8587392f00f4566cb0b41eed",
+                "content_bytes": 14198
+              }
+            ],
+            "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/kernel-v4-paired.json",
+            "audit_sha256": "3e0a8447d5da1b71a03296e2f1af25f2869c9914a546a78ea943e3313ba3b921"
+          },
+          {
+            "name": "kernel-config-v4-baseline-4",
+            "arm": "baseline",
+            "original_status": "pass",
+            "original_cases_passed": 33,
+            "assessed_cases_passed": 33,
+            "cases_total": 33,
+            "status": "pass",
+            "model_ids": [
+              "claude-opus-5-5"
+            ],
+            "versions": [
+              "2.1.325"
+            ],
+            "native_tool_calls": 71,
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+                "content_bytes": 21125
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+                "content_bytes": 5591
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-config-v4-baseline-4/task.json",
+                "complete": true,
+                "content_sha256": "2fb9fc17a207073a8c45a1f226e9fd1255b8fe6a8587392f00f4566cb0b41eed",
+                "content_bytes": 14198
+              }
+            ],
+            "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/kernel-v4-paired.json",
+            "audit_sha256": "3e0a8447d5da1b71a03296e2f1af25f2869c9914a546a78ea943e3313ba3b921"
+          },
+          {
+            "name": "kernel-config-v4-baseline-5",
+            "arm": "baseline",
+            "original_status": "pass",
+            "original_cases_passed": 33,
+            "assessed_cases_passed": 33,
+            "cases_total": 33,
+            "status": "pass",
+            "model_ids": [
+              "claude-opus-5-5"
+            ],
+            "versions": [
+              "2.1.325"
+            ],
+            "native_tool_calls": 71,
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+                "content_bytes": 21125
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+                "content_bytes": 5591
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-config-v4-baseline-5/task.json",
+                "complete": true,
+                "content_sha256": "2fb9fc17a207073a8c45a1f226e9fd1255b8fe6a8587392f00f4566cb0b41eed",
+                "content_bytes": 14198
+              }
+            ],
+            "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/kernel-v4-paired.json",
+            "audit_sha256": "3e0a8447d5da1b71a03296e2f1af25f2869c9914a546a78ea943e3313ba3b921"
+          },
+          {
+            "name": "kernel-config-v4-candidate-1",
+            "arm": "candidate",
+            "original_status": "pass",
+            "original_cases_passed": 33,
+            "assessed_cases_passed": 33,
+            "cases_total": 33,
+            "status": "pass",
+            "model_ids": [
+              "claude-opus-5-5"
+            ],
+            "versions": [
+              "2.1.325"
+            ],
+            "native_tool_calls": 68,
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+                "content_bytes": 21125
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+                "content_bytes": 5591
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-config-v4-candidate-1/task.json",
+                "complete": true,
+                "content_sha256": "9ed29badba5ad8d9f16466edef566073bdb896798d13c87f207936c3692ce54e",
+                "content_bytes": 14198
+              }
+            ],
+            "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/kernel-v4-paired.json",
+            "audit_sha256": "3e0a8447d5da1b71a03296e2f1af25f2869c9914a546a78ea943e3313ba3b921"
+          },
+          {
+            "name": "kernel-config-v4-candidate-2",
+            "arm": "candidate",
+            "original_status": "pass",
+            "original_cases_passed": 33,
+            "assessed_cases_passed": 33,
+            "cases_total": 33,
+            "status": "pass",
+            "model_ids": [
+              "claude-opus-5-5"
+            ],
+            "versions": [
+              "2.1.325"
+            ],
+            "native_tool_calls": 68,
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+                "content_bytes": 21125
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+                "content_bytes": 5591
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-config-v4-candidate-2/task.json",
+                "complete": true,
+                "content_sha256": "9ed29badba5ad8d9f16466edef566073bdb896798d13c87f207936c3692ce54e",
+                "content_bytes": 14198
+              }
+            ],
+            "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/kernel-v4-paired.json",
+            "audit_sha256": "3e0a8447d5da1b71a03296e2f1af25f2869c9914a546a78ea943e3313ba3b921"
+          },
+          {
+            "name": "kernel-config-v4-candidate-3",
+            "arm": "candidate",
+            "original_status": "pass",
+            "original_cases_passed": 33,
+            "assessed_cases_passed": 33,
+            "cases_total": 33,
+            "status": "pass",
+            "model_ids": [
+              "claude-opus-5-5"
+            ],
+            "versions": [
+              "2.1.325"
+            ],
+            "native_tool_calls": 68,
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+                "content_bytes": 21125
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+                "content_bytes": 5591
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-config-v4-candidate-3/task.json",
+                "complete": true,
+                "content_sha256": "9ed29badba5ad8d9f16466edef566073bdb896798d13c87f207936c3692ce54e",
+                "content_bytes": 14198
+              }
+            ],
+            "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/kernel-v4-paired.json",
+            "audit_sha256": "3e0a8447d5da1b71a03296e2f1af25f2869c9914a546a78ea943e3313ba3b921"
+          },
+          {
+            "name": "kernel-config-v4-candidate-4",
+            "arm": "candidate",
+            "original_status": "pass",
+            "original_cases_passed": 33,
+            "assessed_cases_passed": 33,
+            "cases_total": 33,
+            "status": "pass",
+            "model_ids": [
+              "claude-opus-5-5"
+            ],
+            "versions": [
+              "2.1.325"
+            ],
+            "native_tool_calls": 69,
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+                "content_bytes": 21125
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+                "content_bytes": 5591
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-config-v4-candidate-4/task.json",
+                "complete": true,
+                "content_sha256": "9ed29badba5ad8d9f16466edef566073bdb896798d13c87f207936c3692ce54e",
+                "content_bytes": 14198
+              }
+            ],
+            "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/kernel-v4-paired.json",
+            "audit_sha256": "3e0a8447d5da1b71a03296e2f1af25f2869c9914a546a78ea943e3313ba3b921"
+          },
+          {
+            "name": "kernel-config-v4-candidate-5",
+            "arm": "candidate",
+            "original_status": "pass",
+            "original_cases_passed": 33,
+            "assessed_cases_passed": 33,
+            "cases_total": 33,
+            "status": "pass",
+            "model_ids": [
+              "claude-opus-5-5"
+            ],
+            "versions": [
+              "2.1.325"
+            ],
+            "native_tool_calls": 68,
+            "initial_reads": [
+              {
+                "path": "/Users/shftwst/.agents/AGENTS.md",
+                "complete": true,
+                "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+                "content_bytes": 21125
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+                "complete": true,
+                "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+                "content_bytes": 5591
+              },
+              {
+                "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-config-v4-candidate-5/task.json",
+                "complete": true,
+                "content_sha256": "9ed29badba5ad8d9f16466edef566073bdb896798d13c87f207936c3692ce54e",
+                "content_bytes": 14198
+              }
+            ],
+            "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/kernel-v4-paired.json",
+            "audit_sha256": "3e0a8447d5da1b71a03296e2f1af25f2869c9914a546a78ea943e3313ba3b921"
+          }
+        ],
+        "delivered_guidance_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+        "common_context": [
+          {
+            "path": "/Users/shftwst/.agents/AGENTS.md",
+            "sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+            "bytes": 21125
+          },
+          {
+            "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+            "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+            "bytes": 5591
+          }
+        ],
+        "normalised_effect_state_gate_projections_equal": true,
+        "artifact_rubric_projections_equal": null,
+        "bounded_output_projections_equal": null,
+        "limits": [
+          "Actual native tool metadata and model identities are verified. Full caller workflows, hosted publication and statistical equivalence are not claimed.",
+          "Kernel cases use the real configuration/dispatch CLI and prevalidated downstream stubs. Separate policy decisions are not counted as executed workflows.",
+          "Rendering compares actual persisted artifacts and source-fact/form rubrics; a separate reading of the outputs is required before qualifying writing quality.",
+          "Delivered operator guidance is common across arms; the orchestrator file hash describes a different container view.",
+          "Methodology consumers exercise the real termination CLI; other outputs are separate decisions or persisted proposals. Catalogue selection does not execute the selected workflow.",
+          "Source and recorded payload token estimates are not provider usage or billed cost."
+        ]
+      }
+    },
+    {
+      "skill": "faffter-noon-prd",
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "status": "qualified-bounded-prd-production-and-run-start-consumption",
+      "before": {
+        "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+        "bytes": 4214,
+        "characters": 4188,
+        "estimated_tokens": 1047,
+        "sha256": "0308c148cea49b238d743714f68c947a66306d88830541750cb695283f43ee73"
+      },
+      "after": {
+        "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+        "bytes": 2465,
+        "characters": 2465,
+        "estimated_tokens": 617,
+        "sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb"
+      },
+      "bytes_saved": 1749,
+      "estimated_tokens_saved": 430,
+      "mandatory_dependencies_added": [],
+      "qualification": "prd-producer-astra-v2-final-qualification.json",
+      "source_review": "prd-producer-v1-source-review.json",
+      "model": "gpt-6-astra",
+      "effort": "low",
+      "source_commit": "ce02b49ac0428e03daae4c3ae8f77eee4dcd008c",
+      "before_commit": "0ce1f7fed1dfe12ba5bba875e46f2e03cbcf25b4"
+    },
+    {
+      "skill": "Review producer",
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "status": "qualified-bounded-review-production-and-comment-handoff",
+      "before": {
+        "path": "plugin/skills/faffter-noon-review/SKILL.md",
+        "bytes": 13405,
+        "characters": 13305,
+        "estimated_tokens": 3327,
+        "sha256": "f85023d05cd5c6de9ed09ce54a7c5a88d7a31b8d66f640f8b630b84ad85bc6fe"
+      },
+      "after": {
+        "path": "plugin/skills/faffter-noon-review/SKILL.md",
+        "bytes": 8045,
+        "characters": 8029,
+        "estimated_tokens": 2008,
+        "sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f"
+      },
+      "bytes_saved": 5360,
+      "estimated_tokens_saved": 1319,
+      "mandatory_dependencies_added": [],
+      "qualification": "review-producer-astra-v4-final-qualification.json",
+      "source_review": "review-producer-v3-source-review.json",
+      "model": "gpt-6-astra",
+      "effort": "low",
+      "source_commit": "f6324f6112eeb54999aeda04c20245edac7187a9",
+      "before_commit": "bc66798c"
+    },
+    {
+      "skill": "Default spec reviewer",
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "status": "qualified-bounded-spec-review-production-and-contract-routing",
+      "before": {
+        "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+        "bytes": 9460,
+        "characters": 9380,
+        "estimated_tokens": 2345,
+        "sha256": "cf2baaa0193e8f53a1a0ca792440ea471cdd0be5e49a6b320cca9d3b5fbaf58c"
+      },
+      "after": {
+        "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+        "bytes": 8055,
+        "characters": 8001,
+        "estimated_tokens": 2001,
+        "sha256": "a4d074a09df4b449bdcecb1d85a6028e995ad6e1cffa49e70fc22409d25f9571"
+      },
+      "bytes_saved": 1405,
+      "estimated_tokens_saved": 344,
+      "mandatory_dependencies_added": [],
+      "qualification": "spec-review-producer-sol-v1-final-qualification.json",
+      "source_review": "spec-review-producer-v1-source-review.json",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "source_commit": "34764e93cbde2c50bad402cec53fd65062d52eda",
+      "before_commit": "b8521433d2b32bb9a7daea7bbfce337032f26aec"
+    },
+    {
+      "skill": "Focus report",
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "status": "qualified-bounded-focus-report-production",
+      "before": {
+        "path": "plugin/skills/faff-wtf/SKILL.md",
+        "bytes": 31369,
+        "characters": 31044,
+        "estimated_tokens": 7761,
+        "sha256": "f33cbda1169044be17045ad448ebdb0ba9db04801d8f18d23a0f8779463ffa33"
+      },
+      "after": {
+        "path": "plugin/skills/faff-wtf/SKILL.md",
+        "bytes": 27152,
+        "characters": 26935,
+        "estimated_tokens": 6734,
+        "sha256": "8df715340ed14eabc072dc6c063bb6ef69682341c0e48f7e05cbf1f700df87bb"
+      },
+      "bytes_saved": 4217,
+      "estimated_tokens_saved": 1027,
+      "mandatory_dependencies_added": [],
+      "qualification": "wtf-format-sol-v3-final-qualification.json",
+      "source_review": "wtf-format-v5-source-review.json",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "source_commit": "ea19ca083647fc7cdce91c847b39ba20b55aa8c1",
+      "before_commit": "34764e93cbde2c50bad402cec53fd65062d52eda"
+    },
+    {
+      "skill": "Intake producer",
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "status": "qualified-bounded-intake-brief-production",
+      "before": {
+        "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+        "bytes": 7622,
+        "characters": 7560,
+        "estimated_tokens": 1890,
+        "sha256": "b1cfe70da49ff2ae688e936ea03407380a8d61a280e88778cddd1dc10e1a6c79"
+      },
+      "after": {
+        "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+        "bytes": 5689,
+        "characters": 5645,
+        "estimated_tokens": 1412,
+        "sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b"
+      },
+      "bytes_saved": 1933,
+      "estimated_tokens_saved": 478,
+      "mandatory_dependencies_added": [],
+      "qualification": "intake-astra-medium-v1-final-qualification.json",
+      "source_review": "intake-brief-v1-source-review.json",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "source_commit": "c650c72bc5c4b602a187d619249277325c7d2ce7",
+      "before_commit": "3cbd784148e35408bacb271da5821c392c988a69"
+    },
+    {
+      "skill": "Beep-boop reporting",
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "status": "qualified-bounded-reporting-producer-command-consumer",
+      "before": {
+        "path": "plugin/skills/faff-beep-boop/SKILL.md",
+        "bytes": 157561,
+        "characters": 156176,
+        "estimated_tokens": 39044,
+        "sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28"
+      },
+      "after": {
+        "path": "plugin/skills/faff-beep-boop/SKILL.md",
+        "bytes": 156107,
+        "characters": 154752,
+        "estimated_tokens": 38688,
+        "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+      },
+      "bytes_saved": 1454,
+      "estimated_tokens_saved": 356,
+      "mandatory_dependencies_added": [],
+      "qualification": "beep-reporting-mcp-v1-final-qualification.json",
+      "source_review": "beep-reporting-v1-source-review.json",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "source_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+      "before_commit": "3e285c199e7866a0a837e5067c90560f2c299810"
+    },
+    {
+      "skill": "faff-beep-boop ledger/events",
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "status": "qualified-bounded-ledger-event-producer-consumer",
+      "before": {
+        "path": "plugin/skills/faff-beep-boop/SKILL.md",
+        "bytes": 156107,
+        "characters": 154752,
+        "estimated_tokens": 38688,
+        "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+      },
+      "after": {
+        "path": "plugin/skills/faff-beep-boop/SKILL.md",
+        "bytes": 149485,
+        "characters": 148250,
+        "estimated_tokens": 37063,
+        "sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe"
+      },
+      "bytes_saved": 6622,
+      "estimated_tokens_saved": 1625,
+      "mandatory_dependencies_added": [],
+      "qualification": "beep-ledger-mcp-v3-final-qualification.json",
+      "source_review": "beep-ledger-v2-source-review.json",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "source_commit": "0188ce71c3c1b4262b31fda5f143e871143ae570",
+      "before_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae"
+    }
+  ],
+  "source_total": {
+    "before_bytes": 1369435,
+    "after_bytes": 1252184,
+    "before_estimated_tokens": 339279,
+    "after_estimated_tokens": 310411
+  },
+  "load_manifest": "load-manifest.json",
+  "baseline_loads": "baseline/loads.json",
+  "latest_loads": "beep-ledger-mcp-v3-after-loads.json",
+  "pending_slices": [
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "candidate": "candidates/agile-principles-v1.md",
+      "status": "Held: Astra V3 baseline-three diagnosis adds an unsupported UI dependency qualifier. Frozen all-artifact semantic bar fails; candidate not measured or installed, savings excluded."
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "candidate": "candidates/map-report-v1.md",
+      "status": "Held: baseline-one reports omit the required TL;DR section. Candidate not measured or installed; excluded from savings."
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "candidate": "candidates/routing-assignment-v1.md",
+      "status": "Held: unchanged baseline root-cause assignments vary on the medium-confidence case, failing the frozen exact projection gate. Candidate continuation cancelled; source unchanged and savings excluded."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "candidate": "candidates/adr-body-v1.md",
+      "status": "Held: baseline body adds an unsupported ADR acceptance-event date. Four separate free-form answer matches are oracle false negatives. Candidate unmeasured, source unchanged and savings excluded."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "candidate": "candidates/architecture-proposal-v1.md",
+      "status": "Held: Astra baseline passes functional checks but fails the literal native-path rule. Candidate unmeasured; source unchanged and savings excluded."
+    }
+  ],
+  "latest_source": "beep-ledger-mcp-v3-after-source.json"
+}

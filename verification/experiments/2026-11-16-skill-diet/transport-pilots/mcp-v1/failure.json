@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "status": "failed-pilot",
+  "reason": "The worker could not call read_policy because the task MCP server required approval under approval_policy=never. No MCP request or model fidelity sample was recorded.",
+  "worker_session": "01a1e679-a19e-79b3-bf01-768c2b60f7bd",
+  "runner_outcome": "Worker exited 0 after reporting blockage; runner timed out waiting for finish. Owned harness process terminated after preserving files.",
+  "source_archive": "mailbox-mcp.mjs",
+  "runner_archive": "faff-run-mcp-pilot.py",
+  "next": "New separately registered pilot will configure approval only for the isolated task MCP ports and prescribe exact wrapper names. Original failure retained."
+}

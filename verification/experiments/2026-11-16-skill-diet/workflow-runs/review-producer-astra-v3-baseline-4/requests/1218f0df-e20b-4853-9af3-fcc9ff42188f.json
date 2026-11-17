@@ -1,0 +1,1 @@
+{"name":"submit_review","args":{"case_id":"clean","text":"signal: pass\n\n## Findings\n\nNone. The pure function multiplies by 2; supplied tests cover positive, zero and negative inputs and passed in the caller. Changes match scope and spec, with no persistent effects.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```"}}

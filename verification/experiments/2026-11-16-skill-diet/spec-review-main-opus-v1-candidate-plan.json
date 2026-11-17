@@ -1,0 +1,23 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/spec-review-producer.json",
+  "timeout_seconds": 900,
+  "worker": "claude-challenges",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Fresh current-main versus exact historically accepted default spec-review source. Identical complete current-main kernel, autonomous and methodology references in historical dependency order. One fixed fresh sample per arm; zero retries; historical Sol samples remain separate.",
+  "acceptance": "Strict raw pass for all 6 verdict artifacts and 15 decisions; full policy delivery; native actual claude-opus-5-5 medium and verified worker guidance; independent manual source-grounding and exact real contract/routing consumption of all actual artifacts required before candidate launch. Check selected lenses, founded objections, concrete consequences, raw-heading anchor identity, severity/verdict consistency, methodology signal and consumer-owned prep/plot routing. No new normalisation, waiver or retry. One-pair bounded diagnostic, not historical five-sample qualification or statistical equivalence.",
+  "samples": [
+    {
+      "name": "spec-review-main-opus-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "spec-review-main-opus-v1-candidate-policy.md"
+    }
+  ]
+}

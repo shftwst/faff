@@ -1,0 +1,3904 @@
+TAP version 13
+# Subtest: --selftest exercises every branch and exits 0
+ok 1 - --selftest exercises every branch and exits 0
+  ---
+  duration_ms: 228.216372
+  type: 'test'
+  ...
+# Subtest: all-`none` surfaces → the explicit none line, exit 0 (the FAFF-749 case)
+ok 2 - all-`none` surfaces → the explicit none line, exit 0 (the FAFF-749 case)
+  ---
+  duration_ms: 125.916738
+  type: 'test'
+  ...
+# Subtest: a surface with covered KINDs → a subset containing those KINDs, exit 0
+ok 3 - a surface with covered KINDs → a subset containing those KINDs, exit 0
+  ---
+  duration_ms: 133.929078
+  type: 'test'
+  ...
+# Subtest: subset plain stdout is the comma-joined sorted-unique kind list (usable as --kind)
+ok 4 - subset plain stdout is the comma-joined sorted-unique kind list (usable as --kind)
+  ---
+  duration_ms: 83.620341
+  type: 'test'
+  ...
+# Subtest: `none` + a KIND-bearing surface still contributes only the graded kinds (union)
+ok 5 - `none` + a KIND-bearing surface still contributes only the graded kinds (union)
+  ---
+  duration_ms: 54.90155
+  type: 'test'
+  ...
+# Subtest: an undeclared / unreadable surface → full (fail-safe), reason names it
+ok 6 - an undeclared / unreadable surface → full (fail-safe), reason names it
+  ---
+  duration_ms: 72.524014
+  type: 'test'
+  ...
+# Subtest: --json emits {verdict, kinds, surfaces, reason} with a non-empty reason on full
+ok 7 - --json emits {verdict, kinds, surfaces, reason} with a non-empty reason on full
+  ---
+  duration_ms: 48.019747
+  type: 'test'
+  ...
+# Subtest: neither --surfaces nor --diff → usage error, exit 2
+ok 8 - neither --surfaces nor --diff → usage error, exit 2
+  ---
+  duration_ms: 70.60744
+  type: 'test'
+  ...
+# Subtest: an unknown eval sub-verb → usage error, exit 2
+ok 9 - an unknown eval sub-verb → usage error, exit 2
+  ---
+  duration_ms: 69.918026
+  type: 'test'
+  ...
+# Subtest: an unknown flag → usage error, exit 2 (fail-closed arg parser)
+ok 10 - an unknown flag → usage error, exit 2 (fail-closed arg parser)
+  ---
+  duration_ms: 75.041503
+  type: 'test'
+  ...
+# Subtest: toleranceFor: grader-class drives the tolerance (closed_set/ordering 0, free_text 0.03)
+ok 11 - toleranceFor: grader-class drives the tolerance (closed_set/ordering 0, free_text 0.03)
+  ---
+  duration_ms: 1.275953
+  type: 'test'
+  ...
+# Subtest: toleranceFor: the three binary set-equality kinds resolve to 0.0, not the free-text 0.03
+ok 12 - toleranceFor: the three binary set-equality kinds resolve to 0.0, not the free-text 0.03
+  ---
+  duration_ms: 0.179208
+  type: 'test'
+  ...
+# Subtest: FAFF-692 invariant: BINARY_SETEQ_KINDS members are NOT in CLOSED_SET_KINDS (grade dispatch untouched)
+ok 13 - FAFF-692 invariant: BINARY_SETEQ_KINDS members are NOT in CLOSED_SET_KINDS (grade dispatch untouched)
+  ---
+  duration_ms: 0.089583
+  type: 'test'
+  ...
+# Subtest: FAFF-692 invariant: none of the three binary set-equality kinds is in the active warn_kinds set
+ok 14 - FAFF-692 invariant: none of the three binary set-equality kinds is in the active warn_kinds set
+  ---
+  duration_ms: 0.09325
+  type: 'test'
+  ...
+# Subtest: FAFF-692: a splittable accuracy drop of 0.02 now FAILS the gate (was absorbed as a warn at the old 0.03 tolerance)
+ok 15 - FAFF-692: a splittable accuracy drop of 0.02 now FAILS the gate (was absorbed as a warn at the old 0.03 tolerance)
+  ---
+  duration_ms: 0.311999
+  type: 'test'
+  ...
+# Subtest: a closed-set accuracy drop FAILS the gate (tolerance 0)
+ok 16 - a closed-set accuracy drop FAILS the gate (tolerance 0)
+  ---
+  duration_ms: 4.52923
+  type: 'test'
+  ...
+# Subtest: a closed-set stability drop FAILS the gate
+ok 17 - a closed-set stability drop FAILS the gate
+  ---
+  duration_ms: 0.227999
+  type: 'test'
+  ...
+# Subtest: a within-tolerance free-text dip PASSES (gloss 0.99 → 0.97, tol 0.03)
+ok 18 - a within-tolerance free-text dip PASSES (gloss 0.99 → 0.97, tol 0.03)
+  ---
+  duration_ms: 0.145541
+  type: 'test'
+  ...
+# Subtest: a free-text drop BEYOND tolerance FAILS (gloss 0.99 → 0.90)
+ok 19 - a free-text drop BEYOND tolerance FAILS (gloss 0.99 → 0.90)
+  ---
+  duration_ms: 0.420748
+  type: 'test'
+  ...
+# Subtest: a confidence regression WARNS, never FAILS (warn-kind override)
+ok 20 - a confidence regression WARNS, never FAILS (warn-kind override)
+  ---
+  duration_ms: 0.572081
+  type: 'test'
+  ...
+# Subtest: a baseline kind MISSING from the run FAILS (silently dropped kind is a regression)
+ok 21 - a baseline kind MISSING from the run FAILS (silently dropped kind is a regression)
+  ---
+  duration_ms: 0.224499
+  type: 'test'
+  ...
+# Subtest: a format_adherence drop below 1.00 FAILS
+ok 22 - a format_adherence drop below 1.00 FAILS
+  ---
+  duration_ms: 0.101041
+  type: 'test'
+  ...
+# Subtest: an improvement PASSES and is never gated
+ok 23 - an improvement PASSES and is never gated
+  ---
+  duration_ms: 0.095541
+  type: 'test'
+  ...
+# Subtest: a NEW (un-baselined) kind is informational, not a fail
+ok 24 - a NEW (un-baselined) kind is informational, not a fail
+  ---
+  duration_ms: 0.490998
+  type: 'test'
+  ...
+# Subtest: a clean run (all at baseline) PASSES with no warns
+ok 25 - a clean run (all at baseline) PASSES with no warns
+  ---
+  duration_ms: 0.076542
+  type: 'test'
+  ...
+# Subtest: diffAgainstBaseline fails loud on a baseline with no per_kind
+ok 26 - diffAgainstBaseline fails loud on a baseline with no per_kind
+  ---
+  duration_ms: 0.322832
+  type: 'test'
+  ...
+# Subtest: loadBaseline fails loud on a missing file
+ok 27 - loadBaseline fails loud on a missing file
+  ---
+  duration_ms: 3.704692
+  type: 'test'
+  ...
+# Subtest: the committed eval/baselines/frontier.json is valid + carries policy
+ok 28 - the committed eval/baselines/frontier.json is valid + carries policy
+  ---
+  duration_ms: 1.660785
+  type: 'test'
+  ...
+# Subtest: the committed baseline gates cleanly against itself (no self-regression)
+ok 29 - the committed baseline gates cleanly against itself (no self-regression)
+  ---
+  duration_ms: 0.199374
+  type: 'test'
+  ...
+# Subtest: the frontier judgement gate is not referenced in validate.yml (human-run, not CI — ADR-0004)
+ok 30 - the frontier judgement gate is not referenced in validate.yml (human-run, not CI — ADR-0004)
+  ---
+  duration_ms: 0.668122
+  type: 'test'
+  ...
+# [run-evals] frontier model: claude-opus-5-5 · effort: medium (--model flag > eval.model config > pinned default; never the account default — FAFF-315)
+# [run-evals] WARN: --effort is ignored for --driver local (no reasoning-effort knob on the ollama lane)
+# [run-evals] frontier model: M · effort: high (--model flag > eval.model config > pinned default; never the account default — FAFF-315)
+# [run-evals] frontier model: M (--model flag > eval.model config > pinned default; never the account default — FAFF-315)
+# Subtest: local invocation appends --model and injects the ollama redirect env
+ok 31 - local invocation appends --model and injects the ollama redirect env
+  ---
+  duration_ms: 5.004228
+  type: 'test'
+  ...
+# Subtest: frontier invocation injects nothing beyond CLAUDE_CONFIG_DIR
+ok 32 - frontier invocation injects nothing beyond CLAUDE_CONFIG_DIR
+  ---
+  duration_ms: 0.343415
+  type: 'test'
+  ...
+# Subtest: localDriver throws without a base URL
+ok 33 - localDriver throws without a base URL
+  ---
+  duration_ms: 0.340832
+  type: 'test'
+  ...
+# Subtest: frontierOpts forwards creds; localOpts does not (never leak Anthropic creds to ollama)
+ok 34 - frontierOpts forwards creds; localOpts does not (never leak Anthropic creds to ollama)
+  ---
+  duration_ms: 0.13225
+  type: 'test'
+  ...
+# Subtest: forwardCredentials copies .credentials.json into cfgDir for frontier, locked to 0600
+ok 35 - forwardCredentials copies .credentials.json into cfgDir for frontier, locked to 0600
+  ---
+  duration_ms: 0.311957
+  type: 'test'
+  ...
+# Subtest: forwardCredentials is a no-op for the local preset (forwardCreds:false)
+ok 36 - forwardCredentials is a no-op for the local preset (forwardCreds:false)
+  ---
+  duration_ms: 0.111708
+  type: 'test'
+  ...
+# Subtest: forwardCredentials is best-effort: a missing creds file returns null, no throw
+ok 37 - forwardCredentials is best-effort: a missing creds file returns null, no throw
+  ---
+  duration_ms: 0.221082
+  type: 'test'
+  ...
+# Subtest: resolveDriver defaults to frontier when --driver is absent
+ok 38 - resolveDriver defaults to frontier when --driver is absent
+  ---
+  duration_ms: 265.294459
+  type: 'test'
+  ...
+# Subtest: resolveDriver(--driver local) without a base URL throws an explicit error and builds nothing
+ok 39 - resolveDriver(--driver local) without a base URL throws an explicit error and builds nothing
+  ---
+  duration_ms: 60.083945
+  type: 'test'
+  ...
+# Subtest: resolveDriver rejects an unknown --driver
+ok 40 - resolveDriver rejects an unknown --driver
+  ---
+  duration_ms: 50.724277
+  type: 'test'
+  ...
+# Subtest: resolveEffort: valid level returned, absent → null, off-vocab throws naming the set (FAFF-722)
+ok 41 - resolveEffort: valid level returned, absent → null, off-vocab throws naming the set (FAFF-722)
+  ---
+  duration_ms: 1.344119
+  type: 'test'
+  ...
+# Subtest: resolveEffort: --effort flag > eval.effort config > none; inherit means no flag (ADR-0133)
+ok 42 - resolveEffort: --effort flag > eval.effort config > none; inherit means no flag (ADR-0133)
+  ---
+  duration_ms: 3.529401
+  type: 'test'
+  ...
+# Subtest: resolveDriver rejects an off-vocabulary --effort loudly, before building anything (FAFF-722)
+ok 43 - resolveDriver rejects an off-vocabulary --effort loudly, before building anything (FAFF-722)
+  ---
+  duration_ms: 0.272499
+  type: 'test'
+  ...
+# Subtest: resolveDriver threads --effort into the frontier preset; omits it for inherit (FAFF-722)
+ok 44 - resolveDriver threads --effort into the frontier preset; omits it for inherit (FAFF-722)
+  ---
+  duration_ms: 0.282332
+  type: 'test'
+  ...
+# Subtest: resolveDriver(--driver local) warns that --effort is ignored and never passes it down (FAFF-722)
+ok 45 - resolveDriver(--driver local) warns that --effort is ignored and never passes it down (FAFF-722)
+  ---
+  duration_ms: 0.324291
+  type: 'test'
+  ...
+# Subtest: resolveLocalParams resolves --base-url and --model from flags
+ok 46 - resolveLocalParams resolves --base-url and --model from flags
+  ---
+  duration_ms: 0.198666
+  type: 'test'
+  ...
+# Subtest: frontierOpts: repo plugin, NO --bare (OAuth auth), forwardCreds true
+ok 47 - frontierOpts: repo plugin, NO --bare (OAuth auth), forwardCreds true
+  ---
+  duration_ms: 0.325248
+  type: 'test'
+  ...
+# Subtest: localOpts defaults to the repo plugin + --bare alongside the ollama redirect
+ok 48 - localOpts defaults to the repo plugin + --bare alongside the ollama redirect
+  ---
+  duration_ms: 0.166082
+  type: 'test'
+  ...
+# Subtest: localOpts sends $LOCAL_API_KEY as the auth token, falling back to the ollama placeholder
+ok 49 - localOpts sends $LOCAL_API_KEY as the auth token, falling back to the ollama placeholder
+  ---
+  duration_ms: 0.205374
+  type: 'test'
+  ...
+# Subtest: buildInvocation emits --plugin-dir (no --bare) for the frontier preset
+ok 50 - buildInvocation emits --plugin-dir (no --bare) for the frontier preset
+  ---
+  duration_ms: 0.322165
+  type: 'test'
+  ...
+# Subtest: buildInvocation orders args: --model then --bare then --plugin-dir (local keeps --bare)
+ok 51 - buildInvocation orders args: --model then --bare then --plugin-dir (local keeps --bare)
+  ---
+  duration_ms: 0.380624
+  type: 'test'
+  ...
+# Subtest: pluginDir:null disables the plugin (vanilla baseline) — frontier emits just -p PROMPT
+ok 52 - pluginDir:null disables the plugin (vanilla baseline) — frontier emits just -p PROMPT
+  ---
+  duration_ms: 0.511789
+  type: 'test'
+  ...
+# Subtest: resolvePluginDir: flag overrides, --no-plugin disables, absent is undefined
+ok 53 - resolvePluginDir: flag overrides, --no-plugin disables, absent is undefined
+  ---
+  duration_ms: 0.086208
+  type: 'test'
+  ...
+# Subtest: loadTidyJudgementProse extracts section 1 (the classification rubric) from the shipped SKILL.md
+ok 54 - loadTidyJudgementProse extracts section 1 (the classification rubric) from the shipped SKILL.md
+  ---
+  duration_ms: 0.275998
+  type: 'test'
+  ...
+# Subtest: loadTidyJudgementProse fails loud on a missing skill file
+ok 55 - loadTidyJudgementProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.110166
+  type: 'test'
+  ...
+# Subtest: loadSynthesisGlossProse extracts the synthesis-gloss section from the shipped rendering skill
+ok 56 - loadSynthesisGlossProse extracts the synthesis-gloss section from the shipped rendering skill
+  ---
+  duration_ms: 0.142583
+  type: 'test'
+  ...
+# Subtest: loadSynthesisGlossProse fails loud on a missing skill file
+ok 57 - loadSynthesisGlossProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.099416
+  type: 'test'
+  ...
+# Subtest: loadJudgementCriteria combines the classification rubric and the synthesis-gloss contract
+ok 58 - loadJudgementCriteria combines the classification rubric and the synthesis-gloss contract
+  ---
+  duration_ms: 0.407415
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadConfidenceRubricProse extracts the Confidence self-rating section verbatim
+ok 59 - FAFF-146 loadConfidenceRubricProse extracts the Confidence self-rating section verbatim
+  ---
+  duration_ms: 0.135708
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadConfidenceRubricProse fails loud on a missing skill file
+ok 60 - FAFF-146 loadConfidenceRubricProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.132124
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadMarkerDialectProse extracts the decision-marker dialect verbatim
+ok 61 - FAFF-146 loadMarkerDialectProse extracts the decision-marker dialect verbatim
+  ---
+  duration_ms: 0.234999
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadMarkerDialectProse fails loud on a missing skill file
+ok 62 - FAFF-146 loadMarkerDialectProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.071
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadReconciliationProse extracts the Step-2a Challenge/Resolution/Context/Noise rubric
+ok 63 - FAFF-146 loadReconciliationProse extracts the Step-2a Challenge/Resolution/Context/Noise rubric
+  ---
+  duration_ms: 0.260624
+  type: 'test'
+  ...
+# Subtest: FAFF-146 loadReconciliationProse fails loud on a missing skill file
+ok 64 - FAFF-146 loadReconciliationProse fails loud on a missing skill file
+  ---
+  duration_ms: 1.203953
+  type: 'test'
+  ...
+# Subtest: FAFF-146 criteriaFor picks the prep rubric for confidence/marker and the tidy criteria otherwise
+ok 65 - FAFF-146 criteriaFor picks the prep rubric for confidence/marker and the tidy criteria otherwise
+  ---
+  duration_ms: 0.678372
+  type: 'test'
+  ...
+# Subtest: FAFF-146 buildEvalPrompt(confidence) carries the spec body and the confidence envelope shape
+ok 66 - FAFF-146 buildEvalPrompt(confidence) carries the spec body and the confidence envelope shape
+  ---
+  duration_ms: 0.347874
+  type: 'test'
+  ...
+# Subtest: FAFF-146 buildEvalPrompt(marker) carries the sections and the marker envelope shape
+ok 67 - FAFF-146 buildEvalPrompt(marker) carries the sections and the marker envelope shape
+  ---
+  duration_ms: 0.224832
+  type: 'test'
+  ...
+# Subtest: FAFF-153 loadTidyChainGapProse extracts the verbatim `\#\#\#\# Chain gaps` sub-section
+ok 68 - FAFF-153 loadTidyChainGapProse extracts the verbatim `\#\#\#\# Chain gaps` sub-section
+  ---
+  duration_ms: 0.19929
+  type: 'test'
+  ...
+# Subtest: FAFF-153 loadTidyChainGapProse fails loud on a missing skill file
+ok 69 - FAFF-153 loadTidyChainGapProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.082416
+  type: 'test'
+  ...
+# Subtest: FAFF-153 buildEvalPrompt(chain-gap) folds the criteria + the chain_gap envelope over raw spec prose
+ok 70 - FAFF-153 buildEvalPrompt(chain-gap) folds the criteria + the chain_gap envelope over raw spec prose
+  ---
+  duration_ms: 0.197457
+  type: 'test'
+  ...
+# Subtest: FAFF-146 buildEvalPrompt(dupe) is unchanged — still the tidy backlog framing
+ok 71 - FAFF-146 buildEvalPrompt(dupe) is unchanged — still the tidy backlog framing
+  ---
+  duration_ms: 0.346707
+  type: 'test'
+  ...
+# Subtest: loadReviewVerdictProse folds the gateway's fixed contract and the review producer's rubric verbatim
+ok 72 - loadReviewVerdictProse folds the gateway's fixed contract and the review producer's rubric verbatim
+  ---
+  duration_ms: 0.313999
+  type: 'test'
+  ...
+# Subtest: loadReviewVerdictProse fails loud on a missing skill file
+ok 73 - loadReviewVerdictProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.401415
+  type: 'test'
+  ...
+# Subtest: buildEvalPrompt(verdict-revert) emits the verdict envelope + folds the rubric + the fixture
+ok 74 - buildEvalPrompt(verdict-revert) emits the verdict envelope + folds the rubric + the fixture
+  ---
+  duration_ms: 0.088958
+  type: 'test'
+  ...
+# Subtest: buildEvalPrompt(dupe) still uses the tidy classification envelope (unchanged)
+ok 75 - buildEvalPrompt(dupe) still uses the tidy classification envelope (unchanged)
+  ---
+  duration_ms: 0.056583
+  type: 'test'
+  ...
+# Subtest: VERDICT_REVERT_INSTRUCTION names the revert test and the closed enum
+ok 76 - VERDICT_REVERT_INSTRUCTION names the revert test and the closed enum
+  ---
+  duration_ms: 0.078791
+  type: 'test'
+  ...
+# Subtest: FAFF-317 loadHoldoutJudgementProse extracts the exercise-step/met-unmet/prose rubric verbatim
+ok 77 - FAFF-317 loadHoldoutJudgementProse extracts the exercise-step/met-unmet/prose rubric verbatim
+  ---
+  duration_ms: 0.123791
+  type: 'test'
+  ...
+# Subtest: FAFF-317 loadHoldoutJudgementProse fails loud on a missing skill file
+ok 78 - FAFF-317 loadHoldoutJudgementProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.062541
+  type: 'test'
+  ...
+# Subtest: FAFF-317 criteriaFor arms both `holdout` and `holdout-exercise` with the evaluator rubric
+ok 79 - FAFF-317 criteriaFor arms both `holdout` and `holdout-exercise` with the evaluator rubric
+  ---
+  duration_ms: 0.139333
+  type: 'test'
+  ...
+# Subtest: FAFF-317 buildEvalPrompt(holdout) carries spec_dod + the recorded exercise, fixing the FAFF-284 gap
+ok 80 - FAFF-317 buildEvalPrompt(holdout) carries spec_dod + the recorded exercise, fixing the FAFF-284 gap
+  ---
+  duration_ms: 0.173707
+  type: 'test'
+  ...
+# Subtest: FAFF-317 buildEvalPrompt(holdout-exercise) carries spec_dod + a labelled raw recording catalog
+ok 81 - FAFF-317 buildEvalPrompt(holdout-exercise) carries spec_dod + a labelled raw recording catalog
+  ---
+  duration_ms: 0.147249
+  type: 'test'
+  ...
+# Subtest: FAFF-319 criteriaFor arms each judgement-eval kind with its OWN surface rubric (not tidy's)
+ok 82 - FAFF-319 criteriaFor arms each judgement-eval kind with its OWN surface rubric (not tidy's)
+  ---
+  duration_ms: 0.430957
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(architecture) frames the proposal task + emits env.architecture
+ok 83 - FAFF-319 buildEvalPrompt(architecture) frames the proposal task + emits env.architecture
+  ---
+  duration_ms: 0.089625
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(specqual) frames the write-a-spec task + emits env.specqual
+ok 84 - FAFF-319 buildEvalPrompt(specqual) frames the write-a-spec task + emits env.specqual
+  ---
+  duration_ms: 0.116874
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(roadmap) frames the synthesis task + emits env.roadmap
+ok 85 - FAFF-319 buildEvalPrompt(roadmap) frames the synthesis task + emits env.roadmap
+  ---
+  duration_ms: 0.11325
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(adr-gloss) frames the ADR-authoring task + emits env.adr
+ok 86 - FAFF-319 buildEvalPrompt(adr-gloss) frames the ADR-authoring task + emits env.adr
+  ---
+  duration_ms: 0.075416
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(spec-verdict) frames the review task + emits env.verdict
+ok 87 - FAFF-319 buildEvalPrompt(spec-verdict) frames the review task + emits env.verdict
+  ---
+  duration_ms: 0.094041
+  type: 'test'
+  ...
+# Subtest: FAFF-731 fanRefutationSpec runs four INDEPENDENT per-lens passes and merges via production aggregate()
+ok 88 - FAFF-731 fanRefutationSpec runs four INDEPENDENT per-lens passes and merges via production aggregate()
+  ---
+  duration_ms: 1.988366
+  type: 'test'
+  ...
+# Subtest: FAFF-731 fanRefutationSpec errors the rep when a lens produces unparseable output (never a silent drop)
+ok 89 - FAFF-731 fanRefutationSpec errors the rep when a lens produces unparseable output (never a silent drop)
+  ---
+  duration_ms: 0.415831
+  type: 'test'
+  ...
+# Subtest: FAFF-319 buildEvalPrompt(refutation-code) frames the diff-review task + emits env.findings
+ok 90 - FAFF-319 buildEvalPrompt(refutation-code) frames the diff-review task + emits env.findings
+  ---
+  duration_ms: 0.098333
+  type: 'test'
+  ...
+# Subtest: refutation-code criteria append the shared fixture-data section and a sample prefix list
+ok 91 - refutation-code criteria append the shared fixture-data section and a sample prefix list
+  ---
+  duration_ms: 0.125291
+  type: 'test'
+  ...
+# Subtest: refutation-code-006 and -007: the fixture-only diff stays clean, the diff with real-code injection is flagged
+ok 92 - refutation-code-006 and -007: the fixture-only diff stays clean, the diff with real-code injection is flagged
+  ---
+  duration_ms: 0.192499
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadPrepArchitectureTriggerProse loads the conditional architecture step's trigger test
+ok 93 - FAFF-669 loadPrepArchitectureTriggerProse loads the conditional architecture step's trigger test
+  ---
+  duration_ms: 0.253915
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadGroupingProse loads the agile lens's rehome-set proposal procedure
+ok 94 - FAFF-669 loadGroupingProse loads the agile lens's rehome-set proposal procedure
+  ---
+  duration_ms: 0.139749
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadResolvedElsewhereProse lands on the heading, not the earlier inline back-reference
+ok 95 - FAFF-669 loadResolvedElsewhereProse lands on the heading, not the earlier inline back-reference
+  ---
+  duration_ms: 0.205791
+  type: 'test'
+  ...
+# Subtest: FAFF-669 loadAdrDriftProse reaches past the seam plumbing into the independence rules
+ok 96 - FAFF-669 loadAdrDriftProse reaches past the seam plumbing into the independence rules
+  ---
+  duration_ms: 0.09775
+  type: 'test'
+  ...
+# Subtest: FAFF-669 extractSectionToEnd fails loud, naming its loader, when the start anchor is absent
+ok 97 - FAFF-669 extractSectionToEnd fails loud, naming its loader, when the start anchor is absent
+  ---
+  duration_ms: 0.745997
+  type: 'test'
+  ...
+# Subtest: FAFF-669 criteriaFor arms all four kinds with their own surface's rubric, and null under --no-plugin
+ok 98 - FAFF-669 criteriaFor arms all four kinds with their own surface's rubric, and null under --no-plugin
+  ---
+  duration_ms: 2.43799
+  type: 'test'
+  ...
+# Subtest: FAFF-669 buildEvalPrompt(prep-architecture-trigger) frames the fire/skip call + emits env.verdict
+ok 99 - FAFF-669 buildEvalPrompt(prep-architecture-trigger) frames the fire/skip call + emits env.verdict
+  ---
+  duration_ms: 0.270332
+  type: 'test'
+  ...
+# Subtest: FAFF-669 buildEvalPrompt(grouping) frames the rehome-set proposal + emits env.grouping
+ok 100 - FAFF-669 buildEvalPrompt(grouping) frames the rehome-set proposal + emits env.grouping
+  ---
+  duration_ms: 0.144791
+  type: 'test'
+  ...
+# Subtest: FAFF-669 buildEvalPrompt(adr-drift) frames the supersession judgement + emits env.challenge_outcome
+ok 101 - FAFF-669 buildEvalPrompt(adr-drift) frames the supersession judgement + emits env.challenge_outcome
+  ---
+  duration_ms: 0.410457
+  type: 'test'
+  ...
+# Subtest: FAFF-669 buildEvalPrompt(resolved-elsewhere) frames symptom similarity + emits env.resolved_elsewhere
+ok 102 - FAFF-669 buildEvalPrompt(resolved-elsewhere) frames symptom similarity + emits env.resolved_elsewhere
+  ---
+  duration_ms: 0.666414
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the resolved-elsewhere quarantine clause matches the holdout-exercise precedent
+ok 103 - FAFF-669 the resolved-elsewhere quarantine clause matches the holdout-exercise precedent
+  ---
+  duration_ms: 0.143791
+  type: 'test'
+  ...
+# Subtest: FAFF-669 every case-backed kind's instruction declares the key eval/grader.mjs reads for it
+ok 104 - FAFF-669 every case-backed kind's instruction declares the key eval/grader.mjs reads for it
+  ---
+  duration_ms: 0.413873
+  type: 'test'
+  ...
+# Subtest: FAFF-669 no non-exempt case-backed kind is riding the tidy fall-through
+ok 105 - FAFF-669 no non-exempt case-backed kind is riding the tidy fall-through
+  ---
+  duration_ms: 5.785558
+  type: 'test'
+  ...
+# Subtest: FAFF-669 each tidy-envelope exemption is earned — its read field really is in the shared instruction
+ok 106 - FAFF-669 each tidy-envelope exemption is earned — its read field really is in the shared instruction
+  ---
+  duration_ms: 0.079792
+  type: 'test'
+  ...
+# Subtest: FAFF-669 prep-architecture-trigger resolves to its OWN instruction, not a verdict-sharing sibling
+ok 107 - FAFF-669 prep-architecture-trigger resolves to its OWN instruction, not a verdict-sharing sibling
+  ---
+  duration_ms: 0.054417
+  type: 'test'
+  ...
+# Subtest: FAFF-1095 prd-readiness resolves to its OWN instruction, not a verdict-sharing sibling
+ok 108 - FAFF-1095 prd-readiness resolves to its OWN instruction, not a verdict-sharing sibling
+  ---
+  duration_ms: 1.572701
+  type: 'test'
+  ...
+# Subtest: FAFF-669 instructionFor mirrors buildEvalPrompt's verdict-revert branch
+ok 109 - FAFF-669 instructionFor mirrors buildEvalPrompt's verdict-revert branch
+  ---
+  duration_ms: 0.069833
+  type: 'test'
+  ...
+# Subtest: FAFF-669 every registered start anchor occurs exactly once in the file its loader reads
+ok 110 - FAFF-669 every registered start anchor occurs exactly once in the file its loader reads
+  ---
+  duration_ms: 7.149885
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the anchor registry covers every start-anchor constant declared in the driver
+ok 111 - FAFF-669 the anchor registry covers every start-anchor constant declared in the driver
+  ---
+  duration_ms: 0.696164
+  type: 'test'
+  ...
+# Subtest: FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window
+ok 112 - FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window
+  ---
+  duration_ms: 7.196093
+  type: 'test'
+  ...
+# Subtest: FAFF-687 a duplicate end-anchor spliced inside a section is caught (demonstrated red)
+ok 113 - FAFF-687 a duplicate end-anchor spliced inside a section is caught (demonstrated red)
+  ---
+  duration_ms: 0.273374
+  type: 'test'
+  ...
+# Subtest: FAFF-687 the anchor registry covers every end-anchor constant declared in the driver
+ok 114 - FAFF-687 the anchor registry covers every end-anchor constant declared in the driver
+  ---
+  duration_ms: 0.263707
+  type: 'test'
+  ...
+# Subtest: FAFF-687 exactly one registry row has a null end, and it is ADR_DRIFT_PROSE_START
+ok 115 - FAFF-687 exactly one registry row has a null end, and it is ADR_DRIFT_PROSE_START
+  ---
+  duration_ms: 0.075625
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the three prefix/mid-line anchors are left raw, because the newline form matches none of them
+ok 116 - FAFF-669 the three prefix/mid-line anchors are left raw, because the newline form matches none of them
+  ---
+  duration_ms: 0.940996
+  type: 'test'
+  ...
+# Subtest: FAFF-669 no instruction and no renderer framing line carries the oracle's own vocabulary
+ok 117 - FAFF-669 no instruction and no renderer framing line carries the oracle's own vocabulary
+  ---
+  duration_ms: 0.231791
+  type: 'test'
+  ...
+# Subtest: FAFF-669 grouping-001's question no longer leaks the oracle; the oracle is at its FAFF-615-widened value
+ok 118 - FAFF-669 grouping-001's question no longer leaks the oracle; the oracle is at its FAFF-615-widened value
+  ---
+  duration_ms: 0.142041
+  type: 'test'
+  ...
+# Subtest: FAFF-669 every grouping must_include set stays reachable from the fixture or the loaded rubric
+ok 119 - FAFF-669 every grouping must_include set stays reachable from the fixture or the loaded rubric
+  ---
+  duration_ms: 0.254624
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the real case files render every fixture field their renderer names
+ok 120 - FAFF-669 the real case files render every fixture field their renderer names
+  ---
+  duration_ms: 0.587872
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the resolved-elsewhere quarantine clause lands after the rendered corpus
+ok 121 - FAFF-669 the resolved-elsewhere quarantine clause lands after the rendered corpus
+  ---
+  duration_ms: 0.187499
+  type: 'test'
+  ...
+# Subtest: FAFF-669 the adr-drift plumbing is connected end to end on the real case file
+ok 122 - FAFF-669 the adr-drift plumbing is connected end to end on the real case file
+  ---
+  duration_ms: 0.083417
+  type: 'test'
+  ...
+# Subtest: shipped tree passes the eval-coverage gate (exit 0, no `(eval coverage)` FAIL)
+ok 123 - shipped tree passes the eval-coverage gate (exit 0, no `(eval coverage)` FAIL)
+  ---
+  duration_ms: 1176.095081
+  type: 'test'
+  ...
+# Subtest: shipped tree has no advisory `undeclared` surface left; designed kinds are advisory NEEDS-CASES
+ok 124 - shipped tree has no advisory `undeclared` surface left; designed kinds are advisory NEEDS-CASES
+  ---
+  duration_ms: 953.478268
+  type: 'test'
+  ...
+# Subtest: C1: a registry SURFACE with no judgement_seam key FAILS (eval coverage)
+ok 125 - C1: a registry SURFACE with no judgement_seam key FAILS (eval coverage)
+  ---
+  duration_ms: 136.12611
+  type: 'test'
+  ...
+# Subtest: C1: an unrowed REGISTRY slot-skill with no key is advisory undeclared, NOT an eval-coverage FAIL
+ok 126 - C1: an unrowed REGISTRY slot-skill with no key is advisory undeclared, NOT an eval-coverage FAIL
+  ---
+  duration_ms: 126.245487
+  type: 'test'
+  ...
+# Subtest: slot-sibling relaxation: an alternate declaring its sibling's KINDs reconciles clean
+ok 127 - slot-sibling relaxation: an alternate declaring its sibling's KINDs reconciles clean
+  ---
+  duration_ms: 123.281541
+  type: 'test'
+  ...
+# Subtest: slot-sibling: an alternate declaring only a partial sibling set still mismatches
+ok 128 - slot-sibling: an alternate declaring only a partial sibling set still mismatches
+  ---
+  duration_ms: 119.181101
+  type: 'test'
+  ...
+# Subtest: --configured runs no coverage sweep (no eval-coverage / undeclared / needs-cases lines)
+ok 129 - --configured runs no coverage sweep (no eval-coverage / undeclared / needs-cases lines)
+  ---
+  duration_ms: 44.415263
+  type: 'test'
+  ...
+# Subtest: loadSeamRegistryForLint(root): undefined root preserves today's HERE-relative default and returns it
+ok 130 - loadSeamRegistryForLint(root): undefined root preserves today's HERE-relative default and returns it
+  ---
+  duration_ms: 0.270416
+  type: 'test'
+  ...
+# Subtest: loadSeamRegistryForLint(root): an explicit root is used verbatim and returned alongside {registry, error}
+ok 131 - loadSeamRegistryForLint(root): an explicit root is used verbatim and returned alongside {registry, error}
+  ---
+  duration_ms: 0.80283
+  type: 'test'
+  ...
+# Subtest: checkCalibrated: above-floor, not a warn_kind -> ok, no reason
+ok 132 - checkCalibrated: above-floor, not a warn_kind -> ok, no reason
+  ---
+  duration_ms: 0.312748
+  type: 'test'
+  ...
+# Subtest: checkCalibrated: below-floor -> fail, reason contains the accuracy AND the floor
+ok 133 - checkCalibrated: below-floor -> fail, reason contains the accuracy AND the floor
+  ---
+  duration_ms: 0.122874
+  type: 'test'
+  ...
+# Subtest: checkCalibrated: absent per_kind row -> fail, reason contains FAFF-614
+ok 134 - checkCalibrated: absent per_kind row -> fail, reason contains FAFF-614
+  ---
+  duration_ms: 0.053208
+  type: 'test'
+  ...
+# Subtest: checkCalibrated: a warn_kind FAILs even when accuracy clears the floor, reason names it a warn_kind
+ok 135 - checkCalibrated: a warn_kind FAILs even when accuracy clears the floor, reason names it a warn_kind
+  ---
+  duration_ms: 0.052958
+  type: 'test'
+  ...
+# Subtest: checkCalibrated: reads only accuracy — stability/format_adherence never affect the verdict
+ok 136 - checkCalibrated: reads only accuracy — stability/format_adherence never affect the verdict
+  ---
+  duration_ms: 0.047166
+  type: 'test'
+  ...
+# Subtest: checkCalibrated: kind lookup is exact-string — a case/dash/underscore-folded key reads as absent
+ok 137 - checkCalibrated: kind lookup is exact-string — a case/dash/underscore-folded key reads as absent
+  ---
+  duration_ms: 0.040292
+  type: 'test'
+  ...
+# Subtest: checkCalibrated: identical args -> identical result (pure, deterministic; no disk I/O, no process.exit)
+ok 138 - checkCalibrated: identical args -> identical result (pure, deterministic; no disk I/O, no process.exit)
+  ---
+  duration_ms: 0.039083
+  type: 'test'
+  ...
+# Subtest: no-model-call oracle: validate-adapters.js imports none of child_process, net, http, or the eval driver
+ok 139 - no-model-call oracle: validate-adapters.js imports none of child_process, net, http, or the eval driver
+  ---
+  duration_ms: 0.567122
+  type: 'test'
+  ...
+# Subtest: c3CalibrationFloor: zero calibrated kinds -> returns clean without reading frontier.json (root need not even exist)
+ok 140 - c3CalibrationFloor: zero calibrated kinds -> returns clean without reading frontier.json (root need not even exist)
+  ---
+  duration_ms: 0.116624
+  type: 'test'
+  ...
+# Subtest: C3 fixture: above-floor calibrated kind passes — no FAIL for it, C3 contributes exit 0
+ok 141 - C3 fixture: above-floor calibrated kind passes — no FAIL for it, C3 contributes exit 0
+  ---
+  duration_ms: 42.167523
+  type: 'test'
+  ...
+# Subtest: C3 fixture: below-floor calibrated kind FAILs, reason contains accuracy and floor, exit 1 (lint fail)
+ok 142 - C3 fixture: below-floor calibrated kind FAILs, reason contains accuracy and floor, exit 1 (lint fail)
+  ---
+  duration_ms: 44.168973
+  type: 'test'
+  ...
+# Subtest: C3 fixture: no per_kind row for the calibrated kind FAILs with a reason containing FAFF-614, exit 1
+ok 143 - C3 fixture: no per_kind row for the calibrated kind FAILs with a reason containing FAFF-614, exit 1
+  ---
+  duration_ms: 43.635642
+  type: 'test'
+  ...
+# Subtest: C3 fixture: a warn_kind FAILs even though accuracy clears the floor
+ok 144 - C3 fixture: a warn_kind FAILs even though accuracy clears the floor
+  ---
+  duration_ms: 41.326443
+  type: 'test'
+  ...
+# Subtest: C3 fixture: a NON-default calibration_floor governs — 0.90 accuracy fails at floor 0.95, passes at the 0.85 default with the key removed
+ok 145 - C3 fixture: a NON-default calibration_floor governs — 0.90 accuracy fails at floor 0.95, passes at the 0.85 default with the key removed
+  ---
+  duration_ms: 81.034353
+  type: 'test'
+  ...
+# Subtest: C3 fixture: frontier.json missing while a calibrated claim exists -> fail-loud exit 2 (distinct from lint exit 1)
+ok 146 - C3 fixture: frontier.json missing while a calibrated claim exists -> fail-loud exit 2 (distinct from lint exit 1)
+  ---
+  duration_ms: 41.318402
+  type: 'test'
+  ...
+# Subtest: C3 fixture: frontier.json malformed JSON while a calibrated claim exists -> fail-loud exit 2
+ok 147 - C3 fixture: frontier.json malformed JSON while a calibrated claim exists -> fail-loud exit 2
+  ---
+  duration_ms: 38.338206
+  type: 'test'
+  ...
+# Subtest: C3 fixture: the baseline at the WRONG (unnested) eval/frontier.json path is not found — pins the nested read path
+ok 148 - C3 fixture: the baseline at the WRONG (unnested) eval/frontier.json path is not found — pins the nested read path
+  ---
+  duration_ms: 42.895811
+  type: 'test'
+  ...
+# Subtest: C3 fixture: a calibrated kind with 0 cases is caught by the EXTENDED C2 (not C3) — FAIL names the kind and its status
+ok 149 - C3 fixture: a calibrated kind with 0 cases is caught by the EXTENDED C2 (not C3) — FAIL names the kind and its status
+  ---
+  duration_ms: 41.146445
+  type: 'test'
+  ...
+# Subtest: diffBaselines signs each delta as candidate minus base and sorts worst first
+ok 150 - diffBaselines signs each delta as candidate minus base and sorts worst first
+  ---
+  duration_ms: 5.094436
+  type: 'test'
+  ...
+# Subtest: diffBaselines keeps one-sided kinds as not comparable
+ok 151 - diffBaselines keeps one-sided kinds as not comparable
+  ---
+  duration_ms: 2.604947
+  type: 'test'
+  ...
+# Subtest: diffBaselines summarises worse, better and same
+ok 152 - diffBaselines summarises worse, better and same
+  ---
+  duration_ms: 5.224478
+  type: 'test'
+  ...
+# Subtest: a self-diff is all zeros
+ok 153 - a self-diff is all zeros
+  ---
+  duration_ms: 1.565619
+  type: 'test'
+  ...
+# Subtest: renderDiff prints the model and effort of each side
+ok 154 - renderDiff prints the model and effort of each side
+  ---
+  duration_ms: 1.279203
+  type: 'test'
+  ...
+# Subtest: the CLI exits 2 with usage when a path is missing
+ok 155 - the CLI exits 2 with usage when a path is missing
+  ---
+  duration_ms: 90.766601
+  type: 'test'
+  ...
+# Subtest: explanatory-order is in KINDS but NOT in CLOSED_SET_KINDS
+ok 156 - explanatory-order is in KINDS but NOT in CLOSED_SET_KINDS
+  ---
+  duration_ms: 1.218119
+  type: 'test'
+  ...
+# Subtest: toleranceFor classifies explanatory-order as the ordering grader-class (tol 0.0)
+ok 157 - toleranceFor classifies explanatory-order as the ordering grader-class (tol 0.0)
+  ---
+  duration_ms: 0.326331
+  type: 'test'
+  ...
+# Subtest: validateCase requires oracle.ordering for explanatory-order; rejects the wrong field
+ok 158 - validateCase requires oracle.ordering for explanatory-order; rejects the wrong field
+  ---
+  duration_ms: 0.922871
+  type: 'test'
+  ...
+# Subtest: validateCase rejects an explanatory-order case missing fixture.segments
+ok 159 - validateCase rejects an explanatory-order case missing fixture.segments
+  ---
+  duration_ms: 0.63358
+  type: 'test'
+  ...
+# Subtest: SCENARIO: the canonical lead-first ordering -> rankCorrelation 1 -> PASS
+ok 160 - SCENARIO: the canonical lead-first ordering -> rankCorrelation 1 -> PASS
+  ---
+  duration_ms: 0.36529
+  type: 'test'
+  ...
+# Subtest: SCENARIO: a stranded model segment (mechanism before the lead) -> inversion -> PARTIAL (score < 1)
+ok 161 - SCENARIO: a stranded model segment (mechanism before the lead) -> inversion -> PARTIAL (score < 1)
+  ---
+  duration_ms: 0.131125
+  type: 'test'
+  ...
+# Subtest: SCENARIO: an empty/absent env.ordering against a >=2-segment oracle does NOT vacuously PASS
+ok 162 - SCENARIO: an empty/absent env.ordering against a >=2-segment oracle does NOT vacuously PASS
+  ---
+  duration_ms: 2.953279
+  type: 'test'
+  ...
+# Subtest: loadLeadWithModelProse returns the Edit A section text (contains 'governing idea')
+ok 163 - loadLeadWithModelProse returns the Edit A section text (contains 'governing idea')
+  ---
+  duration_ms: 1.025579
+  type: 'test'
+  ...
+# Subtest: criteriaFor('explanatory-order') returns the Edit A prose; null on the baseline
+ok 164 - criteriaFor('explanatory-order') returns the Edit A prose; null on the baseline
+  ---
+  duration_ms: 0.442123
+  type: 'test'
+  ...
+# Subtest: loadLeadWithModelProse fails loud on a missing skill file (anchor/drift contract)
+ok 165 - loadLeadWithModelProse fails loud on a missing skill file (anchor/drift contract)
+  ---
+  duration_ms: 0.534373
+  type: 'test'
+  ...
+# Subtest: buildEvalPrompt wires explanatory-order: rubric + scrambled segments + the EXPLANATORY_ORDER_INSTRUCTION
+ok 166 - buildEvalPrompt wires explanatory-order: rubric + scrambled segments + the EXPLANATORY_ORDER_INSTRUCTION
+  ---
+  duration_ms: 0.696206
+  type: 'test'
+  ...
+# Subtest: regression: an `ordering` case still grades through the ordering path; its prompt is unchanged
+ok 167 - regression: an `ordering` case still grades through the ordering path; its prompt is unchanged
+  ---
+  duration_ms: 0.111708
+  type: 'test'
+  ...
+# Subtest: runEvals end-to-end: an explanatory-order mock driver grades PASS + stable, reports per_kind
+ok 168 - runEvals end-to-end: an explanatory-order mock driver grades PASS + stable, reports per_kind
+  ---
+  duration_ms: 1.545368
+  type: 'test'
+  ...
+# Subtest: the shipped explanatory-order cases are valid and number >=2 with >=2 oracle segments each
+ok 169 - the shipped explanatory-order cases are valid and number >=2 with >=2 oracle segments each
+  ---
+  duration_ms: 3.685317
+  type: 'test'
+  ...
+# Subtest: finding-identity is a registered, closed-set grader KIND with a seam-registry row and a live adapter
+ok 170 - finding-identity is a registered, closed-set grader KIND with a seam-registry row and a live adapter
+  ---
+  duration_ms: 3.290902
+  type: 'test'
+  ...
+# Subtest: grade: stable passes; drifted, undetected and a missing outcome fail with clean signatures
+ok 171 - grade: stable passes; drifted, undetected and a missing outcome fail with clean signatures
+  ---
+  duration_ms: 2.783904
+  type: 'test'
+  ...
+# Subtest: the faffter-noon-review frontmatter declares the finding-identity judgement seam
+ok 172 - the faffter-noon-review frontmatter declares the finding-identity judgement seam
+  ---
+  duration_ms: 0.230874
+  type: 'test'
+  ...
+# Subtest: at least 16 finding-identity fixtures: reps 1, a defect_file the diff touches, two or more files, 3+ with diff_b
+ok 173 - at least 16 finding-identity fixtures: reps 1, a defect_file the diff touches, two or more files, 3+ with diff_b
+  ---
+  duration_ms: 1.45116
+  type: 'test'
+  ...
+# Subtest: at least three fixtures carry second_defect_b, and every line in its range is on diff_b's new side of defect_file
+ok 174 - at least three fixtures carry second_defect_b, and every line in its range is on diff_b's new side of defect_file
+  ---
+  duration_ms: 2.370823
+  type: 'test'
+  ...
+# Subtest: finding-identity fixtures are not picked up by the black-box loadCases() sweep
+ok 175 - finding-identity fixtures are not picked up by the black-box loadCases() sweep
+  ---
+  duration_ms: 10.809244
+  type: 'test'
+  ...
+# Subtest: the prompt carries the review rubric with the finding-field guidance, the fixture and the instruction
+ok 176 - the prompt carries the review rubric with the finding-field guidance, the fixture and the instruction
+  ---
+  duration_ms: 2.434656
+  type: 'test'
+  ...
+# Subtest: every fixture: exactly two model calls; pass A has no prior block, pass B has A's block and none of A's action text
+ok 177 - every fixture: exactly two model calls; pass A has no prior block, pass B has A's block and none of A's action text
+  ---
+  duration_ms: 436.630872
+  type: 'test'
+  ...
+# Subtest: pass B reviews diff_b when the fixture has one, and diff otherwise
+ok 178 - pass B reviews diff_b when the fixture has one, and diff otherwise
+  ---
+  duration_ms: 57.108582
+  type: 'test'
+  ...
+# Subtest: a tracker that throws on everything but listIssues does not change the prompt (byte-identical across calls)
+ok 179 - a tracker that throws on everything but listIssues does not change the prompt (byte-identical across calls)
+  ---
+  duration_ms: 40.56528
+  type: 'test'
+  ...
+# Subtest: outcomes: no defect finding in a pass is undetected; a changed title is drifted; the highest severity in the file wins
+ok 180 - outcomes: no defect finding in a pass is undetected; a changed title is drifted; the highest severity in the file wins
+  ---
+  duration_ms: 99.488563
+  type: 'test'
+  ...
+# Subtest: a pass that emits no parseable envelope throws, so the runner records an errored rep
+ok 181 - a pass that emits no parseable envelope throws, so the runner records an errored rep
+  ---
+  duration_ms: 20.164953
+  type: 'test'
+  ...
+# Subtest: scenario: a stable case with reworded title and location grades stable, accuracy 1.00, ids equal in the detail
+ok 182 - scenario: a stable case with reworded title and location grades stable, accuracy 1.00, ids equal in the detail
+  ---
+  duration_ms: 35.694093
+  type: 'test'
+  ...
+# Subtest: scenario: the full set with two drifting fixtures writes a below-bar result
+ok 183 - scenario: the full set with two drifting fixtures writes a below-bar result
+  ---
+  duration_ms: 33.44202
+  type: 'test'
+  ...
+# Subtest: scenario: ten cases of which two drift give rate 0.80 and pass false; all stable passes
+ok 184 - scenario: ten cases of which two drift give rate 0.80 and pass false; all stable passes
+  ---
+  duration_ms: 0.173332
+  type: 'test'
+  ...
+# Subtest: fewer than 10 fixtures never passes, and errored or undetected reps count as not stable
+ok 185 - fewer than 10 fixtures never passes, and errored or undetected reps count as not stable
+  ---
+  duration_ms: 0.248291
+  type: 'test'
+  ...
+# Subtest: --model and --effort flow into the frontier options (pure builder, no spawn)
+ok 186 - --model and --effort flow into the frontier options (pure builder, no spawn)
+  ---
+  duration_ms: 0.305332
+  type: 'test'
+  ...
+# Subtest: faff contract review-verdict: title, location and action pass through (FAFF-1268) without changing the verdict
+ok 187 - faff contract review-verdict: title, location and action pass through (FAFF-1268) without changing the verdict
+  ---
+  duration_ms: 153.12266
+  type: 'test'
+  ...
+# Subtest: both review SKILLs document title, location and action and point at the shared helper
+ok 188 - both review SKILLs document title, location and action and point at the shared helper
+  ---
+  duration_ms: 0.239249
+  type: 'test'
+  ...
+# Subtest: scenario: pass B names the defect differently but carries pass A's handle — stable, carried, and the result is carried mode
+ok 189 - scenario: pass B names the defect differently but carries pass A's handle — stable, carried, and the result is carried mode
+  ---
+  duration_ms: 38.246957
+  type: 'test'
+  ...
+# Subtest: merged: a second-defect finding carrying A's handle grades merged, accepted or refused claimed-twice, and when it is pass B's only finding
+ok 190 - merged: a second-defect finding carrying A's handle grades merged, accepted or refused claimed-twice, and when it is pass B's only finding
+  ---
+  duration_ms: 64.222509
+  type: 'test'
+  ...
+# Subtest: stable without merging: a second-defect finding whose title alone matches A's, with no carry, is excluded from B's defect
+ok 191 - stable without merging: a second-defect finding whose title alone matches A's, with no carry, is excluded from B's defect
+  ---
+  duration_ms: 30.220284
+  type: 'test'
+  ...
+# Subtest: undetected: pass B with no defect finding, and the result counts merged and refused carries
+ok 192 - undetected: pass B with no defect finding, and the result counts merged and refused carries
+  ---
+  duration_ms: 28.80154
+  type: 'test'
+  ...
+# Subtest: loadReviewFindingProse carries the carried_id rule
+ok 193 - loadReviewFindingProse carries the carried_id rule
+  ---
+  duration_ms: 0.283207
+  type: 'test'
+  ...
+# Subtest: faff contract review-verdict ignores carried_id: same output with and without it
+ok 194 - faff contract review-verdict ignores carried_id: same output with and without it
+  ---
+  duration_ms: 109.864226
+  type: 'test'
+  ...
+# Subtest: the adversarial SKILL carries the carries: line rule and carried_id in escalated_criticals
+ok 195 - the adversarial SKILL carries the carries: line rule and carried_id in escalated_criticals
+  ---
+  duration_ms: 0.140124
+  type: 'test'
+  ...
+# [gate] skipped: local model unreachable at http://probe.test:11434 — soft smoke not run (advisory; not a failure). exit 0.
+# [gate] skipped: local model unreachable at http://probe.test:11434 — soft smoke not run (advisory; not a failure). exit 0.
+# [gate] substantive change detected — the hard gate is RECOMMENDED: `--gate --driver frontier` (a human runs it; smart never auto-incurs the frontier cost).
+# === regression gate vs /tmp/faff-review-v4-integration/eval/baselines/frontier.json ===
+#   FAIL adr-drift       (kind dropped from the run)
+#   FAIL adr-gloss       (kind dropped from the run)
+#   FAIL architecture    (kind dropped from the run)
+#   FAIL chain-gap       (kind dropped from the run)
+#   FAIL confidence      (kind dropped from the run)
+#   FAIL decomposition   (kind dropped from the run)
+#   FAIL dupe            (kind dropped from the run)
+#   FAIL explanatory-order  (kind dropped from the run)
+#   FAIL gloss           (kind dropped from the run)
+#   FAIL grouping        (kind dropped from the run)
+#   FAIL holdout         (kind dropped from the run)
+#   FAIL holdout-exercise  (kind dropped from the run)
+#   FAIL marker          (kind dropped from the run)
+#   FAIL modedetect      (kind dropped from the run)
+#   FAIL ordering        (kind dropped from the run)
+#   FAIL park-reconsider-classification  (kind dropped from the run)
+#   FAIL prd-readiness   (kind dropped from the run)
+#   FAIL prdr-yagni      (kind dropped from the run)
+#   FAIL prep-architecture-trigger  (kind dropped from the run)
+#   FAIL refutation-code  (kind dropped from the run)
+#   FAIL refutation-spec  (kind dropped from the run)
+#   FAIL resolved-elsewhere  (kind dropped from the run)
+#   FAIL roadmap         (kind dropped from the run)
+#   FAIL routing         (kind dropped from the run)
+#   FAIL shaping         (kind dropped from the run)
+#   FAIL spec-verdict    (kind dropped from the run)
+#   FAIL specqual        (kind dropped from the run)
+#   FAIL splittable      (kind dropped from the run)
+#   FAIL stale           (kind dropped from the run)
+#   FAIL superseded      (kind dropped from the run)
+#   FAIL vague           (kind dropped from the run)
+#   FAIL verdict-revert  (kind dropped from the run)
+#   → FAIL (regression)
+# [gate] ⚠ drift vs baseline (ADVISORY) — review, and run `--gate --driver frontier` for the hard gate. NOT blocking (exit 0).
+# Subtest: resolveGateDriver defaults to smart; accepts local/frontier; rejects junk
+ok 196 - resolveGateDriver defaults to smart; accepts local/frontier; rejects junk
+  ---
+  duration_ms: 1.238661
+  type: 'test'
+  ...
+# Subtest: classifyDiffSurface: prose-only is `prose`, any code/contract/CLI/grader is `substantive`
+ok 197 - classifyDiffSurface: prose-only is `prose`, any code/contract/CLI/grader is `substantive`
+  ---
+  duration_ms: 0.486707
+  type: 'test'
+  ...
+# Subtest: SMOKE_KINDS is a scoped, prose-sensitive subset; SMOKE_REPS is low
+ok 198 - SMOKE_KINDS is a scoped, prose-sensitive subset; SMOKE_REPS is low
+  ---
+  duration_ms: 0.423998
+  type: 'test'
+  ...
+# Subtest: preflightLocal: unconfigured → ok:false and the probe is NEVER called
+ok 199 - preflightLocal: unconfigured → ok:false and the probe is NEVER called
+  ---
+  duration_ms: 0.366624
+  type: 'test'
+  ...
+# Subtest: preflightLocal: configured + reachable → ok:true, single probe
+ok 200 - preflightLocal: configured + reachable → ok:true, single probe
+  ---
+  duration_ms: 0.849996
+  type: 'test'
+  ...
+# Subtest: preflightLocal: configured + unreachable → ok:false, single probe (no retry)
+ok 201 - preflightLocal: configured + unreachable → ok:false, single probe (no retry)
+  ---
+  duration_ms: 0.203791
+  type: 'test'
+  ...
+# Subtest: gate --driver local, model unavailable → exit 0, single probe, NO driver spawned
+ok 202 - gate --driver local, model unavailable → exit 0, single probe, NO driver spawned
+  ---
+  duration_ms: 0.692038
+  type: 'test'
+  ...
+# Subtest: gate --driver smart (substantive diff), local unavailable → exit 0, single probe, NO frontier fallback
+ok 203 - gate --driver smart (substantive diff), local unavailable → exit 0, single probe, NO frontier fallback
+  ---
+  duration_ms: 0.175874
+  type: 'test'
+  ...
+# Subtest: gate soft path ALWAYS exits 0 even on a baseline regression (advisory, not blocking)
+ok 204 - gate soft path ALWAYS exits 0 even on a baseline regression (advisory, not blocking)
+  ---
+  duration_ms: 8.53492
+  type: 'test'
+  ...
+# Subtest: envelope parses a valid faff-eval:judgement block
+ok 205 - envelope parses a valid faff-eval:judgement block
+  ---
+  duration_ms: 1.466618
+  type: 'test'
+  ...
+# Subtest: envelope fails loud on a missing block
+ok 206 - envelope fails loud on a missing block
+  ---
+  duration_ms: 0.386123
+  type: 'test'
+  ...
+# Subtest: envelope fails loud on malformed JSON
+ok 207 - envelope fails loud on malformed JSON
+  ---
+  duration_ms: 0.078458
+  type: 'test'
+  ...
+# Subtest: envelope tags an exact faff-eval:judgement block compliant
+ok 208 - envelope tags an exact faff-eval:judgement block compliant
+  ---
+  duration_ms: 0.081791
+  type: 'test'
+  ...
+# Subtest: envelope recovers a mis-tagged ```json block as noncompliant
+ok 209 - envelope recovers a mis-tagged ```json block as noncompliant
+  ---
+  duration_ms: 0.104708
+  type: 'test'
+  ...
+# Subtest: classify fallback honours expectedCaseId and takes the last qualifying block
+ok 210 - classify fallback honours expectedCaseId and takes the last qualifying block
+  ---
+  duration_ms: 0.125499
+  type: 'test'
+  ...
+# Subtest: a MALFORMED exact-tag block still fails loud (not silently recovered from a later json block)
+ok 211 - a MALFORMED exact-tag block still fails loud (not silently recovered from a later json block)
+  ---
+  duration_ms: 0.063791
+  type: 'test'
+  ...
+# Subtest: aggregateCase reports format_adherence over parsed reps, excluding errored
+ok 212 - aggregateCase reports format_adherence over parsed reps, excluding errored
+  ---
+  duration_ms: 0.411206
+  type: 'test'
+  ...
+# Subtest: aggregateCase format_adherence is null when no rep parsed
+ok 213 - aggregateCase format_adherence is null when no rep parsed
+  ---
+  duration_ms: 1.01162
+  type: 'test'
+  ...
+# Subtest: closed-set grades by exact set-equality
+ok 214 - closed-set grades by exact set-equality
+  ---
+  duration_ms: 0.87633
+  type: 'test'
+  ...
+# Subtest: verdict-revert maps env.verdicts to a key:verdict closed-set and grades by set-equality
+ok 215 - verdict-revert maps env.verdicts to a key:verdict closed-set and grades by set-equality
+  ---
+  duration_ms: 0.493081
+  type: 'test'
+  ...
+# Subtest: verdict-revert: an out-of-enum token scores a clean FAIL with a distinct signature, no crash
+ok 216 - verdict-revert: an out-of-enum token scores a clean FAIL with a distinct signature, no crash
+  ---
+  duration_ms: 0.203458
+  type: 'test'
+  ...
+# Subtest: ordering grades by rank correlation over the judgement portion
+ok 217 - ordering grades by rank correlation over the judgement portion
+  ---
+  duration_ms: 0.271291
+  type: 'test'
+  ...
+# Subtest: gloss coverage is the deterministic rubric pass-rate (judge is advisory, not here)
+ok 218 - gloss coverage is the deterministic rubric pass-rate (judge is advisory, not here)
+  ---
+  duration_ms: 0.386707
+  type: 'test'
+  ...
+# Subtest: gloss rubric: an array entry passes when ANY synonym appears (string entry unchanged)
+ok 219 - gloss rubric: an array entry passes when ANY synonym appears (string entry unchanged)
+  ---
+  duration_ms: 0.399582
+  type: 'test'
+  ...
+# Subtest: gloss rubric: must_avoid accepts a synonym set (any present → fail)
+ok 220 - gloss rubric: must_avoid accepts a synonym set (any present → fail)
+  ---
+  duration_ms: 0.204082
+  type: 'test'
+  ...
+# Subtest: splittable PASS: both concerns identified, synonym-tolerant (set-equality)
+ok 221 - splittable PASS: both concerns identified, synonym-tolerant (set-equality)
+  ---
+  duration_ms: 0.569664
+  type: 'test'
+  ...
+# Subtest: splittable FAIL: a missed concern (only one of two)
+ok 222 - splittable FAIL: a missed concern (only one of two)
+  ---
+  duration_ms: 0.115249
+  type: 'test'
+  ...
+# Subtest: splittable FAIL: a phantom/extra concern not in the oracle
+ok 223 - splittable FAIL: a phantom/extra concern not in the oracle
+  ---
+  duration_ms: 0.116707
+  type: 'test'
+  ...
+# Subtest: splittable negative case: empty oracle + empty prediction = PASS (correctly not-flagged)
+ok 224 - splittable negative case: empty oracle + empty prediction = PASS (correctly not-flagged)
+  ---
+  duration_ms: 0.227124
+  type: 'test'
+  ...
+# Subtest: splittable signature is deterministic and order-independent (for stability)
+ok 225 - splittable signature is deterministic and order-independent (for stability)
+  ---
+  duration_ms: 0.258249
+  type: 'test'
+  ...
+# Subtest: splittable wired through grade() on a splittable case
+ok 226 - splittable wired through grade() on a splittable case
+  ---
+  duration_ms: 0.259874
+  type: 'test'
+  ...
+# Subtest: chain-gap PASS: one upstream ref identified, synonym-tolerant reference (set-equality)
+ok 227 - chain-gap PASS: one upstream ref identified, synonym-tolerant reference (set-equality)
+  ---
+  duration_ms: 1.154828
+  type: 'test'
+  ...
+# Subtest: chain-gap PASS: conservative-skip empty case (empty oracle + empty prediction)
+ok 228 - chain-gap PASS: conservative-skip empty case (empty oracle + empty prediction)
+  ---
+  duration_ms: 0.161249
+  type: 'test'
+  ...
+# Subtest: chain-gap FAIL: right reference but WRONG sub_type (misclassified gap is a real miss)
+ok 229 - chain-gap FAIL: right reference but WRONG sub_type (misclassified gap is a real miss)
+  ---
+  duration_ms: 0.21754
+  type: 'test'
+  ...
+# Subtest: chain-gap FAIL: a phantom/extra reference not in the oracle
+ok 230 - chain-gap FAIL: a phantom/extra reference not in the oracle
+  ---
+  duration_ms: 2.422781
+  type: 'test'
+  ...
+# Subtest: chain-gap missing/malformed field → clean FAIL, no throw, distinct signature
+ok 231 - chain-gap missing/malformed field → clean FAIL, no throw, distinct signature
+  ---
+  duration_ms: 0.11725
+  type: 'test'
+  ...
+# Subtest: chain-gap signature is deterministic and order-independent (for stability)
+ok 232 - chain-gap signature is deterministic and order-independent (for stability)
+  ---
+  duration_ms: 0.065916
+  type: 'test'
+  ...
+# Subtest: chain-gap wired through grade() on a chain-gap case
+ok 233 - chain-gap wired through grade() on a chain-gap case
+  ---
+  duration_ms: 0.066708
+  type: 'test'
+  ...
+# Subtest: architecture PASS: a build-biased proposal covering the rubric scores 1.0
+ok 234 - architecture PASS: a build-biased proposal covering the rubric scores 1.0
+  ---
+  duration_ms: 0.134541
+  type: 'test'
+  ...
+# Subtest: architecture PARTIAL: a hallucinated assumption is penalised
+ok 235 - architecture PARTIAL: a hallucinated assumption is penalised
+  ---
+  duration_ms: 0.092375
+  type: 'test'
+  ...
+# Subtest: architecture: missing/garbage env.architecture is a clean low score, never a crash
+ok 236 - architecture: missing/garbage env.architecture is a clean low score, never a crash
+  ---
+  duration_ms: 0.322165
+  type: 'test'
+  ...
+# Subtest: validateCase routes architecture to the gloss_rubric oracle field
+ok 237 - validateCase routes architecture to the gloss_rubric oracle field
+  ---
+  duration_ms: 0.831996
+  type: 'test'
+  ...
+# Subtest: refutation-spec: the above-minor objecting-lens set grades by set-equality
+ok 238 - refutation-spec: the above-minor objecting-lens set grades by set-equality
+  ---
+  duration_ms: 0.089916
+  type: 'test'
+  ...
+# Subtest: refutation-spec: only above-minor objections count (a minor-only objection does not add its lens)
+ok 239 - refutation-spec: only above-minor objections count (a minor-only objection does not add its lens)
+  ---
+  duration_ms: 0.12125
+  type: 'test'
+  ...
+# Subtest: refutation-spec: a CLEAN spec (empty oracle) PASSes iff no lens objects above minor (no cry-wolf)
+ok 240 - refutation-spec: a CLEAN spec (empty oracle) PASSes iff no lens objects above minor (no cry-wolf)
+  ---
+  duration_ms: 0.102708
+  type: 'test'
+  ...
+# Subtest: refutation-spec: a missing/garbage objections field is a clean grade, never a throw
+ok 241 - refutation-spec: a missing/garbage objections field is a clean grade, never a throw
+  ---
+  duration_ms: 0.057333
+  type: 'test'
+  ...
+# Subtest: refutation-spec: an out-of-enum lens rides through verbatim (distinct signature, clean FAIL, no coerce)
+ok 242 - refutation-spec: an out-of-enum lens rides through verbatim (distinct signature, clean FAIL, no coerce)
+  ---
+  duration_ms: 0.044208
+  type: 'test'
+  ...
+# Subtest: lens_bounds: the primary must-lens plus tolerated extras → PASS, but a lens outside the bounds → FAIL
+ok 243 - lens_bounds: the primary must-lens plus tolerated extras → PASS, but a lens outside the bounds → FAIL
+  ---
+  duration_ms: 0.074125
+  type: 'test'
+  ...
+# Subtest: lens_bounds: a missing required lens is a missed catch → FAIL (not tolerated by the upper bound)
+ok 244 - lens_bounds: a missing required lens is a missed catch → FAIL (not tolerated by the upper bound)
+  ---
+  duration_ms: 0.046541
+  type: 'test'
+  ...
+# Subtest: lens_bounds: a missing/garbage objections field is a clean FAIL, never a throw
+ok 245 - lens_bounds: a missing/garbage objections field is a clean FAIL, never a throw
+  ---
+  duration_ms: 0.066583
+  type: 'test'
+  ...
+# Subtest: validateCase: refutation-spec accepts lens_bounds, rejects an empty must_object, rejects both/neither
+ok 246 - validateCase: refutation-spec accepts lens_bounds, rejects an empty must_object, rejects both/neither
+  ---
+  duration_ms: 0.118291
+  type: 'test'
+  ...
+# Subtest: refutation-code: flags iff a finding is above minor severity (binary, set-equality)
+ok 247 - refutation-code: flags iff a finding is above minor severity (binary, set-equality)
+  ---
+  duration_ms: 0.061083
+  type: 'test'
+  ...
+# Subtest: refutation-code: a false-positive and a missed catch both FAIL (both directions of the binary)
+ok 248 - refutation-code: a false-positive and a missed catch both FAIL (both directions of the binary)
+  ---
+  duration_ms: 0.061833
+  type: 'test'
+  ...
+# Subtest: refutation-code: a missing/garbage findings field is a clean grade, never a throw
+ok 249 - refutation-code: a missing/garbage findings field is a clean grade, never a throw
+  ---
+  duration_ms: 0.057375
+  type: 'test'
+  ...
+# Subtest: validateCase routes the refutation kinds to the closed_set oracle + enforces the fixture shape
+ok 250 - validateCase routes the refutation kinds to the closed_set oracle + enforces the fixture shape
+  ---
+  duration_ms: 0.178666
+  type: 'test'
+  ...
+# Subtest: specqual PASS: a spec covering the WHY/WHAT/HOW/DONE arc with testable ACs scores 1.0
+ok 251 - specqual PASS: a spec covering the WHY/WHAT/HOW/DONE arc with testable ACs scores 1.0
+  ---
+  duration_ms: 0.102958
+  type: 'test'
+  ...
+# Subtest: specqual PARTIAL: vagueness anti-patterns are penalised
+ok 252 - specqual PARTIAL: vagueness anti-patterns are penalised
+  ---
+  duration_ms: 0.063666
+  type: 'test'
+  ...
+# Subtest: specqual: missing/garbage env.specqual is a clean low score, never a crash
+ok 253 - specqual: missing/garbage env.specqual is a clean low score, never a crash
+  ---
+  duration_ms: 0.058791
+  type: 'test'
+  ...
+# Subtest: validateCase routes specqual to the gloss_rubric oracle field + requires the issue fixture
+ok 254 - validateCase routes specqual to the gloss_rubric oracle field + requires the issue fixture
+  ---
+  duration_ms: 0.082041
+  type: 'test'
+  ...
+# Subtest: roadmap PASS: a synthesis naming the chain and reading the gate as un-fireable scores 1.0
+ok 255 - roadmap PASS: a synthesis naming the chain and reading the gate as un-fireable scores 1.0
+  ---
+  duration_ms: 0.065874
+  type: 'test'
+  ...
+# Subtest: roadmap PARTIAL: declaring an un-buildable gate fireable is penalised
+ok 256 - roadmap PARTIAL: declaring an un-buildable gate fireable is penalised
+  ---
+  duration_ms: 0.051999
+  type: 'test'
+  ...
+# Subtest: roadmap: missing/garbage env.roadmap is a clean low score, never a crash
+ok 257 - roadmap: missing/garbage env.roadmap is a clean low score, never a crash
+  ---
+  duration_ms: 0.057541
+  type: 'test'
+  ...
+# Subtest: validateCase routes roadmap to the gloss_rubric oracle field + requires the issues fixture
+ok 258 - validateCase routes roadmap to the gloss_rubric oracle field + requires the issues fixture
+  ---
+  duration_ms: 0.221208
+  type: 'test'
+  ...
+# Subtest: adr-gloss PASS: a body naming decision + rejected alternative + real consequence scores 1.0
+ok 259 - adr-gloss PASS: a body naming decision + rejected alternative + real consequence scores 1.0
+  ---
+  duration_ms: 0.071417
+  type: 'test'
+  ...
+# Subtest: adr-gloss PARTIAL: boilerplate / fabricated rationale is penalised
+ok 260 - adr-gloss PARTIAL: boilerplate / fabricated rationale is penalised
+  ---
+  duration_ms: 0.047333
+  type: 'test'
+  ...
+# Subtest: adr-gloss: missing/garbage env.adr is a clean low score, never a crash
+ok 261 - adr-gloss: missing/garbage env.adr is a clean low score, never a crash
+  ---
+  duration_ms: 0.066166
+  type: 'test'
+  ...
+# Subtest: validateCase routes adr-gloss to the gloss_rubric oracle field
+ok 262 - validateCase routes adr-gloss to the gloss_rubric oracle field
+  ---
+  duration_ms: 0.0815
+  type: 'test'
+  ...
+# Subtest: FAFF-284 holdout grades per-criterion key:class pairs by set-equality
+ok 263 - FAFF-284 holdout grades per-criterion key:class pairs by set-equality
+  ---
+  duration_ms: 0.088375
+  type: 'test'
+  ...
+# Subtest: FAFF-284 holdout: the green-washing guard — a judge grading a prose criterion itself FAILS
+ok 264 - FAFF-284 holdout: the green-washing guard — a judge grading a prose criterion itself FAILS
+  ---
+  duration_ms: 0.085708
+  type: 'test'
+  ...
+# Subtest: FAFF-284 holdout: a missing/garbage env.holdout map is a clean FAIL, never a crash
+ok 265 - FAFF-284 holdout: a missing/garbage env.holdout map is a clean FAIL, never a crash
+  ---
+  duration_ms: 0.058333
+  type: 'test'
+  ...
+# Subtest: FAFF-284 validateCase routes holdout to closed_set + requires the spec_dod + exercise fixture
+ok 266 - FAFF-284 validateCase routes holdout to closed_set + requires the spec_dod + exercise fixture
+  ---
+  duration_ms: 0.142332
+  type: 'test'
+  ...
+# Subtest: FAFF-317 holdout-exercise grades per-criterion key:class pairs by set-equality
+ok 267 - FAFF-317 holdout-exercise grades per-criterion key:class pairs by set-equality
+  ---
+  duration_ms: 0.056166
+  type: 'test'
+  ...
+# Subtest: FAFF-317 holdout-exercise: the TRAP recording — a believed claim-of-success over a raw failure FAILS
+ok 268 - FAFF-317 holdout-exercise: the TRAP recording — a believed claim-of-success over a raw failure FAILS
+  ---
+  duration_ms: 0.049416
+  type: 'test'
+  ...
+# Subtest: FAFF-317 holdout-exercise: fail-closed — a criterion with NO bearing recording must be needs-human
+ok 269 - FAFF-317 holdout-exercise: fail-closed — a criterion with NO bearing recording must be needs-human
+  ---
+  duration_ms: 0.045333
+  type: 'test'
+  ...
+# Subtest: FAFF-317 holdout-exercise: the green-washing guard — a judge grading a prose criterion itself FAILS
+ok 270 - FAFF-317 holdout-exercise: the green-washing guard — a judge grading a prose criterion itself FAILS
+  ---
+  duration_ms: 0.040791
+  type: 'test'
+  ...
+# Subtest: FAFF-317 holdout-exercise: a missing/garbage env map is a clean FAIL, never a crash
+ok 271 - FAFF-317 holdout-exercise: a missing/garbage env map is a clean FAIL, never a crash
+  ---
+  duration_ms: 0.046125
+  type: 'test'
+  ...
+# Subtest: FAFF-317 validateCase routes holdout-exercise to closed_set + requires the spec_dod + recordings fixture
+ok 272 - FAFF-317 validateCase routes holdout-exercise to closed_set + requires the spec_dod + recordings fixture
+  ---
+  duration_ms: 0.108124
+  type: 'test'
+  ...
+# Subtest: FAFF-282 spec-verdict grades env.verdict by exact set-equality against the contract enum
+ok 273 - FAFF-282 spec-verdict grades env.verdict by exact set-equality against the contract enum
+  ---
+  duration_ms: 0.079874
+  type: 'test'
+  ...
+# Subtest: FAFF-282 validateCase routes spec-verdict to closed_set + requires the spec_body fixture
+ok 274 - FAFF-282 validateCase routes spec-verdict to closed_set + requires the spec_body fixture
+  ---
+  duration_ms: 0.083375
+  type: 'test'
+  ...
+# Subtest: validateCase rejects an oracle that doesn't match the kind
+ok 275 - validateCase rejects an oracle that doesn't match the kind
+  ---
+  duration_ms: 0.107874
+  type: 'test'
+  ...
+# Subtest: stability is distinct from accuracy
+ok 276 - stability is distinct from accuracy
+  ---
+  duration_ms: 0.067041
+  type: 'test'
+  ...
+# Subtest: hasDisagreement detects cross-rep signature variance
+ok 277 - hasDisagreement detects cross-rep signature variance
+  ---
+  duration_ms: 0.05875
+  type: 'test'
+  ...
+# Subtest: orchestrator: K reps, stability+accuracy reported for K>=2
+ok 278 - orchestrator: K reps, stability+accuracy reported for K>=2
+  ---
+  duration_ms: 0.394332
+  type: 'test'
+  ...
+# Subtest: orchestrator: a wobbly case escalates; a stable case does not
+ok 279 - orchestrator: a wobbly case escalates; a stable case does not
+  ---
+  duration_ms: 0.338873
+  type: 'test'
+  ...
+# Subtest: orchestrator: a malformed envelope becomes an errored rep, never silently passed
+ok 280 - orchestrator: a malformed envelope becomes an errored rep, never silently passed
+  ---
+  duration_ms: 0.20729
+  type: 'test'
+  ...
+# Subtest: orchestrator: deadline ceiling yields a flagged partial, not a silent truncation
+ok 281 - orchestrator: deadline ceiling yields a flagged partial, not a silent truncation
+  ---
+  duration_ms: 0.203624
+  type: 'test'
+  ...
+# Subtest: all eval/cases load and validate
+ok 282 - all eval/cases load and validate
+  ---
+  duration_ms: 2.380948
+  type: 'test'
+  ...
+# Subtest: every refutation-spec fixture has a real \#\# DONE section (FAFF-1243)
+ok 283 - every refutation-spec fixture has a real \#\# DONE section (FAFF-1243)
+  ---
+  duration_ms: 3.226652
+  type: 'test'
+  ...
+# Subtest: FAFF-146 confidence grades the env.confidence level by exact set-equality
+ok 284 - FAFF-146 confidence grades the env.confidence level by exact set-equality
+  ---
+  duration_ms: 0.201499
+  type: 'test'
+  ...
+# Subtest: FAFF-146 confidence: a malformed token scores a clean FAIL with a distinct signature (no coerce)
+ok 285 - FAFF-146 confidence: a malformed token scores a clean FAIL with a distinct signature (no coerce)
+  ---
+  duration_ms: 0.161166
+  type: 'test'
+  ...
+# Subtest: FAFF-146 marker grades per-section key:class pairs by set-equality
+ok 286 - FAFF-146 marker grades per-section key:class pairs by set-equality
+  ---
+  duration_ms: 0.148583
+  type: 'test'
+  ...
+# Subtest: FAFF-146 marker: the missing-marker judgement encodes as key:none
+ok 287 - FAFF-146 marker: the missing-marker judgement encodes as key:none
+  ---
+  duration_ms: 0.170375
+  type: 'test'
+  ...
+# Subtest: FAFF-146 reconciliation grades per-comment id:label pairs by set-equality
+ok 288 - FAFF-146 reconciliation grades per-comment id:label pairs by set-equality
+  ---
+  duration_ms: 0.211708
+  type: 'test'
+  ...
+# Subtest: FAFF-146 validateCase enforces the per-kind prep fixture shapes
+ok 289 - FAFF-146 validateCase enforces the per-kind prep fixture shapes
+  ---
+  duration_ms: 0.47929
+  type: 'test'
+  ...
+# Subtest: FAFF-146 orchestrator grades a confidence case through the closed-set path
+ok 290 - FAFF-146 orchestrator grades a confidence case through the closed-set path
+  ---
+  duration_ms: 0.793121
+  type: 'test'
+  ...
+# Subtest: validateCase accepts verdict-revert / verdict-build closed-set oracles
+ok 291 - validateCase accepts verdict-revert / verdict-build closed-set oracles
+  ---
+  duration_ms: 0.174332
+  type: 'test'
+  ...
+# Subtest: FAFF-1222 envelope recovers a fence-opener followed by the label line as noncompliant
+ok 292 - FAFF-1222 envelope recovers a fence-opener followed by the label line as noncompliant
+  ---
+  duration_ms: 0.322207
+  type: 'test'
+  ...
+# Subtest: FAFF-1222 envelope recovers a two-backtick opener with no closing fence
+ok 293 - FAFF-1222 envelope recovers a two-backtick opener with no closing fence
+  ---
+  duration_ms: 2.354323
+  type: 'test'
+  ...
+# Subtest: FAFF-1222 envelope does not recover a label line further down the output
+ok 294 - FAFF-1222 envelope does not recover a label line further down the output
+  ---
+  duration_ms: 0.149999
+  type: 'test'
+  ...
+# Subtest: FAFF-1222 envelope label recovery fails on invalid JSON, a mismatched case_id, or a mid-sentence label
+ok 295 - FAFF-1222 envelope label recovery fails on invalid JSON, a mismatched case_id, or a mid-sentence label
+  ---
+  duration_ms: 0.231415
+  type: 'test'
+  ...
+# Subtest: FAFF-1222 envelope: the fence scan wins over a label-line envelope
+ok 296 - FAFF-1222 envelope: the fence scan wins over a label-line envelope
+  ---
+  duration_ms: 0.079333
+  type: 'test'
+  ...
+# Subtest: FAFF-1259 holdout-exercise check_detail: a <key>:detail-ok pair for each criterion whose detail passes the record rules
+ok 297 - FAFF-1259 holdout-exercise check_detail: a <key>:detail-ok pair for each criterion whose detail passes the record rules
+  ---
+  duration_ms: 1.35066
+  type: 'test'
+  ...
+# Subtest: FAFF-1259 holdout-exercise without check_detail ignores the detail map (existing cases unaffected)
+ok 298 - FAFF-1259 holdout-exercise without check_detail ignores the detail map (existing cases unaffected)
+  ---
+  duration_ms: 0.048875
+  type: 'test'
+  ...
+# Subtest: LIVE_KINDS registers holdout-live with a { loader, driveCase } adapter
+ok 299 - LIVE_KINDS registers holdout-live with a { loader, driveCase } adapter
+  ---
+  duration_ms: 1.782034
+  type: 'test'
+  ...
+# Subtest: holdout-live is a known closed-set kind (grades through the existing holdout-exercise arm)
+ok 300 - holdout-live is a known closed-set kind (grades through the existing holdout-exercise arm)
+  ---
+  duration_ms: 0.297498
+  type: 'test'
+  ...
+# Subtest: the loader loads and validates both holdout-live cases
+ok 301 - the loader loads and validates both holdout-live cases
+  ---
+  duration_ms: 1.8712
+  type: 'test'
+  ...
+# Subtest: driveCase normalises the agentic drive into the existing holdout-exercise grading field
+ok 302 - driveCase normalises the agentic drive into the existing holdout-exercise grading field
+  ---
+  duration_ms: 2.30574
+  type: 'test'
+  ...
+# Subtest: grade runs the existing holdout-exercise arm — oracle PASSES, trap-flip FAILS
+ok 303 - grade runs the existing holdout-exercise arm — oracle PASSES, trap-flip FAILS
+  ---
+  duration_ms: 0.78733
+  type: 'test'
+  ...
+# Subtest: a missing/garbage classification map yields a clean FAIL, never a throw
+ok 304 - a missing/garbage classification map yields a clean FAIL, never a throw
+  ---
+  duration_ms: 0.393123
+  type: 'test'
+  ...
+# Subtest: runLiveEvals drives every holdout-live case via a stub drive + lifecycle and grades PASS
+ok 305 - runLiveEvals drives every holdout-live case via a stub drive + lifecycle and grades PASS
+  ---
+  duration_ms: 2.917154
+  type: 'test'
+  ...
+# Subtest: teardown runs even when a container fails to start (finally on the error path)
+ok 306 - teardown runs even when a container fails to start (finally on the error path)
+  ---
+  duration_ms: 0.58208
+  type: 'test'
+  ...
+# Subtest: teardown runs even when the container never reaches health
+ok 307 - teardown runs even when the container never reaches health
+  ---
+  duration_ms: 0.581789
+  type: 'test'
+  ...
+# Subtest: hostMediatedDrive runs a host-executed command then returns the model's classification
+ok 308 - hostMediatedDrive runs a host-executed command then returns the model's classification
+  ---
+  duration_ms: 2.909904
+  type: 'test'
+  ...
+# Subtest: hostMediatedDrive never fetches a URL outside the case's declared endpoints (SSRF guard)
+ok 309 - hostMediatedDrive never fetches a URL outside the case's declared endpoints (SSRF guard)
+  ---
+  duration_ms: 0.64958
+  type: 'test'
+  ...
+# Subtest: hostMediatedDrive fails closed to needs-human when no final answer lands
+ok 310 - hostMediatedDrive fails closed to needs-human when no final answer lands
+  ---
+  duration_ms: 0.369206
+  type: 'test'
+  ...
+# Subtest: parseExec parses a command block and is null-safe on garbage
+ok 311 - parseExec parses a command block and is null-safe on garbage
+  ---
+  duration_ms: 0.125333
+  type: 'test'
+  ...
+# Subtest: capture: exactly one JudgementRecord line per completed rep, each parseable
+ok 312 - capture: exactly one JudgementRecord line per completed rep, each parseable
+  ---
+  duration_ms: 2.665405
+  type: 'test'
+  ...
+# Subtest: capture: a graded rep records status=graded + envelope/graded/score/signature
+ok 313 - capture: a graded rep records status=graded + envelope/graded/score/signature
+  ---
+  duration_ms: 0.64183
+  type: 'test'
+  ...
+# Subtest: capture: an envelope-parse-failure rep records status=errored, envelope=null, the bounded failing raw_text
+ok 314 - capture: an envelope-parse-failure rep records status=errored, envelope=null, the bounded failing raw_text
+  ---
+  duration_ms: 0.683997
+  type: 'test'
+  ...
+# Subtest: capture: a driver-error rep records raw_text=null, envelope=null, graded=ERRORED
+ok 315 - capture: a driver-error rep records raw_text=null, envelope=null, graded=ERRORED
+  ---
+  duration_ms: 0.643455
+  type: 'test'
+  ...
+# Subtest: capture: no judgementsPath ⇒ no file created, no filesystem write (the I/O-free test path)
+ok 316 - capture: no judgementsPath ⇒ no file created, no filesystem write (the I/O-free test path)
+  ---
+  duration_ms: 2.649239
+  type: 'test'
+  ...
+# Subtest: capture: raw_text is capped to RAW_CAP bytes with raw_truncated set exactly when capping occurs
+ok 317 - capture: raw_text is capped to RAW_CAP bytes with raw_truncated set exactly when capping occurs
+  ---
+  duration_ms: 0.614539
+  type: 'test'
+  ...
+# Subtest: capture: advisory-only — the run summary is byte-identical with capture on vs off
+ok 318 - capture: advisory-only — the run summary is byte-identical with capture on vs off
+  ---
+  duration_ms: 0.918913
+  type: 'test'
+  ...
+# Subtest: capture: mintRunId is YYYYMMDD-HHMMSS
+ok 319 - capture: mintRunId is YYYYMMDD-HHMMSS
+  ---
+  duration_ms: 0.173125
+  type: 'test'
+  ...
+# Subtest: capture: appendJudgement(null, …) is a no-op (opt-out guard)
+ok 320 - capture: appendJudgement(null, …) is a no-op (opt-out guard)
+  ---
+  duration_ms: 0.317831
+  type: 'test'
+  ...
+# Subtest: liveDriver drives runSkill and records the judgement as buckets
+ok 321 - liveDriver drives runSkill and records the judgement as buckets
+  ---
+  duration_ms: 26.143343
+  type: 'test'
+  ...
+# Subtest: liveDriver records only the kinds the model populated
+ok 322 - liveDriver records only the kinds the model populated
+  ---
+  duration_ms: 23.025232
+  type: 'test'
+  ...
+# Subtest: buildJudgementPrompt (via the driver) injects the rubric, the issues, and the envelope instruction
+ok 323 - buildJudgementPrompt (via the driver) injects the rubric, the issues, and the envelope instruction
+  ---
+  duration_ms: 17.247591
+  type: 'test'
+  ...
+# Subtest: buildJudgementPrompt omits the rubric when pluginDir is null (baseline)
+ok 324 - buildJudgementPrompt omits the rubric when pluginDir is null (baseline)
+  ---
+  duration_ms: 0.098624
+  type: 'test'
+  ...
+# Subtest: liveDriver requires a model function; makeLiveModel returns one
+ok 325 - liveDriver requires a model function; makeLiveModel returns one
+  ---
+  duration_ms: 0.257499
+  type: 'test'
+  ...
+# Subtest: FAFF-146 buildReconciliationPrompt carries the prep rubric, the spec anchor, the thread, and the envelope
+ok 326 - FAFF-146 buildReconciliationPrompt carries the prep rubric, the spec anchor, the thread, and the envelope
+  ---
+  duration_ms: 0.687455
+  type: 'test'
+  ...
+# Subtest: FAFF-146 buildReconciliationPrompt omits the rubric when pluginDir is null (baseline)
+ok 327 - FAFF-146 buildReconciliationPrompt omits the rubric when pluginDir is null (baseline)
+  ---
+  duration_ms: 0.197833
+  type: 'test'
+  ...
+# Subtest: FAFF-146 reconciliationLiveDriver records per-comment id:label pairs via runSkill(faff-prep)
+ok 328 - FAFF-146 reconciliationLiveDriver records per-comment id:label pairs via runSkill(faff-prep)
+  ---
+  duration_ms: 31.087988
+  type: 'test'
+  ...
+# Subtest: FAFF-146 reconciliationLiveDriver guards its inputs
+ok 329 - FAFF-146 reconciliationLiveDriver guards its inputs
+  ---
+  duration_ms: 0.244582
+  type: 'test'
+  ...
+# Subtest: FAFF-158 buildRoutingPrompt carries the routing rubric, the assembled findings, and the envelope
+ok 330 - FAFF-158 buildRoutingPrompt carries the routing rubric, the assembled findings, and the envelope
+  ---
+  duration_ms: 0.597039
+  type: 'test'
+  ...
+# Subtest: FAFF-158 buildRoutingPrompt omits the rubric when pluginDir is null (baseline)
+ok 331 - FAFF-158 buildRoutingPrompt omits the rubric when pluginDir is null (baseline)
+  ---
+  duration_ms: 1.168953
+  type: 'test'
+  ...
+# Subtest: FAFF-158 routingLiveDriver records the assigned verdict as a single-element routing bucket
+ok 332 - FAFF-158 routingLiveDriver records the assigned verdict as a single-element routing bucket
+  ---
+  duration_ms: 22.443943
+  type: 'test'
+  ...
+# Subtest: FAFF-158 routingLiveDriver injects the routing rubric + the fixture into the model prompt
+ok 333 - FAFF-158 routingLiveDriver injects the routing rubric + the fixture into the model prompt
+  ---
+  duration_ms: 27.204089
+  type: 'test'
+  ...
+# Subtest: FAFF-158 the recorded routing bucket grades PASS/FAIL via the existing routing grade path
+ok 334 - FAFF-158 the recorded routing bucket grades PASS/FAIL via the existing routing grade path
+  ---
+  duration_ms: 30.933406
+  type: 'test'
+  ...
+# Subtest: FAFF-158 a missing verdict yields an empty routing bucket and a clean FAIL
+ok 335 - FAFF-158 a missing verdict yields an empty routing bucket and a clean FAIL
+  ---
+  duration_ms: 16.999884
+  type: 'test'
+  ...
+# Subtest: FAFF-158 routingLiveDriver guards a missing model and a malformed fixture
+ok 336 - FAFF-158 routingLiveDriver guards a missing model and a malformed fixture
+  ---
+  duration_ms: 0.210708
+  type: 'test'
+  ...
+# Subtest: FAFF-158 makeLiveDriver guards model / buildPrompt / readEnvelope
+ok 337 - FAFF-158 makeLiveDriver guards model / buildPrompt / readEnvelope
+  ---
+  duration_ms: 0.240874
+  type: 'test'
+  ...
+# Subtest: FAFF-158 makeLiveDriver records every {name, items} pair its reducer returns (multi-bucket)
+ok 338 - FAFF-158 makeLiveDriver records every {name, items} pair its reducer returns (multi-bucket)
+  ---
+  duration_ms: 29.461412
+  type: 'test'
+  ...
+# Subtest: modedetect is registered in KINDS and CLOSED_SET_KINDS
+ok 339 - modedetect is registered in KINDS and CLOSED_SET_KINDS
+  ---
+  duration_ms: 0.581956
+  type: 'test'
+  ...
+# Subtest: validateCase accepts a modedetect case with a one-element closed_set oracle
+ok 340 - validateCase accepts a modedetect case with a one-element closed_set oracle
+  ---
+  duration_ms: 0.241708
+  type: 'test'
+  ...
+# Subtest: validateCase rejects a modedetect case whose oracle uses gloss_rubric/ordering, not closed_set
+ok 341 - validateCase rejects a modedetect case whose oracle uses gloss_rubric/ordering, not closed_set
+  ---
+  duration_ms: 0.23704
+  type: 'test'
+  ...
+# Subtest: grade: a modedetect rep PASSES against its one-element oracle (each mode)
+ok 342 - grade: a modedetect rep PASSES against its one-element oracle (each mode)
+  ---
+  duration_ms: 0.41454
+  type: 'test'
+  ...
+# Subtest: grade: a modedetect rep with the wrong mode FAILS with a distinct signature
+ok 343 - grade: a modedetect rep with the wrong mode FAILS with a distinct signature
+  ---
+  duration_ms: 0.153375
+  type: 'test'
+  ...
+# Subtest: grade: a modedetect rep with NO mode field FAILS cleanly with the empty signature
+ok 344 - grade: a modedetect rep with NO mode field FAILS cleanly with the empty signature
+  ---
+  duration_ms: 0.064624
+  type: 'test'
+  ...
+# Subtest: grade: a modedetect rep with an out-of-enum mode FAILS with a verbatim distinct signature
+ok 345 - grade: a modedetect rep with an out-of-enum mode FAILS with a verbatim distinct signature
+  ---
+  duration_ms: 0.116874
+  type: 'test'
+  ...
+# Subtest: runEvals end-to-end: a fixed-mode mock driver grades a modedetect case PASS + stable
+ok 346 - runEvals end-to-end: a fixed-mode mock driver grades a modedetect case PASS + stable
+  ---
+  duration_ms: 0.431415
+  type: 'test'
+  ...
+# Subtest: runEvals end-to-end: a missing-mode mock driver grades a modedetect case FAIL
+ok 347 - runEvals end-to-end: a missing-mode mock driver grades a modedetect case FAIL
+  ---
+  duration_ms: 0.340832
+  type: 'test'
+  ...
+# Subtest: the shipped modedetect cases are valid and cover greenfield + single-item + ambiguous
+ok 348 - the shipped modedetect cases are valid and cover greenfield + single-item + ambiguous
+  ---
+  duration_ms: 2.960195
+  type: 'test'
+  ...
+# Subtest: buildEvalPrompt for modedetect carries the verbatim mode rule + MODE_EVAL_INSTRUCTION
+ok 349 - buildEvalPrompt for modedetect carries the verbatim mode rule + MODE_EVAL_INSTRUCTION
+  ---
+  duration_ms: 1.211619
+  type: 'test'
+  ...
+# Subtest: regression: the six tidy kinds resolve the UNCHANGED tidy criteria + instruction (byte-identical)
+ok 350 - regression: the six tidy kinds resolve the UNCHANGED tidy criteria + instruction (byte-identical)
+  ---
+  duration_ms: 3.24132
+  type: 'test'
+  ...
+# Subtest: regression: a tidy `dupe` rep still grades PASS via the unchanged closed-set path
+ok 351 - regression: a tidy `dupe` rep still grades PASS via the unchanged closed-set path
+  ---
+  duration_ms: 0.100583
+  type: 'test'
+  ...
+# Subtest: buildOllamaRequest targets /api/chat with a non-streaming chat body
+ok 352 - buildOllamaRequest targets /api/chat with a non-streaming chat body
+  ---
+  duration_ms: 0.879204
+  type: 'test'
+  ...
+# Subtest: buildOllamaRequest fails loud on a missing baseUrl or model
+ok 353 - buildOllamaRequest fails loud on a missing baseUrl or model
+  ---
+  duration_ms: 0.305999
+  type: 'test'
+  ...
+# Subtest: buildOllamaRequest threads think and options only when defined
+ok 354 - buildOllamaRequest threads think and options only when defined
+  ---
+  duration_ms: 0.125083
+  type: 'test'
+  ...
+# Subtest: makeOllamaModel forwards think to the request via the injected post
+ok 355 - makeOllamaModel forwards think to the request via the injected post
+  ---
+  duration_ms: 0.136416
+  type: 'test'
+  ...
+# Subtest: parseOllamaResponse extracts message.content (string or parsed object)
+ok 356 - parseOllamaResponse extracts message.content (string or parsed object)
+  ---
+  duration_ms: 0.163541
+  type: 'test'
+  ...
+# Subtest: parseOllamaResponse fails loud on an unrecognised shape
+ok 357 - parseOllamaResponse fails loud on an unrecognised shape
+  ---
+  duration_ms: 0.069375
+  type: 'test'
+  ...
+# Subtest: makeOllamaModel returns the completion text via the injected post
+ok 358 - makeOllamaModel returns the completion text via the injected post
+  ---
+  duration_ms: 0.146041
+  type: 'test'
+  ...
+# Subtest: ollama model + liveDriver: judgement flows through to DecisionRecord buckets, zero network
+ok 359 - ollama model + liveDriver: judgement flows through to DecisionRecord buckets, zero network
+  ---
+  duration_ms: 28.48825
+  type: 'test'
+  ...
+# Subtest: makeDirectOllamaDriver builds the eval prompt and returns {rawText,tokens} via the injected post
+ok 360 - makeDirectOllamaDriver builds the eval prompt and returns {rawText,tokens} via the injected post
+  ---
+  duration_ms: 0.708788
+  type: 'test'
+  ...
+# Subtest: makeDirectOllamaDriver runs through runEvals and grades
+ok 361 - makeDirectOllamaDriver runs through runEvals and grades
+  ---
+  duration_ms: 1.020163
+  type: 'test'
+  ...
+# Subtest: segmentGateway splits on headings and sizes each block
+ok 362 - segmentGateway splits on headings and sizes each block
+  ---
+  duration_ms: 1.733284
+  type: 'test'
+  ...
+# Subtest: scanUsage finds citations by block title, ignoring non-citers
+ok 363 - scanUsage finds citations by block title, ignoring non-citers
+  ---
+  duration_ms: 2.052199
+  type: 'test'
+  ...
+# Subtest: classify tags titled-shared as universal, uncited as unknown, cited as set
+ok 364 - classify tags titled-shared as universal, uncited as unknown, cited as set
+  ---
+  duration_ms: 0.582123
+  type: 'test'
+  ...
+# Subtest: carriedFor: conservative carries unknowns; optimistic drops them
+ok 365 - carriedFor: conservative carries unknowns; optimistic drops them
+  ---
+  duration_ms: 0.342999
+  type: 'test'
+  ...
+# Subtest: clusterLayers orders widest-audience (universal/unknown) first
+ok 366 - clusterLayers orders widest-audience (universal/unknown) first
+  ---
+  duration_ms: 0.425289
+  type: 'test'
+  ...
+# Subtest: layeredCarried contiguity is never below the skip-allowed ideal
+ok 367 - layeredCarried contiguity is never below the skip-allowed ideal
+  ---
+  duration_ms: 0.317832
+  type: 'test'
+  ...
+# Subtest: buildReport scan-fallback (no manifest) ranks approaches: current >= conservative >= optimistic, layered >= floor
+ok 368 - buildReport scan-fallback (no manifest) ranks approaches: current >= conservative >= optimistic, layered >= floor
+  ---
+  duration_ms: 0.728039
+  type: 'test'
+  ...
+# Subtest: classifyFromManifest: movable = single declared consumer AND not keep
+ok 369 - classifyFromManifest: movable = single declared consumer AND not keep
+  ---
+  duration_ms: 0.229583
+  type: 'test'
+  ...
+# Subtest: buildReport manifest-authoritative: keep:true (fixed) block excluded from duplication_candidates
+ok 370 - buildReport manifest-authoritative: keep:true (fixed) block excluded from duplication_candidates
+  ---
+  duration_ms: 0.429415
+  type: 'test'
+  ...
+# Subtest: buildReport manifest-authoritative: declared consumers override the scan
+ok 371 - buildReport manifest-authoritative: declared consumers override the scan
+  ---
+  duration_ms: 0.36129
+  type: 'test'
+  ...
+# Subtest: checkManifest: structural (missing/extra) and reference (dead skill) violations
+ok 372 - checkManifest: structural (missing/extra) and reference (dead skill) violations
+  ---
+  duration_ms: 0.223291
+  type: 'test'
+  ...
+# Subtest: checkManifest: clean manifest yields no violations
+ok 373 - checkManifest: clean manifest yields no violations
+  ---
+  duration_ms: 0.08475
+  type: 'test'
+  ...
+# Subtest: syncManifest: seed-if-absent then merge-preserving (existing entries byte-stable)
+ok 374 - syncManifest: seed-if-absent then merge-preserving (existing entries byte-stable)
+  ---
+  duration_ms: 0.498373
+  type: 'test'
+  ...
+# Subtest: driftCheck: one-directional — warns only when the scan sees a citer the manifest lacks
+ok 375 - driftCheck: one-directional — warns only when the scan sees a citer the manifest lacks
+  ---
+  duration_ms: 0.094083
+  type: 'test'
+  ...
+# Subtest: eval-readme-freshness: derived corpus/rep/gate numbers appear in the runbook section
+ok 376 - eval-readme-freshness: derived corpus/rep/gate numbers appear in the runbook section
+  ---
+  duration_ms: 34.680056
+  type: 'test'
+  ...
+# Subtest: eval-readme-freshness: base and worst rep totals are case_count * BASE_REPS / MAX_REPS
+ok 377 - eval-readme-freshness: base and worst rep totals are case_count * BASE_REPS / MAX_REPS
+  ---
+  duration_ms: 1.374036
+  type: 'test'
+  ...
+# Subtest: eval-readme-freshness: the rep-range appears in every section that restates it
+ok 378 - eval-readme-freshness: the rep-range appears in every section that restates it
+  ---
+  duration_ms: 1.268286
+  type: 'test'
+  ...
+# Subtest: eval-readme-freshness: the runbook's named-current model matches eval.model
+ok 379 - eval-readme-freshness: the runbook's named-current model matches eval.model
+  ---
+  duration_ms: 7.472925
+  type: 'test'
+  ...
+# Subtest: eval-readme-freshness: the assert helpers report failure on deliberately-stale synthetic input
+ok 380 - eval-readme-freshness: the assert helpers report failure on deliberately-stale synthetic input
+  ---
+  duration_ms: 0.21904
+  type: 'test'
+  ...
+# Subtest: reconciliation is registered in KINDS and CLOSED_SET_KINDS
+ok 381 - reconciliation is registered in KINDS and CLOSED_SET_KINDS
+  ---
+  duration_ms: 0.537123
+  type: 'test'
+  ...
+# Subtest: FAFF-154 the committed reconciliation cases-live fixtures load, validate, and cover all four labels
+ok 382 - FAFF-154 the committed reconciliation cases-live fixtures load, validate, and cover all four labels
+  ---
+  duration_ms: 0.692455
+  type: 'test'
+  ...
+# Subtest: FAFF-154 reconciliation cases are NOT picked up by the black-box loadCases() sweep
+ok 383 - FAFF-154 reconciliation cases are NOT picked up by the black-box loadCases() sweep
+  ---
+  duration_ms: 1.981199
+  type: 'test'
+  ...
+# Subtest: FAFF-154 each committed case driven through runSkill + reconciliationLiveDriver grades PASS
+ok 384 - FAFF-154 each committed case driven through runSkill + reconciliationLiveDriver grades PASS
+  ---
+  duration_ms: 67.18283
+  type: 'test'
+  ...
+# Subtest: FAFF-154 a wrong label drives a clean FAIL with a distinct signature (no throw)
+ok 385 - FAFF-154 a wrong label drives a clean FAIL with a distinct signature (no throw)
+  ---
+  duration_ms: 24.361101
+  type: 'test'
+  ...
+# Subtest: FAFF-154 a missing reconciliation envelope field yields an empty bucket and a clean FAIL
+ok 386 - FAFF-154 a missing reconciliation envelope field yields an empty bucket and a clean FAIL
+  ---
+  duration_ms: 25.660429
+  type: 'test'
+  ...
+# Subtest: FAFF-154 an out-of-enum label fails cleanly with a verbatim distinct signature (no throw)
+ok 387 - FAFF-154 an out-of-enum label fails cleanly with a verbatim distinct signature (no throw)
+  ---
+  duration_ms: 2.231407
+  type: 'test'
+  ...
+# Subtest: FAFF-154 driveReconciliationCase guards its inputs + reuses the inherited reconciliationLiveDriver
+ok 388 - FAFF-154 driveReconciliationCase guards its inputs + reuses the inherited reconciliationLiveDriver
+  ---
+  duration_ms: 0.732496
+  type: 'test'
+  ...
+# === baseline written to /tmp/faff318-0aiefG/frontier.json (3 kinds) ===
+# [run-evals] ⚠ PARTIAL baseline — kinds still missing this cycle: vague, stale. Re-run with --resume to complete.
+# === baseline written to /tmp/faff318-KwOPVJ/frontier.json (2 kinds) ===
+# === baseline written to /tmp/faff318-7hSkW1/b.json (1 kinds) ===
+# === baseline written to /tmp/faff318-7hSkW1/b.json (1 kinds) ===
+# Subtest: aggregateKind is shared — each progress.kinds[K] (3 fields) equals summarize's per_kind[K]
+ok 389 - aggregateKind is shared — each progress.kinds[K] (3 fields) equals summarize's per_kind[K]
+  ---
+  duration_ms: 2.264906
+  type: 'test'
+  ...
+# Subtest: kind-completion fires on the last case of a kind, not on adjacency (A1,B1,A2,B2)
+ok 390 - kind-completion fires on the last case of a kind, not on adjacency (A1,B1,A2,B2)
+  ---
+  duration_ms: 0.763788
+  type: 'test'
+  ...
+# Subtest: writeCheckpointKind writes via <path>.tmp + rename — no partial file left behind
+ok 391 - writeCheckpointKind writes via <path>.tmp + rename — no partial file left behind
+  ---
+  duration_ms: 0.253583
+  type: 'test'
+  ...
+# Subtest: advisory-only — runEvals summary is byte-identical with vs without progressPath
+ok 392 - advisory-only — runEvals summary is byte-identical with vs without progressPath
+  ---
+  duration_ms: 0.619039
+  type: 'test'
+  ...
+# Subtest: fold-in overlays a partial sweep onto the prior baseline — no kind dropped, gates clean
+ok 393 - fold-in overlays a partial sweep onto the prior baseline — no kind dropped, gates clean
+  ---
+  duration_ms: 1.125495
+  type: 'test'
+  ...
+# Subtest: a complete sweep replaces per_kind and prunes a kind absent from the current cases
+ok 394 - a complete sweep replaces per_kind and prunes a kind absent from the current cases
+  ---
+  duration_ms: 0.377665
+  type: 'test'
+  ...
+# Subtest: first baseline from a partial sweep warns hard and writes exactly the completed kinds
+ok 395 - first baseline from a partial sweep warns hard and writes exactly the completed kinds
+  ---
+  duration_ms: 0.53179
+  type: 'test'
+  ...
+# Subtest: --only reads/writes no progress file and its fold-in overlays (retains other kinds)
+ok 396 - --only reads/writes no progress file and its fold-in overlays (retains other kinds)
+  ---
+  duration_ms: 148.823721
+  type: 'test'
+  ...
+# Subtest: --kind dispatches only the named kind(s) and overlays their rows, leaving other rows byte-identical
+ok 397 - --kind dispatches only the named kind(s) and overlays their rows, leaving other rows byte-identical
+  ---
+  duration_ms: 138.596058
+  type: 'test'
+  ...
+# Subtest: --kind fails loud on an unknown kind, and is rejected alongside --only (but NOT --resume — FAFF-714)
+ok 398 - --kind fails loud on an unknown kind, and is rejected alongside --only (but NOT --resume — FAFF-714)
+  ---
+  duration_ms: 151.525126
+  type: 'test'
+  ...
+# Subtest: --kind --resume skips a checkpointed named kind, uses the scoped file, and never touches the full-sweep file
+ok 399 - --kind --resume skips a checkpointed named kind, uses the scoped file, and never touches the full-sweep file
+  ---
+  duration_ms: 4.853646
+  type: 'test'
+  ...
+# Subtest: --kind --resume does NOT refold a leftover un-named kind from the shared scoped file (the fold filter)
+ok 400 - --kind --resume does NOT refold a leftover un-named kind from the shared scoped file (the fold filter)
+  ---
+  duration_ms: 2.591905
+  type: 'test'
+  ...
+# Subtest: --kind --resume refuses to blend on a stamp mismatch, before any rep
+ok 401 - --kind --resume refuses to blend on a stamp mismatch, before any rep
+  ---
+  duration_ms: 2.020075
+  type: 'test'
+  ...
+# Subtest: --resume dispatches only missing kinds and writes a complete baseline
+ok 402 - --resume dispatches only missing kinds and writes a complete baseline
+  ---
+  duration_ms: 4.84852
+  type: 'test'
+  ...
+# Subtest: --resume with all kinds complete runs zero reps and writes a complete baseline (exit 0)
+ok 403 - --resume with all kinds complete runs zero reps and writes a complete baseline (exit 0)
+  ---
+  duration_ms: 8.321005
+  type: 'test'
+  ...
+# Subtest: a completed kind whose stored case-id set is stale is re-run, not kept
+ok 404 - a completed kind whose stored case-id set is stale is re-run, not kept
+  ---
+  duration_ms: 2.866362
+  type: 'test'
+  ...
+# Subtest: --resume throws before any rep when the progress stamp differs (driver/model/base_reps)
+ok 405 - --resume throws before any rep when the progress stamp differs (driver/model/base_reps)
+  ---
+  duration_ms: 1.085412
+  type: 'test'
+  ...
+# Subtest: a corrupt progress file on --resume throws with the path
+ok 406 - a corrupt progress file on --resume throws with the path
+  ---
+  duration_ms: 1.312911
+  type: 'test'
+  ...
+# Subtest: --resume with no progress file warns and runs the full sweep (non-fatal)
+ok 407 - --resume with no progress file warns and runs the full sweep (non-fatal)
+  ---
+  duration_ms: 24.563767
+  type: 'test'
+  ...
+# Subtest: a sweep that stops after some kinds leaves those kinds' aggregates in the progress file
+ok 408 - a sweep that stops after some kinds leaves those kinds' aggregates in the progress file
+  ---
+  duration_ms: 0.28304
+  type: 'test'
+  ...
+# Subtest: summarize still emits the same shape and values after the aggregateKind refactor
+ok 409 - summarize still emits the same shape and values after the aggregateKind refactor
+  ---
+  duration_ms: 0.110666
+  type: 'test'
+  ...
+# Subtest: effort is recorded in baseline meta only when the stamp carries it — byte-for-byte meta when unset (FAFF-722)
+ok 410 - effort is recorded in baseline meta only when the stamp carries it — byte-for-byte meta when unset (FAFF-722)
+  ---
+  duration_ms: 0.305791
+  type: 'test'
+  ...
+# Subtest: --resume (full sweep) refuses to blend on an effort mismatch, before any rep (FAFF-722)
+ok 411 - --resume (full sweep) refuses to blend on an effort mismatch, before any rep (FAFF-722)
+  ---
+  duration_ms: 4.932895
+  type: 'test'
+  ...
+# Subtest: --kind --resume refuses to blend on an effort mismatch, before any rep (scoped path — FAFF-722)
+ok 412 - --kind --resume refuses to blend on an effort mismatch, before any rep (scoped path — FAFF-722)
+  ---
+  duration_ms: 5.553768
+  type: 'test'
+  ...
+# Subtest: routing is registered in KINDS and CLOSED_SET_KINDS
+ok 413 - routing is registered in KINDS and CLOSED_SET_KINDS
+  ---
+  duration_ms: 0.624206
+  type: 'test'
+  ...
+# Subtest: ROUTING_VERDICTS is exactly the closed six; admits() is the fixed admission rule
+ok 414 - ROUTING_VERDICTS is exactly the closed six; admits() is the fixed admission rule
+  ---
+  duration_ms: 0.48454
+  type: 'test'
+  ...
+# Subtest: routing grades env.verdict by exact single-element set-equality
+ok 415 - routing grades env.verdict by exact single-element set-equality
+  ---
+  duration_ms: 0.342415
+  type: 'test'
+  ...
+# Subtest: routing: an out-of-enum / missing verdict scores a clean FAIL with a distinct signature, no crash
+ok 416 - routing: an out-of-enum / missing verdict scores a clean FAIL with a distinct signature, no crash
+  ---
+  duration_ms: 0.09325
+  type: 'test'
+  ...
+# Subtest: validateCase enforces the routing fixture shape (issue + spec) and the closed_set oracle
+ok 417 - validateCase enforces the routing fixture shape (issue + spec) and the closed_set oracle
+  ---
+  duration_ms: 0.399332
+  type: 'test'
+  ...
+# Subtest: loadRoutingVerdictProse folds the gateway's fixed contract and the adaptor's assignment conditions verbatim
+ok 418 - loadRoutingVerdictProse folds the gateway's fixed contract and the adaptor's assignment conditions verbatim
+  ---
+  duration_ms: 0.376957
+  type: 'test'
+  ...
+# Subtest: loadRoutingVerdictProse fails loud on a missing skill file
+ok 419 - loadRoutingVerdictProse fails loud on a missing skill file
+  ---
+  duration_ms: 0.178499
+  type: 'test'
+  ...
+# Subtest: criteriaFor picks the routing rubric for the routing kind
+ok 420 - criteriaFor picks the routing rubric for the routing kind
+  ---
+  duration_ms: 0.309624
+  type: 'test'
+  ...
+# Subtest: buildEvalPrompt(routing) carries the assembled fixture, the rubric, and the verdict envelope shape
+ok 421 - buildEvalPrompt(routing) carries the assembled fixture, the rubric, and the verdict envelope shape
+  ---
+  duration_ms: 0.742289
+  type: 'test'
+  ...
+# Subtest: ROUTING_MODE_INSTRUCTION names the closed six and asks for exactly one verdict
+ok 422 - ROUTING_MODE_INSTRUCTION names the closed six and asks for exactly one verdict
+  ---
+  duration_ms: 0.351748
+  type: 'test'
+  ...
+# Subtest: orchestrator grades a routing case through the closed-set path
+ok 423 - orchestrator grades a routing case through the closed-set path
+  ---
+  duration_ms: 0.596998
+  type: 'test'
+  ...
+# Subtest: the shipped routing cases cover all six verdicts, one per verdict, each validating
+ok 424 - the shipped routing cases cover all six verdicts, one per verdict, each validating
+  ---
+  duration_ms: 0.328207
+  type: 'test'
+  ...
+# Subtest: admission-rule assertion: admits(verdict) holds over every shipped routing case oracle
+ok 425 - admission-rule assertion: admits(verdict) holds over every shipped routing case oracle
+  ---
+  duration_ms: 0.149291
+  type: 'test'
+  ...
+# Subtest: dry smoke: routing-001 grades PASS on the correct verdict, clean FAIL on a wrong one (no spawn)
+ok 426 - dry smoke: routing-001 grades PASS on the correct verdict, clean FAIL on a wrong one (no spawn)
+  ---
+  duration_ms: 0.366415
+  type: 'test'
+  ...
+# Subtest: LIVE_KINDS registers reconciliation + routing with { loader, driveCase } adapters
+ok 427 - LIVE_KINDS registers reconciliation + routing with { loader, driveCase } adapters
+  ---
+  duration_ms: 2.376239
+  type: 'test'
+  ...
+# Subtest: runLiveEvals drives every routing case via the harness + mock model and grades PASS
+ok 428 - runLiveEvals drives every routing case via the harness + mock model and grades PASS
+  ---
+  duration_ms: 197.816589
+  type: 'test'
+  ...
+# Subtest: the routing adapter normalises driveRoutingCase's verdict into a gradeable env
+ok 429 - the routing adapter normalises driveRoutingCase's verdict into a gradeable env
+  ---
+  duration_ms: 46.658254
+  type: 'test'
+  ...
+# Subtest: a wrong mock routing verdict yields accuracy 0 with no throw (rep-loop fail-safe)
+ok 430 - a wrong mock routing verdict yields accuracy 0 with no throw (rep-loop fail-safe)
+  ---
+  duration_ms: 22.327236
+  type: 'test'
+  ...
+# Subtest: a missing routing verdict (null) yields accuracy 0 with no throw
+ok 431 - a missing routing verdict (null) yields accuracy 0 with no throw
+  ---
+  duration_ms: 27.982461
+  type: 'test'
+  ...
+# Subtest: runLiveEvals drives every reconciliation case via the harness + mock model and grades PASS
+ok 432 - runLiveEvals drives every reconciliation case via the harness + mock model and grades PASS
+  ---
+  duration_ms: 73.622718
+  type: 'test'
+  ...
+# Subtest: the reconciliation adapter normalises driveReconciliationCase's bucket into a gradeable env
+ok 433 - the reconciliation adapter normalises driveReconciliationCase's bucket into a gradeable env
+  ---
+  duration_ms: 31.876276
+  type: 'test'
+  ...
+# Subtest: a wrong mock label yields accuracy 0 with no throw (rep-loop fail-safe)
+ok 434 - a wrong mock label yields accuracy 0 with no throw (rep-loop fail-safe)
+  ---
+  duration_ms: 26.001386
+  type: 'test'
+  ...
+# Subtest: a disagreeing model escalates the case toward MAX_REPS (mirrors run-evals)
+ok 435 - a disagreeing model escalates the case toward MAX_REPS (mirrors run-evals)
+  ---
+  duration_ms: 22.297902
+  type: 'test'
+  ...
+# Subtest: a model throw becomes an erroredRep and lowers stability, never crashing the run
+ok 436 - a model throw becomes an erroredRep and lowers stability, never crashing the run
+  ---
+  duration_ms: 18.205004
+  type: 'test'
+  ...
+# Subtest: runLiveEvals guards its inputs
+ok 437 - runLiveEvals guards its inputs
+  ---
+  duration_ms: 0.351416
+  type: 'test'
+  ...
+# Subtest: renderBaselineMarkdown emits the FAFF-156-format table with a per-comment breakdown
+ok 438 - renderBaselineMarkdown emits the FAFF-156-format table with a per-comment breakdown
+  ---
+  duration_ms: 0.241499
+  type: 'test'
+  ...
+# Subtest: the runner reuses run-evals' BASE_REPS / MAX_REPS unchanged
+ok 439 - the runner reuses run-evals' BASE_REPS / MAX_REPS unchanged
+  ---
+  duration_ms: 0.045667
+  type: 'test'
+  ...
+# Subtest: shaping + decomposition are in KINDS but NOT in CLOSED_SET_KINDS
+ok 440 - shaping + decomposition are in KINDS but NOT in CLOSED_SET_KINDS
+  ---
+  duration_ms: 0.683205
+  type: 'test'
+  ...
+# Subtest: validateCase requires gloss_rubric for shaping + decomposition; rejects the wrong field
+ok 441 - validateCase requires gloss_rubric for shaping + decomposition; rejects the wrong field
+  ---
+  duration_ms: 0.440831
+  type: 'test'
+  ...
+# Subtest: SCENARIO 1: shaping covers both concept-sets and no must_avoid term -> score 1.0, PASS
+ok 442 - SCENARIO 1: shaping covers both concept-sets and no must_avoid term -> score 1.0, PASS
+  ---
+  duration_ms: 0.33654
+  type: 'test'
+  ...
+# Subtest: shaping: a missed concept-set lowers coverage -> PARTIAL (score < 1)
+ok 443 - shaping: a missed concept-set lowers coverage -> PARTIAL (score < 1)
+  ---
+  duration_ms: 0.076833
+  type: 'test'
+  ...
+# Subtest: gradeShaping reads env.shaping as a flat array OR a {id:gloss} map (mirrors gradeGloss)
+ok 444 - gradeShaping reads env.shaping as a flat array OR a {id:gloss} map (mirrors gradeGloss)
+  ---
+  duration_ms: 0.077792
+  type: 'test'
+  ...
+# Subtest: structuralChecks: a fully valid tree passes all three [parentLink, stopRule, dag]
+ok 445 - structuralChecks: a fully valid tree passes all three [parentLink, stopRule, dag]
+  ---
+  duration_ms: 0.53454
+  type: 'test'
+  ...
+# Subtest: SCENARIO 2: a dep CYCLE (A->B->A) fails the DAG assertion; score < 1, PARTIAL regardless of coverage
+ok 446 - SCENARIO 2: a dep CYCLE (A->B->A) fails the DAG assertion; score < 1, PARTIAL regardless of coverage
+  ---
+  duration_ms: 0.199666
+  type: 'test'
+  ...
+# Subtest: SCENARIO 3: an epic marked beyond first-slice fails the stop-rule assertion
+ok 447 - SCENARIO 3: an epic marked beyond first-slice fails the stop-rule assertion
+  ---
+  duration_ms: 0.229041
+  type: 'test'
+  ...
+# Subtest: SCENARIO 4: an epic whose parent is absent from projects[].id fails the parent-link assertion
+ok 448 - SCENARIO 4: an epic whose parent is absent from projects[].id fails the parent-link assertion
+  ---
+  duration_ms: 0.443206
+  type: 'test'
+  ...
+# Subtest: structuralChecks: empty deps -> DAG vacuously passes (no edges, no cycle)
+ok 449 - structuralChecks: empty deps -> DAG vacuously passes (no edges, no cycle)
+  ---
+  duration_ms: 0.393123
+  type: 'test'
+  ...
+# Subtest: gradeDecomposition: a valid tree with full rubric coverage -> score 1.0, PASS
+ok 450 - gradeDecomposition: a valid tree with full rubric coverage -> score 1.0, PASS
+  ---
+  duration_ms: 0.182666
+  type: 'test'
+  ...
+# Subtest: SCENARIO 5: a missing decomposition field -> clean low score, distinct signature, no throw
+ok 451 - SCENARIO 5: a missing decomposition field -> clean low score, distinct signature, no throw
+  ---
+  duration_ms: 0.160874
+  type: 'test'
+  ...
+# Subtest: malformed tree: non-array epics/projects/deps fail defensively, never throw
+ok 452 - malformed tree: non-array epics/projects/deps fail defensively, never throw
+  ---
+  duration_ms: 0.108583
+  type: 'test'
+  ...
+# Subtest: SCENARIO 6: an advisory LLM opinion field never alters the mechanical score
+ok 453 - SCENARIO 6: an advisory LLM opinion field never alters the mechanical score
+  ---
+  duration_ms: 0.09025
+  type: 'test'
+  ...
+# Subtest: SCENARIO 7a: shapingLiveDriver drives runSkill and records the shaping bucket; grades via gradeShaping
+ok 454 - SCENARIO 7a: shapingLiveDriver drives runSkill and records the shaping bucket; grades via gradeShaping
+  ---
+  duration_ms: 35.89905
+  type: 'test'
+  ...
+# Subtest: SCENARIO 7b: decompositionLiveDriver drives runSkill and records the tree; grades via gradeDecomposition (no spawn)
+ok 455 - SCENARIO 7b: decompositionLiveDriver drives runSkill and records the tree; grades via gradeDecomposition (no spawn)
+  ---
+  duration_ms: 21.021741
+  type: 'test'
+  ...
+# Subtest: SCENARIO 7c: a missing field yields an empty/low grade through the live driver, never a throw
+ok 456 - SCENARIO 7c: a missing field yields an empty/low grade through the live driver, never a throw
+  ---
+  duration_ms: 19.137166
+  type: 'test'
+  ...
+# Subtest: buildShapingPrompt carries jot's verbatim shaping rubric, the brief, and the shaping envelope
+ok 457 - buildShapingPrompt carries jot's verbatim shaping rubric, the brief, and the shaping envelope
+  ---
+  duration_ms: 0.210582
+  type: 'test'
+  ...
+# Subtest: buildDecompositionPrompt carries plot's verbatim decomposition rule, the brief, and the tree envelope
+ok 458 - buildDecompositionPrompt carries plot's verbatim decomposition rule, the brief, and the tree envelope
+  ---
+  duration_ms: 0.182832
+  type: 'test'
+  ...
+# Subtest: buildShapingPrompt / buildDecompositionPrompt omit the rubric when pluginDir is null (baseline)
+ok 459 - buildShapingPrompt / buildDecompositionPrompt omit the rubric when pluginDir is null (baseline)
+  ---
+  duration_ms: 0.206124
+  type: 'test'
+  ...
+# Subtest: criteriaFor + buildEvalPrompt wire shaping/decomposition on the black-box lane
+ok 460 - criteriaFor + buildEvalPrompt wire shaping/decomposition on the black-box lane
+  ---
+  duration_ms: 1.198286
+  type: 'test'
+  ...
+# Subtest: loaders fail loud on a missing skill file
+ok 461 - loaders fail loud on a missing skill file
+  ---
+  duration_ms: 0.569248
+  type: 'test'
+  ...
+# Subtest: runEvals end-to-end: a shaping mock driver grades PASS + stable
+ok 462 - runEvals end-to-end: a shaping mock driver grades PASS + stable
+  ---
+  duration_ms: 0.436707
+  type: 'test'
+  ...
+# Subtest: runEvals end-to-end: a decomposition mock driver with a valid tree grades PASS
+ok 463 - runEvals end-to-end: a decomposition mock driver with a valid tree grades PASS
+  ---
+  duration_ms: 0.176207
+  type: 'test'
+  ...
+# Subtest: the shipped shaping + decomposition cases are valid and number >=2 each
+ok 464 - the shipped shaping + decomposition cases are valid and number >=2 each
+  ---
+  duration_ms: 1.351077
+  type: 'test'
+  ...
+# Subtest: regression: a gloss case still grades through the unchanged gloss path
+ok 465 - regression: a gloss case still grades through the unchanged gloss path
+  ---
+  duration_ms: 0.092042
+  type: 'test'
+  ...
+# Subtest: regression: a tidy `dupe` prompt still ends with EVAL_MODE_INSTRUCTION, not a shaping one
+ok 466 - regression: a tidy `dupe` prompt still ends with EVAL_MODE_INSTRUCTION, not a shaping one
+  ---
+  duration_ms: 0.872829
+  type: 'test'
+  ...
+# Subtest: sizeCensus enumerates SKILL.md files and totals lines/chars/est_tokens
+ok 467 - sizeCensus enumerates SKILL.md files and totals lines/chars/est_tokens
+  ---
+  duration_ms: 6.103514
+  type: 'test'
+  ...
+# Subtest: sizeCensus is deterministic (same tree → identical numbers)
+ok 468 - sizeCensus is deterministic (same tree → identical numbers)
+  ---
+  duration_ms: 6.064265
+  type: 'test'
+  ...
+# Subtest: fileSize injects a reader (pure-ish, testable with no disk)
+ok 469 - fileSize injects a reader (pure-ish, testable with no disk)
+  ---
+  duration_ms: 0.084625
+  type: 'test'
+  ...
+# Subtest: diffSizes reports a reduction (negative delta) + percent
+ok 470 - diffSizes reports a reduction (negative delta) + percent
+  ---
+  duration_ms: 0.213666
+  type: 'test'
+  ...
+# Subtest: diffSizes lists added + removed files
+ok 471 - diffSizes lists added + removed files
+  ---
+  duration_ms: 0.169208
+  type: 'test'
+  ...
+# Subtest: qualityDelta pairs per-kind before/after and flags regressions
+ok 472 - qualityDelta pairs per-kind before/after and flags regressions
+  ---
+  duration_ms: 0.137916
+  type: 'test'
+  ...
+# Subtest: qualityDelta degrades to size-only when no run or no baseline
+ok 473 - qualityDelta degrades to size-only when no run or no baseline
+  ---
+  duration_ms: 0.072833
+  type: 'test'
+  ...
+# Subtest: buildReport produces a paired 'cut N%' headline when a quality run is supplied
+ok 474 - buildReport produces a paired 'cut N%' headline when a quality run is supplied
+  ---
+  duration_ms: 0.190874
+  type: 'test'
+  ...
+# Subtest: buildReport degrades to size-only when no quality run
+ok 475 - buildReport degrades to size-only when no quality run
+  ---
+  duration_ms: 0.282541
+  type: 'test'
+  ...
+# Subtest: buildReport never fabricates a quality delta without a run
+ok 476 - buildReport never fabricates a quality delta without a run
+  ---
+  duration_ms: 0.44454
+  type: 'test'
+  ...
+# Subtest: the committed eval/baselines/prompt-size.json is a valid size baseline
+ok 477 - the committed eval/baselines/prompt-size.json is a valid size baseline
+  ---
+  duration_ms: 0.243082
+  type: 'test'
+  ...
+# Subtest: the budget gate IS wired into validate.yml CI, advisory (FAFF-171 — active step has no --enforce)
+ok 478 - the budget gate IS wired into validate.yml CI, advisory (FAFF-171 — active step has no --enforce)
+  ---
+  duration_ms: 0.342457
+  type: 'test'
+  ...
+# Subtest: evaluateGate: hold (delta 0) is within budget
+ok 479 - evaluateGate: hold (delta 0) is within budget
+  ---
+  duration_ms: 0.092
+  type: 'test'
+  ...
+# Subtest: evaluateGate: growth past budget is 'over' with over_by
+ok 480 - evaluateGate: growth past budget is 'over' with over_by
+  ---
+  duration_ms: 0.075333
+  type: 'test'
+  ...
+# Subtest: evaluateGate: growth within the --budget tolerance band stays 'within'
+ok 481 - evaluateGate: growth within the --budget tolerance band stays 'within'
+  ---
+  duration_ms: 0.061583
+  type: 'test'
+  ...
+# Subtest: evaluateGate: a shrink reports under_by (the nudge signal)
+ok 482 - evaluateGate: a shrink reports under_by (the nudge signal)
+  ---
+  duration_ms: 0.047916
+  type: 'test'
+  ...
+# Subtest: --gate exits 0 and says 'within budget' when the tree holds/shrinks vs the floor
+ok 483 - --gate exits 0 and says 'within budget' when the tree holds/shrinks vs the floor
+  ---
+  duration_ms: 64.156718
+  type: 'test'
+  ...
+# Subtest: --gate --enforce exits 2 when the tree is over the floor
+ok 484 - --gate --enforce exits 2 when the tree is over the floor
+  ---
+  duration_ms: 93.887837
+  type: 'test'
+  ...
+# Subtest: --gate WITHOUT --enforce exits 0 even when over (advisory) but still surfaces the delta
+ok 485 - --gate WITHOUT --enforce exits 0 even when over (advisory) but still surfaces the delta
+  ---
+  duration_ms: 71.251811
+  type: 'test'
+  ...
+# Subtest: --gate with a missing/garbage baseline exits 1 (operational error, distinct from the gate verdict 2)
+ok 486 - --gate with a missing/garbage baseline exits 1 (operational error, distinct from the gate verdict 2)
+  ---
+  duration_ms: 61.985394
+  type: 'test'
+  ...
+# Subtest: --gate without --against exits 1 (operational error)
+ok 487 - --gate without --against exits 1 (operational error)
+  ---
+  duration_ms: 67.829535
+  type: 'test'
+  ...
+# Subtest: parseTranscript dedupes by request_id and takes max usage
+ok 488 - parseTranscript dedupes by request_id and takes max usage
+  ---
+  duration_ms: 0.686914
+  type: 'test'
+  ...
+# Subtest: census reports read:write ratio and context share
+ok 489 - census reports read:write ratio and context share
+  ---
+  duration_ms: 0.382998
+  type: 'test'
+  ...
+# Subtest: billCalls prices cache read/write and output with the right per-model rate
+ok 490 - billCalls prices cache read/write and output with the right per-model rate
+  ---
+  duration_ms: 0.215666
+  type: 'test'
+  ...
+# Subtest: applyPrefixShrink drops the fixed prefix from the read leg on warm calls and the write leg on cold calls
+ok 491 - applyPrefixShrink drops the fixed prefix from the read leg on warm calls and the write leg on cold calls
+  ---
+  duration_ms: 0.159166
+  type: 'test'
+  ...
+# Subtest: applyPrefixShrink with Fp=0 removes the prefix entirely
+ok 492 - applyPrefixShrink with Fp=0 removes the prefix entirely
+  ---
+  duration_ms: 0.170082
+  type: 'test'
+  ...
+# Subtest: apply5mWrites moves 1h writes into the cheaper 5m bucket
+ok 493 - apply5mWrites moves 1h writes into the cheaper 5m bucket
+  ---
+  duration_ms: 0.096874
+  type: 'test'
+  ...
+# Subtest: benchmark ranks strategies and reports deltas vs baseline
+ok 494 - benchmark ranks strategies and reports deltas vs baseline
+  ---
+  duration_ms: 0.274332
+  type: 'test'
+  ...
+# Subtest: sensitivity is a positive $/10k-token lever when a fixed prefix is present
+ok 495 - sensitivity is a positive $/10k-token lever when a fixed prefix is present
+  ---
+  duration_ms: 0.131916
+  type: 'test'
+  ...
+# Subtest: rateFor falls back to the opus default for unknown models
+ok 496 - rateFor falls back to the opus default for unknown models
+  ---
+  duration_ms: 0.615206
+  type: 'test'
+  ...
+# Subtest: prefillTokens: cached skips the prefix, uncached re-prefills the whole context
+ok 497 - prefillTokens: cached skips the prefix, uncached re-prefills the whole context
+  ---
+  duration_ms: 0.35854
+  type: 'test'
+  ...
+# Subtest: latency: uncached wall is far higher than cached for a big cached prefix
+ok 498 - latency: uncached wall is far higher than cached for a big cached prefix
+  ---
+  duration_ms: 0.185999
+  type: 'test'
+  ...
+# Subtest: ttlRisk counts inter-call gaps that exceed the TTL, per session
+ok 499 - ttlRisk counts inter-call gaps that exceed the TTL, per session
+  ---
+  duration_ms: 0.19475
+  type: 'test'
+  ...
+# Subtest: kvLens: bigger per-token KV means fewer concurrent contexts fit
+ok 500 - kvLens: bigger per-token KV means fewer concurrent contexts fit
+  ---
+  duration_ms: 0.12275
+  type: 'test'
+  ...
+# Subtest: parseAnchors reads timing from result events
+ok 501 - parseAnchors reads timing from result events
+  ---
+  duration_ms: 0.089374
+  type: 'test'
+  ...
+# Subtest: FAFF-1199: claude-fable-5-2 and claude-haiku-5-5 have rates with their own cache-read multiplier
+ok 502 - FAFF-1199: claude-fable-5-2 and claude-haiku-5-5 have rates with their own cache-read multiplier
+  ---
+  duration_ms: 0.047833
+  type: 'test'
+  ...
+# Subtest: verdict-build is registered in KINDS and CLOSED_SET_KINDS
+ok 503 - verdict-build is registered in KINDS and CLOSED_SET_KINDS
+  ---
+  duration_ms: 0.885455
+  type: 'test'
+  ...
+# Subtest: FAFF-155 the committed verdict-build cases-live fixture loads, validates, and carries a single-verdict oracle
+ok 504 - FAFF-155 the committed verdict-build cases-live fixture loads, validates, and carries a single-verdict oracle
+  ---
+  duration_ms: 1.192245
+  type: 'test'
+  ...
+# Subtest: FAFF-155 verdict-build cases are NOT picked up by the black-box loadCases() sweep
+ok 505 - FAFF-155 verdict-build cases are NOT picked up by the black-box loadCases() sweep
+  ---
+  duration_ms: 3.114195
+  type: 'test'
+  ...
+# Subtest: FAFF-155 the committed case driven through runSkill + verdictBuildLiveDriver grades PASS
+ok 506 - FAFF-155 the committed case driven through runSkill + verdictBuildLiveDriver grades PASS
+  ---
+  duration_ms: 23.886521
+  type: 'test'
+  ...
+# Subtest: FAFF-155 a wrong verdict drives a clean FAIL with a distinct signature (no throw)
+ok 507 - FAFF-155 a wrong verdict drives a clean FAIL with a distinct signature (no throw)
+  ---
+  duration_ms: 20.853408
+  type: 'test'
+  ...
+# Subtest: FAFF-155 a missing verdict envelope field yields an empty bucket and a clean FAIL
+ok 508 - FAFF-155 a missing verdict envelope field yields an empty bucket and a clean FAIL
+  ---
+  duration_ms: 35.043471
+  type: 'test'
+  ...
+# Subtest: FAFF-155 an out-of-enum verdict fails cleanly with a verbatim distinct signature (no throw)
+ok 509 - FAFF-155 an out-of-enum verdict fails cleanly with a verbatim distinct signature (no throw)
+  ---
+  duration_ms: 1.16512
+  type: 'test'
+  ...
+# Subtest: FAFF-155 driveVerdictBuildCase guards its inputs + reuses the inherited verdictBuildLiveDriver
+ok 510 - FAFF-155 driveVerdictBuildCase guards its inputs + reuses the inherited verdictBuildLiveDriver
+  ---
+  duration_ms: 0.417707
+  type: 'test'
+  ...
+# [run-evals] frontier model: M · effort: medium (--model flag > eval.model config > pinned default; never the account default — FAFF-315)
+# Subtest: emptyCaseReason returns null when there is something to run
+ok 511 - emptyCaseReason returns null when there is something to run
+  ---
+  duration_ms: 0.54704
+  type: 'test'
+  ...
+# Subtest: emptyCaseReason precedence — --only branch: a non-empty load emptied by --only names --only
+ok 512 - emptyCaseReason precedence — --only branch: a non-empty load emptied by --only names --only
+  ---
+  duration_ms: 0.155291
+  type: 'test'
+  ...
+# Subtest: emptyCaseReason precedence — --cases-dir branch: an empty load names --cases-dir
+ok 513 - emptyCaseReason precedence — --cases-dir branch: an empty load names --cases-dir
+  ---
+  duration_ms: 0.063333
+  type: 'test'
+  ...
+# Subtest: emptyCaseReason precedence — empty --cases-dir AND --only both set names --cases-dir, not --only
+ok 514 - emptyCaseReason precedence — empty --cases-dir AND --only both set names --cases-dir, not --only
+  ---
+  duration_ms: 0.076791
+  type: 'test'
+  ...
+# Subtest: emptyCaseReason precedence — --kind branch: a kind with no fixtures names --kind (rule 3)
+ok 515 - emptyCaseReason precedence — --kind branch: a kind with no fixtures names --kind (rule 3)
+  ---
+  duration_ms: 0.062333
+  type: 'test'
+  ...
+# Subtest: emptyCaseReason precedence — default: an empty corpus with no attributable filter
+ok 516 - emptyCaseReason precedence — default: an empty corpus with no attributable filter
+  ---
+  duration_ms: 0.065
+  type: 'test'
+  ...
+# Subtest: assertNonEmptyCases throws the emptyCaseReason message; is a no-op on a non-empty set
+ok 517 - assertNonEmptyCases throws the emptyCaseReason message; is a no-op on a non-empty set
+  ---
+  duration_ms: 0.231374
+  type: 'test'
+  ...
+# Subtest: plain sweep with an empty --cases-dir refuses (exit 1, names --cases-dir) and writes no report
+ok 518 - plain sweep with an empty --cases-dir refuses (exit 1, names --cases-dir) and writes no report
+  ---
+  duration_ms: 149.481218
+  type: 'test'
+  ...
+# Subtest: plain sweep with an --only that matches nothing refuses (exit 1) and names --only
+ok 519 - plain sweep with an --only that matches nothing refuses (exit 1) and names --only
+  ---
+  duration_ms: 205.619804
+  type: 'test'
+  ...
+# Subtest: plain sweep with an empty --cases-dir AND --only both set names --cases-dir, not --only
+ok 520 - plain sweep with an empty --cases-dir AND --only both set names --cases-dir, not --only
+  ---
+  duration_ms: 136.301651
+  type: 'test'
+  ...
+# Subtest: gateAgainst against a baseline whose per_kind is {} with --only no-match refuses (the hole that exits 0 today)
+ok 521 - gateAgainst against a baseline whose per_kind is {} with --only no-match refuses (the hole that exits 0 today)
+  ---
+  duration_ms: 161.889872
+  type: 'test'
+  ...
+# Subtest: updateBaseline with an --only no-match rejects and leaves the baseline file byte-for-byte unchanged
+ok 522 - updateBaseline with an --only no-match rejects and leaves the baseline file byte-for-byte unchanged
+  ---
+  duration_ms: 104.531748
+  type: 'test'
+  ...
+# Subtest: runLiveEvals with an --only no-match rejects before the rep loop and never invokes the model
+ok 523 - runLiveEvals with an --only no-match rejects before the rep loop and never invokes the model
+  ---
+  duration_ms: 24.929515
+  type: 'test'
+  ...
+# Subtest: the soft local gate warns and returns 0 on a zero-case smoke set — never throws
+ok 524 - the soft local gate warns and returns 0 on a zero-case smoke set — never throws
+  ---
+  duration_ms: 1.891158
+  type: 'test'
+  ...
+# Subtest: handoff treatment removes model-authored tracker writes and preserves earlier tool treatments
+ok 525 - handoff treatment removes model-authored tracker writes and preserves earlier tool treatments
+  ---
+  duration_ms: 1.195578
+  type: 'test'
+  ...
+# Subtest: bound eval executes shipped connector and catches an escaping mutation independently
+ok 526 - bound eval executes shipped connector and catches an escaping mutation independently
+  ---
+  duration_ms: 972.583142
+  type: 'test'
+  ...
+# Subtest: actual eval stdio entry works with its cleared credential environment
+ok 527 - actual eval stdio entry works with its cleared credential environment
+  ---
+  duration_ms: 521.025085
+  type: 'test'
+  ...
+# Subtest: production MCP connector writes exact stored bytes through a real upstream stdio process
+ok 528 - production MCP connector writes exact stored bytes through a real upstream stdio process
+  ---
+  duration_ms: 309.127474
+  type: 'test'
+  ...
+# Subtest: maps the configured tracker timestamp and argument names without changing text
+ok 529 - maps the configured tracker timestamp and argument names without changing text
+  ---
+  duration_ms: 21.747363
+  type: 'test'
+  ...
+# Subtest: refuses pagination envelope instead of treating it as an empty complete listing
+ok 530 - refuses pagination envelope instead of treating it as an empty complete listing
+  ---
+  duration_ms: 18.334378
+  type: 'test'
+  ...
+# Subtest: refuses unrecognised envelope instead of treating it as an empty complete listing
+ok 531 - refuses unrecognised envelope instead of treating it as an empty complete listing
+  ---
+  duration_ms: 20.703493
+  type: 'test'
+  ...
+# Subtest: refuses malformed comment instead of treating it as an empty complete listing
+ok 532 - refuses malformed comment instead of treating it as an empty complete listing
+  ---
+  duration_ms: 22.154319
+  type: 'test'
+  ...
+# Subtest: a tool error after write is uncertain and never retried
+ok 533 - a tool error after write is uncertain and never retried
+  ---
+  duration_ms: 30.3687
+  type: 'test'
+  ...
+# Subtest: missing write acknowledgement is uncertain
+ok 534 - missing write acknowledgement is uncertain
+  ---
+  duration_ms: 23.981353
+  type: 'test'
+  ...
+# Subtest: an explicit failure alongside an ID is not a write acknowledgement
+ok 535 - an explicit failure alongside an ID is not a write acknowledgement
+  ---
+  duration_ms: 25.421721
+  type: 'test'
+  ...
+# Subtest: lost acknowledgement after an actual upstream write consumes the reference
+ok 536 - lost acknowledgement after an actual upstream write consumes the reference
+  ---
+  duration_ms: 50.200613
+  type: 'test'
+  ...
+# Subtest: upstream timeout closes the transport and does not retry
+ok 537 - upstream timeout closes the transport and does not retry
+  ---
+  duration_ms: 137.917894
+  type: 'test'
+  ...
+# Subtest: configuration refuses model-like overrides or shell command strings
+ok 538 - configuration refuses model-like overrides or shell command strings
+  ---
+  duration_ms: 0.626289
+  type: 'test'
+  ...
+# Subtest: shipped stdio server exposes prepare/apply and rejects body overrides through JSON-RPC
+ok 539 - shipped stdio server exposes prepare/apply and rejects body overrides through JSON-RPC
+  ---
+  duration_ms: 92.559718
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: create-when-absent
+ok 540 - shipped connector matches independent oracle: create-when-absent
+  ---
+  duration_ms: 41.692733
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: preserve-human-text
+ok 541 - shipped connector matches independent oracle: preserve-human-text
+  ---
+  duration_ms: 36.830796
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: legacy-open-only
+ok 542 - shipped connector matches independent oracle: legacy-open-only
+  ---
+  duration_ms: 33.577853
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: duplicate-reconcile
+ok 543 - shipped connector matches independent oracle: duplicate-reconcile
+  ---
+  duration_ms: 32.71594
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: quoted-imitation
+ok 544 - shipped connector matches independent oracle: quoted-imitation
+  ---
+  duration_ms: 35.515802
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: indented-and-trailing-whitespace
+ok 545 - shipped connector matches independent oracle: indented-and-trailing-whitespace
+  ---
+  duration_ms: 34.877764
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: timestamp-ties
+ok 546 - shipped connector matches independent oracle: timestamp-ties
+  ---
+  duration_ms: 35.434969
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: author-not-preferred
+ok 547 - shipped connector matches independent oracle: author-not-preferred
+  ---
+  duration_ms: 31.20228
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: repeated-pairs
+ok 548 - shipped connector matches independent oracle: repeated-pairs
+  ---
+  duration_ms: 28.510541
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: fenced-example
+ok 549 - shipped connector matches independent oracle: fenced-example
+  ---
+  duration_ms: 34.390515
+  type: 'test'
+  ...
+# Subtest: shipped connector matches independent oracle: crlf-outside-region
+ok 550 - shipped connector matches independent oracle: crlf-outside-region
+  ---
+  duration_ms: 34.587598
+  type: 'test'
+  ...
+# Subtest: apply sends exact CRLF, Unicode and literal backslashes without copying the preview
+ok 551 - apply sends exact CRLF, Unicode and literal backslashes without copying the preview
+  ---
+  duration_ms: 3.01357
+  type: 'test'
+  ...
+# Subtest: create uses the bound issue and stored canonical body
+ok 552 - create uses the bound issue and stored canonical body
+  ---
+  duration_ms: 0.610706
+  type: 'test'
+  ...
+# Subtest: rejects model-supplied comments, body and target overrides
+ok 553 - rejects model-supplied comments, body and target overrides
+  ---
+  duration_ms: 1.154703
+  type: 'test'
+  ...
+# Subtest: a reference belongs to its session and can be applied only once
+ok 554 - a reference belongs to its session and can be applied only once
+  ---
+  duration_ms: 2.469322
+  type: 'test'
+  ...
+# Subtest: any change to the live comment snapshot refuses before writing
+ok 555 - any change to the live comment snapshot refuses before writing
+  ---
+  duration_ms: 1.127079
+  type: 'test'
+  ...
+# Subtest: expiry and bounded pending plans fail without a write
+ok 556 - expiry and bounded pending plans fail without a write
+  ---
+  duration_ms: 0.408957
+  type: 'test'
+  ...
+# Subtest: parallel apply of separate references for one issue makes at most one write
+ok 557 - parallel apply of separate references for one issue makes at most one write
+  ---
+  duration_ms: 0.417707
+  type: 'test'
+  ...
+# Subtest: transport loss is uncertain and consumes the reference without retry
+ok 558 - transport loss is uncertain and consumes the reference without retry
+  ---
+  duration_ms: 0.170374
+  type: 'test'
+  ...
+# Subtest: a failed live read refuses without invoking the write port
+ok 559 - a failed live read refuses without invoking the write port
+  ---
+  duration_ms: 1.116787
+  type: 'test'
+  ...
+# Subtest: independent oracle: create-when-absent
+ok 560 - independent oracle: create-when-absent
+  ---
+  duration_ms: 85.253709
+  type: 'test'
+  ...
+# Subtest: independent oracle: preserve-human-text
+ok 561 - independent oracle: preserve-human-text
+  ---
+  duration_ms: 30.692366
+  type: 'test'
+  ...
+# Subtest: independent oracle: legacy-open-only
+ok 562 - independent oracle: legacy-open-only
+  ---
+  duration_ms: 23.771104
+  type: 'test'
+  ...
+# Subtest: independent oracle: duplicate-reconcile
+ok 563 - independent oracle: duplicate-reconcile
+  ---
+  duration_ms: 39.792409
+  type: 'test'
+  ...
+# Subtest: independent oracle: quoted-imitation
+ok 564 - independent oracle: quoted-imitation
+  ---
+  duration_ms: 25.172389
+  type: 'test'
+  ...
+# Subtest: independent oracle: indented-and-trailing-whitespace
+ok 565 - independent oracle: indented-and-trailing-whitespace
+  ---
+  duration_ms: 22.965566
+  type: 'test'
+  ...
+# Subtest: independent oracle: timestamp-ties
+ok 566 - independent oracle: timestamp-ties
+  ---
+  duration_ms: 22.014778
+  type: 'test'
+  ...
+# Subtest: independent oracle: author-not-preferred
+ok 567 - independent oracle: author-not-preferred
+  ---
+  duration_ms: 27.127214
+  type: 'test'
+  ...
+# Subtest: independent oracle: repeated-pairs
+ok 568 - independent oracle: repeated-pairs
+  ---
+  duration_ms: 34.430265
+  type: 'test'
+  ...
+# Subtest: independent oracle: fenced-example
+ok 569 - independent oracle: fenced-example
+  ---
+  duration_ms: 44.492346
+  type: 'test'
+  ...
+# Subtest: independent oracle: crlf-outside-region
+ok 570 - independent oracle: crlf-outside-region
+  ---
+  duration_ms: 26.782424
+  type: 'test'
+  ...
+# Subtest: preserves Unicode, CRLF and shell-like text outside the first pair across repeated updates
+ok 571 - preserves Unicode, CRLF and shell-like text outside the first pair across repeated updates
+  ---
+  duration_ms: 70.997063
+  type: 'test'
+  ...
+# Subtest: marker boundaries: close before open
+ok 572 - marker boundaries: close before open
+  ---
+  duration_ms: 23.047315
+  type: 'test'
+  ...
+# Subtest: marker boundaries: foreign close before own open
+ok 573 - marker boundaries: foreign close before own open
+  ---
+  duration_ms: 32.479732
+  type: 'test'
+  ...
+# Subtest: marker boundaries: quoted marker
+ok 574 - marker boundaries: quoted marker
+  ---
+  duration_ms: 27.425379
+  type: 'test'
+  ...
+# Subtest: marker boundaries: inline marker
+ok 575 - marker boundaries: inline marker
+  ---
+  duration_ms: 23.763479
+  type: 'test'
+  ...
+# Subtest: marker boundaries: indented open
+ok 576 - marker boundaries: indented open
+  ---
+  duration_ms: 25.966178
+  type: 'test'
+  ...
+# Subtest: marker boundaries: tilde fenced pair
+ok 577 - marker boundaries: tilde fenced pair
+  ---
+  duration_ms: 30.083284
+  type: 'test'
+  ...
+# Subtest: marker boundaries: three-space fence
+ok 578 - marker boundaries: three-space fence
+  ---
+  duration_ms: 25.880928
+  type: 'test'
+  ...
+# Subtest: marker boundaries: four-space fence is ordinary text
+ok 579 - marker boundaries: four-space fence is ordinary text
+  ---
+  duration_ms: 27.353047
+  type: 'test'
+  ...
+# Subtest: marker boundaries: short closing fence stays open
+ok 580 - marker boundaries: short closing fence stays open
+  ---
+  duration_ms: 22.215361
+  type: 'test'
+  ...
+# Subtest: marker boundaries: wrong closing fence stays open
+ok 581 - marker boundaries: wrong closing fence stays open
+  ---
+  duration_ms: 22.264694
+  type: 'test'
+  ...
+# Subtest: marker boundaries: closing fence with info stays open
+ok 582 - marker boundaries: closing fence with info stays open
+  ---
+  duration_ms: 18.808042
+  type: 'test'
+  ...
+# Subtest: marker boundaries: long closing fence closes
+ok 583 - marker boundaries: long closing fence closes
+  ---
+  duration_ms: 18.673834
+  type: 'test'
+  ...
+# Subtest: marker boundaries: unclosed existing fence hides marker
+ok 584 - marker boundaries: unclosed existing fence hides marker
+  ---
+  duration_ms: 29.65587
+  type: 'test'
+  ...
+# Subtest: marker boundaries: backtick in opening info disqualifies fence
+ok 585 - marker boundaries: backtick in opening info disqualifies fence
+  ---
+  duration_ms: 19.742039
+  type: 'test'
+  ...
+# Subtest: complete pairs outrank older open-only comments without deleting duplicates
+ok 586 - complete pairs outrank older open-only comments without deleting duplicates
+  ---
+  duration_ms: 22.295111
+  type: 'test'
+  ...
+# Subtest: the pure planner leaves the supplied comments and their metadata unchanged
+ok 587 - the pure planner leaves the supplied comments and their metadata unchanged
+  ---
+  duration_ms: 4.593397
+  type: 'test'
+  ...
+# Subtest: orders actual timestamp instants, keeps ties in listing order, and puts missing dates last
+ok 588 - orders actual timestamp instants, keeps ties in listing order, and puts missing dates last
+  ---
+  duration_ms: 24.763724
+  type: 'test'
+  ...
+# Subtest: all missing timestamps keep listing order and authorship has no effect
+ok 589 - all missing timestamps keep listing order and authorship has no effect
+  ---
+  duration_ms: 24.40881
+  type: 'test'
+  ...
+# Subtest: accepts compact timezone offsets and orders sub-millisecond instants without rounding
+ok 590 - accepts compact timezone offsets and orders sub-millisecond instants without rounding
+  ---
+  duration_ms: 19.129874
+  type: 'test'
+  ...
+# Subtest: a complete safe match can be updated while an ambiguous open-only duplicate remains untouched
+ok 591 - a complete safe match can be updated while an ambiguous open-only duplicate remains untouched
+  ---
+  duration_ms: 21.985737
+  type: 'test'
+  ...
+# Subtest: replacement data remains exact: ""
+ok 592 - replacement data remains exact: ""
+  ---
+  duration_ms: 38.118957
+  type: 'test'
+  ...
+# Subtest: replacement data remains exact: "```\\n<!-- faff-review-findings:ISS-1 -->\\n<!-- /faff-review-findings:ISS-1 -->\\n```"
+ok 593 - replacement data remains exact: "```\\n<!-- faff-review-findings:ISS-1 -->\\n<!-- /faff-review-findings:ISS-1 -->\\n```"
+  ---
+  duration_ms: 35.9518
+  type: 'test'
+  ...
+# Subtest: replacement data remains exact: "> <!-- faff-review-findings:ISS-1 -->\\ntext <!-- /faff-review-findings:ISS-1 -->"
+ok 594 - replacement data remains exact: "> <!-- faff-review-findings:ISS-1 -->\\ntext <!-- /faff-review-findings:ISS-1 -->"
+  ---
+  duration_ms: 38.873787
+  type: 'test'
+  ...
+# Subtest: replacement data remains exact: "<!-- faff-review-findings:OTHER -->"
+ok 595 - replacement data remains exact: "<!-- faff-review-findings:OTHER -->"
+  ---
+  duration_ms: 37.039337
+  type: 'test'
+  ...
+# Subtest: refuses schema without a write plan
+ok 596 - refuses schema without a write plan
+  ---
+  duration_ms: 18.652668
+  type: 'test'
+  ...
+# Subtest: refuses unknown field without a write plan
+ok 597 - refuses unknown field without a write plan
+  ---
+  duration_ms: 18.387211
+  type: 'test'
+  ...
+# Subtest: refuses missing replacement without a write plan
+ok 598 - refuses missing replacement without a write plan
+  ---
+  duration_ms: 19.423206
+  type: 'test'
+  ...
+# Subtest: refuses non-string replacement without a write plan
+ok 599 - refuses non-string replacement without a write plan
+  ---
+  duration_ms: 17.514589
+  type: 'test'
+  ...
+# Subtest: refuses comments object without a write plan
+ok 600 - refuses comments object without a write plan
+  ---
+  duration_ms: 18.422169
+  type: 'test'
+  ...
+# Subtest: refuses missing comment body without a write plan
+ok 601 - refuses missing comment body without a write plan
+  ---
+  duration_ms: 22.166819
+  type: 'test'
+  ...
+# Subtest: refuses empty comment id without a write plan
+ok 602 - refuses empty comment id without a write plan
+  ---
+  duration_ms: 19.376915
+  type: 'test'
+  ...
+# Subtest: refuses duplicate ids without a write plan
+ok 603 - refuses duplicate ids without a write plan
+  ---
+  duration_ms: 18.797459
+  type: 'test'
+  ...
+# Subtest: refuses whitespace issue without a write plan
+ok 604 - refuses whitespace issue without a write plan
+  ---
+  duration_ms: 22.090902
+  type: 'test'
+  ...
+# Subtest: refuses HTML issue without a write plan
+ok 605 - refuses HTML issue without a write plan
+  ---
+  duration_ms: 18.884958
+  type: 'test'
+  ...
+# Subtest: refuses C1 control in issue without a write plan
+ok 606 - refuses C1 control in issue without a write plan
+  ---
+  duration_ms: 18.501044
+  type: 'test'
+  ...
+# Subtest: refuses surrogate body without a write plan
+ok 607 - refuses surrogate body without a write plan
+  ---
+  duration_ms: 18.696168
+  type: 'test'
+  ...
+# Subtest: refuses surrogate metadata without a write plan
+ok 608 - refuses surrogate metadata without a write plan
+  ---
+  duration_ms: 16.515719
+  type: 'test'
+  ...
+# Subtest: refuses active open in replacement without a write plan
+ok 609 - refuses active open in replacement without a write plan
+  ---
+  duration_ms: 17.317841
+  type: 'test'
+  ...
+# Subtest: refuses active close in replacement without a write plan
+ok 610 - refuses active close in replacement without a write plan
+  ---
+  duration_ms: 17.39259
+  type: 'test'
+  ...
+# Subtest: refuses unclosed replacement fence without a write plan
+ok 611 - refuses unclosed replacement fence without a write plan
+  ---
+  duration_ms: 16.153554
+  type: 'test'
+  ...
+# Subtest: refuses existing unclosed fence hiding a close without a write plan
+ok 612 - refuses existing unclosed fence hiding a close without a write plan
+  ---
+  duration_ms: 15.328224
+  type: 'test'
+  ...
+# Subtest: refuses existing fence closed only in the human suffix without a write plan
+ok 613 - refuses existing fence closed only in the human suffix without a write plan
+  ---
+  duration_ms: 16.997758
+  type: 'test'
+  ...
+# Subtest: refuses existing unclosed fence with no literal close without a write plan
+ok 614 - refuses existing unclosed fence with no literal close without a write plan
+  ---
+  duration_ms: 18.244295
+  type: 'test'
+  ...
+# Subtest: refuses indented close with human suffix without a write plan
+ok 615 - refuses indented close with human suffix without a write plan
+  ---
+  duration_ms: 16.84701
+  type: 'test'
+  ...
+# Subtest: refuses duplicate JSON keys without a write plan
+ok 616 - refuses duplicate JSON keys without a write plan
+  ---
+  duration_ms: 16.539927
+  type: 'test'
+  ...
+# Subtest: refuses escaped duplicate keys without a write plan
+ok 617 - refuses escaped duplicate keys without a write plan
+  ---
+  duration_ms: 15.596931
+  type: 'test'
+  ...
+# Subtest: refuses nested duplicate keys without a write plan
+ok 618 - refuses nested duplicate keys without a write plan
+  ---
+  duration_ms: 16.39447
+  type: 'test'
+  ...
+# Subtest: refuses overflow number metadata without a write plan
+ok 619 - refuses overflow number metadata without a write plan
+  ---
+  duration_ms: 18.012421
+  type: 'test'
+  ...
+# Subtest: refuses multiple JSON values without a write plan
+ok 620 - refuses multiple JSON values without a write plan
+  ---
+  duration_ms: 16.192262
+  type: 'test'
+  ...
+# Subtest: refuses malformed JSON without a write plan
+ok 621 - refuses malformed JSON without a write plan
+  ---
+  duration_ms: 16.175096
+  type: 'test'
+  ...
+# Subtest: refuses invalid UTF8 without a write plan
+ok 622 - refuses invalid UTF8 without a write plan
+  ---
+  duration_ms: 15.620182
+  type: 'test'
+  ...
+# Subtest: refuses oversized input without a write plan
+ok 623 - refuses oversized input without a write plan
+  ---
+  duration_ms: 16.585177
+  type: 'test'
+  ...
+# Subtest: refuses invalid timestamp "" without a write plan
+ok 624 - refuses invalid timestamp "" without a write plan
+  ---
+  duration_ms: 15.574348
+  type: 'test'
+  ...
+# Subtest: refuses invalid timestamp "yesterday" without a write plan
+ok 625 - refuses invalid timestamp "yesterday" without a write plan
+  ---
+  duration_ms: 15.535973
+  type: 'test'
+  ...
+# Subtest: refuses invalid timestamp 1 without a write plan
+ok 626 - refuses invalid timestamp 1 without a write plan
+  ---
+  duration_ms: 17.061884
+  type: 'test'
+  ...
+# Subtest: refuses invalid timestamp "2026-02-29T00:00:00Z" without a write plan
+ok 627 - refuses invalid timestamp "2026-02-29T00:00:00Z" without a write plan
+  ---
+  duration_ms: 17.722923
+  type: 'test'
+  ...
+# Subtest: refuses invalid timestamp "2026-01-01" without a write plan
+ok 628 - refuses invalid timestamp "2026-01-01" without a write plan
+  ---
+  duration_ms: 17.136758
+  type: 'test'
+  ...
+# Subtest: refuses invalid timestamp "2026-01-01T24:00:00Z" without a write plan
+ok 629 - refuses invalid timestamp "2026-01-01T24:00:00Z" without a write plan
+  ---
+  duration_ms: 17.122883
+  type: 'test'
+  ...
+# Subtest: refuses invalid timestamp "2026-01-01T00:00:60Z" without a write plan
+ok 630 - refuses invalid timestamp "2026-01-01T00:00:60Z" without a write plan
+  ---
+  duration_ms: 16.166512
+  type: 'test'
+  ...
+# Subtest: refuses invalid timestamp "2026-01-01T00:00:00.12xZ" without a write plan
+ok 631 - refuses invalid timestamp "2026-01-01T00:00:00.12xZ" without a write plan
+  ---
+  duration_ms: 18.207462
+  type: 'test'
+  ...
+# Subtest: refuses invalid timestamp "2026-01-01T00:00:00+24:00" without a write plan
+ok 632 - refuses invalid timestamp "2026-01-01T00:00:00+24:00" without a write plan
+  ---
+  duration_ms: 18.311794
+  type: 'test'
+  ...
+# Subtest: rejects unsupported arguments []
+ok 633 - rejects unsupported arguments []
+  ---
+  duration_ms: 14.942101
+  type: 'test'
+  ...
+# Subtest: rejects unsupported arguments ["plan"]
+ok 634 - rejects unsupported arguments ["plan"]
+  ---
+  duration_ms: 15.43339
+  type: 'test'
+  ...
+# Subtest: rejects unsupported arguments ["plan","--input","file.json"]
+ok 635 - rejects unsupported arguments ["plan","--input","file.json"]
+  ---
+  duration_ms: 15.787264
+  type: 'test'
+  ...
+# Subtest: rejects unsupported arguments ["plan","--input","-","--extra"]
+ok 636 - rejects unsupported arguments ["plan","--input","-","--extra"]
+  ---
+  duration_ms: 15.794597
+  type: 'test'
+  ...
+# Subtest: rejects unsupported arguments ["plan","--input","-","--input","-"]
+ok 637 - rejects unsupported arguments ["plan","--input","-","--input","-"]
+  ---
+  duration_ms: 20.122995
+  type: 'test'
+  ...
+# Subtest: real review consumer accepts complete artifacts and rejects inconsistent or malformed envelopes
+ok 638 - real review consumer accepts complete artifacts and rejects inconsistent or malformed envelopes
+  ---
+  duration_ms: 514.954862
+  type: 'test'
+  ...
+# Subtest: review producer refuses publication, code mutation, extra inputs and premature submission
+ok 639 - review producer refuses publication, code mutation, extra inputs and premature submission
+  ---
+  duration_ms: 5.107894
+  type: 'test'
+  ...
+# Subtest: V2 accepts a concrete missing-coverage assertion while preserving V1 evidence and the failure bar
+ok 640 - V2 accepts a concrete missing-coverage assertion while preserving V1 evidence and the failure bar
+  ---
+  duration_ms: 0.260165
+  type: 'test'
+  ...
+# Subtest: review grader detects lost prior identity, fabricated findings, tampering and repeated submissions
+ok 641 - review grader detects lost prior identity, fabricated findings, tampering and repeated submissions
+  ---
+  duration_ms: 326.417815
+  type: 'test'
+  ...
+1..641
+# tests 641
+# suites 0
+# pass 641
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3389.547478

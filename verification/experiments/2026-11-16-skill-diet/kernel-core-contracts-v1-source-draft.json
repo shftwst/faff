@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "status": "source-draft-unreviewed-uninstalled-unmeasured",
+  "source_commit": "762d968cd60ba9ef64d70ef0025a83aa30555d7d",
+  "path": "plugin/skills/faff/references/kernel.md",
+  "baseline": {
+    "path": "verification/experiments/2026-11-16-skill-diet/baseline/kernel-core-contracts-v1.md",
+    "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+    "bytes": 84072,
+    "estimated_tokens": 20857
+  },
+  "candidate": {
+    "path": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v1-draft.md",
+    "sha256": "f526ede8d08e036ce7b84dcedf839e531456a0c33d90cfdf834448ba082e5b42",
+    "bytes": 70844,
+    "estimated_tokens": 17613
+  },
+  "potential_saved": {
+    "bytes": 13228,
+    "estimated_tokens": 3244
+  },
+  "region": {
+    "heading": "## Core contracts and adaptor slots",
+    "before_bytes": 29008,
+    "after_bytes": 15780,
+    "outside_unchanged": true
+  },
+  "limitations": [
+    "No accepted saving or caller proof.",
+    "Existing mandatory reads and accepted Configuration treatment unchanged.",
+    "Inherited gateway-loading/adaptor wording and L4-only holdout rule preserved; no semantic correction bundled.",
+    "Exact protocol causes and existing rendering heading copied from baseline."
+  ]
+}

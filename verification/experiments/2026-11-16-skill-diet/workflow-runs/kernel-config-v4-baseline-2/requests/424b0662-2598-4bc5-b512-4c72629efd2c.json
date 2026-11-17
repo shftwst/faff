@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"legacy-name","status":"blocked","values":{},"reason":"faff config get slots.spec exited 2: legacy config filename .faffrc.yml is a loud error, never a silent default. Migration is not authorised, so no spec producer was invoked."}}

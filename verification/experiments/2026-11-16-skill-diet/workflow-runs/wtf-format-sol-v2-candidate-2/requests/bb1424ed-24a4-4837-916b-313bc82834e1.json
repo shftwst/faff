@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"empty","text":"## What's up: 2026-11-16\n\n### Automation preview\n\n#### Build queue\n\n(none)\n\n#### Needs your call before automation can pick up\n\n(none)\n\n#### Prep queue\n\n(none)\n\n### Structural diagnostics\n\nStructural diagnostics: clean\n\nRun a full groom via `/faff-tidy`? (y/n)"}}

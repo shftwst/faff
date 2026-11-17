@@ -1,0 +1,2 @@
+- Opening of the draft → Lead with the load-bearing model → no load-bearing model to lead with; the producer must supply the governing idea (do not invent one here).
+- Whole draft ("Step one ... Step three") → Prose skimmability: three or more enumerable items in a prose run → render the three steps as a numbered markdown list.

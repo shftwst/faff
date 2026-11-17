@@ -1,0 +1,31 @@
+{
+  "status": "pass",
+  "samples": {
+    "ledger-mcp-parallel-preflight-v2-1": {
+      "status": "pass"
+    },
+    "ledger-mcp-parallel-preflight-v2-2": {
+      "status": "pass"
+    },
+    "ledger-mcp-parallel-preflight-v2-3": {
+      "status": "pass"
+    },
+    "ledger-mcp-parallel-preflight-v2-4": {
+      "status": "pass"
+    },
+    "ledger-mcp-parallel-preflight-v2-5": {
+      "status": "pass"
+    }
+  },
+  "schema": 1,
+  "scope": "Five concurrent deterministic in-process MCP/real CLI preflights. No model calls, native session proof, concurrent provider behaviour or source acceptance.",
+  "runner_sha256": "08f0a8c3644e916a1ab317985423fb7f570d4b9f1ec979afc6c4758be1424053",
+  "client_sha256": "f9a10db53665afcbe743f24bd8ef3ca6ed9bef6af71e752ec373f3db4ab37e27",
+  "preflights": {
+    "ledger-mcp-parallel-preflight-v2-1": "f6e9c43ea37a6b99cb0e8f0d678c36ee34db16c3fef02398854e79b16533223f",
+    "ledger-mcp-parallel-preflight-v2-2": "a61346987c6dc9a8c43fc376d8f70361fedff5e334c2b1bfacbb85e51b6f8c1a",
+    "ledger-mcp-parallel-preflight-v2-3": "86cf58ee3db3046de2353db367e58cc2e8be4da4880c33cbef2e025b9cd12fce",
+    "ledger-mcp-parallel-preflight-v2-4": "4c70756c8bcd8c2ac17c8b7d08815407b3fc4b1df50a30d2a9309572f4315153",
+    "ledger-mcp-parallel-preflight-v2-5": "0d97ec9163c7a610142972cbc4bfcc24763ce0870f60cd17faa15554ca2faa1e"
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "directory": "/var/tmp/faff-map-report-medium-integration",
+  "base_commit": "e0ff6bff35bb5432f8cf36de592b1064b639bff7",
+  "isolated_commit": "f852df57eeac861a7b6eca61c9dc0c40f1fd72ee",
+  "source_sha256": "c86b9870aa0563821b86ef52198be8a343b68ccea832b72023408adf70aead34",
+  "production_installed": false,
+  "temporary_directory": "/var/tmp/faff-map-report-tests-eub7ll9y",
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=4",
+        "test/rendering-artifact.test.mjs",
+        "test/rendering-routing.test.mjs"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/map-report-medium-integration-tests.txt",
+      "sha256": "f0fb1f332d52d0f17831326e722b9f4f14296cc923e8301723d560749f45393c"
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/map-report-medium-integration-adapter-lint.txt",
+      "sha256": "7a35b68a2256d331aa983141b96a148e44c63980b4bdfdac8de1abbc16f9a783"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/map-report-medium-integration-rule-inventory.txt",
+      "sha256": "e9992ea2b42a49414ebb134192244649522e782cefe1ebc453b51f50f16658e2"
+    }
+  ],
+  "limits": [
+    "Deterministic integration only; model-pair native, output and manual checks required before source acceptance."
+  ]
+}

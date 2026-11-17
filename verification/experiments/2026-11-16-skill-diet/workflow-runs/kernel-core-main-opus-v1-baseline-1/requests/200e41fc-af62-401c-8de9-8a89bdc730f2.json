@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"review-provider-outage","text":"```faff-contract:review-verdict\n{\"signal\":\"unavailable\",\"findings\":[]}\n```\n"}}

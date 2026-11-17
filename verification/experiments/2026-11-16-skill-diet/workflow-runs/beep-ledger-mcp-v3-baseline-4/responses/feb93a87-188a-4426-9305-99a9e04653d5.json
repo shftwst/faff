@@ -1,0 +1,41 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc102",
+      "--root",
+      "/var/tmp/faff-ledger-measure-rLhZGS/actual/phase-events",
+      "--tokens",
+      "--session-id",
+      "ledger-measurement-session"
+    ],
+    "input": "{\"phase\":\"build\",\"type\":\"park\",\"issue\":\"PARK-1\"}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":15,\"ts\":\"2026-11-17T00:59:36.971Z\",\"prev\":\"fa0a1cd8240bf25c132acb217bf863808f6a41e4cf4aae23afb5457736943ec3\",\"phase\":\"build\",\"type\":\"park\",\"issue\":\"PARK-1\",\"data\":{\"tokens\":null,\"tokens_source\":\"estimate\"}}\n",
+    "stderr": "",
+    "error": null,
+    "ledger_before_sha256": "3037c4d3e2c7fe736ad56a94357e6ea8671220659c9cc79e05746251ce3aac39",
+    "ledger_after_sha256": "3037c4d3e2c7fe736ad56a94357e6ea8671220659c9cc79e05746251ce3aac39",
+    "prior_events_sha256": "9121d4943c62e9b86c2231c57307a60bd904ea2d127e7812bfa3549cbf0c307d",
+    "events_after_sha256": "a66deeee37af517e305ac3f712eddd482371e41e42ec043c18d2caf311527ada",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 15,
+        "ts": "2026-11-17T00:59:36.971Z",
+        "prev": "fa0a1cd8240bf25c132acb217bf863808f6a41e4cf4aae23afb5457736943ec3",
+        "phase": "build",
+        "type": "park",
+        "issue": "PARK-1",
+        "data": {
+          "tokens": null,
+          "tokens_source": "estimate"
+        }
+      }
+    ]
+  }
+}

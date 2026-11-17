@@ -1,0 +1,1629 @@
+{
+  "schema": 1,
+  "status": "manual-complete-held-native",
+  "scope": "Full manual read of every listed actual proposal and all ten actual rule answers per listed closed sample. Source-fact, stated-need, assumption, one-design, ADR-intent and human-only boundary review. Native/functional status remains separate; real consumer replay is a separate prerequisite. No candidate source acceptance, full graft, architectural quality or procurement claim.",
+  "inputs": [
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "sha256": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/architecture-proposal-with-context.md",
+      "sha256": "97038604a7eff768d3b5baad782f0103bca9ebefd074de68c08f7cbb1446fa02"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/architecture-proposal.json",
+      "sha256": "f1b3185a451858a9b6692207c9dd333b1b6e46364c55a6425a157706acca5025"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-mcp-v1-registration.json",
+      "sha256": "7c16f09ccac313b28c9b6f128d3e61acf6f4d14a51b6b7c1e646b0e85bc35bad"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-mcp-v1-baseline-plan.json",
+      "sha256": "1f395fa4edee39569ab444de43104c22258b733fd6e3aac77feeef182e6cec7d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+      "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-architecture-mcp-v1-prelaunch-review.json",
+      "sha256": "b340a7571da9a079136c25fa47c9f8076581ab017682228df8bde2b7fe231155"
+    }
+  ],
+  "binding_checks": [
+    {
+      "check": "source_policy_fixture_registration_match_prelaunch_bindings",
+      "pass": true
+    },
+    {
+      "check": "listed_artifact_bytes_equal_capture_and_persisted_hashes",
+      "pass": true
+    },
+    {
+      "check": "listed_decisions_exactly_match_frozen_expected_values",
+      "pass": true
+    }
+  ],
+  "samples": [
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-1",
+      "status": "pass",
+      "raw_status": "pass",
+      "native_status": "pass",
+      "artifacts_read": 4,
+      "decisions_read": 10,
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/report.json",
+          "sha256": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/capture.json",
+          "sha256": "301fdd8d7cc0cb906a58627ca205c5c6dc0714661d17109f0429a97de518c799"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/native-audit.json",
+          "sha256": "da023550a8a4804d8f3c4280d57076fd21c127ecd8add74f8717d188feb6769a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/manifest.json",
+          "sha256": "1bd3d2c3aaa7ef0bb75e077d33d3a4cc51a3937edec6e6685cc092dae45112cf"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/task.json",
+          "sha256": "702ab54806e7ea6cd47034fca4ead53051c423c75c9f3c9e555c9abad78738bb"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/worker-manifest.json",
+          "sha256": "98676806b29fe113ee3e6704fb26517f93488c756cdaafdd0f8f15f0ba059f07"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/worker-final-state.json",
+          "sha256": "4b15d608f782cd2a0f2f90f0d4c39991ecaa5f7a4bf89f66c471bd452f1b017a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/artifacts/relational.md",
+          "sha256": "7909679d68ddcd9996db263ccf80c145270fce3cb9a199e90f270dd4e1ca570e"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/artifacts/nightly-batch.md",
+          "sha256": "4aa5138c8482ba99871b7f5ef197993b3bce11f288813290e3bfc85367c533f6"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/artifacts/no-profile.md",
+          "sha256": "2a8c45770e4f17dd4d1ab7247e18ae46f08e20d844f8efd455f04f0c22ed7b46"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/artifacts/external-only.md",
+          "sha256": "f2c83178a7b1d26258fbc1d1a75131f818da8a9b4059b94393a455cc413229fb"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "decisions": [
+        {
+          "case_id": "profile-read",
+          "status": "pass",
+          "value": {
+            "command": "faff profile show --json"
+          },
+          "value_sha256": "772b896381bfc6dcb4579cb2f46b299415c73732739abff601b418860662ebf1"
+        },
+        {
+          "case_id": "missing-profile",
+          "status": "pass",
+          "value": {
+            "stop": false,
+            "state_no_profile_assumption": true,
+            "use_brief": true
+          },
+          "value_sha256": "eb04bc217f62f73a1d787be5dd39112648d081da2df9bbce159104fc8a1c6e7b"
+        },
+        {
+          "case_id": "default",
+          "status": "pass",
+          "value": {
+            "recommendation": "build"
+          },
+          "value_sha256": "ac20ef976849fbc83dc10932afb689297760378d25cf6759c4cd1624fedfe1b2"
+        },
+        {
+          "case_id": "non-build",
+          "status": "pass",
+          "value": {
+            "act": false,
+            "surface_for_human": true
+          },
+          "value_sha256": "13c8a419d7a0a32047914bc40a3b72f9885d7431f41551fba94e506bb1276f98"
+        },
+        {
+          "case_id": "materialise",
+          "status": "pass",
+          "value": {
+            "call": false
+          },
+          "value_sha256": "8664d69b6b925885232654cca9c89358cbf2b8c5db44887e7e6ecceecb25be06"
+        },
+        {
+          "case_id": "critic",
+          "status": "pass",
+          "value": {
+            "issue_verdict": false
+          },
+          "value_sha256": "61568f84789e11896eef02f2e6c15a18984fd8ec4e265c11941f47b895be39a1"
+        },
+        {
+          "case_id": "needs",
+          "status": "pass",
+          "value": {
+            "required": true
+          },
+          "value_sha256": "d12846c0e5defa68f9bac711052301fa37bf1077a9b0c3b26c93196072094643"
+        },
+        {
+          "case_id": "alternatives",
+          "status": "pass",
+          "value": {
+            "argue_against_unchosen": false
+          },
+          "value_sha256": "ade3bf77b3a64271187bddf52792921621b6d52c4aa076a1ffda54260a901918"
+        },
+        {
+          "case_id": "intent",
+          "status": "pass",
+          "value": {
+            "echo_each": true
+          },
+          "value_sha256": "33ce273b6981508d3ba993c54bf4d836bc5d1bd30b2150925cb502fef6d799c2"
+        },
+        {
+          "case_id": "confidence",
+          "status": "pass",
+          "value": {
+            "advisory": true,
+            "gates_quality": false
+          },
+          "value_sha256": "a0893536c5c7abcc3cee01d7f66e0c293873e9045c0624fbbc5519d7462b8cdf"
+        }
+      ]
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-2",
+      "status": "pass",
+      "raw_status": "pass",
+      "native_status": "pass",
+      "artifacts_read": 4,
+      "decisions_read": 10,
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/report.json",
+          "sha256": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/capture.json",
+          "sha256": "656891d316c83ffb1d7aaed4c8db6d0e83eb8d8653527a96ba291fa5ec409ed4"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/native-audit.json",
+          "sha256": "4b31af360bd7519a3a7bedc70aaa69a012420ce41dad7852299f8db7c1234771"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/manifest.json",
+          "sha256": "1bd3d2c3aaa7ef0bb75e077d33d3a4cc51a3937edec6e6685cc092dae45112cf"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/task.json",
+          "sha256": "702ab54806e7ea6cd47034fca4ead53051c423c75c9f3c9e555c9abad78738bb"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/worker-manifest.json",
+          "sha256": "c9f199a1a7d69c63baf1d9f8832d7ab17d4ccdec03575c5f7f0e5af7dfea3f68"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/worker-final-state.json",
+          "sha256": "71e7fbeabc273162c5f02b0b0e1f67c849b35fc8d8993a0cc30093d05735e115"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/artifacts/relational.md",
+          "sha256": "32b5e4ef2b9c9f32728855b3a85c5da387d76e671feddf949da01986cea606bb"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/artifacts/nightly-batch.md",
+          "sha256": "746731cb5218eb9849f0176312ef3165b9b2ad87f6c165f46ecac1298fbcfd7c"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/artifacts/no-profile.md",
+          "sha256": "2d6f35defcf434e3f1436fe454f30b30ec4e20634f86a75c71a6d9f10d26bcf6"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/artifacts/external-only.md",
+          "sha256": "223a5dd7c2806caa89ecc133ac08dd1df467c63d796703678a1af87896d2a456"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "decisions": [
+        {
+          "case_id": "profile-read",
+          "status": "pass",
+          "value": {
+            "command": "faff profile show --json"
+          },
+          "value_sha256": "772b896381bfc6dcb4579cb2f46b299415c73732739abff601b418860662ebf1"
+        },
+        {
+          "case_id": "missing-profile",
+          "status": "pass",
+          "value": {
+            "stop": false,
+            "state_no_profile_assumption": true,
+            "use_brief": true
+          },
+          "value_sha256": "eb04bc217f62f73a1d787be5dd39112648d081da2df9bbce159104fc8a1c6e7b"
+        },
+        {
+          "case_id": "default",
+          "status": "pass",
+          "value": {
+            "recommendation": "build"
+          },
+          "value_sha256": "ac20ef976849fbc83dc10932afb689297760378d25cf6759c4cd1624fedfe1b2"
+        },
+        {
+          "case_id": "non-build",
+          "status": "pass",
+          "value": {
+            "act": false,
+            "surface_for_human": true
+          },
+          "value_sha256": "13c8a419d7a0a32047914bc40a3b72f9885d7431f41551fba94e506bb1276f98"
+        },
+        {
+          "case_id": "materialise",
+          "status": "pass",
+          "value": {
+            "call": false
+          },
+          "value_sha256": "8664d69b6b925885232654cca9c89358cbf2b8c5db44887e7e6ecceecb25be06"
+        },
+        {
+          "case_id": "critic",
+          "status": "pass",
+          "value": {
+            "issue_verdict": false
+          },
+          "value_sha256": "61568f84789e11896eef02f2e6c15a18984fd8ec4e265c11941f47b895be39a1"
+        },
+        {
+          "case_id": "needs",
+          "status": "pass",
+          "value": {
+            "required": true
+          },
+          "value_sha256": "d12846c0e5defa68f9bac711052301fa37bf1077a9b0c3b26c93196072094643"
+        },
+        {
+          "case_id": "alternatives",
+          "status": "pass",
+          "value": {
+            "argue_against_unchosen": false
+          },
+          "value_sha256": "ade3bf77b3a64271187bddf52792921621b6d52c4aa076a1ffda54260a901918"
+        },
+        {
+          "case_id": "intent",
+          "status": "pass",
+          "value": {
+            "echo_each": true
+          },
+          "value_sha256": "33ce273b6981508d3ba993c54bf4d836bc5d1bd30b2150925cb502fef6d799c2"
+        },
+        {
+          "case_id": "confidence",
+          "status": "pass",
+          "value": {
+            "advisory": true,
+            "gates_quality": false
+          },
+          "value_sha256": "a0893536c5c7abcc3cee01d7f66e0c293873e9045c0624fbbc5519d7462b8cdf"
+        }
+      ]
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-3",
+      "status": "pass",
+      "raw_status": "pass",
+      "native_status": "pass",
+      "artifacts_read": 4,
+      "decisions_read": 10,
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/report.json",
+          "sha256": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/capture.json",
+          "sha256": "4fa42147baa91bfb7489be431ad387c7088267c38f23fffc520ac23e7217ad63"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/native-audit.json",
+          "sha256": "daf3761cc3cf2b52d80351bdcc0227bd70592eee9803bd00873d93ef92d14ff8"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/manifest.json",
+          "sha256": "1bd3d2c3aaa7ef0bb75e077d33d3a4cc51a3937edec6e6685cc092dae45112cf"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/task.json",
+          "sha256": "702ab54806e7ea6cd47034fca4ead53051c423c75c9f3c9e555c9abad78738bb"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/worker-manifest.json",
+          "sha256": "0a4f1246f729cbbf34c079b3057f398db2acb37ce43fc2f17754c9fabba54aa9"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/worker-final-state.json",
+          "sha256": "431d722480d8b795db527e1bfa443ad9b5e0cf13f37d7e310491952f15bd060c"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/artifacts/relational.md",
+          "sha256": "4f0bdbf605286e49a794afcf2977a9327e4954040243d227bda89db7a30d1f44"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/artifacts/nightly-batch.md",
+          "sha256": "716b452bbc7b8646d5a82c20d9f6d77222ff7c26fe04e91b5146164ae6179d48"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/artifacts/no-profile.md",
+          "sha256": "4a9a7ad147a146a65a0f12387d1109a7b64ac0e7883a74df1f01a8c136ed0b53"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/artifacts/external-only.md",
+          "sha256": "7d1dc1991d7471c3c9b29cd51625da1c9a165317151877367f2e23504e472c35"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "decisions": [
+        {
+          "case_id": "profile-read",
+          "status": "pass",
+          "value": {
+            "command": "faff profile show --json"
+          },
+          "value_sha256": "772b896381bfc6dcb4579cb2f46b299415c73732739abff601b418860662ebf1"
+        },
+        {
+          "case_id": "missing-profile",
+          "status": "pass",
+          "value": {
+            "stop": false,
+            "state_no_profile_assumption": true,
+            "use_brief": true
+          },
+          "value_sha256": "eb04bc217f62f73a1d787be5dd39112648d081da2df9bbce159104fc8a1c6e7b"
+        },
+        {
+          "case_id": "default",
+          "status": "pass",
+          "value": {
+            "recommendation": "build"
+          },
+          "value_sha256": "ac20ef976849fbc83dc10932afb689297760378d25cf6759c4cd1624fedfe1b2"
+        },
+        {
+          "case_id": "non-build",
+          "status": "pass",
+          "value": {
+            "act": false,
+            "surface_for_human": true
+          },
+          "value_sha256": "13c8a419d7a0a32047914bc40a3b72f9885d7431f41551fba94e506bb1276f98"
+        },
+        {
+          "case_id": "materialise",
+          "status": "pass",
+          "value": {
+            "call": false
+          },
+          "value_sha256": "8664d69b6b925885232654cca9c89358cbf2b8c5db44887e7e6ecceecb25be06"
+        },
+        {
+          "case_id": "critic",
+          "status": "pass",
+          "value": {
+            "issue_verdict": false
+          },
+          "value_sha256": "61568f84789e11896eef02f2e6c15a18984fd8ec4e265c11941f47b895be39a1"
+        },
+        {
+          "case_id": "needs",
+          "status": "pass",
+          "value": {
+            "required": true
+          },
+          "value_sha256": "d12846c0e5defa68f9bac711052301fa37bf1077a9b0c3b26c93196072094643"
+        },
+        {
+          "case_id": "alternatives",
+          "status": "pass",
+          "value": {
+            "argue_against_unchosen": false
+          },
+          "value_sha256": "ade3bf77b3a64271187bddf52792921621b6d52c4aa076a1ffda54260a901918"
+        },
+        {
+          "case_id": "intent",
+          "status": "pass",
+          "value": {
+            "echo_each": true
+          },
+          "value_sha256": "33ce273b6981508d3ba993c54bf4d836bc5d1bd30b2150925cb502fef6d799c2"
+        },
+        {
+          "case_id": "confidence",
+          "status": "pass",
+          "value": {
+            "advisory": true,
+            "gates_quality": false
+          },
+          "value_sha256": "a0893536c5c7abcc3cee01d7f66e0c293873e9045c0624fbbc5519d7462b8cdf"
+        }
+      ]
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-4",
+      "status": "pass",
+      "raw_status": "pass",
+      "native_status": "pass",
+      "artifacts_read": 4,
+      "decisions_read": 10,
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/report.json",
+          "sha256": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/capture.json",
+          "sha256": "149477da1134bf2fce3a43d5cd37b5970f29db7fb6de55a9e800259c7508a845"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/native-audit.json",
+          "sha256": "87b2d5a065211ad57a11a3364fadd1dfb296c208dadcf7014eb9486e6a2810a5"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/manifest.json",
+          "sha256": "1bd3d2c3aaa7ef0bb75e077d33d3a4cc51a3937edec6e6685cc092dae45112cf"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/task.json",
+          "sha256": "702ab54806e7ea6cd47034fca4ead53051c423c75c9f3c9e555c9abad78738bb"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/worker-manifest.json",
+          "sha256": "6a74e75ec71f0fb0b2a8bf6bfd9e21b4a7e8cc300418fa508b2a7f298f524215"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/worker-final-state.json",
+          "sha256": "d381f6b219ab8c44b9945bd90e9e25f22e13d449e2c4016f4da552aaa4d188d3"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/artifacts/relational.md",
+          "sha256": "e8cd64f618f4ecfca292e0235dbecb43d884c653ea9745c92c8efb10c8f788e0"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/artifacts/nightly-batch.md",
+          "sha256": "d2e9f7abbecdadc38e6b0d26567152518ae411153a4190db1662187524c0eaa8"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/artifacts/no-profile.md",
+          "sha256": "2ad00b1d043cb840b1057b5cae2e94db53da9d56210d7466ff22f9bac37d85ad"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/artifacts/external-only.md",
+          "sha256": "6ad0dcbad22586fca24b352706b7826ae7d6f1731945178559e3c6dd414d12c1"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "decisions": [
+        {
+          "case_id": "profile-read",
+          "status": "pass",
+          "value": {
+            "command": "faff profile show --json"
+          },
+          "value_sha256": "772b896381bfc6dcb4579cb2f46b299415c73732739abff601b418860662ebf1"
+        },
+        {
+          "case_id": "missing-profile",
+          "status": "pass",
+          "value": {
+            "stop": false,
+            "state_no_profile_assumption": true,
+            "use_brief": true
+          },
+          "value_sha256": "eb04bc217f62f73a1d787be5dd39112648d081da2df9bbce159104fc8a1c6e7b"
+        },
+        {
+          "case_id": "default",
+          "status": "pass",
+          "value": {
+            "recommendation": "build"
+          },
+          "value_sha256": "ac20ef976849fbc83dc10932afb689297760378d25cf6759c4cd1624fedfe1b2"
+        },
+        {
+          "case_id": "non-build",
+          "status": "pass",
+          "value": {
+            "act": false,
+            "surface_for_human": true
+          },
+          "value_sha256": "13c8a419d7a0a32047914bc40a3b72f9885d7431f41551fba94e506bb1276f98"
+        },
+        {
+          "case_id": "materialise",
+          "status": "pass",
+          "value": {
+            "call": false
+          },
+          "value_sha256": "8664d69b6b925885232654cca9c89358cbf2b8c5db44887e7e6ecceecb25be06"
+        },
+        {
+          "case_id": "critic",
+          "status": "pass",
+          "value": {
+            "issue_verdict": false
+          },
+          "value_sha256": "61568f84789e11896eef02f2e6c15a18984fd8ec4e265c11941f47b895be39a1"
+        },
+        {
+          "case_id": "needs",
+          "status": "pass",
+          "value": {
+            "required": true
+          },
+          "value_sha256": "d12846c0e5defa68f9bac711052301fa37bf1077a9b0c3b26c93196072094643"
+        },
+        {
+          "case_id": "alternatives",
+          "status": "pass",
+          "value": {
+            "argue_against_unchosen": false
+          },
+          "value_sha256": "ade3bf77b3a64271187bddf52792921621b6d52c4aa076a1ffda54260a901918"
+        },
+        {
+          "case_id": "intent",
+          "status": "pass",
+          "value": {
+            "echo_each": true
+          },
+          "value_sha256": "33ce273b6981508d3ba993c54bf4d836bc5d1bd30b2150925cb502fef6d799c2"
+        },
+        {
+          "case_id": "confidence",
+          "status": "pass",
+          "value": {
+            "advisory": true,
+            "gates_quality": false
+          },
+          "value_sha256": "a0893536c5c7abcc3cee01d7f66e0c293873e9045c0624fbbc5519d7462b8cdf"
+        }
+      ]
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-5",
+      "status": "held-native",
+      "raw_status": "pass",
+      "native_status": "fail",
+      "artifacts_read": 4,
+      "decisions_read": 10,
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/report.json",
+          "sha256": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/capture.json",
+          "sha256": "45f4a4a9b05946f4d735fddfda4dc69129b6fa778f62fbfe64c3392eca0cae8a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/native-audit.json",
+          "sha256": "513ac5614d5c4bb9925cb62516b4b30ba89c195a54777c9085c1bdd9c2d99057"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/manifest.json",
+          "sha256": "1bd3d2c3aaa7ef0bb75e077d33d3a4cc51a3937edec6e6685cc092dae45112cf"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/task.json",
+          "sha256": "702ab54806e7ea6cd47034fca4ead53051c423c75c9f3c9e555c9abad78738bb"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/worker-manifest.json",
+          "sha256": "915af1dcd8eb42134aca95083fdfe959413dcf269918b4e4c43d36dbef00b2fd"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/worker-final-state.json",
+          "sha256": "83b8c99dca13bf095bf5d2ef1f1f064cd5f30da0012e723e9cd9d049ab84286a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/artifacts/relational.md",
+          "sha256": "2284aba260457f06a861203adca3aa2e4ae3fb10ec0646b58ff998fde7486fd0"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/artifacts/nightly-batch.md",
+          "sha256": "524a5e5d3ff94fb6e8af31bfba253ae96b0c77dddbd16afd95634c6595cf483d"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/artifacts/no-profile.md",
+          "sha256": "b81a8b67da064f47b3376d7a27f0cd6c32360e7a1f470cd1221855ce8638844c"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/artifacts/external-only.md",
+          "sha256": "3362235475f703121e94a21de09b76f7275eeda7c2530741d300c78e06b5df0c"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/runner-failure.json",
+          "sha256": "ce758a5fb290dd6581bda641c5669a968773644e1c460d246cae071690d4b8a9"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/startup-binding.json",
+          "sha256": "d3ee63bd9780a8fcaf42e726f37c975af26cd318ff6558e6571328f927a60d70"
+        }
+      ],
+      "decisions": [
+        {
+          "case_id": "profile-read",
+          "status": "pass",
+          "value": {
+            "command": "faff profile show --json"
+          },
+          "value_sha256": "772b896381bfc6dcb4579cb2f46b299415c73732739abff601b418860662ebf1"
+        },
+        {
+          "case_id": "missing-profile",
+          "status": "pass",
+          "value": {
+            "stop": false,
+            "state_no_profile_assumption": true,
+            "use_brief": true
+          },
+          "value_sha256": "eb04bc217f62f73a1d787be5dd39112648d081da2df9bbce159104fc8a1c6e7b"
+        },
+        {
+          "case_id": "default",
+          "status": "pass",
+          "value": {
+            "recommendation": "build"
+          },
+          "value_sha256": "ac20ef976849fbc83dc10932afb689297760378d25cf6759c4cd1624fedfe1b2"
+        },
+        {
+          "case_id": "non-build",
+          "status": "pass",
+          "value": {
+            "act": false,
+            "surface_for_human": true
+          },
+          "value_sha256": "13c8a419d7a0a32047914bc40a3b72f9885d7431f41551fba94e506bb1276f98"
+        },
+        {
+          "case_id": "materialise",
+          "status": "pass",
+          "value": {
+            "call": false
+          },
+          "value_sha256": "8664d69b6b925885232654cca9c89358cbf2b8c5db44887e7e6ecceecb25be06"
+        },
+        {
+          "case_id": "critic",
+          "status": "pass",
+          "value": {
+            "issue_verdict": false
+          },
+          "value_sha256": "61568f84789e11896eef02f2e6c15a18984fd8ec4e265c11941f47b895be39a1"
+        },
+        {
+          "case_id": "needs",
+          "status": "pass",
+          "value": {
+            "required": true
+          },
+          "value_sha256": "d12846c0e5defa68f9bac711052301fa37bf1077a9b0c3b26c93196072094643"
+        },
+        {
+          "case_id": "alternatives",
+          "status": "pass",
+          "value": {
+            "argue_against_unchosen": false
+          },
+          "value_sha256": "ade3bf77b3a64271187bddf52792921621b6d52c4aa076a1ffda54260a901918"
+        },
+        {
+          "case_id": "intent",
+          "status": "pass",
+          "value": {
+            "echo_each": true
+          },
+          "value_sha256": "33ce273b6981508d3ba993c54bf4d836bc5d1bd30b2150925cb502fef6d799c2"
+        },
+        {
+          "case_id": "confidence",
+          "status": "pass",
+          "value": {
+            "advisory": true,
+            "gates_quality": false
+          },
+          "value_sha256": "a0893536c5c7abcc3cee01d7f66e0c293873e9045c0624fbbc5519d7462b8cdf"
+        }
+      ],
+      "manual_status": "pass",
+      "native_failure": {
+        "problems": [
+          "user-context-order-or-type",
+          "worker-incomplete-or-prompt-differs"
+        ],
+        "diagnosis": "A third user environment_context message appeared across UTC midnight. It contains only current_date, timezone and filesystem; date advances by one day, timezone unchanged and filesystem matches original. No task instruction text found. Frozen exact-two-message native bar still fails; no waiver.",
+        "native_line": 51,
+        "late_part_bytes": 2135,
+        "late_part_sha256": "f64fc4ed1bb086e1763f5423ca8e86971f954d06f40f0863e9f5b63f08f4a9a0",
+        "native_source_sha256": "81204b85baf122491e262978bd8f605d1e6ba9d497b7f53240ed16d137022bfa"
+      }
+    }
+  ],
+  "case_reviews": [
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-1",
+      "case_id": "relational",
+      "status": "pass",
+      "artifact_sha256": "7909679d68ddcd9996db263ccf80c145270fce3cb9a199e90f270dd4e1ca570e",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/artifacts/relational.md",
+        "sha256": "7909679d68ddcd9996db263ccf80c145270fce3cb9a199e90f270dd4e1ca570e"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/capture.json",
+          "sha256": "301fdd8d7cc0cb906a58627ca205c5c6dc0714661d17109f0429a97de518c799"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/native-audit.json",
+          "sha256": "da023550a8a4804d8f3c4280d57076fd21c127ecd8add74f8717d188feb6769a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Node 22, Compose, PostgreSQL, GitHub Actions and local-first/no managed entitlement match profile. Durable volume capacity and access-control details are explicitly future confirmations.",
+          "requirements": "Names relational users/projects/entries, restart survival and concurrent transactional integrity; uses one application, durable storage and version-checked transactions for the handful-user workload.",
+          "assumptions": "Infrastructure availability, actual durable host storage, bounded workload and authentication remain explicit assumptions to verify.",
+          "adr_intent": "Two candidates match two intent entries: Node/Compose application and durable transactional PostgreSQL; decision/rationale content is retained.",
+          "human_only": "Build proposal only; human production suitability review and later graft Step 4b materialisation are explicit."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-1",
+      "case_id": "nightly-batch",
+      "status": "pass",
+      "artifact_sha256": "4aa5138c8482ba99871b7f5ef197993b3bce11f288813290e3bfc85367c533f6",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/artifacts/nightly-batch.md",
+        "sha256": "4aa5138c8482ba99871b7f5ef197993b3bce11f288813290e3bfc85367c533f6"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/capture.json",
+          "sha256": "301fdd8d7cc0cb906a58627ca205c5c6dc0714661d17109f0429a97de518c799"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/native-audit.json",
+          "sha256": "da023550a8a4804d8f3c4280d57076fd21c127ecd8add74f8717d188feb6769a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Existing Node 22, Compose, PostgreSQL and GitHub Actions retained. Host timer availability, timezone and database permissions are labelled assumptions.",
+          "requirements": "Nightly scheduling, existing timesheet reads, weekly summary writes, a few thousand reads/dozens writes and existing infrastructure each have a named design choice. No fan-out or cross-partition ordering is invented.",
+          "assumptions": "Reporting boundaries/grouping, host scheduling and database permissions are explicitly unresolved implementation assumptions.",
+          "adr_intent": "Single Node batch/transactional PostgreSQL candidate is echoed with snapshot, unique-key and overlap-lock intent.",
+          "human_only": "One build proposal with human production suitability review; no operation or ADR creation claimed."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-1",
+      "case_id": "no-profile",
+      "status": "pass",
+      "artifact_sha256": "2a8c45770e4f17dd4d1ab7247e18ae46f08e20d844f8efd455f04f0c22ed7b46",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/artifacts/no-profile.md",
+        "sha256": "2a8c45770e4f17dd4d1ab7247e18ae46f08e20d844f8efd455f04f0c22ed7b46"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/capture.json",
+          "sha256": "301fdd8d7cc0cb906a58627ca205c5c6dc0714661d17109f0429a97de518c799"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/native-audit.json",
+          "sha256": "da023550a8a4804d8f3c4280d57076fd21c127ecd8add74f8717d188feb6769a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Explicit profile-show exit 3 and no infra profile. Python and SQLite are proposed choices for the open language, not invented installed infrastructure.",
+          "requirements": "Local CLI on one laptop, equipment checkout records and restart survival map to local SQLite, constraints and committed transactions; no server/cloud requirement added.",
+          "assumptions": "Python/OS availability, local locking/durability and backup details are explicit checks before implementation.",
+          "adr_intent": "One SQLite/Python CLI candidate and matching intent preserve constraints, atomic transactions, migrations and backup/restore scope.",
+          "human_only": "Build recommendation is advisory, production suitability remains human-reviewed and ADR is only a candidate."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-1",
+      "case_id": "external-only",
+      "status": "pass",
+      "artifact_sha256": "f2c83178a7b1d26258fbc1d1a75131f818da8a9b4059b94393a455cc413229fb",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/artifacts/external-only.md",
+        "sha256": "f2c83178a7b1d26258fbc1d1a75131f818da8a9b4059b94393a455cc413229fb"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/capture.json",
+          "sha256": "301fdd8d7cc0cb906a58627ca205c5c6dc0714661d17109f0429a97de518c799"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/native-audit.json",
+          "sha256": "da023550a8a4804d8f3c4280d57076fd21c127ecd8add74f8717d188feb6769a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "FixtureSign certification, inability to build certified substitute and absent licence/access match supplied brief/profile. Interface and verification details are future authorised checks.",
+          "requirements": "Mandatory certified signing component is proposed without expanding surrounding application scope or performing purchase/service calls.",
+          "assumptions": "Certification scope/interface/data handling need verification; human approval and access provisioning remain prerequisites.",
+          "adr_intent": "One conditional FixtureSign candidate is echoed with human authorisation, certification and licence/access conditions.",
+          "human_only": "Buy explicitly requires human review; no procurement, service use, independent certification verification or ADR creation is claimed."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-2",
+      "case_id": "relational",
+      "status": "pass",
+      "artifact_sha256": "32b5e4ef2b9c9f32728855b3a85c5da387d76e671feddf949da01986cea606bb",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/artifacts/relational.md",
+        "sha256": "32b5e4ef2b9c9f32728855b3a85c5da387d76e671feddf949da01986cea606bb"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/capture.json",
+          "sha256": "656891d316c83ffb1d7aaed4c8db6d0e83eb8d8653527a96ba291fa5ec409ed4"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/native-audit.json",
+          "sha256": "4b31af360bd7519a3a7bedc70aaa69a012420ce41dad7852299f8db7c1234771"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Node 22, Compose, PostgreSQL and GitHub Actions match the profile; no managed entitlement is invented.",
+          "requirements": "Names handful-user load, relational entities, restart survival and concurrent transactional integrity, mapping each to one application, persistence and version-checked transactions.",
+          "assumptions": "Deployment capacity, durable storage/backups and access controls remain explicit implementation confirmations.",
+          "adr_intent": "The single combined deployment/PostgreSQL candidate is echoed with its decision and rationale.",
+          "human_only": "Build proposal only; ADR remains intent for later review/materialisation, with no completed operation or approval claimed."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-2",
+      "case_id": "nightly-batch",
+      "status": "pass",
+      "artifact_sha256": "746731cb5218eb9849f0176312ef3165b9b2ad87f6c165f46ecac1298fbcfd7c",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/artifacts/nightly-batch.md",
+        "sha256": "746731cb5218eb9849f0176312ef3165b9b2ad87f6c165f46ecac1298fbcfd7c"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/capture.json",
+          "sha256": "656891d316c83ffb1d7aaed4c8db6d0e83eb8d8653527a96ba291fa5ec409ed4"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/native-audit.json",
+          "sha256": "4b31af360bd7519a3a7bedc70aaa69a012420ce41dad7852299f8db7c1234771"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Runtime, deployment, datastore and CI match profile. Host scheduler availability is explicitly an assumption needing confirmation.",
+          "requirements": "Nightly timing, existing table reads, weekly summary writes, stated bounded workload and existing infrastructure all receive matching design decisions.",
+          "assumptions": "Timezone/grouping/history behaviour and database permissions remain explicit checks, not acquired infrastructure facts.",
+          "adr_intent": "One nightly PostgreSQL batch candidate matches one intent entry including transactions, consistent snapshot, unique keys and lock.",
+          "human_only": "Build proposal only; no service, deployment or ADR creation performed."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-2",
+      "case_id": "no-profile",
+      "status": "pass",
+      "artifact_sha256": "2d6f35defcf434e3f1436fe454f30b30ec4e20634f86a75c71a6d9f10d26bcf6",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/artifacts/no-profile.md",
+        "sha256": "2d6f35defcf434e3f1436fe454f30b30ec4e20634f86a75c71a6d9f10d26bcf6"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/capture.json",
+          "sha256": "656891d316c83ffb1d7aaed4c8db6d0e83eb8d8653527a96ba291fa5ec409ed4"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/native-audit.json",
+          "sha256": "4b31af360bd7519a3a7bedc70aaa69a012420ce41dad7852299f8db7c1234771"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Explicit profile-show exit 3; Python and SQLite are proposals based on the brief, not pre-existing runtime claims.",
+          "requirements": "Local CLI, equipment records, one laptop and survival of restart map to persistent local transactional SQLite without server/cloud scope.",
+          "assumptions": "Python availability, local filesystem durability/locking, equipment rules and backup need remain explicit assumptions.",
+          "adr_intent": "Single local SQLite candidate matches its intent decision and rationale.",
+          "human_only": "Build recommendation is advisory; later ADR review/materialisation is separate."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-2",
+      "case_id": "external-only",
+      "status": "pass",
+      "artifact_sha256": "223a5dd7c2806caa89ecc133ac08dd1df467c63d796703678a1af87896d2a456",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/artifacts/external-only.md",
+        "sha256": "223a5dd7c2806caa89ecc133ac08dd1df467c63d796703678a1af87896d2a456"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/capture.json",
+          "sha256": "656891d316c83ffb1d7aaed4c8db6d0e83eb8d8653527a96ba291fa5ec409ed4"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-2/native-audit.json",
+          "sha256": "4b31af360bd7519a3a7bedc70aaa69a012420ce41dad7852299f8db7c1234771"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Mandatory FixtureSign certification and absent licence/access match the fixture; no external certification verification is claimed.",
+          "requirements": "Only the signing component is proposed and the inability to build a certified substitute supports buy.",
+          "assumptions": "Procurement, access, interface and credential/operational details remain human-authorised future work.",
+          "adr_intent": "Single conditional FixtureSign candidate is echoed in matching intent.",
+          "human_only": "Explicit human decision and separate procurement/service authorisation; no purchase, subscription or signing request performed."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-3",
+      "case_id": "relational",
+      "status": "pass",
+      "artifact_sha256": "4f0bdbf605286e49a794afcf2977a9327e4954040243d227bda89db7a30d1f44",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/artifacts/relational.md",
+        "sha256": "4f0bdbf605286e49a794afcf2977a9327e4954040243d227bda89db7a30d1f44"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/capture.json",
+          "sha256": "4fa42147baa91bfb7489be431ad387c7088267c38f23fffc520ac23e7217ad63"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/native-audit.json",
+          "sha256": "daf3761cc3cf2b52d80351bdcc0227bd70592eee9803bd00873d93ef92d14ff8"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Node 22, Compose, PostgreSQL and GitHub Actions with their evidence paths match the supplied profile. Persistent volume and authentication capability are assumptions to verify.",
+          "requirements": "One internal application addresses handful-user load; relational tables, persistent storage and version-checked transactions explicitly cover restart survival and concurrent integrity in the brief's wording.",
+          "assumptions": "Compatibility, durable host volume, backup arrangements, bounded workload and authentication remain verifiable implementation assumptions.",
+          "adr_intent": "Two deployment and PostgreSQL candidates correspond to the two intent entries with their decisions/rationales preserved.",
+          "human_only": "ADR intent only; production suitability expressly remains a human judgement."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-3",
+      "case_id": "nightly-batch",
+      "status": "pass",
+      "artifact_sha256": "716b452bbc7b8646d5a82c20d9f6d77222ff7c26fe04e91b5146164ae6179d48",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/artifacts/nightly-batch.md",
+        "sha256": "716b452bbc7b8646d5a82c20d9f6d77222ff7c26fe04e91b5146164ae6179d48"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/capture.json",
+          "sha256": "4fa42147baa91bfb7489be431ad387c7088267c38f23fffc520ac23e7217ad63"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/native-audit.json",
+          "sha256": "daf3761cc3cf2b52d80351bdcc0227bd70592eee9803bd00873d93ef92d14ff8"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Node/Compose/PostgreSQL/GitHub Actions match the profile, and scheduler availability is explicitly absent from evidence and assumed.",
+          "requirements": "Nightly job, existing table reads, weekly summary writes, few-thousand/few-dozen workload and existing infrastructure are each named with matching design choices; no real-time requirement is invented.",
+          "assumptions": "Host scheduler, summary grouping/week/timezone semantics, repeatability and database permissions remain explicit assumptions.",
+          "adr_intent": "Single nightly database batch candidate matches the intent, including snapshot, transaction, overlap lock and repeatable-run design.",
+          "human_only": "Proposal for later review with production suitability assigned to a human; no actual scheduler, deployment or ADR operation."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-3",
+      "case_id": "no-profile",
+      "status": "pass",
+      "artifact_sha256": "4a9a7ad147a146a65a0f12387d1109a7b64ac0e7883a74df1f01a8c136ed0b53",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/artifacts/no-profile.md",
+        "sha256": "4a9a7ad147a146a65a0f12387d1109a7b64ac0e7883a74df1f01a8c136ed0b53"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/capture.json",
+          "sha256": "4fa42147baa91bfb7489be431ad387c7088267c38f23fffc520ac23e7217ad63"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/native-audit.json",
+          "sha256": "daf3761cc3cf2b52d80351bdcc0227bd70592eee9803bd00873d93ef92d14ff8"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "No infra profile and exit 3 are explicit; no runtime/CI/deployment capability is inferred. Python is proposed subject to separate availability/installation confirmation.",
+          "requirements": "Local command-line equipment records on one laptop and restart durability map to persistent transactional SQLite; no shared-server or cloud scope is added.",
+          "assumptions": "Runtime, writable persistent app-data directory and equipment fields/rules are checks. Single-user scope is labelled an assumption, not a supplied fact.",
+          "adr_intent": "Single SQLite/Python proposal is echoed with persistence and backup/restore intent.",
+          "human_only": "Brief-only proposal, no profile acquisition or ADR materialisation; production judgement remains human."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-3",
+      "case_id": "external-only",
+      "status": "pass",
+      "artifact_sha256": "7d1dc1991d7471c3c9b29cd51625da1c9a165317151877367f2e23504e472c35",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/artifacts/external-only.md",
+        "sha256": "7d1dc1991d7471c3c9b29cd51625da1c9a165317151877367f2e23504e472c35"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/capture.json",
+          "sha256": "4fa42147baa91bfb7489be431ad387c7088267c38f23fffc520ac23e7217ad63"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-3/native-audit.json",
+          "sha256": "daf3761cc3cf2b52d80351bdcc0227bd70592eee9803bd00873d93ef92d14ff8"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Node 22/Compose and missing FixtureSign licence/access match profile. Service API and certification scope are explicitly unverified and conditional.",
+          "requirements": "Certified FixtureSign signing component is the one design; a narrow local adapter remains within that component and is conditional on documentation/access.",
+          "assumptions": "Certification, entitlement/cost, API behaviour/retry safety, document handling and verification remain future human-authorised checks.",
+          "adr_intent": "One conditional FixtureSign/Node adapter candidate matches the one intent entry.",
+          "human_only": "Buy explicitly surfaced for human review; no purchase, subscription, service call or ADR materialisation claimed."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-4",
+      "case_id": "relational",
+      "status": "pass",
+      "artifact_sha256": "e8cd64f618f4ecfca292e0235dbecb43d884c653ea9745c92c8efb10c8f788e0",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/artifacts/relational.md",
+        "sha256": "e8cd64f618f4ecfca292e0235dbecb43d884c653ea9745c92c8efb10c8f788e0"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/capture.json",
+          "sha256": "149477da1134bf2fce3a43d5cd37b5970f29db7fb6de55a9e800259c7508a845"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/native-audit.json",
+          "sha256": "87b2d5a065211ad57a11a3364fadd1dfb296c208dadcf7014eb9486e6a2810a5"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Recorded Node/Compose/PostgreSQL/GitHub Actions retained. Storage, capacity, operator and identity/access capabilities are explicitly assumed and require confirmation.",
+          "requirements": "Every stated need is named: handful-user tool, relational entities, restart persistence, concurrent transactional integrity, existing stack and synchronous bounded workload.",
+          "assumptions": "Persistent storage, backup/operator ownership, identity mechanism and bounded load are in assumptions rather than asserted profile evidence.",
+          "adr_intent": "Both deployment and PostgreSQL candidates match separate intent entries with the same decisions and rationale.",
+          "human_only": "Proposal for later human review, no quality approval or ADR materialisation performed."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-4",
+      "case_id": "nightly-batch",
+      "status": "pass",
+      "artifact_sha256": "d2e9f7abbecdadc38e6b0d26567152518ae411153a4190db1662187524c0eaa8",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/artifacts/nightly-batch.md",
+        "sha256": "d2e9f7abbecdadc38e6b0d26567152518ae411153a4190db1662187524c0eaa8"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/capture.json",
+          "sha256": "149477da1134bf2fce3a43d5cd37b5970f29db7fb6de55a9e800259c7508a845"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/native-audit.json",
+          "sha256": "87b2d5a065211ad57a11a3364fadd1dfb296c208dadcf7014eb9486e6a2810a5"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Runtime/deployment/datastore/CI match profile. Host scheduling and operational logging capability are explicit assumptions, not recorded infrastructure evidence.",
+          "requirements": "Nightly timing, existing table reads, weekly rows, bounded read/write volume and existing infrastructure all map to design choices; consistent transaction/upsert/locking details are proposals.",
+          "assumptions": "Scheduler ownership, reporting semantics, database permissions/capacity and log visibility remain verifiable assumptions.",
+          "adr_intent": "Single nightly Node batch candidate is echoed including host trigger, Compose, transactional PostgreSQL upsert and advisory lock.",
+          "human_only": "Candidate intent only; no build, scheduled job, service action or ADR creation claimed."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-4",
+      "case_id": "no-profile",
+      "status": "pass",
+      "artifact_sha256": "2ad00b1d043cb840b1057b5cae2e94db53da9d56210d7466ff22f9bac37d85ad",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/artifacts/no-profile.md",
+        "sha256": "2ad00b1d043cb840b1057b5cae2e94db53da9d56210d7466ff22f9bac37d85ad"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/capture.json",
+          "sha256": "149477da1134bf2fce3a43d5cd37b5970f29db7fb6de55a9e800259c7508a845"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/native-audit.json",
+          "sha256": "87b2d5a065211ad57a11a3364fadd1dfb296c208dadcf7014eb9486e6a2810a5"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Profile exit 3 and no infra profile are explicit. Python availability is unverified; local account access is labelled an assumption.",
+          "requirements": "Equipment checkout records, laptop-local CLI, restart persistence and open language are addressed without server or cloud requirements.",
+          "assumptions": "Python/SQLite availability, writable persistent directory, OS access and backup needs are declared checks.",
+          "adr_intent": "One Python/SQLite candidate matches intent with storage, transactions, constraints and consistent backup procedure.",
+          "human_only": "Proposal and ADR intent only; no acquisition or operation performed."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-4",
+      "case_id": "external-only",
+      "status": "pass",
+      "artifact_sha256": "6ad0dcbad22586fca24b352706b7826ae7d6f1731945178559e3c6dd414d12c1",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/artifacts/external-only.md",
+        "sha256": "6ad0dcbad22586fca24b352706b7826ae7d6f1731945178559e3c6dd414d12c1"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/capture.json",
+          "sha256": "149477da1134bf2fce3a43d5cd37b5970f29db7fb6de55a9e800259c7508a845"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-4/native-audit.json",
+          "sha256": "87b2d5a065211ad57a11a3364fadd1dfb296c208dadcf7014eb9486e6a2810a5"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Mandatory certification, inability to build certified substitute, absent licence/access and recorded Node/Compose match source. API/evidence/retention details remain unverified.",
+          "requirements": "One signing-component proposal with conditional integration boundary, no expansion to the surrounding application.",
+          "assumptions": "Certification suitability, commercial terms, service access and authorised interface/retention/error details await human confirmation.",
+          "adr_intent": "Single FixtureSign candidate is echoed with Node integration and unresolved access/licensing dependency.",
+          "human_only": "Buy and missing access explicitly surfaced for human decision; no procurement or service action taken."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-5",
+      "case_id": "relational",
+      "status": "pass",
+      "artifact_sha256": "2284aba260457f06a861203adca3aa2e4ae3fb10ec0646b58ff998fde7486fd0",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/artifacts/relational.md",
+        "sha256": "2284aba260457f06a861203adca3aa2e4ae3fb10ec0646b58ff998fde7486fd0"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/capture.json",
+          "sha256": "45f4a4a9b05946f4d735fddfda4dc69129b6fa778f62fbfe64c3392eca0cae8a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/native-audit.json",
+          "sha256": "513ac5614d5c4bb9925cb62516b4b30ba89c195a54777c9085c1bdd9c2d99057"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Node 22, Compose, PostgreSQL and GitHub Actions match supplied evidence, explicitly not independently inspected; persistence, credentials/capacity and backup needs are assumptions.",
+          "requirements": "Handful-user application, relational entities, restart durability, concurrent transactional integrity and existing runtime/deployment each receive named matching choices.",
+          "assumptions": "Storage/capacity, edit-conflict handling, access permissions and restore/retention requirements are explicit checks.",
+          "adr_intent": "Two runtime/deployment and datastore/edit candidates match two intent entries with requirements and design intent retained.",
+          "human_only": "No ADR written or quality verdict issued; candidates await later review/materialisation."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-5",
+      "case_id": "nightly-batch",
+      "status": "pass",
+      "artifact_sha256": "524a5e5d3ff94fb6e8af31bfba253ae96b0c77dddbd16afd95634c6595cf483d",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/artifacts/nightly-batch.md",
+        "sha256": "524a5e5d3ff94fb6e8af31bfba253ae96b0c77dddbd16afd95634c6595cf483d"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/capture.json",
+          "sha256": "45f4a4a9b05946f4d735fddfda4dc69129b6fa778f62fbfe64c3392eca0cae8a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/native-audit.json",
+          "sha256": "513ac5614d5c4bb9925cb62516b4b30ba89c195a54777c9085c1bdd9c2d99057"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "Recorded infrastructure reused. Scheduler, durable database permissions and operational-log visibility remain explicit assumptions.",
+          "requirements": "Nightly scheduling, existing timesheet read, weekly summary write, bounded volume and absence of real-time/order requirement are directly addressed.",
+          "assumptions": "Scheduler mechanism, time/week dimensions, database role/lock support and alert destination remain future confirmations.",
+          "adr_intent": "Two scheduling and transactional-repeatability candidates match two intent entries with consistent reads/upserts/keys/lock preserved.",
+          "human_only": "Build proposal and ADR intent only, no actual job deployment or materialisation claimed."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-5",
+      "case_id": "no-profile",
+      "status": "pass",
+      "artifact_sha256": "b81a8b67da064f47b3376d7a27f0cd6c32360e7a1f470cd1221855ce8638844c",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/artifacts/no-profile.md",
+        "sha256": "b81a8b67da064f47b3376d7a27f0cd6c32360e7a1f470cd1221855ce8638844c"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/capture.json",
+          "sha256": "45f4a4a9b05946f4d735fddfda4dc69129b6fa778f62fbfe64c3392eca0cae8a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/native-audit.json",
+          "sha256": "513ac5614d5c4bb9925cb62516b4b30ba89c195a54777c9085c1bdd9c2d99057"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "No infra profile and exit 3 are explicit, and Python availability is not asserted as installed evidence.",
+          "requirements": "One laptop local CLI, equipment checkout records, restart durability and open language choice map to Python/SQLite/persistent transactional file.",
+          "assumptions": "Runtime, writable persistent storage, storage authority, identifiers/rules and backup retention remain assumptions/checks.",
+          "adr_intent": "Single Python/SQLite candidate is echoed with persistent transactional storage and matching rationale.",
+          "human_only": "Proposal for later review/materialisation, no profile acquisition or ADR operation."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    },
+    {
+      "sample": "architecture-proposal-mcp-v1-baseline-5",
+      "case_id": "external-only",
+      "status": "pass",
+      "artifact_sha256": "3362235475f703121e94a21de09b76f7275eeda7c2530741d300c78e06b5df0c",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/artifacts/external-only.md",
+        "sha256": "3362235475f703121e94a21de09b76f7275eeda7c2530741d300c78e06b5df0c"
+      },
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/capture.json",
+          "sha256": "45f4a4a9b05946f4d735fddfda4dc69129b6fa778f62fbfe64c3392eca0cae8a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/native-audit.json",
+          "sha256": "513ac5614d5c4bb9925cb62516b4b30ba89c195a54777c9085c1bdd9c2d99057"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+          "sha256": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac"
+        }
+      ],
+      "findings": {
+        "source_fidelity": "pass",
+        "stated_need_coverage": "pass",
+        "assumptions": "pass",
+        "adr_intent": "pass",
+        "human_only_boundary": "pass",
+        "one_design_no_alternatives": "pass",
+        "one_contract_and_advisory_confidence": "pass",
+        "details": {
+          "facts": "FixtureSign mandate, no certified substitute this release, recorded Node/Compose and absent service access all match fixture; certification/interface details remain unverified.",
+          "requirements": "Only certified signing component is proposed, with conditional future adapter on existing runtime.",
+          "assumptions": "Human verification of certification/licence/access and interface/credentials/document/failure details remains required before implementation or use.",
+          "adr_intent": "Single FixtureSign/Node adapter candidate matches the intent entry; surrounding human-action paragraph preserves access/procurement conditions.",
+          "human_only": "Buy expressly requires human review and separate access/procurement decision; no purchase, subscription or service call authorised."
+        }
+      },
+      "unsupported_facts_or_actions": []
+    }
+  ],
+  "summary": {
+    "closed_samples_reviewed": 5,
+    "artifacts_fully_read": 20,
+    "decisions_read": 50,
+    "manual_failures": 0,
+    "complete_arm": true,
+    "native_samples_passed": 4,
+    "native_samples_failed": 1,
+    "arm_qualified": false
+  },
+  "limits": [
+    "Only listed closed samples with report/capture/native audit are counted.",
+    "No full-arm pass until all five closed samples are actually read and verified.",
+    "Source profile snapshots are fixture inputs; manual review does not establish real profile acquisition or architectural quality."
+  ],
+  "frozen_after_all_closed_sample_reads": true
+}

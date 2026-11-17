@@ -1,0 +1,2 @@
+- **Explanation opening:** no load-bearing model to lead with → producer must supply the governing idea; none can be hoisted from this source.
+- **Three inline steps:** 3+ items must render as a list → put the dashboard, copy, and close steps in an ordered list.

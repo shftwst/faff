@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All seven review cases and 20 policy answers were persisted. Finish succeeded.\n\nThe only departure was using `functions.exec` to invoke each individual `exec_command`, as required by the available tool interface. No extra reads, commands, skills or subagents were used.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e40c-18de-75c3-aae4-7ea0fbf158cb"
+    ],
+    "elapsed_seconds": 373.1,
+    "stdout_sha256": "594fe83842f90a02922d657a66ed2f310ea6c859b4f4244cb19c6ebaad095af0",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

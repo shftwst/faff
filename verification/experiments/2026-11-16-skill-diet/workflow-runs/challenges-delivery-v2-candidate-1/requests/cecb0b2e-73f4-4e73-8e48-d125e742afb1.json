@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":"absent","ground":null,"reason":"The provider chain was exhausted with no independent opinion. Per policy, an unreachable or unanswered drift challenge is the absent outcome, which rejects; it is not converted to a pass or an outage annotation."}}

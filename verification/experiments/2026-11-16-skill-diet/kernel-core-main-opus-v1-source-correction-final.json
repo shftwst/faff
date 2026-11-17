@@ -1,0 +1,14 @@
+{
+  "status": "pass-source-correction-addendum",
+  "held_review": "/var/tmp/faff-kernel-core-main-source-review.json",
+  "held_source_sha256": "2633da0b1555656ad47b219443819bda4f8620e20db73760542968f014511349",
+  "final_source_sha256": "4505afeeec9f75b9d2d388564f5f61ce9b7daeac7bbf21bd546d04de41f4e1f5",
+  "sole_change_since_independent_review": {
+    "from": "An autonomous resolve-attempt that fails invokes",
+    "to": "An autonomous run gives it a resolve-attempt; failure invokes",
+    "bytes_added": 13
+  },
+  "meaning": "Restore main requirement to attempt resolving retained medium confidence; failure handling unchanged.",
+  "other_bytes_match_reviewed_source": true,
+  "model_measurement": "pending new corrected-source treatment; prior measurement remains held"
+}

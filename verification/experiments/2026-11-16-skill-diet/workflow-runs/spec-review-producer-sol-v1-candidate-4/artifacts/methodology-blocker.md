@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"reject-approach","objections":[{"lens":"methodology","severity":"blocker","claim":"The bundle exceeds the attached critique's mandatory limit of one independently useful recovery step.","evidence":"HOW bundles token issuance, recovery email delivery, policy administration and old-record migration. The attached Methodology critique rates this a blocker and requires token issuance as the first useful slice.","predicted_consequence":"Building this ticket as written delivers four independent concerns together and violates the mandatory increment limit. Split the increment before build, keeping token issuance first as the critique requires.","spec_anchor":"how"}]}
+```

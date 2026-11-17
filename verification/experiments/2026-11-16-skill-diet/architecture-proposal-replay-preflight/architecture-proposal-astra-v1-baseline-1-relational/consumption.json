@@ -1,0 +1,83 @@
+{
+  "profile": {
+    "exit_code": 0,
+    "stdout": "{\n  \"schema\": 1,\n  \"acquired_at\": \"2026-11-16T00:00:00Z\",\n  \"acquired_by\": \"fixture-acquirer\",\n  \"runtimes\": [\n    {\n      \"name\": \"node\",\n      \"version\": \"22\",\n      \"evidence\": \"package.json\"\n    }\n  ],\n  \"ci\": [\n    {\n      \"name\": \"github-actions\",\n      \"evidence\": \".github/workflows/ci.yml\"\n    }\n  ],\n  \"deploy_targets\": [\n    {\n      \"kind\": \"docker-compose\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"datastores\": [\n    {\n      \"kind\": \"postgres\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"paas_available\": [],\n  \"notes\": [\n    \"Local-first preference. No managed service entitlement recorded.\"\n  ]\n}\n",
+    "stderr": ""
+  },
+  "consumer": {
+    "pass": true,
+    "exit_code": 0,
+    "stdout": "{\"chosen_architecture\":\"A Node service in docker-compose using the existing Postgres database.\",\"rationale\":\"The existing Node/Compose profile fits the small load. Postgres transactions provide transactional integrity for concurrent edits and durable storage to survive restarts.\",\"adr_candidates\":[{\"title\":\"Keep timesheets in Postgres\",\"decision\":\"Use the existing relational database with transactions.\",\"rationale\":\"Relational records need durability and transactional integrity.\"}],\"assumptions\":[\"The existing database has capacity for the small load.\"],\"recommendation\":\"build\",\"violations\":[]}\n",
+    "stderr": "",
+    "producer_value": {
+      "chosen_architecture": "A Node service in docker-compose using the existing Postgres database.",
+      "rationale": "The existing Node/Compose profile fits the small load. Postgres transactions provide transactional integrity for concurrent edits and durable storage to survive restarts.",
+      "adr_candidates": [
+        {
+          "title": "Keep timesheets in Postgres",
+          "decision": "Use the existing relational database with transactions.",
+          "rationale": "Relational records need durability and transactional integrity."
+        }
+      ],
+      "assumptions": [
+        "The existing database has capacity for the small load."
+      ],
+      "recommendation": "build"
+    },
+    "value": {
+      "chosen_architecture": "A Node service in docker-compose using the existing Postgres database.",
+      "rationale": "The existing Node/Compose profile fits the small load. Postgres transactions provide transactional integrity for concurrent edits and durable storage to survive restarts.",
+      "adr_candidates": [
+        {
+          "title": "Keep timesheets in Postgres",
+          "decision": "Use the existing relational database with transactions.",
+          "rationale": "Relational records need durability and transactional integrity."
+        }
+      ],
+      "assumptions": [
+        "The existing database has capacity for the small load."
+      ],
+      "recommendation": "build",
+      "violations": []
+    }
+  },
+  "invalid_recommendation": {
+    "pass": false,
+    "exit_code": 1,
+    "stdout": "{\"chosen_architecture\":\"A Node service in docker-compose using the existing Postgres database.\",\"rationale\":\"The existing Node/Compose profile fits the small load. Postgres transactions provide transactional integrity for concurrent edits and durable storage to survive restarts.\",\"adr_candidates\":[{\"title\":\"Keep timesheets in Postgres\",\"decision\":\"Use the existing relational database with transactions.\",\"rationale\":\"Relational records need durability and transactional integrity.\"}],\"assumptions\":[\"The existing database has capacity for the small load.\"],\"recommendation\":\"invented\",\"violations\":[\"recommendation \\\"invented\\\" not in {build,buy,hybrid}\"]}\n",
+    "stderr": "",
+    "producer_value": {
+      "chosen_architecture": "A Node service in docker-compose using the existing Postgres database.",
+      "rationale": "The existing Node/Compose profile fits the small load. Postgres transactions provide transactional integrity for concurrent edits and durable storage to survive restarts.",
+      "adr_candidates": [
+        {
+          "title": "Keep timesheets in Postgres",
+          "decision": "Use the existing relational database with transactions.",
+          "rationale": "Relational records need durability and transactional integrity."
+        }
+      ],
+      "assumptions": [
+        "The existing database has capacity for the small load."
+      ],
+      "recommendation": "invented"
+    },
+    "value": {
+      "chosen_architecture": "A Node service in docker-compose using the existing Postgres database.",
+      "rationale": "The existing Node/Compose profile fits the small load. Postgres transactions provide transactional integrity for concurrent edits and durable storage to survive restarts.",
+      "adr_candidates": [
+        {
+          "title": "Keep timesheets in Postgres",
+          "decision": "Use the existing relational database with transactions.",
+          "rationale": "Relational records need durability and transactional integrity."
+        }
+      ],
+      "assumptions": [
+        "The existing database has capacity for the small load."
+      ],
+      "recommendation": "invented",
+      "violations": [
+        "recommendation \"invented\" not in {build,buy,hybrid}"
+      ]
+    }
+  }
+}

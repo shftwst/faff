@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:13:04.597231+00:00",
+  "accepted": false,
+  "status": "held-native-protocol-failure",
+  "candidate": "candidates/intake-brief-v1.md",
+  "baseline_samples_completed": 5,
+  "candidate_samples_completed": 3,
+  "candidate_samples_not_started": [
+    4,
+    5
+  ],
+  "diagnosis": "manual-artifact-reviews/intake-sol-candidate3-native-diagnosis.json",
+  "diagnosis_sha256": "f35575d34b114cc467330cfda4f90d2243c9e8409571e93af57ce9aa7405058b",
+  "manual_review": "manual-artifact-reviews/intake-sol-independent.json",
+  "source_installed": false,
+  "savings_counted": false,
+  "next_step": "A future separately registered full comparison must satisfy native and fidelity gates; do not replace failed samples in this set."
+}

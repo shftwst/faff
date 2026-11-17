@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "samples_per_arm": 5,
+  "cases_per_sample": 5,
+  "baseline_passed": 25,
+  "candidate_passed": 25,
+  "normalised_effects_dispatches_and_final_states_equal": true,
+  "config_path_reads": {
+    "baseline": 34,
+    "candidate": 25
+  },
+  "runs": [
+    {
+      "run": "gateway-baseline-1",
+      "arm": "baseline",
+      "passed": 5,
+      "report_sha256": "826e85d64bcd668db499af8cec65a3a79f8d1a27ce9c8282acac9c12704e6e3c",
+      "config_path_reads": 8
+    },
+    {
+      "run": "gateway-baseline-2",
+      "arm": "baseline",
+      "passed": 5,
+      "report_sha256": "9b02bec5ed58f74c8a0711d899dc283b2040c0af53f598b8e116e5e78a43d2f2",
+      "config_path_reads": 7
+    },
+    {
+      "run": "gateway-baseline-3",
+      "arm": "baseline",
+      "passed": 5,
+      "report_sha256": "e8a464d7b6283316243e26d1bb44fbe6beb85aea6bc5ead135aa7075aed8300c",
+      "config_path_reads": 7
+    },
+    {
+      "run": "gateway-baseline-4",
+      "arm": "baseline",
+      "passed": 5,
+      "report_sha256": "9b02bec5ed58f74c8a0711d899dc283b2040c0af53f598b8e116e5e78a43d2f2",
+      "config_path_reads": 7
+    },
+    {
+      "run": "gateway-baseline-5",
+      "arm": "baseline",
+      "passed": 5,
+      "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+      "config_path_reads": 5
+    },
+    {
+      "run": "gateway-candidate-1",
+      "arm": "candidate",
+      "passed": 5,
+      "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+      "config_path_reads": 5
+    },
+    {
+      "run": "gateway-candidate-2",
+      "arm": "candidate",
+      "passed": 5,
+      "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+      "config_path_reads": 5
+    },
+    {
+      "run": "gateway-candidate-3",
+      "arm": "candidate",
+      "passed": 5,
+      "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+      "config_path_reads": 5
+    },
+    {
+      "run": "gateway-candidate-4",
+      "arm": "candidate",
+      "passed": 5,
+      "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+      "config_path_reads": 5
+    },
+    {
+      "run": "gateway-candidate-5",
+      "arm": "candidate",
+      "passed": 5,
+      "report_sha256": "e059ef4f5f66b27f3d4650e44f2b15e27f935d5dc88735a8ef62947e3f0b3ff9",
+      "config_path_reads": 5
+    }
+  ],
+  "scope": "Gateway first-run and dispatch boundary. Real CLI mutations; downstream skill stubs. No full downstream workflow or statistical-equivalence claim.",
+  "provider_usage": "unmetered"
+}

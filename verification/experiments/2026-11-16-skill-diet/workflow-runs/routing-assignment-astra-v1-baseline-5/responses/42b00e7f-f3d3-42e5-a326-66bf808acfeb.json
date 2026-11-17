@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "punt-scan",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/tag-without-crossref.md"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"punts\":[{\"topic\":\"cron vs queue\",\"decides\":null,\"non_blocking\":true,\"out_of_scope_crossref\":false,\"eligible\":false}],\"eligible_count\":0,\"blocking_open_count\":1}\n",
+    "stderr": "",
+    "value": {
+      "punts": [
+        {
+          "topic": "cron vs queue",
+          "decides": null,
+          "non_blocking": true,
+          "out_of_scope_crossref": false,
+          "eligible": false
+        }
+      ],
+      "eligible_count": 0,
+      "blocking_open_count": 1
+    }
+  }
+}

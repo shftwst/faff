@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"marker-effects","value":{"chosen_reopened_by_reader":false,"punt_blocks_build_past_decision":true,"assumes_presence_checked_before_build":true,"missing_assumption_parks":true,"unmarked_tradeoff_valid":false,"collect_punts_and_assumptions_at_top_level":true}}}

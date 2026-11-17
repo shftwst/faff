@@ -1,0 +1,32 @@
+{
+  "harness": "eval/control-parity/adversarial-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/adversarial.json",
+  "timeout_seconds": 960,
+  "samples": [
+    {
+      "name": "adversarial-context-v3-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "adversarial-context-v3-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "adversarial-context-v3-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    }
+  ],
+  "worker": "claude-challenges",
+  "treatment": "context-v3: explicit mandatory guidance read in both arms, full policy delivery, literal JSON stdin bridge. Challenge caller forwards all Phase-1 proposal fields. Original fixtures and prompt policies unchanged; failed earlier treatments remain separate.",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "acceptance": "All five candidate samples must pass every frozen oracle case and protocol review. Baseline failures remain in their before score and are not resampled or relabelled. Report any improvement or differing operations explicitly; do not claim identical observed behaviour if the baseline fails. See workflow-fixtures/CONTEXT-V3.md, clarified before either adversarial context-v3 arm starts."
+}

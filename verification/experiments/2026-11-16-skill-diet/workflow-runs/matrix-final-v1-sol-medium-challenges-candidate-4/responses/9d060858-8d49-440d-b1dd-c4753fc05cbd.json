@@ -1,0 +1,107 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-unserved",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "reason": "Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Export transactions as CSV,Filter transaction exports by date",
+          "--prd-goals",
+          "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "Export serves both cited goals.",
+          "--challenge",
+          "overturned",
+          "--challenge-ground",
+          "unserved",
+          "--challenge-reason",
+          "Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved.",
+          "--dod-covers",
+          "[\"Export transactions as CSV\"]"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"dod_covers\":[\"Export transactions as CSV\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"Export serves both cited goals.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved.\",\"ground\":\"unserved\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved.\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved.\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": false,
+      "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved.",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Export transactions as CSV",
+        "Filter transaction exports by date"
+      ],
+      "dod_covers": [
+        "Export transactions as CSV"
+      ],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": false,
+        "within_scope": false,
+        "verdict": "admit",
+        "reason": "Export serves both cited goals."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved.",
+        "ground": "unserved"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "reject",
+      "upper": {
+        "admit": false,
+        "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): Offline same-provider calibration only. The PRDR cites both CSV export and date filtering, but its DoD explicitly excludes date input and filtering. CSV rows serve the export goal but cannot serve filtering exports by date. This leaves a cited goal unserved, rather than adding capability beyond the PRD, so the overturn ground is unserved."
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

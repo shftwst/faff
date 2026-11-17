@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "punt-scan",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-1/specs/non-punt-marker.md"
+    ],
+    "exit_code": 0,
+    "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+    "stderr": "",
+    "value": {
+      "punts": [],
+      "eligible_count": 0,
+      "blocking_open_count": 0
+    }
+  }
+}

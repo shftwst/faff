@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc100",
+      "--root",
+      "/var/tmp/graft-checkpoint-f6Zi2f/reconciliation/actual/mixed-ledger"
+    ],
+    "input": "{\"type\":\"ledger-write\",\"phase\":\"run\",\"data\":{\"sha256\":\"dcdd6c709baeac8181c114cfcabf87417e42fd556c53b9936a3a295309511116\"}}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":3,\"ts\":\"2026-11-17T04:15:14.676Z\",\"prev\":\"65d14cb7c6d69efd5386c15ca90be5d5e0990e35cd5d2ce1cc44643c1b693035\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"dropped_keys\":[\"sha256\"],\"ledger_sha256\":\"dcdd6c709baeac8181c114cfcabf87417e42fd556c53b9936a3a295309511116\"}}\n",
+    "stderr": "faff events append: dropped data key(s) {sha256} not in the ledger-write schema\nfaff events append: run-ledger.json schema: post_merge_verification_failures[0]: expected type object, got string\n",
+    "error": null,
+    "ledger_before_sha256": "dcdd6c709baeac8181c114cfcabf87417e42fd556c53b9936a3a295309511116",
+    "ledger_after_sha256": "dcdd6c709baeac8181c114cfcabf87417e42fd556c53b9936a3a295309511116",
+    "prior_events_sha256": "7a7475e0c1f62c2f0db06fb7d82682b1249cb3d555ea01100a02b4b587f3bca8",
+    "events_after_sha256": "914ed1b2292c25796dbd53799ddcfb4c82d01fb947d36da83abc62cf3d32d4d6",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 3,
+        "ts": "2026-11-17T04:15:14.676Z",
+        "prev": "65d14cb7c6d69efd5386c15ca90be5d5e0990e35cd5d2ce1cc44643c1b693035",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "dropped_keys": [
+            "sha256"
+          ],
+          "ledger_sha256": "dcdd6c709baeac8181c114cfcabf87417e42fd556c53b9936a3a295309511116"
+        }
+      }
+    ]
+  }
+}

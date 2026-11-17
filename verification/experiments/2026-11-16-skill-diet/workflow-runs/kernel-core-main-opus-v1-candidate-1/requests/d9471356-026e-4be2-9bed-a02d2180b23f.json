@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"delivery-unconfirmed","text":"```faff-contract:delivery-outcome\n{\"outcome\":\"failed\",\"reason\":\"Unrecognised delivery result with no merge or deployment evidence; completion cannot be corroborated.\",\"corroborated\":false}\n```"}}

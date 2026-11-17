@@ -1,0 +1,2 @@
+- Whole draft → no load-bearing model to lead with → producer must supply the governing idea; none exists in the source, so none is invented here.
+- "Step one ... Step three" run-on → Prose skimmability (three or more enumerable items become a list) → render as a numbered list: 1. Open the dashboard. 2. Copy the displayed number. 3. Close the tab.

@@ -1,0 +1,462 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T20:10:54.536420+00:00",
+  "reviewer": {
+    "role": "independent final source-tally verifier",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "status": "pass",
+  "scope": "Read-only source bytes, UTF-16 character token estimate and ledger reconciliation. No new tests, model reruns, source edits, installation, publishing or full workflow claims.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger.json",
+      "sha256": "fc7a661954d96a2cbfb58ae87dc76ca405d3721b276486e51e670356949cd679"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/wtf-sol-v3-after-source.json",
+      "sha256": "dc31f7261703d54f414492b94eade2b03b8b83f485c833e43b49426b76030605"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/intake-brief.md",
+      "sha256": "b1cfe70da49ff2ae688e936ea03407380a8d61a280e88778cddd1dc10e1a6c79"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/intake-brief-v1.md",
+      "sha256": "668b178bfead91377c81015083db36c57697c8bdf3d29dc4807073a81b952e0b"
+    }
+  ],
+  "checks": [
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/autonomous.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/build.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/create.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/kernel.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/l4.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/methodology.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/park.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/review.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/tracker.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff-beep-boop/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff-graft/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff-jot/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff-map/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff-onboard/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff-plot/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff-prep/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff-tidy/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faff-wtf/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffidavit-rendering/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffidavit-routing/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-adversarial-review/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-nlspec/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-spec-review/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-adr/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-architecture/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-env-code-interface/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-env-compose/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-evaluate/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-intake/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-prd/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-review/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-ship/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-spec/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-spec-review/SKILL.md"
+    },
+    {
+      "check": "current_measured_file",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-transport-private-network/SKILL.md"
+    },
+    {
+      "check": "current_totals",
+      "pass": true,
+      "detail": "Current measured source equals last measurement and ledger: 1,262,193 bytes and 312,870 estimated tokens."
+    },
+    {
+      "check": "baseline_totals",
+      "pass": true,
+      "detail": "Recomputed the same measured file set from the pinned baseline commit; denominator is 1,369,435 bytes and 339,279 estimated tokens."
+    },
+    {
+      "check": "savings",
+      "pass": true,
+      "detail": "Incremental ledger savings sum to exact measured before/after differences: 107,242 bytes and 26,409 estimated tokens."
+    },
+    {
+      "check": "accepted_slice_count",
+      "pass": true,
+      "detail": "Nine body/reference cuts plus 26 description edits are recorded."
+    },
+    {
+      "check": "accepted_body_current_hash",
+      "pass": true,
+      "detail": "plugin/skills/faff/SKILL.md"
+    },
+    {
+      "check": "accepted_body_current_hash",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-adversarial-review/SKILL.md"
+    },
+    {
+      "check": "accepted_body_current_hash",
+      "pass": true,
+      "detail": "plugin/skills/faffidavit-rendering/SKILL.md"
+    },
+    {
+      "check": "accepted_body_current_hash",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md"
+    },
+    {
+      "check": "accepted_body_current_hash",
+      "pass": true,
+      "detail": "plugin/skills/faff/references/kernel.md"
+    },
+    {
+      "check": "accepted_body_current_hash",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-prd/SKILL.md"
+    },
+    {
+      "check": "accepted_body_current_hash",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-review/SKILL.md"
+    },
+    {
+      "check": "accepted_body_current_hash",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-spec-review/SKILL.md"
+    },
+    {
+      "check": "accepted_body_current_hash",
+      "pass": true,
+      "detail": "plugin/skills/faff-wtf/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faff-beep-boop/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faff-graft/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faff-map/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faff-onboard/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faff-plot/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faff-tidy/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faff-wtf/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffidavit-routing/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-nlspec/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-dark-spec-review/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-adr/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-architecture/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-env-code-interface/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-env-compose/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-evaluate/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-intake/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-prd/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-review/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-ship/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-spec/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-spec-review/SKILL.md"
+    },
+    {
+      "check": "catalogue_description_changed",
+      "pass": true,
+      "detail": "plugin/skills/faffter-noon-transport-private-network/SKILL.md"
+    },
+    {
+      "check": "held_intake_not_installed",
+      "pass": true,
+      "detail": "Installed intake equals preserved baseline and differs from held candidate; no intake body savings included."
+    },
+    {
+      "check": "all_held_body_paths_excluded",
+      "pass": true,
+      "detail": "No pending body cut appears among accepted body/reference slices; prior catalogue description edits are separate."
+    },
+    {
+      "check": "measurement_commit_present",
+      "pass": true,
+      "detail": "Last source measurement references an existing commit: ea19ca083647fc7cdce91c847b39ba20b55aa8c1"
+    }
+  ],
+  "summary": {
+    "current_bytes": 1262193,
+    "current_estimated_tokens": 312870,
+    "saved_bytes": 107242,
+    "saved_estimated_tokens": 26409,
+    "body_or_reference_cuts": 9,
+    "catalogue_descriptions": 26,
+    "held_intake_body_installed": false,
+    "checks": 83,
+    "failures": 0
+  },
+  "limits": [
+    "Token totals are ceil(UTF-16 character count / 4) summed per measured file, not provider tokens, billed usage or cost.",
+    "Accepted cuts retain their individual bounded qualification scopes. This tally does not turn draft-qualified or bounded evidence into general equivalence.",
+    "Catalogue whole-file after hashes can be superseded by later accepted body cuts; current source is checked against the latest measurement and dedicated body records."
+  ]
+}

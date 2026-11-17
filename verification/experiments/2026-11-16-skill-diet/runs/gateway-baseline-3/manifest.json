@@ -1,0 +1,20 @@
+{
+  "schema": 1,
+  "kind": "decision-smoke",
+  "skill": "faff",
+  "arm": "baseline",
+  "model": "claude-opus-5-5",
+  "effort": "medium",
+  "context_reset_requested": true,
+  "source_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "input_sha256": "91c1c510d64c63b597a42d57894aece67de04609784fa3c28679442cbd175b03",
+  "policy_sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+  "policy_bytes": 12984,
+  "estimated_policy_tokens": 3222,
+  "prompt_sha256": "9dc0bcf0dceb9db96b5eb94c0874f773f4769002932ea36610f0f3675146493f",
+  "limitations": [
+    "interactive worker decisions, not workflow effects",
+    "provider usage unmetered",
+    "cases within a response are correlated"
+  ]
+}

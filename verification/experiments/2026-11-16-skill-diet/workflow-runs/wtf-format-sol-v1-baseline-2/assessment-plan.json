@@ -1,0 +1,28 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/wtf-format.json",
+  "timeout_seconds": 900,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Interactive WTF report generation at completed-fetch/methodology-return boundary. Full fixed kernel, tracker and methodology references plus accepted rendering adaptor precede target policy. The target description is the pending catalogue v2 wording, identical in both body arms; source acceptance also requires that description comparison to qualify. Both arms use run-literal-workflow-samples.py. No acquisition, handoff execution or mutation claim. Fresh Astra-low pair after Claude quota exhaustion; no baseline reuse across providers. Same frozen label-prefix assessment and literal path guard in both arms.",
+  "acceptance": "All five candidate reports must pass rubric, source-fact/manual artifact review and strict native audit. Preserve every baseline failure without replacing it. Fourteen decisions are separate from the three actual persisted reports. Only Output Format and duplicate Notes are editable; all other source bytes remain identical.",
+  "samples": [
+    {
+      "name": "wtf-format-sol-v1-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/wtf-format-with-context.md"
+    }
+  ],
+  "provider": "codex-cli",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "assessment": "assess-wtf-format.mjs",
+  "provider_revision": "Fresh Sol-medium comparison requested by operator. No Astra or Claude samples pooled.",
+  "continuation": "Original planned samples 2-5, no replacement. Sample 1 native identity expectation was corrected against its unchanged capture."
+}

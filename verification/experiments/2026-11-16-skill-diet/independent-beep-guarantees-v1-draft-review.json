@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only draft source reviewer",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "source-review-pass-unmeasured-uninstalled-excluded",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v2.md",
+      "sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+      "bytes": 149485
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-guarantees-v1-draft.md",
+      "sha256": "c63333480bd724d9e7f08624a3e213f3e94da5693a0652c3231fff852a8992ee",
+      "bytes": 146426
+    }
+  ],
+  "base_is_unaccepted_ledger_candidate": true,
+  "outside_guarantees_byte_identical": true,
+  "section_bytes": {
+    "base": 7044,
+    "candidate": 3985,
+    "potential_incremental_savings": 3059
+  },
+  "new_mandatory_reads": [],
+  "resolved_findings": [
+    "Absolute no-auto-split now stands alone; backlog restructuring separately remains limited to tidy autonomous defaults.",
+    "Scope/capacity/session/WIP parking prohibition remains general, followed by the original ready-with-spec attempt obligation."
+  ],
+  "source_map": [
+    {
+      "obligations": [
+        "No prompts",
+        "Valid park reasons",
+        "Compaction resume",
+        "Housekeeping continuation"
+      ],
+      "canonical_home": "Gateway Autonomous Mode Contract"
+    },
+    {
+      "obligations": [
+        "Attach-expecting prep return verification",
+        "Idempotent recovery or one re-dispatch then errored"
+      ],
+      "canonical_home": "Full pipeline step3"
+    },
+    {
+      "obligations": [
+        "Shipment and sibling ground-truth verification",
+        "L4 escalation versus lower-level warning"
+      ],
+      "canonical_home": "Full pipeline step11.5"
+    },
+    {
+      "obligations": [
+        "No capacity deferral",
+        "Budget dispositions and unparked unreached work"
+      ],
+      "canonical_home": "Reporting, Budget flags and Stopping condition"
+    },
+    {
+      "obligations": [
+        "Wave reassembly",
+        "Tracker L3 default/opt-out, L4 and git-only termination"
+      ],
+      "canonical_home": "Step8 and Stopping condition"
+    },
+    {
+      "obligations": [
+        "Dependency serialisation without chain-only parks"
+      ],
+      "canonical_home": "Conflict analysis and concurrency contract"
+    },
+    {
+      "obligations": [
+        "Audit",
+        "Park tagging",
+        "Verdict admission",
+        "Resolve-attempt and repeat-park exception"
+      ],
+      "canonical_home": "Ledger/events, Park protocol and fixed routing contract"
+    }
+  ],
+  "preservation_obligations": [
+    "Keep absolute no-auto-split, general forbidden parking grounds and issue-failure continuation.",
+    "Retain no chain-only park, autonomous WIP unboundedness and human-review PR exemption.",
+    "Retain conditional ground-truth/prep attach checks, recovery cap and level-specific consequences.",
+    "Retain all four termination modes, non-convergence backstop status, budget exception and compaction resume.",
+    "Retain housekeeping continuation, human follow-ups and issue-scoped worktree prune.",
+    "Retain no-prompt, audit/tagging, verdict gating, bounded inference and repeat-park exclusion."
+  ],
+  "bounded_parity_advice": [
+    {
+      "case": "Queue continuation",
+      "effect": "Controlled dispatch trace for high-WIP/human-review PRs and a wholly chained ready queue; no capacity park/deferral.",
+      "reuse": "Reporting no-budget continuation and concurrency/dispatch consumers."
+    },
+    {
+      "case": "Failure continuation",
+      "effect": "Park one failed independent, continue dispatch; preserve housekeeping follow-up after another ships.",
+      "reuse": "Controlled Reporting/ledger/runcheck/summary effects."
+    },
+    {
+      "case": "Budget branches",
+      "effect": "Unbreached continues, stop/escalate reports unreached without parking, narrow continues.",
+      "reuse": "run-checkpoint consumers and tests."
+    },
+    {
+      "case": "Termination modes",
+      "effect": "Required run-done consult versus tracker L3 opt-out with no consult, matching source mode.",
+      "reuse": "run-done consumer/tests."
+    },
+    {
+      "case": "False success",
+      "effect": "Prep attach mismatch recovery/error and shipment-without-merge warning/escalation.",
+      "reuse": "prepcheck/reconcile consumers/tests."
+    }
+  ],
+  "limits": [
+    "Unmeasured draft only; no candidate acceptance, installation or counted savings.",
+    "All bytes outside Guarantees remain unchanged against the exact unaccepted ledgerV2 base. If that base fails or changes, rebase and review again before measurement.",
+    "String matching alone is insufficient; proposed checkpoint effects and actual-output review remain required.",
+    "No claim of full unattended pipeline, hosted tracker/forge, all scheduling interleavings or provider billing.",
+    "No model calls or source edits performed by this review."
+  ]
+}

@@ -1,0 +1,152 @@
+{
+  "schema": 1,
+  "status": "pass-source-semantics-pending-frozen-model-pair",
+  "updated_utc": "2026-11-16T21:46:27.894395+00:00",
+  "reviewer": {
+    "role": "independent Reporting candidate source verifier",
+    "requested_model": "gpt-6.1-sol",
+    "requested_reasoning_effort": "medium"
+  },
+  "bindings": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-reporting-v1.md",
+      "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/beep-reporting-with-context.md",
+      "sha256": "a86f63c7119cfea82d9fd78e9c832c269e517b3107b0496dccf134f303cad254"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-reporting-v1-with-context.md",
+      "sha256": "99a8191396272aab59cf54f2f9f69412e7b396e096d1f26a9246e9ecf65a0ebd"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-v1-source-review.json",
+      "sha256": "8a80023ed921848850c2c691de4e32f13c33238a9fb85400472d6e98fe8e5766"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json",
+      "sha256": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3"
+    },
+    {
+      "path": "eval/control-parity/reporting-execution.mjs",
+      "sha256": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58"
+    }
+  ],
+  "size": {
+    "source_bytes": 157561,
+    "candidate_bytes": 156107,
+    "saved_bytes": 1454,
+    "source_estimated_tokens": 39044,
+    "candidate_estimated_tokens": 38688,
+    "saved_estimated_tokens": 356,
+    "same_cold_context_reduction": true,
+    "provider_usage_claim": false
+  },
+  "unchanged": {
+    "prefix_sha256": "7e7f12dac6fe0f4694213f2b176a7def96e12c3c50f0727ca685ee122d62a159",
+    "suffix_sha256": "ee488c430c05ff4fc7b6747478d27883985d62762485025699f28c48df96a0c4",
+    "outside_two_changed_blocks_byte_identical": true,
+    "same_context_assembly_except_source": true,
+    "new_mandatory_reads": [],
+    "protected_edges": [
+      "Command and facts schema",
+      "Rendering and close preconditions",
+      "Claimed-by-peer paragraph",
+      "Continuation guard",
+      "Tracker/conversation publication",
+      "Stopping condition",
+      "All other build/admission/budget/holdout/ledger/authority steps"
+    ]
+  },
+  "rule_review": [
+    {
+      "rule": "Human follow-ups",
+      "finding": "All4housekeeping categories, one-line form and no-block/no-stop obligation retained.",
+      "semantic_loss_found": false
+    },
+    {
+      "rule": "Exhaustiveness",
+      "finding": "Every touched issue has exactly1outcome bucket; rendering subsections are not new buckets.",
+      "semantic_loss_found": false
+    },
+    {
+      "rule": "Shipped",
+      "finding": "All4headings and annotation sources retained, with explicit flagged>humanAC>skipped>plain precedence; no duplication; failed/unverified distinction; no revert/reopen; tracker/discovered records and human confirmation retained.",
+      "semantic_loss_found": false
+    },
+    {
+      "rule": "Superseded",
+      "finding": "Distinct terminal bucket, delivering IDs, already-on-main via other tickets, no new build/PR, excluded from shipped roll-ups retained.",
+      "semantic_loss_found": false
+    },
+    {
+      "rule": "PR open",
+      "finding": "Plain/resumable subsection split,25-minute loop budget, open non-draft/no-defect meaning and3-cycle exclusion retained.",
+      "semantic_loss_found": false
+    },
+    {
+      "rule": "Parked/outages",
+      "finding": "Park accumulator, build outage, distinct non-admitted prep outage and mutual exclusion retained.",
+      "semantic_loss_found": false
+    },
+    {
+      "rule": "Errored",
+      "finding": "Unchanged.",
+      "semantic_loss_found": false
+    },
+    {
+      "rule": "Routed out",
+      "finding": "Same successful spec gate and excluded verdicts; never built. Wording changed, no semantic change.",
+      "semantic_loss_found": false
+    },
+    {
+      "rule": "Unreached",
+      "finding": "Set-and-breached budget plus undispatched ready work; all4dimensions, transcript/estimate and token/cost qualifier retained.",
+      "semantic_loss_found": false
+    },
+    {
+      "rule": "Peer",
+      "finding": "Verbatim unchanged.",
+      "semantic_loss_found": false
+    },
+    {
+      "rule": "Capacity ban",
+      "finding": "All5banned headings and all4allowed informational categories retained. Unchanged Guarantees separately forbids capacity parks; unchanged continuation guard requires dispatch without budget breach.",
+      "semantic_loss_found": false
+    }
+  ],
+  "coverage": {
+    "within_frozen_fixture": [
+      "Follow-up preservation/no extra mutation",
+      "Shipped precedence with each annotation combination",
+      "Superseded separation and delivering ID",
+      "Plain/resumable PRs and3-cycle plain reason",
+      "Build versus prep outage with prep non-admission",
+      "Budget tokens breach and no-budget continuation",
+      "Transcript provenance, positive economics, health and caller publication",
+      "Injected heading text neutralisation and exact canonical summary bytes"
+    ],
+    "not_independently_exercised_by_model_fixture": [
+      "Routed-out report row: prose is equivalent and owning CLI has repository A6/A7tests, but no routed-out model case.",
+      "Budget until/max_attempts/cost variants: source names all4unchanged; model fixture executes tokens only.",
+      "All4housekeeping categories and optional informational categories: fixture samples follow-ups/discovered-scope, not every subtype."
+    ],
+    "unchanged_explicit_exclusions": [
+      "Pre-write normalisation inside canonical command",
+      "Claimed-by-peer reporting",
+      "Actual acquisition/run-close/andon/builds/hosted writes"
+    ],
+    "interpretation": "Thechanged rules remain in bounded Reporting, and core affected operations have real-handler evidence. Do not present fixture as exhaustive execution of every named subtype; static equivalence plus existing CLI tests support unrepresented subtypes."
+  },
+  "limits": [
+    "No semantic loss found; no source correction required by this review.",
+    "Candidate remains unqualified until same-treatment model comparison, native audits and actual output review complete.",
+    "No baseline failures waived, no changed output or authority inferred from byte reduction.",
+    "No skill/candidate/frozen preflight record edited."
+  ]
+}

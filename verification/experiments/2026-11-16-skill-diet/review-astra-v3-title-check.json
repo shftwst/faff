@@ -1,0 +1,763 @@
+{
+  "normalisation": "Strip heading category through colon, strip inline code markers, collapse whitespace; retain order and all other title text.",
+  "rows": [
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/adjacent-high.md",
+      "sha256": "48dec47d9f8ba38b2865a6ee43d55a05a15aaa1ddbc47b42d4e93b13b095fbde",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/adjacent-low.md",
+      "sha256": "ad9763a1b1ab59d25cf2c087c10c6f977bd34dc378c041776f2c3d431488b3cd",
+      "arm": "baseline",
+      "headings": [
+        "Unrequested comment typo correction"
+      ],
+      "titles": [
+        "Unrequested comment typo correction"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/boundary-bug.md",
+      "sha256": "c52de336a3db9152d230c91f8bbba7420a1f9227a62677358ff03e07442c0fa0",
+      "arm": "baseline",
+      "headings": [
+        "Equality accepted by belowLimit",
+        "Equality rejection lacks a test"
+      ],
+      "titles": [
+        "Equality accepted by belowLimit",
+        "Equality rejection lacks a test"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/clean.md",
+      "sha256": "5fd4bb795a82c86d36a4b5ef0b57dbb320d99c49daa0eb3f866553f27d78a72a",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/missing-coverage.md",
+      "sha256": "78541cd685b32a8efaaffa03a2f08efae626a15099d84fa25b358908334f69af",
+      "arm": "baseline",
+      "headings": [
+        "Mixed-case conversion lacks a test"
+      ],
+      "titles": [
+        "Mixed-case conversion lacks a test"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/planted-fixture.md",
+      "sha256": "7ccb5d2b180fefda7023a1d731408c6e20e9a8ed0204d82f7a68dd5a9c0e876a",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-1/artifacts/prior-findings.md",
+      "sha256": "e3ae62649d6db618f068455e7c28babea06e78c1367d74692a79bd6395badc67",
+      "arm": "baseline",
+      "headings": [
+        "Missing profile guard in lookup",
+        "Unchanged matching user lacks a test"
+      ],
+      "titles": [
+        "Missing profile guard in lookup",
+        "Unchanged matching user lacks a test"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/adjacent-high.md",
+      "sha256": "1e08d03a527efa6df9ed92bcb613315e11a3e38b53b21a509f418190d598a8f9",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/adjacent-low.md",
+      "sha256": "0a274056cfdb4c87d37604623b460877a5582995c9b3bfe8e43f394e923cbacd",
+      "arm": "baseline",
+      "headings": [
+        "Unrequested comment correction"
+      ],
+      "titles": [
+        "Unrequested comment correction"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/boundary-bug.md",
+      "sha256": "de48672ec75ccaba7a64a0095c8c8b80b9c34274244955e321aaaa730ecf1707",
+      "arm": "baseline",
+      "headings": [
+        "Equality accepted by belowLimit",
+        "Equality rejection untested"
+      ],
+      "titles": [
+        "Equality accepted by belowLimit",
+        "Equality rejection untested"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/clean.md",
+      "sha256": "4583ed91bd192df1daa143adf05fb896ee2e5b4b1663b909bb2ad35bffd23688",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/missing-coverage.md",
+      "sha256": "86f37f74fbed76b64b2cb359fc518e9f8e4626c35ff6ab67490d02e9ee66b9c6",
+      "arm": "baseline",
+      "headings": [
+        "Mixed-case conversion untested"
+      ],
+      "titles": [
+        "Mixed-case conversion untested"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/planted-fixture.md",
+      "sha256": "73a9d25c403787d63bd16d110eefb4e91bb4b40936702549d795e635058962dc",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-2/artifacts/prior-findings.md",
+      "sha256": "0b17fd4ce042dadc08b1fa1a148ee9ade0c6afae5711b37f0877cfb82e222fe0",
+      "arm": "baseline",
+      "headings": [
+        "Missing profile guard in lookup",
+        "Matching user preservation untested"
+      ],
+      "titles": [
+        "Missing profile guard in lookup",
+        "Matching user preservation untested"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/adjacent-high.md",
+      "sha256": "252ff1ef42b6c567347015123517603a83e62ef6c973c9244aac09f4480d88f0",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/adjacent-low.md",
+      "sha256": "1de35482726aa5a9ec261461173b52b92dcb062077916add2a1625f49a4e741d",
+      "arm": "baseline",
+      "headings": [
+        "Unrequested comment typo correction"
+      ],
+      "titles": [
+        "Unrequested comment typo correction"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/boundary-bug.md",
+      "sha256": "10443df09eb3dd859defcbe841142f0d681a755cf0d30ebe145d77f08275d4c1",
+      "arm": "baseline",
+      "headings": [
+        "Equality accepted by belowLimit",
+        "Missing equality assertion"
+      ],
+      "titles": [
+        "Equality accepted by belowLimit",
+        "Missing equality assertion"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/clean.md",
+      "sha256": "1a59f9412c7943dc30f61d4d3079ea2797f6ad9cd0be79b1198dcb836878963a",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/missing-coverage.md",
+      "sha256": "b1d7b7539d10c8d39de668a58c20156bbc35c0b2594afd1afc380a756eaa7a47",
+      "arm": "baseline",
+      "headings": [
+        "Missing mixed-case test for lower"
+      ],
+      "titles": [
+        "Missing mixed-case test for lower"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/planted-fixture.md",
+      "sha256": "7cdac8dd3add1affba73ac4f0699b68f56180fb80fc78f5da32df28f4d6b379a",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-3/artifacts/prior-findings.md",
+      "sha256": "ce86db0b691cca90feba8b516faaa62c9223d47b753221ca41a8caf085af7331",
+      "arm": "baseline",
+      "headings": [
+        "Missing profile guard in lookup",
+        "Missing matching-user test in lookup"
+      ],
+      "titles": [
+        "Missing profile guard in lookup",
+        "Missing matching-user test in lookup"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/adjacent-high.md",
+      "sha256": "11cd4ee456757d25a6157414b2beee399d9d6b3ab2318945b26eb8330c341fe7",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/adjacent-low.md",
+      "sha256": "6339ba380c7f349617a3d9eb9c35946b415fa61abcc3947402a13ecdec7e0765",
+      "arm": "baseline",
+      "headings": [
+        "Unrequested comment typo cleanup"
+      ],
+      "titles": [
+        "Unrequested comment typo cleanup"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/boundary-bug.md",
+      "sha256": "c4e672f8108a6c64f5083aa725cb42cd2ef32ed69fb6e9ed1e1cbfc9ac7d9872",
+      "arm": "baseline",
+      "headings": [
+        "Equality accepted by belowLimit",
+        "Equality rejection lacks a test"
+      ],
+      "titles": [
+        "Equality accepted by belowLimit",
+        "Equality rejection lacks a test"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/clean.md",
+      "sha256": "52db3aee631d8f7440e920ddb369657e36d0aa603fb6ee2cfa3ac656b86fba78",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/missing-coverage.md",
+      "sha256": "8ab5b5b6adc7657e3313174a9f702d3bda66eaf8021b4f526a83e414e9443d12",
+      "arm": "baseline",
+      "headings": [
+        "Mixed-case conversion lacks a test"
+      ],
+      "titles": [
+        "Mixed-case conversion lacks a test"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/planted-fixture.md",
+      "sha256": "3eaaa0116dca72935e7b57b44b0adc6b7a3f5b150fd8e45ed73e3900b9544eda",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-4/artifacts/prior-findings.md",
+      "sha256": "db2cf54411b072c3050cd06cb840bcc998babc2c20ef22f6f24cc621961ea99c",
+      "arm": "baseline",
+      "headings": [
+        "Missing profile guard in lookup",
+        "Matching user preservation lacks a test"
+      ],
+      "titles": [
+        "Missing profile guard in lookup",
+        "Matching user preservation lacks a test"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/adjacent-high.md",
+      "sha256": "989cb723fb306ea5364b4af602fce63d7d9fb02c7d1143109552e63e34eafd46",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/adjacent-low.md",
+      "sha256": "ff372eee5b7f620fe7ab83bfb52ac904c6bf325b234c9ed8c29d8c8603b50b6a",
+      "arm": "baseline",
+      "headings": [
+        "Unrequested comment correction"
+      ],
+      "titles": [
+        "Unrequested comment correction"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/boundary-bug.md",
+      "sha256": "67c5539fff5bbe06797ea061abc6c057bc78c132a238373dbc221e6505cb8f80",
+      "arm": "baseline",
+      "headings": [
+        "Equality accepted by belowLimit",
+        "Equality rejection lacks a test"
+      ],
+      "titles": [
+        "Equality accepted by belowLimit",
+        "Equality rejection lacks a test"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/clean.md",
+      "sha256": "b088e7992b7d56799359bd6c2d43d162007d1624f573b1363aa4f408b99ea90c",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/missing-coverage.md",
+      "sha256": "df589764831dc07d2fe01b2e93e38562ba83abdd14de1d8433edeab7b33684e6",
+      "arm": "baseline",
+      "headings": [
+        "Mixed-case conversion lacks a test"
+      ],
+      "titles": [
+        "Mixed-case conversion lacks a test"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/planted-fixture.md",
+      "sha256": "03b76e3e2dfa2d228436f842dce6b0d01ec84525ef7bf2f51fdcc58f256c9e9c",
+      "arm": "baseline",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-baseline-5/artifacts/prior-findings.md",
+      "sha256": "0262140614da3a3830a6d2fcefaa6a666506d6be59bb652da9189c16991a4a49",
+      "arm": "baseline",
+      "headings": [
+        "Missing profile guard in lookup",
+        "Matching-user preservation lacks a test"
+      ],
+      "titles": [
+        "Missing profile guard in lookup",
+        "Matching-user preservation lacks a test"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/adjacent-high.md",
+      "sha256": "252ff1ef42b6c567347015123517603a83e62ef6c973c9244aac09f4480d88f0",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/adjacent-low.md",
+      "sha256": "056b76b71741905798ddf9d3ae0790cfcd01e682c18afeac3c62b26d52a84ab2",
+      "arm": "candidate",
+      "headings": [
+        "Unrequested comment correction beside multiply"
+      ],
+      "titles": [
+        "Unrequested comment correction beside multiply"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/boundary-bug.md",
+      "sha256": "8db90bd9be5eeab2700f7c272a0a0f5135448574ef06890f910936b82efc09f8",
+      "arm": "candidate",
+      "headings": [
+        "Equality accepted by belowLimit",
+        "Missing equality test for belowLimit"
+      ],
+      "titles": [
+        "Equality accepted by belowLimit",
+        "Missing equality test for belowLimit"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/clean.md",
+      "sha256": "d44a306fda75f1af3c29078a983467dd85469cfa95f89dca778b85eccea9c0c6",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/missing-coverage.md",
+      "sha256": "a2d1183bd98559a99c94be460b3d680cf5d654d15fe69c934ca45ca8da0bb070",
+      "arm": "candidate",
+      "headings": [
+        "Missing mixed-case test for lower"
+      ],
+      "titles": [
+        "Missing mixed-case test for lower"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/planted-fixture.md",
+      "sha256": "986d4e205159680db422a91c30f74ebd1a538569afe7a73651f76ed92da02abe",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-1/artifacts/prior-findings.md",
+      "sha256": "464b12daf0117591cd578736ae59c3cf4e7d6026861d3c4b51c6da87c24377e0",
+      "arm": "candidate",
+      "headings": [
+        "Missing profile guard in lookup",
+        "Missing matching-user test for lookup"
+      ],
+      "titles": [
+        "Missing profile guard in lookup",
+        "Missing matching-user test for lookup"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/adjacent-high.md",
+      "sha256": "14a9579f2b9209d044d8a172f179f7a5de16d26401165758232233d77bfbd7c0",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/adjacent-low.md",
+      "sha256": "952f00f53c388ca2a1233f2197b0ac3551b0cd5b0a9036638dc6b9bdc670b6bf",
+      "arm": "candidate",
+      "headings": [
+        "Unrequested comment cleanup beside multiply"
+      ],
+      "titles": [
+        "Unrequested comment cleanup beside multiply"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/boundary-bug.md",
+      "sha256": "40cc6c6f0559aa49ae7662a3add407f6bb03d6a3aa1f771ae0ce0d28a40502fc",
+      "arm": "candidate",
+      "headings": [
+        "Equality accepted by belowLimit",
+        "Missing equality test for belowLimit"
+      ],
+      "titles": [
+        "Equality accepted by belowLimit",
+        "Missing equality test for belowLimit"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/clean.md",
+      "sha256": "6074a3aad251f2aa1f482e50d7a147a9f5f89110c668ff245a40a8a2d303355c",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/missing-coverage.md",
+      "sha256": "4e7af7bd24ca2d9c9014936cc5014fa5975f7ddbf61fe4f21a532902d010e1f3",
+      "arm": "candidate",
+      "headings": [
+        "Missing mixed-case test for lower"
+      ],
+      "titles": [
+        "Missing mixed-case test for lower"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/planted-fixture.md",
+      "sha256": "d2aa9e1a26476713e7617944582f45d23d8f44b2894e6582389639692eb80209",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-2/artifacts/prior-findings.md",
+      "sha256": "4a5b1732bd0581e018288e52334fd9e43c18fdf445d086d4e50c603c40069b4a",
+      "arm": "candidate",
+      "headings": [
+        "Missing profile guard in lookup",
+        "Missing matching-user test for lookup"
+      ],
+      "titles": [
+        "Missing profile guard in lookup",
+        "Missing matching-user test for lookup"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/adjacent-high.md",
+      "sha256": "be0f81d4c695399ff5c8202bab82d9d38883d2982f8b8749852a8bc0354c2c23",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/adjacent-low.md",
+      "sha256": "80b4a458184a4e6414ae4fb9419109d02e2af8acab1921efbadf87cc0ac3a41f",
+      "arm": "candidate",
+      "headings": [
+        "multiply comment cleanup exceeds scope"
+      ],
+      "titles": [
+        "multiply comment cleanup exceeds scope"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/boundary-bug.md",
+      "sha256": "3d4a62495ae119057b33e58e5cab5e92de4da0f9fa7066337c9c0c4517c4881c",
+      "arm": "candidate",
+      "headings": [
+        "belowLimit accepts equality",
+        "belowLimit equality test is missing"
+      ],
+      "titles": [
+        "belowLimit accepts equality",
+        "belowLimit equality test is missing"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/clean.md",
+      "sha256": "a8055343293c05099c59f91a2a43b9d6230f696e79ee5831ab2cccbaaabb6400",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/missing-coverage.md",
+      "sha256": "2dd6c2345e3e859fc421da2d2255f5a91c0dacc1da131bdd9c58f442bff2bcee",
+      "arm": "candidate",
+      "headings": [
+        "lower mixed-case test is missing"
+      ],
+      "titles": [
+        "lower mixed-case test is missing"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/planted-fixture.md",
+      "sha256": "74b7416c701c33a6cd9d71c26d29ef5838a4abd6a9473fa9df7656b40e75f9c5",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-3/artifacts/prior-findings.md",
+      "sha256": "367b1fbe485d0ad719e7a55d0ad1d6574d42d22a57eaa05f14f155bcfacd66b8",
+      "arm": "candidate",
+      "headings": [
+        "Missing profile guard in lookup",
+        "lookup matching-user test is missing"
+      ],
+      "titles": [
+        "Missing profile guard in lookup",
+        "lookup matching-user test is missing"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/adjacent-high.md",
+      "sha256": "7cfa979484002968d635bf9d492b98f14348cffa73974986ad5576c728d6e888",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/adjacent-low.md",
+      "sha256": "08abaa9e1af3d25bcbb93bd0b75fd6ad7261d49035aa921e17c206188a754952",
+      "arm": "candidate",
+      "headings": [
+        "Unrequested comment cleanup beside multiply"
+      ],
+      "titles": [
+        "Unrequested comment cleanup beside multiply"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/boundary-bug.md",
+      "sha256": "d667ee01fe985028bc681cbbd6f157a96ccaea012b03b6b63da326ceb36abf32",
+      "arm": "candidate",
+      "headings": [
+        "Equality accepted by belowLimit"
+      ],
+      "titles": [
+        "Equality accepted by belowLimit"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/clean.md",
+      "sha256": "de8db1a7948640b79ff6319d70bc93949c988aa0d2e0bef3f53cc9769850d492",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/missing-coverage.md",
+      "sha256": "000ad2475a91d5695c5145a376835770e1b7210bd2573841dada907896c3a468",
+      "arm": "candidate",
+      "headings": [
+        "Missing mixed-case test for lower"
+      ],
+      "titles": [
+        "Missing mixed-case test for lower"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/planted-fixture.md",
+      "sha256": "b4949f68e0d1d45939fb7c278606edf3b1cb1c7fd62680376f86dd44b19cca94",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-4/artifacts/prior-findings.md",
+      "sha256": "2fa1e01b6a093467b4a546ddd63aed67fac399b0469c07af0bd2bfcd06412f37",
+      "arm": "candidate",
+      "headings": [
+        "Missing profile guard in lookup",
+        "Missing matching-user test for lookup"
+      ],
+      "titles": [
+        "Missing profile guard in lookup",
+        "Missing matching-user test for lookup"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/adjacent-high.md",
+      "sha256": "2c67c992e48d7c2a6dcd7488449ff3d42ac0efbe341e296098c8ed3323c3fe2c",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/adjacent-low.md",
+      "sha256": "a9b2c7daa079266ebf46ac8250136e7a30cfd8773e21ed39caef2996b4123b34",
+      "arm": "candidate",
+      "headings": [
+        "multiply comment cleanup exceeds scope"
+      ],
+      "titles": [
+        "multiply comment cleanup exceeds scope"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/boundary-bug.md",
+      "sha256": "98b09058cb82e086923f80f59c8c892ba85fdc205b15a7022124bd0f6fffa75e",
+      "arm": "candidate",
+      "headings": [
+        "belowLimit accepts equality",
+        "belowLimit equality test missing"
+      ],
+      "titles": [
+        "belowLimit accepts equality",
+        "belowLimit equality test missing"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/clean.md",
+      "sha256": "6e86c7acc65a01205ab27c38c31de362662968bba46c8f852ea6442f90ecdea2",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/missing-coverage.md",
+      "sha256": "163a8e025f1084fed8e85704fb8a77c628d1b1372fbd65eba1320ffa7e466f3c",
+      "arm": "candidate",
+      "headings": [
+        "lower mixed-case test missing"
+      ],
+      "titles": [
+        "lower mixed-case test missing"
+      ],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/planted-fixture.md",
+      "sha256": "b62c2186edaab9eb55048af49042b203407a922921353d5e0062fa99b55a4bc6",
+      "arm": "candidate",
+      "headings": [],
+      "titles": [],
+      "pass": true
+    },
+    {
+      "path": "workflow-runs/review-producer-astra-v3-candidate-5/artifacts/prior-findings.md",
+      "sha256": "5f746e7e4b74ec6e2cb29e0361812f39931c2c6b78e6a4df259c39a0f86a2fee",
+      "arm": "candidate",
+      "headings": [
+        "Missing profile guard in lookup",
+        "lookup matching-user test missing"
+      ],
+      "titles": [
+        "Missing profile guard in lookup",
+        "lookup matching-user test missing"
+      ],
+      "pass": true
+    }
+  ]
+}

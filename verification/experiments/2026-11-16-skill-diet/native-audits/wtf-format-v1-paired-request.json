@@ -1,0 +1,12 @@
+{
+  "command": [
+    "node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/native-tool-audit.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/wtf-format-v1-paired.json",
+    "/Users/shftwst/workspace/shftwst/faff",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/wtf-format-baseline-plan.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/wtf-format-candidate-plan.json"
+  ],
+  "prompt": "Run this root-authored native log metadata exporter once using Bash. You may first read the script to inspect its privacy boundary. Do not edit anything, inspect raw logs separately, or repeat the command. Command: node /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/native-tool-audit.mjs /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/wtf-format-v1-paired.json /Users/shftwst/workspace/shftwst/faff /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/wtf-format-baseline-plan.json /Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/wtf-format-candidate-plan.json"
+}

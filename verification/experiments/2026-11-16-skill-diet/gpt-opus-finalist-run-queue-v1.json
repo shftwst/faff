@@ -1,0 +1,10 @@
+{
+  "plans": [
+    "matrix-final-v1-sol-medium-challenges-plan.json",
+    "matrix-final-v1-astra-medium-gateway-plan.json",
+    "matrix-final-v1-astra-medium-rendering-plan.json",
+    "matrix-final-v1-astra-medium-challenges-plan.json"
+  ],
+  "maximum_concurrent_lanes": 4,
+  "concurrency_note": "Four task/model lanes; previous screen used up to three model lanes. Elapsed time includes shared resource and queue variance."
+}

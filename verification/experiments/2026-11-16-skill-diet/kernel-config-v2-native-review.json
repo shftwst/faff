@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "status": "not-qualified-native-context-departure",
+  "execution_cases_each_arm": {
+    "passed": 45,
+    "total": 45
+  },
+  "decision_cases_each_arm": {
+    "passed": 120,
+    "total": 120
+  },
+  "native_baseline_samples": {
+    "passed": 5,
+    "total": 5
+  },
+  "native_candidate_samples": {
+    "passed": 4,
+    "total": 5
+  },
+  "failure": {
+    "run": "kernel-config-v2-candidate-5",
+    "tool": "Read",
+    "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+    "reason": "Repository guidance was outside the explicitly authorised initial native reads. Additional context was not delivered identically to both arms."
+  },
+  "native_audits": [
+    "native-audits/kernel-v2-baseline.json",
+    "native-audits/kernel-v2-candidate.json"
+  ],
+  "action": "Freeze V3 with this guidance explicitly preloaded for every baseline and candidate sample. Retain V2 and do not pool its samples with V3."
+}

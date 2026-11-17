@@ -1,0 +1,152 @@
+{
+  "schema": 1,
+  "provider": "codex-cli",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "purpose": "skill-diet-qualification",
+  "harness": "eval/control-parity/graft-checkpoint-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/graft-checkpoints-v1-draft.json",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "timeout_seconds": 1200,
+  "bridge": "eval/control-parity/mailbox-mcp.mjs",
+  "runner": "run-mcp-workflow-samples-v5.py",
+  "sample_execution_policy": "parallel-complete-original-phase",
+  "treatment": "Same complete graft source plus same eight mandatory shared references; only the three reviewed gates/AC/returns source regions differ. All source/fixture/transport/runtime/model/effort/manual bars frozen. The fixture retains its historical draft filename; this plan registers these exact final reviewed bytes.",
+  "acceptance": "Complete all five original baseline samples concurrently. Require all eight execution cases and six decisions, native replay, actual-output/manual detail review and verify-graft-checkpoint-arm-v2 pass before launching any candidate. Then require the identical five original candidate samples. Any failure is preserved and holds the cut, with no retries/replacement/waiver/alternative-model rescue. Source integration/lint/inventory/accounting precede final acceptance.",
+  "manual_criteria": [
+    {
+      "id": "gate-and-order",
+      "requirement": "Review all actual argv/stdin/stdout/status/counters and sequencing, including exact unit heartbeat before/after, failure/no-discovery refusals, and absence of forbidden downstream attempts. Preserve the inherited no-rung quality-contract mismatch."
+    },
+    {
+      "id": "ac-and-methods",
+      "requirement": "Review exact ordered classify criteria, source-qualified IDs, trusted real command/verifications, human-only pending state/all_verified false, sole-writer/render usage and no invented observations."
+    },
+    {
+      "id": "evidence-and-refusals",
+      "requirement": "Review exact returned line and verification inputs/outputs; distinguish legitimate absence, real writer refusal and changed bytes. Check caller final fields faithfully describe actual results."
+    },
+    {
+      "id": "terminal-mapping",
+      "requirement": "Review both supplied terminal reconciliation cases, every original outcome/annotation/event and all six policy decisions. No invented outcomes or premature terminal pr-ready."
+    },
+    {
+      "id": "supported-claims",
+      "requirement": "Ground every produced claim and all optional ledger detail fields to supplied per-case facts or actual command outputs; use existing V2 per-extra-claim detail review."
+    },
+    {
+      "id": "real-consumers",
+      "requirement": "Review the recorded actual verifier/witness/against-ledger/anchor/local-check and ledger consumers, including unchanged main ref and explicit safe controlled review/PR handoffs. This is not restored independent consumer replay."
+    },
+    {
+      "id": "proof-limits",
+      "requirement": "Keep no full-graft/hosted-PR/CI/review-judgement/lifecycle/dispatched-integrity-custody/PR-body-placement/long-resume/errored-rung/Opus claim. Static parity and existing tests cover unchanged edges outside these bounded model cases."
+    }
+  ],
+  "limits": [
+    "Eight bounded execution cases and six decisions; not proof of every route or full skill workflow.",
+    "Review verdict and PR creation are controlled handoffs. No hosted actions, review quality, run lifecycle or dispatched custody proof; PR body placement is not inspected.",
+    "Long gate-resume/timeout and separate errored-rung cases use existing deterministic tests, not these model executions.",
+    "Actual consumers run on the produced artifacts in each sample. Fresh grading and native replay are required; no independently restored graft consumer replay is claimed.",
+    "No-rung gates returns needs-human/rungs:[] while the real quality contract refuses that inherited shape; never fabricate conformity.",
+    "GPT Sol medium stand-in only; no Claude/Opus confirmation or provider-wide equivalence."
+  ],
+  "frozen_hashes": {
+    "/Users/shftwst/.agents/AGENTS.md": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/candidate-command.mjs": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/claude-driver.mjs": "8bec8694952fdcd5a0dac61098f3863b9053141489b10283ca781117417e96b3",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-native-audit.mjs": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-startup-context.json": "01d2e7e23dd2555aee16496dbc8313609de76ca80407438d1f46cdb7dbb85a8f",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-tool-declaration.json": "62f1512b6a3813318cfd88dbd35b74fea6a07212eea397725efbd66031713645",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-native-audit.mjs": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/command-use.mjs": "13148a5154c13d99b0da924a8515650c6f7cb1cc652ac443e1109ddd12ab504b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/graft-checkpoint-execution.mjs": "da743a47820a6b94695151a1e9ca56a6355271493141c4566a9185c72c190663",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/handoff-tools.mjs": "f82516f04bcd5458f4dc5f018b7dad2c379a82db4880e8484ff18c5dda573acd",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/interactive-handoff.mjs": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/ledger-execution-v2.mjs": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/ledger-execution.mjs": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/native-tool-audit.mjs": "3f40f2fe4bc5094e14bb6f5796b2f5e46d9c9730b7fcbf8c04dfca03cacf5027",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/paired.mjs": "3ab9b105be108ece6cc80caaa758139f0e54c67d96306709309a01e9fb46fd15",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/policy-reader.mjs": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/proxy.mjs": "9ff58bf997a97998ea3d17883371874ce9c5bc918cd312329523145e6f5f90e7",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/run.mjs": "cbdb7cbffad646141ca59a4825c8ed590eb8f15d1bb09c2b435aa4d3e16fc38e",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/schema.mjs": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/tool-server.mjs": "2b030e728798ea7ae889ac69b5207945306470f3a2f832f6273689e92b422a27",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/tracker.mjs": "84f94a671cbe78c82da20a405bac30f7f7ce5afbde6b389f5a3a948766461b04",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/treatments.mjs": "961e4bd3de7b1d4b5228c9f84e0aed17703b20e6c55aac77fa841d5c680f57f6",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/references/autonomous.md": "b0e0ef32be783ffa5be27ab74db987ef347fedf1a75dd16bab5db030304d85d7",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/references/build.md": "16760ea2fcff5f06ba910049e51736db01178e72b287f7e09a115946098630b9",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/references/kernel.md": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/references/l4.md": "7994061a8ca8e8f23210874c401cf78ed0c4ad4af95b07c852456b6b6bbe5344",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/references/methodology.md": "51188b58858080ab4a28801c946ff47dced68c25ad675453efde346113e97f8b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/references/park.md": "0a59cc9f746bc416dd693f249b7b3c844c85cb8ce660db0f7a907b3387c8ff43",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/references/review.md": "b2e82efe53cdbb303f173b0465eea4dc878037870eebe7a50896489e088e84b2",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/references/tracker.md": "f98c08368032e6c4053800551a64b7927439a16f7f57c02925c4e0f37847289c",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint.test.mjs": "596ab429a3255a21fa9c9a1feb1bf8164354eb3fef54063439f154d95e06ee84",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/graft-gates-evidence-v1.md": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/graft-gates-evidence-v2-with-context-draft.md": "e72278d29fccb2ec13ace576bb997f7110d79879347c70535de25cb581921c90",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/graft-gates-evidence-v2-with-context-draft.md": "6323c3f1d846370450e005c8b138101614b81e5d64aef15048b20f1988787499",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/graft-gates-evidence-v2.md": "c28c7fe2bdba534ab27639408e2baf1b3dcc6205aade1a75ba5c8656fdf9d9a2",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-development-20261117-10.txt": "3634c106ac7eca8824bc3712f20a1d7c28827e0b46aabd2d20c1646836077ab5",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-preflight-controller-20261117.mjs": "b2405e213e6a0f79284618b3ee895413d1caa8e922e02bf4900780e5f46e89af",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/capture.json": "a5361dadb651eef1a518faad3fefe3aa7f4ea7a0c33997bc7f10d7d820b96e4e",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/consumers.json": "0a225855a316c608098f25e04148abe6948dcadc3750e7911cc08aacd0422f04",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/grade.json": "d3b1d8be602313aea65ef1224feec10879710ea103d09ef6f625516ef7059c19",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/preflight.json": "01f1591ac69ad22bcdf07e2ae0bfdb7fd7cbc440b21cc3fb52f8a1b98658aa05",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/graft-gates-evidence-v2-private-integration.json": "20d24181198db4398acb90c507ba22186f06838e9ef1b678770f98f5110a261a",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/graft-gates-evidence-v2-source-draft.json": "b4f6999ca98f01ba06112ec42a7221625d33c95a53f43e06d45bc3437055665b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/graft-task-read-size-prelaunch-check.json": "17e5bcb02f6dcce0435f6a2c2416567f47ca0f547d708a463bd602649aab89f6",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-graft-checkpoint-arm-v1-code-review.json": "75db5eca3c858f60f2bdcede3a5a0452976430c97b6e9898840025f06a280ab6",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-graft-checkpoints-v1-adapter-review.json": "b0b27109364588f1ce1877ffbeef2370184f6b25a197c807a5674c7f28999325",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-graft-checkpoints-v1-compact-task-addendum.json": "52b23ea9928fba61e9e27761b944f46914bd1cc173ddac69b0cc7661d7cbd4cc",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-graft-gates-evidence-v1-source-review.json": "a7051ad8b489b8e7e8bee3af5dd57a173672abf8ba00d3c261151c07c1e6fec5",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-graft-gates-evidence-v2-source-review.json": "cc9236b7d690bf2800a4cfe07253aa22efdc1c5b2b07150f5b9564c3c0ef57c1",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/mcp-parallel-phase-v1-qualification.json": "c633bc0a55d97d86e4f4aa496798fb573d01de07fb2cc8e19afdd8036c05f7cb",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v5.py": "08f0a8c3644e916a1ab317985423fb7f570d4b9f1ec979afc6c4758be1424053",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/verify-graft-checkpoint-arm-v1.mjs": "99ebf35c8b8bc3b004b36ce90713b7e98b5e139c4959f0bafe47168513a2c4e9",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/verify-graft-checkpoint-arm-v2.mjs": "e74a60ba79864b518f054fb532b9192e7652a1efa8526d4dbf8594b174abdbaa",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v1-draft.json": "aeea37201a2f485f31a39f9e3d94ce2d58498d50ebf40d17d6109fd25132afcb"
+  },
+  "samples": [
+    {
+      "name": "graft-checkpoints-mcp-v2-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/graft-gates-evidence-v2-with-context-draft.md"
+    },
+    {
+      "name": "graft-checkpoints-mcp-v2-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/graft-gates-evidence-v2-with-context-draft.md"
+    },
+    {
+      "name": "graft-checkpoints-mcp-v2-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/graft-gates-evidence-v2-with-context-draft.md"
+    },
+    {
+      "name": "graft-checkpoints-mcp-v2-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/graft-gates-evidence-v2-with-context-draft.md"
+    },
+    {
+      "name": "graft-checkpoints-mcp-v2-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/graft-gates-evidence-v2-with-context-draft.md"
+    }
+  ],
+  "supersedes": {
+    "plan": "graft-checkpoints-mcp-v1-candidate-plan.json",
+    "sha256": "ef7380d7ab458421db068ac5099f115bec092b27af76fdac87afda71fc4fd3c0",
+    "reason": "Prelaunch-only closure correction: bind dynamically spawned reporting-execution.mjs. No V1 model launched; no source, fixture, model, effort, policy, runtime or acceptance relaxation."
+  }
+}

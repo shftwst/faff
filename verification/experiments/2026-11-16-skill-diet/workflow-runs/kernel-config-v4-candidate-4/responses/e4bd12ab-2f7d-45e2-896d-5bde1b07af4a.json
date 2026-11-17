@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 2,
+    "stdout": "",
+    "stderr": "faff config: /tmp/faff-kernel-config-prvXIt/malformed-overlay/.faff/config.local.yaml failed to parse (does not parse to a mapping (malformed YAML — an overlay must be a key:value mapping)) — an overlay parse failure is never silently skipped (FAFF-387).\n"
+  }
+}

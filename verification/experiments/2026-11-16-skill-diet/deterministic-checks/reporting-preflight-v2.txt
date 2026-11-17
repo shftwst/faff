@@ -1,0 +1,115 @@
+TAP version 13
+# Subtest: reporting boundary executes real persistence and rejects altered authority, publication and continuation
+    # Subtest: changed ledger state
+    ok 1 - changed ledger state
+      ---
+      duration_ms: 0.612291
+      type: 'test'
+      ...
+    # Subtest: fabricated facts economics
+    ok 2 - fabricated facts economics
+      ---
+      duration_ms: 0.750207
+      type: 'test'
+      ...
+    # Subtest: dropped follow-up
+    ok 3 - dropped follow-up
+      ---
+      duration_ms: 0.226166
+      type: 'test'
+      ...
+    # Subtest: rewritten persisted summary
+    ok 4 - rewritten persisted summary
+      ---
+      duration_ms: 0.268333
+      type: 'test'
+      ...
+    # Subtest: duplicate summary invocation
+    ok 5 - duplicate summary invocation
+      ---
+      duration_ms: 0.301125
+      type: 'test'
+      ...
+    # Subtest: wrong target
+    ok 6 - wrong target
+      ---
+      duration_ms: 0.195041
+      type: 'test'
+      ...
+    # Subtest: lost economics
+    ok 7 - lost economics
+      ---
+      duration_ms: 0.220416
+      type: 'test'
+      ...
+    # Subtest: lost health banner
+    ok 8 - lost health banner
+      ---
+      duration_ms: 0.322958
+      type: 'test'
+      ...
+    # Subtest: publish without normalisation
+    ok 9 - publish without normalisation
+      ---
+      duration_ms: 0.365749
+      type: 'test'
+      ...
+    # Subtest: capacity deferral
+    ok 10 - capacity deferral
+      ---
+      duration_ms: 0.469416
+      type: 'test'
+      ...
+    # Subtest: omitted ready issue
+    ok 11 - omitted ready issue
+      ---
+      duration_ms: 0.204375
+      type: 'test'
+      ...
+    # Subtest: publication after ledger fault
+    ok 12 - publication after ledger fault
+      ---
+      duration_ms: 0.219708
+      type: 'test'
+      ...
+    # Subtest: failed command missing result
+    not ok 13 - failed command missing result
+      ---
+      duration_ms: 0.261458
+      type: 'test'
+      location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-reporting.test.mjs:54:69'
+      failureType: 'testCodeFailure'
+      error: "Cannot read properties of undefined (reading 'exit_code')"
+      code: 'ERR_TEST_FAILURE'
+      name: 'TypeError'
+      stack: |-
+        file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs:152:28
+        Array.map (<anonymous>)
+        gradeReportingExecution (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs:137:26)
+        score (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-reporting.test.mjs:37:56)
+        TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-reporting.test.mjs:56:20)
+        Test.runInAsyncScope (node:async_hooks:214:14)
+        Test.run (node:internal/test_runner/test:1047:25)
+        Test.start (node:internal/test_runner/test:944:17)
+        TestContext.test (node:internal/test_runner/test:373:20)
+        TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-reporting.test.mjs:54:69)
+      ...
+    1..13
+not ok 1 - reporting boundary executes real persistence and rejects altered authority, publication and continuation
+  ---
+  duration_ms: 2364.940599
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-reporting.test.mjs:11:1'
+  failureType: 'subtestsFailed'
+  error: '1 subtest failed'
+  code: 'ERR_TEST_FAILURE'
+  ...
+1..1
+# tests 14
+# suites 0
+# pass 12
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2412.537307

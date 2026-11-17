@@ -1,0 +1,1883 @@
+{
+  "schema": 1,
+  "status": "independent-bounded-artifact-review-caught-up",
+  "updated_utc": "2026-11-16T19:05:28.013251+00:00",
+  "scope": "All listed actual artifacts read against rendering.json and corresponding baseline or candidate policy. All ten Sol-medium samples now have reports and native captures. Includes two Opus first-pair samples for a common manual bar. Automated scores remain separate.",
+  "source_bindings": [
+    {
+      "path": "workflow-fixtures/rendering.json",
+      "sha256": "e46467fd275a9fcdc44e0a3a282bbd5e8de85541992bb570498b0a13e197f9a1"
+    },
+    {
+      "path": "baseline/rendering.md",
+      "sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce"
+    },
+    {
+      "path": "candidates/rendering-v2.md",
+      "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4"
+    },
+    {
+      "path": "rendering-v2-artifact-review.json",
+      "sha256": "7e37df828d41f0cb4bf564f7d896827150f898231fccac5bc4be8f0fe1de5ff2"
+    }
+  ],
+  "criteria": {
+    "original_bounded": [
+      "source facts retained",
+      "no invented actions",
+      "no repeated gloss title and body",
+      "memoising explains result reuse",
+      "approximate prose density, with disclosed historical caveat"
+    ],
+    "extra_style": [
+      "bold-lead bullets",
+      "cycle direction legends, useful-legend exception applied equally",
+      "minor repetition/concision"
+    ],
+    "density_history": "Original rendering-v2-artifact-review.json explicitly records four baseline and two candidate four-sentence paragraphs and disclaims perfect style compliance. This record does not overturn that bounded qualification.",
+    "policy_clauses": [
+      {
+        "path": "baseline/rendering.md",
+        "line": 51,
+        "rule": "Bold-lead bullets for scannable items."
+      },
+      {
+        "path": "baseline/rendering.md",
+        "line": 52,
+        "rule": "A prose block stays within approximately three sentences or four lines."
+      },
+      {
+        "path": "baseline/rendering.md",
+        "line": 62,
+        "rule": "Do not narrate what the output already shows."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 36,
+        "rule": "Use bold-lead bullets for scannable items."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 37,
+        "rule": "Keep a prose block within roughly three sentences or four lines."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 41,
+        "rule": "Remove explanations of what a list, visual or diff already shows."
+      }
+    ]
+  },
+  "opus_delivered_guidance": {
+    "metadata": "gateway-context-v3-native-log-review.json",
+    "sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+    "bytes": 21125
+  },
+  "samples": [
+    {
+      "name": "rendering-sol-calibration-v1-baseline-1",
+      "provider_group": "Sol medium",
+      "report_present_at_review": true,
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-2",
+      "provider_group": "Sol medium",
+      "report_present_at_review": true,
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-1",
+      "provider_group": "Sol medium",
+      "report_present_at_review": true,
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-2",
+      "provider_group": "Sol medium",
+      "report_present_at_review": true,
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-1",
+      "provider_group": "Opus",
+      "report_present_at_review": true,
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-1",
+      "provider_group": "Opus",
+      "report_present_at_review": true,
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-3",
+      "provider_group": "Sol medium",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "native_audit_sha256": "c7e6550ca7755ff552177a3ddab5ed1030fcbea5bc0f6c3e655876c42e1c512c",
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-4",
+      "provider_group": "Sol medium",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "native_audit_sha256": "ffaa8daf1396f19c839808ace64e034673e7b0da5dbb953d4f56ef52b09861fd",
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-sol-calibration-v1-baseline-5",
+      "provider_group": "Sol medium",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "native_audit_sha256": "87c2348f29abf9abcf99ddf9a04bd8e5344180b761c6c86a3a1b912517a049f0",
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-3",
+      "provider_group": "Sol medium",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "native_audit_sha256": "bd426e60005b98fff5a18b2afd4721d82b225c0b8c3579025b739520c1649c89",
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-4",
+      "provider_group": "Sol medium",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "native_audit_sha256": "ea5ad4605638d9158136172d93b74106ad979a4d0a7bb6f35e51fac78d5bb0a4",
+      "read_artifacts": 9
+    },
+    {
+      "name": "rendering-sol-calibration-v1-candidate-5",
+      "provider_group": "Sol medium",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "native_audit_sha256": "936f9200c0839f62503116877da2d0437fdc3bdf4f1677a669e631e6f6cb99be",
+      "read_artifacts": 9
+    }
+  ],
+  "read_artifacts": 108,
+  "rows": [
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-1/artifacts/cycle.md",
+      "sha256": "64e1f60e4d9722988ffbc064e5bf531a93d51a9f2c85b3bb9e6818dd36fd2777",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-1/artifacts/enumeration.md",
+      "sha256": "c8b74cf9771af7dc14254a2a1e320a00064b4ea66429714c92875a50b30b498a",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-1/artifacts/gloss-001.md",
+      "sha256": "90eefab5c5d648a0c6acf974d621a339a9f0a58eaaa69beca79d4356efad8871",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "concision",
+          "observation": "Repeats the rate-limiting concept; a minor style observation separate from source fidelity.",
+          "excerpt": "ISS-Z: Limit the rate of login requests by adding rate limiting to the login endpoint."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-1/artifacts/gloss-002.md",
+      "sha256": "a9e395b7578284dd6203830c2804d59630b8352dbd8d682321eba732c36b86f0",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Reduce cold-start time by memoising the config resolver."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-1/artifacts/gloss-003.md",
+      "sha256": "148276453003ed417128ddd94cceb714100bfe95555084a4ffc55044d1d06e0a",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-1/artifacts/long-table.md",
+      "sha256": "0a722c629c8b17e36be46a5e0a9075e9b1a9f3b2b0c5ef809eb96cfa5b67305e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-1/artifacts/missing-model.md",
+      "sha256": "3a1c87fb1d255ebec34f2b7ce8343bd46b9c154530b5cb062f9376bfad454890",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-1/artifacts/model-hoist.md",
+      "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-2/artifacts/cycle.md",
+      "sha256": "a10a02afeaaf65347f748b186188e1f49f7451a8b2a9b250c6eb73fa7f77b6b3",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Adds an arrow-direction explanation. Treat as a useful legend consistently for both providers; no defect count assigned.",
+          "excerpt": "Each issue depends on the next."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-2/artifacts/enumeration.md",
+      "sha256": "9caa70399d1415dcf5198b3eb1c6fed03c88555ae2841b7fc66550bab0f1b623",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-2/artifacts/gloss-001.md",
+      "sha256": "54a3cc6cdb6811d149487c79b9732d2675a3d00d9f4daa3c2d927bb506316bf7",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-2/artifacts/gloss-002.md",
+      "sha256": "059d39e419f4a8690d49c4a3ea296557c43550d8fb8415936552e4efdcc2d84b",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Memoise the config resolver so cold starts take less time."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-2/artifacts/gloss-003.md",
+      "sha256": "94223bd45c51b74f2ceb6140f13c778fe940f57373a809a6a194dfa401c94b24",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-2/artifacts/long-table.md",
+      "sha256": "12d98d51eddbec27351c4969f806d6e5a847be6390d140308dc8530f6a1af7e4",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-2/artifacts/missing-model.md",
+      "sha256": "beca86c1695b6e646a56e07cbd83f5476ad313a1c7b3b71973ceab46b9d64837",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-2/artifacts/model-hoist.md",
+      "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-2/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-1/artifacts/cycle.md",
+      "sha256": "6e31ce352397c45b8d2b83f8b962bb1ca324fde2ce988badc2a07961e5bb8acd",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Adds an arrow-direction explanation. Treat as a useful legend consistently for both providers; no defect count assigned.",
+          "excerpt": "Each issue depends on the next issue in the bracket."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-1/artifacts/enumeration.md",
+      "sha256": "96374fbda9c7602c2d81d165840fabd0c5fb9dc58ce6b5df8f75295ace87609a",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-1/artifacts/gloss-001.md",
+      "sha256": "b4a7763c696b7c2da4596ad3650376fecb19ef2bdc6bb41f9a14c76de5d3d234",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-1/artifacts/gloss-002.md",
+      "sha256": "de7a8ba58d286516a5b6ad010f218239843a928cebace3142270a0590eb7b3a9",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-1/artifacts/gloss-003.md",
+      "sha256": "f78fef2285479848acc945c6aa388a22b8f8941cfe7c222ed57e7675da20277a",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-1/artifacts/long-table.md",
+      "sha256": "6c14eda78ebb342b86ba30e21c9d10389a87d995cbc64bc59ed478c0237c12fd",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-1/artifacts/missing-model.md",
+      "sha256": "a2990f5a50324ed6e277a119b6452d39df4b0561576c0ec2c96509dd298c5e82",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-1/artifacts/model-hoist.md",
+      "sha256": "9f9c64aa796aad831a1dc9e67a004a2ea8f91c59485ab1525aada3852242f381",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-2/artifacts/cycle.md",
+      "sha256": "54143fbc6285d106622b05ebca528d547c66495f2baa66addb740b8e096df580",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Adds an arrow-direction explanation. Treat as a useful legend consistently for both providers; no defect count assigned.",
+          "excerpt": "Arrows mean depends on."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-2/artifacts/enumeration.md",
+      "sha256": "269bbd508816a62ad3e271e3885086e0452b7ff6dc6f235d6a0263c97e471df1",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-2/artifacts/gloss-001.md",
+      "sha256": "b85967736f9f6b17cd4bf8180691131bf76b748b0b3e6faa78897d40660462db",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-2/artifacts/gloss-002.md",
+      "sha256": "df9e7eebcbfc595ffc8a24a8abf7de9134e7493103f1d9517c0840c535fb1b03",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-2/artifacts/gloss-003.md",
+      "sha256": "828dc198ad4b97d5ef77d7de0e7a3dc8578f4dfe328813a48d7b5f9331c8ee34",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-2/artifacts/long-table.md",
+      "sha256": "5fdeebcc19e00d2c887ee4495b1047052d20bc699bba96578a03ca4ac9eeeadc",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-2/artifacts/missing-model.md",
+      "sha256": "24bdf0578289bcff6fdd7a7cda19f5413c653cc0b6f2ea55cea8d44c79b07d20",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-2/artifacts/model-hoist.md",
+      "sha256": "7bbce390c3a60a001264e4de6cd22ad1b43eda59d535c567b835daaccee2de79",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-2/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v1-baseline-1/artifacts/cycle.md",
+      "sha256": "59382f1d7e81be9a12fa20e6f1a4bcf06989eabe0eacdd1c94048e201d91546e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List bullets have no bold lead labels; separate presentation observation, not an original bounded acceptance gate.",
+          "excerpt": "- ISS-201: Build the login form."
+        },
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Adds an arrow-direction explanation. Treat as a useful legend consistently for both providers; no defect count assigned.",
+          "excerpt": "Each arrow reads \"depends on\"."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v1-baseline-1/artifacts/enumeration.md",
+      "sha256": "4aedef87def1a2b914f298d1fd2f3c6d2ce79a2286b00b8fd432ff7273dee720",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List bullets have no bold lead labels; separate presentation observation, not an original bounded acceptance gate.",
+          "excerpt": "- Which team owns the queue?"
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v1-baseline-1/artifacts/gloss-001.md",
+      "sha256": "cded585d19775727b28fc324d740adf138be88bd7864cdf277c4562817384a51",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v1-baseline-1/artifacts/gloss-002.md",
+      "sha256": "6eec3717f304193d89512b80cb6976c5755974e25b67c16b1d849a9c06bd8272",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v1-baseline-1/artifacts/gloss-003.md",
+      "sha256": "d25ae46ecbb663a1c3d19b40c5051e7424e2cf29eb413064c5dad6aa41d1d924",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v1-baseline-1/artifacts/long-table.md",
+      "sha256": "5fdeebcc19e00d2c887ee4495b1047052d20bc699bba96578a03ca4ac9eeeadc",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v1-baseline-1/artifacts/missing-model.md",
+      "sha256": "038165308f4fff81a8c2882dbd72528f7c19d5de40c1d84699b443881b7a3573",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List bullets have no bold lead labels; separate presentation observation, not an original bounded acceptance gate.",
+          "excerpt": "- First line \u2192 Lead with the load-bearing model \u2192 no load-bearing model to lead with; the source states no governing idea, so flag it as a producer gap and do not write one."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v1-baseline-1/artifacts/model-hoist.md",
+      "sha256": "320a360230778c4aa70204ac0bf81fa27ada794031aedb07f7959270441b2aa6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "four-sentence-paragraph"
+      },
+      "bounded_findings": [
+        {
+          "criterion": "approximate_density",
+          "observation": "Four sentences remain in one paragraph. Approximate density was already an explicit historical qualification limitation, not an undisclosed acceptance failure.",
+          "excerpt": "Prompt caching depends on an identical leading token sequence. The SDK checks the longest matching request prefix and recomputes its suffix. Measure hits using cache_read_input_tokens. Therefore put stable system text before the volatile user turn."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v1-baseline-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v2-candidate-1/artifacts/cycle.md",
+      "sha256": "1d64b922bc40f27aeb871fd1640abc45bbc9287cc5cc18791f6cd8497c40bbbb",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List bullets have no bold lead labels; separate presentation observation, not an original bounded acceptance gate.",
+          "excerpt": "- ISS-201: Build the login form."
+        },
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Adds an arrow-direction explanation. Treat as a useful legend consistently for both providers; no defect count assigned.",
+          "excerpt": "Dependency cycle (each arrow reads \"depends on\"):"
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v2-candidate-1/artifacts/enumeration.md",
+      "sha256": "4aedef87def1a2b914f298d1fd2f3c6d2ce79a2286b00b8fd432ff7273dee720",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List bullets have no bold lead labels; separate presentation observation, not an original bounded acceptance gate.",
+          "excerpt": "- Which team owns the queue?"
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v2-candidate-1/artifacts/gloss-001.md",
+      "sha256": "d9bd987be35712849057cd442305e3a447aee88561596c18ec53544ef375d5ca",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v2-candidate-1/artifacts/gloss-002.md",
+      "sha256": "a16aba43295b939d75870eb333450df200fdc718da05cf36c52b1437238d19d6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v2-candidate-1/artifacts/gloss-003.md",
+      "sha256": "37f24be7b5083bbbb3666d133ddfd7d03827454005c783b68faa76a29afe7233",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v2-candidate-1/artifacts/long-table.md",
+      "sha256": "bda94a219d9c4daf12264ebfe7fa34d0db91fe6ab4150e6e2d854a08a5cafb77",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v2-candidate-1/artifacts/missing-model.md",
+      "sha256": "cca950b0b5f14042156657d479054c6cf37a52bf1c454fec2f65e5deff748628",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List bullets have no bold lead labels; separate presentation observation, not an original bounded acceptance gate.",
+          "excerpt": "- Whole draft \u2192 Lead with the load-bearing model \u2192 no load-bearing model to lead with; flag for the producer to supply the governing idea, do not invent one."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v2-candidate-1/artifacts/model-hoist.md",
+      "sha256": "e001a222096a1426e65eec807930874c0555de00a19375080e6a581a0ed3b7cd",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-artifact-v2-candidate-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-3/artifacts/cycle.md",
+      "sha256": "64e1f60e4d9722988ffbc064e5bf531a93d51a9f2c85b3bb9e6818dd36fd2777",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-3/artifacts/enumeration.md",
+      "sha256": "6ce8a04df2a47dcdb9e107e49bc4c4dcc7362e3c18b64a54a5cb32567e7c33db",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-3/artifacts/gloss-001.md",
+      "sha256": "79902dc2e6836f558bd026b6396a3bcbf6e82634ed5b97447da6da324a1530cf",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "concision",
+          "observation": "Repeats the rate-limiting concept; separate from source fidelity.",
+          "excerpt": "ISS-Z: Add rate limiting to the login endpoint to limit login requests."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-3/artifacts/gloss-002.md",
+      "sha256": "a9e395b7578284dd6203830c2804d59630b8352dbd8d682321eba732c36b86f0",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Reduce cold-start time by memoising the config resolver."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-3/artifacts/gloss-003.md",
+      "sha256": "f9918338143fdccd4a19c8c03ced0b6338d8403388949ab3af7449f001f4d6cf",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-3/artifacts/long-table.md",
+      "sha256": "5956e8841948ad4a58d0238cd59d5304871049e1b32adc501d8af1acea8acc52",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-3/artifacts/missing-model.md",
+      "sha256": "5ce5d65749f280d03bbf463c59a86dd77e52d3d37c52fb9c12e7c4a192dc4b09",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List bullets have no bold lead labels; separate presentation observation, not an original bounded acceptance gate.",
+          "excerpt": "- Explanation \u2192 no load-bearing model to lead with \u2192 producer must supply the governing idea."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-3/artifacts/model-hoist.md",
+      "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-3/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-4/artifacts/cycle.md",
+      "sha256": "be426421ff43fcc07fab8f7be772ddf1a05f776013fa67b6e4de3155e3629ba6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Adds an arrow-direction explanation. Treat as a useful legend consistently for both providers; no defect count assigned.",
+          "excerpt": "Arrows mean depends on."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-4/artifacts/enumeration.md",
+      "sha256": "269bbd508816a62ad3e271e3885086e0452b7ff6dc6f235d6a0263c97e471df1",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-4/artifacts/gloss-001.md",
+      "sha256": "442b67009616509ffbcc21f2131e68d47ee497376e246811a40814ec1b83a88c",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-4/artifacts/gloss-002.md",
+      "sha256": "a9e395b7578284dd6203830c2804d59630b8352dbd8d682321eba732c36b86f0",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Reduce cold-start time by memoising the config resolver."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-4/artifacts/gloss-003.md",
+      "sha256": "148276453003ed417128ddd94cceb714100bfe95555084a4ffc55044d1d06e0a",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-4/artifacts/long-table.md",
+      "sha256": "0a722c629c8b17e36be46a5e0a9075e9b1a9f3b2b0c5ef809eb96cfa5b67305e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-4/artifacts/missing-model.md",
+      "sha256": "2ff11fe67dcd9b9b2d35e164459dfac913b8489cf7012a0246b668ad5ac050f4",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List bullets have no bold lead labels; separate presentation observation, not an original bounded acceptance gate.",
+          "excerpt": "- Draft explanation \u2192 no load-bearing model to lead with \u2192 the producer must supply the governing idea; none can be hoisted from this source."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-4/artifacts/model-hoist.md",
+      "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-4/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-5/artifacts/cycle.md",
+      "sha256": "c19232360560846d3af9730b4c6c0ecf61eee2ba37a18aaf21431eaafdcc5ba2",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-5/artifacts/enumeration.md",
+      "sha256": "6ce8a04df2a47dcdb9e107e49bc4c4dcc7362e3c18b64a54a5cb32567e7c33db",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-5/artifacts/gloss-001.md",
+      "sha256": "be73bb96a552c69e0895b014bd42181e5693add66698a3dfb54ea679b9dbe8d4",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-5/artifacts/gloss-002.md",
+      "sha256": "e45669a52f54cdc029cbadbcf4075d70b38cedc73d96c20089fdae8232c8fe68",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Memoise config resolver results to reduce cold-start time."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-5/artifacts/gloss-003.md",
+      "sha256": "3d91e37db5ae9e0b46b3b1b2a17d12f2fca2e98a4208b1b065bf03754b822863",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-5/artifacts/long-table.md",
+      "sha256": "d37cefd73080cd4ccae5e2ef36fd368701ed45bd1716be2f12e0cfa7a46ea647",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-5/artifacts/missing-model.md",
+      "sha256": "e603ac6c6eaabc8c8e211a4b5ce914b412925225baeb62224851608cc50ec5a2",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "bold_lead_bullets",
+          "observation": "List bullets have no bold lead labels; separate presentation observation, not an original bounded acceptance gate.",
+          "excerpt": "- Draft explanation \u2192 no load-bearing model to lead with \u2192 producer must supply the governing statement; none can be hoisted from the source."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-5/artifacts/model-hoist.md",
+      "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-baseline-5/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-3/artifacts/cycle.md",
+      "sha256": "be426421ff43fcc07fab8f7be772ddf1a05f776013fa67b6e4de3155e3629ba6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Adds an arrow-direction explanation. Treat as a useful legend consistently for both providers; no defect count assigned.",
+          "excerpt": "Arrows mean depends on."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-3/artifacts/enumeration.md",
+      "sha256": "b03e6258bbc3c9b265b0bf769850f4b8c29c5afa89c6c26f64f2ae30ad894f55",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-3/artifacts/gloss-001.md",
+      "sha256": "17bb537dfab78e42d2f44d14cab3f9bd261c0e2479e0415a48709faeda33ff5d",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-3/artifacts/gloss-002.md",
+      "sha256": "df9e7eebcbfc595ffc8a24a8abf7de9134e7493103f1d9517c0840c535fb1b03",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-3/artifacts/gloss-003.md",
+      "sha256": "fe8bc522f28148f2d6350320de912496c4035673f126ea154332228fec1b43b6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-3/artifacts/long-table.md",
+      "sha256": "6c14eda78ebb342b86ba30e21c9d10389a87d995cbc64bc59ed478c0237c12fd",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-3/artifacts/missing-model.md",
+      "sha256": "b36145df42739ae8f15bfc189fea1bcb080171c352c9b659259acca99f7e41a1",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-3/artifacts/model-hoist.md",
+      "sha256": "7bbce390c3a60a001264e4de6cd22ad1b43eda59d535c567b835daaccee2de79",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-3/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-4/artifacts/cycle.md",
+      "sha256": "19bdd21743e2ee0281bd870cf241b94ab65f99775f7aa488bc4a009a081b2629",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Adds an arrow-direction explanation. Treat as a useful legend consistently for both providers; no defect count assigned.",
+          "excerpt": "Each issue depends on the next issue in the bracket."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-4/artifacts/enumeration.md",
+      "sha256": "84a8325e53e72f5fde83d2187be149c19455d1abbd0d11c1d4594420d24cf66f",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-4/artifacts/gloss-001.md",
+      "sha256": "3bc3a5f8d1523aae9191e5aedab91d3f66d372d4977f346d4357ab1cee7cc2ba",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-4/artifacts/gloss-002.md",
+      "sha256": "df9e7eebcbfc595ffc8a24a8abf7de9134e7493103f1d9517c0840c535fb1b03",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-4/artifacts/gloss-003.md",
+      "sha256": "d9bcbeba8578324fa1c6e319c29f3ace284c421cae23a1834290af504426b7cb",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-4/artifacts/long-table.md",
+      "sha256": "4b312025f01a043fa719a6feb3f7adaa988e6e2158cffe5446f289a18203dfa9",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-4/artifacts/missing-model.md",
+      "sha256": "eb079d0e4a40d85f1949f083f3c2e25d68ab7aa8199371c9e19481a294454f9b",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-4/artifacts/model-hoist.md",
+      "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-4/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-5/artifacts/cycle.md",
+      "sha256": "00a5f87ead38c3a619d67504781929f35cd2f31e6ecd9a1f537422258de9e629",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-5/artifacts/enumeration.md",
+      "sha256": "269bbd508816a62ad3e271e3885086e0452b7ff6dc6f235d6a0263c97e471df1",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-5/artifacts/gloss-001.md",
+      "sha256": "bd4e4b73938df2bb3a3de92040d06cc23817e808580cb020da264c00e901bd32",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-5/artifacts/gloss-002.md",
+      "sha256": "826a8d7fbaf2cc466ae41f05529eb2c7d08ce4904e1a2fca15687f9cdaf30393",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-5/artifacts/gloss-003.md",
+      "sha256": "763b0d99dea4fa0daded772fb358cbee6d2b93ff80d7f4ed3fc59c999302a3a4",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-5/artifacts/long-table.md",
+      "sha256": "5fdeebcc19e00d2c887ee4495b1047052d20bc699bba96578a03ca4ac9eeeadc",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-5/artifacts/missing-model.md",
+      "sha256": "e4364f70fe194b4d4cdfb0df2368f98722e9433d31c11c7621f6243332f15ea7",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-5/artifacts/model-hoist.md",
+      "sha256": "9f9c64aa796aad831a1dc9e67a004a2ea8f91c59485ab1525aada3852242f381",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/rendering-sol-calibration-v1-candidate-5/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    }
+  ],
+  "limits": [
+    "Manual bounded judgement, not statistical equivalence or unrestricted writing quality.",
+    "Extra style observations do not become retrospective acceptance gates.",
+    "No product/source changes, model reruns or workflow reruns performed."
+  ],
+  "summary": {
+    "source_fact_losses": 0,
+    "invented_actions": 0,
+    "memoise_reuse_explanation_missing": [
+      "workflow-runs/rendering-sol-calibration-v1-baseline-1/artifacts/gloss-002.md",
+      "workflow-runs/rendering-sol-calibration-v1-baseline-2/artifacts/gloss-002.md",
+      "workflow-runs/rendering-sol-calibration-v1-baseline-3/artifacts/gloss-002.md",
+      "workflow-runs/rendering-sol-calibration-v1-baseline-4/artifacts/gloss-002.md",
+      "workflow-runs/rendering-sol-calibration-v1-baseline-5/artifacts/gloss-002.md"
+    ]
+  }
+}

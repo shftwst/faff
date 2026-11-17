@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc102",
+      "--root",
+      "/var/tmp/faff-ledger-measure-cWQ9fN/actual/phase-events"
+    ],
+    "input": "{\"phase\":\"run\",\"type\":\"discovered-scope-filed\"}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":16,\"ts\":\"2026-11-16T23:45:52.583Z\",\"prev\":\"6a5bbb6892aad1f68d91d2382e8dc728b1e281af71f38d49facd25b5da3f4f68\",\"phase\":\"run\",\"type\":\"discovered-scope-filed\"}\n",
+    "stderr": "",
+    "error": null,
+    "ledger_before_sha256": "ee0d186e4741eeac68ba829402be877f708fb07334d5883539bcc4629f0b6cb1",
+    "ledger_after_sha256": "ee0d186e4741eeac68ba829402be877f708fb07334d5883539bcc4629f0b6cb1",
+    "prior_events_sha256": "b4cfdc5a7fa26c9d280fe02a16b912b689f4da508b9f77f92e8ebf92fd5bdbee",
+    "events_after_sha256": "fb402561bb6350a640768d3c98a826338640764bd0ff60478fde4b3c5d7b07d7",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 16,
+        "ts": "2026-11-16T23:45:52.583Z",
+        "prev": "6a5bbb6892aad1f68d91d2382e8dc728b1e281af71f38d49facd25b5da3f4f68",
+        "phase": "run",
+        "type": "discovered-scope-filed"
+      }
+    ]
+  }
+}

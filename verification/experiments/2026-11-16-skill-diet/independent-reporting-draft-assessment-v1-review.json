@@ -1,0 +1,111 @@
+{
+  "schema": 1,
+  "status": "assessment-source-review-pass-ready-to-freeze",
+  "scope": "Independent source review, deterministic tests and in-memory replay of the two closed baseline captures. General post-hoc assessment of unpublished rendering drafts only. No change to original reports, grader, captures, hold, manual review or model evidence; no new model calls. This is not completed skill qualification or authority to launch candidate under the stopped original plan.",
+  "tests": {
+    "command": "node --test test/control-parity-reporting-drafts.test.mjs",
+    "exit_code": 0,
+    "tests": 27,
+    "pass": 27,
+    "fail": 0,
+    "test_categories": {
+      "canonical_positive": 1,
+      "correction_positives_both_channels": 2,
+      "negative_invariants": 24
+    },
+    "log_path": "/tmp/faff-reporting-drafts-independent-tests-v1.log",
+    "log_sha256": "cc324f1d199078a4579c5066a839b179df07a2628a9d0b324937d556a087d35f"
+  },
+  "independent_replay": [
+    {
+      "name": "beep-reporting-mcp-v1-baseline-1",
+      "raw": "pass",
+      "assessed": "pass",
+      "raw_exactly_matches_recorded_grade": true,
+      "capture_unchanged": true,
+      "native_status": "pass",
+      "errors": [],
+      "discarded_drafts": [],
+      "normalisation_calls": 8,
+      "all_case_assessments_pass": true
+    },
+    {
+      "name": "beep-reporting-mcp-v1-baseline-2",
+      "raw": "fail",
+      "assessed": "pass",
+      "raw_exactly_matches_recorded_grade": true,
+      "capture_unchanged": true,
+      "native_status": "pass",
+      "errors": [],
+      "discarded_drafts": [
+        {
+          "case_id": "review-holds",
+          "channel": "conversation",
+          "seq": 11,
+          "normalised_id": "review-holds:conversation:1",
+          "input_sha256": "62b7e34ce00daf6cd41be1145d4b9544b89d5230b02d5684991aa3b76a61a1af",
+          "selected_seq": 12,
+          "publication_seq": 13
+        }
+      ],
+      "normalisation_calls": 9,
+      "all_case_assessments_pass": true
+    }
+  ],
+  "contract_basis": {
+    "reporting_single_call": "The single-call rule applies to run summary, not an exactly-once adaptor invocation count.",
+    "rendering": "A final normalise pass is required before emission; source explicitly supports draft validation and corrected blocks.",
+    "boundary": "Controlled identity normalisation stores drafts as unpublished results. Canonical persisted summary and actual publication remain the measured content boundaries; rendering quality and pre-write normalisation inside command remain excluded."
+  },
+  "assessment_checks": [
+    "Original grader is called on original capture before projection, and raw grades exactly match both recorded reports.",
+    "All original event sequences, known ports, case bindings, errors, acknowledgements and finish remain independently checked.",
+    "Normalisation IDs must be globally unique, input/result text equal and dependency identity match.",
+    "Each successful report retains exactly one publication per channel, tied to a returned same-case/channel ID and exact returned text/target.",
+    "Every selected and discarded normalisation must follow the sole canonical command and precede publication on its channel.",
+    "Only unselected normalisations are removed from an in-memory projection; captures are unchanged and full native call overhead remains retained.",
+    "Reclassification is limited to publication-count or per-channel publication-order; canonical content, source facts, authority, continuation and ledger-fault gates remain in original grader."
+  ],
+  "remaining_acceptance_blockers": [],
+  "limits_and_required_separate_gates": [
+    "Freeze this assessor and tests before remaining baselines or any candidate under a separately explicit amended assessment plan.",
+    "Original raw/replay/manual failures and original stopped-plan hold must stay visible; assessed pass is a distinct result.",
+    "This assessor does not itself qualify native audit or verify all plan/source hashes. Those checks must remain separate mandatory gates.",
+    "Apply the same assessment to all samples in both arms without failed-sample replacement.",
+    "An initial factual copying error and extra normalisation call remain observed behaviour despite a correct final publication."
+  ],
+  "sample_2_observed_boundary": {
+    "discarded_seq": 11,
+    "selected_seq": 12,
+    "publication_seq": 13,
+    "unpublished_typo_sha256": "62b7e34ce00daf6cd41be1145d4b9544b89d5230b02d5684991aa3b76a61a1af",
+    "corrected_published_and_persisted_summary_sha256": "ab3a5f8d704e78250f68255877e5d8b1a00a195ce1a36481c630513d1cc35ff5",
+    "original_raw_status": "fail",
+    "assessment_status": "pass"
+  },
+  "artifacts": {
+    "verification/experiments/2026-11-16-skill-diet/assess-reporting-drafts-v1.mjs": "f1dc98f052da42022faf2aa72ff0f926c725e44d5513d7f33bc1f20fd374afd1",
+    "test/control-parity-reporting-drafts.test.mjs": "1c27ef269afd9a53fa24a1130997e6e5f3aaae2ce7b16d46a67e304946c9ad46",
+    "eval/control-parity/reporting-execution.mjs": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58",
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3",
+    "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-registration.json": "9ac4ab8b7b07258b6ebc5e69f6d52bbbdd7899fd87888245067c268f3eebd606",
+    "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-baseline-plan.json": "8ce3a0631cfa6aa74faed7797cdb6ee4c52ed79905041e21b72de4d51eb0a764",
+    "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-candidate-plan.json": "992bdae801cf516e867adc0806393d141bbf79061952a48c99c41412d90f04e1",
+    "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-hold.json": "fca85efac4861519178b4cff012c7afd933a9fcd025c068e18c3643def8fe784",
+    "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/beep-reporting-mcp-v1-baseline-independent.json": "113a0c1aeffaf1414f380ccff1f1cf84448be99b6630ba99d4764403c8e110c3",
+    "plugin/skills/faff-beep-boop/SKILL.md": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28",
+    "plugin/skills/faff/references/kernel.md": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+    "plugin/skills/faffidavit-rendering/SKILL.md": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/capture.json": "365e3b0782b4e596304b923a517d16fe547366c085e0d2fb6cbada410820a0bb",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/expected.json": "b992be2971661798d337ce62901c4c8cec534f1fd6d89b5b33d40fca7fbacd94",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/report.json": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/native-audit.json": "ea8fa7110a5c1a58693612c50ba7bd10fa5405212e535a3129c4f8adedb1fdd1",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-1/workflow-replay.json": "25fb74e86e6ecac2d80869a97255c22816c6beca9632121a4da512fa616aacc3",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/capture.json": "1918b76ddb96b9fd05bd961b3e1dbcb450e301db0181e8f01ee38f21c0301bb4",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/expected.json": "df63682002dc9b2d82dedcd17070171600fcb2977a625a24d11e21823f3e7de0",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/report.json": "cb9701a060f899614bbbc766297142ceef59b639f3d050d34cface64a9b80b38",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/native-audit.json": "06742504daec6f7c2d71ae3b09c0608e963e16b080bb199ba642b1759efafba5",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-baseline-2/workflow-replay.json": "5660f318fc2faf7b72050d15d5464ae121e919a27bb65cb1394e1a525430ab0b"
+  },
+  "independent_replay_summary_sha256": "ce99dc1f5b4278658df6fe45a115100ed369a461bc165aae5a08501cf97642a9"
+}

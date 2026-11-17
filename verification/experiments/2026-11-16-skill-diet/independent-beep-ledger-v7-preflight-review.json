@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only verifier",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "clear-for-registration-of-bounded-measurement",
+  "qualification": "Deterministic fixture/harness/runner review only. No candidate model fidelity, acceptance or savings claim.",
+  "bindings": [
+    {
+      "path": "eval/control-parity/ledger-execution.mjs",
+      "sha256": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31",
+      "bytes": 26721
+    },
+    {
+      "path": "test/control-parity-ledger.test.mjs",
+      "sha256": "19bd406ff1a816e6596741f8e2db1ace7eb37250b622685f9c5697c72867c576",
+      "bytes": 14177
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v2-draft.json",
+      "sha256": "964c256e19405eb5d676ce290a9335d5d7e2253de4963bdfb53b52b32da417d4",
+      "bytes": 23701
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+      "sha256": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5",
+      "bytes": 3370
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v2.py",
+      "sha256": "d76ccc5b2e1ee81785945af3a800a01070e0c6055f7c86123c09fe8ca473a9f9",
+      "bytes": 11985
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v3.py",
+      "sha256": "b576807c3adc1b5e7c0e2f5d09917caa8ab290ec1dc6da2b05ae85713245ec21",
+      "bytes": 13003
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-runner-v3-replay-smoke.json",
+      "sha256": "7074281b97d5818d46866fad5cc9ef37ebd5a874605f86bf74a6bcbfe8207d02",
+      "bytes": 389
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-producer-preflight-v7/capture.json",
+      "sha256": "bed39445aad04d9ecc431c440c2e9bc40eaf4fc7650945978b39a35b8f896607",
+      "bytes": 121964
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-producer-preflight-v7/expected.json",
+      "sha256": "1c9b38b63299a8863667f9f7ec2db6807b5678838255801e3b3d0e052db9509e",
+      "bytes": 68017
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-producer-preflight-v7/report.json",
+      "sha256": "b73a5254a67fcfd390844fb8326e6aca4b99f38353adbb54ef267e2bb9b8b21f",
+      "bytes": 1365
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-producer-preflight-v7/public_cases.json",
+      "sha256": "2b999f64bf26f8436141bc97a816a14ab3f3d80dcd7a1a68cfbc2e308beda8de",
+      "bytes": 10645
+    }
+  ],
+  "runtime": {
+    "root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "independent_test_command": "LEDGER_PREFLIGHT_RUNTIME=/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive node --test test/control-parity-ledger.test.mjs",
+    "tests_passed": 43,
+    "tests_failed": 0
+  },
+  "preflight": {
+    "execution_cases": 3,
+    "decisions": 11,
+    "all14_recorded_checks_pass": true,
+    "producer_cases_unchanged_from_v1": true,
+    "added_decision": "stop_reason ownership, checkpoint fail-closed token, completeness independence and legacy absence"
+  },
+  "resolved_findings": [
+    {
+      "finding": "Inconsistent summary dependency facts and missing forge/supersession state",
+      "resolution": "V2 economics shipped3/admitted8 matches actual ledger; matched merge/landing/supersession records, sibling baseline and facts produce a warning-free reference. No external merge/review or tracker execution claim."
+    },
+    {
+      "finding": "Volatile summary header/duration equality",
+      "resolution": "Both header and duration checked against each capture owner start plus effective heartbeat/event endpoints before removal from comparison. Midnight rollover positive and invented date/duration negatives pass."
+    },
+    {
+      "finding": "JSON outcome key order overconstrains summary row order",
+      "resolution": "Only contiguous known-outcome issue rows are sorted as full exact strings. Headings, section boundaries and all remaining text stay exact. Real reordered-outcomes producer/consumer test passes; fabricated row fails."
+    },
+    {
+      "finding": "Incoherent mutation snapshots masked semantic gates",
+      "resolution": "Mutation helper updates ledger_bytes and event-read stdout. Coherent ledger and token mutations explicitly require ledger-producer-fields and persisted-event-data failures."
+    },
+    {
+      "finding": "Event argument ordering",
+      "resolution": "Parser accepts unique allowed flags in arbitrary order while requiring exact run/root and token-tagged session. Duplicate, missing and wrong bindings fail."
+    }
+  ],
+  "proof_coverage": [
+    "Actual init-self-drain creates isolated independent state; model producer port can alter only declared augmentation fields. Other ledger authority remains equal to command-created baseline.",
+    "Actual ledger-write append hashes, persistence, genesis, schema2 and zero-based sequence validated; runcheck sees mixed exit0 and incomplete exit3 with OPEN-1 only.",
+    "Actual summary handler with fixed external dependencies consumes model ledger and persists identical stdout bytes. No summary is run for incomplete checkpoint.",
+    "Actual events append, validate, verify and read consume supplied caller payloads. Meaningful transition order, micro-action skipping, explicit optional quality metadata request and unknown caller field rejection are checked.",
+    "Controlled transcript deltas and missing-transcript estimate/null are compared through real persisted event data and final checkpoint. CLI-owned schema2/five-class token fields remain separate from inherited old prose.",
+    "Task cases expose explicit source/task/bindings only; questions expose id/question only. Oracle, expected, assessment metadata and dependencies are not model task fields."
+  ],
+  "runner_review": {
+    "diff_scope": "V2 to V3 adds ledger dependency argument and fresh gradeLedgerExecution replay; retains stop-on-failure, hash verification, MCP/native checks, private trace binding and no replacement semantics.",
+    "independent_zero_model_smoke": {
+      "method": "Extracted actual ledger replay string using Python AST; ran it against fresh temporary V7 capture/expected and wrapped grade; parsed generated JSON; removed temporary copy.",
+      "exit_code": 0,
+      "json_parse_success": true,
+      "trailing_real_newline": true,
+      "literal_backslash_n_tail": false,
+      "status": "pass",
+      "recorded_grade_matches": true
+    },
+    "reviewer_correction": "Initial reported runner newline blocker was incorrect: escaped tool rendering was misread. Independent execution disproved it; no runner source change was needed."
+  },
+  "scope_limits": [
+    "No model calls or skill candidate acceptance; all earlier development failures remain historical evidence.",
+    "No unchanged owner/heartbeat/Stop hook/run-open/close/governance execution is claimed by this producer harness; lifecycle preflight is separate.",
+    "Supplied review/post-merge objects are declared extracts from completed observations; no review, post-merge test, landing, filing or hosted publication is executed.",
+    "Summary external forge/health/economics and facts are fixed controlled inputs; provider usage and cost unmetered.",
+    "Fresh replay repeats grading from captured real effects; it does not re-execute model actions or independently implement the consumer.",
+    "Small correlated cases and deterministic negatives do not establish statistical equivalence.",
+    "Native MCP audit and frozen integration/hash checks remain separate required gates; functional grade alone is not full sample qualification."
+  ]
+}

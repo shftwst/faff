@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "estimator": "ceil(UTF-16 characters / 4) per file; not provider billing tokens",
+  "accepted_source_totals_unchanged": true,
+  "drafts": [
+    {
+      "name": "beep-guarantees",
+      "status": "draft-source-reviewed-unmeasured",
+      "installed": false,
+      "counted": false,
+      "dependency": "Unaccepted ledger V2 candidate; rebase to the ultimately accepted source before a new model registration.",
+      "before": {
+        "path": "candidates/beep-ledger-v2.md",
+        "sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+        "bytes": 149485,
+        "estimated_tokens": 37063
+      },
+      "after": {
+        "path": "candidates/beep-guarantees-v1-draft.md",
+        "sha256": "c63333480bd724d9e7f08624a3e213f3e94da5693a0652c3231fff852a8992ee",
+        "bytes": 146426,
+        "estimated_tokens": 36311
+      },
+      "potential_bytes_saved": 3059,
+      "potential_estimated_tokens_saved": 752
+    },
+    {
+      "name": "authoring-adaptors",
+      "status": "draft-source-reviewed-unmeasured",
+      "installed": false,
+      "counted": false,
+      "dependency": "Exact installed baseline; no other pending source prerequisite.",
+      "before": {
+        "path": "baseline/authoring-adaptors-v1.md",
+        "sha256": "74251c96bb33e9b5f15f370f994256a0ed25a588cd7a186ecca80d13eed98ae0",
+        "bytes": 12321,
+        "estimated_tokens": 3054
+      },
+      "after": {
+        "path": "candidates/authoring-adaptors-v1-draft.md",
+        "sha256": "617f0aab22190f136c44782942a954fea7be659e33c03238200253a7a31c1a88",
+        "bytes": 8945,
+        "estimated_tokens": 2226
+      },
+      "potential_bytes_saved": 3376,
+      "potential_estimated_tokens_saved": 828
+    }
+  ]
+}

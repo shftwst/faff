@@ -1,0 +1,85 @@
+# Skill diet measurements
+
+Qualified source savings: **117,251 bytes and 28,868 estimated tokens**, from twelve body/reference cuts and 26 shorter discovery descriptions. Pending candidates are excluded. Draft PR: https://github.com/shftwst/faff/pull/1202.
+
+Baseline: `a8509086ad28fa0e55cf3d1d818f2055294e663b`. Current measured source commit: `0188ce71c3c1b4262b31fda5f143e871143ae570`. The 41-file set falls from 1,369,435 to 1,252,184 bytes, and from 339,279 to 310,411 estimated tokens. Estimates use ceil(UTF-16 characters/4) per file, summed; they are not provider usage or billing.
+
+## Source reductions
+
+| Slice | Bytes before | After | Saved | Tokens before | After | Saved |
+|---|---:|---:|---:|---:|---:|---:|
+| faff | 12,984 | 5,832 | 7,152 | 3,222 | 1,458 | 1,764 |
+| faffter-dark-adversarial-review | 74,897 | 22,259 | 52,638 | 18,574 | 5,565 | 13,009 |
+| faffidavit-rendering | 24,639 | 11,288 | 13,351 | 6,040 | 2,777 | 3,263 |
+| faffter-noon-methodology-thematic | 35,118 | 29,418 | 5,700 | 8,672 | 7,281 | 1,391 |
+| shared kernel configuration | 95,418 | 84,072 | 11,346 | 23,652 | 20,857 | 2,795 |
+| faffter-noon-prd | 4,214 | 2,465 | 1,749 | 1,047 | 617 | 430 |
+| faffter-noon-review | 13,405 | 8,045 | 5,360 | 3,327 | 2,008 | 1,319 |
+| faffter-noon-spec-review | 9,460 | 8,055 | 1,405 | 2,345 | 2,001 | 344 |
+| faff-wtf | 31,369 | 27,152 | 4,217 | 7,761 | 6,734 | 1,027 |
+| faffter-noon-intake | 7,622 | 5,689 | 1,933 | 1,890 | 1,412 | 478 |
+| faff-beep-boop Reporting | 157,561 | 156,107 | 1,454 | 39,044 | 38,688 | 356 |
+| faff-beep-boop ledger/events | 156,107 | 149,485 | 6,622 | 38,688 | 37,063 | 1,625 |
+| 26 discovery descriptions | 832,740 | 828,416 | 4,324 | 206,322 | 205,255 | 1,067 |
+
+The 26 description reductions exclude gateway, adversarial review, rendering and thematic, whose metadata changes are counted with their body cuts. The later PRD, review and spec-review body cuts start after their accepted descriptions. `ledger.json` reconciles exactly to the committed source set, with no double counting or new mandatory reads.
+
+## Fidelity before and after
+
+Every paired row has five samples per arm and complete native tool-log audits. Review V4 uses five new candidates with the unchanged five successful V3 baselines; earlier candidate samples are excluded. Gateway through kernel configuration use Claude Opus 5.5, medium effort, CLI 2.1.325. PRD uses a separate fresh Astra-low pair; review uses a separate Astra-low comparison, verified as gpt-6-astra / low / Codex CLI 0.169.0; no Claude samples are pooled into it. Default spec review uses a separate fresh Sol-medium pair, verified as gpt-6.1-sol / medium / Codex CLI 0.169.0.
+
+| Slice | Before | After | Executed boundary |
+|---|---|---|---|
+| Gateway | 25/25 entry cases; 85/85 decisions | Same | Real CLI and private Git, controlled downstream stubs |
+| Adversarial review | 50/50 execution; 40/40 challenge consumptions; 185/185 decisions; 40/40 artifact judgements | Same | Real helper, checkpoint, contract and merge-floor commands; controlled provider inputs |
+| Rendering | 45/45 persisted artifacts; 100/100 assessed decisions | Same | Actual transformed artifacts, all 90 read during review |
+| Catalogue | 175/175 selections | Same | Discovery choice only, no selected workflow execution |
+| Thematic | 15/15 ticket proposals; 60/60 decisions; 5/5 policy outputs; 45/45 run-done cases and contract checks | Same | Persisted proposals plus real termination-policy consumption |
+| Kernel configuration | 45/45 execution; 120/120 decisions | Same | Real config reads/writes, refusal paths and slot resolution with downstream stubs |
+| PRD producer | 30/30 artifacts; 40/40 decisions; 120/120 downstream cases | Same | Real PRD reads and contract consumption; all 60 artifacts read; deterministic coverage/run-start/run-trigger replay rejects 120 forged decisions per arm |
+| Review producer | 35/35 artifacts; 100/100 decisions; 35/35 stored-comment handoffs | Same | Real review-verdict consumer and stored-comment connector; all 70 outputs read; exact prose/JSON titles and preserved comment bytes checked |
+| Default spec reviewer | 30/30 artifacts; 75/75 decisions; 30/30 contract/routing replays | Same | All 60 actual artifacts independently read; real contract and reject-approach consumers; 60 unfounded verdict mutations rejected |
+| Intake producer | 30/30 assessed artifacts; 60/60 decisions | Same | All 60 persisted briefs independently read, exact source/contract regrading and ten native audits; no executable semantic brief consumer |
+| Reporting | 29/30 raw; 30/30 assessed workflow cases; 5/5 native | 30/30 raw/assessed cases; 5/5 native | Real summary handler/persistence; all 60 cases independently reviewed; controlled external dependencies and publication |
+| Ledger/events | 15/15 execution cases; 55/55 decisions; 5/5 native | Same | Real ledger/event/runcheck/summary consumers; all 30 cases and 110 decisions independently reviewed; exact restored-state consumer replay |
+| Focus report | 15/15 artifact rubrics; 70/70 assessed decisions; 9/15 targeted manual checks | 15/15 rubrics; 70/70 decisions; 15/15 manual checks | All 30 actual reports read; source facts retained; missing offers, empty automation headers and queue partitions explicitly preserved |
+
+Rendering raw decision scores are 95/100 per arm; the separately recorded assessment accepts the correct heading with its Markdown marker. Adversarial assessments record three permitted output-existence probes. Original failures, captures and corrections remain preserved. Kernel V2/V3 native protocol failures are not pooled into qualified V4. The catalogue V1 selection regression was resolved by restoring the jot and prep descriptions.
+
+Qualification files bind source, reports, native audits and manual artifact reviews. `review-astra-v4-main-rule-inventory.json` covers all 560 deleted blocks: 28 moved and 532 mapped, none uncovered. The PRD integration passes 539 tests and adapter lint; the initial inventory formatting failure is preserved. Adapter lint, targeted execution checks and size ratchets pass. Earlier observations and failed treatments are retained in [the measurement journal](MEASUREMENT-JOURNAL.md).
+
+## Limits and pending work
+
+These are bounded comparisons, not statistical equivalence or proof of complete graft/ship, live tracker mutation or hosted publication. Untested mutation sections of the thematic skill remain byte-identical. Source totals count all tracked prose, not one prompt; `load-manifest.json` and `beep-ledger-mcp-v3-after-loads.json` separately describe declared entry reads, counting each dependency once.
+
+Claude exhausted its weekly allowance during the PRD and default-review candidate sets. Those incomplete pairs are preserved and unqualified. The separate Astra PRD and review comparisons are qualified. Review V3 passed functional, native, title and downstream checks but failed integration enum lint. V4 separates the existing judgement conditions and passes all those checks plus 641 integration tests and adapter lint. Sentence-style finding titles occur in both arms; perfect noun-phrase style is not claimed.
+
+WTF Astra V2 passes automatic checks but is held because two candidate reports omit the full-groom offer. Later Sol sourceV4 restores the empty top-level header, but two candidate reports omit an empty queue partition. SourceV5 explicitly preserves both partitions and passes all five new candidate samples. Targeted manual report checks improve from 9/15 to 15/15, with 576 integration tests and all ten native audits passing. An independent review also found omitted empty automation subsections in both older Astra arms; the new manual gate includes that rule. Intake's earlier exact-string issue was corrected by clarifying canonical identifier spelling. Later Astra trials stopped on provider usage limits. Intake Sol candidate3 preserves brief facts but fails native literal-path and heredoc rules; its continuation stopped. The default spec-review Sol pair is qualified with all 60 artifacts reviewed and replayed, plus 599 integration tests. No pending savings are counted.
+
+The operator requested continuation after the original time window and calibration of Sol medium against preserved Opus gateway/rendering results. The same policy, fixture and runtime hashes are used, with provider, native-tool, guidance-content and timeout differences disclosed. The initial Sol model-expectation audit error is corrected by re-auditing original captures, retaining the first reports; samples are not replaced.
+
+Other held cuts remain excluded: routing varies its baseline root-cause assignment and fails the frozen exact projection; ADR-body adds an unsupported acceptance-event date; map omits the required TL;DR section; agile adds an unsupported dependency qualifier. Those are baseline failures, not measured candidate regressions. Candidate continuations were stopped. All PR CI checks passed at `19d36dab`, including the accepted review source and calibration tooling.
+
+The full PRD downstream replay passes all 240 cases and rejects 240 forged decisions. The accepted review V4 replay passes for all 70 actual artifacts, with one acknowledged stored-comment write each and exact preserved content/newlines. These are deterministic caller checks, not additional model samples or full caller workflows.
+
+The six-combination stand-in comparison is complete. Sol medium and Astra medium each pass 30/30 assessed runs, 420/420 case checks and 30/30 native audits across gateway, rendering and proposal judgement/CLI consumption, matching preserved Opus outcomes. Each has one confirmed wording caveat in 80 manually read judgement reasons; neither is a clear fidelity winner. Sol medium is the practical default, with Astra medium as a second check. Their observed mean times are 164 and 182 seconds, including queue and tool overhead. Sol low fails one screen run; Sol-high and Terra audit compatibility failures remain distinct from functional scores. Astra low also passes the small screen. [Full comparison and limits](GPT-OPUS-STANDIN-RESULTS.md) preserve raw scores, the frozen rendering correction, manual findings and all failed samples.
+
+GPT's harder judgement task has a frozen same-provider-family amendment; it does not claim independence from an OpenAI primary. Original policy, fixtures, outcomes and runtime are unchanged, while guidance, task wording and native transport differences are disclosed. The [prepared Opus queue](opus-renewal-priority-queue-v4.json) prioritises the default code reviewer, default spec reviewer, PRD and focus report after allowance renewal. Those four source cuts, intake, Reporting and ledger/events remain qualified on GPT only. The queue has 70 planned samples and has not launched. No Claude calls or paid credits were enabled for the comparison.
+
+The default spec-review qualification binds the source, all ten native audits, 60 manual artifact reviews, real contract/routing replay and 599 integration tests. QA major/blocker severity varies while preserving the required revise outcome. Main adapter lint and cumulative rule inventory pass. The consumer replay does not exercise a full prep loop, human escalation or L4 refuter.
+
+Focus-report sourceV5 is accepted with 4,217 bytes and 1,027 estimated tokens saved. Shared calibration paragraph-plus-bullet formatting variance and existing prep-form ambiguities are disclosed; perfect style compliance is not claimed. Only Output Format and duplicated Notes change. Configuration, acquisition phases, chaining/action authority and Autonomous Mode are unchanged; no full WTF workflow execution is claimed.
+
+Intake is accepted at `c650c72b`, saving 1,933 bytes and 478 estimated tokens. Fresh Astra-medium baseline and candidate arms each pass 30/30 assessed artifact checks, 60/60 decisions, 30/30 manual reviews and 5/5 native audits. Both retain 29/30 raw artifact passes: baseline 2 and candidate 3 use the same frozen exact-question correction, with no invented platform, language or first slice. All 632 integration tests, adapter lint and cumulative inventory pass. Elicitation, ticket shaping and full jot/plot execution are outside this cut; the discovery procedure and formal template remain unchanged. The shared context is fixed for the pair, not a model proof of every combined skill context.
+
+Full-nlspec reductions remain pending. Nlspec uses actual generated specs plus five real consumer commands. Its untested failure-mode and related branches remain verbatim. The new Sol roadmap baseline is held for report-order and gate-fireability errors; its candidate was never measured or installed.
+
+Reporting is accepted at `c742d56b`, saving 1,454 bytes and 356 estimated tokens. All five original samples per arm pass native replay and all 60 cases receive independent actual-output review. Baseline raw 29/30 remains recorded: one unpublished typo draft was corrected before the sole canonical publication. A post-hoc assessment was frozen before remaining baselines and all candidates; it allows only unused successful pre-publication drafts. Baseline assessed 30/30 and candidate raw/assessed 30/30 pass. Normalisation counts are 41 and 40, with one and zero unused drafts. Current-source integration passes 163 tests, adapter lint and rule inventory; the final independent audit passes 164 checks. Earlier shell failures remain held and unpooled. No full build loop, run-close/andon, hosted publication or rendering-quality proof is claimed.
+
+The fresh architecture MCP baseline cohort is held: all 20 proposals and 50 decisions pass raw/manual checks, but baseline5 received a runtime date-update context at UTC midnight and fails the frozen native gate. Native 4/5 remains blocking, with the original failure and metadata-only diagnosis preserved. No candidate launched or saving counted. The separate ledger/event comparison subsequently qualified as recorded below.
+
+Ledger MCP V1 is held after its first baseline. Native delivery, all eleven decisions and independent factual review pass, but the frozen automatic grade fails two of three producer cases because it compares optional free-form detail fields exactly. The extra review verdict and supersession detail are supported by the supplied observations. Original outputs, raw failures and the 665-check independent review are preserved; no other V1 sample or candidate launched. The fresh V2 workload explicitly requires supplied issue details and limits detail keys to admitted build IDs. Its versioned evaluator preserves every other check and records additional detail claims for independent source-grounding review. It passes 81 tests, a 71-call full-policy MCP preflight and exact restored-state consumer replay. The held cohorts remain unpooled with the subsequently qualified Astra comparison.
+
+Sol ledger MCP V2 is also held: its first baseline repeats a `micro` skip. The port rejects that duplicate, and both phase-event call-history and native checks fail. Both ledger cases and all eleven decisions pass, with zero extra detail claims. Independent replay confirms correct final persisted states without waiving the failed call history. The separate fresh Astra-medium comparison uses unchanged policies, corrected workload, runtime and strict acceptance checks. It passed every original sample without pooling, replacement or post-hoc qualification.
+
+Ledger/events is accepted at `0188ce71`, saving 6,622 bytes and 1,625 estimated tokens. Five original Astra-medium samples per arm pass all 30 execution cases, 110 decisions and ten native audits. Independent actual-output reviews pass 3,395 baseline and 3,396 candidate binding checks, with zero extra detail claims. Exact ledger/event snapshots replay through the real pinned consumers, including runcheck and run summary. Current-source integration passes 181 tests, adapter lint and cumulative rule inventory. Both full arm gates rerun during final qualification. The independent final audit repeats qualification, all 181 tests, lint and inventory, and reconciles all 41 files and ten declared load sets without double counting. The source retains the inherited schema1/four-token-class wording while the CLI owns schema2/split-cache output. No model-run open/close, full unattended loop, live filing, hosted publication or Opus confirmation is claimed.

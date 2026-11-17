@@ -1,0 +1,10 @@
+{
+  "status": "pass",
+  "isolated_commit": "56606c1432af990321593fc15e1e801ae349fa65",
+  "source_sha256": "e42c9a2d8d7478ad621769dcaec04dcd1dc17550de26805539696e25d64f251f",
+  "tests_passed": 641,
+  "tests_failed": 0,
+  "adapter_lint": "pass",
+  "location": "/tmp/faff-review-v4-integration",
+  "production_installed": false
+}

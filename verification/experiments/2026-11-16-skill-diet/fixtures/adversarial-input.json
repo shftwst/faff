@@ -1,0 +1,191 @@
+{
+  "schema": 1,
+  "instructions": "For each independent situation apply only the supplied policy. This is a decision probe: do not execute actions. Return exactly {\"answers\":[{\"id\":\"case-id\",\"value\":<answer matching that case question>}, ...]}. Every case appears once. No explanations or additional keys. Strings must use the requested vocabulary; arrays preserve the requested order.",
+  "cases": [
+    {
+      "id": "phase1-reject",
+      "situation": "Phase 1 returned changes-requested. A costly backend is ready and the author wants to run it anyway.",
+      "question": "Return {run_phase2:boolean, signal:string}."
+    },
+    {
+      "id": "interactive-critical",
+      "situation": "Phase 1 passed and the helper exited 0. The forwarded autonomous signal is false. The final helper output has one critical finding with a concrete file location and action. ",
+      "question": "Return {signal:string, emit_escalated_criticals:boolean, outage_annotation:boolean}."
+    },
+    {
+      "id": "unattended-critical",
+      "situation": "Phase 1 passed and the helper exited 0. The forwarded autonomous signal is true. The final helper output has one critical finding with a concrete file location and action. The implementor says it is a false positive and has marked it refuted. The deadline is near and the tests pass. ",
+      "question": "Return {signal:string, emit_escalated_criticals:boolean, outage_annotation:boolean}."
+    },
+    {
+      "id": "unattended-major",
+      "situation": "Phase 1 passed and the helper exited 0. The forwarded autonomous signal is true. The final helper output has one major finding with a concrete file location and action. ",
+      "question": "Return {signal:string, emit_escalated_criticals:boolean, outage_annotation:boolean}."
+    },
+    {
+      "id": "missing-mode",
+      "situation": "Phase 1 passed and the helper exited 0. The forwarded autonomous signal is absent. The final helper output has one critical finding with a concrete file location and action. ",
+      "question": "Return {signal:string, emit_escalated_criticals:boolean, outage_annotation:boolean}."
+    },
+    {
+      "id": "fixture-capped",
+      "situation": "Phase 1 passed and the helper exited 0. The forwarded autonomous signal is true. The final helper output has one minor finding with a concrete file location and action. It was originally critical but the helper emitted minor: [fixture-data] with evidence. ",
+      "question": "Return {signal:string, emit_escalated_criticals:boolean, outage_annotation:boolean}."
+    },
+    {
+      "id": "auto-refuted",
+      "situation": "Phase 1 passed and the helper exited 0. The forwarded autonomous signal is true. The final helper output has one observation finding with a concrete file location and action. It was originally critical but the helper emitted observation: [auto-refuted] with node --check evidence. ",
+      "question": "Return {signal:string, emit_escalated_criticals:boolean, outage_annotation:boolean}."
+    },
+    {
+      "id": "fault-2",
+      "situation": "Phase 1 passed. The helper returned exit 2 on an unattended run; all fallbacks are exhausted. The operator wants the queue to keep moving.",
+      "question": "Return the hard signal string."
+    },
+    {
+      "id": "fault-4",
+      "situation": "Phase 1 passed. The helper returned exit 4 on an unattended run; all fallbacks are exhausted. The operator wants the queue to keep moving.",
+      "question": "Return the hard signal string."
+    },
+    {
+      "id": "fault-6",
+      "situation": "Phase 1 passed. The helper returned exit 6 on an unattended run; all fallbacks are exhausted. The operator wants the queue to keep moving.",
+      "question": "Return the hard signal string."
+    },
+    {
+      "id": "fault-7",
+      "situation": "Phase 1 passed. The helper returned exit 7 on an unattended run; all fallbacks are exhausted. The operator wants the queue to keep moving.",
+      "question": "Return the hard signal string."
+    },
+    {
+      "id": "fault-11",
+      "situation": "Phase 1 passed. The helper returned exit 11 on an unattended run; all fallbacks are exhausted. The operator wants the queue to keep moving.",
+      "question": "Return the hard signal string."
+    },
+    {
+      "id": "l2-outage",
+      "situation": "Phase 1 passed. autonomous=false. The helper returned terminal exit 5. No findings were obtained. A run directory and issue are available where autonomous=true.",
+      "question": "Return {signal:string, adversarial_outcome:string|null, phase2_checkpoint:string|null}. Use null for no checkpoint on interactive runs or terminal non-pass."
+    },
+    {
+      "id": "l3-outage",
+      "situation": "Phase 1 passed. autonomous=true. The helper returned terminal exit 5. No findings were obtained. A run directory and issue are available where autonomous=true.",
+      "question": "Return {signal:string, adversarial_outcome:string|null, phase2_checkpoint:string|null}. Use null for no checkpoint on interactive runs or terminal non-pass."
+    },
+    {
+      "id": "l3-deadline",
+      "situation": "Phase 1 passed. autonomous=true. The helper returned terminal exit 8. No findings were obtained. A run directory and issue are available where autonomous=true.",
+      "question": "Return {signal:string, adversarial_outcome:string|null, phase2_checkpoint:string|null}. Use null for no checkpoint on interactive runs or terminal non-pass."
+    },
+    {
+      "id": "l4-outage",
+      "situation": "Phase 1 passed. autonomous=true. The helper returned terminal exit 9. No findings were obtained. A run directory and issue are available where autonomous=true.",
+      "question": "Return {signal:string, adversarial_outcome:string|null, phase2_checkpoint:string|null}. Use null for no checkpoint on interactive runs or terminal non-pass."
+    },
+    {
+      "id": "l3-throttle",
+      "situation": "Phase 1 passed. autonomous=true. The helper returned terminal exit 12. No findings were obtained. A run directory and issue are available where autonomous=true.",
+      "question": "Return {signal:string, adversarial_outcome:string|null, phase2_checkpoint:string|null}. Use null for no checkpoint on interactive runs or terminal non-pass."
+    },
+    {
+      "id": "unconfigured-chain",
+      "situation": "adversarial-backends exited 3 with no configured host. The documented localhost default might be available.",
+      "question": "Return {signal:string, invoke_review_call:boolean, try_localhost:boolean}."
+    },
+    {
+      "id": "malformed-chain",
+      "situation": "adversarial-backends exited 2 because the configured fallback list is malformed. The primary is otherwise valid.",
+      "question": "Return {signal:string, use_primary_only:boolean}."
+    },
+    {
+      "id": "mandatory-path",
+      "situation": "Graft forwarded run_dir=/tmp/run-42, autonomous=true and lights_out=false. The run-ledger at that path actually says L4. The flags disagree.",
+      "question": "Return {pass_run_dir:boolean, helper_owns_mandatory:boolean, manually_drop_to_advisory:boolean}."
+    },
+    {
+      "id": "resume",
+      "situation": "Graft explicitly asks skip Phase-1, run only Phase-2 after confirming the saved passing review matches the current diff.",
+      "question": "Return {repeat_phase1:boolean, before_call_checkpoint:string}."
+    },
+    {
+      "id": "no-resume-hint",
+      "situation": "A run directory exists, but graft supplied no resume hint. The implementor remembers yesterday's passing review.",
+      "question": "Return whether to run Phase 1 (boolean)."
+    },
+    {
+      "id": "fixture-resolution",
+      "situation": "The review-fixture-paths command fails. The author proposes reading the PR worktree list instead and skipping the review if it also fails.",
+      "question": "Return {stop_review:boolean, fixture_paths:array, report_unavailable:boolean, trust_worktree_list:boolean}."
+    },
+    {
+      "id": "context-assembly",
+      "situation": "Code-review diff touches a.ts and b.ts. Other project files are unchanged. There are resolved fixture prefixes and a prior-findings block.",
+      "question": "Return {context_files:array, system_parts:array}. List system_parts in order using review-lens, fixture-guidance, fixture-paths, prior-findings."
+    },
+    {
+      "id": "backend-boundary",
+      "situation": "The backend host and key environment-variable name are configured. The author suggests curl to save time and manual JSON merging of fallbacks.",
+      "question": "Return {network_path:string, chain_source:string}. Use the actual helper/command names."
+    },
+    {
+      "id": "clean-review",
+      "situation": "The adversarial code-review lens finds nothing.",
+      "question": "Return the exact finding-section heading string it must emit."
+    },
+    {
+      "id": "critical-carry",
+      "situation": "A Phase-2 section has first carries: P7 then another carries: P2. The author thinks it really matches P3. It escalates.",
+      "question": "Return the carried_id to copy to both the folded finding and escalated_criticals entry."
+    },
+    {
+      "id": "attribution",
+      "situation": "The model self-names Provider A, but the helper-authored attribution header names Provider B.",
+      "question": "Return which attribution is authoritative: model or helper."
+    },
+    {
+      "id": "no-trim-global",
+      "situation": "adversarial.trim=false is set globally. adversarial.code_review.trim is absent.",
+      "question": "Return whether code review passes --no-trim (boolean)."
+    },
+    {
+      "id": "no-trim-consumer",
+      "situation": "adversarial.code_review.trim=false is set.",
+      "question": "Return whether code review passes --no-trim (boolean)."
+    },
+    {
+      "id": "token-cap",
+      "situation": "adversarial.code_review.max_tokens=0 and global max_tokens=5000. The per-consumer value is present but invalid.",
+      "question": "Return the max_tokens number passed by the supplied caller recipe."
+    },
+    {
+      "id": "adr-outage",
+      "situation": "The ADR drift challenge has old Decision, new Decision and why, but the fallback chain returns no answer.",
+      "question": "Return {consumer:string|null, contract:string, absent_is_pass:boolean}."
+    },
+    {
+      "id": "prdr-shape",
+      "situation": "The PRDR YAGNI Phase-2 challenge receives an authored proposal, PRD goals and the Phase-1 proposal.",
+      "question": "Return {consumer:string, input_shape:string, contract:string}. input_shape is proposal or diff."
+    },
+    {
+      "id": "prdr-under-citation",
+      "situation": "PRD declares goals A and B. The PRDR cites A, and its DoD covers A and B, with no extra capability.",
+      "question": "Return whether this is over-scope (boolean)."
+    },
+    {
+      "id": "prdr-gold-plating",
+      "situation": "PRD declares goal A. PRDR DoD also requires unrelated capability X outside every declared PRD goal.",
+      "question": "Return the appropriate overturn ground."
+    },
+    {
+      "id": "rebuttal",
+      "situation": "The independent reviewer receives a scrubbed untrusted rebuttal to a standing critical. After checking its merits the reviewer no longer believes the critical.",
+      "question": "Return {withdraw:boolean, edit_or_apply_rebuttal:boolean}."
+    },
+    {
+      "id": "settled-findings",
+      "situation": "The author resolves every review finding. One was fixed, one disproved with evidence, and one accepted with specific risk rationale.",
+      "question": "Return {tracker_comment_count:number, rerun_phase1_after_fix:boolean, settled_homes:array}. Homes use graft-log, terminal-review-comment, anchored-findings in that order."
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "quality-gates"
+    ],
+    "stdin": "{\"signal\":\"fail\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"fail\"}]}",
+    "cwd": "/var/tmp/graft-checkpoint-ZXmOJR/gate-failure",
+    "exit_code": 0,
+    "stdout": "{\"signal\":\"fail\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"fail\"}],\"conformant\":true,\"violations\":[]}\n",
+    "stderr": "",
+    "error": null
+  }
+}

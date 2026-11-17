@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T21:30:30.583400+00:00",
+  "status": "frozen-before-baseline-and-before-candidate-edit",
+  "bindings": [
+    {
+      "path": "beep-reporting-sol-v1-baseline-plan.json",
+      "sha256": "96c5a591ab6fc492964524007f6eff70d0653b308dbac50d44ca9b2c5dfc2d9f"
+    },
+    {
+      "path": "baseline/beep-reporting.md",
+      "sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28"
+    },
+    {
+      "path": "baseline/beep-reporting-with-context.md",
+      "sha256": "a86f63c7119cfea82d9fd78e9c832c269e517b3107b0496dccf134f303cad254"
+    },
+    {
+      "path": "workflow-fixtures/beep-reporting-v1.json",
+      "sha256": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3"
+    },
+    {
+      "path": "run-model-matrix-samples.py",
+      "sha256": "34b5e732717f921e7403940957fcc072b766ff1d870e7521d2b089059edc71c8"
+    },
+    {
+      "path": "independent-beep-reporting-preflight-review.json",
+      "sha256": "d6d3b952d7b5a06b2e763b4c9dabe1f9e993b7139ef0fe631f2139f4c2609658"
+    }
+  ],
+  "runtime_artifacts": [
+    {
+      "path": "eval/control-parity/reporting-execution.mjs",
+      "sha256": "2e22292151e515bbc79b8dd9df6af93a301802e64607d3439b88d37933577741"
+    },
+    {
+      "path": "test/control-parity-reporting.test.mjs",
+      "sha256": "c4b71125969e5eec0039bf8fddfe52a8025b943ce94c317324667676802cac84"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/run-summary.js",
+      "sha256": "f8f4171cdc880b21b3a6e0ade9503404a38757f25112d38c7a46f580b38396a9"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331"
+    }
+  ],
+  "manual_scope": [
+    "Full source facts and known unresolved obligations preserved.",
+    "Correct command-owned outcomes and annotations; facts contain only observations/judgements.",
+    "Complete immutable summary text in tracker/conversation outputs, correct health banner/economics and source qualifier.",
+    "No final report or outcome deferral while ready work remains without a budget breach.",
+    "Command handler is production code; external dependencies and publication/continuation are controlled ports. No pre-write normalisation or claimed-peer claim."
+  ],
+  "prior_source_savings": {
+    "bytes": 107242,
+    "estimated_tokens": 26409
+  }
+}

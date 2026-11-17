@@ -1,0 +1,23 @@
+{
+  "harness": "eval/control-parity/reporting-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/beep-reporting-v1.json",
+  "timeout_seconds": 1200,
+  "worker": "claude-challenges",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Fresh reporting bounded diagnostic for the SAME combined reporting+ledger current-main candidate. Full unchanged current kernel plus full arm beep policy; not an isolated-cut claim. Historical GPT results and all failures remain separate/unpooled. One fixed sample per arm; zero retries.",
+  "acceptance": "All6 execution cases must pass the existing symmetric pre-publication-draft assessment, with raw grade/report and literal-runner code1 retained when present. Require native full-policy/actual model/version/guidance and independent all6 trace/facts/canonical-summary/economics/publication review before candidate. Copy the complete passing native audit to run/native-audit.json before invoking unchanged assessor. No new normalization or waiver; one fixed sample per arm, zero retries.",
+  "samples": [
+    {
+      "name": "beep-reporting-main-opus-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "beep-reporting-main-opus-v1-candidate-policy.md"
+    }
+  ]
+}

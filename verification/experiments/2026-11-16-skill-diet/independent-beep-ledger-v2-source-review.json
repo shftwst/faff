@@ -1,0 +1,104 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only rebase source verifier",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "pass-exact-two-section-rebase-unmeasured",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/beep-ledger-v2.md",
+      "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+      "bytes": 156107
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v2.md",
+      "sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+      "bytes": 149485
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/beep-ledger-v2-with-context.md",
+      "sha256": "99a8191396272aab59cf54f2f9f69412e7b396e096d1f26a9246e9ecf65a0ebd",
+      "bytes": 240302
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v2-with-context.md",
+      "sha256": "6ebb6561f0d99df9f536c5bfb667cc5ef919e56137f8da50528707f7c83e4c26",
+      "bytes": 233680
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v1.md",
+      "sha256": "8bcedb9ac1a76c397011d367992a272547c1653c7664d0eecd57c6625d0d7d95",
+      "bytes": 150939
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-reporting-v1.md",
+      "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+      "bytes": 156107
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-source-review.json",
+      "sha256": "cdd3220bf17bba29f3dfc61c695429b7050518673b6871667bc9e38028a58a87",
+      "bytes": 1154
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v1-source-review.json",
+      "sha256": "6e1a9337bd004956787a11c320c6c2d009cae0e75be32772899dec52fd7911d4",
+      "bytes": 6235
+    }
+  ],
+  "checks": {
+    "baseline_exactly_equals_measured_reporting_candidate": true,
+    "candidate_exactly_equals_baseline_with_only_v1_ledger_and_event_sections_substituted": true,
+    "all_outside_two_ranges_byte_identical": true,
+    "ledger_section_byte_identical_to_v1": true,
+    "event_section_byte_identical_to_v1": true,
+    "actual_reporting_section_byte_identical_between_v2_arms": true,
+    "owner_stamp_heartbeat_and_stop_hook_byte_identical": true,
+    "shared_context_prefix_byte_identical": true,
+    "both_contextual_policies_end_with_exact_corresponding_bare_source": true,
+    "new_mandatory_reads": []
+  },
+  "changed_ranges": [
+    {
+      "start_heading": "## Run ledger (mechanical completeness)",
+      "end_before_heading": "### Owner stamp & heartbeat",
+      "candidate_bytes": 9650,
+      "sha256": "b2041ab931d56a115ef38a49ca1aa5ac17d7ae13434c33799c7e7632f8c8489f"
+    },
+    {
+      "start_heading": "## Run-event log (observability substrate)",
+      "end_before_heading": "## Explicit-list mode",
+      "candidate_bytes": 3516,
+      "sha256": "566d3fb226f844a80fcb517a27a7b303f6783057eb7e504ad103d2c4dfbb5f63"
+    }
+  ],
+  "fixed_context": {
+    "bytes": 84195,
+    "sha256": "baa070e8ece423b4c96dcd35face879c55a957c873c093958bb291edfdc66984"
+  },
+  "independently_recounted_source_savings": {
+    "method": "ceil(UTF-16 code-unit count /4) separately per bare source file; estimate, not billed usage",
+    "baseline": {
+      "bytes": 156107,
+      "utf16_code_units": 154752,
+      "estimated_tokens": 38688
+    },
+    "candidate": {
+      "bytes": 149485,
+      "utf16_code_units": 148250,
+      "estimated_tokens": 37063
+    },
+    "bytes_saved": 6622,
+    "estimated_tokens_saved": 1625
+  },
+  "assessment": "The rebase introduces no additional policy change: it preserves the measured Reporting cut exactly and carries the previously reviewed V1 ledger/event treatment byte for byte. No new mandatory reference or shared-context difference is introduced. This record verifies rebase fidelity; it does not enlarge the prior V1 semantic or runtime proof.",
+  "limits": [
+    "Reporting acceptance and installation of exact baseline hash61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16 remain prerequisites before freezing ledger measurement plans. This review does not establish that installation occurred.",
+    "Ledger V2 is unmeasured. Five baseline/five candidate model/native/manual/real-consumer gates and rebased integration remain required before acceptance.",
+    "No source installed or model launched by this review.",
+    "Existing event-schema and token-class prose mismatches are inherited unchanged and remain separately disclosed.",
+    "Savings are potential source-load estimates; no savings acceptance or provider billing claim."
+  ]
+}

@@ -1,0 +1,1 @@
+ISS-BB: Memoise config resolution to reduce cold-start time.

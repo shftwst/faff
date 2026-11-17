@@ -1,0 +1,28 @@
+```faff-contract:architecture-proposal
+{
+  "chosen_architecture": "Propose the certified FixtureSign service as the document-signing component. Its integration boundary is a Node 22 adapter in the existing deployment, to be implemented only after a human establishes service access and confirms the certified signing interface. Keep this proposal scoped to the signing component.",
+  "rationale": "Requires the certified FixtureSign service for document signatures: select that service as the signing component. Certification is mandatory and the team cannot build a certified substitute in this release: the required component is not locally buildable, so the recommendation is buy, surfaced for a human. The supplied profile confirms Node 22 and Docker Compose for a future integration adapter, and explicitly records that no FixtureSign licence or service access exists. Only propose the signing component: this output records the component choice and its integration boundary. No licence purchase or service call is authorised: access and procurement remain a separate human decision.",
+  "adr_candidates": [
+    {
+      "title": "Use certified FixtureSign for document signatures",
+      "decision": "Propose FixtureSign as the certified signing component, with a Node 22 integration adapter on the existing deployment once a human establishes authorised service access.",
+      "rationale": "FixtureSign certification is mandatory and the team cannot build a certified substitute in this release. The supplied profile records no current licence or service access."
+    }
+  ],
+  "assumptions": [
+    "The fixture's statement that FixtureSign certification is mandatory is the requirement basis; no independent certification verification has been performed.",
+    "No FixtureSign licence or service access exists, as stated in the supplied profile.",
+    "A human must confirm the required certification coverage, licence terms and authorised access before any integration or service use.",
+    "The FixtureSign interface, credentials, document handling requirements and failure semantics remain to be confirmed before implementation."
+  ],
+  "recommendation": "buy"
+}
+```
+
+## ADR promotion intent
+
+- Use certified FixtureSign for document signatures: candidate to record FixtureSign as the required certified signing component and the future Node 22 adapter boundary because certification is mandatory and cannot be obtained by a team-built substitute this release.
+
+Human action required: review the non-build proposal and resolve licence and service access separately. This proposal authorises no purchase, subscription or service call. The candidate awaits later review and materialisation by graft Step 4b.
+
+confidence: medium

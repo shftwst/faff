@@ -1,0 +1,6 @@
+{
+  "status": "failed-preflight",
+  "cause": "The auxiliary decoy mint correctly refused to create a second live L3 run. This is an existing production guard, not a skill candidate failure.",
+  "preserved": "Original preflight source, real CLI stdout/stderr, partial capture and failure report are retained. Owned sentry poller and temporary repository were cleaned up.",
+  "next": "V2 removes the auxiliary decoy test. Explicit-run targeting remains covered by existing dedicated CLI tests and is not newly claimed by this lifecycle preflight."
+}

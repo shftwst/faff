@@ -148,7 +148,7 @@ test("the prompt carries the review rubric with the finding-field guidance, the 
   const prose = loadReviewFindingProse();
   assert.match(prose, /Review verdict \(fixed\)/);
   assert.match(prose, /## The five review passes/);
-  assert.match(prose, /Finding fields/);
+  assert.match(prose, /\| Field \| Rule \|/);
   const c = cases()[0];
   const prompt = buildFindingIdentityPrompt(c.fixture, { caseId: c.id });
   assert.ok(prompt.includes(c.fixture.diff));
@@ -344,7 +344,8 @@ test("both review SKILLs document title, location and action and point at the sh
     assert.match(md, /"location"/);
     assert.match(md, /"action"/);
   }
-  assert.match(noon, /no line numbers, severity words or category/);
+  assert.match(noon, /copy the prose finding heading's title verbatim, without its category/);
+  assert.match(noon, /no line numbers or severity words/);
   assert.match(dark, /finding-id\.js/);
 });
 
@@ -416,8 +417,8 @@ test("undetected: pass B with no defect finding, and the result counts merged an
 test("loadReviewFindingProse carries the carried_id rule", () => {
   const prose = loadReviewFindingProse();
   assert.match(prose, /"carried_id"/);
-  assert.match(prose, /`carried_id` is the handle of the prior finding when this finding is the same defect/);
-  assert.match(prose, /never re-raise a finding because it is listed/);
+  assert.match(prose, /For the same prior defect in the same file, retain its supplied handle while the defect remains/);
+  assert.match(prose, /never re-raise merely because it is listed/);
 });
 
 test("faff contract review-verdict ignores carried_id: same output with and without it", () => {

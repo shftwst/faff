@@ -1,0 +1,72 @@
+{
+  "arm": "candidate",
+  "requested_model": "gpt-6.1-sol",
+  "effort": "medium",
+  "codex_cli": "0.169.0",
+  "harness_command": [
+    "/usr/local/bin/node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/beep-reporting-v1-with-context.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-candidate-4"
+  ],
+  "runner_sha256": "d76ccc5b2e1ee81785945af3a800a01070e0c6055f7c86123c09fe8ca473a9f9",
+  "server_sha256": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+  "server_tools": [
+    "read_policy",
+    "write_facts",
+    "run_faff",
+    "normalise_output",
+    "publish",
+    "continue_build",
+    "report_failure",
+    "finish"
+  ],
+  "prompt_sha256": "9888f15f254fd99f1c2a05b472f63286c376a7a62cc5dfb5a74bfe305ee8abfc",
+  "reads": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-candidate-4/task.json",
+      "sha256": "3dd67bc67200dedb5dd38047af2a06bb391e22ba6416e3ed6ef86f30ef7f1934"
+    }
+  ],
+  "command": [
+    "codex",
+    "exec",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-c",
+    "approval_policy=\"never\"",
+    "-c",
+    "mcp_servers.measurement={command=\"/usr/local/bin/node\",args=[\"/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs\", \"/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-candidate-4\"],cwd=\"/tmp/faff-mcp-measure-pzr2i8kn/cwd\",enabled=true,default_tools_approval_mode=\"approve\",startup_timeout_sec=20,tool_timeout_sec=120,enabled_tools=[\"read_policy\", \"write_facts\", \"run_faff\", \"normalise_output\", \"publish\", \"continue_build\", \"report_failure\", \"finish\"]}",
+    "--sandbox",
+    "workspace-write",
+    "--cd",
+    "/tmp/faff-mcp-measure-pzr2i8kn/cwd",
+    "--add-dir",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-mcp-v1-candidate-4",
+    "--json",
+    "--output-last-message",
+    "/tmp/faff-mcp-measure-pzr2i8kn/final.txt",
+    "-"
+  ],
+  "provider_usage": "unmetered",
+  "private_native_capture": "/tmp/faff-mcp-measure-pzr2i8kn",
+  "context_reset_requested": true,
+  "plan_sha256": "8838fb5ad0f8e3fc390950a3cfc0afd9baddf178e56e3615fa73b13e1118368c"
+}

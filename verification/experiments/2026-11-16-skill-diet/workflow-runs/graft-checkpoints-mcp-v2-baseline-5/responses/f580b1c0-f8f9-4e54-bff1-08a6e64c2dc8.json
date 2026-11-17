@@ -1,0 +1,26 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "spec",
+      "verify",
+      "--issue",
+      "FAFF-9",
+      "--spec",
+      "/var/tmp/graft-checkpoint-fmldT1/dispatched-pass-source-spec.md",
+      "--worktree",
+      "/var/tmp/graft-checkpoint-fmldT1/dispatched-pass",
+      "--run-dir",
+      "/var/tmp/graft-checkpoint-fmldT1/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+      "--json"
+    ],
+    "stdin": "",
+    "cwd": "/var/tmp/graft-checkpoint-fmldT1/dispatched-pass",
+    "exit_code": 0,
+    "stdout": "{\"issue\":\"FAFF-9\",\"token\":\"verified\",\"path\":\"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\"}\n",
+    "stderr": "",
+    "error": null
+  }
+}

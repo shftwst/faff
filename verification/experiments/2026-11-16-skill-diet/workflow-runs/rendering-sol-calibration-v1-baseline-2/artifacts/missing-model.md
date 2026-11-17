@@ -1,0 +1,2 @@
+- **Explanation:** draft → no load-bearing model to lead with → flag the producer gap; the source must supply the governing idea before it can be hoisted.
+- **Steps:** three steps in one paragraph → 3+ items must be a list → render the existing steps as a numbered list.

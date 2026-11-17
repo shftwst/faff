@@ -1,0 +1,1 @@
+{"status":"fail","cases":14,"problems":[],"failed":[{"id":"dispatched-pass","kind":"execution","pass":false,"problems":["dispatcher-consumers"]}],"output":"verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-1"}

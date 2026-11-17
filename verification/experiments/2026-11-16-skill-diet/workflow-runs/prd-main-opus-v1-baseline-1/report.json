@@ -1,0 +1,307 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 37,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 88171,
+    "utf16_characters": 87502,
+    "sha256": "d0b228dafb81a872d446d6ba09ab8719220ca29cef93235e78935faa8cf0a69c",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "2f5f8bbc6956df5e7e181d7bf3e32a9661a0b9a2593901fbde7b90a747671ceb"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6016,
+        "sha256": "459066a82f9477a7d55b6a0f0ab691cfc9e2b2aeef4b67f03f8690b5cd1f6d6f"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6002,
+        "sha256": "fc6d733febb430a489457efc908f5caada826b7bc3bde5bbd016da5b31b5e231"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "6eecae0f560906a9bb4a1bc578c8df4119dfe70ca8698afa4713bd148d5c698c"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "ef55f2e4101c5b4c3e47a3eef4746840d3d6afbe3f8b23f897ce9df322d9ee65"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6039,
+        "sha256": "f7806e7892fc3f05efdc6bf7261c114db1a470b66dee2572a2cb20f0edb01d4f"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "8ed72102419c4b41948f36ac27985c6bd6f7e89208ac55ee1f93847e9b45009f"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "be03ff939732675ae7ca3435ff3882623934cdae63393e10f579542483278487"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "8f191163b39a157bcfc9c6465be466a29498c2e7e55464433278fd22fbab37a0"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "7e6a748eb960c29debbec1d6c113cc0db309a16e82d1772499bd545226725e48"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "0c2eeab10860b2c7451c531092fc6dce78345508b9955fd1ba6bd2f554231ec3"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "098df230a0f7c51f317e832e506b1d810ddd4f89637ad3076e39a86d0d12679f"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "50df0c8fe6f93c57f4d222d949a3452085416b4a9ae86979ee58693f357216ef"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6059,
+        "sha256": "071754a6a29dd1c6be8416f1f9b191e51b0507781d07534f08267e6fd4bd9b2a"
+      },
+      {
+        "offset": 84000,
+        "end": 87502,
+        "characters": 3502,
+        "bytes": 3522,
+        "sha256": "07db959b1fd7120685c23a972af406c7c79f764cba487d20a650cb7e973ce5e1"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "scenario-broad",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "admissible",
+            "reason": ""
+          }
+        ]
+      },
+      {
+        "id": "comparator-tight",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "tight"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "admissible",
+            "reason": ""
+          }
+        ]
+      },
+      {
+        "id": "missing",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "not-ready",
+            "reason": "no-stop-conditions"
+          }
+        ]
+      },
+      {
+        "id": "vague-tight",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "not-ready",
+          "reason": "ambiguous-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "tight"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "not-ready",
+            "reason": "ambiguous-stop-conditions"
+          }
+        ]
+      },
+      {
+        "id": "mixed",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "admissible",
+            "reason": ""
+          }
+        ]
+      },
+      {
+        "id": "injected-note",
+        "kind": "producer-artifact",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "consumer_results": [
+          {
+            "id": "prd-readiness",
+            "pass": true,
+            "verdict": "not-ready",
+            "reason": "no-stop-conditions"
+          }
+        ]
+      },
+      {
+        "id": "code-blind",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "licence-gate",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "mixed-bar",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "missing-refusal",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "faff contract prd-readiness"
+      },
+      {
+        "id": "last-block",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": true
+      },
+      {
+        "id": "uncertain",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "not-ready"
+      },
+      {
+        "id": "admissible-reason",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": ""
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Bounded code-blind PRD producer execution. Read each isolated PRD, persist a final fenced verdict, then parse and consume it through the actual prd-readiness CLI. Separate policy decisions; no run mint, full orchestration, code inspection or tracker mutation.",
+  "accounting": "unmetered"
+}

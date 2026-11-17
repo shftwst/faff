@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "status": "draft-formatting-only-unmeasured-uninstalled",
+  "source": "plugin/skills/faff-graft/SKILL.md",
+  "baseline": "baseline/graft-merge-confidence-v1.md",
+  "parent_candidate": "candidates/graft-merge-confidence-v2-draft.md",
+  "parent_sha256": "678c12fe5e0e9ac2924dd79c800da6dabf6997cb2e4a3999bb913684fc7e9a9f",
+  "candidate": "candidates/graft-merge-confidence-v3-draft.md",
+  "candidate_sha256": "24718864aa951816ff7e916917f78a271be52c0f46ba58cd17a20b481733b989",
+  "baseline_sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+  "before_bytes": 178777,
+  "after_bytes": 164129,
+  "bytes_saved": 14648,
+  "before_estimated_tokens": 44329,
+  "after_estimated_tokens": 40735,
+  "estimated_tokens_saved": 3594,
+  "formatting_checks": {
+    "physical_lines_removed": 20,
+    "non_whitespace_character_sequence_identical_to_v2": true,
+    "outside_changed_step10_region_byte_identical_to_v2": true,
+    "all_table_rows_byte_identical": true,
+    "list_markers_and_item_order_unchanged": true,
+    "named_anchor_literal_text_unchanged": true,
+    "max_words_in_joined_prose_paragraph": 139,
+    "whitespace_token_sequence_identical_to_v2": true,
+    "validator_split_newline_count_before": 824,
+    "validator_split_newline_count_after": 804,
+    "unchanged_graft_line_cap": 804
+  },
+  "transformations": [
+    {
+      "original_lines": [
+        526,
+        528,
+        530
+      ],
+      "words_after": 134,
+      "lines_removed": 4,
+      "operation": "Join adjacent prose paragraphs with one space; keep literal text and order."
+    },
+    {
+      "original_lines": [
+        541,
+        543,
+        545
+      ],
+      "words_after": 62,
+      "lines_removed": 4,
+      "operation": "Join adjacent prose paragraphs with one space; keep literal text and order."
+    },
+    {
+      "original_lines": [
+        559,
+        561
+      ],
+      "words_after": 110,
+      "lines_removed": 2,
+      "operation": "Join adjacent prose paragraphs with one space; keep literal text and order."
+    },
+    {
+      "original_lines": [
+        569,
+        571
+      ],
+      "words_after": 139,
+      "lines_removed": 2,
+      "operation": "Join adjacent prose paragraphs with one space; keep literal text and order."
+    },
+    {
+      "original_lines": [
+        573,
+        575
+      ],
+      "words_after": 110,
+      "lines_removed": 2,
+      "operation": "Join adjacent prose paragraphs with one space; keep literal text and order."
+    },
+    {
+      "original_lines": [
+        593,
+        595,
+        597
+      ],
+      "words_after": 126,
+      "lines_removed": 4,
+      "operation": "Join adjacent prose paragraphs with one space; keep literal text and order."
+    },
+    {
+      "original_blank_line": 587,
+      "lines_removed": 1,
+      "operation": "Remove blank separator between existing list items; keep both markers/indentation."
+    },
+    {
+      "original_blank_line": 592,
+      "lines_removed": 1,
+      "operation": "Remove blank separator between existing list items; keep both markers/indentation."
+    }
+  ],
+  "mandatory_dependencies_added": [],
+  "limits": [
+    "Formatting-only derivative of reviewed V2. No semantics/caps/current source/accepted evidence changed.",
+    "V2 private failed checkpoint remains immutable. No private integration updated here.",
+    "No model calls, harness or test suites. Exact validator-line count and private lint/inventory require root verification before checkpoint update."
+  ]
+}

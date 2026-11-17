@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc100",
+      "--root",
+      "/var/tmp/graft-checkpoint-ZXmOJR/reconciliation/actual/mixed-ledger"
+    ],
+    "input": "{\"type\":\"ledger-write\",\"phase\":\"run\",\"data\":{\"fields\":[\"admitted\",\"outcomes\",\"review_adversarial_skipped\",\"review_outage_pending\",\"landing_resumable\",\"post_merge_verification_failures\",\"post_merge_verification_unverified\",\"outcome_details\"]}}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":3,\"ts\":\"2026-11-17T03:19:00.153Z\",\"prev\":\"e336a32adbd7c4b8b35dccaf3a0fee3818a9dbc21f8ca05440eca94d54940c5b\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"dropped_keys\":[\"fields\"],\"ledger_sha256\":\"9709d14bdd415097cbe02fddacceb0075118de8db2195ec7fcfef29ee75dbba8\"}}\n",
+    "stderr": "faff events append: dropped data key(s) {fields} not in the ledger-write schema\nfaff events append: run-ledger.json schema: post_merge_verification_failures[0]: expected type object, got string\n",
+    "error": null,
+    "ledger_before_sha256": "9709d14bdd415097cbe02fddacceb0075118de8db2195ec7fcfef29ee75dbba8",
+    "ledger_after_sha256": "9709d14bdd415097cbe02fddacceb0075118de8db2195ec7fcfef29ee75dbba8",
+    "prior_events_sha256": "89c5f38113b77984d8a0fc124f6209335da1297447a7c93d71b852581abf3944",
+    "events_after_sha256": "2704b4a8ea6179564e36a99618638210d31065aed7c7ce44be930043f5b599e8",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 3,
+        "ts": "2026-11-17T03:19:00.153Z",
+        "prev": "e336a32adbd7c4b8b35dccaf3a0fee3818a9dbc21f8ca05440eca94d54940c5b",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "dropped_keys": [
+            "fields"
+          ],
+          "ledger_sha256": "9709d14bdd415097cbe02fddacceb0075118de8db2195ec7fcfef29ee75dbba8"
+        }
+      }
+    ]
+  }
+}

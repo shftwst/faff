@@ -1,0 +1,194 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T04:04:38.996183+00:00",
+  "reviewer": "/root/verify_wtf_scope; independent read-only source, evaluator and mechanical-evidence reviewer",
+  "status": "bounded_v3_design_clear_unregistered_not_acceptance",
+  "bindings": {
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v3-development-checkpoint.json": {
+      "sha256": "3a3d1e7d6a42afa07e593483bb968bdb5d0274999be6a8773a4532c2956866e6",
+      "bytes": 102527
+    },
+    "eval/control-parity/graft-checkpoint-execution-v3.mjs": {
+      "sha256": "016859b43982b3bae73bed432d22b5261168490f30a940d9280d5852e3411310",
+      "bytes": 30265
+    },
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v3-draft.json": {
+      "sha256": "bb053dc6a6f290290440726b89c1a416c8784f1e6179d70f9429ca8932e3a517",
+      "bytes": 13078
+    },
+    "test/control-parity-graft-checkpoint-v3.test.mjs": {
+      "sha256": "49eb4673047da02db560ac2e25f449e37e3ccfe938ccfcf473ebdd353e1ffdbd",
+      "bytes": 11209
+    },
+    "verification/experiments/2026-11-16-skill-diet/verify-graft-checkpoint-arm-v3.mjs": {
+      "sha256": "3f1405281df4943678d6738b69de5346ba343c95050cc878e317e0e142a1de3a",
+      "bytes": 11407
+    },
+    "verification/experiments/2026-11-16-skill-diet/verify-graft-checkpoint-arm-v2.mjs": {
+      "sha256": "e74a60ba79864b518f054fb532b9192e7652a1efa8526d4dbf8594b174abdbaa",
+      "bytes": 11348
+    },
+    "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v4.py": {
+      "sha256": "85840dcfc17bedb3a9760eb344e28187ecd45d3ed5c8e2b761050f8575fd7c75",
+      "bytes": 13012
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v2-baseline-plan.json": {
+      "sha256": "c161ded3286e67e009a68c0ba9c9e3326d5dc248331cbe4a5ebaee5ccffed185",
+      "bytes": 17483
+    },
+    "verification/experiments/2026-11-16-skill-diet/baseline/graft-gates-evidence-v1.md": {
+      "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+      "bytes": 178777
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/graft-gates-evidence-v2.md": {
+      "sha256": "c28c7fe2bdba534ab27639408e2baf1b3dcc6205aade1a75ba5c8656fdf9d9a2",
+      "bytes": 166857
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-3/preflight.json": {
+      "sha256": "6fa77daa6883dbcc3dac2b45bebe6d84b4e7b22349d8e18d471a12d0364c4cbd",
+      "bytes": 8871
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-3/report.json": {
+      "sha256": "da71c9d73ce8a46658a0130062fc192d92f8fd5237b9bb7b406d81c6efda7b02",
+      "bytes": 17967
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-3/capture.json": {
+      "sha256": "2c3e18a0471e169d57f33c3a5e6646478859b4684b97968b7695964de3f667dc",
+      "bytes": 413934
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-3/consumers.json": {
+      "sha256": "4eef806803f05a484858680eb2c3c68d1729ba52df9dafd45d6c54cb1cd437e6",
+      "bytes": 24192
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-3/manifest.json": {
+      "sha256": "85f9ad26acfb46f30a1b509b1894867b8e22e57dd0225a8e39dfe3418c43b522",
+      "bytes": 83839
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-v3-development-20261117-5.txt": {
+      "sha256": "6fc81d854fdeb3dc429976214d9a7491dc3e49fc55600bd78ffb264165e72275",
+      "bytes": 2703
+    }
+  },
+  "checkpoint_bindings_verified": 39,
+  "old_v2_frozen_inputs_verified_unchanged": 59,
+  "old_v2_regrades_or_model_calls": 0,
+  "responsibility_review": [
+    {
+      "topic": "human-only authority",
+      "source": "Baseline graft Step9b line476; candidate line467: the same pr-open call writes human-only-acs.json from captured spec. Step8 only requires human_only rows unpassed with human method.",
+      "conclusion": "Removing the lane-owned write-human operation corrects an invented workload obligation. Controlled PR dependency actually classifies captured spec and calls the real sole writer using actual immutable ledger level and resolved configuration; unrelated PR orchestration and hosted effects remain excluded."
+    },
+    {
+      "topic": "verification note and locator",
+      "source": "Baseline Step8 requires one-line observed test/command result, not bare stdout. Command locator must name actual command; secrets use environment names.",
+      "conclusion": "Nonempty note plus mandatory semantic grounding admits supported wording without inventing a literal-note rule. JSON array parsing still requires identical actual executable and argv, accepting harmless JSON whitespace only. Wrong executable/argv remains rejected."
+    },
+    {
+      "topic": "optional result prose and forbidden structure",
+      "source": "Source allows sibling return fields such as discovered_scope, but requires unchanged terminal token and verbatim sibling EvidenceReturn, never a file body or nested token evidence.",
+      "conclusion": "Required fields/values/actual output strings remain automatic checks. Additional factual prose is not automatically true or source-permitted. Mandatory manual review must reject file bodies/nested EvidenceReturn even if factual, contradictory return claims and other forbidden structure. Fixture explicitly states this; future plan must bind it in evidence-and-refusals/supported-claims criteria."
+    },
+    {
+      "topic": "writer repair interpretation",
+      "source": "Baseline Step8 lines315-321: sole writer, refusal leaves no file, no handwritten fallback, refusal-only PR section and missing-evidence fail-closed. No explicit retry mandate or permanent first-refusal poison.",
+      "conclusion": "Fresh workload explicitly permits contiguous corrected payload resubmission through the same sole writer before dependent operations. This is an explicit ambiguity resolution, not an original retry requirement or permission to waive historical failures. Unresolved writer refusal, intervening dependent operation and final unsuccessful writer remain rejected."
+    },
+    {
+      "topic": "guarded local consumption",
+      "source": "Corrective-artifact integrity is required at unattended L3; no trusted attestation is supplied in this isolated checkpoint.",
+      "conclusion": "Expecting exact refusal preserves the safety floor. The passing checkpoint means evidence verified and guarded consumption observed, not successful floor/custody/merge or a coherent admitted full autonomous run. Supplied hosted facts are controlled scenario facts; no-remote filesystem isolation is not passed off as hosted execution."
+    }
+  ],
+  "mechanical_evidence": {
+    "tests": {
+      "pass": 2,
+      "fail": 0,
+      "source_and_final_log_reviewed": true,
+      "independent_full_suite_rerun": false,
+      "covered_negatives": [
+        "required fields omitted",
+        "wrong executable/argv locator",
+        "unresolved refused writer",
+        "dependent operation between refused and corrected writer",
+        "real live AC removal adds ACs not all verified while retaining integrity blocker and unchanged refs"
+      ],
+      "covered_positives": [
+        "actual captured-spec classifier and human-only writer",
+        "actual config changes writer unattended; immutable L3 change refused",
+        "grounded paraphrased note, optional follow_up, JSON locator whitespace",
+        "real contiguous refused/corrected AC sole-writer sequence"
+      ]
+    },
+    "actual_mcp_preflight": {
+      "attempt": 3,
+      "grade": "pass",
+      "cases": 14,
+      "execution_cases": 8,
+      "decisions": 6,
+      "mcp_requests": 118,
+      "rejected": 0,
+      "policy_reads": 70,
+      "all_recorded_input_output_hashes_match": true,
+      "fresh_new_v3_grade_matches_report_exactly": true,
+      "manual_grounding_required": true
+    },
+    "consumer_observed": {
+      "verify_against_ledger_anchor_git_commands": "success",
+      "merge_check_exit": 1,
+      "verdict": "refuse",
+      "blockers": [
+        "corrective-artifact integrity unasserted at L3 (FAFF-325): no trusted attestation declaration \u2014 refused (defence-in-depth; the run-start preflight should already have caught this)"
+      ],
+      "merged": false,
+      "integrity": "unasserted",
+      "ac_called_out": [
+        "faff-9#ac-2"
+      ],
+      "main_ref_unchanged": true
+    },
+    "live_ac_negative": "Final log records anchor restored before removing actual run-dir AC. Real local check adds ACs not all verified, clears ac_called_out, retains integrity refusal and leaves refs unchanged. Earlier mistaken anchored-only deletion result remains preserved, not rewritten."
+  },
+  "arm_checker_source_review": {
+    "v2_to_v3_changes_only": [
+      "V3 registration/plan/helper/fixture/cohort identities",
+      "existing serial V4 runner instead of parallel V5",
+      "serial-stop-on-first-failure expectation",
+      "mandatory grade.manual_grounding_required=true"
+    ],
+    "unchanged_bars": [
+      "all5 exact original samples per arm",
+      "all8 execution+6decision case set",
+      "all7 manual criteria and every actual case review",
+      "exact evidence hashes",
+      "fresh raw grade equality",
+      "fresh native audit equality and model/session/worker/runtime bindings",
+      "optional ledger detail review",
+      "end-of-gate evidence/source rehashes"
+    ],
+    "executed": false,
+    "reason": "No V3 registered cohort/model captures exist yet; source review only."
+  },
+  "transport_limits": {
+    "task_bytes": 5795,
+    "largest_envelope_bytes": 6067,
+    "checkpoint_reported_task_tokens": 1449,
+    "checkpoint_reported_largest_outer_byte_estimate": 1517,
+    "assessment": "Small task index and full read_case payload guard retained from separately reviewed transport V2. Final checkpoint binds exact nested serializer observations with margin. No native Codex full-context/model delivery pass is claimed."
+  },
+  "preservation": [
+    "Held original V2 plans, all59 inputs and all baseline failures remain unchanged; no historical regrade.",
+    "V3 preflight/test failures1-4 and earlier successful attempt2 remain bound in the development checkpoint; final attempt3 binds final bytes."
+  ],
+  "remaining_before_models": [
+    "Freeze exact fresh plan pair, full mandatory context, runtime/import/helper/test/fixture closure and explicit scope before serial V4 use.",
+    "Bind mandatory manual review of every optional field and verification note to actual source/output hashes, including no file bodies or nested EvidenceReturn even if factually grounded. The automatic manual_grounding_required flag is not itself a completed semantic review.",
+    "Retain independent actual-output/ledger-extra grounding and fresh native replay before any candidate launch. Apply complete baseline gate and stop-on-first-failure without retries/waivers."
+  ],
+  "limits": [
+    "New coherent bounded workload/evaluator design, not a retroactive assessment or acceptance of V2.",
+    "No complete pr-open orchestration, hosted PR/CI, review judgement, successful autonomous floor, integrity custody, PR-body placement, long resume/timeout or separate errored-rung model proof.",
+    "Terminal ledger shipped outcomes are supplied-observation reconciliation, not exercised real merges.",
+    "No whole-graft/provider-wide/Claude/Opus parity or accepted savings claim.",
+    "Only this review record written; no implementation/fixture/source edits, commits, model calls or old sample regrades."
+  ]
+}

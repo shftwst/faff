@@ -1,0 +1,3085 @@
+{
+  "schema": 1,
+  "status": "complete-bounded-review-with-ancillary-overclaims",
+  "updated_utc": "2026-11-16T20:06:23.111856+00:00",
+  "scope": "All 80 actual Opus reasons read across five samples per policy arm. Original fixture primary is OpenAI and challenger is Claude; this reference has a different provider family, unlike the explicit same-family GPT calibration. No claim about actual live production eligibility or unrestricted writing quality.",
+  "canonical_hash_encoding": "UTF-8 JSON with sorted keys, compact separators and unescaped Unicode. Reason hashes are exact UTF-8 bytes.",
+  "source_bindings": [
+    {
+      "path": "challenges-file-input-v4-stable-plan.json",
+      "sha256": "5f82ed720ae0a3d0e19062aeabc4f5bfd7a482564cdac7234ed302b43eaf8252"
+    },
+    {
+      "path": "workflow-fixtures/challenges.json",
+      "sha256": "af35e82ab3155f5e540fdf89e9f4c3a3d06bd0987611c0fa061ca51bd001860b"
+    },
+    {
+      "path": "baseline/adversarial-review.md",
+      "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193"
+    },
+    {
+      "path": "candidates/adversarial-v3.md",
+      "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba"
+    },
+    {
+      "path": "challenges-file-input-v4-native-log-review.json",
+      "sha256": "7a009b54e9672c55bdfd5493b07f81ec3a65a4d309a7405923afca9198ae6501"
+    }
+  ],
+  "read_reasons": 80,
+  "samples": [
+    {
+      "name": "challenges-file-input-v4-stable-baseline-1",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-1/capture.json",
+          "sha256": "8608bed76a38a76175adfc66dea3be1c5435d4cc10eb83a51ba6ad48cccf6e78"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-1/report.json",
+          "sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-1/task.json",
+          "sha256": "42aa14e39232efa7deddd25bde9434cc8a4d408875b6f2940c3c9fba967bd724"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-1/manifest.json",
+          "sha256": "0d750ad30ce5f169590846ceea8ad45b0ab0106b0df834122467b925db797a66"
+        }
+      ],
+      "functional_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-1",
+      "arm": "candidate",
+      "bindings": [
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-1/capture.json",
+          "sha256": "f2d388bd8df80b6cf8e3dd6639b5d48797265aba750e5eed6f6e27837b8a66b8"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-1/report.json",
+          "sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-1/task.json",
+          "sha256": "715aa8224f6c59e1e43f71395ca2ccd0dfebc8d29a1374ea05a8dfd0850ae3fc"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-1/manifest.json",
+          "sha256": "8050e4350affe82b9c45d93f4ad7d202c277fd4918a0529f347029fc929bcb42"
+        }
+      ],
+      "functional_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-2",
+      "arm": "candidate",
+      "bindings": [
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-2/capture.json",
+          "sha256": "f61b38627fd50e1feda2458a252d9a58783aa1744cb4b28bd94de6e52dc63622"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-2/report.json",
+          "sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-2/task.json",
+          "sha256": "715aa8224f6c59e1e43f71395ca2ccd0dfebc8d29a1374ea05a8dfd0850ae3fc"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-2/manifest.json",
+          "sha256": "8050e4350affe82b9c45d93f4ad7d202c277fd4918a0529f347029fc929bcb42"
+        }
+      ],
+      "functional_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-2",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-2/capture.json",
+          "sha256": "420e600f45108f89166e6106044329060e2a2014cb90865b1ef93d74a97b6c97"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-2/report.json",
+          "sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-2/task.json",
+          "sha256": "42aa14e39232efa7deddd25bde9434cc8a4d408875b6f2940c3c9fba967bd724"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-2/manifest.json",
+          "sha256": "0d750ad30ce5f169590846ceea8ad45b0ab0106b0df834122467b925db797a66"
+        }
+      ],
+      "functional_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-3",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-3/capture.json",
+          "sha256": "05ccba8d7eb31c3006b02976a3c55aa4c907fdf9573c9be28b571998b54932cc"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-3/report.json",
+          "sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-3/task.json",
+          "sha256": "42aa14e39232efa7deddd25bde9434cc8a4d408875b6f2940c3c9fba967bd724"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-3/manifest.json",
+          "sha256": "0d750ad30ce5f169590846ceea8ad45b0ab0106b0df834122467b925db797a66"
+        }
+      ],
+      "functional_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-3",
+      "arm": "candidate",
+      "bindings": [
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-3/capture.json",
+          "sha256": "0011f8b2c961d9ed0121584d58d11cfed3f7f6c0ad1d24841115bb7287d3b585"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-3/report.json",
+          "sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-3/task.json",
+          "sha256": "715aa8224f6c59e1e43f71395ca2ccd0dfebc8d29a1374ea05a8dfd0850ae3fc"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-3/manifest.json",
+          "sha256": "8050e4350affe82b9c45d93f4ad7d202c277fd4918a0529f347029fc929bcb42"
+        }
+      ],
+      "functional_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-4",
+      "arm": "candidate",
+      "bindings": [
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-4/capture.json",
+          "sha256": "13e816bf744a4ca9678601861664c44b03d61a1c1514669257b0e0cb9a80ccb2"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-4/report.json",
+          "sha256": "c41f5e96bf02e8c41b87eb82b35710e08e549cc74d8eea053e6ea6c4efc2b873"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-4/task.json",
+          "sha256": "715aa8224f6c59e1e43f71395ca2ccd0dfebc8d29a1374ea05a8dfd0850ae3fc"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-4/manifest.json",
+          "sha256": "8050e4350affe82b9c45d93f4ad7d202c277fd4918a0529f347029fc929bcb42"
+        }
+      ],
+      "functional_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-4",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-4/capture.json",
+          "sha256": "20b06e6a02da134cc7d116fda200a35aa479c83b725113c18a5374ea692b2e81"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-4/report.json",
+          "sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-4/task.json",
+          "sha256": "42aa14e39232efa7deddd25bde9434cc8a4d408875b6f2940c3c9fba967bd724"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-4/manifest.json",
+          "sha256": "0d750ad30ce5f169590846ceea8ad45b0ab0106b0df834122467b925db797a66"
+        }
+      ],
+      "functional_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "challenges-file-input-v4-stable-baseline-5",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-5/capture.json",
+          "sha256": "8bb14354d7e45a9b3792964de12e92b35156a33e153afa758188c5728f36dd4d"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-5/report.json",
+          "sha256": "59914d122c442886d73a67ea33170b68ae771e8be26900c82c4ba1b83d181b90"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-5/task.json",
+          "sha256": "42aa14e39232efa7deddd25bde9434cc8a4d408875b6f2940c3c9fba967bd724"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-baseline-5/manifest.json",
+          "sha256": "0d750ad30ce5f169590846ceea8ad45b0ab0106b0df834122467b925db797a66"
+        }
+      ],
+      "functional_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "challenges-file-input-v4-stable-candidate-5",
+      "arm": "candidate",
+      "bindings": [
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-5/capture.json",
+          "sha256": "98786ca2695ef7493771b041d7ded293fce22b8580ab05b4c83ff26aac567a21"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-5/report.json",
+          "sha256": "70c9019cc59feddb2b80686d7bb7e1c71cfe3a82f1360238ad461b6289a76e19"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-5/task.json",
+          "sha256": "715aa8224f6c59e1e43f71395ca2ccd0dfebc8d29a1374ea05a8dfd0850ae3fc"
+        },
+        {
+          "path": "workflow-runs/challenges-file-input-v4-stable-candidate-5/manifest.json",
+          "sha256": "8050e4350affe82b9c45d93f4ad7d202c277fd4918a0529f347029fc929bcb42"
+        }
+      ],
+      "functional_status": "pass",
+      "reasons_read": 8
+    }
+  ],
+  "rows": [
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-1",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The old ADR's own stated premise (fewer than 20 issues per run, simplicity) no longer holds: runs now admit 200+ issues and the concurrency executor writes issues in parallel. The new design addresses the two concrete failure modes named (single-lock contention, one corrupt byte losing the whole run) and keeps the same directory root with an index for discovery. Residual risk to carry into implementation: the index and per-issue files must stay consistent under partial writes (write per-issue file first, then update the index atomically), but that is an implementation concern, not a flaw in the supersession argument."
+      },
+      "reason_sha256": "f315488e2d40ed24bab1ae5f0f5a41425990dbc9e7d35fc3088b9720b8bd434d",
+      "canonical_challenge_sha256": "b75119ddeee9d6243184f3008899b1f6fc3e69e5b64d2c1b68749449088d8343",
+      "canonical_result_sha256": "f5f9503e4e02105cee78d23741575d2f2addfe6948687ff574ae1845116ef663",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-1",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The supersession argument does not hold. The old ADR forbids writing secrets to `.faff/` outright; it does not limit the rule to committed files, so gitignoring the cache addresses only the repo leak and leaves the plaintext-at-rest exposure the old decision rules out (backups, other local processes, sandbox mounts, log or artifact sweeps of `.faff/`). The benefit claimed is a small per-call latency saving, but reading `process.env` is an in-memory lookup, negligible next to an LLM network call, and an in-process memo would get the same saving without writing to disk. The 'no behaviour change a user would notice' claim misses a security-posture change: the ADR's rationale (secrets live only in the environment) is unchanged and still valid, so nothing has drifted that justifies superseding it."
+      },
+      "reason_sha256": "03afd442f57899d5335a49af89ff782a4af1b889198e7d79ac998ae1d054e635",
+      "canonical_challenge_sha256": "ad28c8c7036f35a67ca62e22aaa6be4cec55d520f234809a310ac10f8e400fb1",
+      "canonical_result_sha256": "16acdc6d467d5078e5b60c43bb39c70cebc6bdd8a697dba45220cbee4a78ced4",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-source-paraphrase-overclaim",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "overbroad-rule-paraphrase",
+          "source_clause": "never committed to the repo or written to `.faff/` logs",
+          "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+          "observation": "Reason changes the literal logs clause into a ban on all .faff writes. Environment-only sourcing and added disk persistence still support the expected rejection; outcome and admission grades remain unchanged."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged.",
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": true
+      },
+      "full_supplied_policy_check": {
+        "path": "baseline/adversarial-review.md",
+        "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+        "matches_sample_manifest_policy": true,
+        "supporting_operational_excerpts": [
+          {
+            "line": 77,
+            "text": "3. **Log each disposition** \u2014 record every finding and its disposition (proven false / valid + fixed / valid + accepted risk with rationale) in the per-issue `.faff/logs` graft log. Per faff-graft Step 9's **collapse-and-log** policy, these dispositions **fold into the single terminal review comment's summary** \u2014 never one tracker comment per finding (the granularity rule). That one comment is located/updated by its marker pair per the comment-identity contract (**gateway \u2192 Review-findings comment identity**).",
+            "sha256": "41f769cb3bbb60283b828fb3a90984526b11d891795942b688dd53fc29ab9881"
+          },
+          {
+            "line": 98,
+            "text": "`disposition` here is the best-known value **at verdict-emit time** \u2014 the occupant emits before the implementor has dispositioned the findings. The durable, **settled** disposition record is carried onward to the per-issue graft log, the terminal review comment, **and** \u2014 at faff-graft Step 9's terminal `review-verdict.json` write \u2014 the anchored `findings[]`, so the immutable per-PR anchor (not only the mutable log and the editable comment) is the audit home for the settled resolutions. An out-of-enum `severity`/`disposition`/`source` is a soft data-quality violation (exit 1), never a merge block \u2014 the floor branches only on `signal`.",
+            "sha256": "708065fdfedff0d5aed9c64caa0a34c9645ba5cfdc395f6e029c33896e79c267"
+          },
+          {
+            "line": 179,
+            "text": "- **Loud surfacing, always on.** Whenever the backend that served was **not** the primary \u2014 for *any* reason (over-window guard, 400, auth, empty, deadline) \u2014 `review-call.mjs` writes the `PRIMARY_SKIP_SIGNAL` sentinel on its own stderr line and a `NOTE: primary reviewer <p> was skipped; served by chain[<i>] \u2014 <reason>.` line into the findings on stdout, after the attribution header. `fan-out.mjs` recognises the sentinel by **line-anchored equality** (exactly as it does `TRUNCATION_SIGNAL`, so review content can never forge it) and sets `primarySkipped: true` on that `LensResult`.",
+            "sha256": "cafcba2e923da6a063d747cbc53f838040993a550af893abdabb540225805916"
+          }
+        ],
+        "conclusion": "Specific logs and anchors do not broaden the fixture old_decision literal .faff logs clause to all .faff writes."
+      }
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-1",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false: the provider attempt was exhausted after the fallback chain and no independent opinion exists. The absence is preserved; the caller omits --challenge, and a missing skeptic is a reject, never a pass."
+      },
+      "reason_sha256": "4ae0de490a1125a59b69623bb3a7995e33ae6dba8e835321cf6e148880f55896",
+      "canonical_challenge_sha256": "4f48edfdd0223fa3431bbf937564761d3be71e86caec834d633970c3caf19721",
+      "canonical_result_sha256": "a7c8913e48cd136c034966b7670129f4e8ec52b755aac84b1f5d422efd0a87ac",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-1",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Every DoD item serves the first PRD goal (inspect the current merge-eligibility decision without risking a merge): merge-ok and blocked outcomes are reported, and a test double asserts no `gh pr merge` call. Nothing in the DoD goes beyond the declared goals; there is no history storage or query. Reusing the existing floor reads keeps the floor logic as the single source of truth, so the second goal is respected. No gold-plating, and no cited goal is left unserved."
+      },
+      "reason_sha256": "76aac64eb3d1f4ae2b4100ee69ea6ab148970d081566b760dc9b4b03e03a9fac",
+      "canonical_challenge_sha256": "ce9002bc8b0d1df3b423194a7495da0a80f20c5951f8a3a2d324919d7c3ade33",
+      "canonical_result_sha256": "014b20aa7d8dfd85407132e74e63ab8daabc50452bd47a9b49f8ed286562b0ad",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-1",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "Gold-plating beyond the declared PRD goals. The first goal limits scope to inspecting the current merge-eligibility decision and states that historical storage and query features are outside this PRD. Two of the three DoD items deliver exactly that excluded capability: a persisted `.faff/merge-gate-history/<pr>.jsonl` log appended on every evaluation, and an `--explain` timeline with `--since` and `--format` filters. The Phase-1 reasoning that history is 'a natural extension of inspection' widens the goal past its own stated boundary. Only the `--dry-run` item is warranted; the DoD covers capability outside the declared goals."
+      },
+      "reason_sha256": "afd53cd2ab2763d30f2151cc93ad4e2dd888c7348535642a0901fa7ee4be4f6a",
+      "canonical_challenge_sha256": "2a2412f5f7d13e0ad0e42b43220c363207e095d035a73879726e319f3f72fb45",
+      "canonical_result_sha256": "0429e1815977d6638b6756e61cb5aa97e8c3331d162fb34a22f97b2bcf5af7b6",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-1",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both DoD items map to declared PRD goals: one CSV row per transaction serves 'Export transactions as CSV', and the date-range restriction serves 'Filter transaction exports by date'. Nothing in the DoD goes beyond the declared goals, and the one cited goal is served. The PRDR covers one more declared goal than it cites; that is under-citation (a citation fix for the arbitration's dod-covers set), not over-scope, so it is no ground for an overturn."
+      },
+      "reason_sha256": "19c5e62f3f25857ba3cff053b9f266569dbd8d80bb216621bcb5c6f43f0cbbfc",
+      "canonical_challenge_sha256": "359e464d07cb35ec4280f178a743248d56dcfceadec52b4a244d375660679fe0",
+      "canonical_result_sha256": "b6d1d414f698ae961b982c1eaf973b9db7e9d8eb2da7bff597b33c0c177b92c0",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-1",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites 'Filter transaction exports by date', but its own DoD says 'No date input or date filtering is implemented.' That cited goal is unserved, so the citation does not match the work. The Phase-1 claim that plain export 'serves both cited goals' is false for the filter goal. Only 'Export transactions as CSV' is delivered."
+      },
+      "reason_sha256": "78c67a6fcaa7fec7d369b5f3cc24a93292ad97c76ef8b4a9c8645c6121e43b92",
+      "canonical_challenge_sha256": "e1716f3d60bfe7c75b2faf5e3ae2a5995bd317225f27e33f86e92a3043840086",
+      "canonical_result_sha256": "aa34258f7a78655680e30b4f28d788f80fd0e5d1d520bedbad7dbb9d2a76f2bc",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-1",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false: the provider attempt was exhausted after the fallback chain and no independent opinion exists. The absence is preserved; the caller omits --challenge, and a missing skeptic is a reject (phase2-inconclusive), never a pass."
+      },
+      "reason_sha256": "342d77ce70facfdd10f9cfe190372a57d5d4f44fe55950bc1fe3d44e26c51174",
+      "canonical_challenge_sha256": "07c1f2446ed426383bf2b8a149bbb2f4bb451e5b7ee8234f782c9f3d9b99a7a6",
+      "canonical_result_sha256": "31fbbe4a0670c39173ed243e7c4db96032cbaeb4d20d899c1c4fb7ef01ea7b13",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-1",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The old decision rested on two stated assumptions: runs of under 20 issues and single-writer access. Both have stopped holding: runs now admit 200+ issues and the concurrency executor writes issues in parallel. The new layout addresses the two named failures directly (lock contention on one file, and one corrupt write losing the whole run) and keeps the same directory root with an index file for discovery. Residual risk worth noting at build time: the index file and per-issue files can disagree after a partial write, so the implementation needs a defined reconciliation rule. That is an implementation concern, not a flaw in the supersession argument."
+      },
+      "reason_sha256": "6894a77fe4337b9ea691e22627c4ec21c0a8fcdefbaeba2117b0e57eeb42f9bf",
+      "canonical_challenge_sha256": "d27372f26693948dce114b686bd4de8065a65e8089fa521ff98c55e1b269eebb",
+      "canonical_result_sha256": "343687fb63b6eee59f356e17ce74032b7e3401e24bd1a6d4579540bdff5d3fa7",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-1",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The old decision forbids writing secrets to `.faff/` at all; it does not depend on whether the path is gitignored. The new decision writes literal provider API keys to `.faff/cache/credentials.json`, which directly breaks that rule. Gitignore only stops a commit; it does not stop the keys being read by other local processes, copied into backups or archived run directories, or swept into logs and evidence bundles that faff already writes under `.faff/`. The stated benefit is unmeasured: reading `process.env` is an in-memory lookup and is negligible next to an LLM network call, and an in-process memo would get any real gain without a file on disk. The argument does not show that the old decision's reasons have stopped holding, so the supersession is unsound."
+      },
+      "reason_sha256": "192a18c45d1dc82551d9de887ed0ab047af5120a976a4b580f6877316faa4608",
+      "canonical_challenge_sha256": "1e02875e7cd1a67d5f3d8c82783d98b5a95679c11804925e971ae75bd204fbe1",
+      "canonical_result_sha256": "89179728801d5c0b14ec2ae20a512b6de14a7e64168a8897c10b9467e3fefc69",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-source-paraphrase-overclaim",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "unsupported-project-detail",
+          "excerpt": "logs and evidence bundles that faff already writes under `.faff/`",
+          "observation": "Supplied case and policy do not establish credential-file inclusion in existing evidence bundles. General possible disclosure risk remains valid.",
+          "qualification": "Specific logs/anchors are supported by policy. Credential inclusion in archives/bundles or definite lifecycle effects are not established. General possible exposure risks are permitted."
+        },
+        {
+          "kind": "overbroad-rule-paraphrase",
+          "source_clause": "never committed to the repo or written to `.faff/` logs",
+          "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+          "observation": "Reason changes the literal logs clause into a ban on all .faff writes. Environment-only sourcing and added disk persistence still support the expected rejection; outcome and admission grades remain unchanged."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged.",
+      "full_supplied_policy_check": {
+        "path": "candidates/adversarial-v3.md",
+        "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+        "matches_sample_manifest_policy": true,
+        "supporting_operational_excerpts": [
+          {
+            "line": 64,
+            "text": "Record every disposition in the per-issue graft log. Fold them into the single terminal review comment's summary, located by the gateway **Review-findings comment identity** contract; never post one comment per finding. Graft's terminal anchored `review-verdict.json` also stores the settled `findings[]`.",
+            "sha256": "213101c4e55d3be6048704de9f13416541663501aed1b574263042d04494f3b9"
+          },
+          {
+            "line": 81,
+            "text": "At verdict emission, resolutions may still be open. The settled record belongs in the graft log, terminal review comment and anchored findings. Invalid enrichment enums are soft data-quality violations (exit 1); they do not override `signal` or become merge blocks.",
+            "sha256": "37b60bbcdc025941bedc519a4a0f2c46b7746eebe49e15df916cad784a1f44e1"
+          }
+        ],
+        "full_file_search_line_numbers": {
+          "archiv": [],
+          "backup": [],
+          "credential": [
+            147
+          ],
+          "key rotation": [],
+          "calibration": [],
+          "evidence bundle": []
+        },
+        "conclusion": "Policy establishes specific graft logs and anchored review findings. It does not establish that all .faff contents or cached credentials are archived, included in those records, or retained/used through rotation. The bounded ancillary finding is retained; core outcomes are unchanged."
+      },
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": true
+      }
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-1",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": "absent",
+        "ground": null,
+        "reason": "The provider chain was exhausted with no independent opinion (opinion_available=false). No adversarial drift review ran, so the outcome is absent, which the admission gate treats as a reject. This is not a pass and not a review-outage annotation."
+      },
+      "reason_sha256": "ffe50edadb27b55f8348e39229d13cf0fe44e9786d974263a952b3d2bc30105a",
+      "canonical_challenge_sha256": "ffa7f8ff0ca76c88652228ef70fc58d5da5c1eb16fb1317c3c399ab14db4da2c",
+      "canonical_result_sha256": "a5eb680f42e572132e1056cf31d1fab02b4999b563dec7ea25e874ba4ecf8a9f",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-1",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Every DoD item is inside the first PRD goal: the flag lets an operator see the current merge-ok or blocked decision with no merge, and the third item proves no `gh pr merge` call happens. Nothing in the DoD adds history storage or querying, which the PRD rules out. The flag reuses the existing floor reads, so the floor logic stays the single source of truth for the second goal. No DoD capability lies outside the declared goals, and no cited goal is left unserved."
+      },
+      "reason_sha256": "500dce4a34a8ec9870f952d67401570ac7f4230f366dbfe5faeec07b894e1096",
+      "canonical_challenge_sha256": "dfe62ff3b3c7749b3e05509c9169c608c0c6c7fcbbd798464830c5c09c0cb84b",
+      "canonical_result_sha256": "13d5c99b1a2de18e3ee1a756cb8b89bc14caa413c7cad5271e3acd068ad5c68a",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-1",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The first DoD item (`--dry-run`) serves the inspection goal. The second and third items add a persisted history log at `.faff/merge-gate-history/<pr>.jsonl` and an `--explain` timeline with `--since` and `--format` filters. Those are historical storage and query features, which the first PRD goal explicitly puts outside this PRD. The Phase-1 proposal calls them a natural extension of inspection, but the PRD limits inspection to the current decision. Two of the three DoD capabilities fall outside the declared goals, so the PRDR exceeds its PRD."
+      },
+      "reason_sha256": "3ef61682e433318557e24dd0059f0ad2774a536a2124725756d8663cfec0808e",
+      "canonical_challenge_sha256": "39d6ee5a54258b54979bb732314a6e6dd0b297d9d4a8a19cbc847bd2decfa663",
+      "canonical_result_sha256": "c72a081cd3305f743630728e5618f8c93b0b4d5bc9aeaf4f2d3d57c5ef9c0df3",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-1",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both DoD capabilities map to declared PRD goals: one CSV row per transaction serves 'Export transactions as CSV', and the date-range filter serves 'Filter transaction exports by date'. The PRDR cites only the first goal, so it covers more declared goals than it cites. That is under-citation, not over-scope: no DoD capability falls outside the PRD's declared goals, and the cited goal is served. The covered-goals set for the CLI's deterministic test is {'Export transactions as CSV', 'Filter transaction exports by date'}."
+      },
+      "reason_sha256": "5584e3406094e974bc452fd2a72c9d19624a1e207981351587ec299f36180450",
+      "canonical_challenge_sha256": "4121df0d65f6a3d0bee7aca12e0ec7ec8d6165adffb821ecbebea4d418009e82",
+      "canonical_result_sha256": "86c29d2b5675ae6cb2627a659fd07970169af9c9714a014163df6ca7887df166",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-1",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The first DoD item serves the export goal. The second DoD item states that no date input or date filtering is implemented, so the cited filter goal is left unserved. The Phase-1 claim that export serves both cited goals contradicts the PRDR's own DoD."
+      },
+      "reason_sha256": "1c60ef863218999c18a1fb180bb84fc401aadb889f55744f1dd02ec3e32e0233",
+      "canonical_challenge_sha256": "cc1eebbf31f029116b684862bad3f09b88ab38d840b8614e5bcb90e0ab2cbd8e",
+      "canonical_result_sha256": "cc6a78ead93eef6c52ecd1d020261f817b647ae6f9c8cc1d2e1ebe9e451f4fdd",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-1",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "The provider chain was exhausted with no independent opinion (opinion_available=false). No challenge outcome exists, so `--challenge` is omitted and the caller rejects and parks as phase2-inconclusive. A missing skeptic is not a pass."
+      },
+      "reason_sha256": "5115bd713aa39cfb3b44fa9eae02aeb632adae5a1836ca9b7e64050aeae73cac",
+      "canonical_challenge_sha256": "bcc0e77c10ccb7f74314635f2dc46c3cfcf828594b3d236490b2c183846e2b27",
+      "canonical_result_sha256": "168c18e9c9c61703d182ca14e4c7ac77624839af286aff9449a496e0d6c5af8b",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-2",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The supersession argument is sound. The old decision rested on two stated premises: runs under 20 issues and single-writer simplicity. Both are now false: runs admit 200+ issues and the concurrency executor writes many issues in parallel. The new design addresses the two concrete failures that follow from that change (one lock serialising every heartbeat and status write, and one corrupt byte losing the whole run's state), keeps the same directory root, and adds an index file so existing discovery still works. Residual risk to verify at build time: the index file and the per-issue files can disagree after a partial write, so the index update needs its own atomic write and a recovery rule. That is an implementation detail, not a flaw in the supersession argument."
+      },
+      "reason_sha256": "fa1fe0aaabb5af106f0a10fec0a1f4e5bfd0e425352365744e0aab2d25fe1749",
+      "canonical_challenge_sha256": "46d574418d6fe539f106d2f4c1d07511f04ab1c58f20d966d8892953ff66b6db",
+      "canonical_result_sha256": "4280a30ed71762e23b93f509c47e12f0d8c6f07ef420b65b86a8ee33ac410e1e",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-2",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The supersession argument is unsound. The old decision is a security rule: secrets come from environment variables only and are never written to .faff/. The new decision writes resolved API keys in plain text to .faff/cache/credentials.json, which directly breaks that rule. Gitignore only keeps the file out of commits; the key still sits on disk where logs, backups, sandbox copies, artifact uploads, or any process reading .faff/ can pick it up, and it outlives the session and any key rotation. The stated benefit is also weak: process.env is an in-memory lookup, so its cost per LLM call is negligible next to a network round trip, and an in-process variable would give the same caching with no file. The argument never addresses why the original rule existed, so it has not shown that the old rationale no longer holds."
+      },
+      "reason_sha256": "04aa00b70c6ee236a4fcd89a1f760e0e66fb796894462f514ec4a41e84cb73b6",
+      "canonical_challenge_sha256": "0f96fec72ea702ea2c82ddc45c5a7abd80513363cda3900a6f4a764258e00528",
+      "canonical_result_sha256": "45684551300b6678b971e621af7cad29277b2fc974f57ec21ae6b7474100fbe0",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-source-paraphrase-overclaim",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "unsupported-lifecycle-certainty",
+          "excerpt": "it outlives the session and any key rotation",
+          "observation": "No expiry, deletion or rotation handling is supplied; possible persistence should not be stated as a guaranteed lifetime.",
+          "qualification": "Specific logs/anchors are supported by policy. Credential inclusion in archives/bundles or definite lifecycle effects are not established. General possible exposure risks are permitted."
+        },
+        {
+          "kind": "overbroad-rule-paraphrase",
+          "source_clause": "never committed to the repo or written to `.faff/` logs",
+          "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+          "observation": "Reason changes the literal logs clause into a ban on all .faff writes. Environment-only sourcing and added disk persistence still support the expected rejection; outcome and admission grades remain unchanged."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged.",
+      "full_supplied_policy_check": {
+        "path": "candidates/adversarial-v3.md",
+        "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+        "matches_sample_manifest_policy": true,
+        "supporting_operational_excerpts": [
+          {
+            "line": 64,
+            "text": "Record every disposition in the per-issue graft log. Fold them into the single terminal review comment's summary, located by the gateway **Review-findings comment identity** contract; never post one comment per finding. Graft's terminal anchored `review-verdict.json` also stores the settled `findings[]`.",
+            "sha256": "213101c4e55d3be6048704de9f13416541663501aed1b574263042d04494f3b9"
+          },
+          {
+            "line": 81,
+            "text": "At verdict emission, resolutions may still be open. The settled record belongs in the graft log, terminal review comment and anchored findings. Invalid enrichment enums are soft data-quality violations (exit 1); they do not override `signal` or become merge blocks.",
+            "sha256": "37b60bbcdc025941bedc519a4a0f2c46b7746eebe49e15df916cad784a1f44e1"
+          }
+        ],
+        "full_file_search_line_numbers": {
+          "archiv": [],
+          "backup": [],
+          "credential": [
+            147
+          ],
+          "key rotation": [],
+          "calibration": [],
+          "evidence bundle": []
+        },
+        "conclusion": "Policy establishes specific graft logs and anchored review findings. It does not establish that all .faff contents or cached credentials are archived, included in those records, or retained/used through rotation. The bounded ancillary finding is retained; core outcomes are unchanged."
+      },
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": true
+      }
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-2",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": "absent",
+        "ground": null,
+        "reason": "No independent opinion is available: the provider attempt was exhausted after its fallback chain (opinion_available=false). The absence is preserved as the absent outcome, which rejects; it is not converted into a pass and no judgement of the supersession argument is offered in its place."
+      },
+      "reason_sha256": "3eb9c8d16af5013af31c87d58fb0d98f80e9a5e6d07c5ee40a2a10c9ccab9b27",
+      "canonical_challenge_sha256": "917b88dad5360578915ed88916686afdbdc092b21c3321856e6939658250b179",
+      "canonical_result_sha256": "71eb89732abf7c1808e4085eed85d3d0db8f14592c85d960ebd418558f0936a2",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-2",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The PRDR serves the first PRD goal and stays inside it. All three DoD items are about inspecting the current merge decision without merging: exit 0 with merge-ok, exit 1 with the blocked conditions, and a test double proving gh pr merge is never called. Nothing in the DoD stores or queries history, which the PRD puts out of scope. The second goal holds because the dry run reuses the existing floor reads rather than adding a separate eligibility path. One point to check at build time: the dry-run path must call the same floor function as the real merge, not a copy, or the second goal would quietly break."
+      },
+      "reason_sha256": "ef924d641b5dcae472be9a2111d931545ffe1ca3b4c312b83c4cc95948cc4468",
+      "canonical_challenge_sha256": "cac6db119e37e732931c3b73172d154a122a930d3f212dc5618371c0a5e4a505",
+      "canonical_result_sha256": "a123e353ec123d4d13b5189b4ae971c369897df10fbd9b87bd1de801b77d3d60",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-2",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone."
+      },
+      "reason_sha256": "1c8994ab07577f133e0c4a6cf99aed1dc495ba891ee299118f51a099e05f3fa4",
+      "canonical_challenge_sha256": "a2626bb129745814ab9aa3ab74a881d97e72ddf527276abcbf3edee4f7e7fc5f",
+      "canonical_result_sha256": "e4ec143556b70b2aca31de24e49176f92efb1b97626a4d313fe45d1302dbe07e",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-2",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both DoD items map to declared PRD goals: one CSV row per transaction serves 'Export transactions as CSV', and the date-range limit serves 'Filter transaction exports by date'. The PRDR cites only the export goal, so it covers one more declared goal than it cites. That is under-citation, not over-scope: every DoD capability is inside the PRD's declared goals, and nothing beyond them (import, totals, archiving) is added. The DoD's coverage of the date-filter goal belongs in the CLI's deterministic set test as dod_covers, not in an overturn."
+      },
+      "reason_sha256": "8b20885c5d1e6cd534e72ab546211dc0058001ae5218f7c58021c16e55c4d649",
+      "canonical_challenge_sha256": "cf739d9c618923b893e61b85186216852018281b99c5c4435bb8a11f9405750d",
+      "canonical_result_sha256": "31b87fe1aacc9c754c8d4f3303ec66a4bd1e6ccb2b24a26387c52b68287e10c4",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-2",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites two goals but serves only one. 'Export transactions as CSV' is served by the one-row-per-transaction item. 'Filter transaction exports by date' is cited, yet the second DoD item states that no date input or date filtering is implemented. The Phase-1 reason claims export serves both cited goals, which the DoD itself contradicts. A cited goal left unserved is the unserved ground. The PRDR would pass if it either dropped the date-filter citation or added a date-filter DoD item."
+      },
+      "reason_sha256": "f2bc82a4d7494db91c6d8a8c8809d220fca198ceb99e29bc048cd8dc2e0435b0",
+      "canonical_challenge_sha256": "a9465180072cd56a30bfbcf79c501d1c6c3a73e1793e88a8dfa2295fff2cedd8",
+      "canonical_result_sha256": "4a93c79653002437df9576334f8923e592458311e473b1d5b03d54321671f270",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-2",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "No independent opinion is available: the provider attempt was exhausted after its fallback chain (opinion_available=false). The absence is preserved, so the caller omits --challenge and the PRDR rejects and parks as phase2-inconclusive. A missing skeptic is not a pass, and no judgement of the PRDR is offered in its place."
+      },
+      "reason_sha256": "5e10daef3043ddcb3c286996d1e68ef47cd2ada2cfe84ac65867e1c581870c7f",
+      "canonical_challenge_sha256": "d19b6962216e26cd7595bfdc2f57676f4ae946d45a7ff5393abbbfe651b0bdb8",
+      "canonical_result_sha256": "73e7dafad0820fd3391f2cdaa7fbf664e804fdba7b2a9f794525378d6eaa8599",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-2",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The old decision's stated rationale (fewer than 20 issues per run, simplicity of one atomic file) no longer matches the facts the new decision cites: runs now admit 200+ issues and the concurrency executor writes many issues in parallel. The new design addresses the two named failure modes directly (lock contention on one file, one corrupt byte losing the whole run) and keeps the same directory root with an index for discovery. The supersession argument holds. Residual risks for the implementer, not grounds to overturn: the index and per-issue files can disagree after a partial write, so the reader needs a defined reconciliation rule, and existing flat-file ledgers need a migration or read-compat path."
+      },
+      "reason_sha256": "fb5e9d2a5b38437f4662b15a523b8baf13ca25af112558195e88b03dfe4aa7e0",
+      "canonical_challenge_sha256": "dd7e8f16dc1d728607f0ee75c78fab88f9df4d1e1f6c9e3d810d5b7fac8a634e",
+      "canonical_result_sha256": "2649fe659743d0e39bc2487dd7faa280eeb06f48c0438f556f038e5743406e34",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-2",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The old decision is a security rule: secrets come from environment variables only and are never written to .faff/. The new decision writes resolved API keys in plaintext to .faff/cache/credentials.json, which breaks that rule directly. Being gitignored does not keep the file out of backups, sandbox mounts, shared workspaces, artifact uploads, or a force-add, and it adds a stale-credential problem after key rotation. The why claims a measurable latency cost, but reading process.env is an in-memory lookup that is negligible next to an LLM network call, and an in-process memo would give the same saving without touching disk. The supersession argument does not hold."
+      },
+      "reason_sha256": "0426b169cb45c91d1610b2ad24809924b774379f80866f28a6ca396a31547f2a",
+      "canonical_challenge_sha256": "7ef3dcaa44c198b12a50b2f11db7d1ee99d16b7a981603437bf9819a9af20003",
+      "canonical_result_sha256": "1148930e02887aa710fc21e693c6f28762ccd3355405e428bc944fd94e546d8f",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-source-paraphrase-overclaim",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "overbroad-rule-paraphrase",
+          "source_clause": "never committed to the repo or written to `.faff/` logs",
+          "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+          "observation": "Reason changes the literal logs clause into a ban on all .faff writes. Environment-only sourcing and added disk persistence still support the expected rejection; outcome and admission grades remain unchanged."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged.",
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": true
+      },
+      "full_supplied_policy_check": {
+        "path": "baseline/adversarial-review.md",
+        "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+        "matches_sample_manifest_policy": true,
+        "supporting_operational_excerpts": [
+          {
+            "line": 77,
+            "text": "3. **Log each disposition** \u2014 record every finding and its disposition (proven false / valid + fixed / valid + accepted risk with rationale) in the per-issue `.faff/logs` graft log. Per faff-graft Step 9's **collapse-and-log** policy, these dispositions **fold into the single terminal review comment's summary** \u2014 never one tracker comment per finding (the granularity rule). That one comment is located/updated by its marker pair per the comment-identity contract (**gateway \u2192 Review-findings comment identity**).",
+            "sha256": "41f769cb3bbb60283b828fb3a90984526b11d891795942b688dd53fc29ab9881"
+          },
+          {
+            "line": 98,
+            "text": "`disposition` here is the best-known value **at verdict-emit time** \u2014 the occupant emits before the implementor has dispositioned the findings. The durable, **settled** disposition record is carried onward to the per-issue graft log, the terminal review comment, **and** \u2014 at faff-graft Step 9's terminal `review-verdict.json` write \u2014 the anchored `findings[]`, so the immutable per-PR anchor (not only the mutable log and the editable comment) is the audit home for the settled resolutions. An out-of-enum `severity`/`disposition`/`source` is a soft data-quality violation (exit 1), never a merge block \u2014 the floor branches only on `signal`.",
+            "sha256": "708065fdfedff0d5aed9c64caa0a34c9645ba5cfdc395f6e029c33896e79c267"
+          },
+          {
+            "line": 179,
+            "text": "- **Loud surfacing, always on.** Whenever the backend that served was **not** the primary \u2014 for *any* reason (over-window guard, 400, auth, empty, deadline) \u2014 `review-call.mjs` writes the `PRIMARY_SKIP_SIGNAL` sentinel on its own stderr line and a `NOTE: primary reviewer <p> was skipped; served by chain[<i>] \u2014 <reason>.` line into the findings on stdout, after the attribution header. `fan-out.mjs` recognises the sentinel by **line-anchored equality** (exactly as it does `TRUNCATION_SIGNAL`, so review content can never forge it) and sets `primarySkipped: true` on that `LensResult`.",
+            "sha256": "cafcba2e923da6a063d747cbc53f838040993a550af893abdabb540225805916"
+          }
+        ],
+        "conclusion": "Specific logs and anchors do not broaden the fixture old_decision literal .faff logs clause to all .faff writes."
+      }
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-2",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false: the provider attempt was exhausted and no independent opinion exists. The absence is preserved; the caller omits --challenge, and a missing skeptic is a reject, never a pass."
+      },
+      "reason_sha256": "2fa8d143ccc4450da57817196febb1c86547c4f978b87aca79ebf4f3f6dc332e",
+      "canonical_challenge_sha256": "4519d6c80bcd1db1dec76a374852aa1cf2d304fa3f952cd4b11a6b808742c620",
+      "canonical_result_sha256": "22418e34ab117db04db0045533de29f199fc096075aea35510c07779c8875f8c",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-2",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The DoD covers only the --dry-run flag: report merge-ok or the blocked conditions, exit 0 or 1, and never call gh pr merge, with a test double to prove it. That is the first PRD goal (inspect merge eligibility without risking a merge) and nothing beyond it; no history or query capability is added, which the PRD excludes. Reusing the existing floor reads keeps the merge-floor logic as the single source of truth, so the second goal is respected. The PRDR is warranted. Note for the DoD: the test should also assert the dry-run decision matches the real path's decision for the same inputs, so the two cannot drift apart."
+      },
+      "reason_sha256": "f4a08a6e67807670db92a116b53b07f2178ecef1dc2b729e8d47418418121311",
+      "canonical_challenge_sha256": "25a15d9864eedf740a9a3e39ed15f0db79f4ab26bffcd6278a4f7c407f83faf7",
+      "canonical_result_sha256": "9af00c18577b2fe98f6b3d3bddaf2b40c6eb5f7db0b56afdbe8236a7291e043e",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-2",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "Only the first DoD item (--dry-run exiting 0/1 without merging) serves a declared PRD goal. The other two items add a persisted history log at .faff/merge-gate-history/<pr>.jsonl and an --explain timeline with --since and --format. That is historical storage and query, which the PRD goal states is outside this PRD. The DoD therefore covers capability beyond the declared goals, which is genuine gold-plating, not under-citation. The Phase-1 reason calls it a natural extension of inspection, but the PRD scopes inspection to the current decision only."
+      },
+      "reason_sha256": "9b2cae0a48278d13456e5ae2a3d0a2fda40633b7ecdb3bb82b274d0934b3b4dd",
+      "canonical_challenge_sha256": "c482a270a0cd216eb6352653c7388268c1aac3e46b720e902f1312ab80057487",
+      "canonical_result_sha256": "1453027063e36d9db5f1d238a7b5148409d55dc826fb3df50a276bc917036922",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-2",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both DoD items map to declared PRD goals: one CSV row per transaction serves 'Export transactions as CSV', and the date-range restriction serves 'Filter transaction exports by date'. Nothing in the DoD goes beyond the PRD's goals. The PRDR cites only the export goal, so it covers more declared goals than it cites. That is under-citation, a citation fix for the deterministic dod-covers check, not over-scope. The PRDR is warranted."
+      },
+      "reason_sha256": "bbb8e5e3be1364d412e1770b6a1727534574c4dcb18a054189fce1b246ace1e8",
+      "canonical_challenge_sha256": "8cb68ee1de6e572c0d1be17e42e335dd19b9c1bc3ad261c6dc4ffd75aeac2fe2",
+      "canonical_result_sha256": "14a50dab9b10edbfb45aff7fac53e34b5b38e8ddc76d64064913a67a7619cf32",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-2",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites two goals: 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD delivers CSV export but states that no date input or date filtering is implemented, so the cited filter goal is not served. The Phase-1 claim that export serves both cited goals is contradicted by the DoD itself. Either the filter goal is dropped from the citations or a date-filter DoD item is added."
+      },
+      "reason_sha256": "d04b02efaac9703d80edbb38cf0762592fcaf434afe5298827051badd627d3aa",
+      "canonical_challenge_sha256": "004c470c8b8aa72236acd812b506c59f7559ad864003467cc1ea1dcab6343519",
+      "canonical_result_sha256": "be54b4d45371aa172652e61a1d265d570cb288efa75b3a9eb114f6318e2dff8a",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-2",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false: the provider attempt was exhausted and no independent opinion exists. The absence is preserved; the caller omits --challenge, so the PRDR parks as phase2-inconclusive rather than passing."
+      },
+      "reason_sha256": "6000670b38c7d095ebb02f7e6a90e71a1ed95444e714d73555c0fc4e3e4bc13d",
+      "canonical_challenge_sha256": "61b95580daae0498556c649eb8013c1052d35130662e9d932e6019dc35f92ed5",
+      "canonical_result_sha256": "1aabce11770c8da4d72d242dec3cead8a203b01ba55b853441bef92b8ddbdc98",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-3",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The old ADR's own rationale (fewer than 20 issues per run, single-file simplicity) no longer holds: runs now admit 200+ issues and the concurrency executor writes issues in parallel. The new design addresses two concrete failure modes the old one did not anticipate (one lock serialising every heartbeat and status write, and one corrupt byte losing the whole run's state), keeps the same directory root, and adds an index file for discovery. The supersession argument is sound."
+      },
+      "reason_sha256": "506e30472f264a45ddd2515752512581d512d657471d8b43b75226f51c045fd2",
+      "canonical_challenge_sha256": "a0359363114340a4104f77f984ae99f95bf8d72ef61ef60149fca39b138c0254",
+      "canonical_result_sha256": "b109d4fb791aff48238c5e38d3d0778b602b77c52b778cc325a5016ef16f948c",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-3",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The old ADR forbids writing secrets to `.faff/` at all, not only committing them; being gitignored does not satisfy that rule. The new decision writes resolved API keys in plaintext to `.faff/cache/credentials.json`, which outlives the session, can be picked up by backups, log or artifact uploads and cage mounts, and breaks key rotation because a stale cached value keeps being used. The stated benefit is a small, unquantified latency saving from not reading `process.env`, an in-memory lookup that is negligible beside an LLM call; an in-process cache would get the same benefit without touching disk. The why does not show the old rationale has stopped holding, so the supersession argument is unsound."
+      },
+      "reason_sha256": "b4b6c49ed71a477e0433086be776f23b6f870bfa94eebc6173781390638fa20b",
+      "canonical_challenge_sha256": "a35e96f63f1b4b01f7b0567f6c763a7f62e4c40067d2978a689775fd39d326bc",
+      "canonical_result_sha256": "3456dc414c81ce80d1c76c8665015c330a5cfd34e89f994ceb4d3e99419e76fa",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-source-paraphrase-overclaim",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "unsupported-lifecycle-certainty",
+          "excerpt": "breaks key rotation because a stale cached value keeps being used",
+          "observation": "Persistence creates a possible stale-key risk, but refresh, reload and invalidation behaviour is unspecified.",
+          "qualification": "Specific logs/anchors are supported by policy. Credential inclusion in archives/bundles or definite lifecycle effects are not established. General possible exposure risks are permitted."
+        },
+        {
+          "kind": "overbroad-rule-paraphrase",
+          "source_clause": "never committed to the repo or written to `.faff/` logs",
+          "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+          "observation": "Reason changes the literal logs clause into a ban on all .faff writes. Environment-only sourcing and added disk persistence still support the expected rejection; outcome and admission grades remain unchanged."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged.",
+      "full_supplied_policy_check": {
+        "path": "baseline/adversarial-review.md",
+        "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+        "matches_sample_manifest_policy": true,
+        "supporting_operational_excerpts": [
+          {
+            "line": 77,
+            "text": "3. **Log each disposition** \u2014 record every finding and its disposition (proven false / valid + fixed / valid + accepted risk with rationale) in the per-issue `.faff/logs` graft log. Per faff-graft Step 9's **collapse-and-log** policy, these dispositions **fold into the single terminal review comment's summary** \u2014 never one tracker comment per finding (the granularity rule). That one comment is located/updated by its marker pair per the comment-identity contract (**gateway \u2192 Review-findings comment identity**).",
+            "sha256": "41f769cb3bbb60283b828fb3a90984526b11d891795942b688dd53fc29ab9881"
+          },
+          {
+            "line": 98,
+            "text": "`disposition` here is the best-known value **at verdict-emit time** \u2014 the occupant emits before the implementor has dispositioned the findings. The durable, **settled** disposition record is carried onward to the per-issue graft log, the terminal review comment, **and** \u2014 at faff-graft Step 9's terminal `review-verdict.json` write \u2014 the anchored `findings[]`, so the immutable per-PR anchor (not only the mutable log and the editable comment) is the audit home for the settled resolutions. An out-of-enum `severity`/`disposition`/`source` is a soft data-quality violation (exit 1), never a merge block \u2014 the floor branches only on `signal`.",
+            "sha256": "708065fdfedff0d5aed9c64caa0a34c9645ba5cfdc395f6e029c33896e79c267"
+          },
+          {
+            "line": 179,
+            "text": "- **Loud surfacing, always on.** Whenever the backend that served was **not** the primary \u2014 for *any* reason (over-window guard, 400, auth, empty, deadline) \u2014 `review-call.mjs` writes the `PRIMARY_SKIP_SIGNAL` sentinel on its own stderr line and a `NOTE: primary reviewer <p> was skipped; served by chain[<i>] \u2014 <reason>.` line into the findings on stdout, after the attribution header. `fan-out.mjs` recognises the sentinel by **line-anchored equality** (exactly as it does `TRUNCATION_SIGNAL`, so review content can never forge it) and sets `primarySkipped: true` on that `LensResult`.",
+            "sha256": "cafcba2e923da6a063d747cbc53f838040993a550af893abdabb540225805916"
+          }
+        ],
+        "full_file_search_line_numbers": {
+          "archiv": [],
+          "backup": [],
+          "credential": [
+            284
+          ],
+          "key rotation": [],
+          "calibration": [],
+          "evidence bundle": []
+        },
+        "conclusion": "Policy establishes specific graft logs and anchored review findings. It does not establish that all .faff contents or cached credentials are archived, included in those records, or retained/used through rotation. The bounded ancillary finding is retained; core outcomes are unchanged."
+      },
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": true
+      }
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-3",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false: the provider attempt was exhausted and no independent opinion exists. No outcome is supplied, so the caller omits --challenge and the absent outcome applies."
+      },
+      "reason_sha256": "e80a1dc59cdd2e8824fdf581543a25654cc9e887b6d0e4cef7a3726ecd2bfaaf",
+      "canonical_challenge_sha256": "dc343d7a80f0bdeb376c1453c346d0957e0f67924f09d70a0a44459876765b70",
+      "canonical_result_sha256": "663e6eb55788c8296228bbd12fcdbe105b6b369534c4232c8f18392e5606bfb4",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-3",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Every DoD item serves the first PRD goal (inspect the current merge-eligibility decision without risking a merge): exit 0 with merge-ok, exit 1 with the blocked conditions, and a test double asserting no `gh pr merge` call. The flag reuses the existing floor reads, so the floor logic stays the single source of truth. Nothing in the DoD adds historical storage or query, which the PRD excludes. Warranted and within scope."
+      },
+      "reason_sha256": "3a37d00d3f93b9ecb180c000d1cfd064cd225ed0b2b0f7d0f4a52a2aceaa2cc8",
+      "canonical_challenge_sha256": "58d30d7bf897ae0b498507b8ab7319224606aee9c904351131db6676da689dc0",
+      "canonical_result_sha256": "0501e8eb0fd490dbeaeb128a797a07f3f3d705c00822f2dda4506861f0d4293f",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-3",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The `--dry-run` part serves the inspection goal, but the DoD also requires a persisted `.faff/merge-gate-history/<pr>.jsonl` log appended on every evaluation and an `--explain` timeline with `--since` and `--format` filters. The PRD states that historical storage and query features are outside its scope, and its goal is inspecting the current decision, not past ones. That DoD covers capability beyond the declared PRD goals, which is gold-plating. Phase 1 called it a natural extension of inspection, but that ignores the explicit exclusion."
+      },
+      "reason_sha256": "b885ec8ed0e77ec42aed81502c213901754d8a9c7664ec718b2f5444f9f8e3cb",
+      "canonical_challenge_sha256": "fd32b70baf5fba28192758dba6abe700d407939ce7a7b24a1c47b9a68ae501c2",
+      "canonical_result_sha256": "97c80ff9c42249468758f2b5ca4da2e9d1fe4dec07803b8f07d5eb500721128c",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-3",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both DoD items map to declared PRD goals: one CSV row per transaction serves 'Export transactions as CSV', and the date-range filter serves 'Filter transaction exports by date'. Nothing in the DoD goes beyond the PRD's goals. The PRDR cites only the export goal although its DoD also covers the date-filter goal; that is under-citation, a citation bug for the deterministic coverage check, not over-scope, so it is no ground for an overturn."
+      },
+      "reason_sha256": "1d4b35db7b5be52782ec111c4a40bcbf0fae7c1b4b42507c32332b3da3ed501e",
+      "canonical_challenge_sha256": "d10ae65534aa95ab8d5b5ab9f86ffd80e905c04b908776986b019e8643a47d26",
+      "canonical_result_sha256": "8531f9e7854b14c4c3be3ccca1e2cb387a526e62f032dd9faa09c00c1c13bc29",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-3",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites 'Filter transaction exports by date', but its DoD states that no date input or date filtering is implemented. A cited goal is therefore unserved. Phase 1's claim that export serves both cited goals contradicts the DoD. The export goal itself is served; the fault is the unserved citation, not gold-plating."
+      },
+      "reason_sha256": "07c796d14b553bced599dd8bfa47201a1a95b02e471f8063adbddc31ffd87c6d",
+      "canonical_challenge_sha256": "203c4091376696ec445387875403bd7277444c58372b34c95e6083ae9a93ecf5",
+      "canonical_result_sha256": "9e815a322435f8ec478c425a6ede850cb8f897412e7422342ca5dbe7046db842",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-3",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false: the provider attempt was exhausted and no independent opinion exists. No outcome is supplied, so the caller omits --challenge and the PRDR parks as phase2-inconclusive."
+      },
+      "reason_sha256": "1d217d2d7d0ec5121bc7289ec56f3f20495ed0181a7a18a5bf79926159a2aa51",
+      "canonical_challenge_sha256": "a4be381635fd88b823c184713412728c07781235885a7ec15553a208d690e131",
+      "canonical_result_sha256": "9e489beca6943a29c6dd8ed6bad95b4400992427208bde51ed8fefbf141d05ab",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-3",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The supersession argument is sound. The old decision rested on a stated premise (runs under 20 issues, single file simplest) that the new evidence directly falsifies: runs now admit 200+ issues and a concurrency executor writes many issues in parallel, which the old design never assumed. The new design addresses two concrete failure modes (one lock serialising every heartbeat and status write; one corrupt byte losing the whole run's state) and keeps the same directory root, adding an index file for discovery. Residual concern for the implementor, not a reason to overturn: the index file and per-issue files can drift if a write fails part-way, so index updates need to be atomic (write-then-rename) and readers should tolerate an issue file missing from, or extra to, the index."
+      },
+      "reason_sha256": "c4b3cd4802f9ff62298f524ba78e485ce100056f5f6c8385bcb618934fd3a889",
+      "canonical_challenge_sha256": "5fa93f60f2f03c9e3f537930c4bcdcddfeab26dc076d6fdaf35c50b7b5129d07",
+      "canonical_result_sha256": "3a375ff62ebf554045d06ceccdbb72261e4a64cbf4b9f232bdd8d15b96b4369a",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-3",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The supersession argument is unsound. The old decision is a security invariant: secrets come from environment variables only and are never written to the repo or to .faff/. The new decision writes resolved API keys in plaintext to .faff/cache/credentials.json, which breaks the 'never written to .faff/' clause directly; the why only addresses the repo-commit half. Being gitignored does not stop the file being read by other local processes, copied by backups, swept into run-directory archives or bug-report bundles, or left behind after a key is rotated or revoked, so a stale key keeps being used. The claim of 'no behaviour change a user would notice' is false for exactly those cases. The benefit is not established: process.env is an in-memory lookup in Node, so per-call cost is negligible next to an LLM network round trip, and if it mattered, caching the value in process memory for the session gives the same saving without persisting a secret to disk. The why does not show that the old decision's premise has stopped holding; it trades a standing security guarantee for an unmeasured micro-optimisation."
+      },
+      "reason_sha256": "1bced8a9e40e691d9737d99a1677295a385b7d7f63551df301fef521e1e23daf",
+      "canonical_challenge_sha256": "806d89e707adfa2ef777a9de0651f5ce5537a24c035f8784d7b7c02070366510",
+      "canonical_result_sha256": "bbab07d9adf6262a05767ef8444c286eb3c0479ff96e1e786be02f1332de7c17",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-source-paraphrase-overclaim",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "unsupported-lifecycle-certainty",
+          "excerpt": "so a stale key keeps being used",
+          "observation": "Refresh, reload and invalidation behaviour is unspecified; this is a risk rather than an established consequence.",
+          "qualification": "Specific logs/anchors are supported by policy. Credential inclusion in archives/bundles or definite lifecycle effects are not established. General possible exposure risks are permitted."
+        },
+        {
+          "kind": "overbroad-rule-paraphrase",
+          "source_clause": "never committed to the repo or written to `.faff/` logs",
+          "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+          "observation": "Reason changes the literal logs clause into a ban on all .faff writes. Environment-only sourcing and added disk persistence still support the expected rejection; outcome and admission grades remain unchanged."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged.",
+      "full_supplied_policy_check": {
+        "path": "candidates/adversarial-v3.md",
+        "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+        "matches_sample_manifest_policy": true,
+        "supporting_operational_excerpts": [
+          {
+            "line": 64,
+            "text": "Record every disposition in the per-issue graft log. Fold them into the single terminal review comment's summary, located by the gateway **Review-findings comment identity** contract; never post one comment per finding. Graft's terminal anchored `review-verdict.json` also stores the settled `findings[]`.",
+            "sha256": "213101c4e55d3be6048704de9f13416541663501aed1b574263042d04494f3b9"
+          },
+          {
+            "line": 81,
+            "text": "At verdict emission, resolutions may still be open. The settled record belongs in the graft log, terminal review comment and anchored findings. Invalid enrichment enums are soft data-quality violations (exit 1); they do not override `signal` or become merge blocks.",
+            "sha256": "37b60bbcdc025941bedc519a4a0f2c46b7746eebe49e15df916cad784a1f44e1"
+          }
+        ],
+        "full_file_search_line_numbers": {
+          "archiv": [],
+          "backup": [],
+          "credential": [
+            147
+          ],
+          "key rotation": [],
+          "calibration": [],
+          "evidence bundle": []
+        },
+        "conclusion": "Policy establishes specific graft logs and anchored review findings. It does not establish that all .faff contents or cached credentials are archived, included in those records, or retained/used through rotation. The bounded ancillary finding is retained; core outcomes are unchanged."
+      },
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": true
+      }
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-3",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": "absent",
+        "ground": null,
+        "reason": "No independent opinion is available: the provider attempt was exhausted after its fallback chain (opinion_available=false). Per the ADR drift policy, an unreachable or unanswered challenge is the absent outcome, which rejects. It is not converted to survived, and no judgement of the supersession argument is substituted for the missing skeptic."
+      },
+      "reason_sha256": "a03753a633850d2e9a48585e6cfe75fe31571760544da0eae9d96a1f7776b541",
+      "canonical_challenge_sha256": "2ad9ea0bd0358fdbdb6413dde6235fa8a59dd8dcd21803fceb1b45d7bfaa443b",
+      "canonical_result_sha256": "328f35b3e3839a4e085391d4fd0c2930e09d5a5f170749cb3f4b04bb63d1b6a6",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-3",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The PRDR serves a declared PRD goal without exceeding it. Every DoD item is current-decision inspection without merging: exit 0 and merge-ok when the floor holds, exit 1 with the blocked conditions when it fails, and a test double proving no gh pr merge call. That is exactly the first goal ('inspect the current merge-eligibility decision without risking a merge'). No DoD item adds storage, history or query capability, which the PRD puts out of scope. The second goal holds because the flag reuses the existing floor reads and gates only the final merge call, so merge eligibility keeps one source of truth. Implementation note, not a reason to overturn: the dry-run path must call the same floor-evaluation function as the real path, not a copy, or the second goal is broken in practice."
+      },
+      "reason_sha256": "923228bb00c075b2d5e88484af063e84208eecfa102c004cb7af90f304cd0077",
+      "canonical_challenge_sha256": "83ee6b3e20c4c32afc971d0120873acbd26e702f65c412d6405e1a664a4d1c46",
+      "canonical_result_sha256": "3990bf501cb180aeb099ae627521f0d184d12e20901f232ae2f00c3bd6cd0fa6",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-3",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The DoD includes capability beyond the PRD's declared goals. Only the first DoD item (--dry-run exits 0/1 on the floor decision without merging) serves the inspection goal. The second and third items add a persisted per-PR history log at .faff/merge-gate-history/<pr>.jsonl, appended on every evaluation, and an --explain timeline with --since filtering and --format json|table output. The first PRD goal limits inspection to the current decision and says 'Historical storage and query features are outside this PRD'. The history log is historical storage and --explain/--since/--format are query features, so these DoD items are named exclusions, not a natural extension. The Phase-1 claim that they stay in scope because they relate to inspection ignores that exclusion. This is over-scope (DoD capability not a subset of declared goals), not under-citation: no declared PRD goal covers the extra items. Fix: cut the PRDR to the --dry-run flag alone; history and explain need their own PRD."
+      },
+      "reason_sha256": "b94064129ba820120da0079a451e2be177858051661511d78ea7d00db4284166",
+      "canonical_challenge_sha256": "c3ba790d57de099c224bb7f4bdc02a601bf549628dd4bc00b881a9392e7952fe",
+      "canonical_result_sha256": "24c66631ecb6ad4a9973c1a2d02b98a404d9c2ff1f96876cf9d615e425152a93",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-3",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The PRDR serves real PRD goals without exceeding them. DoD item 1 (one CSV row per transaction) serves 'Export transactions as CSV'. DoD item 2 (export only transactions inside a supplied date range) serves 'Filter transaction exports by date', which is a declared PRD goal. The PRDR cites only the first goal, so it covers more declared goals than it cites. Per the overturn criterion that is under-citation, not over-scope: the DoD capability set {CSV export, date filter} is a subset of the declared goals. Nothing in the DoD touches import, account totals or archiving. The citation gap belongs to the CLI's deterministic set test, with the DoD covering both 'Export transactions as CSV' and 'Filter transaction exports by date'; it is not a reason for this challenge to overturn."
+      },
+      "reason_sha256": "c28fc7fb2433f6c405675b581544d336e738b663a4f8ba99315fc72f970d5e88",
+      "canonical_challenge_sha256": "81f6c594ea5ab0e6ec6d494bcc95806492558940bc2aef2d87844c6c5ac8c6dc",
+      "canonical_result_sha256": "f6d2eefee0e120e80998ec020059f842cc14e1b1574a56509f66cfa77fb064f5",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-3",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering."
+      },
+      "reason_sha256": "8051a524cb30f025ea86d24c1a6c58dac04674edcda2a9821d50ba9d87f760eb",
+      "canonical_challenge_sha256": "76181c73b5828188d903c0d160daf3154b4bc9cd202a5510e1cc4666177541ea",
+      "canonical_result_sha256": "7c57583196ca9ebd0e42402065462df08d0d7a0938bc4c3746a2afe1036ff7ce",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-3",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "No independent opinion is available: the provider attempt was exhausted after its fallback chain (opinion_available=false). Per the PRDR YAGNI policy, no answer after fallbacks means --challenge is omitted, so the caller rejects and parks phase2-inconclusive. A missing skeptic is never a pass, and no substitute judgement of the PRDR is supplied in place of the absent opinion."
+      },
+      "reason_sha256": "1bd021e5a455b1592b8ea5bb94d745cfa8ffcde8f95e15e3f72310335529bd95",
+      "canonical_challenge_sha256": "45f0147f9d49df671b3b53ade578ae5c87412d693720d216c4dbf0b7e7fa70ce",
+      "canonical_result_sha256": "b4bb760c32e52520063eb7ad0e82a85abd888a11f0bfcf3af8addf62987fd498",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-4",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The supersession argument is sound. The old decision's own rationale (fewer than 20 issues per run, simplicity) no longer holds: runs now admit 200+ issues and the concurrency executor writes many issues in parallel. Per-issue files remove the single-lock contention and limit a corrupt write to one issue. The same directory root is kept and an index file preserves discovery. No conflicting constraint from the old ADR is broken."
+      },
+      "reason_sha256": "60695145e3d0f0e5f5a5e040d0646fcf97a9cb21f13694fc70678c1215af4784",
+      "canonical_challenge_sha256": "7e20a4c62eae668767ceaa96cd3e4adbfb19cab53f727f1d216d0853bfe5ed4a",
+      "canonical_result_sha256": "c6b4db5c0a5180f2cffd8738c018c1153a4d0e25ec092d82d4da7c3872dc0179",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-4",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The supersession argument is unsound. The old decision forbids writing secrets to `.faff/`; the new decision writes resolved API keys in plain text to `.faff/cache/credentials.json`. Being gitignored only prevents commits; the old rule also covers local `.faff/` exposure, which the why does not address. It does not show that the old rationale has stopped holding, and the claimed benefit (avoiding a `process.env` read, an in-memory lookup) is negligible and could be met by an in-process cache with no file write. A security boundary is weakened for a trivial latency gain."
+      },
+      "reason_sha256": "21531f5f2be36f08ec872af63402c282e9fea28192c7c98b60a0859bf6c36b11",
+      "canonical_challenge_sha256": "e65696663b14034bf07b490828548f5dfa2c9e1913ac386361f0baf6be708441",
+      "canonical_result_sha256": "33d09eb3ed40f116a1132e05fd6cc19483c2b34f156954ee22ac30a9ba7d96ab",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-source-paraphrase-overclaim",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "overbroad-rule-paraphrase",
+          "source_clause": "never committed to the repo or written to `.faff/` logs",
+          "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+          "observation": "Reason changes the literal logs clause into a ban on all .faff writes. Environment-only sourcing and added disk persistence still support the expected rejection; outcome and admission grades remain unchanged."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged.",
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": true
+      },
+      "full_supplied_policy_check": {
+        "path": "candidates/adversarial-v3.md",
+        "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+        "matches_sample_manifest_policy": true,
+        "supporting_operational_excerpts": [
+          {
+            "line": 64,
+            "text": "Record every disposition in the per-issue graft log. Fold them into the single terminal review comment's summary, located by the gateway **Review-findings comment identity** contract; never post one comment per finding. Graft's terminal anchored `review-verdict.json` also stores the settled `findings[]`.",
+            "sha256": "213101c4e55d3be6048704de9f13416541663501aed1b574263042d04494f3b9"
+          },
+          {
+            "line": 81,
+            "text": "At verdict emission, resolutions may still be open. The settled record belongs in the graft log, terminal review comment and anchored findings. Invalid enrichment enums are soft data-quality violations (exit 1); they do not override `signal` or become merge blocks.",
+            "sha256": "37b60bbcdc025941bedc519a4a0f2c46b7746eebe49e15df916cad784a1f44e1"
+          }
+        ],
+        "conclusion": "Specific logs and anchors do not broaden the fixture old_decision literal .faff logs clause to all .faff writes."
+      }
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-4",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": "absent",
+        "ground": null,
+        "reason": "No independent opinion was obtained: the provider chain was exhausted (opinion_available=false). The absence is preserved as the absent outcome, which rejects; it is not converted to a pass."
+      },
+      "reason_sha256": "51be5b3bb52a35395f5f0a755e7d01d89c44b49f232f3902061515c8bbe4c6d0",
+      "canonical_challenge_sha256": "daafb68422f9e09a2d4147a86c86188742b18da20c95b2834bb0d3dac2505c69",
+      "canonical_result_sha256": "8c78b87a5b47c15a9a1cd1c59964262923bfd2fd671a8576cf196a2777a2bb58",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-4",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Every DoD item serves the first PRD goal (inspect merge eligibility without risking a merge): exit 0 with merge-ok, exit 1 with the blocked conditions, and a test proving no `gh pr merge` call. The flag reuses the existing floor reads, so the second goal (floor logic stays the single source of truth) holds. No capability beyond the declared goals; no history storage or query is added."
+      },
+      "reason_sha256": "a8a7407c9ba078ab9221c085248325bfd0ee87ea5dd7c6f4e34f8ae0761f67c1",
+      "canonical_challenge_sha256": "b5d7f4e19a494fd53f01e559e33915ec011c00e1a8f5136c1faf198daab1cdf6",
+      "canonical_result_sha256": "0086deb59b90551a482813515d0911473fbe375b5947488bd4a851a755da5047",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-4",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The `--dry-run` item serves the inspection goal, but the other two DoD items add a persisted history log (`.faff/merge-gate-history/<pr>.jsonl`) and an `--explain` timeline query with `--since` and `--format`. The PRD goal explicitly states that historical storage and query features are outside this PRD, so these DoD capabilities exceed the declared goals. The Phase-1 claim that they are a natural extension of inspection contradicts the PRD's stated exclusion."
+      },
+      "reason_sha256": "f47b2dcd5d98c603a1723bcaae65c5e8bf14d4107a95f96134b35f1fff6adba5",
+      "canonical_challenge_sha256": "b0250fc5a31c7729206d69d95fe2c8e83c669ac640ed9e94cfa74766dbee8734",
+      "canonical_result_sha256": "94fc48ad001665543e8e5c889ad4ab174ce23248fd2af44e974e54988d7f14eb",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-4",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both DoD items map to declared PRD goals: one CSV row per transaction serves 'Export transactions as CSV', and the date-range restriction serves 'Filter transaction exports by date'. The PRDR cites only the first goal, so the DoD covers more declared goals than it cites. Under the policy that is under-citation, not over-scope, and belongs to the CLI's set test. No DoD capability falls outside the declared goals and the one cited goal is served."
+      },
+      "reason_sha256": "3a921f33905aea33b7122bf16026448ff0d1d779fa0854cea919a13fc163ce2c",
+      "canonical_challenge_sha256": "9fc531624907e2b2d43bc1bf9f022a18c23e1dafa86030e8c0e092c52faffc6c",
+      "canonical_result_sha256": "88d77da091d941680546989a62b131327e941e84db744834e26af0625930824a",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-4",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states that no date input or date filtering is implemented. The cited date-filter goal is left unserved. The Phase-1 claim that export serves both cited goals is contradicted by the DoD itself."
+      },
+      "reason_sha256": "bad68984e67b943214982420fb97d6841c22bb119cf04510e17bfbde69885357",
+      "canonical_challenge_sha256": "928f983235b36a84406e589231f23a010cde1e42119a867a803cfbef4c6c5f5b",
+      "canonical_result_sha256": "bd39b25c3b8b12d126580b4b2dd7069e41892a25645b9261dfd6b5948c6b8a5c",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-4",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "No independent opinion was obtained: the provider chain was exhausted (opinion_available=false). The absence is preserved, so --challenge is omitted and the caller rejects and parks phase2-inconclusive. A missing skeptic is never a pass."
+      },
+      "reason_sha256": "bf70ee982b2db3afbab03e5bad20cef208e7edcba753c56727defe9c98db0745",
+      "canonical_challenge_sha256": "6bf725e0ddd3bced28e1e4c21efdc519bfc0f46e2299befddbb8ab1e33fa9b8b",
+      "canonical_result_sha256": "d67a03e530baec40124b00e57d8a46f4e578bd5efb08ab579de7c184498777c8",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-4",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The old decision's own rationale was a small run set (<20 issues) and simple atomic writes. The new argument shows both premises have changed: runs now admit 200+ issues and the concurrency executor writes many issues in parallel, which a single flat file serialises through one lock. Per-issue files bound a corrupt write to one issue and remove the contention. The change keeps the same directory root and adds an index file for discovery, so the supersession argument holds."
+      },
+      "reason_sha256": "15389a0bf77ee3107716b7b7510c8570f3753bbf2806a02bed9dfa1bcfa8745a",
+      "canonical_challenge_sha256": "602ec6524e3379e0a33d9c297d9e5aa35f2b8f1665737bce1a2716a3d4e325eb",
+      "canonical_result_sha256": "f0eaea45c27d71b412c5bb580fd45dfd7bd69ee8fdf725009e06cca4fb25df19",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-4",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The old decision forbids writing secrets to `.faff/` and allows only env var names in config. The new decision writes resolved API keys in plain text to `.faff/cache/credentials.json`, which directly breaks that rule. Being gitignored does not stop the file leaking through backups, worktree copies, sandbox mounts, log or artifact uploads, or a later gitignore change, and the key outlives the session. The claimed benefit is small: reading `process.env` is an in-memory lookup and can be cached in process memory without touching disk. The argument does not justify removing a security guardrail."
+      },
+      "reason_sha256": "da2bd62dda59f4f3c5031ee8034bad2b4fb0765bea13691751f07bd0892d955d",
+      "canonical_challenge_sha256": "ca50575e8c1e8c3b67186bf8bcba2f7a1a9038b91c4b531a08620ef661c23d6a",
+      "canonical_result_sha256": "a7fd8c73630b0d82cd52365dc0af5b4b08f3fa00db4f44395767ca2126c1751d",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-source-paraphrase-overclaim",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "overbroad-rule-paraphrase",
+          "source_clause": "never committed to the repo or written to `.faff/` logs",
+          "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+          "observation": "Reason changes the literal logs clause into a ban on all .faff writes. Environment-only sourcing and added disk persistence still support the expected rejection; outcome and admission grades remain unchanged."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged.",
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": true
+      },
+      "full_supplied_policy_check": {
+        "path": "baseline/adversarial-review.md",
+        "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+        "matches_sample_manifest_policy": true,
+        "supporting_operational_excerpts": [
+          {
+            "line": 77,
+            "text": "3. **Log each disposition** \u2014 record every finding and its disposition (proven false / valid + fixed / valid + accepted risk with rationale) in the per-issue `.faff/logs` graft log. Per faff-graft Step 9's **collapse-and-log** policy, these dispositions **fold into the single terminal review comment's summary** \u2014 never one tracker comment per finding (the granularity rule). That one comment is located/updated by its marker pair per the comment-identity contract (**gateway \u2192 Review-findings comment identity**).",
+            "sha256": "41f769cb3bbb60283b828fb3a90984526b11d891795942b688dd53fc29ab9881"
+          },
+          {
+            "line": 98,
+            "text": "`disposition` here is the best-known value **at verdict-emit time** \u2014 the occupant emits before the implementor has dispositioned the findings. The durable, **settled** disposition record is carried onward to the per-issue graft log, the terminal review comment, **and** \u2014 at faff-graft Step 9's terminal `review-verdict.json` write \u2014 the anchored `findings[]`, so the immutable per-PR anchor (not only the mutable log and the editable comment) is the audit home for the settled resolutions. An out-of-enum `severity`/`disposition`/`source` is a soft data-quality violation (exit 1), never a merge block \u2014 the floor branches only on `signal`.",
+            "sha256": "708065fdfedff0d5aed9c64caa0a34c9645ba5cfdc395f6e029c33896e79c267"
+          },
+          {
+            "line": 179,
+            "text": "- **Loud surfacing, always on.** Whenever the backend that served was **not** the primary \u2014 for *any* reason (over-window guard, 400, auth, empty, deadline) \u2014 `review-call.mjs` writes the `PRIMARY_SKIP_SIGNAL` sentinel on its own stderr line and a `NOTE: primary reviewer <p> was skipped; served by chain[<i>] \u2014 <reason>.` line into the findings on stdout, after the attribution header. `fan-out.mjs` recognises the sentinel by **line-anchored equality** (exactly as it does `TRUNCATION_SIGNAL`, so review content can never forge it) and sets `primarySkipped: true` on that `LensResult`.",
+            "sha256": "cafcba2e923da6a063d747cbc53f838040993a550af893abdabb540225805916"
+          }
+        ],
+        "conclusion": "Specific logs and anchors do not broaden the fixture old_decision literal .faff logs clause to all .faff writes."
+      }
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-4",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available is false: the provider attempt was exhausted and no independent opinion exists. The absence is preserved, so no challenge outcome is submitted and the caller omits --challenge."
+      },
+      "reason_sha256": "d8e849231e8146154c3b54f2939c6744cfcdfd90d18be34af02644ee99f19900",
+      "canonical_challenge_sha256": "60e9d6f42fb27c3ead08c648d673d6679c0fdf69c500592d06ff38e396e840b0",
+      "canonical_result_sha256": "71ecd68d26892a32afe53aa77615b886886766409c929038019f06db39f6a40b",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-4",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The DoD covers only a `--dry-run` flag that runs the existing merge-floor reads and prints the decision without calling `gh pr merge`. That serves the first PRD goal (inspect merge eligibility without risking a merge) and nothing beyond it. It reuses the existing floor logic rather than adding a second eligibility path, so the second goal (one source of truth) is respected. No history or query capability is added, so nothing falls outside the PRD."
+      },
+      "reason_sha256": "4b37478bc2804ef2bc2472e354be96578fe29eec35a3a405d81b4157b16d8fe0",
+      "canonical_challenge_sha256": "e8876497cbc868b523f5612979f9380e24b004ee63ad1a5e55f5dee6b30e49fb",
+      "canonical_result_sha256": "2eb976593eb65c66669630392a6fcdf3d0a4988fc4df4468685c0b3b0c563e0e",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-4",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The `--dry-run` part serves the inspection goal, but the DoD also requires a persisted `.faff/merge-gate-history/<pr>.jsonl` log, an `--explain` timeline of every past evaluation, and `--since` and `--format` filters. The first PRD goal states that historical storage and query features are outside this PRD, so these DoD items cover capability beyond the declared goals. This is gold-plating, not under-citation: no declared PRD goal covers the history log or its query interface. The Phase-1 claim that history is a natural extension of inspection contradicts the PRD's explicit exclusion."
+      },
+      "reason_sha256": "a2a741af22e8d057500ea74dd741654f152c7791b11324e4a36496bb130c62bf",
+      "canonical_challenge_sha256": "322c96989798d369b8a6c6b249c5f5ce154ec7969bfaf11b1e47a5bd8168c194",
+      "canonical_result_sha256": "754cae68a8535ad52caab211d4b56577179bbe9ee2712d82a74d05ec00fd5e6f",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-4",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The DoD covers CSV export of transactions and an optional date-range filter. Both map to declared PRD goals: 'Export transactions as CSV' and 'Filter transaction exports by date'. Nothing in the DoD goes beyond the PRD's goals. The PRDR cites only the export goal, which is under-citation (a citation gap the arbitration handles through dod_covers), not over-scope. Every cited goal is served, so the PRDR is warranted."
+      },
+      "reason_sha256": "a04291b701dab1c2accbf07c679c38f5b353cb40ab19935c8b14fda8f1c8377e",
+      "canonical_challenge_sha256": "47e56b1cf067623abf225e3b2d820861610593c1130d8ebfb39cc7e3940bd871",
+      "canonical_result_sha256": "36beed4bfba119c6b675cf6877457f136fe49839cc95a53ba3c8641bcbe1bc6a",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-4",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong."
+      },
+      "reason_sha256": "f14a60f4284b61153977641613b186bfd59e5f1903a6a6fd4f72a49b44aba884",
+      "canonical_challenge_sha256": "da38ab3b5c4b5f8f4e8b94a8dd738c9ddd5fbb09168d5eaf4037c5e8ebedde2b",
+      "canonical_result_sha256": "51c86795248b060d5c49a571503b9986011c421923f4f4780c5e2305e0844bf8",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-4",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available is false: the provider attempt was exhausted and no independent opinion exists. The absence is preserved, so no challenge outcome is submitted and the caller omits --challenge."
+      },
+      "reason_sha256": "d8e849231e8146154c3b54f2939c6744cfcdfd90d18be34af02644ee99f19900",
+      "canonical_challenge_sha256": "63a300e163c03dbc9424c510c4a5946f0239a798c9e7fb0331194aadf90d91ef",
+      "canonical_result_sha256": "d58506c92257be5f28850ff97889debe459e8e091c480fa29b1107cbf1b6f85d",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-5",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The old decision's own stated premises (fewer than 20 issues per run, single-writer simplicity) no longer hold: runs now admit 200+ issues and the concurrency executor writes issues in parallel. The new decision addresses the two concrete failure modes that follow (lock contention on one file, one corrupt write losing the whole run) and keeps the same directory root with an index file for discovery. The supersession argument is sound. Residual risk worth noting for the implementor, not a reason to overturn: per-issue writes plus an index file reintroduce a smaller consistency question (index and per-issue files can disagree after a partial failure), so the index should be derivable from the directory or written last."
+      },
+      "reason_sha256": "c17115f5b41cb96b2696ae536c5ba83e1cfdc7b5d37f82a01f805f756b346aca",
+      "canonical_challenge_sha256": "4d867e069cbca241eed8ef5800a586b8a4ca90d75897d5d1429d10dbf29f1de7",
+      "canonical_result_sha256": "b3af8ce8001fb4bacb7439de6e154b2ccfa40aaf274144f3096f52c7c3dc21c4",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-5",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The old decision is a security invariant: secrets come only from environment variables and are never written to `.faff/`. The new decision writes resolved API keys in plaintext to `.faff/cache/credentials.json`, which breaks that invariant directly, and the why does not engage with the reason the rule exists. Being gitignored only prevents a commit; it does not stop the file being read by other local processes, copied into backups, synced, attached to bug reports, or swept up by tooling that archives `.faff/` (logs, anchors, calibration). The claimed benefit is also weak: reading `process.env` is an in-memory lookup, so per-call cost is negligible next to an LLM network call, and an in-process memo would get the same saving with no disk write. The 'no behaviour change a user would notice' framing is exactly why the change is dangerous: the exposure is invisible. The supersession argument does not hold."
+      },
+      "reason_sha256": "13b911d46070cc024144e38e3f5887935964097f518ffcb3ed14a8a541201c24",
+      "canonical_challenge_sha256": "ba443ea5cef330733204222046f8577cca8d493353ac85eda23d302d71d521d2",
+      "canonical_result_sha256": "481882c80d70f76fd29cb890482edd46dfee83de08b85e1703fa6eff248d12e1",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-source-paraphrase-overclaim",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "unsupported-project-detail",
+          "excerpt": "tooling that archives `.faff/` (logs, anchors, calibration)",
+          "observation": "Specific archive/tooling behaviour is not supplied by the case. Treat as hypothetical risk, not an observed project fact.",
+          "qualification": "Specific logs/anchors are supported by policy. Credential inclusion in archives/bundles or definite lifecycle effects are not established. General possible exposure risks are permitted."
+        },
+        {
+          "kind": "overbroad-rule-paraphrase",
+          "source_clause": "never committed to the repo or written to `.faff/` logs",
+          "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+          "observation": "Reason changes the literal logs clause into a ban on all .faff writes. Environment-only sourcing and added disk persistence still support the expected rejection; outcome and admission grades remain unchanged."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged.",
+      "full_supplied_policy_check": {
+        "path": "baseline/adversarial-review.md",
+        "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+        "matches_sample_manifest_policy": true,
+        "supporting_operational_excerpts": [
+          {
+            "line": 77,
+            "text": "3. **Log each disposition** \u2014 record every finding and its disposition (proven false / valid + fixed / valid + accepted risk with rationale) in the per-issue `.faff/logs` graft log. Per faff-graft Step 9's **collapse-and-log** policy, these dispositions **fold into the single terminal review comment's summary** \u2014 never one tracker comment per finding (the granularity rule). That one comment is located/updated by its marker pair per the comment-identity contract (**gateway \u2192 Review-findings comment identity**).",
+            "sha256": "41f769cb3bbb60283b828fb3a90984526b11d891795942b688dd53fc29ab9881"
+          },
+          {
+            "line": 98,
+            "text": "`disposition` here is the best-known value **at verdict-emit time** \u2014 the occupant emits before the implementor has dispositioned the findings. The durable, **settled** disposition record is carried onward to the per-issue graft log, the terminal review comment, **and** \u2014 at faff-graft Step 9's terminal `review-verdict.json` write \u2014 the anchored `findings[]`, so the immutable per-PR anchor (not only the mutable log and the editable comment) is the audit home for the settled resolutions. An out-of-enum `severity`/`disposition`/`source` is a soft data-quality violation (exit 1), never a merge block \u2014 the floor branches only on `signal`.",
+            "sha256": "708065fdfedff0d5aed9c64caa0a34c9645ba5cfdc395f6e029c33896e79c267"
+          },
+          {
+            "line": 179,
+            "text": "- **Loud surfacing, always on.** Whenever the backend that served was **not** the primary \u2014 for *any* reason (over-window guard, 400, auth, empty, deadline) \u2014 `review-call.mjs` writes the `PRIMARY_SKIP_SIGNAL` sentinel on its own stderr line and a `NOTE: primary reviewer <p> was skipped; served by chain[<i>] \u2014 <reason>.` line into the findings on stdout, after the attribution header. `fan-out.mjs` recognises the sentinel by **line-anchored equality** (exactly as it does `TRUNCATION_SIGNAL`, so review content can never forge it) and sets `primarySkipped: true` on that `LensResult`.",
+            "sha256": "cafcba2e923da6a063d747cbc53f838040993a550af893abdabb540225805916"
+          }
+        ],
+        "full_file_search_line_numbers": {
+          "archiv": [],
+          "backup": [],
+          "credential": [
+            284
+          ],
+          "key rotation": [],
+          "calibration": [],
+          "evidence bundle": []
+        },
+        "conclusion": "Policy establishes specific graft logs and anchored review findings. It does not establish that all .faff contents or cached credentials are archived, included in those records, or retained/used through rotation. The bounded ancillary finding is retained; core outcomes are unchanged."
+      },
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": true
+      }
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-5",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available is false: the provider attempt was exhausted after the fallback chain and no independent opinion exists. The absence is preserved as the absent outcome (caller omits --challenge); no verdict is substituted."
+      },
+      "reason_sha256": "0928634934efbe40a1255f95fa4c550aed8e70cc5a4b6875cb8476d4ca6cbdc4",
+      "canonical_challenge_sha256": "6d7928993165afb61ff957ebb55811e1391246cef35cf36413429300577d7b25",
+      "canonical_result_sha256": "1df4f0649d6b25b297187e286abc12f2a24f8cd3006d172110b22c5c35cf8ff5",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-5",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The PRDR adds one `--dry-run` flag that runs the existing merge-floor reads and suppresses only the final `gh pr merge` call. Every DoD item serves the first PRD goal (inspect current merge eligibility without risking a merge), and none adds capability beyond it: no history, storage or query. Reusing the existing floor reads keeps the floor logic the single source of truth, so the second goal is respected. The third DoD item (a test double asserting no merge call) directly guards the risk the goal names. Warranted and within scope."
+      },
+      "reason_sha256": "22fce3ac2edc2632c1be76c32c6c47c011f6ebd14709fc184adcb8a5b80f5a13",
+      "canonical_challenge_sha256": "0c34ff72a20797c643de497563c89625a8d23f1bc3fcd5257d4a27a552e12c05",
+      "canonical_result_sha256": "c2e62fc7eaa4c7e2b3c13324b4496d1361dca26741c2e5795c306435ef74bcc8",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-5",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "Only the `--dry-run` DoD item serves a declared goal. The other two DoD items add a persisted `.faff/merge-gate-history/<pr>.jsonl` log and a `--explain` timeline with `--since` and `--format` filters. The first PRD goal says in terms that historical storage and query features are outside this PRD, so these items cover capability beyond the declared goals. The Phase-1 reason ('a natural extension of the same inspection capability') stretches 'inspect the current decision' to cover history, which the PRD explicitly excludes. This is gold-plating, not under-citation: no declared goal covers the extra DoD. The history log also writes on every real merge-gate evaluation, which widens the change past the inspection-only flag."
+      },
+      "reason_sha256": "89b8ab7ecf07bb39fd53501883d28c8d154407558d97ab9e7af1d9132d4cb8c8",
+      "canonical_challenge_sha256": "d2f67bafc1e73e5369e880f8bb1818a5589249ae40fffeaa80b01fafb7236b1c",
+      "canonical_result_sha256": "937d3bc2156470c5f19ca3a5b46ae7f9d7c28eb80b004f48f66d717c4447c599",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-5",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both DoD items map to declared PRD goals: one CSV row per transaction serves 'Export transactions as CSV', and the date-range restriction serves 'Filter transaction exports by date'. Nothing in the DoD goes beyond the PRD's declared goals. The PRDR cites only the export goal, so the date filter is under-cited, but covering more declared goals than cited is a citation error, not over-scope, and is not grounds to overturn. The cited goal is served. Warranted."
+      },
+      "reason_sha256": "ad49cfecfbaacf97fe5fcff347a021dff9a777bbbba15a6d08855443fe1c37bd",
+      "canonical_challenge_sha256": "aab0e214dbf0dedb5b54d17ad513704fda851570ffd9a64ac76ddd4d068ed544",
+      "canonical_result_sha256": "dda6416899962b1dafa392ecdadf12bf566c4f4d3977f1f65b2c501ac1dabe8f",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-5",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date', but its own DoD states that no date input or date filtering is implemented. The filter goal is cited and not served. The Phase-1 reason ('Export serves both cited goals') is wrong on the face of the DoD: a plain CSV export does not filter by date. The PRDR either needs to drop the filter citation or add a DoD item that delivers the filter. Overturned because a cited goal is unserved; this is not an over-scope finding."
+      },
+      "reason_sha256": "1f40e5d95d134a7094fc79dd69c8d4087e9aa5f6ca733d9434483a6d342cfd0c",
+      "canonical_challenge_sha256": "1d04d1f86ed1bcf5d581bd96864f417b089c59297565eb664201e2bb20194fbf",
+      "canonical_result_sha256": "8fcf564e361e4c1ccfdb1d99eb6a23a180c8ccc065571090f65354487eee158b",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-baseline-5",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available is false: the provider attempt was exhausted after the fallback chain and no independent opinion exists. The absence is preserved as the absent outcome (caller omits --challenge, parking the PRDR phase2-inconclusive); no verdict is substituted."
+      },
+      "reason_sha256": "5425321dbb0720dffcf856f9309d369b13c7650f9fbb173f5de2605e0ebc5a18",
+      "canonical_challenge_sha256": "5813bcedbc1b2234717ca4309523ed10d78a0d27a6e6a0608543e8b626ac0191",
+      "canonical_result_sha256": "5e9919a3ddc7d036cf6815eb5da1d9a37f1ddd5d1a5c0e45016c0f843ff74842",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-5",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The supersession argument is sound. The old decision's own rationale (fewer than 20 issues per run, simplicity) no longer holds: runs now admit 200+ issues and the concurrency executor writes many issues in parallel. The new design addresses two concrete failure modes, lock contention on one file and a single corrupt write losing the whole run's state, and keeps the same directory root with an index file for discovery. Residual risk to verify at build time: the index file is itself a single shared file, so its writes need to stay rare and atomic."
+      },
+      "reason_sha256": "2996bd5f3a04d2b6ce3594dab922fd45a3fbdc7624b97b565516b33b9d5564f7",
+      "canonical_challenge_sha256": "a7126338f68b33e153361c3069649b6efcfa758fcfbef93f4e2452b081c35a8f",
+      "canonical_result_sha256": "e10001f4f5f2c5cb1ecaca5591092d6bc909be93cb501eef6c0ca32e1fd95b69",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-5",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The supersession argument is unsound. The old decision forbids writing literal secrets to .faff/ at all, not only committing them; being gitignored does not stop a plaintext key file under .faff/ from leaking through backups, copied run directories, uploaded artefacts or log bundles. The argument does not engage with that risk. The claimed benefit is a small per-call latency saving from re-reading process.env, an in-memory lookup that is negligible next to an LLM call, and an in-process cache would get the same saving without writing secrets to disk. Calling it a pure performance win with no behaviour change ignores the new on-disk secret, which is the behaviour the old decision exists to prevent."
+      },
+      "reason_sha256": "e148fcd03e82f27b10798072399c7ec2577adbc86e5477324f8cc89c7ee6432d",
+      "canonical_challenge_sha256": "ac3f7ceed297ed135e11b48279b61bfa49c4ed63654186113ec6f4993fdb9081",
+      "canonical_result_sha256": "b60a7392068ec93cc89b088105d33aae9e39a354d6db02655fa352f1e7c049ab",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-source-paraphrase-overclaim",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "overbroad-rule-paraphrase",
+          "source_clause": "never committed to the repo or written to `.faff/` logs",
+          "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+          "observation": "Reason changes the literal logs clause into a ban on all .faff writes. Environment-only sourcing and added disk persistence still support the expected rejection; outcome and admission grades remain unchanged."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged.",
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": true
+      },
+      "full_supplied_policy_check": {
+        "path": "candidates/adversarial-v3.md",
+        "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+        "matches_sample_manifest_policy": true,
+        "supporting_operational_excerpts": [
+          {
+            "line": 64,
+            "text": "Record every disposition in the per-issue graft log. Fold them into the single terminal review comment's summary, located by the gateway **Review-findings comment identity** contract; never post one comment per finding. Graft's terminal anchored `review-verdict.json` also stores the settled `findings[]`.",
+            "sha256": "213101c4e55d3be6048704de9f13416541663501aed1b574263042d04494f3b9"
+          },
+          {
+            "line": 81,
+            "text": "At verdict emission, resolutions may still be open. The settled record belongs in the graft log, terminal review comment and anchored findings. Invalid enrichment enums are soft data-quality violations (exit 1); they do not override `signal` or become merge blocks.",
+            "sha256": "37b60bbcdc025941bedc519a4a0f2c46b7746eebe49e15df916cad784a1f44e1"
+          }
+        ],
+        "conclusion": "Specific logs and anchors do not broaden the fixture old_decision literal .faff logs clause to all .faff writes."
+      }
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-5",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": "absent",
+        "ground": null,
+        "reason": "No independent opinion is available: the provider attempt was exhausted (opinion_available=false). The absence is preserved as the absent outcome, which rejects; it is not converted to a pass."
+      },
+      "reason_sha256": "3e0273e9920242743b54926ecd4c745934aac72593f0dd5eeaa70ed389d15a22",
+      "canonical_challenge_sha256": "84950115fdf9c567b945faf9d4e15064b57713544f2d5889b66c5ff53dea8483",
+      "canonical_result_sha256": "bf1f1d2e5b7b9b4a7c8116472b5313fd9a89b3ebad05f8685ca0648c24a17729",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-5",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The PRDR serves the first PRD goal directly: --dry-run lets operators see the current merge-ok or blocked decision with no merge. Every DoD item is about the current decision and the absence of a gh pr merge call; nothing adds historical storage or query, which the PRD excludes. Reusing the existing floor reads keeps the merge-floor logic as the single source of truth, so the second goal is respected. No capability exceeds the declared goals and no cited goal is left unserved."
+      },
+      "reason_sha256": "40be325011b40971d521213cde07514a4f2a5367ea878dfccc147a8177e8ffdb",
+      "canonical_challenge_sha256": "332ceaef0ab572e3572920fee9c3142e4645721921641a508c6650dc9104ea1c",
+      "canonical_result_sha256": "212628a9d95cb4bb088d9758d20f944998ba5b5588ec89c9643c25658a40a1c9",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-5",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The DoD goes beyond the PRD's declared goals. The --dry-run flag serves the inspection goal, but the persisted .faff/merge-gate-history/<pr>.jsonl log, the --explain timeline of every past evaluation, and the --since and --format options are historical storage and query features, which the first PRD goal explicitly places outside this PRD. The Phase-1 claim that this is a natural extension of inspection ignores that exclusion. Two of the three DoD items deliver capability no declared goal covers."
+      },
+      "reason_sha256": "249a4cfa1a5c46a686283fb0c9382365fc7e0dd3c7b9d8ded2ab61b960ff6a38",
+      "canonical_challenge_sha256": "871252aaf7a2313d901576749ee3db10af8f450c653854180fd55250a2b12cb8",
+      "canonical_result_sha256": "8b81a0d7564ff832a70c7289302095e7287a068548462eb68413f921fd3f61e4",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-5",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Every DoD capability maps to a declared PRD goal: one CSV row per transaction serves 'Export transactions as CSV', and the date-range restriction serves 'Filter transaction exports by date'. The PRDR cites only the export goal, so it covers more declared goals than it cites. That is under-citation, not over-scope, and the CLI's deterministic set test handles it; it is not a ground to overturn. The cited goal is served and nothing in the DoD goes beyond the declared goals."
+      },
+      "reason_sha256": "32cc55282aca516160bf0d5624af993516bc147de3d2636829088deb7e7d84a9",
+      "canonical_challenge_sha256": "fe7a163c8ded528d3c819f60ea9d4a045a6ca7f5febd3f01806222104132b155",
+      "canonical_result_sha256": "99e9641cf90ceb9bf1a0e4a93ffb2828e6e57d9e623dd8124cf48b6751cd4f10",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual_normalised": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-5",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites 'Filter transaction exports by date' but its DoD explicitly says no date input or date filtering is implemented, so that cited goal is left unserved. The Phase-1 claim that export alone serves both cited goals is wrong: one CSV row per transaction serves only 'Export transactions as CSV'. Nothing exceeds the declared goals, so this is not over-scope; the defect is a cited goal with no delivering DoD item."
+      },
+      "reason_sha256": "85f8ccd87f2ce4429ec3f796cd0bbcaffad1e4e5fdcbebaac29a68d760005936",
+      "canonical_challenge_sha256": "c0c76aab829339fdcf11a7f44489764b82a5a5e534110d3d17590c06e85248cd",
+      "canonical_result_sha256": "0d3bd640ff0463149f2b2b2f180892e56966b6a78b32bf4720f8b49ce9cf82d7",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    },
+    {
+      "sample": "challenges-file-input-v4-stable-candidate-5",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "No independent opinion is available: the provider attempt was exhausted (opinion_available=false). The absence is preserved, so --challenge is omitted and the caller rejects and parks phase2-inconclusive; a missing skeptic is never a pass."
+      },
+      "reason_sha256": "4a88013a1212729dc9d580f9586c3aee6872ed3e3b4f008536a72c4ed891a88a",
+      "canonical_challenge_sha256": "294a54d3099d747101417de4a2c2d2aa458372f3ae4794bfa154716d491a71e2",
+      "canonical_result_sha256": "0365af18bebe7cdd943eab6fd02144290219b0493175d42c404539a80d1af677",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual_normalised": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "core_judgement_source_supported": true,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "different_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission match supplied facts. General risk illustrations and implementation suggestions are accepted when framed as possibilities; definite added project/lifecycle claims are separately flagged."
+    }
+  ],
+  "summary": {
+    "core_judgements_matched": 80,
+    "ancillary_source_overclaim_reasons": 5,
+    "overbroad_log_clause_paraphrases": 10,
+    "reasons_with_any_source_fidelity_findings": 10,
+    "missing_opinion_absence_preserved": 20
+  },
+  "limits": [
+    "No original measurement, qualification or frozen screen file changed.",
+    "Ancillary overclaims do not change observed automated judgement scores or admission effects.",
+    "General technical risk reasoning is distinguished from unsupported definite project or lifecycle claims.",
+    "Flagged ancillary statements were checked against each sample exact full policy as well as fixture inputs. Specific log/anchor instructions do not establish credential archival or cache invalidation behaviour.",
+    "The exact logs-only clause is checked uniformly across Opus and Astra. Overbroad quotations are separate from correct security-boundary reasoning and do not reverse outcomes.",
+    "Environment-only sourcing can support the correct rejection without a literal blanket ban on every .faff write. That interpretation is accepted equally for GPT and Opus."
+  ],
+  "frozen_for_final_comparison": true
+}

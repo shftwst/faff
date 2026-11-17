@@ -1,0 +1,39 @@
+{
+  "status": "pass-candidate-launch-gate",
+  "raw_cases": "21/21",
+  "real_consumer_cases": "6/6",
+  "unfounded_mutations_rejected": "6/6",
+  "native": "pass",
+  "worker_model_guidance_match": true,
+  "manual": "pass",
+  "manual_sha256": "ccfbb90d2bd20c1b02989d53a0570c91b95d2f13ad9ab84901d1217fbb555928",
+  "files_verified_unchanged": 52,
+  "consumption_records": [
+    {
+      "path": "spec-review-main-opus-v1-baseline-consumption/spec-verdict-003/consumption.json",
+      "sha256": "a8af9d6ea370494f237f9cffc6c0fdbd7fa60b1e8ed0f57d2f09fce4dc3cb131"
+    },
+    {
+      "path": "spec-review-main-opus-v1-baseline-consumption/methodology-blocker/consumption.json",
+      "sha256": "86656610d6046d73e819ce8b8f532ae5dc2a84b23e98989ef03d7a2a7053d044"
+    },
+    {
+      "path": "spec-review-main-opus-v1-baseline-consumption/spec-verdict-002/consumption.json",
+      "sha256": "603cabf2950bcbe09cb0182b920cba7d8fefdc095b5e4f4071b016358698e430"
+    },
+    {
+      "path": "spec-review-main-opus-v1-baseline-consumption/qa-repo-file/consumption.json",
+      "sha256": "3078412c9c97834df9bb34498ebf5dccde827b54a4a05fe116b7b2d358c320b3"
+    },
+    {
+      "path": "spec-review-main-opus-v1-baseline-consumption/spec-verdict-001/consumption.json",
+      "sha256": "a3e69fc283b29fbb690d7814e05c14d76cd2437001fd4cd94b47d7124819e987"
+    },
+    {
+      "path": "spec-review-main-opus-v1-baseline-consumption/qa-no-observation/consumption.json",
+      "sha256": "a7263bc8c562eef58f88c122922e679b5ba887c8a21932a917ac65c71766fa43"
+    }
+  ],
+  "retries": 0,
+  "waivers": 0
+}

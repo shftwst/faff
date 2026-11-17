@@ -1,0 +1,87 @@
+{
+  "consumer": {
+    "pass": true,
+    "producer_value": {
+      "verdict": "reject-approach",
+      "objections": [
+        {
+          "lens": "methodology",
+          "severity": "blocker",
+          "claim": "The recovery bundle exceeds the mandatory limit of one independently useful recovery step. Split the increment before building, keeping token issuance as the first slice.",
+          "evidence": "The attached Methodology critique explicitly rates the four independently deliverable concerns as a blocker; HOW bundles token issuance, email delivery, policy administration and migration.",
+          "predicted_consequence": "Building the ticket as written delivers four concerns together and violates the methodology's mandatory single-step increment limit.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 0,
+      "stdout": "{\"verdict\":\"reject-approach\",\"objections\":[{\"lens\":\"methodology\",\"severity\":\"blocker\",\"claim\":\"The recovery bundle exceeds the mandatory limit of one independently useful recovery step. Split the increment before building, keeping token issuance as the first slice.\",\"evidence\":\"The attached Methodology critique explicitly rates the four independently deliverable concerns as a blocker; HOW bundles token issuance, email delivery, policy administration and migration.\",\"predicted_consequence\":\"Building the ticket as written delivers four concerns together and violates the methodology's mandatory single-step increment limit.\",\"spec_anchor\":\"how\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "reject-approach",
+        "objections": [
+          {
+            "lens": "methodology",
+            "severity": "blocker",
+            "claim": "The recovery bundle exceeds the mandatory limit of one independently useful recovery step. Split the increment before building, keeping token issuance as the first slice.",
+            "evidence": "The attached Methodology critique explicitly rates the four independently deliverable concerns as a blocker; HOW bundles token issuance, email delivery, policy administration and migration.",
+            "predicted_consequence": "Building the ticket as written delivers four concerns together and violates the methodology's mandatory single-step increment limit.",
+            "spec_anchor": "how"
+          }
+        ],
+        "conformant": true,
+        "violations": []
+      }
+    },
+    "route": {
+      "exit_code": 0,
+      "stdout": "{\"destination\":\"plot\",\"reason\":\"methodology-major-or-above\",\"carried_design_objections\":[]}\n",
+      "stderr": "",
+      "value": {
+        "destination": "plot",
+        "reason": "methodology-major-or-above",
+        "carried_design_objections": []
+      }
+    }
+  },
+  "unfounded_mutation": {
+    "pass": false,
+    "producer_value": {
+      "verdict": "approve",
+      "objections": [
+        {
+          "lens": "methodology",
+          "severity": "blocker",
+          "claim": "The recovery bundle exceeds the mandatory limit of one independently useful recovery step. Split the increment before building, keeping token issuance as the first slice.",
+          "evidence": "The attached Methodology critique explicitly rates the four independently deliverable concerns as a blocker; HOW bundles token issuance, email delivery, policy administration and migration.",
+          "predicted_consequence": "Building the ticket as written delivers four concerns together and violates the methodology's mandatory single-step increment limit.",
+          "spec_anchor": "how"
+        }
+      ]
+    },
+    "contract": {
+      "exit_code": 1,
+      "stdout": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"methodology\",\"severity\":\"blocker\",\"claim\":\"The recovery bundle exceeds the mandatory limit of one independently useful recovery step. Split the increment before building, keeping token issuance as the first slice.\",\"evidence\":\"The attached Methodology critique explicitly rates the four independently deliverable concerns as a blocker; HOW bundles token issuance, email delivery, policy administration and migration.\",\"predicted_consequence\":\"Building the ticket as written delivers four concerns together and violates the methodology's mandatory single-step increment limit.\",\"spec_anchor\":\"how\"}],\"conformant\":false,\"violations\":[\"approve carries objections — approve must carry none\"]}\n",
+      "stderr": "",
+      "value": {
+        "verdict": "approve",
+        "objections": [
+          {
+            "lens": "methodology",
+            "severity": "blocker",
+            "claim": "The recovery bundle exceeds the mandatory limit of one independently useful recovery step. Split the increment before building, keeping token issuance as the first slice.",
+            "evidence": "The attached Methodology critique explicitly rates the four independently deliverable concerns as a blocker; HOW bundles token issuance, email delivery, policy administration and migration.",
+            "predicted_consequence": "Building the ticket as written delivers four concerns together and violates the methodology's mandatory single-step increment limit.",
+            "spec_anchor": "how"
+          }
+        ],
+        "conformant": false,
+        "violations": [
+          "approve carries objections — approve must carry none"
+        ]
+      }
+    },
+    "route": null
+  }
+}

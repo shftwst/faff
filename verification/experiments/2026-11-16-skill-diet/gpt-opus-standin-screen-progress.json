@@ -1,0 +1,3404 @@
+{
+  "schema": 1,
+  "status": "screen-captures-complete-requires-manual-review",
+  "registry_sha256": "95e800ed0a7d663c0076705eb7b0468b31946e31bf0308ec9d0186de7b3bae66",
+  "rows": [
+    {
+      "combination": "opus-reference",
+      "model": "claude-opus-5-5",
+      "effort": "medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [],
+      "median_elapsed_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "model": "claude-opus-5-5",
+      "effort": "medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [],
+      "median_elapsed_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "model": "claude-opus-5-5",
+      "effort": "medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [],
+      "median_elapsed_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "model": "claude-opus-5-5",
+      "effort": "medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [],
+      "median_elapsed_seconds": null
+    },
+    {
+      "combination": "sol-low",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "task": "gateway",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        156.8,
+        150.1
+      ],
+      "median_elapsed_seconds": 153.45
+    },
+    {
+      "combination": "sol-low",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "task": "gateway",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        128.2,
+        130
+      ],
+      "median_elapsed_seconds": 129.1
+    },
+    {
+      "combination": "sol-low",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "task": "rendering",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 1,
+      "native_passed": 1,
+      "native_failed": 1,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 35,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 37,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        193.4,
+        196
+      ],
+      "median_elapsed_seconds": 194.7
+    },
+    {
+      "combination": "sol-low",
+      "model": "gpt-6.1-sol",
+      "effort": "low",
+      "task": "rendering",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        194.1,
+        209.5
+      ],
+      "median_elapsed_seconds": 201.8
+    },
+    {
+      "combination": "sol-medium",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        156.3,
+        136.4
+      ],
+      "median_elapsed_seconds": 146.35000000000002
+    },
+    {
+      "combination": "sol-medium",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        138.8,
+        134.5
+      ],
+      "median_elapsed_seconds": 136.65
+    },
+    {
+      "combination": "sol-medium",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        201,
+        204.1
+      ],
+      "median_elapsed_seconds": 202.55
+    },
+    {
+      "combination": "sol-medium",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        190.2,
+        180.7
+      ],
+      "median_elapsed_seconds": 185.45
+    },
+    {
+      "combination": "sol-high",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "task": "gateway",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        147.6,
+        144.2
+      ],
+      "median_elapsed_seconds": 145.89999999999998
+    },
+    {
+      "combination": "sol-high",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "task": "gateway",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 1,
+      "native_failed": 1,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        137.8,
+        142.6
+      ],
+      "median_elapsed_seconds": 140.2
+    },
+    {
+      "combination": "sol-high",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "task": "rendering",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 1,
+      "native_failed": 1,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        207.5,
+        212.8
+      ],
+      "median_elapsed_seconds": 210.15
+    },
+    {
+      "combination": "sol-high",
+      "model": "gpt-6.1-sol",
+      "effort": "high",
+      "task": "rendering",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 1,
+      "native_failed": 1,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        205.9,
+        186
+      ],
+      "median_elapsed_seconds": 195.95
+    },
+    {
+      "combination": "astra-low",
+      "model": "gpt-6-astra",
+      "effort": "low",
+      "task": "gateway",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        161.3,
+        166.7
+      ],
+      "median_elapsed_seconds": 164
+    },
+    {
+      "combination": "astra-low",
+      "model": "gpt-6-astra",
+      "effort": "low",
+      "task": "gateway",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        138.8,
+        140.5
+      ],
+      "median_elapsed_seconds": 139.65
+    },
+    {
+      "combination": "astra-low",
+      "model": "gpt-6-astra",
+      "effort": "low",
+      "task": "rendering",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        213.4,
+        218.6
+      ],
+      "median_elapsed_seconds": 216
+    },
+    {
+      "combination": "astra-low",
+      "model": "gpt-6-astra",
+      "effort": "low",
+      "task": "rendering",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        220.6,
+        192.7
+      ],
+      "median_elapsed_seconds": 206.64999999999998
+    },
+    {
+      "combination": "astra-medium",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        149.9,
+        151.7
+      ],
+      "median_elapsed_seconds": 150.8
+    },
+    {
+      "combination": "astra-medium",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        146.1,
+        144.1
+      ],
+      "median_elapsed_seconds": 145.1
+    },
+    {
+      "combination": "astra-medium",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        213.7,
+        218.6
+      ],
+      "median_elapsed_seconds": 216.14999999999998
+    },
+    {
+      "combination": "astra-medium",
+      "model": "gpt-6-astra",
+      "effort": "medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 2,
+      "native_failed": 0,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        207.6,
+        190
+      ],
+      "median_elapsed_seconds": 198.8
+    },
+    {
+      "combination": "terra-medium",
+      "model": "gpt-6.1-terra",
+      "effort": "medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 0,
+      "native_failed": 2,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        125.2,
+        114.5
+      ],
+      "median_elapsed_seconds": 119.85
+    },
+    {
+      "combination": "terra-medium",
+      "model": "gpt-6.1-terra",
+      "effort": "medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 0,
+      "native_failed": 2,
+      "bindings_failed": 0,
+      "raw": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "assessed": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "elapsed_seconds": [
+        115.1,
+        110.8
+      ],
+      "median_elapsed_seconds": 112.94999999999999
+    },
+    {
+      "combination": "terra-medium",
+      "model": "gpt-6.1-terra",
+      "effort": "medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 2,
+      "assessed_runs_passed": 2,
+      "native_passed": 0,
+      "native_failed": 2,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        173.5,
+        161
+      ],
+      "median_elapsed_seconds": 167.25
+    },
+    {
+      "combination": "terra-medium",
+      "model": "gpt-6.1-terra",
+      "effort": "medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "planned_samples": 2,
+      "complete_samples": 2,
+      "raw_runs_passed": 0,
+      "assessed_runs_passed": 2,
+      "native_passed": 0,
+      "native_failed": 2,
+      "bindings_failed": 0,
+      "raw": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 38,
+          "total": 40
+        }
+      },
+      "assessed": {
+        "artifact": {
+          "passed": 18,
+          "total": 18
+        },
+        "decision": {
+          "passed": 40,
+          "total": 40
+        }
+      },
+      "elapsed_seconds": [
+        143.8,
+        157.7
+      ],
+      "median_elapsed_seconds": 150.75
+    }
+  ],
+  "samples": [
+    {
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "gateway-context-v3-baseline-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "1de177eb5842d8ae3df1b4d14813dcf925cb33e1d404f68f86313ebdf7fb42d4",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "gateway-context-v3-baseline-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "1de177eb5842d8ae3df1b4d14813dcf925cb33e1d404f68f86313ebdf7fb42d4",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "gateway-context-v3-candidate-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c5f8a05c078c10720dfa978bfe4874518ecbb32a55e5ecbf3e2a7fe9393b7d49",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "gateway-context-v3-candidate-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c9eb50fe3d58a1ade6d8f718190dd424811ad85cb23df18901397fb096e1dc60",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "rendering-artifact-v1-baseline-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "0e3ecebc2abdba6e4b62dae21f33ceb8a7afd975013dae0b273ea11bd0d11d0b",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "rendering-artifact-v1-baseline-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "845b4af834cb5a0755a7fed8d01c856c3034a79c2cf63dc6649f763702f2160e",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "rendering-artifact-v2-candidate-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "d69fbc82cdd1d04c0cc517067594a8aa152af59a84aec1c8cbd73e330eca8fe5",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": null
+    },
+    {
+      "combination": "opus-reference",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "rendering-artifact-v2-candidate-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "b7a868b06f50ad271337d8db7959a1e2ddfc48a2d8639dd54c9e1baf06dea97c",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": null
+    },
+    {
+      "combination": "sol-low",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "matrix-v1-sol-low-gateway-baseline-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "0140f0fb89f61ce6ab011e95861d71599e9cbee3b80af8f17a3e385664c26bd8",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 156.8
+    },
+    {
+      "combination": "sol-low",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "matrix-v1-sol-low-gateway-baseline-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 150.1
+    },
+    {
+      "combination": "sol-low",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "matrix-v1-sol-low-gateway-candidate-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "771890dde0e2c76fd9d753b5cf9126dabafc798185275b2ab0bb864712cf4f5c",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 128.2
+    },
+    {
+      "combination": "sol-low",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "matrix-v1-sol-low-gateway-candidate-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "771890dde0e2c76fd9d753b5cf9126dabafc798185275b2ab0bb864712cf4f5c",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 130
+    },
+    {
+      "combination": "sol-low",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "matrix-v1-sol-low-rendering-baseline-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "98931e03d7fcb0850525d8c4eccb5ab32c6daa35053f81eaf6a97576439daa62",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 193.4
+    },
+    {
+      "combination": "sol-low",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "matrix-v1-sol-low-rendering-baseline-2",
+      "raw_status": "fail",
+      "assessed_status": "fail",
+      "report_sha256": "0ced84f2523edc13ed024179a68c71218c10d3defabda8711d0e090516966015",
+      "assessment_sha256": "ecd593dd99999bd34aee701e5731da39d3805e8aae8c5576ed0b9792c0b2dd03",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_f5d17284b54748abbc825ba48e217785",
+          "name": "exec",
+          "problem": "native-command-failed"
+        },
+        {
+          "id": "call_c1cf1a391052468ab36287abe36f57ee",
+          "name": "exec",
+          "problem": "native-command-failed"
+        }
+      ],
+      "elapsed_seconds": 196
+    },
+    {
+      "combination": "sol-low",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "matrix-v1-sol-low-rendering-candidate-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "1771cf13a30c312079099fc1dbe72743998c6466e5f9fb5b42b54c07f116dc6f",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 194.1
+    },
+    {
+      "combination": "sol-low",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "matrix-v1-sol-low-rendering-candidate-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "1e105f5815a08960663fbb9c799d897bc8dd8d1abbebb50015f479e33e88cd3d",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 209.5
+    },
+    {
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "gateway-sol-calibration-v1-baseline-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 156.3
+    },
+    {
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "gateway-sol-calibration-v1-baseline-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 136.4
+    },
+    {
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "gateway-sol-calibration-v1-candidate-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 138.8
+    },
+    {
+      "combination": "sol-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "gateway-sol-calibration-v1-candidate-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 134.5
+    },
+    {
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "rendering-sol-calibration-v1-baseline-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "de3cce0c5802337120e7952c552c2c6f6b0534c256038b379ed16ae16df673dc",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 201
+    },
+    {
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "rendering-sol-calibration-v1-baseline-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "df41aa166cc97ab9348673752e9647789ae085b8cd268aa4887cc11566a4df73",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 204.1
+    },
+    {
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "rendering-sol-calibration-v1-candidate-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "2b8ce01e21b3402cad7fbe5c8b926ab39f46e66ad83c9c41f892d42d1878b254",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 190.2
+    },
+    {
+      "combination": "sol-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "rendering-sol-calibration-v1-candidate-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "23df76948cbec61e512991a122f3d2300d0089b3c5c7034ba53169c8c4b0d50b",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 180.7
+    },
+    {
+      "combination": "sol-high",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "matrix-v1-sol-high-gateway-baseline-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 147.6
+    },
+    {
+      "combination": "sol-high",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "matrix-v1-sol-high-gateway-baseline-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 144.2
+    },
+    {
+      "combination": "sol-high",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "matrix-v1-sol-high-gateway-candidate-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_6bd0cc394bcd4c9ca384eca9a8a5abcc",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_50a669d0fdd442fe9f28a26aa92984d1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_825dffb479ae43df9f4d9f8f85e66f6f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b9bd3d166e514dfeaf9d622eae281347",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_54a20c85d90b454fad1cf504130ad61d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_51fe12833c7b446e99821457a629bc58",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5fd2510e2f264d2dbcb8a55fdfad83b7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_63d11cc0b0ae4fc0956a3cc113f1ffda",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5c43e7243caf434cb18361e0bb60d737",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d347858de7a14ede8a9583a63676f730",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_cf9a61699d7141f882f2e4b60e645310",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_fc83ff0543e7422c9e31c3a600d1ebe5",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7b47becb1871469c98471b9cecfddbe3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4bd94fdca1ab43c99b83105d34f933c7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_226bbd6f82a949dc84d337c7566666ab",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_8f9c32c6455440a3ae04c3091180b6af",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_96de163e5c4f448d93e753fd65ed7f52",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_cac3b160b5da4d10b25390d19c2e6c90",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_dfd9596c93b24ba4adadfd91f2e642fa",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_be493ec48a364222a0376517ae433086",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1dadb9a224b14b1eabba7fd3fa1d2b7f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b2fbe1006d33408bb2d62feb7b4ae545",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e1e5df0d07c6482fad19e07ff8feaf02",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_335119e228c14b0ca41b7aff544c2776",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 137.8
+    },
+    {
+      "combination": "sol-high",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "matrix-v1-sol-high-gateway-candidate-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 142.6
+    },
+    {
+      "combination": "sol-high",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "matrix-v1-sol-high-rendering-baseline-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "02f734c04d08f96ca71906b0cf9d9821872fc38d0c32ed3ef5c2796bde34143a",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_e696faaef6db4ca88d31d929527d68fe",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_62320ea4c5d54d7d9aad6d54b83ddd1f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4dc421ff91854ffca2fc8b8d1b1375ea",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_9713c597ab794e1987658332a96e6396",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_61f5fc7f21a940229d9ac08e2d4052e6",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_48c1d5b513d84ef88f3bfe897b4bb7b2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d5b8d40b8943428d9b419cb2c87797f3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5d7a95e26aaf4afbb3c171712cf89be2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_3b297f049fdb4a24b7f36e0b59a223da",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_533f972aa35343c59c675654395fdbd8",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_16866b106c464726a332eb77e9ccea71",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b1c5866f2cf2497e834b9f0d9b943f7d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1ceb0154477c4560a47ae2b7c4b5d6aa",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_6c626ffb49e74ad090eba3e3d3326ec0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f6542dad05b848f4be452ac259788199",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f8d74270a05142ddb9202bad79247182",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ba55989a12db491b85c161581d1547a4",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ff6fedc9c831401c82a9a8c88ec005f1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_cdeb89f1604a457792d32218434f366a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_c61208cc431b4c19857ecd7ca44a686e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f9b814b9bdce4c5e9da8ef8287db59ce",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_bb1e5842e2f0443dadd6e2c3c39129ea",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_042560a6d64748168259313ecbc9a158",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a757faa6da96487a90bc48921ce3aa31",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_57f06f4ae5bd42c88736f857610d9ad4",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_613eb75e36e84d5d8b8e40a13078ddaf",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_638516693552422eaea722931a5f434d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a344cb0b1147484aa93670383aaf3c49",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_3b841b0280fc4fa7a7404ad95f982e16",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_19e850b331394a219bfa5d81588c8316",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f94fc5319900423085eba9336af5a7ea",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2316d5dd0fc2433a91a4059816080542",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_dedf3185b3ef4b9e8097e7a8fdda5b84",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_36c51f550c0e4f45bf53ee4e7c99aba0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1b1dc549fbdc446d8788186a43bf519d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_bd817869978a4447837ca293d47cc18a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f0f70f0ce7184a23bb89e65dc0335f98",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 207.5
+    },
+    {
+      "combination": "sol-high",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "matrix-v1-sol-high-rendering-baseline-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "522b9fa6baa94c4aef4bf2659e8f1c2d7aa87a9134c0a7098e4a818aef6be715",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 212.8
+    },
+    {
+      "combination": "sol-high",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "matrix-v1-sol-high-rendering-candidate-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "802c022485466bbe4c565cf4acb4cebd800ac2d7f9df8a83c1744f30a1fca88c",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 205.9
+    },
+    {
+      "combination": "sol-high",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "matrix-v1-sol-high-rendering-candidate-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "1db0fa72a3beffeb00278618573f7c77cc0644293ac4fdab95a250f6ad56cc6b",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_924aa9ee119449538f8467c522c6ac80",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ebffa13fc3c944cd9720aa8811f9f879",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 186
+    },
+    {
+      "combination": "astra-low",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "matrix-v1-astra-low-gateway-baseline-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 161.3
+    },
+    {
+      "combination": "astra-low",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "matrix-v1-astra-low-gateway-baseline-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 166.7
+    },
+    {
+      "combination": "astra-low",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "matrix-v1-astra-low-gateway-candidate-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "771890dde0e2c76fd9d753b5cf9126dabafc798185275b2ab0bb864712cf4f5c",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 138.8
+    },
+    {
+      "combination": "astra-low",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "matrix-v1-astra-low-gateway-candidate-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "771890dde0e2c76fd9d753b5cf9126dabafc798185275b2ab0bb864712cf4f5c",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 140.5
+    },
+    {
+      "combination": "astra-low",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "matrix-v1-astra-low-rendering-baseline-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "ebaae49d3e700b3728e6f736e0ca2ed5f7621bf47291cbe49af1b6b9dddc50f1",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 213.4
+    },
+    {
+      "combination": "astra-low",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "matrix-v1-astra-low-rendering-baseline-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "8c09ec16ea9a097c08e7cbd703332aa80d025c72e9d4bd5a1c9196f9109a4925",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 218.6
+    },
+    {
+      "combination": "astra-low",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "matrix-v1-astra-low-rendering-candidate-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "220d90a4167acb373e06a7ff5b3631424b03d6eb04b82177756546d36e863660",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 220.6
+    },
+    {
+      "combination": "astra-low",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "matrix-v1-astra-low-rendering-candidate-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "cf7df1126e3fd2c3dded56a5d81ca6c2012702c90e333bbeaf8e7dfdf292998b",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 192.7
+    },
+    {
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "matrix-v1-astra-medium-gateway-baseline-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 149.9
+    },
+    {
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "matrix-v1-astra-medium-gateway-baseline-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 151.7
+    },
+    {
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "matrix-v1-astra-medium-gateway-candidate-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 146.1
+    },
+    {
+      "combination": "astra-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "matrix-v1-astra-medium-gateway-candidate-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 144.1
+    },
+    {
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "matrix-v1-astra-medium-rendering-baseline-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "cd888bcd8079168bd8e262085af37da63fc0706d8abdf502239850418c8a02fa",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 213.7
+    },
+    {
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "matrix-v1-astra-medium-rendering-baseline-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "assessment_sha256": "4adfa992e6fd9475db5fdc3f63ac5b7f8f4f56859b9ce9b7cbbf79251b32893f",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 218.6
+    },
+    {
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "matrix-v1-astra-medium-rendering-candidate-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "4511cd4f3dbd84bfd78aa6fbdf4a5c2b5d42f4e31a2366aef0a12beac008ec50",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 207.6
+    },
+    {
+      "combination": "astra-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "matrix-v1-astra-medium-rendering-candidate-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "4a344286da33f4bed9d28a0b237bcf67d988436bf82c4d03f2a0cfb4c3203d5f",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "pass",
+      "native_problems": [],
+      "elapsed_seconds": 190
+    },
+    {
+      "combination": "terra-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "matrix-v1-terra-medium-gateway-baseline-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_dd8824fb19864657a3984b5e61b7e865",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_0ba3be45ddde42a0b5717d0939e7eb29",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e64c325942b5467286e06fd2401765a2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b5b96a7eb244452fa60ed755e1717499",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b88fbb643f974dea8c152441e602910a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_afa02a6e672b4e718f358830a8c375d1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_3346d16ac6c14180b6ed1307878f59fd",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b3da2d8c38da4212a4be923d1adfb3b8",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_84b29c0b3fa74078ac153e912e16d1ed",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_146dc9ab2fd04bbb8c0559091dc6cd00",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4059bf8ea1604f96b62f5073e166f450",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_bc68f6d0ad004279bf3e7090e65e1a7e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2ee50572f8a84fb88b17f801a2af0ea5",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_76533a9ed75a454aa466480036be2ed3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e1e8e289ebae4bc5be038e1ddab852cf",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_66abf660f8ad4737a0f178f43f4de484",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b160c47ea99d4a40818d0b945f3b6eed",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_13fa9db5bf5142a9a3a69eecca1eb9bf",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d254c54124214b0d83ab5fadb15cd659",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5d45bc0c34c94101977cda884f6cd139",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1dcd730fba36499589b7dce29d2b27a8",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b7efab1ab1cb4fbca5d7acd756fcb2d1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_876f10279eb44eea9ed940024eb717eb",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a2af2bb99b7e421fb04b0b1fb77a21b6",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_6275c53bd0ca4da3b005aa9b6203e744",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_94d23587c1fa410ea03232150d9a732a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 125.2
+    },
+    {
+      "combination": "terra-medium",
+      "task": "gateway",
+      "arm": "baseline",
+      "name": "matrix-v1-terra-medium-gateway-baseline-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "c6581fba541bc48c44d622620e829d3a3d83e45f5a9947e087a86acd631f0cd7",
+      "assessment_sha256": null,
+      "manifest_sha256": "7b8a7d841feb32f0eb34fde450e8a2086d443d7275e2f6084a227585ce32ec31",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_75403e12798243458176f3a58a572a0e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d6a742d235e84eb19413a454dc8a5d72",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_c7a488aaac434280b1ac7fc5fe576eb1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_05ed78f16bbf4513b02d602760da2796",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_49738f248e724c929e8a3dbd69588a1a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_828c40d1ce7a408da7ab4fda20a960af",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_9d4529d341ce48fcb53f574b0312ba17",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d4c6f992588f46e4971c06424384a416",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_deccba996d934c7b847c455b7afdde78",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_162c81ebc10142d6b687985f83a5b2ba",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d1458a8245da4a9ba27397aafa2b7eed",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_be1ac4d0a6954ce385685e8a4e61f46f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_47c8bc6c261c44f1bf888d12961a2b53",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_aa56997ac07c404cadd9144f702e887e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a62025f3846846c389bec6fb95633081",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_bd2a7042f72f4907ab7a69d8cd89067f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ca8f411030b84a478650d61804e1f0d2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_32fe219fdc334e758b39d3366cbd48b2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f656d2f06e314857975a84777428371e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ea41cc3a3ec74b0baf2e376bb315bd99",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_cf35f1a44e6e4b9d9a529a4c7ff77b8f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7b6a2060881a4a33882be19d3c41aa35",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_25fe399745f1491985a16f93d962a6e7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_26d540be52f147caa422006f266780a4",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_c31f08f0aeec43e09f3d8e0c9801507f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_30520b78588e40a3b59a1c5a4f132f75",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 114.5
+    },
+    {
+      "combination": "terra-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "matrix-v1-terra-medium-gateway-candidate-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_2da139a70c8e4828b0ff1ac5a9af382d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_fb405e2a3a1e4fd08e538c879bb708fa",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_acde22e7330c4ae0beb99f7d14db8a55",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_3e2d086b0850487997ac66a7e2eb3708",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_32789d04d149458d9554ef2418a29a72",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2ffdb360612b43bf9d19fb61a1efaee6",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4e1f6cb2889c457c91be15763593a0c1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_557c2430aa314bbc8c168a0c974136f8",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_143b8c64509843a7859a1af65b9e62ef",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_047e9815acb741f3af3dcba43bf90780",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2aaa09c50b0c4ca28a4c0976f2a1e8b0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_281046679c8c4d90a3d3b638402eea4c",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_451b22e8d48d44b2b68f645cee2710dc",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a85ca0b95d9948649c39d7e71e32a2ea",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b3734b7f900e46a9af8bee1e5cd7049f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e60c67d33c8646348cc8e2b639e98db0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1621fd6b233e48e2b73426a33e1eacba",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1ecef5ce79654e7fa9a033377f08d8cc",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_93fb9f179eed4ab3b0c4700fdcc75227",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_866d0b898d254e1fb8dd107a6c027af3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f1398e994ed54e2f83b9f07ec0974170",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_471b8f479d49482785527b4cbd6e2700",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b5228e2fff1c4852a8995cab240b7634",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ddac601cfcd645239df3d9c3eab6b676",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 115.1
+    },
+    {
+      "combination": "terra-medium",
+      "task": "gateway",
+      "arm": "candidate",
+      "name": "matrix-v1-terra-medium-gateway-candidate-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "06fec69039ec4e04b70c5bf739934c3cec48b8b973e083591c726bfcc2c3462e",
+      "assessment_sha256": null,
+      "manifest_sha256": "12dd2faae9150506bc2cb955b7e5ddf4c9bef79e018bb5d9230a975ceeff22ab",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_2a300227feee482a9f2809550076fc9e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_542f18f5402a4e23afcccd249835b648",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_fbbc94c12a5149a8a48912854aadd50b",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_69d8d779f97d495993fd0b1ae8bb2a8d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b3da4c9c951a4fc89326a685e6b6bc00",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_74b976edf3a44d3dbfdee8cd79db1c8e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_8f790c042e6a4d9cb6dc100a1bcaa97b",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_85235388ac3a45e1965dec11e63e441d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5c207a96f89b4cdeb7bb8a5adc08320f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_51ed999f62ee468b8b6f6000e4a53e62",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a294af67d9c14693901d759a79adebaf",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4c5d82465744455ea0c0c10c492c4995",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_c75991d5671c4b9fb29aa3759dc23cf3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d2d09a8789564f609b336ac40c8aa128",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ab5066264b48466eaba1abb2e46d13d7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7d235a4961474fdface36b66c1def21a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f9df7f17923a4e56b43d0f4806932038",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4ab968b553a74b20afeaeab71677b41c",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_31be732217444de1a72bc16f5484de4e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_07397059567c4ecc9234f290edee2cb2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_89af31e562804c74822f767047402d7c",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e50d686c2c4a46fdb749d41119ae68ca",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2bb599adde7b45f697b9029b67fce8f5",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_9082b81c39b04f708bae06877b133876",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 110.8
+    },
+    {
+      "combination": "terra-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "matrix-v1-terra-medium-rendering-baseline-1",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "a2f52249e4bb2b24f81c1725d3cac5c44fa597c4447c6ec2fd4f26a332420c32",
+      "assessment_sha256": "6a30bc85b8d5b9d181c29af4f9168c2beb30f75286c6620eed34552e9e56b231",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_60f5c803e3c748a4975a761088d245a3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_8dc175b33870445c98ad0790d3f68252",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5c9129ef6886429797af2b81670279c6",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d886f095df73420fad20948770e4f156",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7c3b62048b4548a8aec9549abd5bac9a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a0d3e2cc460b4c8bb325056ef5eb24d1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b90d13a37f994ced98f019c68be5fdc8",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1c4e20bfaec642daa8313fe38db49158",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f90d2c0c3a164635b84ed2540ec629cd",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_79b29f5afcc74844b52902e5fedb4150",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_796af3e30d4946f0aba70ecbb1d9bfa1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_54a07f3be55b474994cf0ed25afea905",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4026a4f17baa4cd0a3b10d902fabdc16",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_cc20746641ae4a3f848b0f9f9566730e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_58abc8d7dd3f449ab5000a35c0f3fd33",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a14776aa81cb413cb14400322737bc60",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_145f44f6264a4155a3aef456283a96a8",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e6ca5cd49090490fb47de778112055e7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_172f45dea8b544ac86a5328a9e72fcbc",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_db2c787ab7df4926aad7a29ce8e86309",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_86e7b76b22b84aa7b23605cee31fd956",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_334e8f56236642649bd74425b00deb40",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_c9b5be2e6c3548769758e6e1cb8270f3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_34b23b8392154d1088efd9104fae1c99",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_6cb9f47a22864dd88acdef84ad479147",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_9878f6bf240540bf892e8f0ee68d495d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_aca532581b1746b28ab48935caccb16f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_76bd07623f194efba69ffd893100495b",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_86afbedc011d4a13ac6aad3c9854d5c3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f10c2e268cf64b4ba3208d4a1f32b804",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5a454186fe8e4faaa052bbaab96f596d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_39096c8449684f90b332750e60004049",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e83d5944688a4c79891c7c333db6f001",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_70507467f5914b029f2fa6e54480f659",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_fe041b9371964a10857b7fb3aaab4997",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_21d36b1bb0734d178c8b383c1352eee1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_c6aca02d4c8f49e38dd79bd8d7b61967",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 173.5
+    },
+    {
+      "combination": "terra-medium",
+      "task": "rendering",
+      "arm": "baseline",
+      "name": "matrix-v1-terra-medium-rendering-baseline-2",
+      "raw_status": "pass",
+      "assessed_status": "pass",
+      "report_sha256": "a2f52249e4bb2b24f81c1725d3cac5c44fa597c4447c6ec2fd4f26a332420c32",
+      "assessment_sha256": "cff3115875136910ee88a9ee8d0fdc7d7f35b1cf6019df0b0677aabe49c0b24f",
+      "manifest_sha256": "161d9f450258ab84a7f5d1650fdcbc275861e314d0f32af0601e084883e2bd3d",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_4ca02a3d47ed43bdb9980d498e783861",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_0f35edf5a91341138f21bb23219d66a2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_9cbd75638a2549fba27ffd1734d334eb",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f7308fb364c94494a193090b25659c83",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_50765498865c461796c36e71958a615c",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a96bfb456e51485da154a0f684d90cac",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_09528d159c2a44e1af1e3c513a62dd5d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f60eb683f22d4932a90aff2053025b25",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7e7237257800495ea45843ba4db56daa",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_21947181d0d140d4a9024ddb87baca9e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2abbd4b70b524ece874f869e9487ee01",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_cc4aa442010146558758964fe3a77fb0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_17bbba0c0bc44c00909030d5862b9781",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_07fb178f565647a09593ed554ad18c49",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_859c1a3c428d4d6ea7a54aced4623964",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7490a6b1be8c4aecb5c3fc175a97b292",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ba48d9e252684b64aa7862d48aea40a5",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_68044fafe087465585a3ad10ff90b8e7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_8a7e7ea880424d3a94cfeba82e36d38e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e0a731199e194d32b262a7d4f78c5fd7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e5ee53a70af14efbbac1c410e15f0618",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e423cbdf22c34964b1757c37eae3c5bb",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_25bb998750c44360a334b62d12a637e1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_2e93ea27045d4795bbb874115987f187",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a9520df8a12045d0aed6385ee96c7329",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_0a758ba7f3d54918b5ac2d8d8b7ef9f7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7997dc3d61534637b2d7e2cfc1159b74",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_6248babeaf304c638cf3bad8d9c010e2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f294b42cf7784637945a5239aa09d99f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b3d4ea162eb8406398b3186b16ce4b90",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_beeab00119d145528c53d4511f751b08",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_589cbcc658ad4a96abb2e574e15d8f9b",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_8a516dbb66964d9ca09a8961e3a85e62",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d63a36e79be0403984641056d1e973df",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ce99cffd4b244a619e04ceb9bc848ee4",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_02df6ef809ac419d8d59bbc2c4131af7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f3d9fbf9e6534beaa4773579a48a3f9e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 161
+    },
+    {
+      "combination": "terra-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "matrix-v1-terra-medium-rendering-candidate-1",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "eacec2c0fce09ca4b6f9f8cbaad4a88c9e0e0b068ba5aaa4ebf3a45fe8184492",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_8a65667568b942d09927119bf241d8c8",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d67497ade46246e0857ce2ed0a34ad58",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5126742f2ce7447a88baea85fcd36d03",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_7d42b0386504492fb512d6f3863b670c",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ff4aa0148c884ffea52bd7628577f48c",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e1f3e4ed97334f5fbdd93af7d5e90a6f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b8ed26ce6f5a42c2b035c3bdb6891ce9",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4dfa8df7a5384d6ba4177b840551a2c0",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5c60083752ef4e409394be09bd20ed66",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_3c4a7eb8cd89467cbe5cf50ae5271df3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_8fcd4b17a9484c30a30bec48ced3f3b1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_fa0a149e52e8403285b753e6494d75e2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_72aea5f3b7bb411095ee4e4edfd1dcd7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f6cb591b2a3c4f788fb5a556a90e0e0d",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_78bce19e7746499db3cae76bb33d6d72",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_485919f1a08c4983b084a8f41521d4ef",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5866f8c3fc9745d08f501598525bffd1",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_acb34bf613374a9da129489ff4566847",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4cf5ec988b5c48dd89db4e1733fd4118",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_da27b1aee91d41cfafb703cc008f76eb",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_214878ca25f740d89239319b4032fa78",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e2f0b36c03ba4ce887cc87d1ef96c7a6",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b8efb9fc512a4cb2be29724d8177b32a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_5e28a4d9adeb4d7ba20ffba09462d998",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f32d6f9907224f72a05d67ed378d1dc4",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_38397547bffb45dba4ff01a44ed0f1d2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_51a579c49292460986a26005ac39589e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b1a965a30dc54284a3e6b5b0509f7fcf",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_b35f41fbeb1e4d21a638ccc67d50a40a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e955babc10464aa5bce57e49d018ed15",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e5abc8c76d5844d28cd8d5a44be4defa",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_dc2e8fa05a7d4c7d909970ccc5f6aaa9",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_74b908e0d19f44aeaa48e006cd2a59fd",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_437cc0bf47714bcfa1e41a16adac944a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 143.8
+    },
+    {
+      "combination": "terra-medium",
+      "task": "rendering",
+      "arm": "candidate",
+      "name": "matrix-v1-terra-medium-rendering-candidate-2",
+      "raw_status": "fail",
+      "assessed_status": "pass",
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "assessment_sha256": "30a07fa550213dbe7b1bab9f760e1c7251c040c1a4192a042775316bd122df2b",
+      "manifest_sha256": "b0e4cc06f0b7ae27708231901e991b330b243e156a6cd99f52acedb367984b0d",
+      "binding_problems": [],
+      "native_status": "fail",
+      "native_problems": [
+        {
+          "id": "call_d540461bba6b4cb083959adf2cfb1958",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_be8c242fb00349008d8b19525f0cbaf6",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_af937d34419444b398746f89d1d711d5",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f60af3a33b9d4963b696c52543778bd2",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1e3956864b6740ecb2ec359f7f6d624e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_983e1c6c344142709038946b99e5c007",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_3cf3faef30a5472093140d6207c8be77",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_af4de6e2e4ad46df93aef012555b5724",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_0cf223e7bf594ed093aa30beea8f8fcb",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e36c0ea72d21446e959ea325f850f7b3",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_de8d104acd544a02941cbfa2cc157eaf",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_10cd4532b5d0447fb820ea5f4b4fe2a6",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_89c3cbc371114273b066066e5bc84395",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_e546b39f00ea42c1b2fe78e02e28fff7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_eb9165e1e88d46518f32833239c8115f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d6e57ebaf1124c73a3f2ab1def2e2d40",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_3038b4392bd746968c203738848abb0e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_28e50ab75d1343c49ca84920f925de88",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f1e3bc46ba2446b09d4da69d60701e0f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_a495f0e7c7aa4808bfcb2a663e08939e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_dd9497a3ce4a43e9a1c528cc202c627f",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ac64ad95d5994172a845e1e8667ea47b",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_9f571c2dc5b9428db8f107a7cf3b24bd",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_4d2ea51695334ceea6fe1d19c4dff2e4",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_d780cf999e664a29afd29188e39bda92",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_1ea123ce4b0a426a91519a0d16d48c93",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_ec455d823cbe4a65aff3e2589954638e",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_764b3d3d5c234e40a265ef22a50f9231",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_6afe3cf0d65041b9b898c0cc19bfcb41",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_f3ba1f7dd733443ea7b230fbfa433ac7",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_db2678def78a4d5c92715966401c0e8a",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_67e7c053c6ca4fc0bbd4fb9e0ca15f24",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_40fd8010d40a47c9bb10464d27de54ce",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "id": "call_cba8eea6f7cd4af5ab43d0aad952171c",
+          "name": "exec",
+          "problem": "outside-authorised-native-tools"
+        },
+        {
+          "problem": "initial-read-missing-incomplete-or-truncated"
+        }
+      ],
+      "elapsed_seconds": 157.7
+    }
+  ],
+  "limits": [
+    "Screen uses exactly the first two frozen samples per policy arm. Later Sol-medium samples are excluded from this equal-size screen.",
+    "Execution/artifact/decision rubric scores are separate from manual fidelity and native certification. Uncertified transport is not labelled a functional reasoning failure.",
+    "Opus delivered older operator guidance; provider base instructions, native transport, timeout and path reminders differ. GPT matrix combinations share current guidance and protocol.",
+    "Elapsed time includes tool and queue overhead in the shared environment. Opus elapsed time is unavailable in the common format. No provider cost or statistical equivalence claim.",
+    "No finalist is selected by this progress script. Manual review and the preregistered critical-failure ranking remain required."
+  ]
+}

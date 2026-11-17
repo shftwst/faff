@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All three artifact cases and 14 rule answers were persisted. `finish` succeeded.\n\nNo departures from the measurement restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e45d-79d5-7122-bedd-239aa9c3edc6"
+    ],
+    "elapsed_seconds": 393.1,
+    "stdout_sha256": "3665e175438242e1804bd03b19387c9e8ed61cce0d23be4ca0f0fcf5104df880",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

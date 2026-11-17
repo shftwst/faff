@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "/tmp/faff-kernel-config-5z5oiG/layered/.faff/config.yaml\n/tmp/faff-kernel-config-5z5oiG/layered/.faff/config.local.yaml\n",
+    "stderr": ""
+  }
+}

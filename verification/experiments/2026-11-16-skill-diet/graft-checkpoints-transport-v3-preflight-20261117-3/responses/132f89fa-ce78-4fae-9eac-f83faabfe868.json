@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "dod",
+      "classify",
+      "--issue",
+      "FAFF-9",
+      "--spec",
+      "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass/docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md",
+      "--json"
+    ],
+    "stdin": "",
+    "cwd": "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass",
+    "exit_code": 0,
+    "stdout": "{\"criteria\":[{\"text\":\"the supplied arithmetic command MUST pass\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:1\",\"local_ac_id\":\"ac-1\",\"ac_id\":\"faff-9#ac-1\"},{\"text\":\"Prices match the published pricing page\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":true,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:2\",\"local_ac_id\":\"ac-2\",\"ac_id\":\"faff-9#ac-2\"}],\"counts\":{\"scenario\":0,\"assertion\":1,\"prose\":1},\"holdout_counts\":{\"holdout\":0,\"visible\":2},\"oracle_less_count\":0,\"verification_tier_counts\":{\"running-stack\":1,\"integration\":0,\"delegated\":1},\"judged_count\":1,\"integration_count\":0,\"delegated_count\":1}\n",
+    "stderr": "",
+    "error": null
+  }
+}

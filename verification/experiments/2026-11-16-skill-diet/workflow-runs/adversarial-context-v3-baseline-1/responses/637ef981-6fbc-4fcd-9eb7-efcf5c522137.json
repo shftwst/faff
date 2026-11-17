@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"pass\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"critical\",\"disposition\":\"open\",\"source\":\"adversarial\",\"model\":\"openai/fixture-model\",\"title\":\"Unvalidated removal in removeAccount\",\"location\":\"src/store.js:2\",\"action\":\"Verify ownership before deleting the account.\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": true,
+      "ac_complete": true,
+      "review_verdict": "pass",
+      "holdout": "not-applicable",
+      "reasons": [],
+      "ac_called_out": []
+    }
+  }
+}

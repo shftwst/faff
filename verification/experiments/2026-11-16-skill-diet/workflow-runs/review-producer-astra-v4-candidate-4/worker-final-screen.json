@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All seven review cases and 20 policy answers were persisted. `finish` returned `{\"finished\":true}`.\n\nEach individual `exec_command` was invoked through the required `functions.exec` tool wrapper. No other departures occurred; no output files were inspected.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e459-e081-7f60-ad91-df6ee300c8c7"
+    ],
+    "elapsed_seconds": 379.3,
+    "stdout_sha256": "5e6b969bd623a84e4342fac9d7dada76dcf3d8612d0fee8bf603b2e6dd3a493e",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

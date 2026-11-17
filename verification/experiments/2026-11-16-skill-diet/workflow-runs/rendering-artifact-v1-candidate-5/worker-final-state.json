@@ -1,0 +1,5 @@
+{
+  "exit_code": 0,
+  "stdout": "{\n  \"ok\": true,\n  \"status\": {\n    \"agent\": {\n      \"agent\": \"claude\",\n      \"agent_status\": \"idle\",\n      \"completion_seq\": 447,\n      \"cwd\": \"/Users/shftwst/workspace/shftwst/faff\",\n      \"focused\": false,\n      \"foreground_cwd\": \"/Users/shftwst/workspace/shftwst/faff\",\n      \"pane_id\": \"w657ad5a31a8d61:p8\",\n      \"revision\": 130,\n      \"state_change_seq\": 447,\n      \"tab_id\": \"w657ad5a31a8d61:t1\",\n      \"terminal_id\": \"term_6605e617def7e8\",\n      \"terminal_title\": \"\\u2733 Skill-diet rendering-artifact-v1 candidate 5 run\",\n      \"terminal_title_stripped\": \"Skill-diet rendering-artifact-v1 candidate 5 run\",\n      \"workspace_id\": \"w657ad5a31a8d61\"\n    },\n    \"type\": \"agent_info\"\n  }\n}\n",
+  "stderr": ""
+}

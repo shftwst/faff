@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "gates",
+      "run",
+      "--root",
+      "/var/tmp/graft-checkpoint-lxB2ps/gate-failure",
+      "--json"
+    ],
+    "stdin": "",
+    "cwd": "/var/tmp/graft-checkpoint-lxB2ps/gate-failure",
+    "exit_code": 1,
+    "stdout": "{\n  \"signal\": \"fail\",\n  \"discovery\": \"confident\",\n  \"coverage\": {\n    \"eligible_steps\": 0,\n    \"recognised_steps\": 0,\n    \"ratio\": 1\n  },\n  \"exclusions\": [],\n  \"rungs\": [\n    {\n      \"kind\": \"LINT\",\n      \"name\": \"lint (package.json: npm run lint)\",\n      \"command\": \"npm run lint\",\n      \"status\": \"fail\",\n      \"duration_ms\": 69,\n      \"detail\": \"\\n> lint\\n> node fixture-check.cjs lint\\n\\nlint fixture executed\\n\"\n    }\n  ],\n  \"contract\": {\n    \"signal\": \"fail\",\n    \"rungs\": [\n      {\n        \"kind\": \"LINT\",\n        \"status\": \"fail\"\n      }\n    ]\n  }\n}\n",
+    "stderr": "",
+    "error": null
+  }
+}

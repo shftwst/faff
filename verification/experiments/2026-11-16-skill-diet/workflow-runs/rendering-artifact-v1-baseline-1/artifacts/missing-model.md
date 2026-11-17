@@ -1,0 +1,2 @@
+- First line → Lead with the load-bearing model → no load-bearing model to lead with; the source states no governing idea, so flag it as a producer gap and do not write one.
+- Steps one to three written as one prose run → Prose skimmability (3+ items become a list) → render the three steps as a numbered list.

@@ -1,0 +1,105 @@
+{
+  "id": "retry-and-privacy",
+  "status": "pass",
+  "problems": [],
+  "source_sha256": "e1cb0ec3d3586bf53324c15a2b6626cd8f9d6c21175b64b6ff9221684471cd85",
+  "attached_sha256": "04d1c4bf8e6b9cf63fbcaaed872cb2e7323bf1732fbc640855b436b93a07bba2",
+  "artifact": {
+    "pass": true,
+    "problems": [],
+    "rubric": {
+      "score": 1,
+      "checks": 5,
+      "passed": 5,
+      "vector": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "commands": [
+    {
+      "name": "contract",
+      "argv": [
+        "contract",
+        "spec-readiness"
+      ],
+      "stdin_sha256": "3dff06bc579cff0ab175492bf7811fc950860b54feb659e9fa4fa985a35fd599",
+      "exit_code": 0,
+      "stdout": "{\"confidence\":\"high\",\"decisions\":[{\"classification\":\"closed\"}],\"markers_valid\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "name": "admissible",
+      "argv": [
+        "admissible",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v2/retry-and-privacy/spec.md",
+        "--lights-out",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"admissible\":true,\"reasons\":[],\"checks\":[{\"id\":\"R1.scenarios\",\"pass\":true,\"detail\":\"4 born-verifiable scenario(s) (need >=1)\"},{\"id\":\"R2a.done-present\",\"pass\":true,\"detail\":\"7 DONE checklist item(s) (need >=1)\"},{\"id\":\"R2b.done-concrete\",\"pass\":true,\"detail\":\"0 vague DONE item(s)\"},{\"id\":\"R2c.human-judgement-untagged\",\"pass\":true,\"detail\":\"0 untagged human-judgement DONE item(s)\"},{\"id\":\"R2d.not-all-human-only\",\"pass\":true,\"detail\":\"7 DONE item(s) not tagged human-only (need at least 1)\"},{\"id\":\"R2e.human-marker-reason\",\"pass\":true,\"detail\":\"0 DONE item(s) begin needs-human: with no reason\"}],\"warnings\":[\"code-surface advisory: 1 DONE item(s) name a repository test file or an exported symbol and go to the review/merge test floor, not the holdout: test/import-retry.test.ts MUST pass.\"]}\n",
+      "stderr": ""
+    },
+    {
+      "name": "dod",
+      "argv": [
+        "dod",
+        "classify",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v2/retry-and-privacy/spec.md",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"criteria\":[{\"text\":\"Given importOnce succeeds immediately\\nWhen runImport executes\\nThen it returns the original successful value after one attempt\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:1\"},{\"text\":\"Given importOnce fails transiently once then succeeds\\nWhen runImport executes\\nThen it returns the successful value after two attempts\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:2\"},{\"text\":\"Given importOnce fails transiently three times\\nWhen runImport executes\\nThen it returns the third original error and makes no fourth attempt\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":true,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:3\"},{\"text\":\"Logs MUST NOT contain payloads.\",\"class\":\"assertion\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:4\"},{\"text\":\"runImport MUST make at most 3 attempts including the first.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:1\",\"local_ac_id\":\"done:1\"},{\"text\":\"Success MUST return its original value.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:2\",\"local_ac_id\":\"done:2\"},{\"text\":\"Only transient ImportError MUST be retried; permanent errors and third transient errors MUST return the original error.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:3\",\"local_ac_id\":\"done:3\"},{\"text\":\"Retry logs MUST contain attempt number only, never payload.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:4\",\"local_ac_id\":\"done:4\"},{\"text\":\"Transient retries MUST run immediately without backoff.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:5\",\"local_ac_id\":\"done:5\"},{\"text\":\"The existing job runner MUST be retained.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"done:6\",\"local_ac_id\":\"done:6\"},{\"text\":\"test/import-retry.test.ts MUST pass.\",\"class\":\"assertion\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"integration\",\"verifier\":\"review-merge-floor\",\"id\":\"done:7\",\"local_ac_id\":\"done:7\"}],\"counts\":{\"scenario\":3,\"assertion\":8,\"prose\":0},\"holdout_counts\":{\"holdout\":1,\"visible\":10},\"oracle_less_count\":0,\"verification_tier_counts\":{\"running-stack\":10,\"integration\":1,\"delegated\":0},\"judged_count\":10,\"integration_count\":1,\"delegated_count\":1}\n",
+      "stderr": ""
+    },
+    {
+      "name": "punt",
+      "argv": [
+        "punt-scan",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v2/retry-and-privacy/spec.md"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+      "stderr": ""
+    },
+    {
+      "name": "attach",
+      "argv": [
+        "prep",
+        "attach",
+        "--issue",
+        "SPEC-2",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v2/retry-and-privacy/spec.md",
+        "--mode",
+        "interactive",
+        "--root",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v2/retry-and-privacy",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"issue\":\"SPEC-2\",\"token\":\"ready-to-post\",\"body_path\":\"/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/nlspec-reference-consumer-preflight-v2/retry-and-privacy/spec.md\",\"spec_sha256\":\"04d1c4bf8e6b9cf63fbcaaed872cb2e7323bf1732fbc640855b436b93a07bba2\",\"confidence\":\"high\",\"build_tier\":\"standard\",\"admissibility\":{\"admissible\":true,\"reasons\":[],\"scenarios_prose\":[]}}\n",
+      "stderr": ""
+    }
+  ],
+  "expected": {
+    "confidence": "high",
+    "admissible": true,
+    "blocking_punts": 0,
+    "eligible_punts": 0,
+    "holdouts": true,
+    "review_test_item": true,
+    "behavioural_scenarios": 3,
+    "visible_behavioural_scenarios": 2
+  }
+}

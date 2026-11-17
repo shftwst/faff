@@ -1,0 +1,743 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T23:59:05.288646+00:00",
+  "reviewer": {
+    "role": "independent reporting measurement and binding verifier",
+    "model": "gpt-6.1-sol",
+    "reasoning_effort": "medium"
+  },
+  "status": "pass",
+  "scope": "Both reporting MCP arm gates, actual-output/manual/native evidence bindings, measurement-only qualification, private integration source and raw-versus-assessed disclosure. Pure read-only arm verifier replay only; no model/test reruns or source/frozen evidence changes.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-baseline-gate.json",
+      "sha256": "8e91bf583ea755919ad3c2627f341081b2c9c0f57df3a24d50fa35772024573c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-candidate-gate.json",
+      "sha256": "8c3b42fc298f6bc12fbaa077cf50d9ee7e55615af191741da444cffbb675b76e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-measurement-qualification.json",
+      "sha256": "6ac54315a01bdec92c2c4b8664eb96c5235247bd64d92a8daa058f30c5fc7230"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-medium-integration.json",
+      "sha256": "40306da7b709857c372d8b6d92bb89da76f3c500fb3b6d9f78486918a8ac7ea4"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-draft-assessment-registration.json",
+      "sha256": "b5e445f3e1d1a7ca2cf20bedce8360456762aee83ceb6e58276e63ea79c5f197"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/qualify-reporting-mcp-v1.mjs",
+      "sha256": "7d36f7478a26a197bdab7cc80ae19b7ff5789af8a004f02624670651a05fb124"
+    }
+  ],
+  "checks": [
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-baseline-gate.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-candidate-gate.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-v1-source-review.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-beep-reporting-candidate-source-review.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-medium-integration.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-registration.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-hold.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-draft-assessment-registration.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-reporting-draft-assessment-v1-review.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-reporting-mcp-arm-gate-v1-review.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/mcp-transport-v4-qualification.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/beep-reporting-mcp-v1-baseline-independent.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/beep-reporting-mcp-v1-assessed-independent.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/beep-reporting-mcp-v1-candidate-independent.json"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-reporting-medium-integration-tests.txt"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-reporting-medium-integration-adapter-lint.txt"
+    },
+    {
+      "check": "qualification_reference_hash",
+      "pass": true,
+      "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-reporting-medium-integration-rule-inventory.txt"
+    },
+    {
+      "check": "measurement_stage_truthful",
+      "pass": true,
+      "detail": "Measurement record explicitly leaves source acceptance/integration pending."
+    },
+    {
+      "check": "source_candidate_binding",
+      "pass": true,
+      "detail": "Candidate body and preserved source review hashes match."
+    },
+    {
+      "check": "fresh_arm_verifier",
+      "pass": true,
+      "detail": "baseline pure verifier reproduces persisted arm gate sample results and manual hash."
+    },
+    {
+      "check": "arm_gate_metadata",
+      "pass": true,
+      "detail": "Gate status, verifier hash and non-installation scope agree for baseline"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-1/capture.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-1/expected.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-1/report.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-1/native-audit.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-1/workflow-replay.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-1/draft-assessment-v1.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-1/worker-final-state.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-1/manifest.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-2/capture.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-2/expected.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-2/report.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-2/native-audit.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-2/workflow-replay.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-2/draft-assessment-v1.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-2/worker-final-state.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-2/manifest.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-3/capture.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-3/expected.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-3/report.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-3/native-audit.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-3/workflow-replay.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-3/draft-assessment-v1.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-3/worker-final-state.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-3/manifest.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-4/capture.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-4/expected.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-4/report.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-4/native-audit.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-4/workflow-replay.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-4/draft-assessment-v1.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-4/worker-final-state.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-4/manifest.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-5/capture.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-5/expected.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-5/report.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-5/native-audit.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-5/workflow-replay.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-5/draft-assessment-v1.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-5/worker-final-state.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-baseline-5/manifest.json"
+    },
+    {
+      "check": "measurement_arm_arithmetic",
+      "pass": true,
+      "detail": "baseline: (29, 30, 41, 1)"
+    },
+    {
+      "check": "fresh_arm_verifier",
+      "pass": true,
+      "detail": "candidate pure verifier reproduces persisted arm gate sample results and manual hash."
+    },
+    {
+      "check": "arm_gate_metadata",
+      "pass": true,
+      "detail": "Gate status, verifier hash and non-installation scope agree for candidate"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-1/capture.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-1/expected.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-1/report.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-1/native-audit.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-1/workflow-replay.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-1/draft-assessment-v1.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-1/worker-final-state.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-1/manifest.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-2/capture.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-2/expected.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-2/report.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-2/native-audit.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-2/workflow-replay.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-2/draft-assessment-v1.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-2/worker-final-state.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-2/manifest.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-3/capture.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-3/expected.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-3/report.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-3/native-audit.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-3/workflow-replay.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-3/draft-assessment-v1.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-3/worker-final-state.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-3/manifest.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-4/capture.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-4/expected.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-4/report.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-4/native-audit.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-4/workflow-replay.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-4/draft-assessment-v1.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-4/worker-final-state.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-4/manifest.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-5/capture.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-5/expected.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-5/report.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-5/native-audit.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-5/workflow-replay.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-5/draft-assessment-v1.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-5/worker-final-state.json"
+    },
+    {
+      "check": "arm_gate_evidence_hash",
+      "pass": true,
+      "detail": "beep-reporting-mcp-v1-candidate-5/manifest.json"
+    },
+    {
+      "check": "measurement_arm_arithmetic",
+      "pass": true,
+      "detail": "candidate: (30, 30, 40, 0)"
+    },
+    {
+      "check": "private_integration_record",
+      "pass": true,
+      "detail": "Private integration remains distinct from main source acceptance."
+    },
+    {
+      "check": "private_commit_source",
+      "pass": true,
+      "detail": "Exact isolated commit 7ceb7af carries the measured candidate source."
+    },
+    {
+      "check": "private_check_pass",
+      "pass": true,
+      "detail": "tests"
+    },
+    {
+      "check": "private_check_pass",
+      "pass": true,
+      "detail": "adapter-lint"
+    },
+    {
+      "check": "private_check_pass",
+      "pass": true,
+      "detail": "rule-inventory"
+    },
+    {
+      "check": "private_test_counts",
+      "pass": true,
+      "detail": "Private integration reports 67 passed tests, zero failed."
+    },
+    {
+      "check": "qualifier_code_binding",
+      "pass": true,
+      "detail": "Measurement qualifier hash resolves to qualify-reporting-mcp-v1.mjs"
+    },
+    {
+      "check": "raw_failure_and_draft_disclosed",
+      "pass": true,
+      "detail": "Baseline2 raw failure, intermediate typo and extra normalisation remain distinct from amended assessed pass; candidate needs no draft allowance."
+    }
+  ],
+  "fresh_arm_verification": [
+    {
+      "arm": "baseline",
+      "status": "pass",
+      "manual_sha256": "d92b9ad3e96a2e00a362493454d525e34fa6b0bc7e453e736b517a52193de46c",
+      "samples": [
+        {
+          "name": "beep-reporting-mcp-v1-baseline-1",
+          "raw_cases_passed": 6,
+          "assessed_cases_passed": 6,
+          "cases": 6,
+          "native": "pass",
+          "manual_cases": 6,
+          "normalisation_calls": 8,
+          "discarded_drafts": []
+        },
+        {
+          "name": "beep-reporting-mcp-v1-baseline-2",
+          "raw_cases_passed": 5,
+          "assessed_cases_passed": 6,
+          "cases": 6,
+          "native": "pass",
+          "manual_cases": 6,
+          "normalisation_calls": 9,
+          "discarded_drafts": [
+            {
+              "case_id": "review-holds",
+              "channel": "conversation",
+              "seq": 11,
+              "normalised_id": "review-holds:conversation:1",
+              "input_sha256": "62b7e34ce00daf6cd41be1145d4b9544b89d5230b02d5684991aa3b76a61a1af",
+              "selected_seq": 12,
+              "publication_seq": 13
+            }
+          ]
+        },
+        {
+          "name": "beep-reporting-mcp-v1-baseline-3",
+          "raw_cases_passed": 6,
+          "assessed_cases_passed": 6,
+          "cases": 6,
+          "native": "pass",
+          "manual_cases": 6,
+          "normalisation_calls": 8,
+          "discarded_drafts": []
+        },
+        {
+          "name": "beep-reporting-mcp-v1-baseline-4",
+          "raw_cases_passed": 6,
+          "assessed_cases_passed": 6,
+          "cases": 6,
+          "native": "pass",
+          "manual_cases": 6,
+          "normalisation_calls": 8,
+          "discarded_drafts": []
+        },
+        {
+          "name": "beep-reporting-mcp-v1-baseline-5",
+          "raw_cases_passed": 6,
+          "assessed_cases_passed": 6,
+          "cases": 6,
+          "native": "pass",
+          "manual_cases": 6,
+          "normalisation_calls": 8,
+          "discarded_drafts": []
+        }
+      ]
+    },
+    {
+      "arm": "candidate",
+      "status": "pass",
+      "manual_sha256": "67d6509ef102170e2d2ec7c5e9d1c0f98dbbd4f1a0590a57175b7d2194a337ac",
+      "samples": [
+        {
+          "name": "beep-reporting-mcp-v1-candidate-1",
+          "raw_cases_passed": 6,
+          "assessed_cases_passed": 6,
+          "cases": 6,
+          "native": "pass",
+          "manual_cases": 6,
+          "normalisation_calls": 8,
+          "discarded_drafts": []
+        },
+        {
+          "name": "beep-reporting-mcp-v1-candidate-2",
+          "raw_cases_passed": 6,
+          "assessed_cases_passed": 6,
+          "cases": 6,
+          "native": "pass",
+          "manual_cases": 6,
+          "normalisation_calls": 8,
+          "discarded_drafts": []
+        },
+        {
+          "name": "beep-reporting-mcp-v1-candidate-3",
+          "raw_cases_passed": 6,
+          "assessed_cases_passed": 6,
+          "cases": 6,
+          "native": "pass",
+          "manual_cases": 6,
+          "normalisation_calls": 8,
+          "discarded_drafts": []
+        },
+        {
+          "name": "beep-reporting-mcp-v1-candidate-4",
+          "raw_cases_passed": 6,
+          "assessed_cases_passed": 6,
+          "cases": 6,
+          "native": "pass",
+          "manual_cases": 6,
+          "normalisation_calls": 8,
+          "discarded_drafts": []
+        },
+        {
+          "name": "beep-reporting-mcp-v1-candidate-5",
+          "raw_cases_passed": 6,
+          "assessed_cases_passed": 6,
+          "cases": 6,
+          "native": "pass",
+          "manual_cases": 6,
+          "normalisation_calls": 8,
+          "discarded_drafts": []
+        }
+      ]
+    }
+  ],
+  "findings": [
+    "Both pure arm verifiers reproduce the frozen gates. Baseline has 29/30 raw and 30/30 assessed cases with one unused typo draft and 41 normalisations; candidate has 30/30 raw/assessed and 40 normalisations with no discarded drafts.",
+    "The post-hoc assessment remains explicitly labelled and separately hash-bound. Original raw/manual/replay failures stay preserved.",
+    "Private deterministic integration passes and contains exact measured candidate bytes. This audit does not mark source accepted or installation complete.",
+    "No rendering-quality, hosted publication, full-loop, run-close/andon, provider-wide equivalence or billing-saving conclusion is supported. Intended Opus confirmation remains pending."
+  ],
+  "summary": {
+    "checks": 113,
+    "failed": 0,
+    "manual_execution_cases_bound": 60,
+    "native_samples": 10,
+    "source_acceptance_pending": true
+  }
+}

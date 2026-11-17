@@ -1,0 +1,460 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "write_output",
+      "args": {
+        "case_id": "spec-verdict-001",
+        "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"approve\", \"objections\": [] }\n```"
+      },
+      "case_id": "spec-verdict-001",
+      "result": {
+        "written": true,
+        "bytes": 83,
+        "sha256": "2e26c1fd5721fcff11a75d3f8cc2a17e4b7fbb8eeeadeb53c519624c39fda4b7"
+      }
+    },
+    {
+      "seq": 2,
+      "name": "write_output",
+      "args": {
+        "case_id": "spec-verdict-002",
+        "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"reject-approach\", \"objections\": [ { \"lens\": \"architectural\", \"severity\": \"blocker\", \"claim\": \"A module-level mutable singleton is shared by every in-flight request, so it cannot hold per-request auth state on a server that handles requests concurrently.\", \"evidence\": \"HOW: a module-level mutable singleton `let currentRoles` set at the start of request handling and read by every downstream helper\", \"predicted_consequence\": \"When request B starts while request A is still awaiting, B overwrites currentRoles and A's downstream helpers authorise with B's roles, so one caller can act with another caller's privileges.\", \"spec_anchor\": \"how\" } ] }\n```"
+      },
+      "case_id": "spec-verdict-002",
+      "result": {
+        "written": true,
+        "bytes": 702,
+        "sha256": "25bab3a36e708bb3e45d1daf831c38ff831fbfca822e7d60ac0f07078e14114b"
+      }
+    },
+    {
+      "seq": 3,
+      "name": "write_output",
+      "args": {
+        "case_id": "spec-verdict-003",
+        "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"needs-human\", \"objections\": [ { \"lens\": \"infosec\", \"severity\": \"blocker\", \"claim\": \"The backend fetches any user-supplied URL with no allow-list and returns the body to the caller, which is a server-side request forgery surface.\", \"evidence\": \"HOW: the backend performs `fetch(userUrl)` and streams the body back in the API response. No allow-list\", \"predicted_consequence\": \"A user registers an internal address such as http://169.254.169.254/ or http://localhost:<port>/admin and reads cloud metadata credentials or internal service responses in the preview pane.\", \"spec_anchor\": \"how\" } ] }\n```"
+      },
+      "case_id": "spec-verdict-003",
+      "result": {
+        "written": true,
+        "bytes": 649,
+        "sha256": "51674ae5a070cb8559e9a2872ddde6267a5b087b5272e84b6a7a1ba49c7aed9c"
+      }
+    },
+    {
+      "seq": 4,
+      "name": "write_output",
+      "args": {
+        "case_id": "qa-repo-file",
+        "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"revise\", \"objections\": [ { \"lens\": \"QA\", \"severity\": \"blocker\", \"claim\": \"The Receipt date scenario's check is a repository test file passing, which the code-blind holdout cannot read or run.\", \"evidence\": \"Scenarios, Receipt date: then test/receipt.test.mjs passes\", \"predicted_consequence\": \"The holdout cannot judge the scenario, so the stored-date and absent-date behaviour ships unverified. Restate the Then as an observable receipt outcome and move the test-file check to its own DONE item.\", \"spec_anchor\": \"receipt-date\" } ] }\n```"
+      },
+      "case_id": "qa-repo-file",
+      "result": {
+        "written": true,
+        "bytes": 589,
+        "sha256": "ff14515dedb25386b48574c02aef246a1398f456da8cbddef3f8e39725edc34c"
+      }
+    },
+    {
+      "seq": 5,
+      "name": "write_output",
+      "args": {
+        "case_id": "qa-no-observation",
+        "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"revise\", \"objections\": [ { \"lens\": \"QA\", \"severity\": \"blocker\", \"claim\": \"The Receipt date scenario has no observable Then, MUST or comparator, so it cannot be judged code-blind.\", \"evidence\": \"Scenarios, Receipt date: Given a stored receipt, when its receipt is opened.\", \"predicted_consequence\": \"The scenario checks nothing, so a receipt that omits a stored date or shows an empty field for an absent date still passes. Add a Then stating the visible date when stored and no date field when absent.\", \"spec_anchor\": \"receipt-date\" } ] }\n```"
+      },
+      "case_id": "qa-no-observation",
+      "result": {
+        "written": true,
+        "bytes": 594,
+        "sha256": "30704f9759df43b96ea3133dba5568b324e70ee08e392c16848d464dedccc061"
+      }
+    },
+    {
+      "seq": 6,
+      "name": "write_output",
+      "args": {
+        "case_id": "methodology-blocker",
+        "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"reject-approach\", \"objections\": [ { \"lens\": \"methodology\", \"severity\": \"blocker\", \"claim\": \"The attached methodology critique rates the ticket a scope blocker: it combines four independently deliverable concerns where the increment limit is one useful recovery step.\", \"evidence\": \"HOW: token issuance, recovery email delivery, account policy administration and migration of old recovery records in one ticket; Methodology critique, Severity: blocker\", \"predicted_consequence\": \"Building as specified delivers four concerns in one increment. Split it and keep token issuance as the first useful slice.\", \"spec_anchor\": \"how\" } ] }\n```"
+      },
+      "case_id": "methodology-blocker",
+      "result": {
+        "written": true,
+        "bytes": 685,
+        "sha256": "e5f6304f740851f6d4d94808a82159b09ae248d4284dae1987048498ede07f37"
+      }
+    },
+    {
+      "seq": 7,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "default-lenses",
+        "value": {
+          "lenses": [
+            "architectural",
+            "infosec",
+            "methodology",
+            "QA"
+          ]
+        }
+      },
+      "case_id": "default-lenses",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 8,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "selected-lenses",
+        "value": {
+          "lenses": [
+            "infosec",
+            "QA"
+          ]
+        }
+      },
+      "case_id": "selected-lenses",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 9,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "mandatory-lenses",
+        "value": {
+          "lenses": [
+            "infosec",
+            "QA"
+          ]
+        }
+      },
+      "case_id": "mandatory-lenses",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 10,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "methodology-missing",
+        "value": {
+          "recompute": false,
+          "objections": 0,
+          "note_gap": true
+        }
+      },
+      "case_id": "methodology-missing",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 11,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "worst-only",
+        "value": {
+          "maximum": 1
+        }
+      },
+      "case_id": "worst-only",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 12,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "builder-choice",
+        "value": {
+          "verdict": "approve",
+          "objections": 0
+        }
+      },
+      "case_id": "builder-choice",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 13,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "weak-consequence",
+        "value": {
+          "value": "not separately stated"
+        }
+      },
+      "case_id": "weak-consequence",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 14,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "anchor",
+        "value": {
+          "anchor": "the-spec-anchor-field"
+        }
+      },
+      "case_id": "anchor",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 15,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "no-anchor",
+        "value": {
+          "omit_spec_anchor": true
+        }
+      },
+      "case_id": "no-anchor",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 16,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "minor-only",
+        "value": {
+          "verdict": "revise"
+        }
+      },
+      "case_id": "minor-only",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 17,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "qa-blocker",
+        "value": {
+          "verdict": "revise"
+        }
+      },
+      "case_id": "qa-blocker",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 18,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "infosec-blocker",
+        "value": {
+          "verdict": "needs-human"
+        }
+      },
+      "case_id": "infosec-blocker",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 19,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "founded",
+        "value": {
+          "allowed": false
+        }
+      },
+      "case_id": "founded",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 20,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "route-owner",
+        "value": {
+          "owner": "consumer"
+        }
+      },
+      "case_id": "route-owner",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 21,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "adversarial",
+        "value": {
+          "launches": false
+        }
+      },
+      "case_id": "adversarial",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 22,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "spec-verdict-001",
+      "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"approve\", \"objections\": [] }\n```",
+      "persisted_sha256": "2e26c1fd5721fcff11a75d3f8cc2a17e4b7fbb8eeeadeb53c519624c39fda4b7"
+    },
+    {
+      "id": "spec-verdict-002",
+      "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"reject-approach\", \"objections\": [ { \"lens\": \"architectural\", \"severity\": \"blocker\", \"claim\": \"A module-level mutable singleton is shared by every in-flight request, so it cannot hold per-request auth state on a server that handles requests concurrently.\", \"evidence\": \"HOW: a module-level mutable singleton `let currentRoles` set at the start of request handling and read by every downstream helper\", \"predicted_consequence\": \"When request B starts while request A is still awaiting, B overwrites currentRoles and A's downstream helpers authorise with B's roles, so one caller can act with another caller's privileges.\", \"spec_anchor\": \"how\" } ] }\n```",
+      "persisted_sha256": "25bab3a36e708bb3e45d1daf831c38ff831fbfca822e7d60ac0f07078e14114b"
+    },
+    {
+      "id": "spec-verdict-003",
+      "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"needs-human\", \"objections\": [ { \"lens\": \"infosec\", \"severity\": \"blocker\", \"claim\": \"The backend fetches any user-supplied URL with no allow-list and returns the body to the caller, which is a server-side request forgery surface.\", \"evidence\": \"HOW: the backend performs `fetch(userUrl)` and streams the body back in the API response. No allow-list\", \"predicted_consequence\": \"A user registers an internal address such as http://169.254.169.254/ or http://localhost:<port>/admin and reads cloud metadata credentials or internal service responses in the preview pane.\", \"spec_anchor\": \"how\" } ] }\n```",
+      "persisted_sha256": "51674ae5a070cb8559e9a2872ddde6267a5b087b5272e84b6a7a1ba49c7aed9c"
+    },
+    {
+      "id": "qa-repo-file",
+      "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"revise\", \"objections\": [ { \"lens\": \"QA\", \"severity\": \"blocker\", \"claim\": \"The Receipt date scenario's check is a repository test file passing, which the code-blind holdout cannot read or run.\", \"evidence\": \"Scenarios, Receipt date: then test/receipt.test.mjs passes\", \"predicted_consequence\": \"The holdout cannot judge the scenario, so the stored-date and absent-date behaviour ships unverified. Restate the Then as an observable receipt outcome and move the test-file check to its own DONE item.\", \"spec_anchor\": \"receipt-date\" } ] }\n```",
+      "persisted_sha256": "ff14515dedb25386b48574c02aef246a1398f456da8cbddef3f8e39725edc34c"
+    },
+    {
+      "id": "qa-no-observation",
+      "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"revise\", \"objections\": [ { \"lens\": \"QA\", \"severity\": \"blocker\", \"claim\": \"The Receipt date scenario has no observable Then, MUST or comparator, so it cannot be judged code-blind.\", \"evidence\": \"Scenarios, Receipt date: Given a stored receipt, when its receipt is opened.\", \"predicted_consequence\": \"The scenario checks nothing, so a receipt that omits a stored date or shows an empty field for an absent date still passes. Add a Then stating the visible date when stored and no date field when absent.\", \"spec_anchor\": \"receipt-date\" } ] }\n```",
+      "persisted_sha256": "30704f9759df43b96ea3133dba5568b324e70ee08e392c16848d464dedccc061"
+    },
+    {
+      "id": "methodology-blocker",
+      "text": "```faff-contract:spec-review-verdict\n{ \"verdict\": \"reject-approach\", \"objections\": [ { \"lens\": \"methodology\", \"severity\": \"blocker\", \"claim\": \"The attached methodology critique rates the ticket a scope blocker: it combines four independently deliverable concerns where the increment limit is one useful recovery step.\", \"evidence\": \"HOW: token issuance, recovery email delivery, account policy administration and migration of old recovery records in one ticket; Methodology critique, Severity: blocker\", \"predicted_consequence\": \"Building as specified delivers four concerns in one increment. Split it and keep token issuance as the first useful slice.\", \"spec_anchor\": \"how\" } ] }\n```",
+      "persisted_sha256": "e5f6304f740851f6d4d94808a82159b09ae248d4284dae1987048498ede07f37"
+    }
+  ],
+  "rule_answers": [
+    {
+      "id": "default-lenses",
+      "value": {
+        "lenses": [
+          "architectural",
+          "infosec",
+          "methodology",
+          "QA"
+        ]
+      }
+    },
+    {
+      "id": "selected-lenses",
+      "value": {
+        "lenses": [
+          "infosec",
+          "QA"
+        ]
+      }
+    },
+    {
+      "id": "mandatory-lenses",
+      "value": {
+        "lenses": [
+          "infosec",
+          "QA"
+        ]
+      }
+    },
+    {
+      "id": "methodology-missing",
+      "value": {
+        "recompute": false,
+        "objections": 0,
+        "note_gap": true
+      }
+    },
+    {
+      "id": "worst-only",
+      "value": {
+        "maximum": 1
+      }
+    },
+    {
+      "id": "builder-choice",
+      "value": {
+        "verdict": "approve",
+        "objections": 0
+      }
+    },
+    {
+      "id": "weak-consequence",
+      "value": {
+        "value": "not separately stated"
+      }
+    },
+    {
+      "id": "anchor",
+      "value": {
+        "anchor": "the-spec-anchor-field"
+      }
+    },
+    {
+      "id": "no-anchor",
+      "value": {
+        "omit_spec_anchor": true
+      }
+    },
+    {
+      "id": "minor-only",
+      "value": {
+        "verdict": "revise"
+      }
+    },
+    {
+      "id": "qa-blocker",
+      "value": {
+        "verdict": "revise"
+      }
+    },
+    {
+      "id": "infosec-blocker",
+      "value": {
+        "verdict": "needs-human"
+      }
+    },
+    {
+      "id": "founded",
+      "value": {
+        "allowed": false
+      }
+    },
+    {
+      "id": "route-owner",
+      "value": {
+        "owner": "consumer"
+      }
+    },
+    {
+      "id": "adversarial",
+      "value": {
+        "launches": false
+      }
+    }
+  ]
+}

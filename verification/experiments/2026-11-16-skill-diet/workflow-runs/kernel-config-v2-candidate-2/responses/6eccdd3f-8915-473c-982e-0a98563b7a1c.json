@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 2,
+    "stdout": "",
+    "stderr": "faff dispatch resolve: config dispatch.build.by_confidence.medium.model: invalid model token \"invalid-model\" — legal set: inherit | sonnet | opus | haiku | fable (fail-loud, no silent inherit)\n"
+  }
+}

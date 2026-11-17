@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "status": "registered-not-launched",
+  "source_commit": "7743410835c96a6cd709825b5d1e67b92029644b",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "sample_count": {
+    "baseline": 5,
+    "candidate": 5
+  },
+  "plan_hashes": {
+    "beep-reporting-mcp-v1-baseline-plan.json": "8ce3a0631cfa6aa74faed7797cdb6ee4c52ed79905041e21b72de4d51eb0a764",
+    "beep-reporting-mcp-v1-candidate-plan.json": "992bdae801cf516e867adc0806393d141bbf79061952a48c99c41412d90f04e1"
+  },
+  "source_candidate_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+  "preflight_sha256": "72dd4dfc00d99b323c70f6e96dd262761dd6e3a21c5aac4c524841d6f29cd499",
+  "pilot_v4_native_sha256": "57c4ea2b1bcf21412760b42b5f8ec70b4ecdd4751902da27bc0576d36a932cfd",
+  "acceptance": "All five baselines must pass native, execution, independent actual-output reading before any candidate run. Then all five candidate samples must pass the same gates. No failed sample replacement. Install only after source review, full pair, real consumer/persistence checks, private integration and main lint/inventory. Count no held or projected savings.",
+  "boundary": "Real pinned run-summary handler and ledger writers with controlled external dependencies, rendering, publications and continuation. No complete build loop, hosted publication or pre-write normalisation claim.",
+  "potential_savings": {
+    "bytes": 1454,
+    "estimated_tokens": 356
+  },
+  "previous_hold": "beep-reporting-sol-v2-hold.json"
+}

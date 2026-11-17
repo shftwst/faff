@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "quality-gates"
+    ],
+    "stdin": "{\"signal\":\"needs-human\",\"rungs\":[]}",
+    "cwd": "/var/tmp/graft-checkpoint-f6Zi2f/gate-none",
+    "exit_code": 1,
+    "stdout": "{\"signal\":\"needs-human\",\"rungs\":[],\"conformant\":false,\"violations\":[\"needs-human carries no rungs\"]}\n",
+    "stderr": "",
+    "error": null
+  }
+}

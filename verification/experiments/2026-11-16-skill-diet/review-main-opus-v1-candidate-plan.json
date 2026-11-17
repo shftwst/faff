@@ -1,0 +1,23 @@
+{
+  "harness": "eval/control-parity/review-producer.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/review-producer-v2.json",
+  "timeout_seconds": 900,
+  "worker": "claude-retry",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Fresh current-main versus integrated review-source diagnostic. Identical current-main kernel/review reference prefix; final V3 source plus existing-main consumer-literal restorations. One fixed sample per arm; no retries.",
+  "acceptance": "One fresh baseline and one fresh candidate; seven reviews, seven real contract consumptions and twenty decisions per arm. Baseline must pass raw report, full policy delivery, complete native audit with actual Opus5.5/model and worker-visible guidance hashes, and independent manual review of every artifact and answer before candidate launch. Candidate must meet the same bars. Preserve every failure and stop rather than resample. No new normalisations or waivers. Diagnostic with limited replication, not five-sample qualification or statistical parity.",
+  "samples": [
+    {
+      "name": "review-main-opus-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "review-main-opus-v1-candidate-policy.md"
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "cases": [
+    {
+      "id": "empty",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "operations",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    },
+    {
+      "id": "wip-cap",
+      "pass": true,
+      "problems": [],
+      "rubric": {
+        "score": 1,
+        "checks": 1,
+        "passed": 1,
+        "vector": [
+          true
+        ]
+      }
+    }
+  ],
+  "mutations": [
+    {
+      "name": "drop-empty-prep",
+      "rejected": true
+    },
+    {
+      "name": "drop-manual-park",
+      "rejected": true
+    },
+    {
+      "name": "invent-successful-write",
+      "rejected": true
+    },
+    {
+      "name": "invent-issue",
+      "rejected": true
+    }
+  ]
+}

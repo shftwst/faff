@@ -1,0 +1,19 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "Deterministic reference producer MCP preflight only, no model sample or source acceptance. Real CLI consumers; controlled transcripts and external summary inputs.",
+  "calls": 71,
+  "execution_cases": 3,
+  "decisions": 11,
+  "omitted_cases_rejected": 14,
+  "client_sha256": "f9a10db53665afcbe743f24bd8ef3ca6ed9bef6af71e752ec373f3db4ab37e27",
+  "hashes": {
+    "mcp-trace.jsonl": "3d24d2de695a5b418090a56ef5ae83745f521cf9a80cb3c62e14da8aa2bc9b7b",
+    "mcp-server-manifest.json": "bff0b455dfe48e9c80adba66855eb67faebadbe6c985bc4afdfda77ba72f9509",
+    "task.json": "88a4263b0388797f75d886016f6e9f6c6dce86a5bbcc5548fd6c7d747ed9bdbb",
+    "manifest.json": "b32f460767ece053187355f3404fab5929189e0a5376c05293242079d6f6c7f1",
+    "capture.json": "d977227515ab6e6d471576ac7bf6272462e58b85de33f4ef27480e1e94e2ff66",
+    "expected.json": "c0c7dbf64abdec9527830296a797ee7703653a1bf12f63201bc3083f27a82f1d",
+    "report.json": "f0eb490dda46f6d7ed37c75cc75b222079c21abe222e5335d3b5df5c45ed2da8"
+  }
+}

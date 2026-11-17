@@ -1,0 +1,49 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "mode": "preflight",
+  "artifacts": 1,
+  "results": [
+    {
+      "name": "review-producer-astra-v3-baseline-1",
+      "arm": "baseline",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-1/artifacts/clean.md",
+      "sha256": "5fd4bb795a82c86d36a4b5ef0b57dbb320d99c49daa0eb3f866553f27d78a72a",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a23c5e1c07abadd2c91bfe35f9a31155825457cd799386706d59b82086cd3a44",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "7d181d5d8f3c6a98c46c73566b10593a15435cf1bf83e0fc289c81a3eb2e0d9b",
+      "persisted_body_sha256": "7d181d5d8f3c6a98c46c73566b10593a15435cf1bf83e0fc289c81a3eb2e0d9b"
+    }
+  ],
+  "limits": [
+    "Deterministic replay of actual measured producer artifacts through the real review-verdict CLI and stored-comment connector with a subprocess fixture tracker.",
+    "The controlled caller performs prepare/apply/finish. This does not measure model selection of those calls, full graft orchestration, or hosted tracker behaviour.",
+    "The two mutation checks require escaped output and normalised outside-region CRLF to differ from the independent literal byte oracle."
+  ]
+}

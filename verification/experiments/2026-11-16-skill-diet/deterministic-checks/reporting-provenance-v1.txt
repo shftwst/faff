@@ -1,0 +1,76 @@
+TAP version 13
+# Subtest: genuine recorded reporting provenance matches its frozen bindings
+ok 1 - genuine recorded reporting provenance matches its frozen bindings
+  ---
+  duration_ms: 2.314665
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects native evidence omission
+ok 2 - reporting gate rejects native evidence omission
+  ---
+  duration_ms: 1.514249
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects empty native evidence map
+ok 3 - reporting gate rejects empty native evidence map
+  ---
+  duration_ms: 0.574416
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects foreign native evidence entry
+ok 4 - reporting gate rejects foreign native evidence entry
+  ---
+  duration_ms: 0.535167
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects changed native auditor
+ok 5 - reporting gate rejects changed native auditor
+  ---
+  duration_ms: 0.494292
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects changed raw native capture
+ok 6 - reporting gate rejects changed raw native capture
+  ---
+  duration_ms: 0.384042
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects alternate runtime root
+ok 7 - reporting gate rejects alternate runtime root
+  ---
+  duration_ms: 0.895833
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects alternate runtime commit
+ok 8 - reporting gate rejects alternate runtime commit
+  ---
+  duration_ms: 0.435208
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects assessment evidence omission
+ok 9 - reporting gate rejects assessment evidence omission
+  ---
+  duration_ms: 0.638083
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects empty assessment evidence map
+ok 10 - reporting gate rejects empty assessment evidence map
+  ---
+  duration_ms: 0.921332
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects changed assessment fixture
+ok 11 - reporting gate rejects changed assessment fixture
+  ---
+  duration_ms: 0.435125
+  type: 'test'
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 11
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 59.548209

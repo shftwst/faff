@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "status": "revise-candidate",
+  "scope": "Root read all 45 baseline and 45 candidate artifacts. Source facts and requested transforms are retained, but the first candidate has presentation regressions requiring a revised candidate before acceptance. This review does not assert statistical equivalence or unrestricted writing quality.",
+  "runs": [
+    {
+      "name": "rendering-artifact-v1-baseline-1",
+      "arm": "baseline",
+      "capture_sha256": "a9b9ffd58c63a8cbaec324c4bc74144a9e0548d3951c4b79fc90af0aeab9443c",
+      "artifact_count": 9,
+      "artifact_bytes": 1562,
+      "estimated_artifact_tokens": 370
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-2",
+      "arm": "baseline",
+      "capture_sha256": "907c8c20686f825382bd20d2c5b99b01ff4b6c913e5d436c37b8eee456deb763",
+      "artifact_count": 9,
+      "artifact_bytes": 1688,
+      "estimated_artifact_tokens": 401
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-3",
+      "arm": "baseline",
+      "capture_sha256": "52b838e52c99b068a9a57a4bf9c7716be5289f95b7b0dd71178384a1eb2f309e",
+      "artifact_count": 9,
+      "artifact_bytes": 1732,
+      "estimated_artifact_tokens": 412
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-4",
+      "arm": "baseline",
+      "capture_sha256": "fea8dff75ac48cb5c0cbb334ed7a519dcdf87d2b83733c23aa2777ab70acb231",
+      "artifact_count": 9,
+      "artifact_bytes": 1794,
+      "estimated_artifact_tokens": 428
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-5",
+      "arm": "baseline",
+      "capture_sha256": "9ad3aafd3b1e40ddd799f0b0aab3876c2876030a47d599f6935440e106d81d98",
+      "artifact_count": 9,
+      "artifact_bytes": 1443,
+      "estimated_artifact_tokens": 339
+    },
+    {
+      "name": "rendering-artifact-v1-candidate-1",
+      "arm": "candidate",
+      "capture_sha256": "85ba629185aa5d6e388d9ffd7d32d9016237a35f19315cd35abad48f32e666a5",
+      "artifact_count": 9,
+      "artifact_bytes": 1870,
+      "estimated_artifact_tokens": 448
+    },
+    {
+      "name": "rendering-artifact-v1-candidate-2",
+      "arm": "candidate",
+      "capture_sha256": "a8d8a9460a8799b03b914d80e1371c06c24e42994d46ce314fffe8e7a3774a7c",
+      "artifact_count": 9,
+      "artifact_bytes": 1636,
+      "estimated_artifact_tokens": 389
+    },
+    {
+      "name": "rendering-artifact-v1-candidate-3",
+      "arm": "candidate",
+      "capture_sha256": "ddbafaaeea1fcb966082fe9c8d62186ded65bff241f4b16a827291de1944e86e",
+      "artifact_count": 9,
+      "artifact_bytes": 1763,
+      "estimated_artifact_tokens": 420
+    },
+    {
+      "name": "rendering-artifact-v1-candidate-4",
+      "arm": "candidate",
+      "capture_sha256": "6d22ad54b604a29256821a0b8a56b7a66838c14fc00a9224964f47d01a05ab70",
+      "artifact_count": 9,
+      "artifact_bytes": 1684,
+      "estimated_artifact_tokens": 402
+    },
+    {
+      "name": "rendering-artifact-v1-candidate-5",
+      "arm": "candidate",
+      "capture_sha256": "bffe069d829f8822bce66bad2216cc68e564d462ec7cd131301d6db5e6950218",
+      "artifact_count": 9,
+      "artifact_bytes": 1665,
+      "estimated_artifact_tokens": 397
+    }
+  ],
+  "observations": [
+    {
+      "arm": "baseline",
+      "runs": [
+        1,
+        3,
+        4,
+        5
+      ],
+      "case": "model-hoist",
+      "observation": "Four sentences remain in one paragraph, above the approximate three-sentence cap. The governing statement leads and all supplied facts remain."
+    },
+    {
+      "arm": "candidate",
+      "runs": [
+        2,
+        3,
+        5
+      ],
+      "case": "model-hoist",
+      "observation": "Same four-sentence paragraph as baseline. Candidates 1 and 4 break the paragraph."
+    },
+    {
+      "arm": "candidate",
+      "runs": [
+        1
+      ],
+      "cases": [
+        "gloss-001",
+        "gloss-002",
+        "gloss-003"
+      ],
+      "observation": "Each gloss is repeated as a title and a body, contrary to the one-sentence and token-economy rules. Facts remain accurate."
+    },
+    {
+      "arm": "candidate",
+      "runs": [
+        4
+      ],
+      "case": "gloss-002",
+      "observation": "Memoise is retained without explaining reuse of a computed result. All five baseline glosses explained it."
+    }
+  ],
+  "action": "Candidate v2 clarifies one sentence beside the ID and a brief explanation of unfamiliar work terms. Preserve v1 unchanged and measure v2 separately against the same five baseline samples."
+}

@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"unavailable\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"disposition\":\"open\",\"source\":\"adversarial\",\"title\":\"Mandatory adversarial review unavailable: backend chain rate-limited\",\"location\":\".faff/config.yaml\",\"action\":\"Add a fallback backend to adversarial.code_review or wait for the rate limit to clear, then re-run the review for FAFF-7001.\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": false,
+      "ac_complete": true,
+      "review_verdict": "unavailable",
+      "holdout": "not-applicable",
+      "reasons": [
+        "review-verdict unavailable"
+      ],
+      "ac_called_out": []
+    }
+  }
+}

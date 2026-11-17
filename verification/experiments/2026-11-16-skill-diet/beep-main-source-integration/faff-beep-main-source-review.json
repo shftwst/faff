@@ -1,0 +1,36 @@
+{
+  "status": "pass-source-review",
+  "base_commit": "2d8cb231c515861e88f5aa79bf5ab43f13223d72",
+  "candidate_commit": "d6a6cf997387c313e053a8c5a87a0393e931fb19",
+  "before_sha256": "6ea68fdab91425ccf686415c8b273c0bcc0788c6cffc022ddbe9b38e9ae83559",
+  "after_sha256": "c78f3490f8967dba2ac7de0e496f9fd62f632265fcc7ad6adfc429a66c547e79",
+  "before_bytes": 157576,
+  "after_bytes": 149511,
+  "saved_bytes": 8065,
+  "extraction_map_sha256": "243a33d9af66fa6e40f73cb779bf69c57cc4eaf38f06a1e105e9972c21eb0ee7",
+  "findings": [],
+  "checks": {
+    "actual_diff_reviewed": true,
+    "exact_reconstruction_from17historical_blocks_plus11B_literal": true,
+    "outside_replacements_identical_to_main": true,
+    "four_main_changes_retained": true,
+    "no_additional_source_batch_cuts": true
+  },
+  "preserved_obligations": [
+    "Ledger mint belongs to run open/init-self-drain, never manual directory/ledger creation; no build dispatch before exit0; legacy directory names preserved.",
+    "Every direct ledger edit gets CLI-computed ledger-write hash, schema_version retained and only listed v0.3 keys.",
+    "Admission/wave timing, bare-string terminal outcomes and completeness invariant retained; failed resolve parks, details and annotations remain outside completeness.",
+    "Distinct outage/healthy-slow/landing holds retain producer tokens, labels, admission status and outcome buckets; hard three-cycle park cannot become resumable landing.",
+    "Post-merge roll-up written by orchestrator from per-issue evidence, never build subagent; verified failure versus unprovable remain distinct and shipped.",
+    "Owner, heartbeat, budget and declined-writer paragraphs untouched; stop_reason is CLI-written atomically with close, informational, legacy absence tolerated.",
+    "Events use CLI-owned envelope and seq order, lock-serialized append-only writes even under essential logging; genesis emitted once atomically.",
+    "Phase-closing token commands retain pinned root/session, four classes, missing-transcript estimate/null and no payload; phase openers untagged; quality fields remain optional and gate excluded for clean/non-gate outcomes.",
+    "Summary command/facts schema, rendering normalisation before every human emit, close-before-report ordering and tracker/conversation publication unchanged.",
+    "Shipped subsection precedence and no duplication, superseded separate, prep holds outside outcomes, budget-only unreached and tokens_source reporting preserved; capacity-deferral bans and reentry retained."
+  ],
+  "limits": [
+    "Source review only; no tests, model calls or implementation changes performed.",
+    "Historical accepted cuts and existing test reports do not qualify this new combined current-main treatment; fresh registered diagnostics remain separate.",
+    "Inherited source distinctions in post-merge subsection wording are not repaired here; separate failed/unverified meaning is retained, while Reporting retains existing combined flagged subsection and precedence."
+  ]
+}

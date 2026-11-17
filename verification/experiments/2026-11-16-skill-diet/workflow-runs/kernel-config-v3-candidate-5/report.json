@@ -1,0 +1,526 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 65,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 84072,
+    "utf16_characters": 83427,
+    "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "2f5f8bbc6956df5e7e181d7bf3e32a9661a0b9a2593901fbde7b90a747671ceb"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6016,
+        "sha256": "459066a82f9477a7d55b6a0f0ab691cfc9e2b2aeef4b67f03f8690b5cd1f6d6f"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6002,
+        "sha256": "fc6d733febb430a489457efc908f5caada826b7bc3bde5bbd016da5b31b5e231"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "6eecae0f560906a9bb4a1bc578c8df4119dfe70ca8698afa4713bd148d5c698c"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "ef55f2e4101c5b4c3e47a3eef4746840d3d6afbe3f8b23f897ce9df322d9ee65"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6039,
+        "sha256": "f7806e7892fc3f05efdc6bf7261c114db1a470b66dee2572a2cb20f0edb01d4f"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "8ed72102419c4b41948f36ac27985c6bd6f7e89208ac55ee1f93847e9b45009f"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "be03ff939732675ae7ca3435ff3882623934cdae63393e10f579542483278487"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "f9b830706d022c6a9d180464254a0a90c79e892373c89a77f7c29051b950c389"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6051,
+        "sha256": "fac586c413f57323086a724ca8a7356dc677290538cc4717369a2f891194a4bd"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "abad40ce8ef526784f026a3d1a53fe2c9269eef5ff76de3b0ee80670c0f374a0"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "149d56798fe8f23eb2605050c68e0001bf49d0ad24000d16f97c5d3da5d7d26b"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "4eb0961c16818087f3be62f386739bbd9999844308c20948bef848723b51d7a5"
+      },
+      {
+        "offset": 78000,
+        "end": 83427,
+        "characters": 5427,
+        "bytes": 5482,
+        "sha256": "39f11853ec6a9f7835d5895c3852a65bb1e11c9495a409d1540ba71b15563235"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "layered",
+        "kind": "execution",
+        "pass": true,
+        "problems": [],
+        "effects": [
+          {
+            "tool": "invoke_skill",
+            "name": "fixture-base-spec"
+          },
+          {
+            "tool": "invoke_skill",
+            "name": "fixture-overlay-review"
+          }
+        ],
+        "status": "complete",
+        "values": {},
+        "reported_values": {
+          "spec": "fixture-base-spec",
+          "review": "fixture-overlay-review"
+        },
+        "final_files": {
+          ".faff/config.local.yaml": "slots:\n  review: fixture-overlay-review\n",
+          ".faff/config.yaml": "slots:\n  spec: fixture-base-spec\n  review: fixture-base-review\n",
+          "CLAUDE.md": "For context only: slots.spec = misleading-doc-spec.\n",
+          "keep.txt": "Preserve unrelated content.\n"
+        }
+      },
+      {
+        "id": "defaults",
+        "kind": "execution",
+        "pass": true,
+        "problems": [],
+        "effects": [
+          {
+            "tool": "invoke_skill",
+            "name": "faffter-noon-spec"
+          }
+        ],
+        "status": "complete",
+        "values": {
+          "logging": "full"
+        },
+        "reported_values": {
+          "spec": "faffter-noon-spec",
+          "logging": "full"
+        },
+        "final_files": {
+          ".faff/config.yaml": "# Comment-only config; preserve it.\n",
+          "keep.txt": "Preserve unrelated content.\n"
+        }
+      },
+      {
+        "id": "scalar-write",
+        "kind": "execution",
+        "pass": true,
+        "problems": [],
+        "effects": [],
+        "status": "complete",
+        "values": {
+          "appetite": "medium"
+        },
+        "reported_values": {
+          "appetite": "medium"
+        },
+        "final_files": {
+          ".faff/config.yaml": "# Preserve this comment.\ntracking:\n  repo: fixture/project\n  spec_docs_path: records/specs\n\nappetite: medium\n",
+          "keep.txt": "Preserve unrelated content.\n"
+        }
+      },
+      {
+        "id": "malformed-base",
+        "kind": "execution",
+        "pass": true,
+        "problems": [],
+        "effects": [],
+        "status": "blocked",
+        "values": {},
+        "reported_values": {},
+        "final_files": {
+          ".faff/config.yaml": "- not\n- a map\n",
+          "keep.txt": "Preserve unrelated content.\n"
+        }
+      },
+      {
+        "id": "malformed-overlay",
+        "kind": "execution",
+        "pass": true,
+        "problems": [],
+        "effects": [],
+        "status": "blocked",
+        "values": {},
+        "reported_values": {},
+        "final_files": {
+          ".faff/config.local.yaml": "- invalid\n- overlay\n",
+          ".faff/config.yaml": "slots:\n  spec: fixture-base-spec\n",
+          "keep.txt": "Preserve unrelated content.\n"
+        }
+      },
+      {
+        "id": "legacy-name",
+        "kind": "execution",
+        "pass": true,
+        "problems": [],
+        "effects": [],
+        "status": "blocked",
+        "values": {},
+        "reported_values": {},
+        "final_files": {
+          ".faffrc.yml": "slots:\n  spec: fixture-legacy-spec\n",
+          "keep.txt": "Preserve unrelated content.\n"
+        }
+      },
+      {
+        "id": "tier-precedence",
+        "kind": "execution",
+        "pass": true,
+        "problems": [],
+        "effects": [
+          {
+            "tool": "dispatch_build",
+            "model": "haiku",
+            "resolved_effort": "high"
+          }
+        ],
+        "status": "complete",
+        "values": {},
+        "reported_values": {
+          "model": "haiku",
+          "effort": "high",
+          "effort_applied": false
+        },
+        "final_files": {
+          ".faff/config.yaml": "dispatch:\n  build:\n    model: opus\n    effort: low\n    by_tier:\n      default:\n        model: fable\n        effort: medium\n      mechanical:\n        model: haiku\n        effort: high\n    by_confidence:\n      high:\n        model: sonnet\n",
+          "keep.txt": "Preserve unrelated content.\n"
+        }
+      },
+      {
+        "id": "absent-tier",
+        "kind": "execution",
+        "pass": true,
+        "problems": [],
+        "effects": [
+          {
+            "tool": "dispatch_build",
+            "model": "sonnet",
+            "resolved_effort": "medium"
+          }
+        ],
+        "status": "complete",
+        "values": {},
+        "reported_values": {
+          "model": "sonnet",
+          "effort": "medium",
+          "effort_applied": false
+        },
+        "final_files": {
+          ".faff/config.yaml": "dispatch:\n  build:\n    model: opus\n    effort: low\n    by_tier:\n      default:\n        model: fable\n        effort: medium\n      mechanical:\n        model: haiku\n        effort: high\n    by_confidence:\n      high:\n        model: sonnet\n",
+          "keep.txt": "Preserve unrelated content.\n"
+        }
+      },
+      {
+        "id": "invalid-unused-leaf",
+        "kind": "execution",
+        "pass": true,
+        "problems": [],
+        "effects": [],
+        "status": "blocked",
+        "values": {},
+        "reported_values": {},
+        "final_files": {
+          ".faff/config.yaml": "dispatch:\n  build:\n    model: opus\n    effort: low\n    by_tier:\n      default:\n        model: fable\n        effort: medium\n      mechanical:\n        model: haiku\n        effort: high\n    by_confidence:\n      high:\n        model: sonnet\n      medium:\n        model: invalid-model\n",
+          "keep.txt": "Preserve unrelated content.\n"
+        }
+      },
+      {
+        "id": "posture",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "run_check": true,
+          "block_on_posture_finding": false,
+          "recommend_base_committed": true,
+          "recommend_overlay_ignored": true
+        }
+      },
+      {
+        "id": "legacy-valid",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "readable-deprecated"
+      },
+      {
+        "id": "lenient-l4",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "mint_allowed": false,
+          "warnings_continue": true
+        }
+      },
+      {
+        "id": "sentry-malformed",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "degrade-with-defaults-and-config_malformed"
+      },
+      {
+        "id": "sequence-exception",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "committed-base-hand-edit"
+      },
+      {
+        "id": "unset-map",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "config-unset"
+      },
+      {
+        "id": "mutable-state",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "store_in_config": false,
+          "refetch_on_next_invocation": true
+        }
+      },
+      {
+        "id": "executable-fallback",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "/plugin/current/skills/faff/bin/faff"
+      },
+      {
+        "id": "descriptor-validation",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "infra_profile": "faff profile validate",
+          "review_verdict": "faff contract review-verdict"
+        }
+      },
+      {
+        "id": "producer-contract",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "parse-and-contract-validate"
+      },
+      {
+        "id": "architecture-proposal",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "producer_commits_candidates": false,
+          "attach_block_to_spec_verbatim": true,
+          "downstream_reads_from_spec": true,
+          "materialising_stage": "graft Step 4b"
+        }
+      },
+      {
+        "id": "env-no-build",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "provision": false,
+          "surface_for_human": true,
+          "only_ready_passes_env_contract": true
+        }
+      },
+      {
+        "id": "holdout-boundary",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "read_source": false,
+          "criterion_value": "needs-human",
+          "reason_code_required": true,
+          "verdict_before_teardown": true
+        }
+      },
+      {
+        "id": "prd-boundary",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "read_tracker_or_code": false,
+          "input_document": "PRD",
+          "admit_only_on": "admissible"
+        }
+      },
+      {
+        "id": "inline-model",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "model_source": "session",
+          "dispatch_can_switch_inline_model": false
+        }
+      },
+      {
+        "id": "agent-effort",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "model": "sonnet",
+          "effort_applied": false,
+          "record_not_applied": true
+        }
+      },
+      {
+        "id": "engine-allowlist",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": [
+          "intake",
+          "methodology"
+        ]
+      },
+      {
+        "id": "engine-failure",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "silently_use_session_model": false,
+          "use_fallback_chain": false,
+          "named_dispatch_failure": true
+        }
+      },
+      {
+        "id": "engine-effort",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "refuse"
+      },
+      {
+        "id": "eval-settings",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "model": "claude-sonnet-4-6",
+          "settings_block": "eval",
+          "is_dispatch_lane": false
+        }
+      },
+      {
+        "id": "missing-slot",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": "use-built-in-default"
+      },
+      {
+        "id": "profile-default",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "acquire_with": "faff profile mine",
+          "validate_with": "faff profile validate",
+          "write_after_validation": ".faff/infra-profile.json",
+          "miner_network_allowed": false
+        }
+      },
+      {
+        "id": "rendering",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": false
+      },
+      {
+        "id": "build-no-confidence-effort",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "model": "sonnet",
+          "effort": "medium",
+          "guess_tier": false
+        }
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Shared kernel config/dispatch boundary: actual configuration CLI in private Git workspaces, recorded downstream stub dispatch, preserved files and timestamps. No claim of full prep/graft/beep workflow execution. Separately labelled bounded questions cover configuration and slot/model boundary decisions; those questions are not workflow execution.",
+  "accounting": "unmetered"
+}

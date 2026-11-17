@@ -1,0 +1,1 @@
+{"name":"run_command","args":{"case_id":"case-e","executable":"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff","args":["config","get","adversarial.code_review.max_tokens"]}}

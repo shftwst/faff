@@ -1,0 +1,104 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-2",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "reason": "The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "--prd-goals",
+          "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.",
+          "--serves-goal",
+          "--within-scope",
+          "--challenge",
+          "overturned",
+          "--challenge-ground",
+          "over-scope",
+          "--challenge-reason",
+          "The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone."
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone.\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone.\",\"ground\":\"over-scope\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone.\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone.\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": false,
+      "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone.",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+      ],
+      "dod_covers": [],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": true,
+        "within_scope": true,
+        "verdict": "admit",
+        "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone.",
+        "ground": "over-scope"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "reject",
+      "upper": {
+        "admit": false,
+        "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): The DoD goes beyond the PRD's declared goals. Only the first DoD item (dry run exits 0/1 per the floor decision without merging) serves the inspection goal. The second item persists every evaluation to .faff/merge-gate-history/<pr>.jsonl, and the third adds --explain with --since and --format to render a full historical timeline. The first PRD goal says plainly that historical storage and query features are outside this PRD, so these two items are capability no declared goal covers. The Phase-1 reason calls them a natural extension of inspection, but the PRD limits inspection to the current decision. The PRDR would be admissible if cut back to the dry-run item alone."
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

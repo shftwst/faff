@@ -1,0 +1,302 @@
+---
+name: faffidavit-rendering
+description: "Default `rendering_adaptor` — the house output style and prose voice (visual-vs-prose, canonical visual forms, table-vs-list, density caps, house voice) plus validation of draft output. The one slot with no internal contract. Runs as a configured slot, not the user `/` menu."
+user-invocable: false
+judgement_seam: gloss, explanatory-order
+---
+
+# faffidavit-rendering
+
+The default **adaptor** for the `rendering_adaptor` slot — and the one slot with **no internal contract** behind it. It defines how faff sub-skills turn structure into output — both its *form* (when to draw a visual vs prose, the catalogue of canonical visual forms, the markdown-table-vs-definition-list rule, density caps) and its *prose voice* (the house voice the output reads in, homed in **Voice** below) — and **validates/normalises** draft output against those rules on demand. A `faffidavit-*` skill: it both *defines* the house rendering style and *checks* conformance, so it's invokable rather than a passive style guide.
+
+Every sub-skill that emits user-facing output renders through it; it can be swapped wholesale for a different house style.
+
+```yaml
+slots:
+  rendering_adaptor: faffidavit-rendering   # the default — explicit for clarity
+```
+
+## No internal contract — a pure adaptor
+
+The surviving sibling adaptor slot (`routing_adaptor`) sits in front of a **fixed internal contract** in the gateway — the six-verdict vocabulary the pipeline branches on — and the `spec` / `review` / `ship` contracts are producer-emitted (the producer self-declares a `faff-contract:<name>` block the consumer parses; their adaptor slots were retired). Rendering has none of that: no pipeline code branches on, counts, or gates on how output *looks*. It is purely human-facing. So there is nothing fixed in the gateway for this slot to translate *into* — the whole skill is the adaptor, swappable end to end. Swap it and house style changes wholesale, with no pipeline behaviour affected.
+
+## Why an adaptor, not a producer
+
+Unlike `spec` — which is produced by `faffter-noon-spec` (issue → new spec, self-declaring its `faff-contract:spec-readiness` block the consumer parses) — rendering has no separable generative act. There's no "render from nothing": every render is a transform of data some other skill already holds, and choosing the right form (cycle bracket vs cycle box) needs the domain understanding of what that structure *means*. So a standalone rendering *producer* would have no natural caller. What rendering genuinely is, is a standard **referenced by many skills** (every sub-skill renders "according to" it) plus a standalone normalise act — exactly the adaptor shape. The "produce" the producer-framing reaches for is already the validate/normalise face below. Don't re-split this into a `faffter-noon-rendering`.
+
+## Two faces
+
+- **Define** (reference): the visual-vs-prose split, the canonical visual forms, the table-vs-list rule, and the density caps below. Sub-skills read this and render accordingly.
+- **Validate / normalise** (invokable): given draft output, flag (or rewrite) violations — markdown tables that should be definition lists, structure narrated as prose that should be a visual, visual walls that breach the density caps. Invoked as a final pass, or standalone: "normalise this output to house style."
+
+## Scope — all human-facing faff output
+
+Everything this adaptor defines and normalises applies to **all human-facing output a faff sub-skill emits: terminal output, tracker descriptions, and tracker comments alike** (gateway → **Rendering**, Universal-routing rule). The **only** carve-outs are skill source files (`skills/*/SKILL.md`) and internal `.faff/` logs — read in wider contexts, not human-facing in the same sense. There is no central emit point, so each skill runs the normalise pass itself as a final step before printing or writing.
+
+## Voice
+
+Form is half of house style; the other half is the **voice** the prose reads in — casual-but-credible, claims discipline, the banned-word list. Those rules have a single home: the **`# Writing style`** section of **`AGENTS.md`** at the repo root, a fixed repo convention. This section *references* that section and never copies it — the rules live there so they have one place to drift from, not two (and the `faff validate-adapters` dedup lint fails CI on any block copied across skills).
+
+**Injection.** Voice reaches a context-stripped executor the same way form reaches the reader: through the dispatch envelope. The gateway stamps a one-line pointer at the STYLE source into every dispatch that writes durable prose — the mechanism, its carrier rule, and the engine-lane fork all live at gateway → **Producer dispatch → Voice clause**. This charter owns *what* the house voice is for; the gateway owns *how* it rides each dispatch.
+
+**Swapping the voice.** A project with a different voice edits the `# Writing style` section of `AGENTS.md` — same path, different contents, read fresh on the next dispatch (nothing caches it). The source path is a fixed convention, not adaptor-resolved: dispatch sites stamp the pointer without reading this adaptor first. Swapping the *adaptor* changes form rules and validation; it does not change where the voice rules live.
+
+**Fold, not a sibling.** Voice is folded into this adaptor rather than split into a sibling `voice` slot. Voice and form are both purely human-facing with no pipeline contract behind them — the exact property that defines this slot — so they belong in the one skill that already owns "how faff's output reads", with one swap point instead of two. The charter widening to name voice is deliberate, recorded here. A sibling `voice` adaptor stays a clean future extraction if a project ever needs voice swappable independently of form.
+
+## Prose skimmability
+
+Enumerable content must be skimmable — the failure mode is an enumerable set crammed into one `·`/comma run-on paragraph, which raises cognitive load and erodes trust. These rules fold into the Validate/normalise face; a violation is **rewritten**, not merely flagged:
+
+- **3+ items → a list.** Any enumerable set of three or more items renders as a markdown list, never a `·`- or comma-separated run-on paragraph — the same 3+ threshold the canonical visual forms use for inline chains. A 2-item set may stay inline prose.
+- **Bold-lead bullets** for scannable items: `- **label** — detail`, so the eye lands on the label.
+- **Prose density cap.** A prose block stays within ~3 sentences / ~4 lines before it must break into a list or separate paragraphs. Diagnosis, decision, and "do this next" prose (the visual-vs-prose carve-outs) still win where they apply, but stay within the cap.
+
+This rule governs tracker descriptions and comments as much as terminal output (per Scope above). The canonical anti-example is a long "Open questions" set written as one `·`-delimited paragraph — it must render as a bulleted list.
+
+## Output token economy
+
+Skimmable form isn't enough: a response can satisfy every form rule and still burn tokens on ceremony that adds nothing the output doesn't already carry. Token-lean is part of *understandable-not-unapproachable* — the reader (and the budget) pays for every wasted line. These rules fold into the Validate/normalise face; a violation is **rewritten**, not merely flagged:
+
+- **No preamble/postamble.** Drop the conversational frame — "Here is the…", "I've gone ahead and…", "Let me know if you'd like…", "Hope this helps". Open on the substance; end when it ends.
+- **Don't restate the ticket/request.** The reader just asked; echoing their ask back is filler. *Use instead:* go straight to the answer (a one-line gloss of *what shipped* is the synthesis contract's job, not a restatement of the brief).
+- **Don't narrate what the output already shows.** When a list, visual, or diff carries the result, prose re-explaining it is redundant. *Use instead:* let the artefact speak; add prose only for diagnosis or "do this next".
+- **No hedge/qualifier padding.** Cut "it's worth noting that", "as you can see", "essentially", "in order to" and stacked hedges. *Use instead:* state it plainly once.
+
+This does **not** sacrifice the **When prose still wins** carve-outs (synthesis gloss, diagnosis, "do this next") — those are substance, not ceremony, and still win where they apply.
+
+**Scope:** same as **Scope — all human-facing faff output** above (terminal, tracker descriptions, tracker comments; carve-outs = skill source files and `.faff/` logs). No separate scope.
+
+## Visualisation over prose
+
+When output describes **structure** (chain, partition, cycle, queue, workstream layout, fire/blocked gate map, dep graph), render it as a compact visual. Reserve prose for diagnosis, decision, and "do this next" recommendation.
+
+Test: if a reader can point at the visual and ask "is this right?" without re-reading prose, it's the right form.
+
+## Canonical visual forms
+
+Callers pick from this catalogue. Inventing new visual forms inline is forbidden — if a skill needs a new form, this section gains it first.
+
+**(a) Cycle bracket** (3+ items inline)
+
+```
+[ISSUE-AA → ISSUE-BB → ISSUE-CC → ISSUE-AA]
+```
+
+Used for any dep cycle, any collision-group serialisation, any "X depends on Y" chain rendered inline. 3+ items only — for a 2-item dep, use plain prose.
+
+**(b) Cycle box** (4+ edges or branching)
+
+```
+ISSUE-AA ──► ISSUE-BB ──► ISSUE-CC
+   ▲                          │
+   └──────────────────────────┘
+```
+
+Used when the cycle has 4+ edges or when branching makes the bracket form unreadable.
+
+**(c) Queue partition grid**
+
+```
+fire-and-forget (independents)        likely-fire (serialised)
+  ISSUE-XX                              [ISSUE-A → ISSUE-B]   src/auth/
+  ISSUE-YY                              [ISSUE-C → ISSUE-D]   db migrations
+```
+
+Used in queue/build-summary renders. Each cell has the ID + the synthesis gloss (one line per ID — see the synthesis contract).
+
+**(d) Workstream lane**
+
+```
+Initiative — Audit-lite reliability
+
+Now    Logging cleanup            [started]   ISSUE-XX, ISSUE-YY
+Next   Audit log retention        [planned]   ISSUE-ZZ
+Later  (no project planned)       ⚠ structural gap
+```
+
+**(e) Gate fire-status table**
+
+```
+| Gate                            | Currently fireable? | Notes                            |
+|---------------------------------|---------------------|----------------------------------|
+| Logging → Audit retention       | Yes                 | once SHF-217 ships               |
+| Audit retention → Audit lite    | ⚠ Blocked           | downstream project doesn't exist |
+```
+
+## When prose still wins
+
+Three carve-outs where prose stays:
+
+1. **The synthesis gloss itself** (see the synthesis contract) — the plain-English one-liner is the whole point; a glyph won't help.
+2. **Diagnosis lines** — "Recommendation: strip the CC→AA edge (defensive-only)." A visual can't carry "what to do".
+3. **TL;DR** — a skim-in-10-seconds summary stays prose. Visuals at the top invert that.
+
+## Lead with the load-bearing model
+
+When output explains a mechanism, decision, or diagnosis, its first line states the governing idea in plain terms before any mechanics — the one sentence a reader needs to make sense of everything after it ("caching is prefix-based, not content-based").
+
+- **Hoist, don't write.** This rule reorders — moves a load-bearing statement the source already contains to the front. It does NOT author a model the source lacks. If there is none to hoist, that is a producer gap: flag it (`where → no load-bearing model to lead with`), never fabricate one.
+- **Mechanism, then method, then so-what.** Past the lead, order runs concrete mechanism → how it's measured/used → what it means. Don't strand the model in a footnote slot.
+- **Carve-out unchanged.** TL;DR still leads with prose, not a visual; this governs which prose leads, not whether.
+
+## Synthesis — the issue-gloss contract
+
+Every issue rendered in any faff output — wtf's "Do this", map's workstreams, tidy's findings, beep-boop's queues, routing's verdict display, anywhere — carries three elements:
+
+1. **Tracker ID** — breadcrumb for traceability
+2. **One-sentence plain-English gloss** — what the work actually is in human terms (not the tracker title verbatim; a generated sentence based on title + spec + description)
+3. **Unlock-chain consequence** (only when non-trivial) — what becomes possible once this lands, in human terms
+
+This is part of the rendering contract because it governs *how an issue is described* in output — the content sibling of the visual-vs-prose split.
+
+### Canonical rendering
+
+```
+ISSUE-XX — Pino instrumentation across the request path
+  Wire structured logging into every API handler so request-scoped fields
+  (user id, trace id, route) attach automatically. Once this lands, the
+  three downstream alerting tickets can build on a real log schema.
+```
+
+In tight tabular contexts (queues, ready lists), compress the gloss to a clause:
+
+```
+ISSUE-XX   Pino instrumentation — wires structured logging into all handlers · unlocks 3 alerting tickets
+```
+
+In high-density visualisations (queue partition grids, chain diagrams), show only the gloss subject; the unlock consequence lives in a one-line footnote keyed by ID.
+
+### First-mention grounding
+
+The **first** appearance of any issue ID in a given output carries its gloss (`ID + gloss`, per **Canonical rendering** above). Subsequent references to the same ID in the same output may be bare ID. An ID that appears **only ever bare** — never grounded anywhere in that output — is a violation: it forces the reader to the tracker to find out what it is.
+
+- **Granularity is per-whole-output** — one grounding anywhere in the output satisfies the rule. (A skill *may* re-ground in a later section when a bare ID there would read unintelligibly, but that's the Humanisation test below talking, not this mechanical rule.)
+- **This does not supersede the Humanisation rule.** First-mention grounding is the mechanical floor; a bare later reference must still pass the Humanisation reader-test in its context. Where it wouldn't, re-ground it there.
+
+This is the checkable form of the Humanisation rule's reader-test: grounding-once is the minimum a normalise pass can mechanically enforce (see **Validation / normalise**).
+
+### Generation source order
+
+In order of preference:
+
+1. The spec's one-line summary if it has one
+2. The issue title plus the first 2-3 sentences of the spec
+3. The issue title plus the description if no spec exists
+
+The skill **paraphrases** — does not just truncate. Tracker shorthand ("re: SHF-217 dep chain", "as discussed") is replaced with what was actually meant. Paraphrase the framing, not the subject: keep the work's own terms for what it changes and how (rate limiting, cold start, memoising) so the reader can match the gloss to the ticket, and explain around them.
+
+### Humanisation rule
+
+The gloss is a delivery lead briefing a colleague, not a project manager filing a status report. A delivery lead bridges product, engineering, and business stakeholders by making work understandable, bite-sized, and transparent. Leaning on numbered references to internal documents — "principle 6", "ADR-N", "trigger 4", "PRs 3-N" — is the opposite: project-management smoke-and-mirrors that makes the writer look indispensable while making the reader work to decode it.
+
+**Banned in user-facing output:**
+
+| Banned form | Why | Use instead |
+|---|---|---|
+| "principle 6", "principle 4", "principle N" | Reader doesn't have the methodology spec open; the number is a private convention | Say what the principle is *about* in the sentence — "the spec references work that isn't ticketed" not "this violates principle 6" |
+| "ADR-N" | ADR ID is a stable identifier for traceability but can't replace explanation | Say what the ADR decides — "the audit pipeline ADR's wave-1 sign-off" not "ADR-N" |
+| "trigger 4", "criterion 3", "gate 2" | Numbered conditions inside a document the reader hasn't opened | Say what the condition tests — "a real end-to-end run on a real subject" not "trigger 4" |
+| "PRs 3-N", "PR A..E", "step 5 of M" | Schematic counting where the reader can't tell what each PR does | Name each piece by what it ships — "the consumer wire-up PR, three per-stage lift PRs, and the default-flip PR" not "PRs 3-N" |
+| "SHF-307a..e", "SHF-XX/YY/ZZ" used as live IDs | Made-up IDs that don't exist; reader can't click through | Either use real IDs once they exist, or describe the work — "five sub-tickets, one per remaining piece" not "SHF-307a..e" |
+| "the faff-parked label was already cleared" (jargon as subject) | Reader doesn't know the label semantics | Say what happened in human terms — "the autonomous park was cleared two days ago when someone picked it up" |
+
+**Allowed:**
+
+- Real tracker IDs (ISSUE-XX, #PR-N) — stable, clickable, identify a specific thing.
+- Short self-explanatory category names that *describe* a finding kind ("sub-ticket gap", "upstream gap", "repeat-park", "chain gap") — they tell the reader what was found, not which internal rule was matched.
+- Principle / ADR / criterion references **alongside** plain-English explanation as traceability — "the spec assumes a wave-1 run has happened (the gate from the audit pipeline ADR)" — never standing in for explanation.
+
+**Surface the concrete** (the positive twin of the ban above). Where the source provides a real, checkable noun — the actual field name (`cache_read_input_tokens`), the named file, the specific subsystem — render that, not a category label that abstracts it away. The ban says "don't hide behind principle 6"; this says "name the real thing the source already holds."
+
+- **Surface, don't invent.** Promote only concretes present in the source. If the only available form is the abstraction, keep it — never manufacture a precise-sounding field/file/number that isn't there.
+
+**Test:** if a reader who has never opened the project's CLAUDE.md, methodology spec, or ADR archive can't follow the finding, the rule is broken. Rewrite.
+
+**Why this matters:** faff is a delivery lead, not a project manager. A delivery lead humanises work; a project manager codifies it to look valuable. We do the first. Every finding, every brief, every diagnosis renders the *substance* of what's going on, not the index entry that catalogues it.
+
+### Unlock-chain language
+
+Reserved for issues with ≥2 direct dependents, or any dependent that itself gates ≥2 issues (chain-of-3). Written in **consequence not count** form:
+
+- ✅ "Once this lands, the three downstream alerting tickets can build on a real log schema."
+- ❌ "Unlocks 3 issues."
+
+If the unlock chain is just 1 isolated dependent, skip the consequence line entirely — counting it is noise.
+
+### Honesty escape hatch
+
+If the spec is genuinely ambiguous, the gloss says so explicitly:
+
+> _Spec ambiguous: extend the existing logger vs. swap for pino; gloss reflects the title only._
+
+A reliable-but-thin gloss beats a confident-sounding-but-wrong one.
+
+### Caching
+
+Glosses generated for a given issue id during one invocation are reused within that invocation. **Not cached across invocations** — tracker state changes, and the "always pull fresh" rule wins.
+
+### Consumption
+
+Every faff sub-skill that names an issue in output applies this contract. Each sub-skill's `Output Format` section references it via `See the rendering_adaptor slot → Synthesis` rather than re-stating.
+
+## Tabular data: markdown tables vs definition lists
+
+Markdown tables break in narrow terminals when cells are long. They render as `Column 1: …` repeated per row, mid-word truncation, and rows crashing into each other — the data is technically present but unreadable.
+
+**Scope:** this rule applies to **all human-facing faff output** — terminal output (diagnostics, morning briefs, roadmap renders, in-conversation summaries) **and** tracker descriptions and comments (per **Scope — all human-facing faff output** above). It does **not** apply to skill source files (`skills/*/SKILL.md`) — those are documentation read in wider contexts (Claude Code editor panes, GitHub UI), where specification tables with prose cells are fine. It also does not apply to internal `.faff/runs/<run-id>/…` logs.
+
+**Drop the markdown table when any of:**
+
+1. Any cell exceeds ~30 characters.
+2. Any cell contains multi-sentence prose.
+3. Total table width (cells + separators) likely exceeds ~80–120 chars.
+
+When none of these fire, markdown tables remain the right choice — they're compact and scannable for short-label tabular data (verdict counts, status counts, single-word rows).
+
+**Use definition-list / key:value blocks instead.** Each conceptual table row becomes a block of `Key: value` lines separated by the unicode box-drawing rule `────────────────────────────────────────` (`─` × 40). The lead-in line names the row's primary identifier; subsequent lines carry the columns. Example — broken markdown table on the left, definition-list rewrite on the right:
+
+```
+| Ticket | Title                   | State | Scope                                   |
+|--------|-------------------------|-------|-----------------------------------------|
+| SHF-X  | Prompt substrate retar… | Done  | Different — moved prompts, not stage l… |
+| SHF-Y  | HMAC envelope + BG wo…  | Done  | Different — wrapper layer, not stage l… |
+```
+
+Rewritten:
+
+```
+Ticket: SHF-X
+Title: Prompt substrate retarget (move *.prompt.md + codegen)
+State: Done
+Scope: Different — moved prompts, not stage logic
+────────────────────────────────────────
+Ticket: SHF-Y
+Title: HMAC envelope + BG worker relocation
+State: Done
+Scope: Different — wrapper layer, not stage logic
+```
+
+The separator is unicode `─` × 40, not markdown `---`. Markdown `---` renders as `<hr>` in some contexts and is often invisible in terminal chat panes — the unicode rule reads consistently across renderers.
+
+## Density caps
+
+A wall of small visuals is the same problem as a wall of text. Each rendered section caps:
+
+- **Cycle visualisations:** at most 3 per output; if there are more cycles, list the rest as ID-only one-liners with "(see structural diagnostics log)"
+- **Queue partition grid:** at most 10 rows visible; rest collapses to "(+ N more)" with the full list in the log
+- **Workstream lane:** at most 7 initiatives in the live view; rest in log
+
+## Validation / normalise
+
+Run as a final pass over draft output, or on demand against any block.
+
+**Checks:** markdown tables that breach the table-vs-list thresholds; structure narrated as prose where a canonical visual exists; inline-invented visual forms outside the catalogue; density-cap overflows; response ceremony that breaches **Output token economy** (preamble/postamble, ticket/request restatement, narration of what the output already shows, hedge padding — rewrite to drop it); an issue ID that is never grounded by its gloss anywhere in the output (bare-ID-only — see **First-mention grounding**; rewrite by injecting the gloss at first mention when derivable, else flag); an explanation whose load-bearing model is buried below the mechanics (see **Lead with the load-bearing model**; hoist the source's governing statement to the first line, or flag `no load-bearing model to lead with` — never fabricate one); a category label standing in where the source holds a concrete checkable noun (see **Surface the concrete**; surface the real field/file/subsystem, or keep the generality when no concrete is present — never invent one).
+
+**Output:** either a list of violations (`where → which rule → the fix`), or the normalised block with the fixes applied, depending on how the caller invokes it.
+
+## Rules
+
+- The catalogue is closed. A skill that needs a new visual form adds it here first, then uses it — never invents one inline.
+- The visualisation/prose split is non-negotiable: structure is visual, judgement is prose. Don't narrate a graph; don't tabulate a recommendation.
+- These rules govern user-facing output only. They do not constrain `.faff/` logs or skill documentation.
+- Validation reports or normalises; it does not change what the output says, only how it's rendered.

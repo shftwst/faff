@@ -1,0 +1,107 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-unserved",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "reason": "A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Export transactions as CSV,Filter transaction exports by date",
+          "--prd-goals",
+          "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "Export serves both cited goals.",
+          "--challenge",
+          "overturned",
+          "--challenge-ground",
+          "unserved",
+          "--challenge-reason",
+          "A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering.",
+          "--dod-covers",
+          "[\"Export transactions as CSV\"]"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"dod_covers\":[\"Export transactions as CSV\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"Export serves both cited goals.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering.\",\"ground\":\"unserved\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering.\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering.\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": false,
+      "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering.",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Export transactions as CSV",
+        "Filter transaction exports by date"
+      ],
+      "dod_covers": [
+        "Export transactions as CSV"
+      ],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": false,
+        "within_scope": false,
+        "verdict": "admit",
+        "reason": "Export serves both cited goals."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering.",
+        "ground": "unserved"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "reject",
+      "upper": {
+        "admit": false,
+        "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): A cited goal is left unserved. The PRDR cites both 'Export transactions as CSV' and 'Filter transaction exports by date', but its DoD states 'No date input or date filtering is implemented.' Only the first DoD item (one CSV row per transaction) serves a cited goal. The Phase-1 claim that 'export serves both cited goals' is contradicted by the PRDR's own DoD: plain CSV export does not filter by date. This is not over-scope, since nothing in the DoD goes beyond declared goals. Fix: either drop 'Filter transaction exports by date' from the cited goals, or add DoD items that implement and test date-range filtering."
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

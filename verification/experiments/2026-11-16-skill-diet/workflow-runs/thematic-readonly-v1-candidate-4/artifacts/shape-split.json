@@ -1,0 +1,22 @@
+{
+  "containers": [],
+  "tickets": [
+    {
+      "title": "Validate session tokens",
+      "description": "Validate session tokens. Split from \"Keep sessions valid\": validate session tokens and refresh expired sessions.",
+      "container": "Authentication",
+      "status": "Backlog",
+      "blocked_by": []
+    },
+    {
+      "title": "Refresh expired sessions",
+      "description": "Refresh expired sessions. Split from \"Keep sessions valid\": validate session tokens and refresh expired sessions. Depends on token validation.",
+      "container": "Authentication",
+      "status": "Backlog",
+      "blocked_by": [
+        "Validate session tokens"
+      ]
+    }
+  ],
+  "needs_discovery": false
+}

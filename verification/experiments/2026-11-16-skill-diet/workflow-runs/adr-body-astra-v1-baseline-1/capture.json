@@ -1,0 +1,344 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "write_output",
+      "args": {
+        "case_id": "nygard",
+        "text": "## Context\n\nOne local service must retain recovery-token state across restart. An existing SQLite database provides persistence without adding a second persistence service. This records ADRWORK-1, Persist recovery tokens in SQLite.\n\n## Decision\n\nUse the existing SQLite database for recovery tokens. Write the token row before acknowledging creation so acknowledged tokens have been persisted.\n\n## Consequences\n\n- Recovery-token persistence depends on the existing database.\n- The committed implementation writes before acknowledgement, and a restart test passes.\n- Multi-host deployment and throughput have not been tested; this record makes no claim about either.\n\n---\n\nSelf-review: The consequences match the supplied committed implementation and restart test. Persistence claims are limited to that evidence.\n\nconfidence: high"
+      },
+      "case_id": "nygard",
+      "result": {
+        "written": true,
+        "bytes": 830,
+        "sha256": "078c01d7822413e569452c3ddb36ade63cccb4edaf540c483c04013bdfb714d3"
+      }
+    },
+    {
+      "seq": 2,
+      "name": "write_output",
+      "args": {
+        "case_id": "custom",
+        "text": "## Situation\n\nThe provider may deliver the same event twice. The existing job table supports a unique-key constraint. This records ADRWORK-1, Deduplicate webhook jobs.\n\n## Decision\n\nUse a unique delivery key in the existing job table to deduplicate webhook jobs. Reuse the table's unique-key constraint to prevent a second job for the same delivery key.\n\n## Trade-offs\n\n- The same delivery key is inserted once; a second enqueue is acknowledged without creating another job.\n- Deduplication depends on the delivery key and the existing job table.\n- Ordering of different events is unchanged.\n\n## Follow-up\n\nPreserve the duplicate-enqueue behaviour in later changes. Any change to ordering of different events requires separate work.\n\n---\n\nSelf-review: The supplied duplicate-event test passes and supports the stated single-job behaviour. The body does not claim changes to event ordering. The supplied custom sections are retained in order.\n\nconfidence: high"
+      },
+      "case_id": "custom",
+      "result": {
+        "written": true,
+        "bytes": 959,
+        "sha256": "50430440807eb07431f9d0846fbe6035053654321cda60ec5296f19c0fdc1ffa"
+      }
+    },
+    {
+      "seq": 3,
+      "name": "write_output",
+      "args": {
+        "case_id": "no-decision-heading",
+        "text": "## Summary\n\nRun account exports on the existing worker process. The implemented worker job streams one account export to disk. This records ADRWORK-1, Keep exports on the existing worker.\n\n## Rationale\n\nThe existing worker already streams files, and the first release has one operator. Reusing that worker keeps exports within the existing process.\n\nRestart/resume is not implemented and is explicitly outside this slice. Later work must not assume that an interrupted export can resume.\n\n---\n\nSelf-review: The body matches the supplied streaming implementation and states the restart/resume exclusion. Only Summary and Rationale are used, in the supplied order. The resolved format has no Decision heading, so L3 contradiction detection is disabled for this repository.\n\nconfidence: high"
+      },
+      "case_id": "no-decision-heading",
+      "result": {
+        "written": true,
+        "bytes": 788,
+        "sha256": "b587c0d28da53658eb0a302ee4b07f8b33c74412181bd146af506bf5cd6ba693"
+      }
+    },
+    {
+      "seq": 4,
+      "name": "write_output",
+      "args": {
+        "case_id": "empty-template",
+        "text": "## Context\n\nExports from two regions need one comparable timestamp convention. This records ADRWORK-1, Use UTC timestamps.\n\n## Decision\n\nStore event timestamps in UTC to give exports a shared timestamp convention. The implemented change is limited to exported representation: the serializer emits UTC timestamps.\n\n## Consequences\n\n- Exported timestamps use UTC; two timezone conversion tests pass.\n- Retention and scheduling are unchanged.\n- The supplied evidence establishes serializer behaviour, not a change to internal timestamp storage.\n\n---\n\nSelf-review: The consequences match the serializer change and its two conversion tests. The settled storage choice is recorded without claiming an unreported storage migration. The supplied format resolver fell back to Nygard because the template was empty or had no level-2 headings; its resolved sections are used unchanged.\n\nconfidence: medium\n\nConfidence is advisory: the evidence verifies exported representation only, while the settled choice is worded as storage."
+      },
+      "case_id": "empty-template",
+      "result": {
+        "written": true,
+        "bytes": 1018,
+        "sha256": "337921782945aa9bf1cd51d711aef38de711620dbdfbfca40ab6ab419d3ebf85"
+      }
+    },
+    {
+      "seq": 5,
+      "name": "write_output",
+      "args": {
+        "case_id": "related-decision",
+        "text": "## Context\n\nADR-0041, Use transient retry records, accepted on 2026-10-20, chose transient records that lose attempt history after restart. Retry history must now survive restart. This records ADRWORK-1, Use a durable retry ledger.\n\n## Decision\n\nKeep retry attempts in the existing durable database to preserve attempt history across restart. This replaces the transient-record choice described in ADR-0041, Use transient retry records.\n\n## Consequences\n\n- Retry persistence depends on the existing durable database.\n- The retry count and next-attempt time survive the tested restart.\n- ADR-0041 still has Accepted status in the supplied log. Recording the supersession relationship and any status change remains with the caller; neither has been changed here.\n\n---\n\nSelf-review: The consequences match the tested persistence of retry count and next-attempt time. The related ADR is identified by its decision subject, and the body distinguishes the replacement decision from unperformed metadata updates.\n\nconfidence: high"
+      },
+      "case_id": "related-decision",
+      "result": {
+        "written": true,
+        "bytes": 1023,
+        "sha256": "3a7fad31f8eaac50097bd9b297d91ae93d18de55343153aaa02340c184a223ee"
+      }
+    },
+    {
+      "seq": 6,
+      "name": "write_output",
+      "args": {
+        "case_id": "limited-verification",
+        "text": "## Context\n\nThe deployment has one host and a durable data volume. Remote replication is excluded from this release. This records ADRWORK-1, Keep attachment blobs on local disk.\n\n## Decision\n\nStore attachment blobs in the existing local data directory. The single-host deployment and existing durable volume support this choice without adding remote replication.\n\n## Consequences\n\n- Blob storage depends on the host's data volume and configured local directory.\n- The implementation writes blobs to that directory, and a write/read test passes.\n- Remote replication remains outside this release.\n- Disk-loss recovery and backup restore have not been tested. The passing write/read test does not establish either recovery capability.\n\n---\n\nSelf-review: The consequences describe the implemented local write/read path and preserve the release's replication exclusion. Recovery claims are withheld because disk-loss recovery and backup restore remain untested.\n\nconfidence: medium\n\nConfidence is advisory: the local storage path is supported by evidence, but recovery behaviour has not been verified."
+      },
+      "case_id": "limited-verification",
+      "result": {
+        "written": true,
+        "bytes": 1097,
+        "sha256": "30b47fd345b25b17f4c27bf5420562a91fa6bf2c4f77bb8d4b4cc2de9c822b90"
+      }
+    },
+    {
+      "seq": 7,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "punt",
+        "value": {
+          "author": false
+        }
+      },
+      "case_id": "punt",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 8,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "format-source",
+        "value": {
+          "command": "faff adr format --json",
+          "read_template_directly": false
+        }
+      },
+      "case_id": "format-source",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 9,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "sections",
+        "value": {
+          "add_defaults": false,
+          "preserve_order": true
+        }
+      },
+      "case_id": "sections",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 10,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "ownership",
+        "value": {
+          "producer_performs_mechanics": false
+        }
+      },
+      "case_id": "ownership",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 11,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "low-confidence",
+        "value": {
+          "blocks_recording": false,
+          "routing_owner": "faff-graft"
+        }
+      },
+      "case_id": "low-confidence",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 12,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "self-review",
+        "value": {
+          "basis": "What actually shipped, checked against the implementation evidence, including verification limits."
+        }
+      },
+      "case_id": "self-review",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 13,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "related",
+        "value": {
+          "bare_number_only": false,
+          "include_decision_subject": true
+        }
+      },
+      "case_id": "related",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 14,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "contract",
+        "value": {
+          "gated_block": false,
+          "confidence_advisory": true
+        }
+      },
+      "case_id": "contract",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 15,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "timing",
+        "value": {
+          "stage": "faff-graft Step 4b",
+          "build_complete": true
+        }
+      },
+      "case_id": "timing",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 16,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "refinement",
+        "value": {
+          "owner": "faff-graft"
+        }
+      },
+      "case_id": "refinement",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 17,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "nygard",
+      "text": "## Context\n\nOne local service must retain recovery-token state across restart. An existing SQLite database provides persistence without adding a second persistence service. This records ADRWORK-1, Persist recovery tokens in SQLite.\n\n## Decision\n\nUse the existing SQLite database for recovery tokens. Write the token row before acknowledging creation so acknowledged tokens have been persisted.\n\n## Consequences\n\n- Recovery-token persistence depends on the existing database.\n- The committed implementation writes before acknowledgement, and a restart test passes.\n- Multi-host deployment and throughput have not been tested; this record makes no claim about either.\n\n---\n\nSelf-review: The consequences match the supplied committed implementation and restart test. Persistence claims are limited to that evidence.\n\nconfidence: high",
+      "persisted_sha256": "078c01d7822413e569452c3ddb36ade63cccb4edaf540c483c04013bdfb714d3"
+    },
+    {
+      "id": "custom",
+      "text": "## Situation\n\nThe provider may deliver the same event twice. The existing job table supports a unique-key constraint. This records ADRWORK-1, Deduplicate webhook jobs.\n\n## Decision\n\nUse a unique delivery key in the existing job table to deduplicate webhook jobs. Reuse the table's unique-key constraint to prevent a second job for the same delivery key.\n\n## Trade-offs\n\n- The same delivery key is inserted once; a second enqueue is acknowledged without creating another job.\n- Deduplication depends on the delivery key and the existing job table.\n- Ordering of different events is unchanged.\n\n## Follow-up\n\nPreserve the duplicate-enqueue behaviour in later changes. Any change to ordering of different events requires separate work.\n\n---\n\nSelf-review: The supplied duplicate-event test passes and supports the stated single-job behaviour. The body does not claim changes to event ordering. The supplied custom sections are retained in order.\n\nconfidence: high",
+      "persisted_sha256": "50430440807eb07431f9d0846fbe6035053654321cda60ec5296f19c0fdc1ffa"
+    },
+    {
+      "id": "no-decision-heading",
+      "text": "## Summary\n\nRun account exports on the existing worker process. The implemented worker job streams one account export to disk. This records ADRWORK-1, Keep exports on the existing worker.\n\n## Rationale\n\nThe existing worker already streams files, and the first release has one operator. Reusing that worker keeps exports within the existing process.\n\nRestart/resume is not implemented and is explicitly outside this slice. Later work must not assume that an interrupted export can resume.\n\n---\n\nSelf-review: The body matches the supplied streaming implementation and states the restart/resume exclusion. Only Summary and Rationale are used, in the supplied order. The resolved format has no Decision heading, so L3 contradiction detection is disabled for this repository.\n\nconfidence: high",
+      "persisted_sha256": "b587c0d28da53658eb0a302ee4b07f8b33c74412181bd146af506bf5cd6ba693"
+    },
+    {
+      "id": "empty-template",
+      "text": "## Context\n\nExports from two regions need one comparable timestamp convention. This records ADRWORK-1, Use UTC timestamps.\n\n## Decision\n\nStore event timestamps in UTC to give exports a shared timestamp convention. The implemented change is limited to exported representation: the serializer emits UTC timestamps.\n\n## Consequences\n\n- Exported timestamps use UTC; two timezone conversion tests pass.\n- Retention and scheduling are unchanged.\n- The supplied evidence establishes serializer behaviour, not a change to internal timestamp storage.\n\n---\n\nSelf-review: The consequences match the serializer change and its two conversion tests. The settled storage choice is recorded without claiming an unreported storage migration. The supplied format resolver fell back to Nygard because the template was empty or had no level-2 headings; its resolved sections are used unchanged.\n\nconfidence: medium\n\nConfidence is advisory: the evidence verifies exported representation only, while the settled choice is worded as storage.",
+      "persisted_sha256": "337921782945aa9bf1cd51d711aef38de711620dbdfbfca40ab6ab419d3ebf85"
+    },
+    {
+      "id": "related-decision",
+      "text": "## Context\n\nADR-0041, Use transient retry records, accepted on 2026-10-20, chose transient records that lose attempt history after restart. Retry history must now survive restart. This records ADRWORK-1, Use a durable retry ledger.\n\n## Decision\n\nKeep retry attempts in the existing durable database to preserve attempt history across restart. This replaces the transient-record choice described in ADR-0041, Use transient retry records.\n\n## Consequences\n\n- Retry persistence depends on the existing durable database.\n- The retry count and next-attempt time survive the tested restart.\n- ADR-0041 still has Accepted status in the supplied log. Recording the supersession relationship and any status change remains with the caller; neither has been changed here.\n\n---\n\nSelf-review: The consequences match the tested persistence of retry count and next-attempt time. The related ADR is identified by its decision subject, and the body distinguishes the replacement decision from unperformed metadata updates.\n\nconfidence: high",
+      "persisted_sha256": "3a7fad31f8eaac50097bd9b297d91ae93d18de55343153aaa02340c184a223ee"
+    },
+    {
+      "id": "limited-verification",
+      "text": "## Context\n\nThe deployment has one host and a durable data volume. Remote replication is excluded from this release. This records ADRWORK-1, Keep attachment blobs on local disk.\n\n## Decision\n\nStore attachment blobs in the existing local data directory. The single-host deployment and existing durable volume support this choice without adding remote replication.\n\n## Consequences\n\n- Blob storage depends on the host's data volume and configured local directory.\n- The implementation writes blobs to that directory, and a write/read test passes.\n- Remote replication remains outside this release.\n- Disk-loss recovery and backup restore have not been tested. The passing write/read test does not establish either recovery capability.\n\n---\n\nSelf-review: The consequences describe the implemented local write/read path and preserve the release's replication exclusion. Recovery claims are withheld because disk-loss recovery and backup restore remain untested.\n\nconfidence: medium\n\nConfidence is advisory: the local storage path is supported by evidence, but recovery behaviour has not been verified.",
+      "persisted_sha256": "30b47fd345b25b17f4c27bf5420562a91fa6bf2c4f77bb8d4b4cc2de9c822b90"
+    }
+  ],
+  "rule_answers": [
+    {
+      "id": "punt",
+      "value": {
+        "author": false
+      }
+    },
+    {
+      "id": "format-source",
+      "value": {
+        "command": "faff adr format --json",
+        "read_template_directly": false
+      }
+    },
+    {
+      "id": "sections",
+      "value": {
+        "add_defaults": false,
+        "preserve_order": true
+      }
+    },
+    {
+      "id": "ownership",
+      "value": {
+        "producer_performs_mechanics": false
+      }
+    },
+    {
+      "id": "low-confidence",
+      "value": {
+        "blocks_recording": false,
+        "routing_owner": "faff-graft"
+      }
+    },
+    {
+      "id": "self-review",
+      "value": {
+        "basis": "What actually shipped, checked against the implementation evidence, including verification limits."
+      }
+    },
+    {
+      "id": "related",
+      "value": {
+        "bare_number_only": false,
+        "include_decision_subject": true
+      }
+    },
+    {
+      "id": "contract",
+      "value": {
+        "gated_block": false,
+        "confidence_advisory": true
+      }
+    },
+    {
+      "id": "timing",
+      "value": {
+        "stage": "faff-graft Step 4b",
+        "build_complete": true
+      }
+    },
+    {
+      "id": "refinement",
+      "value": {
+        "owner": "faff-graft"
+      }
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "persisted": true,
+    "sha256": "24a6f3364f79ad9f00b939ea42ac357f5b0d6d6fada82cd99055a128ddf57329",
+    "consumed_by": "faff contract review-verdict"
+  }
+}

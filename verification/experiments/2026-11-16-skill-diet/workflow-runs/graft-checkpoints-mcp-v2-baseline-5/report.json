@@ -1,0 +1,765 @@
+{
+  "status": "fail",
+  "bridge": {
+    "stop": null,
+    "requests": 123,
+    "rejected": 5
+  },
+  "policy_delivery": {
+    "bytes": 420170,
+    "utf16_characters": 416726,
+    "sha256": "e72278d29fccb2ec13ace576bb997f7110d79879347c70535de25cb581921c90",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "a60e44534c58ef0ddc7fd50f0081733179991f5bd708982727c0a2e3a6862d13"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6016,
+        "sha256": "ca1eaafb594da58f130f03adb5070071366c32d4d5801afea4730147e56416ef"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6002,
+        "sha256": "2a4a9603ba66d0f166876ec33f58eb03a965404ae4ddb8daeb2ab4710b1c257f"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "2f3e70f07a6bd477c1fee89f5e1a7838a465cf677db74a1b8720a06eb8d40de8"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "2adbfcbad50361f7f6591c7f09ae45ffc99d8a8c17ce92a332c50a0e0aafe02f"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6039,
+        "sha256": "265d6f4f96c17948595c8c5aa6350f791025e1f67a8a810ff3370428bd6de4c6"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "002c6e91c5b898b174bb5ab2ae24d1e0f3b47c8ad9859e601cbb35f67f51a387"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "d86c83c850cd10d88b5d91c25c27b6ac3cde0ee5d3faa8f8661078d73ee6f42b"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "24c39c8d6477a84725ae4b85ea12580194754e6580e11502076d6c50bddb7ee3"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6051,
+        "sha256": "8c2b35a110159e6c1e8ea82dda899f31ccbe04080ccbf4976c561ad48450280d"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "72dba6a58f46b2ec7a09d3f31dfde77e9acc6d641080fea98fc0b8019c53008d"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "e8da6a5b0744e80c2bd5fb63ab6474af9a62ca5a5bcde1e5c5d51e354becb998"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "6eabdfb72a3df71af692e7ec82a34128f026cc4118dc22bfa0cf8adf8a99f79b"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6061,
+        "sha256": "a2b627c5c38c41f6e649cdf462e987fe90c4f18e9f3982d7bb1375d2be3811eb"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "75f05405f61d85b7383275c895aba6a9077e3ba35ced777bcdadd648516daf94"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "483c45148bc7dad91e729b44264d88024b3adc906bea00e6bd169c251ec8d8f4"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "9931baba7f2ee2597d4bbcc1b46ef80c92509df050d1a1e60bbeca9340610996"
+      },
+      {
+        "offset": 102000,
+        "end": 108000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "d2bacf5069253a7be384254b2aac6d20d09ce90e4674e67a7b1068fbd6ed3dc2"
+      },
+      {
+        "offset": 108000,
+        "end": 114000,
+        "characters": 6000,
+        "bytes": 6065,
+        "sha256": "898534cf83ea3f8056eeebe812031b27a0c0f5d230845e1920699ab13d1476a7"
+      },
+      {
+        "offset": 114000,
+        "end": 120000,
+        "characters": 6000,
+        "bytes": 6047,
+        "sha256": "644fc13bd604e43ab61b3169623ca7bd23127faee43b285821c4ecb1b4023e55"
+      },
+      {
+        "offset": 120000,
+        "end": 126000,
+        "characters": 6000,
+        "bytes": 6032,
+        "sha256": "89c39f9ce04df606bf7164fe8f97287561f9bc61a990abf2a3d9b4123f2123d5"
+      },
+      {
+        "offset": 126000,
+        "end": 132000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "1990f20790c87fef67444a9a1b62da81020cdbf0930b21d3c4c14483ef8ec9b2"
+      },
+      {
+        "offset": 132000,
+        "end": 138000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "c996577bd5acb0448b34aea63d1bcd7095e289adcea8546a46bfd68d945e6499"
+      },
+      {
+        "offset": 138000,
+        "end": 144000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "08f3b58d11d6e7ae678c637b830e1954a3c4fb1cbd894c55d54870633a9a2591"
+      },
+      {
+        "offset": 144000,
+        "end": 150000,
+        "characters": 6000,
+        "bytes": 6053,
+        "sha256": "e8432fbf9b74e2daff898fe5d7b817999aa198e02e3c28f8bd79f6a9d9d4ef9b"
+      },
+      {
+        "offset": 150000,
+        "end": 156000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "788a901c19158b8fafec0365c3e2b62836e2d4fa68fc2673accca653204e307d"
+      },
+      {
+        "offset": 156000,
+        "end": 162000,
+        "characters": 6000,
+        "bytes": 6028,
+        "sha256": "5e7979998576420474bac6b5307d277aa3f8cc4a4a37f59d7982eb6d48c3c329"
+      },
+      {
+        "offset": 162000,
+        "end": 168000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "4013bf2beef726f22b024556183be5471b0a8e91fad4934ecd2ec702eafdc4ec"
+      },
+      {
+        "offset": 168000,
+        "end": 174000,
+        "characters": 6000,
+        "bytes": 6042,
+        "sha256": "4ce4d482f1a207fa976f396326ffa96e2b0970248979884494ce01758ffe5c7d"
+      },
+      {
+        "offset": 174000,
+        "end": 180000,
+        "characters": 6000,
+        "bytes": 6082,
+        "sha256": "0ba86f6aa1be8d0e7da57a1b82a54be47b0c32b38902ab40a3feff01bcac32d5"
+      },
+      {
+        "offset": 180000,
+        "end": 186000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "1615951aafaa048b122dffb9197c60d8bc79e1bd2447de58eef99709fd3e714a"
+      },
+      {
+        "offset": 186000,
+        "end": 192000,
+        "characters": 6000,
+        "bytes": 6068,
+        "sha256": "e69b2746e92574d0be4b0630c4f5122ef3d6ced2731995f2da91bcca22dacd1a"
+      },
+      {
+        "offset": 192000,
+        "end": 198000,
+        "characters": 6000,
+        "bytes": 6042,
+        "sha256": "49a742e669ff90e8f24e2891f35155053d94484cc20e2fb4289272fcaa44abef"
+      },
+      {
+        "offset": 198000,
+        "end": 204000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "a466d842e43f5365fd24e75e4c49ed5766dfd21b03b6cf33ce4cb521805ac8fe"
+      },
+      {
+        "offset": 204000,
+        "end": 210000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "91103f1f7d8d94f984cd60cfc417e87a35ed14e32d0784fd47b305ef2c06c0ec"
+      },
+      {
+        "offset": 210000,
+        "end": 216000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "c83166126d0366a3203416565e83e81bd06246c595700c651c1160f7cdb16638"
+      },
+      {
+        "offset": 216000,
+        "end": 222000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "b2f7ea4d3e90fff6d2a91542c193fbf39910d91a032bde2887d7f38117c0481c"
+      },
+      {
+        "offset": 222000,
+        "end": 228000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "88f40408732223716cc698c77f64b3eb88b115ebb4adcb1977008a64b18455bf"
+      },
+      {
+        "offset": 228000,
+        "end": 234000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "dd07f6f638311394705e6696095a8d9228e3d88b01de0ced0091aefd91cba380"
+      },
+      {
+        "offset": 234000,
+        "end": 240000,
+        "characters": 6000,
+        "bytes": 6034,
+        "sha256": "ac4e6fbe6c9f8e44046c35e2cff2c5367106954841d40d038b941dc9b6b59210"
+      },
+      {
+        "offset": 240000,
+        "end": 246000,
+        "characters": 6000,
+        "bytes": 6033,
+        "sha256": "973082344ca4fc6e95cd60a87022bbc8cfbc2e33432bad63d28ed87933d93458"
+      },
+      {
+        "offset": 246000,
+        "end": 252000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "4b539b9834b07787727772b51e2738464de307af981f996909450dd38a2a1316"
+      },
+      {
+        "offset": 252000,
+        "end": 258000,
+        "characters": 6000,
+        "bytes": 6024,
+        "sha256": "4631212511aae4141e57fd5a178fced1d8fbff4fd37005cb9484d44902a3c795"
+      },
+      {
+        "offset": 258000,
+        "end": 264000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "29200e3f09a8444bda7dd30c4bceb4ab40d1e5fec4de86b4a7a6f6fd5a720b73"
+      },
+      {
+        "offset": 264000,
+        "end": 270000,
+        "characters": 6000,
+        "bytes": 6073,
+        "sha256": "fa0409616ec4b7a38ba6b8af2d45a1a874edd62d0beb367284ebd15066642f01"
+      },
+      {
+        "offset": 270000,
+        "end": 276000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "33af849630fac9e08b1e9b851c2df9c7b41e35b7966ab27c59851b1506d20335"
+      },
+      {
+        "offset": 276000,
+        "end": 282000,
+        "characters": 6000,
+        "bytes": 6088,
+        "sha256": "3566071ed94ea5bf9b408966d54e1ad1675840ff344c3d743c3e541af5993058"
+      },
+      {
+        "offset": 282000,
+        "end": 288000,
+        "characters": 6000,
+        "bytes": 6040,
+        "sha256": "5b7a761fc3e9528624a55ff00ab82eb3e651670debcb9af0a81a163777083eae"
+      },
+      {
+        "offset": 288000,
+        "end": 294000,
+        "characters": 6000,
+        "bytes": 6042,
+        "sha256": "45c9c1d054cdc6d999848df0f5cbf28f8cbd7d96d3f6d1f55cb1a75cff6463e5"
+      },
+      {
+        "offset": 294000,
+        "end": 300000,
+        "characters": 6000,
+        "bytes": 6028,
+        "sha256": "ae1ecfe7c99fbf9355bee37569aaa9c0b107001d21588f6962072da899f46d37"
+      },
+      {
+        "offset": 300000,
+        "end": 306000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "5a47787ae15fd26f0caf297514c77035d8758e91284a3e89f602954a0c662bab"
+      },
+      {
+        "offset": 306000,
+        "end": 312000,
+        "characters": 6000,
+        "bytes": 6028,
+        "sha256": "dc0cce9a1fdb13b1cec4fa90b73bc09b64e4aa57b5cf08ad34d6f07d8e674b29"
+      },
+      {
+        "offset": 312000,
+        "end": 318000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "5e69fb65908c55eed16c9703567ab7c818a913f8c7ca707b6113b5b3bfc8bacc"
+      },
+      {
+        "offset": 318000,
+        "end": 324000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "2d2ca658a6e2ab2abe497cc5948b524f0c88ae3f05727289dafb67fb1a0acc39"
+      },
+      {
+        "offset": 324000,
+        "end": 330000,
+        "characters": 6000,
+        "bytes": 6067,
+        "sha256": "e5a020ae2ac2242d2bf53061cdd5e94f38c60ce0d8ee370ed8c0fb7d4da55589"
+      },
+      {
+        "offset": 330000,
+        "end": 336000,
+        "characters": 6000,
+        "bytes": 6073,
+        "sha256": "f0392ec73bd89c160ab0e379914ba77da75deb5ce1758c2130b86debf3871334"
+      },
+      {
+        "offset": 336000,
+        "end": 342000,
+        "characters": 6000,
+        "bytes": 6022,
+        "sha256": "299e3e15eb323986174dc6fc1530f7340c9caf353046f362be992e52d49b9154"
+      },
+      {
+        "offset": 342000,
+        "end": 348000,
+        "characters": 6000,
+        "bytes": 6066,
+        "sha256": "a630765f12dfa9cb6dd3b79e7894fb99cdce3f100c1117a3f5cb7390ae48c202"
+      },
+      {
+        "offset": 348000,
+        "end": 354000,
+        "characters": 6000,
+        "bytes": 6078,
+        "sha256": "43a30c06312ce3d9613c110adc8f8d34b867166054e70265bcbf06cef44c7f76"
+      },
+      {
+        "offset": 354000,
+        "end": 360000,
+        "characters": 6000,
+        "bytes": 6076,
+        "sha256": "9a208e4bc2f540ce91af0efbb890686c463f14f3f437ac75f20d17143b5f4bc4"
+      },
+      {
+        "offset": 360000,
+        "end": 366000,
+        "characters": 6000,
+        "bytes": 6034,
+        "sha256": "66421a8dfbfb40973c34e2fb16264168f80c90ee2b331746c6eaa546e678d6ba"
+      },
+      {
+        "offset": 366000,
+        "end": 372000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "f3a8beb1c30e1bd1f0f635101b7d922ad0f5d3837ae5881106d74e31ceb96e92"
+      },
+      {
+        "offset": 372000,
+        "end": 378000,
+        "characters": 6000,
+        "bytes": 6006,
+        "sha256": "32d26adcec91b4569446ebd3984f5e7510af1fc1e7d6ea107a2eecefeab981b6"
+      },
+      {
+        "offset": 378000,
+        "end": 384000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "47dc9a103ac7c581158d777049f03fb8a42fbec43549f807f5c877e6801f7960"
+      },
+      {
+        "offset": 384000,
+        "end": 390000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "cff6ae8e0a6d3c6c02a064d86994f046362302406c855e9420b8c4d37805ece1"
+      },
+      {
+        "offset": 390000,
+        "end": 396000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "31ee30f2c8a8985550d1e149c3be83a535e0c2013cb387dfffc41021e4aea2cc"
+      },
+      {
+        "offset": 396000,
+        "end": 402000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "3ade74d225facae8945c67a94d31bb598becfe28dcb34f16fa39b64559390b8f"
+      },
+      {
+        "offset": 402000,
+        "end": 408000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "11c6c806c6535a21e5d9e3e245c4eb3a5dc63668e33760ed5387fb139521f147"
+      },
+      {
+        "offset": 408000,
+        "end": 414000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "834e01f597e8d42ad99cda0ee72b3d68363d33ec8eccf81bce77c3085fdb6fe3"
+      },
+      {
+        "offset": 414000,
+        "end": 416726,
+        "characters": 2726,
+        "bytes": 2762,
+        "sha256": "b98772d8ab902a1c55b637f1d39a3981e12ff058843ea384d7574dce3d8a1c4c"
+      }
+    ],
+    "errors": [
+      {
+        "name": "run_command",
+        "message": "this command has no caller stdin"
+      },
+      {
+        "name": "run_command",
+        "message": "unknown case"
+      },
+      {
+        "name": "run_command",
+        "message": "unknown case"
+      },
+      {
+        "name": "write_ledger",
+        "message": "attempt to write command-owned or unknown field"
+      },
+      {
+        "name": "submit_result",
+        "message": "invalid tool or arguments"
+      }
+    ]
+  },
+  "grade": {
+    "status": "fail",
+    "cases": [
+      {
+        "id": "dispatched-pass",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "failed-prerequisite",
+          "ac-source-or-provenance"
+        ]
+      },
+      {
+        "id": "gate-failure",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "reported-gate-contract"
+        ]
+      },
+      {
+        "id": "gate-none",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "reported-gate-contract"
+        ]
+      },
+      {
+        "id": "evidence-absence",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "continued-after-refusal",
+          "diagnostic-result-shape",
+          "reported-evidence-classification",
+          "diagnostic-return-provenance",
+          "reported-verification-provenance",
+          "absence"
+        ]
+      },
+      {
+        "id": "evidence-refusal",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "diagnostic-result-shape"
+        ]
+      },
+      {
+        "id": "evidence-tamper",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "diagnostic-result-shape"
+        ]
+      },
+      {
+        "id": "mixed-ledger",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "tool-error",
+          "ledger-producer-fields",
+          "ledger-write-after-each-edit",
+          "ledger-write-payload",
+          "ledger-write-hash",
+          "unaccounted-ledger-events",
+          "summary-consumer"
+        ]
+      },
+      {
+        "id": "incomplete-ledger",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "ledger-producer-fields"
+        ]
+      },
+      {
+        "id": "dispatched-merge-owner",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "human-only-checklist",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "incomplete-gates",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "raw-pr-ready",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "retry-return",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "evidence-return-scope",
+        "kind": "decision",
+        "pass": true
+      }
+    ],
+    "errors": [
+      {
+        "seq": 13,
+        "message": "this command has no caller stdin"
+      },
+      {
+        "seq": 29,
+        "message": "unknown case"
+      },
+      {
+        "seq": 30,
+        "message": "unknown case"
+      },
+      {
+        "seq": 37,
+        "message": "attempt to write command-owned or unknown field"
+      },
+      {
+        "seq": 43,
+        "message": "invalid tool or arguments"
+      }
+    ],
+    "problems": [],
+    "reconciliation": {
+      "status": "fail",
+      "cases": [
+        {
+          "id": "mixed-ledger",
+          "kind": "execution",
+          "pass": false,
+          "problems": [
+            "tool-error",
+            "ledger-producer-fields",
+            "ledger-write-after-each-edit",
+            "ledger-write-payload",
+            "ledger-write-hash",
+            "unaccounted-ledger-events",
+            "summary-consumer"
+          ]
+        },
+        {
+          "id": "incomplete-ledger",
+          "kind": "execution",
+          "pass": false,
+          "problems": [
+            "ledger-producer-fields"
+          ]
+        }
+      ],
+      "errors": [
+        {
+          "seq": 2,
+          "case_id": "mixed-ledger",
+          "message": "attempt to write command-owned or unknown field"
+        },
+        {
+          "seq": 8,
+          "case_id": "mixed-ledger",
+          "message": "invalid tool or arguments"
+        }
+      ],
+      "problems": [
+        "unknown-operation"
+      ],
+      "detail_reviews": [
+        {
+          "case_id": "mixed-ledger",
+          "problems": [],
+          "details_sha256": "bcc711bf8b990cd6b77fb4496fbf01b28a779052e38f219dcdeb6ace40b96640",
+          "source_sha256": "116a996b3d903b769927a2dc71bdf2ad6ab691ac3fee1c362da707d5e06e5780",
+          "extra_claims": []
+        },
+        {
+          "case_id": "incomplete-ledger",
+          "problems": [],
+          "details_sha256": "bcc711bf8b990cd6b77fb4496fbf01b28a779052e38f219dcdeb6ace40b96640",
+          "source_sha256": "e1d104ad58da01bdd2b4938abd4f065893e1b91be1566afbd9baa9e89dcdad06",
+          "extra_claims": []
+        }
+      ],
+      "manual_grounding_required": false,
+      "legacy_exact_projection": {
+        "status": "fail",
+        "cases": [
+          {
+            "id": "mixed-ledger",
+            "kind": "execution",
+            "pass": false,
+            "problems": [
+              "tool-error",
+              "ledger-producer-fields",
+              "ledger-write-after-each-edit",
+              "ledger-write-payload",
+              "ledger-write-hash",
+              "unaccounted-ledger-events",
+              "summary-consumer"
+            ]
+          },
+          {
+            "id": "incomplete-ledger",
+            "kind": "execution",
+            "pass": false,
+            "problems": [
+              "ledger-producer-fields"
+            ]
+          }
+        ],
+        "errors": [
+          {
+            "seq": 2,
+            "case_id": "mixed-ledger",
+            "message": "attempt to write command-owned or unknown field"
+          },
+          {
+            "seq": 8,
+            "case_id": "mixed-ledger",
+            "message": "invalid tool or arguments"
+          }
+        ],
+        "problems": [
+          "unknown-operation"
+        ]
+      }
+    }
+  },
+  "scope": "Real disposable graft checkpoint CLI operations and trusted dispatcher consumers; controlled review and PR handoffs only. No model lifecycle, hosted forge, CI or review-judgement proof."
+}

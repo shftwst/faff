@@ -1,0 +1,57 @@
+{
+  "arm": "baseline",
+  "requested_model": "gpt-6-astra",
+  "effort": "low",
+  "codex_cli": "0.169.0",
+  "harness_command": [
+    "node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/review-producer.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/review-producer-with-context.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/review-producer-v2.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-5"
+  ],
+  "runner_sha256": "4a52a8e80b0c9c5161092972c18cbf56066479b453f2cdc943021297c6bbc6a0",
+  "bridge_sha256": "3feb07ca89eb0ddb815a064bac88d10848f05b662f89efbc684d5c51326df49d",
+  "prompt_sha256": "576e163628df950bc3716bb3d97cba3932ab2342481d7830322cfdf5dca9c843",
+  "common_context": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "bytes": 22605
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "bytes": 5591
+    }
+  ],
+  "command": [
+    "codex",
+    "exec",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-6-astra",
+    "-c",
+    "model_reasoning_effort=\"low\"",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-c",
+    "approval_policy=\"never\"",
+    "--sandbox",
+    "workspace-write",
+    "--cd",
+    "/tmp/faff-astra-measure-ncu5elzt/cwd",
+    "--add-dir",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-5",
+    "--json",
+    "--output-last-message",
+    "/tmp/faff-astra-measure-ncu5elzt/final.txt",
+    "-"
+  ],
+  "provider_usage": "unmetered",
+  "private_native_capture": "/tmp/faff-astra-measure-ncu5elzt",
+  "context_reset_requested": true
+}

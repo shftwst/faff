@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All 26 cases were completed and persisted. The bridge confirmed successful finish.\n\nNo departures from the restrictions. No output files were inspected.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e425-d40d-7e02-88e7-ffc786e973a5"
+    ],
+    "elapsed_seconds": 351.3,
+    "stdout_sha256": "e45c3c4134bbc5e0d0a97bd4d16a3ff0d4ea7c9b4620cbeda8d8cb3358e58b21",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

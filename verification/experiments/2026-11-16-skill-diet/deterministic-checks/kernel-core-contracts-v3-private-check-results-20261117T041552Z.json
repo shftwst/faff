@@ -1,0 +1,253 @@
+{
+  "environment_overrides": {
+    "TMPDIR": "/var/tmp/kc3-uv5pfd3w",
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "commit.gpgsign",
+    "GIT_CONFIG_VALUE_0": "false"
+  },
+  "checks": [
+    {
+      "check": "contracts",
+      "command": [
+        "/usr/local/bin/node",
+        "--test",
+        "test/contract-golden.test.mjs",
+        "test/contract-describe.test.mjs"
+      ],
+      "cwd": "/var/tmp/faff-kernel-core-contracts-v3-integration",
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v3-private-contracts-20261117T041552Z.txt",
+      "sha256": "43db2d3cd7cc63f2940ad72691a9d27689b3c74d6cb49e80eedda15ff0991ba8",
+      "started_utc": "2026-11-17T04:15:52.829694+00:00",
+      "finished_utc": "2026-11-17T04:15:55.870307+00:00",
+      "counts": {
+        "tests": 92,
+        "pass": 92,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "/usr/local/bin/node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "cwd": "/var/tmp/faff-kernel-core-contracts-v3-integration",
+      "exit_code": 1,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v3-private-adapter-lint-20261117T041552Z.txt",
+      "sha256": "7611724fd2568bf0e0dc2faac27154cf778085913fe4cf4a2c85610ded32b799",
+      "started_utc": "2026-11-17T04:15:52.830052+00:00",
+      "finished_utc": "2026-11-17T04:15:53.540244+00:00"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "/usr/local/bin/node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "cwd": "/var/tmp/faff-kernel-core-contracts-v3-integration",
+      "exit_code": 1,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v3-private-rule-inventory-20261117T041552Z.txt",
+      "sha256": "76f7c9268da740dd87fab4153f79318d8c99417e9c3ea5d977376de8cd84063d",
+      "started_utc": "2026-11-17T04:15:52.830159+00:00",
+      "finished_utc": "2026-11-17T04:15:56.916783+00:00",
+      "summary": {
+        "result": "fail",
+        "blocks_deleted": 673,
+        "uncovered": [
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 381,
+            "excerpt": "**Dividing principle:** anything the faff-* pipeline branches on, counts, gates on, or admits \u2192 internal (fixed, here). "
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 385,
+            "excerpt": "Skills load independently. When you enter via a slash command (`/faff-graft`), as a delegated slot, or invoke an adaptor"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 387,
+            "excerpt": "1. **Consumers load on entry.** Every fixed faff-* consumer (graft, tidy, beep-boop, wtf, prep, map, jot) reads this gat"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 388,
+            "excerpt": "2. **Standalone reads on demand.** An adaptor invoked directly (e.g. \"validate the spec for SHF-123\") has no consumer ab"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 391,
+            "excerpt": "**Conformance clause (binding on every slot occupant).** Any skill occupying an adaptor slot (`routing_adaptor` / `rende"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 397,
+            "excerpt": "- **Scope: foreign occupants only \u2014 decided by a deterministic predicate, never an LLM read of the occupant's identity.*"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 398,
+            "excerpt": "- **How.** Only when the predicate above returns exit 1 (foreign, or bundled-but-wrong-slot): invoke the `faffter-dark-a"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 399,
+            "excerpt": "- **Cache once per run.** Validate each distinct occupant **once** per session/run and cache the verdict \u2014 autonomous ru"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 401,
+            "excerpt": "- *Autonomous* \u2014 **park** the work unit (cause: `slot non-conformant \u2014 <slot>:<occupant>`), citing the violations in the"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 402,
+            "excerpt": "- *Interactive* \u2014 surface the violations and stop before using the occupant; the user fixes the occupant (or reverts the"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 404,
+            "excerpt": "- **Pre-flight (optional, recommended before unattended runs).** The runtime gate above surfaces a non-conformant occupa"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 406,
+            "excerpt": "Per **Contract loading & conformance** above, every consumer already loads this gateway on entry, so this rule is ambien"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 410,
+            "excerpt": "**Internal contract (fixed):** a review returns exactly one value from a closed set of states. Canonical semantics: `faf"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 414,
+            "excerpt": "**The envelope (canonical) + the consumer-fold.** The `review` producer emits its verdict as a `faff-contract:review-ver"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 418,
+            "excerpt": "**Internal contract (fixed):** the spec-stage approach-critique (the `spec_review` slot) returns exactly one verdict fro"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 420,
+            "excerpt": "**The envelope + the consumer-fold.** The `spec_review` slot (default `faffter-noon-spec-review`) emits its verdict as a"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 424,
+            "excerpt": "**Internal contract (fixed):** delivery returns exactly one outcome from a closed three-value set, each carrying a `<rea"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 430,
+            "excerpt": "**\"CI-green\" means CI *ran* and is green \u2014 not \"no CI ran\".** The floor's CI condition has **three** outcomes, not two: "
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 432,
+            "excerpt": "**Coercion (fixed):** if the producer's native result cannot be mapped onto one of the three outcomes \u2014 empty, garbled, "
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 434,
+            "excerpt": "**The envelope (canonical) + the consumer-fold.** The `ship` producer emits its result as a `faff-contract:delivery-outc"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 438,
+            "excerpt": "**Internal contract (fixed):** the closed six-verdict vocabulary, the **build-queue admission rule** (only the two build"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 440,
+            "excerpt": "**Adaptor slot:** `routing_adaptor` (default `faffidavit-routing`) \u2014 assigning a verdict from `backlog-diagnostics` find"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 442,
+            "excerpt": "**Live-thread reconciliation (fixed \u2014 the tracker is the control surface).** The `spec confidence + markers` inputs to v"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 446,
+            "excerpt": "**Internal contract (fixed):** every non-trivial decision is classified as **closed** / **open** / **external-dependency"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 448,
+            "excerpt": "**The dialect (canonical) + the consumer-fold.** This is the canonical home for the spec dialect the retired `faffidavit"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 450,
+            "excerpt": "- **Decision markers** \u2014 every non-trivial decision carries exactly one: `**Chosen:** X` (closed \u2014 implementer does X, r"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 451,
+            "excerpt": "- **Punt ownership (optional).** A `**Punt:**` may carry a trailing `(decides: <owner>)` suffix naming who resolves it \u2014"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 452,
+            "excerpt": "- **Ratifier tag (optional).** A `**Chosen:**` may carry a trailing `(ratified: human)` suffix \u2014 `**Chosen:** X (ratifie"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 454,
+            "excerpt": "- **Provenance stamp** \u2014 a single blockquote directly under the H1: `> Spec: <producer> \u00b7 <date> \u00b7 <mode> \u00b7 <harness>/<m"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 455,
+            "excerpt": "- **Writing style \u2014 skimmable, not coded:** no invented labelling schemes (`F2`, `R3`, `Phase 4`); restate the subject o"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 457,
+            "excerpt": "**The producer emits, the consumer parses.** The `spec` producer emits a `faff-contract:spec-readiness` block \u2014 `{ \"conf"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 461,
+            "excerpt": "Rendering is purely human-facing: no pipeline code branches on, counts, or gates on it, so there is **no internal contra"
+          },
+          {
+            "file": "plugin/skills/faff/references/kernel.md",
+            "base_line": 463,
+            "excerpt": "**Universal-routing rule (load-bearing).** \"User-facing output\" means **all** human-facing output a sub-skill produces \u2014"
+          }
+        ],
+        "row_errors": [],
+        "specs": [
+          "records/specs/2026-11-16-skill-diet-adversarial-review-design.md",
+          "records/specs/2026-11-16-skill-diet-beep-ledger-design.md",
+          "records/specs/2026-11-16-skill-diet-beep-reporting-design.md",
+          "records/specs/2026-11-16-skill-diet-catalog-design.md",
+          "records/specs/2026-11-16-skill-diet-gateway-design.md",
+          "records/specs/2026-11-16-skill-diet-intake-design.md",
+          "records/specs/2026-11-16-skill-diet-kernel-design.md",
+          "records/specs/2026-11-16-skill-diet-prd-producer-design.md",
+          "records/specs/2026-11-16-skill-diet-rendering-design.md",
+          "records/specs/2026-11-16-skill-diet-review-producer-design.md",
+          "records/specs/2026-11-16-skill-diet-spec-review-design.md",
+          "records/specs/2026-11-16-skill-diet-thematic-design.md",
+          "records/specs/2026-11-16-skill-diet-wtf-design.md",
+          "records/specs/2026-11-17-skill-diet-kernel-core-contracts-design.md"
+        ]
+      }
+    }
+  ]
+}

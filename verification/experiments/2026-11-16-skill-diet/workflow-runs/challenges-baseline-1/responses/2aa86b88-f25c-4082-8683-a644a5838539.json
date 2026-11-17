@@ -1,0 +1,98 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-1",
+      "outcome": "survived",
+      "ground": null,
+      "reason": "The DoD covers exactly one capability: a non-merging inspection of the current merge-floor decision. That serves the first PRD goal directly and reuses the existing floor reads, so the floor stays the single source of truth (second goal). Nothing in the DoD goes beyond the declared goals, and the test-double assertion that no merge call is made covers the safety claim."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "--prd-goals",
+          "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+          "--challenge",
+          "survived",
+          "--challenge-reason",
+          "The DoD covers exactly one capability: a non-merging inspection of the current merge-floor decision. That serves the first PRD goal directly and reuses the existing floor reads, so the floor stays the single source of truth (second goal). Nothing in the DoD goes beyond the declared goals, and the test-double assertion that no merge call is made covers the safety claim."
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"The DoD covers exactly one capability: a non-merging inspection of the current merge-floor decision. That serves the first PRD goal directly and reuses the existing floor reads, so the floor stays the single source of truth (second goal). Nothing in the DoD goes beyond the declared goals, and the test-double assertion that no merge call is made covers the safety claim.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": true,
+      "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+      ],
+      "dod_covers": [],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": false,
+        "within_scope": false,
+        "verdict": "admit",
+        "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": false,
+        "reason": "The DoD covers exactly one capability: a non-merging inspection of the current merge-floor decision. That serves the first PRD goal directly and reuses the existing floor reads, so the floor stays the single source of truth (second goal). Nothing in the DoD goes beyond the declared goals, and the test-double assertion that no merge call is made covers the safety claim.",
+        "ground": "other"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "admit",
+      "upper": {
+        "admit": true,
+        "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

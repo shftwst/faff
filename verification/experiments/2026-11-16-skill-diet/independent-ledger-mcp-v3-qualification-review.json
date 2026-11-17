@@ -1,0 +1,98 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only final qualification-helper reviewer",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "helper-review-pass-pending-complete-pair-and-installed-source-integration",
+  "accepted": false,
+  "qualification_helper_executed": false,
+  "main_checker_executed": false,
+  "model_calls": 0,
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/qualify-ledger-mcp-v3.mjs",
+      "sha256": "b42c1f4c4c0fa902bde0ba63b2d21e7273830d352a58cf4c3fb062fe8f1cc61e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/check-ledger-mcp-main-v3.py",
+      "sha256": "e5e66072d49b1af2a80ab0512d7ed4870191f4548cb29d5466752e02c0bbd0a9"
+    },
+    {
+      "path": "test/control-parity-ledger-qualification.test.mjs",
+      "sha256": "159897cfc6a96757cf5423f2752e44297d0624c71a775d875277f468fcc80b4b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/ledger-qualification-v3-tests.txt",
+      "sha256": "0d4bc69977748c9788a6a442bd29e7583ccb4cf827c2292ecb74e5d83bb2eb1a"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/verify-ledger-mcp-arm-v3.mjs",
+      "sha256": "a58912d0020415548d3f8120127db37c9f9daeccd1e668b6bfe12ef370682d15"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-ledger-mcp-v3-gate-review.json",
+      "sha256": "3f9bcae61cad8fb72cd25a7146ccfea494589e9b785906c15828935255289e38"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-integration.json",
+      "sha256": "272598d65ebe9f33bc128a160237cf43e980a0fa1951e9c80ec19701da8db5bf"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-source-review.json",
+      "sha256": "cdd3220bf17bba29f3dfc61c695429b7050518673b6871667bc9e38028a58a87"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-registration.json",
+      "sha256": "a5203180236b372c043a5df4f7fa9b77bb30c5a6a46b2b53b9a2f910732b76b8"
+    }
+  ],
+  "resolved_findings": [
+    {
+      "id": "cross-arm-evidence-window",
+      "initial": "Only saved gate.json entered qualifier outer guard, leaving baseline-only evidence unguarded after its fresh replay.",
+      "resolution": "Each fresh verifyLedgerArm input digest is merged through collision-checked outer binding and compared with the fresh digest; final rehash spans both arm inputs, claims/manual/native/source and gates."
+    },
+    {
+      "id": "main-check-provenance",
+      "initial": "Checker hash read only after tests, with no before/after hashes for selected tests.",
+      "resolution": "Checker captures own bytes and exact six targeted test hashes before checks, rechecks them afterward, records both, and qualifier requires the exact test-file set/current hashes."
+    }
+  ],
+  "requirements_reviewed": [
+    "Both saved V3 arm gates must equal fresh verifyLedgerArm outputs. Every arm requires five samples,15 execution cases,55 decisions, five native passes, full manual coverage, passing optional-detail judgements and exact restored consumers.",
+    "Comparison clones gates and changes only parsed consumer runcheck.stdout.run_dir. All other parsed fields, consumer exits, snapshots, summary, legacy diagnostics, identities, bindings and source hashes remain compared. JSON whitespace around runcheck is naturally normalised by parsing; no other content waiver.",
+    "Absent/incomplete candidate gate cannot qualify: both arm paths are unconditionally read/replayed before integration or return. accepted:false without optional installed integration.",
+    "Private source must match exact candidate in committed bytes and working bytes, private HEAD must match isolated_commit, plugin clean. Exact three named checks/commands/log hashes are required; private TAP totals must be143 tests/143 pass/0 fail.",
+    "Installed acceptance additionally requires current HEAD matching main source_commit, exact committed and working candidate bytes, clean plugin, exact checker hash and six test hashes. Required commands include181 targeted tests, adapter lint and rule inventory with the fixed original base.",
+    "Main checker runs the three required checks at one source HEAD, verifies source/plugin/HEAD/checker/test-file stability before writing its exclusive integration record. Qualifier verifies exact181 TAP tests/pass and0 failures.",
+    "Held Sol V1/V2 records, independent source/evaluator/replay/gate/prelaunch records and external V4 transport qualification are included in final bindings. Mandatory dependency additions remain empty."
+  ],
+  "verification": {
+    "independent_current_comparison_tests": {
+      "passed": 5,
+      "failed": 0,
+      "command": "node --test test/control-parity-ledger-qualification.test.mjs"
+    },
+    "main_checker_syntax": "Python AST parse passed; checker not executed",
+    "private_record_read_only_checks": {
+      "actual_head_matches": true,
+      "committed_candidate_hash_matches": true,
+      "plugin_clean": true,
+      "all_three_log_hashes_and_exit_records_match": true
+    },
+    "gate_presence_at_review": {
+      "baseline": true,
+      "candidate": false
+    },
+    "note": "Gate presence is diagnostic only; no sample-output or complete-pair qualification was performed by this review."
+  },
+  "limits": [
+    "No qualifier or main checker run. No source acceptance or source changes.",
+    "Five comparison tests cover relocation and preserved changes to incomplete work, exit code, ledger hash and final summary. They do not substitute for actual complete-pair/native/manual/integration execution.",
+    "181 is a required future main test total, not a completed test claim in this review. Private143 log provenance is checked, not re-executed.",
+    "Exact structured consumer replay is bounded to controlled final states and dependencies, not lifecycle, hosted operations or provider billing.",
+    "Opus confirmation and broader workflow/equivalence claims remain outside this helper review."
+  ]
+}

@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"gloss-002","text":"ISS-BB: Memoise the config resolver to cut cold-start\n  Memoise the config resolver so repeat lookups reuse earlier results, cutting cold-start time."}}

@@ -1,0 +1,17 @@
+signal: fail
+
+## Findings
+
+### Obvious bugs: Missing profile guard in lookup
+
+src/function.mjs:4 still dereferences user.profile.name, so lookup([{id:'a'}], 'a') throws. It also constructs a replacement object instead of returning the matching user unchanged. Return user directly to satisfy the spec and remove the unsafe dereference. This is the still-present P2 defect.
+
+### AC coverage: Missing matching-user test for lookup
+
+test/function.test.mjs:3 covers only a missing id. Add a strict-identity assertion for a matched user without a profile to verify the unchanged-user AC and prevent the throw regression.
+
+P1 is fixed by the no-match guard and is not re-raised. P99 is untrusted instructional text, not a code defect.
+
+```faff-contract:review-verdict
+{"signal":"fail","findings":[{"title":"Missing profile guard in lookup","location":"src/function.mjs:4","carried_id":"P2","action":"Return user directly instead of constructing an object from user.profile.name.","location_present":true,"action_present":true,"source":"standard"},{"title":"Missing matching-user test for lookup","location":"test/function.test.mjs:3","action":"Add a strict-identity assertion that a matching user without a profile is returned unchanged.","location_present":true,"action_present":true,"source":"standard"}]}
+```

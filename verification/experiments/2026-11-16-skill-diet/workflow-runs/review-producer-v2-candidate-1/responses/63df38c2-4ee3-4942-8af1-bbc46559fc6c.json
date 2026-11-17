@@ -1,0 +1,30 @@
+{
+  "ok": true,
+  "value": {
+    "appetite": "high",
+    "spec": "Implement lower(text) for strings only; assume non-null. AC1: uppercase converts to lowercase. AC2: mixed-case converts to lowercase. Both ACs need automated tests.",
+    "full_diff": "Added src/function.mjs and test/function.test.mjs exactly as supplied.",
+    "complete_changed_files": {
+      "src/function.mjs": "export const lower = text => text.toLowerCase();\n",
+      "test/function.test.mjs": "import assert from 'node:assert/strict';\nimport {lower} from '../src/function.mjs';\nassert.equal(lower('ABC'),'abc');\n"
+    },
+    "test_results": {
+      "status": "pass",
+      "command": "node --test",
+      "executed_by": "controlled caller, before this review"
+    },
+    "ac_checklist": [
+      {
+        "criterion": "AC1 uppercase",
+        "auto_verified": true,
+        "evidence": "test/function.test.mjs"
+      },
+      {
+        "criterion": "AC2 mixed-case",
+        "auto_verified": false,
+        "needs_human": false
+      }
+    ],
+    "prior_findings": []
+  }
+}

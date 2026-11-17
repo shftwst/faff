@@ -1,0 +1,1 @@
+ISS-CC: Make the eval harness record `cache_read_input_tokens` for every request, the count of input tokens served from the prompt cache.

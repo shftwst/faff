@@ -1,0 +1,2 @@
+- Opening sentence → Lead with the load-bearing model → no load-bearing model to lead with; the source states no governing idea, so the producer must supply one.
+- Whole draft → Prose skimmability (three or more enumerable items become a list) → render the three steps as a numbered list: open the dashboard; copy the displayed number; close the tab.

@@ -1,0 +1,63 @@
+{
+  "schema": 1,
+  "status": "static-source-review-clear-unmeasured-uninstalled",
+  "accepted": false,
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/kernel-core-contracts-v1.md",
+      "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v1-draft.md",
+      "sha256": "f526ede8d08e036ce7b84dcedf839e531456a0c33d90cfdf834448ba082e5b42"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v2-draft.md",
+      "sha256": "9aa6802169c058fb0b675e5a8e6635cee5bb9462f1836827a418129ebbc6fb81"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v3-draft.md",
+      "sha256": "a12ed2bb9a58cab911996e92ddb49fe1fe71ef8c62ca86fede4ecf3d016910ac"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-contracts-v3-reflow-note.json",
+      "sha256": "cf1bb823360296e64e26bcec807652f995bb37f1975f0681fa5c9cac013c562b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-kernel-core-contracts-v1-source-review.json",
+      "sha256": "09fb91c6dcad742d803e1822d283b92dd30cf039d590b98c9c11e8767fb155d5"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/validate-adapters.js",
+      "sha256": "7a26ee73bdb254c03bc97bf4cf67db0620602cad40998a55d7234fd4eb4ffcb0"
+    }
+  ],
+  "checks": {
+    "v1_to_v2_exact_single_punt_example_fix": true,
+    "canonical_punt_complete_literal": true,
+    "v2_to_v3_ordered_whitespace_tokens_identical": true,
+    "v2_to_v3_nonwhitespace_characters_identical": true,
+    "all_heading_lines_identical": true,
+    "all_table_lines_identical": true,
+    "prefix_55064_bytes_unchanged": true,
+    "accepted_configuration_treatment_unchanged": true,
+    "mandatory_reads_unchanged": true,
+    "prior_v1_unique_rule_matrix_remains_applicable": true,
+    "inherited_gateway_and_L4_only_semantics_unchanged": true,
+    "validator_lines": 435,
+    "unchanged_kernel_cap": 435,
+    "pure_inline_enum_findings": [],
+    "changed_tail_longest_plain_paragraph_words": 191
+  },
+  "potential_savings": {
+    "bytes": 13261,
+    "estimated_tokens": 3253,
+    "accepted": false
+  },
+  "assessment": "Both V1 blockers are resolved. V2 restores the exact original canonical Punt form; V3 changes whitespace only, retaining all reviewed words, literals, order, headings and table rows. No new mandatory load or strength loss found in this bounded derivative check.",
+  "limits": [
+    "No repeated full semantic reread: inherits the hash-bound15-domain V1 source review through exact V1\u2192V2 correction and V2\u2192V3 token equality.",
+    "Pure exported lint checks only; no installed source, test suite, model, workflow or final qualification.",
+    "Current source/accepted cut/accounting remain unchanged. Future frozen comparison and exact integration still required before accepted savings."
+  ]
+}

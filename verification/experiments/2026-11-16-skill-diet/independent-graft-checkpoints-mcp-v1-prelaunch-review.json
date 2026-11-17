@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "status": "held-prelaunch-missing-dynamic-helper-binding",
+  "accepted": false,
+  "model_calls": 0,
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v1-registration.json",
+      "sha256": "f0622251a5154ebbc321847861cb5e77f1e26a980ebaf99ffda6526768cde750"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v1-baseline-plan.json",
+      "sha256": "0f73d254c36e7c1a1fc1d89bb5cd096629cc49e53d1d106d612227f40f81770c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-mcp-v1-candidate-plan.json",
+      "sha256": "ef7380d7ab458421db068ac5099f115bec092b27af76fdac87afda71fc4fd3c0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/verify-graft-checkpoint-arm-v1.mjs",
+      "sha256": "99ebf35c8b8bc3b004b36ce90713b7e98b5e139c4959f0bafe47168513a2c4e9"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution.mjs",
+      "sha256": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31"
+    },
+    {
+      "path": "eval/control-parity/reporting-execution.mjs",
+      "sha256": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58"
+    }
+  ],
+  "blocker": {
+    "path": "eval/control-parity/reporting-execution.mjs",
+    "sha256": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58",
+    "reason": "ledger-execution.mjs:98 spawns this helper for mixed-ledger summary consumption. It is absent from57-entry frozen maps, while the external gate unconditionally requires it. V1 cannot pass the arm gate and its source-load closure is incomplete.",
+    "required": "Preserve V1 no-call hold and freeze a new V2 including the dynamic helper and revised checker/plan/registration identities."
+  },
+  "other_checks": {
+    "both_plan_hashes_match_registration": true,
+    "all57_input_hashes_match_in_each_plan": true,
+    "frozen_maps_identical": true,
+    "same8_reference_order_and_exact_reference_hashes": true,
+    "composed_reference_bytes_and_markers_exact": true,
+    "baseline_candidate_context_prefix_identical": true,
+    "bare_source_suffixes_exact": true,
+    "fixed5_originals_per_arm_and14_cases_and7_manual_criteria": true,
+    "baseline_manual_external_arm_gate_before_candidate_rule_explicit": true,
+    "no_retry_replacement_pooling_or_alternative_model_rescue": true,
+    "all10_sample_directories_absent": true
+  },
+  "dynamic_closure": {
+    "missing_local_files": [
+      "eval/control-parity/reporting-execution.mjs"
+    ],
+    "reporting_static_imports_already_frozen": true,
+    "current_root_cjs_modules_loaded_by_gate_and_mcp_import": 0,
+    "pinned_runtime_dynamic_modules": [
+      "plugin/skills/faff/bin/lib/heartbeat.js",
+      "plugin/skills/faff/bin/lib/run-summary.js"
+    ],
+    "pinned_runtime_scope": "Runtime CLI entry and dynamic production modules resolve exclusively under plan.runtime_root, covered by bindCandidateCommand full plugin tree/hash guards. No current-root plugin dependency freeze is needed for these actual paths.",
+    "generated_code": "fixture-check.cjs is a literal written by the frozen graft harness, not an unfrozen external source.",
+    "audit_boundary": "Inspected active harness, ledger summary subprocess, reporting --consume, native/MCP helper and V5 subprocess/import sites; no claim to execute a new model or whole workflow."
+  },
+  "limits": [
+    "No model or arm gate launched. Preserved registration is not launchable until separately versioned closure correction.",
+    "External manual/code/preflight reviews remain bounded; no PR-body, hosted actions, full graft, custody or independently restored consumer replay claim."
+  ]
+}

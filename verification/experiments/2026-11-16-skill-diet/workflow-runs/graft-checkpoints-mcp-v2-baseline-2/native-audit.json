@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "scope": "Native structured transport and unchanged mailbox attribution. Semantic fidelity, case completion and production runtime binding require the separately recorded workflow grade and integration checks. No reasoning or tool content is exported.",
+  "auditor_sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+  "source_sha256": "bfa11111226f730720cfd8b1ea1985ac03945c4756c582fd12ff18ae37de80e5",
+  "evidence_hashes": {
+    "task.json": "a53e5306b5001fcdf81e597a742d94e2ead5767b35600e378357d141a808fc4f",
+    "startup-binding.json": "e5e9af49772ecf848f4c8c0bfb012d40de3bf522cb42980e0fc163591b82e7db",
+    "worker-manifest.json": "d8f984f2806b744412bbd27e059c349b5d0d33ea30d7f72fc96f8c359ddd48d4",
+    "worker-final-state.json": "33d98b6cd69d587daf69b353e89cd4066281bcd27cd4bcc93e1cd728a59fab70",
+    "mcp-server-manifest.json": "a6f026372e0aae97c325888b279f2bdffd83ad27eef7e419de249c8066627543",
+    "mcp-trace.jsonl": "0dd6ba3a14ff0b97ceaedbe324480d76cb374ecd07ae9df7a6e6bb99580c5695",
+    "mcp-protocol-errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "capture.json": "0d37c7cc9baede02388ac4620c3ac17e5ae897b3a7aeae0acd5c888f72389c05",
+    "report.json": "56f46837eb06ded02647f9c36004df7cbbb1710a16aa5285940cbf781cdf4440"
+  },
+  "runs": [
+    {
+      "status": "fail",
+      "session_id": "01a1e77d-179f-7281-a103-3241759fc2e1",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-2/task.json",
+          "complete": false,
+          "sha256": null
+        }
+      ],
+      "native_calls": 124,
+      "mcp_calls": 121,
+      "policy_reads": 70,
+      "problems": [
+        {
+          "code": "missing-duplicate-or-malformed-native-result",
+          "detail": null
+        },
+        {
+          "code": "initial-read-missing-incomplete-or-truncated",
+          "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-2/task.json"
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 98
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 98
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 98
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 99
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 99
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 99
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 111
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 111
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 111
+        },
+        {
+          "code": "reported-policy-delivery-differs",
+          "detail": null
+        },
+        {
+          "code": "bridge-report-differs",
+          "detail": null
+        },
+        {
+          "code": "capture-operation-bijection-differs",
+          "detail": null
+        }
+      ]
+    }
+  ]
+}

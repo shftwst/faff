@@ -1,0 +1,38 @@
+{
+  "status": "held",
+  "updated_utc": "2026-11-16T12:19:38.359487+00:00",
+  "read_artifacts": 6,
+  "notes": "All six baseline-one reports read. Each omits the required TL;DR heading/section, putting summary prose at the beginning instead. The off-chain report gives a concrete removing-edge action, which the remove|cut|break recogniser wrongly misses; that false negative does not remove the independent format failure. No candidate measured; no source cut installed.",
+  "rows": [
+    {
+      "path": "workflow-runs/map-report-astra-v1-baseline-1/artifacts/coherent.md",
+      "sha256": "5eac6e0a3652faa8e38a599f45fc00a82d620df29ac55748a821d24d18abcf28",
+      "status": "read-held-missing-required-summary-section"
+    },
+    {
+      "path": "workflow-runs/map-report-astra-v1-baseline-1/artifacts/cross-initiative-and-park.md",
+      "sha256": "e30ac5cebd0dee3321ce49a05cf0d2b916135bf4527317d0b1ec3a25f292921a",
+      "status": "read-held-missing-required-summary-section"
+    },
+    {
+      "path": "workflow-runs/map-report-astra-v1-baseline-1/artifacts/cycle-off-chain.md",
+      "sha256": "ba3839e6c670d5e2e27467ec4b9f3764efe29a1d7ba89e387d2e7548fdb3cb0d",
+      "status": "read-held-missing-required-summary-section"
+    },
+    {
+      "path": "workflow-runs/map-report-astra-v1-baseline-1/artifacts/cycle-on-chain.md",
+      "sha256": "0c98e396283bf30c5d8e8670af07e069205b85f73f27a877b70f1fb0a4bb8e16",
+      "status": "read-held-missing-required-summary-section"
+    },
+    {
+      "path": "workflow-runs/map-report-astra-v1-baseline-1/artifacts/ghost-next.md",
+      "sha256": "121af21da90d5abc22a2b063c4ad5cb82e607e5332ff95de1f2714420ee88d37",
+      "status": "read-held-missing-required-summary-section"
+    },
+    {
+      "path": "workflow-runs/map-report-astra-v1-baseline-1/artifacts/stalled-and-parallel.md",
+      "sha256": "b3dce8ff5b156e05b5f34688f9a76d8ba390149342ec3e3de15c91c167b0f73c",
+      "status": "read-held-missing-required-summary-section"
+    }
+  ]
+}

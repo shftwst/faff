@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "written": true,
+    "path": "/var/tmp/faff-reporting-measure-pyW2Va/cases/shipped-precedence/.faff/runs/run-20260101-000000-beepboop-list-abc101/summary-facts.json",
+    "sha256": "1a6e120e5f6dda42c6821a7b6d36d88b4b961975f3cd95ac8508d6a875b57913"
+  }
+}

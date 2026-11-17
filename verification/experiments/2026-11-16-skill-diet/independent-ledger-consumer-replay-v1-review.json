@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "status": "pass-bounded-consumer-replay-review",
+  "scope": "Independent static helper/test review and deterministic test execution including real isolated CLI consumers. Consumption-only replay, not measurement acceptance, strict native certification, lifecycle proof or token acquisition regeneration. No model calls or production/source edits.",
+  "identified_bug_and_resolution": {
+    "initial_bug": "Empty or omitted case sets could return a passing replay without consuming every registered case.",
+    "resolution": "Current helper binds fixture bytes to manifest and requires exact fixture case coverage, rejecting empty/omitted sets in tests.",
+    "remaining_blockers": []
+  },
+  "tests": {
+    "command": "node --test test/control-parity-ledger-replay.test.mjs",
+    "exit_code": 0,
+    "tests": 13,
+    "pass": 13,
+    "fail": 0,
+    "positive": "Exact final-state restoration runs real runcheck, events validate/read/verify and mixed-ledger summary, retaining OPEN-1 refusal and absent incomplete summary.",
+    "negatives": 12,
+    "log_path": "/tmp/faff-ledger-replay-independent-tests-v1.log",
+    "log_sha256": "445554ae1fd1a7d5d793b6e05c3b70323dc7163ec7325b54fc26f1c9cc406168"
+  },
+  "source_checks": [
+    "Exact ledger_bytes and JSONL reconstructed by ordered JSON.stringify plus trailing newline must equal captured last-append hashes.",
+    "Initial event prefix, appended suffix and captured event-read array are bound before consumers.",
+    "Original run IDs, owner timestamps, event timestamps, ledger paths inside bytes and heartbeat bytes are preserved.",
+    "Consumers use fresh isolated roots, clean environment and explicit paths. No open/close/append/transcript recreation occurs.",
+    "Only parsed runcheck.stdout.run_dir is relocated; all other parsed runcheck fields, exit/stderr/error match. Other consumer stdout is exact.",
+    "Summary uses fixed V2 facts/records and dependency-injected production handler; output and persisted summary compare exactly, with no clock stripping or bucket reordering.",
+    "Source snapshot files, helper, reporting shim, fixture and dependency are hash-guarded through completion; pinned runtime artifacts are rechecked.",
+    "Restored ledger/events/heartbeat must remain unchanged after all consumers, and temporary roots are removed."
+  ],
+  "prior_record_version_distinction": {
+    "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2/consumer-replay.json",
+    "recorded_helper_sha256": "daa10823b22e6fc6cb659da37eeeab20abddd8a858d920635e9ae9185ba86e4b",
+    "reviewed_current_helper_sha256": "76a997257b184955688a121bb8b812f917b8a2ae5d4f2aa7eba3c50cefd15c23",
+    "same_version": false,
+    "requirement": "Fresh final replay output must bind the current reviewed helper version; older replay remains historical."
+  },
+  "external_mandatory_qualification_gates": [
+    "Arm gate must require runtime root/commit, helper/fixture/dependency hashes and sample provenance equal the frozen plan.",
+    "Arm gate must separately require raw grade, strict native and independent manual success and bind exact replay inputs/results.",
+    "Replay success must never qualify or rescore the held old V1 measurement.",
+    "This helper can be used diagnostically on a held capture; status pass states only that the recorded final-state consumers reproduce."
+  ],
+  "old_v1_held_measurement_qualified": false,
+  "artifacts": {
+    "verification/experiments/2026-11-16-skill-diet/replay-ledger-consumers-v1.mjs": "76a997257b184955688a121bb8b812f917b8a2ae5d4f2aa7eba3c50cefd15c23",
+    "test/control-parity-ledger-replay.test.mjs": "a424252651653fc7d7f69b1326110b22b076c554252a0fec197ee5b3e14d4390",
+    "eval/control-parity/ledger-execution.mjs": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31",
+    "eval/control-parity/reporting-execution.mjs": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58",
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c",
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2/capture.json": "ee1f1db59e1035339808e431c7b2fa6becfc4a41e08b40e9c4865935e9d0373f",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2/manifest.json": "fc97bda05687f893cc9b03daf784fe2c63ce1c2877777b51d7c285fb0c5ef069",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2/consumer-replay.json": "39ec7d389dd1e3d43c6d298a316a6b842bd21ead91b4598be3159c560858ba0a",
+    "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v1-hold.json": "d94e96d28716c20de3cf54c0fa878223ddbb64a30e08e80230e87b66d9985d67"
+  }
+}

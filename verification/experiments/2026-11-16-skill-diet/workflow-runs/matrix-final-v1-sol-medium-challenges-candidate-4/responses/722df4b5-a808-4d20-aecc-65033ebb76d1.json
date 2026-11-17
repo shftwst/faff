@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "contract",
+      "prdr-yagni",
+      "--describe"
+    ],
+    "exit_code": 0,
+    "stdout": "# faff contract prdr-yagni\n\nThe UPPER (YAGNI/value) gate of PRDR admission — arbitrates whether a proposed PRDR is warranted (serves its PRD goal without exceeding it), conservative on any doubt.\n\n## Values\n\n### `proposal.verdict`\n\nEnum: `admit`, `reject`\n\n| Value | Meaning |\n|---|---|\n| `admit` | the methodology's Phase-1 proposal judged the PRDR warranted |\n| `reject` | the methodology's Phase-1 proposal judged the PRDR unwarranted or out of scope |\n\n## Coercion & fail direction\n\nExit codes: `0` conformant · `1` violations · `2` fail-loud.\n\n- an out-of-enum proposal.verdict → fail-loud (exit 2) — no safe coerce target\n- admit declared without trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns → conformant:false\n- reject with an empty reason → conformant:false\n\n## Envelope\n\n- `admit` (boolean, required)\n- `reason` (string, required)\n- `trace_to_goal` (boolean, required)\n- `cited_goals` (array, required)\n- `dod_covers` (array, required)\n- `over_scope` (boolean, required)\n- `proposal` (object, required)\n- `challenge` (object, required)\n- `grounding_present` (boolean, required)\n- `conformant` (boolean, required)\n- `violations` (array, required)\n\n## Producer notes\n\n- `grounding_present` is shape-checked but ADVISORY — never gate-decisive; its absence never blocks judgment\n",
+    "stderr": ""
+  }
+}

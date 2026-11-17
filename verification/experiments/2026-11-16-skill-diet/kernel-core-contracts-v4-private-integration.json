@@ -1,0 +1,232 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T04:19:44.762223+00:00",
+  "status": "pass",
+  "directory": "/var/tmp/faff-kernel-core-contracts-v3-integration",
+  "base_commit": "228001c720f46b05bf39ed89b51d10af4aa4fd83",
+  "immediate_parent": "83bc83d257bf4f704e84280e389ca5f1b74b699d",
+  "isolated_commit": "0e297122b20da2f210960a6105337add1e0194d4",
+  "commits": [
+    {
+      "commit": "733f2ae865388227cdd69c5ea67c73a8fd39c51a",
+      "signed": false,
+      "dco_trailers": [
+        "Alec Hill <alec@shftwst.dev>"
+      ],
+      "changed_files": [
+        "plugin/skills/faff/references/kernel.md"
+      ]
+    },
+    {
+      "commit": "0e297122b20da2f210960a6105337add1e0194d4",
+      "signed": false,
+      "dco_trailers": [
+        "Alec Hill <alec@shftwst.dev>"
+      ],
+      "changed_files": [
+        "plugin/skills/faff/prose-baseline.json"
+      ]
+    }
+  ],
+  "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v4-draft.md",
+  "candidate_sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9",
+  "source": "plugin/skills/faff/references/kernel.md",
+  "source_sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9",
+  "source_bytes": 70812,
+  "source_lines_including_trailing_empty": 435,
+  "kernel_line_cap": 435,
+  "prose_baseline_changed_entries_vs_original": [
+    "faff/references/kernel.md"
+  ],
+  "prose_baseline_kernel_before_original": 84072,
+  "prose_baseline_kernel_after": 70812,
+  "changed_files_since_v3": [
+    {
+      "path": "plugin/skills/faff/prose-baseline.json",
+      "sha256": "f0e9aec27a5678a5ab1f847d7300c2e8468fddf583794888cc03de723e9b2245"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9"
+    }
+  ],
+  "complete_private_changed_files_since_base": [
+    {
+      "path": "plugin/skills/faff/prose-baseline.json",
+      "sha256": "f0e9aec27a5678a5ab1f847d7300c2e8468fddf583794888cc03de723e9b2245"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9"
+    },
+    {
+      "path": "records/specs/2026-11-17-skill-diet-kernel-core-contracts-design.md",
+      "sha256": "075b5d9c8d00cb5f5e331f1521cb3842509d85d7285f968dad80f96defb93cc4"
+    }
+  ],
+  "design_inventory": {
+    "path": "records/specs/2026-11-17-skill-diet-kernel-core-contracts-design.md",
+    "sha256": "075b5d9c8d00cb5f5e331f1521cb3842509d85d7285f968dad80f96defb93cc4",
+    "unchanged_from_v3": true
+  },
+  "v3_failure_preserved": {
+    "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-contracts-v3-private-integration.json",
+    "sha256": "ee02069bb7fe45df15d46893eb2ffd74d17cbec575e3d9b4ca93b596b5957155",
+    "status": "fail"
+  },
+  "v4_mechanical_guard_failure_preserved": {
+    "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v4-private-allowance-guard-failure.json",
+    "sha256": "c8d69eb812d6807c028a80e3fd70be563c60e528a84f922471cdbf25162ecbff",
+    "remedy": "Exact V4 allowance is70812, still below original84072; the source-only intermediate commit and subsequent allowance-only fix are both preserved."
+  },
+  "environment_overrides": {
+    "TMPDIR": "/var/tmp/kc3-uv5pfd3w",
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "commit.gpgsign",
+    "GIT_CONFIG_VALUE_0": "false"
+  },
+  "checks": [
+    {
+      "check": "adapter-lint",
+      "command": [
+        "/usr/local/bin/node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "cwd": "/var/tmp/faff-kernel-core-contracts-v3-integration",
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v4-private-adapter-lint-20261117T041853Z.txt",
+      "sha256": "4454ecd8b5baa6e6c60cb7976c55202a558c034e3f61e97dc49a43f94dcd29f2",
+      "started_utc": "2026-11-17T04:18:53.221396+00:00",
+      "finished_utc": "2026-11-17T04:18:53.874764+00:00"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "/usr/local/bin/node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "cwd": "/var/tmp/faff-kernel-core-contracts-v3-integration",
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v4-private-rule-inventory-20261117T041853Z.txt",
+      "sha256": "4df1a4aee64f790ca9e023791228df85cc5912872be034f3444ff8f9fc07f020",
+      "started_utc": "2026-11-17T04:18:53.221722+00:00",
+      "finished_utc": "2026-11-17T04:18:56.903030+00:00",
+      "result": "pass",
+      "uncovered": 0,
+      "row_errors": 0,
+      "blocks_deleted": 673
+    }
+  ],
+  "reused_tests": {
+    "tests": 92,
+    "pass": 92,
+    "fail": 0,
+    "source_private_commit": "83bc83d257bf4f704e84280e389ca5f1b74b699d",
+    "check": {
+      "check": "contracts",
+      "command": [
+        "/usr/local/bin/node",
+        "--test",
+        "test/contract-golden.test.mjs",
+        "test/contract-describe.test.mjs"
+      ],
+      "cwd": "/var/tmp/faff-kernel-core-contracts-v3-integration",
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v3-private-contracts-20261117T041552Z.txt",
+      "sha256": "43db2d3cd7cc63f2940ad72691a9d27689b3c74d6cb49e80eedda15ff0991ba8",
+      "started_utc": "2026-11-17T04:15:52.829694+00:00",
+      "finished_utc": "2026-11-17T04:15:55.870307+00:00",
+      "counts": {
+        "tests": 92,
+        "pass": 92,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    "basis": "V4 changes only exact kernel prose and its matching allowance; runtime/build/test tracked trees and relevant current content hashes are unchanged. Existing92 command tests reused, not rerun or counted as fresh.",
+    "runtime_build_test_scope": [
+      "plugin/skills/faff/bin",
+      "plugin/skills/faff/build-manifest.json",
+      "test"
+    ],
+    "file_count": 839,
+    "v3_tree_listing_sha256": "bb78e2eba55d02e20b787c3fd4f1f66250f3fbce04d12b4cfda74e588faf1246",
+    "v4_tree_listing_sha256": "bb78e2eba55d02e20b787c3fd4f1f66250f3fbce04d12b4cfda74e588faf1246",
+    "tree_listings_equal": true,
+    "relevant_current_sha256": [
+      {
+        "path": "plugin/skills/faff/bin/faff",
+        "sha256": "9c1cd0efeec51913ba8ac3b172aa926256dbfecdeb41d5c2d54567b5e784fb49"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/contract-defs.js",
+        "sha256": "5153a7d94e95d6d517a34470000acfb3b866e23ad63f11c5584a1dfa1f68a0a7"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/contract-engine.js",
+        "sha256": "aec55e3b2a4b2811728032a36ff462db0588325bf9812794b32a327ce83f0025"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/contract-defs-describe.js",
+        "sha256": "da55a904a961b6843c21e50b6655f67dc250eac50ab40f33d7fb3bf497416966"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/validate-adapters.js",
+        "sha256": "7a26ee73bdb254c03bc97bf4cf67db0620602cad40998a55d7234fd4eb4ffcb0"
+      },
+      {
+        "path": "test/contract-golden.test.mjs",
+        "sha256": "425b826fc24a2cc451e94659d56aa974a6621f61536c60608ba215b36db91827"
+      },
+      {
+        "path": "test/contract-describe.test.mjs",
+        "sha256": "e043e4f8f7506519e184c8c2c6d720fdc08df88571e33c9a1e5e459265e16b98"
+      },
+      {
+        "path": "test/golden/contracts/cases.json",
+        "sha256": "8b3436cb2596178002d03791ad62fc1a7a4adf24747bb90dce5f8c96e4879d2c"
+      }
+    ]
+  },
+  "binding_checks": {
+    "candidate_exact": true,
+    "only_kernel_and_allowance_changed_since_v3": true,
+    "only_three_paths_changed_since_original_base": true,
+    "only_kernel_allowance_changed_vs_original": true,
+    "allowance_is_lower_than_original": true,
+    "cap_unchanged": true,
+    "tests_runtime_unchanged": true,
+    "private_worktree_clean": true,
+    "dco_and_unsigned": true
+  },
+  "production_installed": false,
+  "qualified": false,
+  "savings_counted": false,
+  "evidence_bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v4-draft.md",
+      "sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v4-private-check-results-20261117T041853Z.json",
+      "sha256": "e32dfdd29178899a7cd466a2a33d8ee1c5148f8aab0181e01ddaee10d8980ba8"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-contracts-v3-private-integration.json",
+      "sha256": "ee02069bb7fe45df15d46893eb2ffd74d17cbec575e3d9b4ca93b596b5957155"
+    }
+  ],
+  "limits": [
+    "Exact detached private V4 integration only. No candidate rewriting, models, workflow qualification or active-branch source installation.",
+    "Fresh installed adapter lint and cumulative original-baseline inventory pass.92 unchanged contract tests are explicitly reused, not fresh tests or semantic parity proof.",
+    "V3 installed lint failure and intermediate V4 mechanical allowance failure remain separately preserved; no accepted savings counted."
+  ]
+}

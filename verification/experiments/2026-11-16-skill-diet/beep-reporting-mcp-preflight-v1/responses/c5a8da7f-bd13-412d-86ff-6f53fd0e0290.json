@@ -1,0 +1,10 @@
+{
+  "ok": true,
+  "value": {
+    "acknowledged": true,
+    "channel": "tracker",
+    "target": "project:fixture-reporting",
+    "text": "# Beep-Boop Run — 2026-01-01 00:00:00\nMode: explicit-list · Duration: 1h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 2 _(reported)_\nStop reason: budget-hit(tokens)\n\n## Unit economics\nRun spend 1.2K (transcript) · per shipped — (0 shipped) ⚠ ZERO-SHIP · per attempt 1.2K (1) · per bucket unreached-budget 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 1 total)\n\n## Shipped (auto-merged): 0\n\n## PR open for human review: 0\n\n## Parked: 0 _(reported)_\n```faff-parks\n[]\n```\n\n## Errored: 0\n\n## Unreached (budget hit): 1\n- BUD-1: Budget-bound ready work — admitted to build queue, not dispatched _(reported)_\n- breached: tokens · tokens_source: transcript\n\nEconomics: 1200 tokens (transcript) · 0 shipped · ZERO-SHIP",
+    "dependency": "controlled publication sink"
+  }
+}

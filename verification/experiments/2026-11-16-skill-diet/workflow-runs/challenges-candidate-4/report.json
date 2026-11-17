@@ -1,0 +1,96 @@
+{
+  "status": "fail",
+  "bridge": {
+    "stop": null,
+    "requests": 12,
+    "rejected": 1
+  },
+  "grade": {
+    "status": "fail",
+    "cases": [
+      {
+        "id": "adr-1",
+        "pass": true,
+        "problems": [],
+        "outcome": "survived",
+        "ground": null,
+        "disposition": "admit",
+        "upper_admit": null
+      },
+      {
+        "id": "adr-2",
+        "pass": true,
+        "problems": [],
+        "outcome": "overturned",
+        "ground": null,
+        "disposition": "reject",
+        "upper_admit": null
+      },
+      {
+        "id": "adr-unavailable",
+        "pass": false,
+        "problems": [
+          "submission-count"
+        ],
+        "outcome": null,
+        "ground": null,
+        "disposition": "reject",
+        "upper_admit": null
+      },
+      {
+        "id": "prdr-1",
+        "pass": true,
+        "problems": [],
+        "outcome": "survived",
+        "ground": null,
+        "disposition": "admit",
+        "upper_admit": true
+      },
+      {
+        "id": "prdr-2",
+        "pass": true,
+        "problems": [],
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "disposition": "reject",
+        "upper_admit": false
+      },
+      {
+        "id": "prdr-under-citation",
+        "pass": true,
+        "problems": [],
+        "outcome": "survived",
+        "ground": null,
+        "disposition": "admit",
+        "upper_admit": true
+      },
+      {
+        "id": "prdr-unserved",
+        "pass": true,
+        "problems": [],
+        "outcome": "overturned",
+        "ground": "unserved",
+        "disposition": "reject",
+        "upper_admit": false
+      },
+      {
+        "id": "prdr-unavailable",
+        "pass": true,
+        "problems": [],
+        "outcome": null,
+        "ground": null,
+        "disposition": "reject",
+        "upper_admit": false
+      }
+    ],
+    "errors": [
+      {
+        "seq": 5,
+        "case_id": "adr-unavailable",
+        "message": "invalid or duplicate challenge submission"
+      }
+    ]
+  },
+  "scope": "ADR/PRDR judgement and caller consumption: model returns the independent challenge result; the real pinned CLI consumes it through adr admit or prdr yagni -> prdr admit. No hosted provider transport, tracker change or record publication. The model is the independent reviewer of a fixture primary from a different model family.",
+  "accounting": "unmetered"
+}

@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "status": "source-equivalence-review-pass-unmeasured-unaccepted",
+  "scope": "Full changed-section diff and unchanged-boundary byte comparison only. No model calls, implementation correction, runtime lifecycle measurement or acceptance qualification.",
+  "source": "plugin/skills/faff-beep-boop/SKILL.md",
+  "source_sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28",
+  "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v1.md",
+  "candidate_sha256": "8bcedb9ac1a76c397011d367992a272547c1653c7664d0eecd57c6625d0d7d95",
+  "draft_sha256": "866492a2e771716604fd25d5eda134ae6d360b383d75b1c03bedfe1ae0c11d4b",
+  "source_bytes": 157561,
+  "candidate_bytes": 150939,
+  "verified_byte_savings": 6622,
+  "draft_reported_estimated_token_savings": 1625,
+  "token_estimate_independently_recounted": false,
+  "unchanged_checks": {
+    "outside_two_changed_ranges": true,
+    "owner_stamp_and_stop_hook": true,
+    "budget_paragraph": true,
+    "owner_field_definitions": true,
+    "event_transition_and_token_table": true
+  },
+  "requirements_reviewed": [
+    {
+      "area": "Direct edits",
+      "finding": "Every direct ledger edit requires CLI ledger-write, with schema restriction and CLI-computed hash.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Minting",
+      "finding": "Only run open/init-self-drain mints directory, honest L3 ledger and genesis; exact name layout, legacy preservation and exit-zero dispatch prerequisite retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Level",
+      "finding": "Genesis-only floor-level member, committed-anchor merge/reconcile use and absent-level malformed result retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Admission",
+      "finding": "Both admitted verdicts, step 4, wave 8.4 and explicit-list admission retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Outcomes",
+      "finding": "Seven bare-string terminals, failed decision-resolution parked, budget-unreached and other-ticket superseded meanings retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Completeness",
+      "finding": "Admitted minus outcome keys invariant, object rejection exit 2, optional free-form outcome_details outside invariant and no migration retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Scope filing",
+      "finding": "Count and all three filing sites retained; tickets outside completeness until admitted.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Skipped review",
+      "finding": "Artifact-derived pass/chain-outage-skipped, all backends unreachable, autonomous mode, no token change and annotation outside terminal bucket retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Review holds",
+      "finding": "Retry-later mandatory review outage produces parked with automatic review resume, not human park.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Prep holds",
+      "finding": "Outage and healthy slow review remain separate never-admitted arrays, same label, distinct reporting meaning.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Landing hold",
+      "finding": "Only resumable token after landing budget, pr-open and no rebuild; hard park excluded and human handoff distinction retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Post-merge verification",
+      "finding": "Orchestrator reads artifact at 11.6, never subagent; failure/unverified shape, causes, shipped outcome and filed/not-filed distinctions retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Stop reasons",
+      "finding": "All nine token forms, run close/open producers, locked owner close, fail-closed mapping, disposition classifications and legacy fallback retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Events",
+      "finding": "CLI envelope, authoritative sequence, append-only multiwriter locking, essential logging, meaningful transitions only and schema-key drop warnings retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Genesis",
+      "finding": "Mint atomically produces run-start; no separate emission retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Token tags",
+      "finding": "Unchanged table; only marked phase closers, pinned root/session, four classes, transcript/estimate null fallback, checkpoint advancement, counts only and event-based attribution retained.",
+      "lost_or_broadened_requirement_found": false
+    },
+    {
+      "area": "Quality tags",
+      "finding": "Optional gate vocabulary/source, non-shipped gate condition, clean/non-gate omission, scalar rework loop count including clean zero retained.",
+      "lost_or_broadened_requirement_found": false
+    }
+  ],
+  "blocking_source_defects": [],
+  "removed_example_assessment": "Removed illustrative ledger JSON is replaced by field rules and unchanged CLI-mint lifecycle. No separate manual-init authority is introduced. Budget and owner-field prose remain byte-identical.",
+  "known_existing_mismatch": {
+    "source_and_candidate_claim_event_schema_1": true,
+    "candidate_occurrences": 2,
+    "runtime_schema_2_claim_source": "beep-ledger-v1-draft.json inherited mismatch disclosure; runtime schema was not newly re-investigated in this source-only review.",
+    "disposition": "Preserved existing meaning. Do not treat as a new diet correction or hide inherited runtime mismatch in later measurement."
+  },
+  "acceptance_remaining": [
+    "Frozen full-policy paired model comparison",
+    "Real controlled ledger lifecycle and refusal cases",
+    "Annotation and token/quality-tagging decisions",
+    "Actual artifact reads, strict native checks, integration replay and rule inventory"
+  ],
+  "accepted": false,
+  "included_in_accepted_savings": false
+}

@@ -1,0 +1,2 @@
+- **Explanation:** no load-bearing model to lead with → the source lacks a governing statement; flag the producer gap without inventing one.
+- **Three steps:** 3+ enumerable items must be a list → render the existing steps as a markdown list.

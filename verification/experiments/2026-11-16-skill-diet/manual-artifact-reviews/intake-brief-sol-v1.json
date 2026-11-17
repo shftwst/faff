@@ -1,0 +1,44 @@
+{
+  "status": "in-progress",
+  "updated_utc": "2026-11-16T18:38:20.531190+00:00",
+  "read_artifacts": 6,
+  "notes": "First baseline six briefs preserve supplied goals, constraints, open questions, dependency, split ownership and no tracker mutation.",
+  "rows": [
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/greenfield-complete.md",
+      "sha256": "bb51607a2bed0065ffea7cad678035a69e0ed98be9146f0b3692b138c2aa9095",
+      "status": "read-source-faithful",
+      "reviewer": "root"
+    },
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/greenfield-repo-signal.md",
+      "sha256": "931e6f09c8e8de1b7ccbbbeecf1e3e1572a450af6ab8dd2d8b589380c41d1aaf",
+      "status": "read-source-faithful",
+      "reviewer": "root"
+    },
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/greenfield-thin.md",
+      "sha256": "bc07ce9f5167f785870c46bc8149ee150d253e7c0b92c720fd811ed7223856fd",
+      "status": "read-source-faithful",
+      "reviewer": "root"
+    },
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/minor-ambiguity.md",
+      "sha256": "2145f36a65474e612d08478af3e94fc1f84f6155ad813aa215449ca9004bf741",
+      "status": "read-source-faithful",
+      "reviewer": "root"
+    },
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/single-bug.md",
+      "sha256": "af7ad16cdc8b6f64beba64a4961d6d945a3d0724438966a02c28523654be33ad",
+      "status": "read-source-faithful",
+      "reviewer": "root"
+    },
+    {
+      "path": "workflow-runs/intake-brief-sol-v1-baseline-1/artifacts/single-split.md",
+      "sha256": "781f1901ce5e587d3223c2a24580c37d08ac4599c404ed9cbe84fe1b62abd5f7",
+      "status": "read-source-faithful",
+      "reviewer": "root"
+    }
+  ]
+}

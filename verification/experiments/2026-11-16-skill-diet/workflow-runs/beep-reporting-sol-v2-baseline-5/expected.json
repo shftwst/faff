@@ -1,0 +1,395 @@
+[
+  {
+    "id": "shipped-precedence",
+    "action": "report",
+    "facts": {
+      "format": 2,
+      "tracker": {
+        "titles": {
+          "SHP-1": "Delivered fixture SHP-1",
+          "SHP-2": "Delivered fixture SHP-2",
+          "SHP-3": "Delivered fixture SHP-3",
+          "SHP-4": "Delivered fixture SHP-4",
+          "SHP-5": "Delivered fixture SHP-5",
+          "SUP-1": "Delivered fixture SUP-1"
+        },
+        "sibling_end_states": {},
+        "superseded_delivered": {
+          "SUP-1": true
+        }
+      },
+      "run": {
+        "waves": 2,
+        "park_records": [],
+        "follow_ups": [
+          "Remove the completed SHP-1 worktree."
+        ]
+      }
+    },
+    "reference": {
+      "exit_code": 0,
+      "stdout": "# Beep-Boop Run — 2026-01-01 00:00:00\nMode: explicit-list · Duration: 1h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 2 _(reported)_\nStop reason: queue-drained\n\n## Unit economics\nRun spend 1.2K (estimate) · $3.00 · per shipped 240 · $0.60 · per attempt 200 (6) · per bucket shipped 5·superseded 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 6 total)\n\n## Shipped (auto-merged): 1\n- SHP-1: Delivered fixture SHP-1 (PR #101) _(reported)_\n\n## Shipped (human-only ACs called out): 1\n- SHP-4: Delivered fixture SHP-4 (PR #104) — merged unattended; a person must confirm these criteria: AC-human (merge-record.json: ac_called_out) _(reported)_\n\n## Shipped (adversarial review skipped — chain outage): 1\n- SHP-2: Delivered fixture SHP-2 (PR #102) — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped) _(reported)_\n\n## Shipped (post-merge verification flagged): 2\n- SHP-3: Delivered fixture SHP-3 (PR #103) — merged main HEAD failed its own declared test command on re-run: `npm test`; tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures); also merged unattended with human-only ACs called out: AC-human _(reported)_\n- SHP-5: Delivered fixture SHP-5 (PR #105) — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified) _(reported)_\n\n## Superseded (delivered by prior tickets): 1\n- SUP-1: Delivered fixture SUP-1 — deliverables already on `main` via PRIOR-1 (supersession: `.faff/runs/run-20260101-000000-beepboop-list-abc101/SUP-1/supersession.json`) _(reported)_\n\n## PR open for human review: 0\n\n## Parked: 0 _(reported)_\n```faff-parks\n[]\n```\n\n## Errored: 0\n\n## Human follow-ups: 1 _(reported)_\n- Remove the completed SHP-1 worktree. _(reported)_\n",
+      "stderr": "",
+      "error": null
+    },
+    "economics": "Economics: 1200 tokens (estimate), $3.00 · 5 shipped · $0.60 per shipped",
+    "metrics": {
+      "tokens_total": 1200,
+      "tokens_source": "estimate",
+      "cost_total": 3,
+      "zero_ship": false,
+      "cost_per_shipped": {
+        "tokens_each": 240,
+        "cost_each": 0.6
+      },
+      "cost_per_attempt": {
+        "denom": 6,
+        "tokens_each": 200,
+        "cost_each": null
+      },
+      "buckets": [
+        {
+          "bucket": "shipped",
+          "count": 5
+        },
+        {
+          "bucket": "superseded",
+          "count": 1
+        }
+      ],
+      "per_issue": [],
+      "warnings": []
+    },
+    "shipped": 5,
+    "target": "project:fixture-reporting",
+    "args": [
+      "run",
+      "summary",
+      "--run-dir",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/shipped-precedence/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+      "--facts",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/shipped-precedence/.faff/runs/run-20260101-000000-beepboop-list-abc101/summary-facts.json",
+      "--root",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/shipped-precedence"
+    ]
+  },
+  {
+    "id": "review-holds",
+    "action": "report",
+    "facts": {
+      "format": 2,
+      "tracker": {
+        "titles": {
+          "OPEN-1": "Needs human review",
+          "OPEN-2": "Landing can resume",
+          "PARK-1": "Ordinary park",
+          "PARK-2": "Build review unavailable",
+          "PREP-1": "Prep review unavailable"
+        },
+        "sibling_end_states": {},
+        "superseded_delivered": {}
+      },
+      "run": {
+        "waves": 2,
+        "park_records": [
+          {
+            "issue_id": "PARK-1",
+            "root_cause_class": "low-confidence",
+            "timestamp": "2026-01-01T00:30:00Z"
+          }
+        ],
+        "follow_ups": [],
+        "reasons": {
+          "OPEN-1": "Three landing cycles exhausted."
+        }
+      }
+    },
+    "reference": {
+      "exit_code": 0,
+      "stdout": "# Beep-Boop Run — 2026-01-01 00:00:00\nMode: explicit-list · Duration: 1h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 2 _(reported)_\nStop reason: queue-drained\n\n## Unit economics\nRun spend 1.2K (estimate) · per shipped — (0 shipped) ⚠ ZERO-SHIP · per attempt 300 (4) · per bucket parked 2·pr-open 2\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 4 total)\n\n## Shipped (auto-merged): 0\n\n## PR open for human review: 1\n- OPEN-1: Needs human review (PR #201) — reason: Three landing cycles exhausted. _(reported)_\n\n## Awaiting landing (resumable): 1\n- OPEN-2: Landing can resume (PR #202) — landing-time budget elapsed mid-CI-wait; PR open, non-draft; a later drain resumes the landing loop via the recovery-claim (ledger: landing_resumable) _(reported)_\n\n## Parked: 1 _(reported)_\n- PARK-1: Ordinary park — reason: root cause low-confidence _(reported)_\n```faff-parks\n[{\"issue_id\":\"PARK-1\",\"root_cause_class\":\"low-confidence\",\"timestamp\":\"2026-01-01T00:30:00Z\"}]\n```\n\n## Awaiting review (adversarial outage): 1\n- PARK-2: Build review unavailable — review provider unavailable; build held (branch pushed, checkpoint intact); auto-resumes at review next drain (ledger: review_outage_pending) _(reported)_\n\n## Awaiting spec-review (adversarial outage): 1\n- PREP-1: Prep review unavailable — spec-review provider unavailable; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_outage_pending) _(reported)_\n\n## Errored: 0\n",
+      "stderr": "",
+      "error": null
+    },
+    "economics": "Economics: 1200 tokens (estimate) · 0 shipped · ZERO-SHIP",
+    "metrics": {
+      "tokens_total": 1200,
+      "tokens_source": "estimate",
+      "cost_total": null,
+      "zero_ship": true,
+      "cost_per_shipped": {
+        "tokens_each": null,
+        "cost_each": null
+      },
+      "cost_per_attempt": {
+        "denom": 4,
+        "tokens_each": 300,
+        "cost_each": null
+      },
+      "buckets": [
+        {
+          "bucket": "parked",
+          "count": 2
+        },
+        {
+          "bucket": "pr-open",
+          "count": 2
+        }
+      ],
+      "per_issue": [],
+      "warnings": []
+    },
+    "shipped": 0,
+    "target": "project:fixture-reporting",
+    "args": [
+      "run",
+      "summary",
+      "--run-dir",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/review-holds/.faff/runs/run-20260101-000000-beepboop-list-abc102",
+      "--facts",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/review-holds/.faff/runs/run-20260101-000000-beepboop-list-abc102/summary-facts.json",
+      "--root",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/review-holds"
+    ]
+  },
+  {
+    "id": "budget-zero-ship",
+    "action": "report",
+    "facts": {
+      "format": 2,
+      "tracker": {
+        "titles": {
+          "BUD-1": "Budget-bound ready work"
+        },
+        "sibling_end_states": {},
+        "superseded_delivered": {}
+      },
+      "run": {
+        "waves": 2,
+        "park_records": [],
+        "follow_ups": []
+      }
+    },
+    "reference": {
+      "exit_code": 0,
+      "stdout": "# Beep-Boop Run — 2026-01-01 00:00:00\nMode: explicit-list · Duration: 1h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 2 _(reported)_\nStop reason: budget-hit(tokens)\n\n## Unit economics\nRun spend 1.2K (transcript) · per shipped — (0 shipped) ⚠ ZERO-SHIP · per attempt 1.2K (1) · per bucket unreached-budget 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 1 total)\n\n## Shipped (auto-merged): 0\n\n## PR open for human review: 0\n\n## Parked: 0 _(reported)_\n```faff-parks\n[]\n```\n\n## Errored: 0\n\n## Unreached (budget hit): 1\n- BUD-1: Budget-bound ready work — admitted to build queue, not dispatched _(reported)_\n- breached: tokens · tokens_source: transcript\n",
+      "stderr": "",
+      "error": null
+    },
+    "economics": "Economics: 1200 tokens (transcript) · 0 shipped · ZERO-SHIP",
+    "metrics": {
+      "tokens_total": 1200,
+      "tokens_source": "transcript",
+      "cost_total": null,
+      "zero_ship": true,
+      "cost_per_shipped": {
+        "tokens_each": null,
+        "cost_each": null
+      },
+      "cost_per_attempt": {
+        "denom": 1,
+        "tokens_each": 1200,
+        "cost_each": null
+      },
+      "buckets": [
+        {
+          "bucket": "unreached-budget",
+          "count": 1
+        }
+      ],
+      "per_issue": [],
+      "warnings": []
+    },
+    "shipped": 0,
+    "target": "project:fixture-reporting",
+    "args": [
+      "run",
+      "summary",
+      "--run-dir",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/budget-zero-ship/.faff/runs/run-20260101-000000-beepboop-list-abc103",
+      "--facts",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/budget-zero-ship/.faff/runs/run-20260101-000000-beepboop-list-abc103/summary-facts.json",
+      "--root",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/budget-zero-ship"
+    ]
+  },
+  {
+    "id": "dirty-install",
+    "action": "report",
+    "facts": {
+      "format": 2,
+      "tracker": {
+        "titles": {
+          "ERR-1": "Fixture title\n## Deferred"
+        },
+        "sibling_end_states": {},
+        "superseded_delivered": {}
+      },
+      "run": {
+        "waves": 2,
+        "park_records": [],
+        "follow_ups": [
+          "Remove the unused branch."
+        ],
+        "reasons": {
+          "ERR-1": "Controlled environment error."
+        },
+        "discovered_scope": {
+          "filed": [],
+          "deduped": 1,
+          "surfaced": [
+            {
+              "id": "ERR-1",
+              "text": "Investigate the missing endpoint.",
+              "why": "No tracker permission."
+            }
+          ]
+        }
+      }
+    },
+    "reference": {
+      "exit_code": 0,
+      "stdout": "⚠ INSTALL-HEALTH: RESULT: fixture install contains one stale copy. — remediation: run `faff sync`\n# Beep-Boop Run — 2026-01-01 00:00:00\nMode: explicit-list · Duration: 1h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 2 _(reported)_\nStop reason: queue-drained\n\n## Unit economics\nRun spend 1.2K (estimate) · per shipped — (0 shipped) ⚠ ZERO-SHIP · per attempt 1.2K (1) · per bucket errored 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 1 total)\n\n## Shipped (auto-merged): 0\n\n## PR open for human review: 0\n\n## Parked: 0 _(reported)_\n```faff-parks\n[]\n```\n\n## Errored: 1\n- ERR-1: Fixture title ## Deferred — Controlled environment error. _(reported)_\n\n## Discovered scope (execution-reported): 0 filed\n- Deduped (already tracked): 1 — Surfaced only (vague, or low appetite): 1 _(reported)_\n  - ERR-1: \"Investigate the missing endpoint.\" — No tracker permission. _(reported)_\n\n## Human follow-ups: 1 _(reported)_\n- Remove the unused branch. _(reported)_\n",
+      "stderr": "",
+      "error": null
+    },
+    "economics": "Economics: 1200 tokens (estimate) · 0 shipped · ZERO-SHIP",
+    "metrics": {
+      "tokens_total": 1200,
+      "tokens_source": "estimate",
+      "cost_total": null,
+      "zero_ship": true,
+      "cost_per_shipped": {
+        "tokens_each": null,
+        "cost_each": null
+      },
+      "cost_per_attempt": {
+        "denom": 1,
+        "tokens_each": 1200,
+        "cost_each": null
+      },
+      "buckets": [
+        {
+          "bucket": "errored",
+          "count": 1
+        }
+      ],
+      "per_issue": [],
+      "warnings": []
+    },
+    "shipped": 0,
+    "target": "project:fixture-reporting",
+    "args": [
+      "run",
+      "summary",
+      "--run-dir",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/dirty-install/.faff/runs/run-20260101-000000-beepboop-list-abc104",
+      "--facts",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/dirty-install/.faff/runs/run-20260101-000000-beepboop-list-abc104/summary-facts.json",
+      "--root",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/dirty-install"
+    ]
+  },
+  {
+    "id": "no-budget-continuation",
+    "action": "continue",
+    "facts": {
+      "format": 2,
+      "tracker": {
+        "titles": {},
+        "sibling_end_states": {},
+        "superseded_delivered": {}
+      },
+      "run": {
+        "waves": 2,
+        "park_records": [],
+        "follow_ups": []
+      }
+    },
+    "reference": null,
+    "economics": "Economics: 1200 tokens (estimate) · 0 shipped · ZERO-SHIP",
+    "metrics": {
+      "tokens_total": 1200,
+      "tokens_source": "estimate",
+      "cost_total": null,
+      "zero_ship": true,
+      "cost_per_shipped": {
+        "tokens_each": null,
+        "cost_each": null
+      },
+      "cost_per_attempt": {
+        "denom": 0,
+        "tokens_each": null,
+        "cost_each": null
+      },
+      "buckets": [],
+      "per_issue": [],
+      "warnings": []
+    },
+    "shipped": 0,
+    "target": "project:fixture-reporting",
+    "args": [
+      "run",
+      "summary",
+      "--run-dir",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/no-budget-continuation/.faff/runs/run-20260101-000000-beepboop-list-abc105",
+      "--facts",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/no-budget-continuation/.faff/runs/run-20260101-000000-beepboop-list-abc105/summary-facts.json",
+      "--root",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/no-budget-continuation"
+    ]
+  },
+  {
+    "id": "unreadable-ledger",
+    "action": "fault",
+    "facts": {
+      "format": 2,
+      "tracker": {
+        "titles": {},
+        "sibling_end_states": {},
+        "superseded_delivered": {}
+      },
+      "run": {
+        "waves": 2,
+        "park_records": [],
+        "follow_ups": []
+      }
+    },
+    "reference": {
+      "exit_code": 2,
+      "stdout": "",
+      "stderr": "faff run summary: cannot read /var/tmp/faff-reporting-measure-QkwwM7/oracles/unreadable-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc106/run-ledger.json: Expected property name or '}' in JSON at position 2 (line 1 column 3)\n",
+      "error": null
+    },
+    "economics": "Economics: 1200 tokens (estimate) · 0 shipped · ZERO-SHIP",
+    "metrics": {
+      "tokens_total": 1200,
+      "tokens_source": "estimate",
+      "cost_total": null,
+      "zero_ship": true,
+      "cost_per_shipped": {
+        "tokens_each": null,
+        "cost_each": null
+      },
+      "cost_per_attempt": {
+        "denom": 0,
+        "tokens_each": null,
+        "cost_each": null
+      },
+      "buckets": [],
+      "per_issue": [],
+      "warnings": []
+    },
+    "shipped": 0,
+    "target": "project:fixture-reporting",
+    "args": [
+      "run",
+      "summary",
+      "--run-dir",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/unreadable-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc106",
+      "--facts",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/unreadable-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc106/summary-facts.json",
+      "--root",
+      "/var/tmp/faff-reporting-measure-QkwwM7/cases/unreadable-ledger"
+    ]
+  }
+]

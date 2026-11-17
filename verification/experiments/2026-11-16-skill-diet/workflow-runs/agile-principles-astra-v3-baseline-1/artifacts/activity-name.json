@@ -1,0 +1,10 @@
+{
+  "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+  "findings": [
+    {
+      "principle": 1,
+      "diagnosis": "W1, 'Q2 sprint 3', is named for a sprint even though its stated outcome is reducing checkout abandonment and A preserves the checkout address on validation error. The name hides that outcome, making the workstream's purpose and sequencing harder to assess.",
+      "recommended_action": "Rename W1 to 'Reduce checkout abandonment' to expose the outcome already shared by its work."
+    }
+  ]
+}

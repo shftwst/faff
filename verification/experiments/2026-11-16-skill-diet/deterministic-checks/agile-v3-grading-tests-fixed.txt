@@ -1,0 +1,40 @@
+TAP version 13
+# Subtest: named-output oracle detects reordered priority, lost discovery questions and invented tickets
+ok 1 - named-output oracle detects reordered priority, lost discovery questions and invented tickets
+  ---
+  duration_ms: 0.831827
+  type: 'test'
+  ...
+# Subtest: real termination consumer respects the supplied order and keeps its fixed safety floor
+ok 2 - real termination consumer respects the supplied order and keeps its fixed safety floor
+  ---
+  duration_ms: 1302.318113
+  type: 'test'
+  ...
+# Subtest: producer outputs persist exactly and refuse tracker writes or duplicate submissions
+ok 3 - producer outputs persist exactly and refuse tracker writes or duplicate submissions
+  ---
+  duration_ms: 647.888477
+  type: 'test'
+  ...
+# Subtest: agile V2 accepts moving between named outcomes without admitting a missing re-grouping action
+ok 4 - agile V2 accepts moving between named outcomes without admitting a missing re-grouping action
+  ---
+  duration_ms: 1.903319
+  type: 'test'
+  ...
+# Subtest: agile V3 checks structure and identifiers while advice remains a mandatory manual rubric
+ok 5 - agile V3 checks structure and identifiers while advice remains a mandatory manual rubric
+  ---
+  duration_ms: 1.095784
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2001.795002

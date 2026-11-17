@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All 8 cases finished and their actual results were persisted through the ports. `finish` returned `{\"finished\":true}`.\n\nNo departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5e3-639c-75f1-8185-1cc3ef8d2af2"
+    ],
+    "elapsed_seconds": 191.8,
+    "stdout_sha256": "7beec2cca6b1530dd2deadf31725addb6493b7bb73b8173669947bc175ef81c3",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

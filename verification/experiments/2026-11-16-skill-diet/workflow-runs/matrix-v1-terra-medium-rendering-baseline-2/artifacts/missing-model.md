@@ -1,0 +1,1 @@
+Draft explanation → no load-bearing model to lead with → supply the governing idea before normalising; do not fabricate one.

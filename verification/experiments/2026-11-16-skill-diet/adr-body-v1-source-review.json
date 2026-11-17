@@ -1,0 +1,15 @@
+{
+  "status": "pending-astra-v1-pair",
+  "baseline_bytes": 4238,
+  "candidate_bytes": 2726,
+  "baseline_estimated_tokens": 1052,
+  "candidate_estimated_tokens": 679,
+  "baseline_sha256": "19620bd0d1588ea9f4e1d8f6486e368f75da3c5f3a08add1165f03dbcef78346",
+  "candidate_sha256": "c084918ac8a61f06fc3140152315acdd1261fd1eafa8aa7ac680b749e8f1eb29",
+  "fixed_context_sha256": "0acc9ea8c86c6db028dd3cb209c454dd6f8b3425844f8c94394717a0de731af6",
+  "preserved_frontmatter_sha256": "aa4a6c3f740bb554f7e4f6d71fff16e283e587ed70ddb3180a7faeabf97e1a44",
+  "preserved_inputs_sha256": "3544fabc745f520f00568c310021764ac84e1bd90d3eb4d40dc8a2c93ad36dae",
+  "changed_scope": "Consolidate repeated role, format and ownership explanations. Original frontmatter and whole Input section byte-identical. Settled-only decisions, actual shipped consequences, format ordering, advisory confidence and caller-owned recording retained.",
+  "mandatory_dependencies_added": [],
+  "proof_required": "Fresh five-versus-five Astra-low body comparison, all sixty outputs manually read, complete native audits and real ADR format/scaffold/validate replay."
+}

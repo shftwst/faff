@@ -1,0 +1,1750 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "decisions": [],
+  "reconciliation": {
+    "capture": {
+      "events": [
+        {
+          "seq": 1,
+          "name": "finish",
+          "args": {},
+          "case_id": null,
+          "result": {
+            "finished": true
+          }
+        }
+      ],
+      "errors": [],
+      "decisions": [],
+      "cases": [
+        {
+          "id": "mixed-ledger",
+          "root": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/mixed-ledger",
+          "run_dir": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100",
+          "session_id": "ledger-measurement-session",
+          "before": {
+            "schema_version": 1,
+            "run_id": "run-20260101-000000-beepboop-list-abc100",
+            "level": "L3",
+            "admitted": [],
+            "outcomes": {},
+            "base_sha": null,
+            "base_sha_required": true,
+            "owner": {
+              "status": "running",
+              "session_id": "run-20260101-000000-beepboop-list-abc100",
+              "pid": 1340210,
+              "started_at": "2026-11-17T03:01:51.106Z",
+              "utc_offset_min": 0,
+              "last_heartbeat": "2026-11-17T03:01:51.106Z",
+              "faff_version": "0.45.0"
+            }
+          },
+          "before_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc100\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc100\",\n    \"pid\": 1340210,\n    \"started_at\": \"2026-11-17T03:01:51.106Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:51.106Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+          "initial_events": [
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc100",
+              "seq": 0,
+              "ts": "2026-11-17T03:01:51.138Z",
+              "prev": "55485a6a62c1cc3d28de29b7fef98422fccec83ff5f2b7b6da967ac8b49ec608",
+              "phase": "run",
+              "type": "ledger-write",
+              "data": {
+                "ledger_sha256": "f8e07c1c2e80d4ba87f0f9be3324b29cf1d9fe4a26cc9110c2b395d62426a576"
+              }
+            },
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc100",
+              "seq": 1,
+              "ts": "2026-11-17T03:01:51.139Z",
+              "prev": "7954594bae58080be7b607d3437a46b038bc70c2408103eeba61dc877a400b75",
+              "phase": "run",
+              "type": "run-start",
+              "data": {
+                "level": "L3",
+                "faff_version": "0.45.0"
+              }
+            },
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc100",
+              "seq": 2,
+              "ts": "2026-11-17T03:01:51.140Z",
+              "prev": "785e393412ed3c9675373f3b2ec05c540ce17968d41b326f909946f0aea97a22",
+              "phase": "run",
+              "type": "runner-identity",
+              "data": {
+                "github_login": null,
+                "github_login_source": "unresolved",
+                "credential_source": "ambient",
+                "credential_unresolved": false,
+                "verified": false
+              }
+            }
+          ],
+          "ledger": {
+            "schema_version": 1,
+            "run_id": "run-20260101-000000-beepboop-list-abc100",
+            "level": "L3",
+            "admitted": [],
+            "outcomes": {},
+            "base_sha": null,
+            "base_sha_required": true,
+            "owner": {
+              "status": "running",
+              "session_id": "run-20260101-000000-beepboop-list-abc100",
+              "pid": 1340210,
+              "started_at": "2026-11-17T03:01:51.106Z",
+              "utc_offset_min": 0,
+              "last_heartbeat": "2026-11-17T03:01:51.106Z",
+              "faff_version": "0.45.0"
+            }
+          },
+          "ledger_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc100\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc100\",\n    \"pid\": 1340210,\n    \"started_at\": \"2026-11-17T03:01:51.106Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:51.106Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+          "heartbeat": null,
+          "events": [
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc100",
+              "seq": 0,
+              "ts": "2026-11-17T03:01:51.138Z",
+              "prev": "55485a6a62c1cc3d28de29b7fef98422fccec83ff5f2b7b6da967ac8b49ec608",
+              "phase": "run",
+              "type": "ledger-write",
+              "data": {
+                "ledger_sha256": "f8e07c1c2e80d4ba87f0f9be3324b29cf1d9fe4a26cc9110c2b395d62426a576"
+              }
+            },
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc100",
+              "seq": 1,
+              "ts": "2026-11-17T03:01:51.139Z",
+              "prev": "7954594bae58080be7b607d3437a46b038bc70c2408103eeba61dc877a400b75",
+              "phase": "run",
+              "type": "run-start",
+              "data": {
+                "level": "L3",
+                "faff_version": "0.45.0"
+              }
+            },
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc100",
+              "seq": 2,
+              "ts": "2026-11-17T03:01:51.140Z",
+              "prev": "785e393412ed3c9675373f3b2ec05c540ce17968d41b326f909946f0aea97a22",
+              "phase": "run",
+              "type": "runner-identity",
+              "data": {
+                "github_login": null,
+                "github_login_source": "unresolved",
+                "credential_source": "ambient",
+                "credential_unresolved": false,
+                "verified": false
+              }
+            }
+          ],
+          "commands": [
+            {
+              "args": [
+                "run-ledger",
+                "init-self-drain",
+                "--mode",
+                "list",
+                "--id",
+                "run-20260101-000000-beepboop-list-abc100",
+                "--root",
+                "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/mixed-ledger"
+              ],
+              "input": "",
+              "exit_code": 0,
+              "stdout": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100\n",
+              "stderr": "",
+              "error": null
+            }
+          ],
+          "consumer": {
+            "runcheck": {
+              "args": [
+                "runcheck",
+                "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100",
+                "--json"
+              ],
+              "input": "",
+              "exit_code": 0,
+              "stdout": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc100\",\n  \"admitted\": [],\n  \"undispatched\": [],\n  \"invalid_outcomes\": [],\n  \"clean\": true,\n  \"run_dir\": \"/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100\"\n}\n",
+              "stderr": "",
+              "error": null
+            },
+            "validate": {
+              "args": [
+                "events",
+                "validate",
+                "--file",
+                "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100/events.jsonl"
+              ],
+              "input": "",
+              "exit_code": 0,
+              "stdout": "OK — run-event log valid.\n",
+              "stderr": "",
+              "error": null
+            },
+            "verify": {
+              "args": [
+                "events",
+                "verify",
+                "--run-dir",
+                "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100",
+                "--json"
+              ],
+              "input": "",
+              "exit_code": 0,
+              "stdout": "{\"schema_floor\":2,\"line_count\":3,\"head_sha256\":\"020cf0787de0115ef3bf05d9c8f5dc91d7af719d43a4c71d00e94b7879799542\",\"first_break\":null,\"ledger_fold\":\"match\",\"torn_tail\":false,\"witness\":\"absent\",\"status\":\"verified\",\"detail\":\"chain verified from genesis\"}\n",
+              "stderr": "",
+              "error": null
+            },
+            "event_read": {
+              "args": [
+                "events",
+                "read",
+                "--run",
+                "run-20260101-000000-beepboop-list-abc100",
+                "--root",
+                "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/mixed-ledger",
+                "--json"
+              ],
+              "input": "",
+              "exit_code": 0,
+              "stdout": "[{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":0,\"ts\":\"2026-11-17T03:01:51.138Z\",\"prev\":\"55485a6a62c1cc3d28de29b7fef98422fccec83ff5f2b7b6da967ac8b49ec608\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"f8e07c1c2e80d4ba87f0f9be3324b29cf1d9fe4a26cc9110c2b395d62426a576\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":1,\"ts\":\"2026-11-17T03:01:51.139Z\",\"prev\":\"7954594bae58080be7b607d3437a46b038bc70c2408103eeba61dc877a400b75\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":2,\"ts\":\"2026-11-17T03:01:51.140Z\",\"prev\":\"785e393412ed3c9675373f3b2ec05c540ce17968d41b326f909946f0aea97a22\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}]\n",
+              "stderr": "",
+              "error": null
+            },
+            "summary": {
+              "exit_code": 0,
+              "stdout": "# Beep-Boop Run — 2026-11-17 03:01:51\nMode: explicit-list · Duration: 0h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 1 _(reported)_\nStop reason: (not recorded)\n\n## Unit economics\nRun spend 1.2K (estimate) · $3.00 · per shipped 400 · $1.00 · per attempt 150 (8) · per bucket shipped 3·pr-open 2·parked 2·superseded 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 0 total)\n\n## Shipped (auto-merged): 0\n\n## PR open for human review: 0\n\n## Parked: 0 _(reported)_\n```faff-parks\n[{\"issue_id\":\"RESOLVE-1\",\"root_cause_class\":\"needs-decision-first\",\"timestamp\":\"2026-01-01T00:00:00Z\"}]\n```\n\n## Errored: 0\n",
+              "stderr": "",
+              "error": null,
+              "persisted": "# Beep-Boop Run — 2026-11-17 03:01:51\nMode: explicit-list · Duration: 0h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 1 _(reported)_\nStop reason: (not recorded)\n\n## Unit economics\nRun spend 1.2K (estimate) · $3.00 · per shipped 400 · $1.00 · per attempt 150 (8) · per bucket shipped 3·pr-open 2·parked 2·superseded 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 0 total)\n\n## Shipped (auto-merged): 0\n\n## PR open for human review: 0\n\n## Parked: 0 _(reported)_\n```faff-parks\n[{\"issue_id\":\"RESOLVE-1\",\"root_cause_class\":\"needs-decision-first\",\"timestamp\":\"2026-01-01T00:00:00Z\"}]\n```\n\n## Errored: 0\n"
+            }
+          }
+        },
+        {
+          "id": "incomplete-ledger",
+          "root": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/incomplete-ledger",
+          "run_dir": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+          "session_id": "ledger-measurement-session",
+          "before": {
+            "schema_version": 1,
+            "run_id": "run-20260101-000000-beepboop-list-abc101",
+            "level": "L3",
+            "admitted": [],
+            "outcomes": {},
+            "base_sha": null,
+            "base_sha_required": true,
+            "owner": {
+              "status": "running",
+              "session_id": "run-20260101-000000-beepboop-list-abc101",
+              "pid": 1340278,
+              "started_at": "2026-11-17T03:01:51.407Z",
+              "utc_offset_min": 0,
+              "last_heartbeat": "2026-11-17T03:01:51.407Z",
+              "faff_version": "0.45.0"
+            }
+          },
+          "before_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc101\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc101\",\n    \"pid\": 1340278,\n    \"started_at\": \"2026-11-17T03:01:51.407Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:51.407Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+          "initial_events": [
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc101",
+              "seq": 0,
+              "ts": "2026-11-17T03:01:51.439Z",
+              "prev": "44f11e6822ac814800c49f57b0013ef035a32fb972f02971bc5c432127d30f32",
+              "phase": "run",
+              "type": "ledger-write",
+              "data": {
+                "ledger_sha256": "0f47a89fab50e37500c8d52a82109e3470c1fffa145de4966f2d4604bf0a62a5"
+              }
+            },
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc101",
+              "seq": 1,
+              "ts": "2026-11-17T03:01:51.440Z",
+              "prev": "c086896e07ad5feabc12397da72ae4aa6e98f17bdd7352f105465836ac286181",
+              "phase": "run",
+              "type": "run-start",
+              "data": {
+                "level": "L3",
+                "faff_version": "0.45.0"
+              }
+            },
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc101",
+              "seq": 2,
+              "ts": "2026-11-17T03:01:51.441Z",
+              "prev": "0a7dcfd28c1dc0764dd68769c7602d179707e7d16f32d3475a7b713601701db7",
+              "phase": "run",
+              "type": "runner-identity",
+              "data": {
+                "github_login": null,
+                "github_login_source": "unresolved",
+                "credential_source": "ambient",
+                "credential_unresolved": false,
+                "verified": false
+              }
+            }
+          ],
+          "ledger": {
+            "schema_version": 1,
+            "run_id": "run-20260101-000000-beepboop-list-abc101",
+            "level": "L3",
+            "admitted": [],
+            "outcomes": {},
+            "base_sha": null,
+            "base_sha_required": true,
+            "owner": {
+              "status": "running",
+              "session_id": "run-20260101-000000-beepboop-list-abc101",
+              "pid": 1340278,
+              "started_at": "2026-11-17T03:01:51.407Z",
+              "utc_offset_min": 0,
+              "last_heartbeat": "2026-11-17T03:01:51.407Z",
+              "faff_version": "0.45.0"
+            }
+          },
+          "ledger_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc101\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc101\",\n    \"pid\": 1340278,\n    \"started_at\": \"2026-11-17T03:01:51.407Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:51.407Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+          "heartbeat": null,
+          "events": [
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc101",
+              "seq": 0,
+              "ts": "2026-11-17T03:01:51.439Z",
+              "prev": "44f11e6822ac814800c49f57b0013ef035a32fb972f02971bc5c432127d30f32",
+              "phase": "run",
+              "type": "ledger-write",
+              "data": {
+                "ledger_sha256": "0f47a89fab50e37500c8d52a82109e3470c1fffa145de4966f2d4604bf0a62a5"
+              }
+            },
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc101",
+              "seq": 1,
+              "ts": "2026-11-17T03:01:51.440Z",
+              "prev": "c086896e07ad5feabc12397da72ae4aa6e98f17bdd7352f105465836ac286181",
+              "phase": "run",
+              "type": "run-start",
+              "data": {
+                "level": "L3",
+                "faff_version": "0.45.0"
+              }
+            },
+            {
+              "schema": 2,
+              "run_id": "run-20260101-000000-beepboop-list-abc101",
+              "seq": 2,
+              "ts": "2026-11-17T03:01:51.441Z",
+              "prev": "0a7dcfd28c1dc0764dd68769c7602d179707e7d16f32d3475a7b713601701db7",
+              "phase": "run",
+              "type": "runner-identity",
+              "data": {
+                "github_login": null,
+                "github_login_source": "unresolved",
+                "credential_source": "ambient",
+                "credential_unresolved": false,
+                "verified": false
+              }
+            }
+          ],
+          "commands": [
+            {
+              "args": [
+                "run-ledger",
+                "init-self-drain",
+                "--mode",
+                "list",
+                "--id",
+                "run-20260101-000000-beepboop-list-abc101",
+                "--root",
+                "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/incomplete-ledger"
+              ],
+              "input": "",
+              "exit_code": 0,
+              "stdout": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101\n",
+              "stderr": "",
+              "error": null
+            }
+          ],
+          "consumer": {
+            "runcheck": {
+              "args": [
+                "runcheck",
+                "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+                "--json"
+              ],
+              "input": "",
+              "exit_code": 0,
+              "stdout": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc101\",\n  \"admitted\": [],\n  \"undispatched\": [],\n  \"invalid_outcomes\": [],\n  \"clean\": true,\n  \"run_dir\": \"/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101\"\n}\n",
+              "stderr": "",
+              "error": null
+            },
+            "validate": {
+              "args": [
+                "events",
+                "validate",
+                "--file",
+                "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101/events.jsonl"
+              ],
+              "input": "",
+              "exit_code": 0,
+              "stdout": "OK — run-event log valid.\n",
+              "stderr": "",
+              "error": null
+            },
+            "verify": {
+              "args": [
+                "events",
+                "verify",
+                "--run-dir",
+                "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+                "--json"
+              ],
+              "input": "",
+              "exit_code": 0,
+              "stdout": "{\"schema_floor\":2,\"line_count\":3,\"head_sha256\":\"0e115b4be71aaebc65de3ac9d9f7392481caf6f9060a1303526ba6c517a6464d\",\"first_break\":null,\"ledger_fold\":\"match\",\"torn_tail\":false,\"witness\":\"absent\",\"status\":\"verified\",\"detail\":\"chain verified from genesis\"}\n",
+              "stderr": "",
+              "error": null
+            },
+            "event_read": {
+              "args": [
+                "events",
+                "read",
+                "--run",
+                "run-20260101-000000-beepboop-list-abc101",
+                "--root",
+                "/var/tmp/graft-checkpoint-FskYXR/reconciliation/actual/incomplete-ledger",
+                "--json"
+              ],
+              "input": "",
+              "exit_code": 0,
+              "stdout": "[{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":0,\"ts\":\"2026-11-17T03:01:51.439Z\",\"prev\":\"44f11e6822ac814800c49f57b0013ef035a32fb972f02971bc5c432127d30f32\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"0f47a89fab50e37500c8d52a82109e3470c1fffa145de4966f2d4604bf0a62a5\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":1,\"ts\":\"2026-11-17T03:01:51.440Z\",\"prev\":\"c086896e07ad5feabc12397da72ae4aa6e98f17bdd7352f105465836ac286181\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":2,\"ts\":\"2026-11-17T03:01:51.441Z\",\"prev\":\"0a7dcfd28c1dc0764dd68769c7602d179707e7d16f32d3475a7b713601701db7\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}]\n",
+              "stderr": "",
+              "error": null
+            },
+            "summary": null
+          }
+        }
+      ]
+    },
+    "expected": [
+      {
+        "id": "mixed-ledger",
+        "root": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/mixed-ledger",
+        "run_dir": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100",
+        "session_id": "ledger-measurement-session",
+        "before": {
+          "schema_version": 1,
+          "run_id": "run-20260101-000000-beepboop-list-abc100",
+          "level": "L3",
+          "admitted": [],
+          "outcomes": {},
+          "base_sha": null,
+          "base_sha_required": true,
+          "owner": {
+            "status": "running",
+            "session_id": "run-20260101-000000-beepboop-list-abc100",
+            "pid": 1340221,
+            "started_at": "2026-11-17T03:01:51.166Z",
+            "utc_offset_min": 0,
+            "last_heartbeat": "2026-11-17T03:01:51.166Z",
+            "faff_version": "0.45.0"
+          }
+        },
+        "before_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc100\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc100\",\n    \"pid\": 1340221,\n    \"started_at\": \"2026-11-17T03:01:51.166Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:51.166Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+        "initial_events": [
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc100",
+            "seq": 0,
+            "ts": "2026-11-17T03:01:51.199Z",
+            "prev": "55485a6a62c1cc3d28de29b7fef98422fccec83ff5f2b7b6da967ac8b49ec608",
+            "phase": "run",
+            "type": "ledger-write",
+            "data": {
+              "ledger_sha256": "1542e08a0c59418d7eb7208a7ea23f57d94f4295e207413240f1787f00fc2ce5"
+            }
+          },
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc100",
+            "seq": 1,
+            "ts": "2026-11-17T03:01:51.199Z",
+            "prev": "f24dc4c7072e9722f1b667b57b3e52c79386087501630e1b45819fb618c08bba",
+            "phase": "run",
+            "type": "run-start",
+            "data": {
+              "level": "L3",
+              "faff_version": "0.45.0"
+            }
+          },
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc100",
+            "seq": 2,
+            "ts": "2026-11-17T03:01:51.200Z",
+            "prev": "245d2d31ef4c3f9fcd1a6f0a25d20b9df5e3ce327a283bc4b0878d879ba1d925",
+            "phase": "run",
+            "type": "runner-identity",
+            "data": {
+              "github_login": null,
+              "github_login_source": "unresolved",
+              "credential_source": "ambient",
+              "credential_unresolved": false,
+              "verified": false
+            }
+          }
+        ],
+        "ledger": {
+          "schema_version": 1,
+          "run_id": "run-20260101-000000-beepboop-list-abc100",
+          "level": "L3",
+          "admitted": [
+            "SKIP-1",
+            "HOLD-1",
+            "LAND-1",
+            "HUMAN-1",
+            "POST-1",
+            "UNKNOWN-1",
+            "RESOLVE-1",
+            "SUPER-1"
+          ],
+          "outcomes": {
+            "SKIP-1": "shipped",
+            "HOLD-1": "parked",
+            "LAND-1": "pr-open",
+            "HUMAN-1": "pr-open",
+            "POST-1": "shipped",
+            "UNKNOWN-1": "shipped",
+            "RESOLVE-1": "parked",
+            "SUPER-1": "superseded"
+          },
+          "base_sha": null,
+          "base_sha_required": true,
+          "owner": {
+            "status": "running",
+            "session_id": "run-20260101-000000-beepboop-list-abc100",
+            "pid": 1340221,
+            "started_at": "2026-11-17T03:01:51.166Z",
+            "utc_offset_min": 0,
+            "last_heartbeat": "2026-11-17T03:01:51.166Z",
+            "faff_version": "0.45.0"
+          },
+          "discovered_scope_filed": 2,
+          "review_adversarial_skipped": [
+            "SKIP-1"
+          ],
+          "review_outage_pending": [
+            "HOLD-1"
+          ],
+          "spec_review_outage_pending": [
+            "PREP-OUT"
+          ],
+          "spec_review_turn_budget_pending": [
+            "PREP-SLOW"
+          ],
+          "landing_resumable": [
+            "LAND-1"
+          ],
+          "post_merge_verification_failures": [
+            {
+              "issue": "POST-1",
+              "pr": 501,
+              "merge_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "npm test"
+            }
+          ],
+          "post_merge_verification_unverified": [
+            "UNKNOWN-1"
+          ],
+          "outcome_details": {
+            "SKIP-1": {
+              "merged_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "tests": [
+                "npm test"
+              ]
+            }
+          }
+        },
+        "ledger_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc100\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"SKIP-1\",\n    \"HOLD-1\",\n    \"LAND-1\",\n    \"HUMAN-1\",\n    \"POST-1\",\n    \"UNKNOWN-1\",\n    \"RESOLVE-1\",\n    \"SUPER-1\"\n  ],\n  \"outcomes\": {\n    \"SKIP-1\": \"shipped\",\n    \"HOLD-1\": \"parked\",\n    \"LAND-1\": \"pr-open\",\n    \"HUMAN-1\": \"pr-open\",\n    \"POST-1\": \"shipped\",\n    \"UNKNOWN-1\": \"shipped\",\n    \"RESOLVE-1\": \"parked\",\n    \"SUPER-1\": \"superseded\"\n  },\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc100\",\n    \"pid\": 1340221,\n    \"started_at\": \"2026-11-17T03:01:51.166Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:51.166Z\",\n    \"faff_version\": \"0.45.0\"\n  },\n  \"discovered_scope_filed\": 2,\n  \"review_adversarial_skipped\": [\n    \"SKIP-1\"\n  ],\n  \"review_outage_pending\": [\n    \"HOLD-1\"\n  ],\n  \"spec_review_outage_pending\": [\n    \"PREP-OUT\"\n  ],\n  \"spec_review_turn_budget_pending\": [\n    \"PREP-SLOW\"\n  ],\n  \"landing_resumable\": [\n    \"LAND-1\"\n  ],\n  \"post_merge_verification_failures\": [\n    {\n      \"issue\": \"POST-1\",\n      \"pr\": 501,\n      \"merge_sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n      \"command\": \"npm test\"\n    }\n  ],\n  \"post_merge_verification_unverified\": [\n    \"UNKNOWN-1\"\n  ],\n  \"outcome_details\": {\n    \"SKIP-1\": {\n      \"merged_head\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n      \"tests\": [\n        \"npm test\"\n      ]\n    }\n  }\n}\n",
+        "heartbeat": null,
+        "events": [
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc100",
+            "seq": 0,
+            "ts": "2026-11-17T03:01:51.199Z",
+            "prev": "55485a6a62c1cc3d28de29b7fef98422fccec83ff5f2b7b6da967ac8b49ec608",
+            "phase": "run",
+            "type": "ledger-write",
+            "data": {
+              "ledger_sha256": "1542e08a0c59418d7eb7208a7ea23f57d94f4295e207413240f1787f00fc2ce5"
+            }
+          },
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc100",
+            "seq": 1,
+            "ts": "2026-11-17T03:01:51.199Z",
+            "prev": "f24dc4c7072e9722f1b667b57b3e52c79386087501630e1b45819fb618c08bba",
+            "phase": "run",
+            "type": "run-start",
+            "data": {
+              "level": "L3",
+              "faff_version": "0.45.0"
+            }
+          },
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc100",
+            "seq": 2,
+            "ts": "2026-11-17T03:01:51.200Z",
+            "prev": "245d2d31ef4c3f9fcd1a6f0a25d20b9df5e3ce327a283bc4b0878d879ba1d925",
+            "phase": "run",
+            "type": "runner-identity",
+            "data": {
+              "github_login": null,
+              "github_login_source": "unresolved",
+              "credential_source": "ambient",
+              "credential_unresolved": false,
+              "verified": false
+            }
+          },
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc100",
+            "seq": 3,
+            "ts": "2026-11-17T03:01:51.231Z",
+            "prev": "5b8458c43cd6f16adb9356416ad98c541d30963974fe1b3b3ca2a78a98df6699",
+            "phase": "run",
+            "type": "ledger-write",
+            "data": {
+              "ledger_sha256": "7cf408dfb739fb578d942b0104b0226e0b241b034aa6844f32086304b9845b5a"
+            }
+          }
+        ],
+        "commands": [
+          {
+            "args": [
+              "run-ledger",
+              "init-self-drain",
+              "--mode",
+              "list",
+              "--id",
+              "run-20260101-000000-beepboop-list-abc100",
+              "--root",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/mixed-ledger"
+            ],
+            "input": "",
+            "exit_code": 0,
+            "stdout": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100\n",
+            "stderr": "",
+            "error": null
+          },
+          {
+            "args": [
+              "events",
+              "append",
+              "--run",
+              "run-20260101-000000-beepboop-list-abc100",
+              "--root",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/mixed-ledger"
+            ],
+            "input": "{\"phase\":\"run\",\"type\":\"ledger-write\"}",
+            "exit_code": 0,
+            "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":3,\"ts\":\"2026-11-17T03:01:51.231Z\",\"prev\":\"5b8458c43cd6f16adb9356416ad98c541d30963974fe1b3b3ca2a78a98df6699\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"7cf408dfb739fb578d942b0104b0226e0b241b034aa6844f32086304b9845b5a\"}}\n",
+            "stderr": "",
+            "error": null
+          }
+        ],
+        "consumer": {
+          "runcheck": {
+            "args": [
+              "runcheck",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100",
+              "--json"
+            ],
+            "input": "",
+            "exit_code": 0,
+            "stdout": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc100\",\n  \"admitted\": [\n    \"SKIP-1\",\n    \"HOLD-1\",\n    \"LAND-1\",\n    \"HUMAN-1\",\n    \"POST-1\",\n    \"UNKNOWN-1\",\n    \"RESOLVE-1\",\n    \"SUPER-1\"\n  ],\n  \"undispatched\": [],\n  \"invalid_outcomes\": [],\n  \"clean\": true,\n  \"run_dir\": \"/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100\"\n}\n",
+            "stderr": "",
+            "error": null
+          },
+          "validate": {
+            "args": [
+              "events",
+              "validate",
+              "--file",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100/events.jsonl"
+            ],
+            "input": "",
+            "exit_code": 0,
+            "stdout": "OK — run-event log valid.\n",
+            "stderr": "",
+            "error": null
+          },
+          "verify": {
+            "args": [
+              "events",
+              "verify",
+              "--run-dir",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/mixed-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc100",
+              "--json"
+            ],
+            "input": "",
+            "exit_code": 0,
+            "stdout": "{\"schema_floor\":2,\"line_count\":4,\"head_sha256\":\"5212a1b7a0aa36927896864672cca43f541fb02c9cc4142a636ee3f46be9868c\",\"first_break\":null,\"ledger_fold\":\"match\",\"torn_tail\":false,\"witness\":\"absent\",\"status\":\"verified\",\"detail\":\"chain verified from genesis\"}\n",
+            "stderr": "",
+            "error": null
+          },
+          "event_read": {
+            "args": [
+              "events",
+              "read",
+              "--run",
+              "run-20260101-000000-beepboop-list-abc100",
+              "--root",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/mixed-ledger",
+              "--json"
+            ],
+            "input": "",
+            "exit_code": 0,
+            "stdout": "[{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":0,\"ts\":\"2026-11-17T03:01:51.199Z\",\"prev\":\"55485a6a62c1cc3d28de29b7fef98422fccec83ff5f2b7b6da967ac8b49ec608\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1542e08a0c59418d7eb7208a7ea23f57d94f4295e207413240f1787f00fc2ce5\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":1,\"ts\":\"2026-11-17T03:01:51.199Z\",\"prev\":\"f24dc4c7072e9722f1b667b57b3e52c79386087501630e1b45819fb618c08bba\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":2,\"ts\":\"2026-11-17T03:01:51.200Z\",\"prev\":\"245d2d31ef4c3f9fcd1a6f0a25d20b9df5e3ce327a283bc4b0878d879ba1d925\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":3,\"ts\":\"2026-11-17T03:01:51.231Z\",\"prev\":\"5b8458c43cd6f16adb9356416ad98c541d30963974fe1b3b3ca2a78a98df6699\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"7cf408dfb739fb578d942b0104b0226e0b241b034aa6844f32086304b9845b5a\"}}]\n",
+            "stderr": "",
+            "error": null
+          },
+          "summary": {
+            "exit_code": 0,
+            "stdout": "# Beep-Boop Run — 2026-11-17 03:01:51\nMode: explicit-list · Duration: 0h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 1 _(reported)_\nStop reason: (not recorded)\n\n## Unit economics\nRun spend 1.2K (estimate) · $3.00 · per shipped 400 · $1.00 · per attempt 150 (8) · per bucket shipped 3·pr-open 2·parked 2·superseded 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 8 total)\n\n## Shipped (auto-merged): 0\n\n## Shipped (adversarial review skipped — chain outage): 1\n- SKIP-1 (PR #500) — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped)\n\n## Shipped (post-merge verification flagged): 2\n- POST-1 (PR #501) — merged main HEAD failed its own declared test command on re-run: `npm test` (sha `aaaaaaa`); tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures)\n- UNKNOWN-1 (PR #502) — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified)\n\n## Superseded (delivered by prior tickets): 1\n- SUPER-1 — deliverables already on `main` via PRIOR-7 (supersession: `.faff/runs/run-20260101-000000-beepboop-list-abc100/SUPER-1/supersession.json`)\n\n## PR open for human review: 1\n- HUMAN-1 (PR #504)\n\n## Awaiting landing (resumable): 1\n- LAND-1 (PR #503) — landing-time budget elapsed mid-CI-wait; PR open, non-draft; a later drain resumes the landing loop via the recovery-claim (ledger: landing_resumable)\n\n## Parked: 1 _(reported)_\n- RESOLVE-1 — reason: root cause needs-decision-first _(reported)_\n```faff-parks\n[{\"issue_id\":\"RESOLVE-1\",\"root_cause_class\":\"needs-decision-first\",\"timestamp\":\"2026-01-01T00:00:00Z\"}]\n```\n\n## Awaiting review (adversarial outage): 1\n- HOLD-1 — review provider unavailable; build held (branch pushed, checkpoint intact); auto-resumes at review next drain (ledger: review_outage_pending)\n\n## Awaiting spec-review (adversarial outage): 1\n- PREP-OUT — spec-review provider unavailable; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_outage_pending)\n\n## Awaiting spec-review (slow fan-out): 1\n- PREP-SLOW — spec-review did not finish this turn; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_turn_budget_pending)\n\n## Errored: 0\n\n## Discovered scope (execution-reported): 2 filed\n",
+            "stderr": "",
+            "error": null,
+            "persisted": "# Beep-Boop Run — 2026-11-17 03:01:51\nMode: explicit-list · Duration: 0h 0m\nSentry: 0 checkpoints · max intervention: none · Waves: 1 _(reported)_\nStop reason: (not recorded)\n\n## Unit economics\nRun spend 1.2K (estimate) · $3.00 · per shipped 400 · $1.00 · per attempt 150 (8) · per bucket shipped 3·pr-open 2·parked 2·superseded 1\n\n## Build queue verdicts at admission\n- fire-and-forget: ? _(reported)_\n- likely-fire: ? _(reported)_\n(admitted: 8 total)\n\n## Shipped (auto-merged): 0\n\n## Shipped (adversarial review skipped — chain outage): 1\n- SKIP-1 (PR #500) — every adversarial backend was unreachable; merged on Phase-1 + AC + CI, WITHOUT a second-opinion pass (ledger: review_adversarial_skipped)\n\n## Shipped (post-merge verification flagged): 2\n- POST-1 (PR #501) — merged main HEAD failed its own declared test command on re-run: `npm test` (sha `aaaaaaa`); tracker comment + discovered-scope entry filed, NOT reverted, NOT reopened (ledger: post_merge_verification_failures)\n- UNKNOWN-1 (PR #502) — no declared UNIT rung, or a worktree/execution error; verdict unobtainable, not a defect (ledger: post_merge_verification_unverified)\n\n## Superseded (delivered by prior tickets): 1\n- SUPER-1 — deliverables already on `main` via PRIOR-7 (supersession: `.faff/runs/run-20260101-000000-beepboop-list-abc100/SUPER-1/supersession.json`)\n\n## PR open for human review: 1\n- HUMAN-1 (PR #504)\n\n## Awaiting landing (resumable): 1\n- LAND-1 (PR #503) — landing-time budget elapsed mid-CI-wait; PR open, non-draft; a later drain resumes the landing loop via the recovery-claim (ledger: landing_resumable)\n\n## Parked: 1 _(reported)_\n- RESOLVE-1 — reason: root cause needs-decision-first _(reported)_\n```faff-parks\n[{\"issue_id\":\"RESOLVE-1\",\"root_cause_class\":\"needs-decision-first\",\"timestamp\":\"2026-01-01T00:00:00Z\"}]\n```\n\n## Awaiting review (adversarial outage): 1\n- HOLD-1 — review provider unavailable; build held (branch pushed, checkpoint intact); auto-resumes at review next drain (ledger: review_outage_pending)\n\n## Awaiting spec-review (adversarial outage): 1\n- PREP-OUT — spec-review provider unavailable; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_outage_pending)\n\n## Awaiting spec-review (slow fan-out): 1\n- PREP-SLOW — spec-review did not finish this turn; spec attached and held; auto-resumes at review next prep drain (ledger: spec_review_turn_budget_pending)\n\n## Errored: 0\n\n## Discovered scope (execution-reported): 2 filed\n"
+          }
+        }
+      },
+      {
+        "id": "incomplete-ledger",
+        "root": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/incomplete-ledger",
+        "run_dir": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+        "session_id": "ledger-measurement-session",
+        "before": {
+          "schema_version": 1,
+          "run_id": "run-20260101-000000-beepboop-list-abc101",
+          "level": "L3",
+          "admitted": [],
+          "outcomes": {},
+          "base_sha": null,
+          "base_sha_required": true,
+          "owner": {
+            "status": "running",
+            "session_id": "run-20260101-000000-beepboop-list-abc101",
+            "pid": 1340289,
+            "started_at": "2026-11-17T03:01:51.467Z",
+            "utc_offset_min": 0,
+            "last_heartbeat": "2026-11-17T03:01:51.467Z",
+            "faff_version": "0.45.0"
+          }
+        },
+        "before_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc101\",\n  \"level\": \"L3\",\n  \"admitted\": [],\n  \"outcomes\": {},\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc101\",\n    \"pid\": 1340289,\n    \"started_at\": \"2026-11-17T03:01:51.467Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:51.467Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+        "initial_events": [
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc101",
+            "seq": 0,
+            "ts": "2026-11-17T03:01:51.500Z",
+            "prev": "44f11e6822ac814800c49f57b0013ef035a32fb972f02971bc5c432127d30f32",
+            "phase": "run",
+            "type": "ledger-write",
+            "data": {
+              "ledger_sha256": "184245eecb06fc6b30d4721927c247c7f7ce3682aa423144ca086d02c48a0290"
+            }
+          },
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc101",
+            "seq": 1,
+            "ts": "2026-11-17T03:01:51.500Z",
+            "prev": "dca367f9e847db87ae6554071230e50088159143d7c54e7dc972b98fe959468d",
+            "phase": "run",
+            "type": "run-start",
+            "data": {
+              "level": "L3",
+              "faff_version": "0.45.0"
+            }
+          },
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc101",
+            "seq": 2,
+            "ts": "2026-11-17T03:01:51.501Z",
+            "prev": "b8f28b2b5953e891bbb731c97ed5725788cb4fd3812f8cc9873138d8bdfc53b3",
+            "phase": "run",
+            "type": "runner-identity",
+            "data": {
+              "github_login": null,
+              "github_login_source": "unresolved",
+              "credential_source": "ambient",
+              "credential_unresolved": false,
+              "verified": false
+            }
+          }
+        ],
+        "ledger": {
+          "schema_version": 1,
+          "run_id": "run-20260101-000000-beepboop-list-abc101",
+          "level": "L3",
+          "admitted": [
+            "SKIP-1",
+            "HOLD-1",
+            "LAND-1",
+            "HUMAN-1",
+            "POST-1",
+            "UNKNOWN-1",
+            "RESOLVE-1",
+            "SUPER-1",
+            "OPEN-1"
+          ],
+          "outcomes": {
+            "SKIP-1": "shipped",
+            "HOLD-1": "parked",
+            "LAND-1": "pr-open",
+            "HUMAN-1": "pr-open",
+            "POST-1": "shipped",
+            "UNKNOWN-1": "shipped",
+            "RESOLVE-1": "parked",
+            "SUPER-1": "superseded"
+          },
+          "base_sha": null,
+          "base_sha_required": true,
+          "owner": {
+            "status": "running",
+            "session_id": "run-20260101-000000-beepboop-list-abc101",
+            "pid": 1340289,
+            "started_at": "2026-11-17T03:01:51.467Z",
+            "utc_offset_min": 0,
+            "last_heartbeat": "2026-11-17T03:01:51.467Z",
+            "faff_version": "0.45.0"
+          },
+          "discovered_scope_filed": 2,
+          "review_adversarial_skipped": [
+            "SKIP-1"
+          ],
+          "review_outage_pending": [
+            "HOLD-1"
+          ],
+          "spec_review_outage_pending": [
+            "PREP-OUT"
+          ],
+          "spec_review_turn_budget_pending": [
+            "PREP-SLOW"
+          ],
+          "landing_resumable": [
+            "LAND-1"
+          ],
+          "post_merge_verification_failures": [
+            {
+              "issue": "POST-1",
+              "pr": 501,
+              "merge_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "npm test"
+            }
+          ],
+          "post_merge_verification_unverified": [
+            "UNKNOWN-1"
+          ],
+          "outcome_details": {
+            "SKIP-1": {
+              "merged_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "tests": [
+                "npm test"
+              ]
+            }
+          }
+        },
+        "ledger_bytes": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc101\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"SKIP-1\",\n    \"HOLD-1\",\n    \"LAND-1\",\n    \"HUMAN-1\",\n    \"POST-1\",\n    \"UNKNOWN-1\",\n    \"RESOLVE-1\",\n    \"SUPER-1\",\n    \"OPEN-1\"\n  ],\n  \"outcomes\": {\n    \"SKIP-1\": \"shipped\",\n    \"HOLD-1\": \"parked\",\n    \"LAND-1\": \"pr-open\",\n    \"HUMAN-1\": \"pr-open\",\n    \"POST-1\": \"shipped\",\n    \"UNKNOWN-1\": \"shipped\",\n    \"RESOLVE-1\": \"parked\",\n    \"SUPER-1\": \"superseded\"\n  },\n  \"base_sha\": null,\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-abc101\",\n    \"pid\": 1340289,\n    \"started_at\": \"2026-11-17T03:01:51.467Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:51.467Z\",\n    \"faff_version\": \"0.45.0\"\n  },\n  \"discovered_scope_filed\": 2,\n  \"review_adversarial_skipped\": [\n    \"SKIP-1\"\n  ],\n  \"review_outage_pending\": [\n    \"HOLD-1\"\n  ],\n  \"spec_review_outage_pending\": [\n    \"PREP-OUT\"\n  ],\n  \"spec_review_turn_budget_pending\": [\n    \"PREP-SLOW\"\n  ],\n  \"landing_resumable\": [\n    \"LAND-1\"\n  ],\n  \"post_merge_verification_failures\": [\n    {\n      \"issue\": \"POST-1\",\n      \"pr\": 501,\n      \"merge_sha\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n      \"command\": \"npm test\"\n    }\n  ],\n  \"post_merge_verification_unverified\": [\n    \"UNKNOWN-1\"\n  ],\n  \"outcome_details\": {\n    \"SKIP-1\": {\n      \"merged_head\": \"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\",\n      \"tests\": [\n        \"npm test\"\n      ]\n    }\n  }\n}\n",
+        "heartbeat": null,
+        "events": [
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc101",
+            "seq": 0,
+            "ts": "2026-11-17T03:01:51.500Z",
+            "prev": "44f11e6822ac814800c49f57b0013ef035a32fb972f02971bc5c432127d30f32",
+            "phase": "run",
+            "type": "ledger-write",
+            "data": {
+              "ledger_sha256": "184245eecb06fc6b30d4721927c247c7f7ce3682aa423144ca086d02c48a0290"
+            }
+          },
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc101",
+            "seq": 1,
+            "ts": "2026-11-17T03:01:51.500Z",
+            "prev": "dca367f9e847db87ae6554071230e50088159143d7c54e7dc972b98fe959468d",
+            "phase": "run",
+            "type": "run-start",
+            "data": {
+              "level": "L3",
+              "faff_version": "0.45.0"
+            }
+          },
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc101",
+            "seq": 2,
+            "ts": "2026-11-17T03:01:51.501Z",
+            "prev": "b8f28b2b5953e891bbb731c97ed5725788cb4fd3812f8cc9873138d8bdfc53b3",
+            "phase": "run",
+            "type": "runner-identity",
+            "data": {
+              "github_login": null,
+              "github_login_source": "unresolved",
+              "credential_source": "ambient",
+              "credential_unresolved": false,
+              "verified": false
+            }
+          },
+          {
+            "schema": 2,
+            "run_id": "run-20260101-000000-beepboop-list-abc101",
+            "seq": 3,
+            "ts": "2026-11-17T03:01:51.531Z",
+            "prev": "93bb2b36d1c6f93309807511cc70e2ff9c9dcbe9bdb5e19390f5b662838aa11d",
+            "phase": "run",
+            "type": "ledger-write",
+            "data": {
+              "ledger_sha256": "eaec9556df06591e3b10c86bf6813f2b2b454df2a281bc3dfc0e35a8073d1ef1"
+            }
+          }
+        ],
+        "commands": [
+          {
+            "args": [
+              "run-ledger",
+              "init-self-drain",
+              "--mode",
+              "list",
+              "--id",
+              "run-20260101-000000-beepboop-list-abc101",
+              "--root",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/incomplete-ledger"
+            ],
+            "input": "",
+            "exit_code": 0,
+            "stdout": "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101\n",
+            "stderr": "",
+            "error": null
+          },
+          {
+            "args": [
+              "events",
+              "append",
+              "--run",
+              "run-20260101-000000-beepboop-list-abc101",
+              "--root",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/incomplete-ledger"
+            ],
+            "input": "{\"phase\":\"run\",\"type\":\"ledger-write\"}",
+            "exit_code": 0,
+            "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":3,\"ts\":\"2026-11-17T03:01:51.531Z\",\"prev\":\"93bb2b36d1c6f93309807511cc70e2ff9c9dcbe9bdb5e19390f5b662838aa11d\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"eaec9556df06591e3b10c86bf6813f2b2b454df2a281bc3dfc0e35a8073d1ef1\"}}\n",
+            "stderr": "",
+            "error": null
+          }
+        ],
+        "consumer": {
+          "runcheck": {
+            "args": [
+              "runcheck",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+              "--json"
+            ],
+            "input": "",
+            "exit_code": 3,
+            "stdout": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-abc101\",\n  \"admitted\": [\n    \"SKIP-1\",\n    \"HOLD-1\",\n    \"LAND-1\",\n    \"HUMAN-1\",\n    \"POST-1\",\n    \"UNKNOWN-1\",\n    \"RESOLVE-1\",\n    \"SUPER-1\",\n    \"OPEN-1\"\n  ],\n  \"undispatched\": [\n    \"OPEN-1\"\n  ],\n  \"invalid_outcomes\": [],\n  \"clean\": false,\n  \"run_dir\": \"/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101\"\n}\n",
+            "stderr": "",
+            "error": null
+          },
+          "validate": {
+            "args": [
+              "events",
+              "validate",
+              "--file",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101/events.jsonl"
+            ],
+            "input": "",
+            "exit_code": 0,
+            "stdout": "OK — run-event log valid.\n",
+            "stderr": "",
+            "error": null
+          },
+          "verify": {
+            "args": [
+              "events",
+              "verify",
+              "--run-dir",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/incomplete-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc101",
+              "--json"
+            ],
+            "input": "",
+            "exit_code": 0,
+            "stdout": "{\"schema_floor\":2,\"line_count\":4,\"head_sha256\":\"502f250ca5e551e1be97d3348fd6c54998ea4ce6a93821020e87c24a8bd85cbb\",\"first_break\":null,\"ledger_fold\":\"match\",\"torn_tail\":false,\"witness\":\"absent\",\"status\":\"verified\",\"detail\":\"chain verified from genesis\"}\n",
+            "stderr": "",
+            "error": null
+          },
+          "event_read": {
+            "args": [
+              "events",
+              "read",
+              "--run",
+              "run-20260101-000000-beepboop-list-abc101",
+              "--root",
+              "/var/tmp/graft-checkpoint-FskYXR/reconciliation/oracle/incomplete-ledger",
+              "--json"
+            ],
+            "input": "",
+            "exit_code": 0,
+            "stdout": "[{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":0,\"ts\":\"2026-11-17T03:01:51.500Z\",\"prev\":\"44f11e6822ac814800c49f57b0013ef035a32fb972f02971bc5c432127d30f32\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"184245eecb06fc6b30d4721927c247c7f7ce3682aa423144ca086d02c48a0290\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":1,\"ts\":\"2026-11-17T03:01:51.500Z\",\"prev\":\"dca367f9e847db87ae6554071230e50088159143d7c54e7dc972b98fe959468d\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":2,\"ts\":\"2026-11-17T03:01:51.501Z\",\"prev\":\"b8f28b2b5953e891bbb731c97ed5725788cb4fd3812f8cc9873138d8bdfc53b3\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}},{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc101\",\"seq\":3,\"ts\":\"2026-11-17T03:01:51.531Z\",\"prev\":\"93bb2b36d1c6f93309807511cc70e2ff9c9dcbe9bdb5e19390f5b662838aa11d\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"eaec9556df06591e3b10c86bf6813f2b2b454df2a281bc3dfc0e35a8073d1ef1\"}}]\n",
+            "stderr": "",
+            "error": null
+          },
+          "summary": null
+        }
+      }
+    ]
+  },
+  "cases": [
+    {
+      "id": "dispatched-pass",
+      "root": "/var/tmp/graft-checkpoint-FskYXR/dispatched-pass",
+      "run_dir": "/var/tmp/graft-checkpoint-FskYXR/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+      "setup": [
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "run-ledger",
+            "init-self-drain",
+            "--mode",
+            "list",
+            "--id",
+            "run-20260101-000000-beepboop-list-dispatched-pass",
+            "--root",
+            "/var/tmp/graft-checkpoint-FskYXR/dispatched-pass"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/dispatched-pass",
+          "exit_code": 0,
+          "stdout": "/var/tmp/graft-checkpoint-FskYXR/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass\n",
+          "stderr": "",
+          "error": null
+        },
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "spec",
+            "commit",
+            "--issue",
+            "FAFF-9",
+            "--title",
+            "Checkpoint fixture",
+            "--spec",
+            "/var/tmp/graft-checkpoint-FskYXR/dispatched-pass-source-spec.md",
+            "--worktree",
+            "/var/tmp/graft-checkpoint-FskYXR/dispatched-pass",
+            "--run-dir",
+            "/var/tmp/graft-checkpoint-FskYXR/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+            "--json"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/dispatched-pass",
+          "exit_code": 0,
+          "stdout": "{\"issue\":\"FAFF-9\",\"token\":\"committed\",\"path\":\"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\"commit\":\"42954482348e551face0d866416f9f66d4691256\",\"source_check\":\"no-marker\",\"commit_subject_scheme\":\"conventional\"}\n",
+          "stderr": "",
+          "error": null
+        }
+      ],
+      "returned_before_change": null,
+      "initial_refs": {
+        "main": "4d509c107394c17d7a1720beba7701180708c828",
+        "feature": "42954482348e551face0d866416f9f66d4691256"
+      },
+      "result": null,
+      "operations": [],
+      "lane": {
+        "files": {
+          ".faff/config.yaml": {
+            "text": "tracking:\n  tracker: none\n",
+            "sha256": "2fe1dd7fac31b7e01d4a7953292cd0a4f00ff73fe52c935cb0bb9f18b9f2723c"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/spec-commit.json": {
+            "text": "{\n  \"issue\": \"FAFF-9\",\n  \"path\": \"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\n  \"commit\": \"42954482348e551face0d866416f9f66d4691256\",\n  \"committed_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"source_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"holdouts_withheld\": 0,\n  \"source_check\": \"no-marker\",\n  \"faff_version\": \"0.45.0\",\n  \"warnings\": [],\n  \"commit_subject_scheme\": \"conventional\"\n}\n",
+            "sha256": "fbfd6da3a9f92ba404726743ddaede3053e4f6b8a79afaa923ac97b4d69ec634"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/events.jsonl": {
+            "text": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":0,\"ts\":\"2026-11-17T03:01:50.318Z\",\"prev\":\"dd362334329407e4df228a05783c11607409c95db5996c3cdfb44df0319386f7\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"d4063e5a2df0c56c8bedd9a65f1b6351224c5ae35b4927e77fc2d301136dac5c\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":1,\"ts\":\"2026-11-17T03:01:50.318Z\",\"prev\":\"95bbb367c264363a692075990805842a59502ce003839413e162c72c8887042d\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":2,\"ts\":\"2026-11-17T03:01:50.320Z\",\"prev\":\"1a1fdcab8459d0184b31ced9705351cb7224c877f77839eb250fc5386ac49c0f\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":3,\"ts\":\"2026-11-17T03:01:50.339Z\",\"prev\":\"620a8274507623f612dd0f357ad64eea29b9ad2e03fc1c59478c6c30f10a0ce6\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"e36dd39902688569de5c99f216a9b3809fac843024d5452cbd4ec40acef31c7b\"}}\n",
+            "sha256": "f80352bba73ab5f91bc355e00ab27ecb663d482c151df0d470259c40ac369de2"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/run-ledger.json": {
+            "text": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-dispatched-pass\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"FAFF-9\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": \"4d509c107394c17d7a1720beba7701180708c828\",\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-dispatched-pass\",\n    \"pid\": 1339989,\n    \"started_at\": \"2026-11-17T03:01:50.281Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:50.281Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+            "sha256": "e36dd39902688569de5c99f216a9b3809fac843024d5452cbd4ec40acef31c7b"
+          },
+          ".faffrc.yaml": {
+            "text": "",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          ".gitignore": {
+            "text": ".faff/\n",
+            "sha256": "fd75b9c9fc4b3d74564e97af96250e803c0e5888eb57482081cee413aaa06f0a"
+          },
+          "docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md": {
+            "text": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+            "sha256": "227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a"
+          },
+          "feature.txt": {
+            "text": "bounded fixture\n",
+            "sha256": "9babcbe17b61e0df0ca96b5553ca292af86cd465eafe5939a0f19de7029e7442"
+          },
+          "fixture-check.cjs": {
+            "text": "const fs=require('node:fs');const name=process.argv[2],p='.faff/'+name+'.count';fs.mkdirSync('.faff',{recursive:true});fs.writeFileSync(p,String((fs.existsSync(p)?Number(fs.readFileSync(p)):0)+1));console.log(name+' fixture executed');\n",
+            "sha256": "0d65d5624dcdca429f5c8eefdb6ed8ecc6fd49fdfdc4f3b0ec387d10063a3499"
+          },
+          "package.json": {
+            "text": "{\n  \"scripts\": {\n    \"lint\": \"node fixture-check.cjs lint\",\n    \"test\": \"node fixture-check.cjs test\"\n  }\n}\n",
+            "sha256": "220c56c178d3257c9ab4846643ecd3cd5cec713056a6cb5c87f7ce4c7134c824"
+          }
+        },
+        "refs": {
+          "main": "4d509c107394c17d7a1720beba7701180708c828",
+          "feature": "42954482348e551face0d866416f9f66d4691256"
+        },
+        "counters": {
+          "lint": 0,
+          "test": 0
+        }
+      }
+    },
+    {
+      "id": "gate-failure",
+      "root": "/var/tmp/graft-checkpoint-FskYXR/gate-failure",
+      "run_dir": "/var/tmp/graft-checkpoint-FskYXR/gate-failure/.faff/runs/run-20260101-000000-beepboop-list-gate-failure",
+      "setup": [
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "run-ledger",
+            "init-self-drain",
+            "--mode",
+            "list",
+            "--id",
+            "run-20260101-000000-beepboop-list-gate-failure",
+            "--root",
+            "/var/tmp/graft-checkpoint-FskYXR/gate-failure"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/gate-failure",
+          "exit_code": 0,
+          "stdout": "/var/tmp/graft-checkpoint-FskYXR/gate-failure/.faff/runs/run-20260101-000000-beepboop-list-gate-failure\n",
+          "stderr": "",
+          "error": null
+        },
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "spec",
+            "commit",
+            "--issue",
+            "FAFF-9",
+            "--title",
+            "Checkpoint fixture",
+            "--spec",
+            "/var/tmp/graft-checkpoint-FskYXR/gate-failure-source-spec.md",
+            "--worktree",
+            "/var/tmp/graft-checkpoint-FskYXR/gate-failure",
+            "--run-dir",
+            "/var/tmp/graft-checkpoint-FskYXR/gate-failure/.faff/runs/run-20260101-000000-beepboop-list-gate-failure",
+            "--json"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/gate-failure",
+          "exit_code": 0,
+          "stdout": "{\"issue\":\"FAFF-9\",\"token\":\"committed\",\"path\":\"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\"commit\":\"e0cfb0c64edf24f9ea27002f91e85c2c50b9c9fb\",\"source_check\":\"no-marker\",\"commit_subject_scheme\":\"conventional\"}\n",
+          "stderr": "",
+          "error": null
+        }
+      ],
+      "returned_before_change": null,
+      "initial_refs": {
+        "main": "24cd45bac5470f6b0e1e589d85b45e7e050147d6",
+        "feature": "e0cfb0c64edf24f9ea27002f91e85c2c50b9c9fb"
+      },
+      "result": null,
+      "operations": [],
+      "lane": {
+        "files": {
+          ".faff/config.yaml": {
+            "text": "tracking:\n  tracker: none\n",
+            "sha256": "2fe1dd7fac31b7e01d4a7953292cd0a4f00ff73fe52c935cb0bb9f18b9f2723c"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-gate-failure/FAFF-9/spec-commit.json": {
+            "text": "{\n  \"issue\": \"FAFF-9\",\n  \"path\": \"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\n  \"commit\": \"e0cfb0c64edf24f9ea27002f91e85c2c50b9c9fb\",\n  \"committed_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"source_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"holdouts_withheld\": 0,\n  \"source_check\": \"no-marker\",\n  \"faff_version\": \"0.45.0\",\n  \"warnings\": [],\n  \"commit_subject_scheme\": \"conventional\"\n}\n",
+            "sha256": "5315d6dc30348ee39c74239ab692ba936769be101194c9545285f9cab7ff9e99"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-gate-failure/events.jsonl": {
+            "text": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-gate-failure\",\"seq\":0,\"ts\":\"2026-11-17T03:01:50.462Z\",\"prev\":\"1e2463fc5e66c5fe9ec1381abb4cb0500c00e07063bedc5751b9570f105d30cf\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"70f76848fdbd890f11445942dacb915a8a086edf0d78619054e9f1e3204fe576\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-gate-failure\",\"seq\":1,\"ts\":\"2026-11-17T03:01:50.463Z\",\"prev\":\"f16b0d1ed9a681796d21a92e6aca505975acf6a8ea002421f4f0fb0d80297eeb\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-gate-failure\",\"seq\":2,\"ts\":\"2026-11-17T03:01:50.464Z\",\"prev\":\"a22153a6ed230a6a0af4a154b9b187f94631b41287d804667fc1817abc0e9968\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-gate-failure\",\"seq\":3,\"ts\":\"2026-11-17T03:01:50.469Z\",\"prev\":\"e2c31d5db0e35f873f41ac77b4bf4fe642f576ae6282cae0443866ccf4ca2b60\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"6b6a245e16d297b228f8d7f5ff34b1f0e1091f36d9308f605c2e75e8c7dc725e\"}}\n",
+            "sha256": "c4683dc895e9434797f17bab5f11ce4e15722f01ad6d9309dd3ec3ce06f4cb73"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-gate-failure/run-ledger.json": {
+            "text": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-gate-failure\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"FAFF-9\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": \"24cd45bac5470f6b0e1e589d85b45e7e050147d6\",\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-gate-failure\",\n    \"pid\": 1340024,\n    \"started_at\": \"2026-11-17T03:01:50.428Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:50.428Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+            "sha256": "6b6a245e16d297b228f8d7f5ff34b1f0e1091f36d9308f605c2e75e8c7dc725e"
+          },
+          ".faffrc.yaml": {
+            "text": "",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          ".gitignore": {
+            "text": ".faff/\n",
+            "sha256": "fd75b9c9fc4b3d74564e97af96250e803c0e5888eb57482081cee413aaa06f0a"
+          },
+          "docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md": {
+            "text": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+            "sha256": "227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a"
+          },
+          "feature.txt": {
+            "text": "bounded fixture\n",
+            "sha256": "9babcbe17b61e0df0ca96b5553ca292af86cd465eafe5939a0f19de7029e7442"
+          },
+          "fixture-check.cjs": {
+            "text": "const fs=require('node:fs');const name=process.argv[2],p='.faff/'+name+'.count';fs.mkdirSync('.faff',{recursive:true});fs.writeFileSync(p,String((fs.existsSync(p)?Number(fs.readFileSync(p)):0)+1));console.log(name+' fixture executed');process.exit(1);\n",
+            "sha256": "0e0355f52b69ec1ff4406d78bb1728d28fc49f442c3a7715b5ff746925aade8a"
+          },
+          "package.json": {
+            "text": "{\n  \"scripts\": {\n    \"lint\": \"node fixture-check.cjs lint\",\n    \"test\": \"node fixture-check.cjs test\"\n  }\n}\n",
+            "sha256": "220c56c178d3257c9ab4846643ecd3cd5cec713056a6cb5c87f7ce4c7134c824"
+          }
+        },
+        "refs": {
+          "main": "24cd45bac5470f6b0e1e589d85b45e7e050147d6",
+          "feature": "e0cfb0c64edf24f9ea27002f91e85c2c50b9c9fb"
+        },
+        "counters": {
+          "lint": 0,
+          "test": 0
+        }
+      }
+    },
+    {
+      "id": "gate-none",
+      "root": "/var/tmp/graft-checkpoint-FskYXR/gate-none",
+      "run_dir": "/var/tmp/graft-checkpoint-FskYXR/gate-none/.faff/runs/run-20260101-000000-beepboop-list-gate-none",
+      "setup": [
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "run-ledger",
+            "init-self-drain",
+            "--mode",
+            "list",
+            "--id",
+            "run-20260101-000000-beepboop-list-gate-none",
+            "--root",
+            "/var/tmp/graft-checkpoint-FskYXR/gate-none"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/gate-none",
+          "exit_code": 0,
+          "stdout": "/var/tmp/graft-checkpoint-FskYXR/gate-none/.faff/runs/run-20260101-000000-beepboop-list-gate-none\n",
+          "stderr": "",
+          "error": null
+        },
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "spec",
+            "commit",
+            "--issue",
+            "FAFF-9",
+            "--title",
+            "Checkpoint fixture",
+            "--spec",
+            "/var/tmp/graft-checkpoint-FskYXR/gate-none-source-spec.md",
+            "--worktree",
+            "/var/tmp/graft-checkpoint-FskYXR/gate-none",
+            "--run-dir",
+            "/var/tmp/graft-checkpoint-FskYXR/gate-none/.faff/runs/run-20260101-000000-beepboop-list-gate-none",
+            "--json"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/gate-none",
+          "exit_code": 0,
+          "stdout": "{\"issue\":\"FAFF-9\",\"token\":\"committed\",\"path\":\"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\"commit\":\"588b91045fd49e805345d645e940666472f71aad\",\"source_check\":\"no-marker\",\"commit_subject_scheme\":\"conventional\"}\n",
+          "stderr": "",
+          "error": null
+        }
+      ],
+      "returned_before_change": null,
+      "initial_refs": {
+        "main": "2f1fd9ce7678d6d255078b6997adfe95f319e4ad",
+        "feature": "588b91045fd49e805345d645e940666472f71aad"
+      },
+      "result": null,
+      "operations": [],
+      "lane": {
+        "files": {
+          ".faff/config.yaml": {
+            "text": "tracking:\n  tracker: none\n",
+            "sha256": "2fe1dd7fac31b7e01d4a7953292cd0a4f00ff73fe52c935cb0bb9f18b9f2723c"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-gate-none/FAFF-9/spec-commit.json": {
+            "text": "{\n  \"issue\": \"FAFF-9\",\n  \"path\": \"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\n  \"commit\": \"588b91045fd49e805345d645e940666472f71aad\",\n  \"committed_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"source_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"holdouts_withheld\": 0,\n  \"source_check\": \"no-marker\",\n  \"faff_version\": \"0.45.0\",\n  \"warnings\": [],\n  \"commit_subject_scheme\": \"conventional\"\n}\n",
+            "sha256": "6d37993a828f6ae1628e00aad0f316c0b1507184ab4b2a1180d0479d98f97c4b"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-gate-none/events.jsonl": {
+            "text": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-gate-none\",\"seq\":0,\"ts\":\"2026-11-17T03:01:50.585Z\",\"prev\":\"e8d8a7e95a5187c3c5d2e9de33583177d2689763aac545382684c2798b442c9e\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"a5584d05cc6cc157791269dbf6e34c2b67981ff728552c089ab82f57f30ceffb\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-gate-none\",\"seq\":1,\"ts\":\"2026-11-17T03:01:50.585Z\",\"prev\":\"168745d2d5c8180c28e0145d5533f8f904cb862016dbb7a9910159f8e142f43a\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-gate-none\",\"seq\":2,\"ts\":\"2026-11-17T03:01:50.586Z\",\"prev\":\"59bfc708b546e42f5c63bb64dabe1db4c6ed0d00176ec3b7d892c7457df3d7e4\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-gate-none\",\"seq\":3,\"ts\":\"2026-11-17T03:01:50.591Z\",\"prev\":\"fa0de0ab45657c1f75fd54af11c12ee580b0100f88a43b12a2f4a0aafa9787f2\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"9593540a906f547c42bcdbf91e679d7a403a8f9b31eeb80c7726b47c96c17acd\"}}\n",
+            "sha256": "bf3d13b107d33c17049bc843ab3abe8178e473e86d5d524f26ce7281da124bad"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-gate-none/run-ledger.json": {
+            "text": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-gate-none\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"FAFF-9\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": \"2f1fd9ce7678d6d255078b6997adfe95f319e4ad\",\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-gate-none\",\n    \"pid\": 1340059,\n    \"started_at\": \"2026-11-17T03:01:50.551Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:50.551Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+            "sha256": "9593540a906f547c42bcdbf91e679d7a403a8f9b31eeb80c7726b47c96c17acd"
+          },
+          ".faffrc.yaml": {
+            "text": "",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          ".gitignore": {
+            "text": ".faff/\n",
+            "sha256": "fd75b9c9fc4b3d74564e97af96250e803c0e5888eb57482081cee413aaa06f0a"
+          },
+          "docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md": {
+            "text": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+            "sha256": "227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a"
+          },
+          "feature.txt": {
+            "text": "bounded fixture\n",
+            "sha256": "9babcbe17b61e0df0ca96b5553ca292af86cd465eafe5939a0f19de7029e7442"
+          },
+          "fixture-check.cjs": {
+            "text": "const fs=require('node:fs');const name=process.argv[2],p='.faff/'+name+'.count';fs.mkdirSync('.faff',{recursive:true});fs.writeFileSync(p,String((fs.existsSync(p)?Number(fs.readFileSync(p)):0)+1));console.log(name+' fixture executed');\n",
+            "sha256": "0d65d5624dcdca429f5c8eefdb6ed8ecc6fd49fdfdc4f3b0ec387d10063a3499"
+          },
+          "package.json": {
+            "text": "{\n  \"scripts\": {}\n}\n",
+            "sha256": "8a7b99888f592d8af56158b2b998ee4af5976139531cb5e6d3d55bef541f54fa"
+          }
+        },
+        "refs": {
+          "main": "2f1fd9ce7678d6d255078b6997adfe95f319e4ad",
+          "feature": "588b91045fd49e805345d645e940666472f71aad"
+        },
+        "counters": {
+          "lint": 0,
+          "test": 0
+        }
+      }
+    },
+    {
+      "id": "evidence-absence",
+      "root": "/var/tmp/graft-checkpoint-FskYXR/evidence-absence",
+      "run_dir": "/var/tmp/graft-checkpoint-FskYXR/evidence-absence/.faff/runs/run-20260101-000000-beepboop-list-evidence-absence",
+      "setup": [
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "run-ledger",
+            "init-self-drain",
+            "--mode",
+            "list",
+            "--id",
+            "run-20260101-000000-beepboop-list-evidence-absence",
+            "--root",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-absence"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/evidence-absence",
+          "exit_code": 0,
+          "stdout": "/var/tmp/graft-checkpoint-FskYXR/evidence-absence/.faff/runs/run-20260101-000000-beepboop-list-evidence-absence\n",
+          "stderr": "",
+          "error": null
+        },
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "spec",
+            "commit",
+            "--issue",
+            "FAFF-9",
+            "--title",
+            "Checkpoint fixture",
+            "--spec",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-absence-source-spec.md",
+            "--worktree",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-absence",
+            "--run-dir",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-absence/.faff/runs/run-20260101-000000-beepboop-list-evidence-absence",
+            "--json"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/evidence-absence",
+          "exit_code": 0,
+          "stdout": "{\"issue\":\"FAFF-9\",\"token\":\"committed\",\"path\":\"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\"commit\":\"42954482348e551face0d866416f9f66d4691256\",\"source_check\":\"no-marker\",\"commit_subject_scheme\":\"conventional\"}\n",
+          "stderr": "",
+          "error": null
+        }
+      ],
+      "returned_before_change": null,
+      "initial_refs": {
+        "main": "4d509c107394c17d7a1720beba7701180708c828",
+        "feature": "42954482348e551face0d866416f9f66d4691256"
+      },
+      "result": null,
+      "operations": [],
+      "lane": {
+        "files": {
+          ".faff/config.yaml": {
+            "text": "tracking:\n  tracker: none\n",
+            "sha256": "2fe1dd7fac31b7e01d4a7953292cd0a4f00ff73fe52c935cb0bb9f18b9f2723c"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-evidence-absence/FAFF-9/spec-commit.json": {
+            "text": "{\n  \"issue\": \"FAFF-9\",\n  \"path\": \"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\n  \"commit\": \"42954482348e551face0d866416f9f66d4691256\",\n  \"committed_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"source_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"holdouts_withheld\": 0,\n  \"source_check\": \"no-marker\",\n  \"faff_version\": \"0.45.0\",\n  \"warnings\": [],\n  \"commit_subject_scheme\": \"conventional\"\n}\n",
+            "sha256": "fbfd6da3a9f92ba404726743ddaede3053e4f6b8a79afaa923ac97b4d69ec634"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-evidence-absence/events.jsonl": {
+            "text": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-absence\",\"seq\":0,\"ts\":\"2026-11-17T03:01:50.704Z\",\"prev\":\"2d916f5758e0bc31ccedac403e3de60a500b72790376355732364fa60738c379\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"1e351430853a083be17ce5eef4201f7c081933a57e04a7568845c5c89e1dd819\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-absence\",\"seq\":1,\"ts\":\"2026-11-17T03:01:50.705Z\",\"prev\":\"6895be13a9a2d98580a30d5f9d250e3dd20cd92cc556236b526224f639767a84\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-absence\",\"seq\":2,\"ts\":\"2026-11-17T03:01:50.706Z\",\"prev\":\"b8c6b39479969f12c05ed298de79f91a017be7b5a770577d43fdb675ce9d8632\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-absence\",\"seq\":3,\"ts\":\"2026-11-17T03:01:50.710Z\",\"prev\":\"f367389297419b6a0789d226e326aee846e4f89abcacecf30d0a8d1b80a271a2\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"d41d72dd89836a6be8c22d5af7ce7d415105fb2d22c695cecceef885ac6feec9\"}}\n",
+            "sha256": "e76cf71c99d2486fa59958806f672624e25d341ea5e17e995cbecdc521f9b68f"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-evidence-absence/run-ledger.json": {
+            "text": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-evidence-absence\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"FAFF-9\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": \"4d509c107394c17d7a1720beba7701180708c828\",\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-evidence-absence\",\n    \"pid\": 1340094,\n    \"started_at\": \"2026-11-17T03:01:50.671Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:50.671Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+            "sha256": "d41d72dd89836a6be8c22d5af7ce7d415105fb2d22c695cecceef885ac6feec9"
+          },
+          ".faffrc.yaml": {
+            "text": "",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          ".gitignore": {
+            "text": ".faff/\n",
+            "sha256": "fd75b9c9fc4b3d74564e97af96250e803c0e5888eb57482081cee413aaa06f0a"
+          },
+          "docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md": {
+            "text": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+            "sha256": "227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a"
+          },
+          "feature.txt": {
+            "text": "bounded fixture\n",
+            "sha256": "9babcbe17b61e0df0ca96b5553ca292af86cd465eafe5939a0f19de7029e7442"
+          },
+          "fixture-check.cjs": {
+            "text": "const fs=require('node:fs');const name=process.argv[2],p='.faff/'+name+'.count';fs.mkdirSync('.faff',{recursive:true});fs.writeFileSync(p,String((fs.existsSync(p)?Number(fs.readFileSync(p)):0)+1));console.log(name+' fixture executed');\n",
+            "sha256": "0d65d5624dcdca429f5c8eefdb6ed8ecc6fd49fdfdc4f3b0ec387d10063a3499"
+          },
+          "package.json": {
+            "text": "{\n  \"scripts\": {\n    \"lint\": \"node fixture-check.cjs lint\",\n    \"test\": \"node fixture-check.cjs test\"\n  }\n}\n",
+            "sha256": "220c56c178d3257c9ab4846643ecd3cd5cec713056a6cb5c87f7ce4c7134c824"
+          }
+        },
+        "refs": {
+          "main": "4d509c107394c17d7a1720beba7701180708c828",
+          "feature": "42954482348e551face0d866416f9f66d4691256"
+        },
+        "counters": {
+          "lint": 0,
+          "test": 0
+        }
+      }
+    },
+    {
+      "id": "evidence-refusal",
+      "root": "/var/tmp/graft-checkpoint-FskYXR/evidence-refusal",
+      "run_dir": "/var/tmp/graft-checkpoint-FskYXR/evidence-refusal/.faff/runs/run-20260101-000000-beepboop-list-evidence-refusal",
+      "setup": [
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "run-ledger",
+            "init-self-drain",
+            "--mode",
+            "list",
+            "--id",
+            "run-20260101-000000-beepboop-list-evidence-refusal",
+            "--root",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-refusal"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/evidence-refusal",
+          "exit_code": 0,
+          "stdout": "/var/tmp/graft-checkpoint-FskYXR/evidence-refusal/.faff/runs/run-20260101-000000-beepboop-list-evidence-refusal\n",
+          "stderr": "",
+          "error": null
+        },
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "spec",
+            "commit",
+            "--issue",
+            "FAFF-9",
+            "--title",
+            "Checkpoint fixture",
+            "--spec",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-refusal-source-spec.md",
+            "--worktree",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-refusal",
+            "--run-dir",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-refusal/.faff/runs/run-20260101-000000-beepboop-list-evidence-refusal",
+            "--json"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/evidence-refusal",
+          "exit_code": 0,
+          "stdout": "{\"issue\":\"FAFF-9\",\"token\":\"committed\",\"path\":\"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\"commit\":\"42954482348e551face0d866416f9f66d4691256\",\"source_check\":\"no-marker\",\"commit_subject_scheme\":\"conventional\"}\n",
+          "stderr": "",
+          "error": null
+        }
+      ],
+      "returned_before_change": null,
+      "initial_refs": {
+        "main": "4d509c107394c17d7a1720beba7701180708c828",
+        "feature": "42954482348e551face0d866416f9f66d4691256"
+      },
+      "result": null,
+      "operations": [],
+      "lane": {
+        "files": {
+          ".faff/config.yaml": {
+            "text": "tracking:\n  tracker: none\n",
+            "sha256": "2fe1dd7fac31b7e01d4a7953292cd0a4f00ff73fe52c935cb0bb9f18b9f2723c"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-evidence-refusal/FAFF-9/spec-commit.json": {
+            "text": "{\n  \"issue\": \"FAFF-9\",\n  \"path\": \"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\n  \"commit\": \"42954482348e551face0d866416f9f66d4691256\",\n  \"committed_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"source_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"holdouts_withheld\": 0,\n  \"source_check\": \"no-marker\",\n  \"faff_version\": \"0.45.0\",\n  \"warnings\": [],\n  \"commit_subject_scheme\": \"conventional\"\n}\n",
+            "sha256": "fbfd6da3a9f92ba404726743ddaede3053e4f6b8a79afaa923ac97b4d69ec634"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-evidence-refusal/events.jsonl": {
+            "text": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-refusal\",\"seq\":0,\"ts\":\"2026-11-17T03:01:50.825Z\",\"prev\":\"9960c4c2c7b55049b5f4c91abdbb1ba9dfa52b10fb5b1f8fe74fe07b240566ba\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"d69c7ea92d21fd3ff785959185dd5fd333cc301b34ea2e284bf092ba1d0078af\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-refusal\",\"seq\":1,\"ts\":\"2026-11-17T03:01:50.826Z\",\"prev\":\"ed7a0d0918317725c5a7744f9ece1c386ead400bf03fb803343730813fde6f92\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-refusal\",\"seq\":2,\"ts\":\"2026-11-17T03:01:50.827Z\",\"prev\":\"4c2e0aa5c411eeb07a75b72261039cf575083ed918ab66767ecdd790a0cd9a59\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-refusal\",\"seq\":3,\"ts\":\"2026-11-17T03:01:50.833Z\",\"prev\":\"cc2d8f63ff2f8c2f12d58aa18a7b70f478b04a05db66c864086962aeea9c9a35\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"0e1c17b85bdca0fb3968dd23b31f29eced5b34cec3b1e067b97638172172e28b\"}}\n",
+            "sha256": "4ad7631a5dc65ab48d10a2a687c855f8a354f71bba9ef2d6c95b77c60003987c"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-evidence-refusal/run-ledger.json": {
+            "text": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-evidence-refusal\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"FAFF-9\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": \"4d509c107394c17d7a1720beba7701180708c828\",\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-evidence-refusal\",\n    \"pid\": 1340129,\n    \"started_at\": \"2026-11-17T03:01:50.791Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:50.791Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+            "sha256": "0e1c17b85bdca0fb3968dd23b31f29eced5b34cec3b1e067b97638172172e28b"
+          },
+          ".faffrc.yaml": {
+            "text": "",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          ".gitignore": {
+            "text": ".faff/\n",
+            "sha256": "fd75b9c9fc4b3d74564e97af96250e803c0e5888eb57482081cee413aaa06f0a"
+          },
+          "docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md": {
+            "text": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+            "sha256": "227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a"
+          },
+          "feature.txt": {
+            "text": "bounded fixture\n",
+            "sha256": "9babcbe17b61e0df0ca96b5553ca292af86cd465eafe5939a0f19de7029e7442"
+          },
+          "fixture-check.cjs": {
+            "text": "const fs=require('node:fs');const name=process.argv[2],p='.faff/'+name+'.count';fs.mkdirSync('.faff',{recursive:true});fs.writeFileSync(p,String((fs.existsSync(p)?Number(fs.readFileSync(p)):0)+1));console.log(name+' fixture executed');\n",
+            "sha256": "0d65d5624dcdca429f5c8eefdb6ed8ecc6fd49fdfdc4f3b0ec387d10063a3499"
+          },
+          "package.json": {
+            "text": "{\n  \"scripts\": {\n    \"lint\": \"node fixture-check.cjs lint\",\n    \"test\": \"node fixture-check.cjs test\"\n  }\n}\n",
+            "sha256": "220c56c178d3257c9ab4846643ecd3cd5cec713056a6cb5c87f7ce4c7134c824"
+          }
+        },
+        "refs": {
+          "main": "4d509c107394c17d7a1720beba7701180708c828",
+          "feature": "42954482348e551face0d866416f9f66d4691256"
+        },
+        "counters": {
+          "lint": 0,
+          "test": 0
+        }
+      }
+    },
+    {
+      "id": "evidence-tamper",
+      "root": "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper",
+      "run_dir": "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+      "setup": [
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "run-ledger",
+            "init-self-drain",
+            "--mode",
+            "list",
+            "--id",
+            "run-20260101-000000-beepboop-list-evidence-tamper",
+            "--root",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper",
+          "exit_code": 0,
+          "stdout": "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper\n",
+          "stderr": "",
+          "error": null
+        },
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "spec",
+            "commit",
+            "--issue",
+            "FAFF-9",
+            "--title",
+            "Checkpoint fixture",
+            "--spec",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper-source-spec.md",
+            "--worktree",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper",
+            "--run-dir",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+            "--json"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper",
+          "exit_code": 0,
+          "stdout": "{\"issue\":\"FAFF-9\",\"token\":\"committed\",\"path\":\"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\"commit\":\"ac89ab3da10cca3ed81a13ff68056291343fec4a\",\"source_check\":\"no-marker\",\"commit_subject_scheme\":\"conventional\"}\n",
+          "stderr": "",
+          "error": null
+        },
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "evidence",
+            "write",
+            "ac-checklist",
+            "--run-dir",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+            "--issue",
+            "FAFF-9"
+          ],
+          "stdin": "{\"all_verified\":true}",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper",
+          "exit_code": 0,
+          "stdout": "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper/FAFF-9/ac-checklist.json\n",
+          "stderr": "",
+          "error": null
+        },
+        {
+          "executable": "/usr/local/bin/node",
+          "argv": [
+            "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/bin/faff",
+            "evidence",
+            "return",
+            "--run-dir",
+            "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper/.faff/runs/run-20260101-000000-beepboop-list-evidence-tamper",
+            "--issue",
+            "FAFF-9"
+          ],
+          "stdin": "",
+          "cwd": "/var/tmp/graft-checkpoint-FskYXR/evidence-tamper",
+          "exit_code": 0,
+          "stdout": "{\"issue\":\"FAFF-9\",\"ac_checklist\":{\"present\":true,\"sha256\":\"f23aeeb06d1d0f42c2844c1355873cd8496f9fc3b8b5847b440100942b140a47\"},\"review_verdict\":{\"present\":false,\"sha256\":null},\"human_only_acs\":{\"present\":false,\"sha256\":null}}\n",
+          "stderr": "",
+          "error": null
+        }
+      ],
+      "returned_before_change": "{\"issue\":\"FAFF-9\",\"ac_checklist\":{\"present\":true,\"sha256\":\"f23aeeb06d1d0f42c2844c1355873cd8496f9fc3b8b5847b440100942b140a47\"},\"review_verdict\":{\"present\":false,\"sha256\":null},\"human_only_acs\":{\"present\":false,\"sha256\":null}}\n",
+      "initial_refs": {
+        "main": "4d509c107394c17d7a1720beba7701180708c828",
+        "feature": "ac89ab3da10cca3ed81a13ff68056291343fec4a"
+      },
+      "result": null,
+      "operations": [],
+      "lane": {
+        "files": {
+          ".faff/config.yaml": {
+            "text": "tracking:\n  tracker: none\n",
+            "sha256": "2fe1dd7fac31b7e01d4a7953292cd0a4f00ff73fe52c935cb0bb9f18b9f2723c"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-evidence-tamper/FAFF-9/ac-checklist.json": {
+            "text": "{\n  \"schema_version\": 1,\n  \"faff_version\": \"0.45.0\",\n  \"all_verified\": true\n}\n\n",
+            "sha256": "4035643427bc3199fb7a004eb2e3d0af111b88fc22918209550f436af6ddd282"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-evidence-tamper/FAFF-9/spec-commit.json": {
+            "text": "{\n  \"issue\": \"FAFF-9\",\n  \"path\": \"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\n  \"commit\": \"ac89ab3da10cca3ed81a13ff68056291343fec4a\",\n  \"committed_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"source_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"holdouts_withheld\": 0,\n  \"source_check\": \"no-marker\",\n  \"faff_version\": \"0.45.0\",\n  \"warnings\": [],\n  \"commit_subject_scheme\": \"conventional\"\n}\n",
+            "sha256": "57dcf8b7ebe163bfc56d8ab209968eb315dc316f9df4eb54ee0af26c0269a70d"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-evidence-tamper/events.jsonl": {
+            "text": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-tamper\",\"seq\":0,\"ts\":\"2026-11-17T03:01:50.956Z\",\"prev\":\"71b7c24a23857d16250337213169981ee522b85ee29d6e58b3ab3bc2ea975940\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"203e152c0539c50b1e060479b6f8c923e96246cdf59929d0422078cca2a58668\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-tamper\",\"seq\":1,\"ts\":\"2026-11-17T03:01:50.956Z\",\"prev\":\"8639c1995db7fc53c904df3ffbe7a3aa8c1073576f2be968ed0583f8e38d27b4\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-tamper\",\"seq\":2,\"ts\":\"2026-11-17T03:01:50.958Z\",\"prev\":\"a22e6ded2d0b6024f987ee73688b2a319e7dd4b5ade49b188c3e656627a24b41\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-evidence-tamper\",\"seq\":3,\"ts\":\"2026-11-17T03:01:50.963Z\",\"prev\":\"bee37ec77cfc2eedfebbccf2c817673f59456e9aca3b35cd58c1001dafdbecfe\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"a705092780e32e25b1b43c094e97a5cfd0f48f804faf01b5d600fafef66fb39c\"}}\n",
+            "sha256": "7714ef782d3945acedbf6f7c5472109e2a4de4745da82485ee03e84ef3849d88"
+          },
+          ".faff/runs/run-20260101-000000-beepboop-list-evidence-tamper/run-ledger.json": {
+            "text": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-evidence-tamper\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"FAFF-9\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": \"4d509c107394c17d7a1720beba7701180708c828\",\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-evidence-tamper\",\n    \"pid\": 1340164,\n    \"started_at\": \"2026-11-17T03:01:50.920Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T03:01:50.920Z\",\n    \"faff_version\": \"0.45.0\"\n  }\n}\n",
+            "sha256": "a705092780e32e25b1b43c094e97a5cfd0f48f804faf01b5d600fafef66fb39c"
+          },
+          ".faffrc.yaml": {
+            "text": "",
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          ".gitignore": {
+            "text": ".faff/\n",
+            "sha256": "fd75b9c9fc4b3d74564e97af96250e803c0e5888eb57482081cee413aaa06f0a"
+          },
+          "docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md": {
+            "text": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+            "sha256": "227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a"
+          },
+          "feature.txt": {
+            "text": "bounded fixture\n",
+            "sha256": "9babcbe17b61e0df0ca96b5553ca292af86cd465eafe5939a0f19de7029e7442"
+          },
+          "fixture-check.cjs": {
+            "text": "const fs=require('node:fs');const name=process.argv[2],p='.faff/'+name+'.count';fs.mkdirSync('.faff',{recursive:true});fs.writeFileSync(p,String((fs.existsSync(p)?Number(fs.readFileSync(p)):0)+1));console.log(name+' fixture executed');\n",
+            "sha256": "0d65d5624dcdca429f5c8eefdb6ed8ecc6fd49fdfdc4f3b0ec387d10063a3499"
+          },
+          "package.json": {
+            "text": "{\n  \"scripts\": {\n    \"lint\": \"node fixture-check.cjs lint\",\n    \"test\": \"node fixture-check.cjs test\"\n  }\n}\n",
+            "sha256": "220c56c178d3257c9ab4846643ecd3cd5cec713056a6cb5c87f7ce4c7134c824"
+          }
+        },
+        "refs": {
+          "main": "4d509c107394c17d7a1720beba7701180708c828",
+          "feature": "ac89ab3da10cca3ed81a13ff68056291343fec4a"
+        },
+        "counters": {
+          "lint": 0,
+          "test": 0
+        }
+      }
+    }
+  ]
+}

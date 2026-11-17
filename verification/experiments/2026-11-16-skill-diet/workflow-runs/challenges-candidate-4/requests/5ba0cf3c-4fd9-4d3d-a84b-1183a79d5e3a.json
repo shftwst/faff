@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"No independent opinion was obtained: the provider chain was exhausted. --challenge is omitted so the caller rejects and parks phase2-inconclusive. A missing skeptic is never a pass."}}

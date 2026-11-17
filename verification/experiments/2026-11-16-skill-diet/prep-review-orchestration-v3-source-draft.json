@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "status": "draft-unmeasured-uninstalled",
+  "source": "plugin/skills/faff-prep/SKILL.md",
+  "source_commit": "f9f93a7771793954c82fd9a5a541df419767c558",
+  "baseline": "baseline/prep-review-orchestration-v1.md",
+  "candidate": "candidates/prep-review-orchestration-v3-draft.md",
+  "baseline_sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+  "candidate_sha256": "8d886cfeeeea3042a47e583001b07b34739bfbbefd81c391e8b36b8e22b8f95d",
+  "before_bytes": 104335,
+  "after_bytes": 93904,
+  "bytes_saved": 10431,
+  "before_estimated_tokens": 25883,
+  "after_estimated_tokens": 23311,
+  "estimated_tokens_saved": 2572,
+  "sections": [
+    {
+      "section": "review-entry",
+      "baseline_start_line": 88,
+      "baseline_end_line": 160,
+      "before_bytes": 15287,
+      "after_bytes": 7758,
+      "before_sha256": "1252d7b1d09e3af868fb58aadd6290fc9d8ba24920a376e63cf2da2f0954654f",
+      "after_sha256": "f07bfb5b3eb87af505a32eeb9b244d03ed29a031984e9d9e39c93e7be4ab647e"
+    },
+    {
+      "section": "review-exit",
+      "baseline_start_line": 242,
+      "baseline_end_line": 274,
+      "before_bytes": 8850,
+      "after_bytes": 5948,
+      "before_sha256": "3e8125923122b3f7a3db14caf8e77f7e3aa1a26206c174fa4aa7fa448f9c9dba",
+      "after_sha256": "46462c9fc9d73418ce6470ebbe259214c0c83580d660ac529e2e7cc9f4cb5e22"
+    }
+  ],
+  "outside_sections_unchanged": true,
+  "outside_sections_sha256": "5dce8e641306c622048c72047ab9efcb175bb849bd44633e083d18fbb941aeb2",
+  "mandatory_dependencies_added": [],
+  "limits": [
+    "Unregistered source draft only; independent review, integration and paired behavioural measurement pending.",
+    "Interactive ratification, carried objections, L4 re-slice and judge protocol preserved byte-for-byte."
+  ],
+  "supersedes": {
+    "candidate": "candidates/prep-review-orchestration-v2-draft.md",
+    "reason": "Retain precise original command-owned window/churn/cap/warning and park language identified by source-wiring assertions; semantic rules unchanged."
+  }
+}

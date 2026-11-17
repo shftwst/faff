@@ -1,0 +1,100 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-unavailable",
+      "outcome": null,
+      "ground": null,
+      "reason": "The provider attempt was exhausted with no independent opinion (opinion_available=false). No challenge outcome is recorded; the caller omits --challenge, which parks the PRDR as phase2-inconclusive."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "--prd-goals",
+          "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).",
+          "--serves-goal",
+          "--within-scope",
+          "--challenge-reason",
+          "The provider attempt was exhausted with no independent opinion (opinion_available=false). No challenge outcome is recorded; the caller omits --challenge, which parks the PRDR as phase2-inconclusive."
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference).\"},\"challenge\":{\"ran\":false,\"overturns\":false,\"reason\":\"The provider attempt was exhausted with no independent opinion (opinion_available=false). No challenge outcome is recorded; the caller omits --challenge, which parks the PRDR as phase2-inconclusive.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": false,
+      "reason": "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+      ],
+      "dod_covers": [],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": true,
+        "within_scope": true,
+        "verdict": "admit",
+        "reason": "The PRDR adds exactly one flag to the existing merge-gate CLI, reusing its existing floor-read logic verbatim and only gating the final `gh pr merge` call — a minimal, additive change directly serving the first PRD goal (safe inspection) without touching the second (the floor logic itself stays untouched, satisfying it by non-interference)."
+      },
+      "challenge": {
+        "ran": false,
+        "overturns": false,
+        "reason": "The provider attempt was exhausted with no independent opinion (opinion_available=false). No challenge outcome is recorded; the caller omits --challenge, which parks the PRDR as phase2-inconclusive.",
+        "ground": "other"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "reject",
+      "upper": {
+        "admit": false,
+        "reason": "conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade"
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — Phase-2 adversarial challenge did not conclude (skeptic unavailable); the YAGNI judge cannot self-grade"
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

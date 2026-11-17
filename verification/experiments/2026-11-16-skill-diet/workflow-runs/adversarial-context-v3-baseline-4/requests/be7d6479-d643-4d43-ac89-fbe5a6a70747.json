@@ -1,0 +1,1 @@
+{"name":"run_command","args":{"case_id":"case-i","executable":"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff","args":["review-progress","write","/tmp/faff-adversarial-workflow-V4sehl/case-i/run","FAFF-7001","--phase1-pass","--diff-hash","247af7c3d4bfc40187dc54017c136a783654089d7aa708c023f4bef2ddb1dbca"]}}

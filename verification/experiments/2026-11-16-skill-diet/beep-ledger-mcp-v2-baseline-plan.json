@@ -1,0 +1,108 @@
+{
+  "provider": "codex-cli",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "purpose": "skill-diet-qualification",
+  "harness": "eval/control-parity/ledger-execution-v2.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/beep-ledger-v3.json",
+  "dependency_fixture": "workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "timeout_seconds": 1200,
+  "bridge": "eval/control-parity/mailbox-mcp.mjs",
+  "runner": "run-mcp-workflow-samples-v4.py",
+  "treatment": "Same rebased ledger V2 policy pair and fixed shared context as held V1. Fresh V3 workload explicitly requests supplied issue_detail and restricts keys to admitted build IDs. V2 evaluator permits source-grounded optional fields only after independent manual review. No held V1 sample pooling.",
+  "acceptance": "Five fresh V2 baseline samples must pass all three execution cases and eleven decisions, exact native replay, restored real consumer replay, unchanged registered inputs and independent review of actual output and every extra detail claim before any candidate launch. Then require the same five fresh candidate samples. Any failure stops and is preserved; no replacement, post-hoc qualification or pooling with held V1. Exact legacy-projection scores remain diagnostic. Current-source integration/lint/inventory are required before acceptance.",
+  "manual_criteria": [
+    "Read all actual ledger patches and persisted bytes against the supplied observations, authority and completeness rules.",
+    "Read every supplied event payload, persisted event, real consumer output and all eleven policy decisions.",
+    "Required issue_detail is an explicit V3 workload obligation; all other fields and authority checks remain exact. Additional detail keys may name only supplied admitted_build_ids.",
+    "Read every extra detail claim, including arrays and empty containers. Ground path, value and implied meaning for the same issue in exact source pointers and rationale; mere occurrence of a value elsewhere is insufficient. Reject invented tests, merges, side effects or contradictory claims.",
+    "Use the manual schema enforced by verify-ledger-mcp-arm-v2.mjs and verifyLedgerDetailReview: exact sample/case/decision coverage, source/ledger/events/consumer and detail/path/value hashes, true pass fields and no unsupported assertions. Automatic grade pass never substitutes for manual grounding.",
+    "Restore exact final ledger/event bytes and heartbeat into isolated roots, preserving run IDs and timestamps. Reproduce real runcheck/event consumers and summary exactly; only parsed runcheck.run_dir relocates."
+  ],
+  "limits": [
+    "No model run-open/close, governance, actual review/landing/filing, hosted publication or complete unattended-loop proof.",
+    "Source preserves inherited schema1/four-token-class prose while real CLI owns schema2/split-cache token output.",
+    "Controlled summary external inputs and transcript counts, not actual provider billing or architectural-quality proof."
+  ],
+  "frozen_hashes": {
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-native-audit.mjs": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-startup-context.json": "01d2e7e23dd2555aee16496dbc8313609de76ca80407438d1f46cdb7dbb85a8f",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-tool-declaration.json": "62f1512b6a3813318cfd88dbd35b74fea6a07212eea397725efbd66031713645",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-native-audit.mjs": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/interactive-handoff.mjs": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/policy-reader.mjs": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/ledger-execution.mjs": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/candidate-command.mjs": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/schema.mjs": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-ledger.test.mjs": "19bd406ff1a816e6596741f8e2db1ace7eb37250b622685f9c5697c72867c576",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v3.py": "b576807c3adc1b5e7c0e2f5d09917caa8ab290ec1dc6da2b05ae85713245ec21",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/ledger-runner-v3-replay-smoke.json": "7074281b97d5818d46866fad5cc9ef37ebd5a874605f86bf74a6bcbfe8207d02",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/preflight-ledger-mcp-v1.mjs": "5384da5f829f8891376bcb796092477cf34ca8029058e275e54e99173595b73f",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v1/preflight.json": "cbd935d0e6224e79f068ca14a051dc3f3af66f69c463721c01169309bc4431e5",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-ledger-mcp-preflight-v1-review.json": "388e3470f682c0af9fbbd55d06153bd4f43450a4b22437451fb0a14fc4eceabc",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v7-preflight-review.json": "e2c870ea8fce59ad8213998077fa958d9fa4100b125ebb576cc123f8beb93dca",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-source-review.json": "cdd3220bf17bba29f3dfc61c695429b7050518673b6871667bc9e38028a58a87",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v2-source-review.json": "fe1c5d99523ec12f8f705e11a6f395171fb7f23c6b10ad1d142664b079ed86b3",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-integration.json": "272598d65ebe9f33bc128a160237cf43e980a0fa1951e9c80ec19701da8db5bf",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-final-qualification.json": "84817cb65c0946867ea087bc08f0818fc2a3b279267e9de5590976e1009f5b6e",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v2-draft.json": "964c256e19405eb5d676ce290a9335d5d7e2253de4963bdfb53b52b32da417d4",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/beep-ledger-v2.md": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/beep-ledger-v2-with-context.md": "99a8191396272aab59cf54f2f9f69412e7b396e096d1f26a9246e9ecf65a0ebd",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v2.md": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v2-with-context.md": "6ebb6561f0d99df9f536c5bfb667cc5ef919e56137f8da50528707f7c83e4c26",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-v2-integration-tests.txt": "eadc8ea290d59ac272a8a2f2463a7101e2709822e1aec7df89d2b48be692ca91",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-v2-integration-adapter-lint.txt": "fe64e7c7e129f03531e7a640d40ec41fe5b9434e6d7caf7c54e3d980fac79994",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-v2-integration-rule-inventory.txt": "7b9af22f72b98f92170bfa8358000c34b1db0e6595d7208730fb603a99ca090e",
+    "/Users/shftwst/.agents/AGENTS.md": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/ledger-execution-v2.mjs": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-ledger-v2.test.mjs": "5edd682e4b1acce3d9dd5437fb52265f396d5092effb772bb80ab3d93fc3b30c",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-ledger-replay.test.mjs": "a424252651653fc7d7f69b1326110b22b076c554252a0fec197ee5b3e14d4390",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v4.py": "85840dcfc17bedb3a9760eb344e28187ecd45d3ed5c8e2b761050f8575fd7c75",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/preflight-ledger-mcp-v2.mjs": "f9a10db53665afcbe743f24bd8ef3ca6ed9bef6af71e752ec373f3db4ab37e27",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/replay-ledger-consumers-v1.mjs": "76a997257b184955688a121bb8b812f917b8a2ae5d4f2aa7eba3c50cefd15c23",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/verify-ledger-mcp-arm-v2.mjs": "9485254f9e6330abe47ba42d3e6a2fb8af6787f8e9ef2ef3ff6f5cc648aaf895",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/preflight.json": "b6c65ebb5185714eb4c1ff0784632eb0bfba7f2fed8ce45dffa2bfd0a103cb2a",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/consumer-replay.json": "0811d377d9eedbd79a9c8a84288e6572a51dec23c44d0f32c1b727c04c3e5343",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v2-evaluator-review.json": "afb927ed99b19c957dea1ef17248510e895b431a2251c9eb433d01ee39fdcd56",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/independent-ledger-consumer-replay-v1-review.json": "976b1c22e2c07c243761498a73a0540964b0c8a1c20824f4adade12b97b5710f",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-mcp-v2-evaluator-tests-final.txt": "8eae3b34fbbd8e287adcd6e3821feb66ea64fb1cda1fa1fe33adba7a541a92a1"
+  },
+  "samples": [
+    {
+      "name": "beep-ledger-mcp-v2-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/beep-ledger-v2-with-context.md"
+    },
+    {
+      "name": "beep-ledger-mcp-v2-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/beep-ledger-v2-with-context.md"
+    },
+    {
+      "name": "beep-ledger-mcp-v2-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/beep-ledger-v2-with-context.md"
+    },
+    {
+      "name": "beep-ledger-mcp-v2-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/beep-ledger-v2-with-context.md"
+    },
+    {
+      "name": "beep-ledger-mcp-v2-baseline-5",
+      "arm": "baseline",
+      "policy": "baseline/beep-ledger-v2-with-context.md"
+    }
+  ]
+}

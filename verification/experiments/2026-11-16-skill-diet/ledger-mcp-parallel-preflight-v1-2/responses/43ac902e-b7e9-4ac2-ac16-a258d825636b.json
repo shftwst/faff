@@ -1,0 +1,60 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc102",
+      "--root",
+      "/var/tmp/faff-ledger-measure-8jkmfg/actual/phase-events",
+      "--tokens",
+      "--session-id",
+      "ledger-measurement-session"
+    ],
+    "input": "{\"phase\":\"tidy\",\"type\":\"tidy-done\"}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":4,\"ts\":\"2026-11-17T00:46:25.904Z\",\"prev\":\"d19761a1d9ad693a59bf6fc5cbd89a76459da15672ee001f32ee78237989c222\",\"phase\":\"tidy\",\"type\":\"tidy-done\",\"data\":{\"tokens\":{\"input\":201,\"output\":21,\"cache_write_5m\":4,\"cache_write_1h\":2,\"cache_read\":8},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"8a198f4b4fc9fc554970a6c1a6fc928895bcecde07f6a1c94ce0c94217c07694\",\"ledger_sha256_after\":\"535f51718bcf2a70f6cd7432940a3f7db5ac9cf1a8acca78205b0ee9101ca4cc\"}}\n",
+    "stderr": "",
+    "error": null,
+    "ledger_before_sha256": "8a198f4b4fc9fc554970a6c1a6fc928895bcecde07f6a1c94ce0c94217c07694",
+    "ledger_after_sha256": "535f51718bcf2a70f6cd7432940a3f7db5ac9cf1a8acca78205b0ee9101ca4cc",
+    "prior_events_sha256": "3090165b83d06de558c2b63ed03d301d27c199c4b5f94de413db3136b627bf60",
+    "events_after_sha256": "de4f8775479435b8597ef7f7b825bea0721db8f2083486e391de3543f17d53c4",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 3,
+        "ts": "2026-11-17T00:46:25.904Z",
+        "prev": "45e893f68b3faab80875ebda2ce56ecaa02014d0ca2ec14f3a3cca2ee4e8d5e1",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "535f51718bcf2a70f6cd7432940a3f7db5ac9cf1a8acca78205b0ee9101ca4cc"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 4,
+        "ts": "2026-11-17T00:46:25.904Z",
+        "prev": "d19761a1d9ad693a59bf6fc5cbd89a76459da15672ee001f32ee78237989c222",
+        "phase": "tidy",
+        "type": "tidy-done",
+        "data": {
+          "tokens": {
+            "input": 201,
+            "output": 21,
+            "cache_write_5m": 4,
+            "cache_write_1h": 2,
+            "cache_read": 8
+          },
+          "tokens_source": "transcript",
+          "ledger_sha256_before": "8a198f4b4fc9fc554970a6c1a6fc928895bcecde07f6a1c94ce0c94217c07694",
+          "ledger_sha256_after": "535f51718bcf2a70f6cd7432940a3f7db5ac9cf1a8acca78205b0ee9101ca4cc"
+        }
+      }
+    ]
+  }
+}

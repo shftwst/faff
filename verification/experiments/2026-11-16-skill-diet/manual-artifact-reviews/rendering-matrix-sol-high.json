@@ -1,0 +1,670 @@
+{
+  "schema": 1,
+  "status": "independent-bounded-artifact-review-caught-up",
+  "updated_utc": "2026-11-16T19:10:44.470710+00:00",
+  "scope": "All listed completed report/native-captured matrix samples manually read against the same rendering fixture and policies. No later or incomplete sample is included. Automated scores remain separate.",
+  "source_bindings": [
+    {
+      "path": "workflow-fixtures/rendering.json",
+      "sha256": "e46467fd275a9fcdc44e0a3a282bbd5e8de85541992bb570498b0a13e197f9a1"
+    },
+    {
+      "path": "baseline/rendering.md",
+      "sha256": "50256436d59e7fa4850fe4b59934631ee75c51a21c7b890f5cd2225d25e81fce"
+    },
+    {
+      "path": "candidates/rendering-v2.md",
+      "sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4"
+    },
+    {
+      "path": "rendering-v2-artifact-review.json",
+      "sha256": "7e37df828d41f0cb4bf564f7d896827150f898231fccac5bc4be8f0fe1de5ff2"
+    }
+  ],
+  "criteria": {
+    "original_bounded": [
+      "source facts retained",
+      "no invented actions",
+      "no repeated gloss title and body",
+      "memoising explains result reuse",
+      "approximate prose density, with disclosed historical caveat"
+    ],
+    "extra_style": [
+      "bold-lead bullets",
+      "cycle direction legends, useful-legend exception applied equally",
+      "minor repetition/concision"
+    ],
+    "density_history": "Original rendering-v2-artifact-review.json explicitly records four baseline and two candidate four-sentence paragraphs and disclaims perfect style compliance. This record does not overturn that bounded qualification.",
+    "policy_clauses": [
+      {
+        "path": "baseline/rendering.md",
+        "line": 51,
+        "rule": "Bold-lead bullets for scannable items."
+      },
+      {
+        "path": "baseline/rendering.md",
+        "line": 52,
+        "rule": "A prose block stays within approximately three sentences or four lines."
+      },
+      {
+        "path": "baseline/rendering.md",
+        "line": 62,
+        "rule": "Do not narrate what the output already shows."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 36,
+        "rule": "Use bold-lead bullets for scannable items."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 37,
+        "rule": "Keep a prose block within roughly three sentences or four lines."
+      },
+      {
+        "path": "candidates/rendering-v2.md",
+        "line": 41,
+        "rule": "Remove explanations of what a list, visual or diff already shows."
+      }
+    ]
+  },
+  "opus_delivered_guidance": {
+    "metadata": "gateway-context-v3-native-log-review.json",
+    "sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+    "bytes": 21125
+  },
+  "limits": [
+    "Manual bounded judgement, not statistical equivalence or unrestricted writing quality.",
+    "Extra style observations do not become retrospective acceptance gates.",
+    "No product/source changes, model reruns or workflow reruns performed."
+  ],
+  "rows": [
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-1/artifacts/cycle.md",
+      "sha256": "df034a05214dd4fb503270792cda6960e235c8cc446bc396a451f09695089f81",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-1/artifacts/enumeration.md",
+      "sha256": "6ce8a04df2a47dcdb9e107e49bc4c4dcc7362e3c18b64a54a5cb32567e7c33db",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-1/artifacts/gloss-001.md",
+      "sha256": "221196081bd9e7ebf8dce413ec927628572ae768d8151a2a03e1d7b51e5b2d70",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-1/artifacts/gloss-002.md",
+      "sha256": "a9e395b7578284dd6203830c2804d59630b8352dbd8d682321eba732c36b86f0",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Reduce cold-start time by memoising the config resolver."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-1/artifacts/gloss-003.md",
+      "sha256": "148276453003ed417128ddd94cceb714100bfe95555084a4ffc55044d1d06e0a",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-1/artifacts/long-table.md",
+      "sha256": "0a722c629c8b17e36be46a5e0a9075e9b1a9f3b2b0c5ef809eb96cfa5b67305e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-1/artifacts/missing-model.md",
+      "sha256": "fcae7ec7dfabe63f190cc041b582f87a40e33b291fa276237fa5ccf247df465f",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-1/artifacts/model-hoist.md",
+      "sha256": "7127ce655bdcef206971dc1675e896f35dfb574c2447b46034fc617b4d276913",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-1/artifacts/cycle.md",
+      "sha256": "8ace2af8974788f5b435f57547cb13e9f849836f92142d1b8a654b3c65258a74",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Adds an arrow-direction explanation. Treat as a useful legend consistently for both providers; no defect count assigned.",
+          "excerpt": "Each arrow means depends on."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-1/artifacts/enumeration.md",
+      "sha256": "c8b74cf9771af7dc14254a2a1e320a00064b4ea66429714c92875a50b30b498a",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-1/artifacts/gloss-001.md",
+      "sha256": "17fb0f6d97bed58e3995111ba4ad619a1a80a86c3f56aaf0633e4afea548982b",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-1/artifacts/gloss-002.md",
+      "sha256": "df9e7eebcbfc595ffc8a24a8abf7de9134e7493103f1d9517c0840c535fb1b03",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-1/artifacts/gloss-003.md",
+      "sha256": "bb2f50dd93684f5a88bbae99174e30a0edaa932d5e6d316520fee9633c31d4f3",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-1/artifacts/long-table.md",
+      "sha256": "c52772bae8ebc93aabf0127be5ab32eb3a0a1fa11406e3205b89566190e39a6e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-1/artifacts/missing-model.md",
+      "sha256": "bc121289ffb05e0b0482a6733c96844fb8708eeefb5822d7a818013546f0489a",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-1/artifacts/model-hoist.md",
+      "sha256": "12d83ffc60abf5fb70fe167f6721af2908f8e52cdeaf1a0f5357a280dc918cdb",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-1/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-2/artifacts/cycle.md",
+      "sha256": "c19232360560846d3af9730b4c6c0ecf61eee2ba37a18aaf21431eaafdcc5ba2",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-2/artifacts/enumeration.md",
+      "sha256": "9caa70399d1415dcf5198b3eb1c6fed03c88555ae2841b7fc66550bab0f1b623",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-2/artifacts/gloss-001.md",
+      "sha256": "4e552f4012538fc83de6b01f4aa6b1b919ec1e56dd78ac53828580134d3e47ab",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-2/artifacts/gloss-002.md",
+      "sha256": "a9e395b7578284dd6203830c2804d59630b8352dbd8d682321eba732c36b86f0",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "missing",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [
+        {
+          "criterion": "memoise_reuse_explanation",
+          "observation": "Memoising is named without explaining reuse of a computed result.",
+          "excerpt": "ISS-BB: Reduce cold-start time by memoising the config resolver."
+        }
+      ],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-2/artifacts/gloss-003.md",
+      "sha256": "cbe89eae16e7a7b5d27d7c2fe0cbf395101f20cc96260d50f63b66a3e886d82e",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-2/artifacts/long-table.md",
+      "sha256": "7c1594426d5fd92182a0b25b487e2ce98c020b0cfc19fc16b5020ace6d46011f",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-2/artifacts/missing-model.md",
+      "sha256": "21453e4fbed5dde2809abca4ebb6e51cef2018a9a072b586d227e5a3e49c0663",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-2/artifacts/model-hoist.md",
+      "sha256": "6962d7dcb114e384844a88acae33f183b4202317383f4305fcd63a9d944b2318",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-baseline-2/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/artifacts/cycle.md",
+      "sha256": "70b7c4fdc3334f6b3d28cec63296e7b59651122a42aaca37271629d8fee42cb0",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": [
+        {
+          "criterion": "cycle_direction_legend",
+          "observation": "Useful arrow-direction legend; same allowance across models; no defect count.",
+          "excerpt": "Each arrow means depends on."
+        }
+      ]
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/artifacts/enumeration.md",
+      "sha256": "96374fbda9c7602c2d81d165840fabd0c5fb9dc58ce6b5df8f75295ace87609a",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/artifacts/gloss-001.md",
+      "sha256": "33b5c36f48e9006fc09b4d9153bfe96eaca3afdf52cd7029bff2616c9a3fedec",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/artifacts/gloss-002.md",
+      "sha256": "622334f11258e22448160b70609235d0e9d4171216d8a2d33a45c87cadd240ac",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "present",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/artifacts/gloss-003.md",
+      "sha256": "7b82c8e54e4c57df776ce8839f7d9a0c7f4ce7b32e1eaff37355a327dd9cb2c6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass",
+        "one_sentence_plain_gloss": true
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/artifacts/long-table.md",
+      "sha256": "f89ca676f112b54f2054dbc7e871c2701dd0876fc58e61ba2d55b3775c2af8cc",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/artifacts/missing-model.md",
+      "sha256": "7e8116ec58eaa87d896309db60eb42015508ff73e8e84cfa6ef589253dabcdcb",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/artifacts/model-hoist.md",
+      "sha256": "72c00e2b22779ad92777f7c5bde4cefe2de679939e284990241d52fd93c18853",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    },
+    {
+      "path": "workflow-runs/matrix-v1-sol-high-rendering-candidate-2/artifacts/short-table.md",
+      "sha256": "dcdc5661be03787858056378d691c8051f55070e838b4afdbc96db18be24c5a6",
+      "status": "read",
+      "bounded_criteria": {
+        "source_facts_retained": true,
+        "invented_actions": false,
+        "repeated_gloss_title_and_body": false,
+        "memoise_reuse_explanation": "not-applicable",
+        "approximate_density": "pass"
+      },
+      "bounded_findings": [],
+      "extra_style_observations": []
+    }
+  ],
+  "samples": [
+    {
+      "name": "matrix-v1-sol-high-rendering-baseline-1",
+      "provider_group": "Sol high",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "native_audit_sha256": "97162cc54f1af5fb509d97b02ad29d0db3ffa58d29ab62e2fbcaa1566ba7bf5c",
+      "read_artifacts": 9
+    },
+    {
+      "name": "matrix-v1-sol-high-rendering-candidate-1",
+      "provider_group": "Sol high",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "native_audit_sha256": "803733973abfe02d97e9b761c6db57f0378a398031d07bf8a63153de7cb0c89d",
+      "read_artifacts": 9
+    },
+    {
+      "name": "matrix-v1-sol-high-rendering-baseline-2",
+      "provider_group": "Sol high",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "b9ee783d39da2f08e0374b5e588a457fa53226f89bb1265a51d216c891280c24",
+      "native_audit_sha256": "603ba37c0061e6812e657b9d37324f7d7e91d1bd7db3138b388e3b4dde2b9e44",
+      "read_artifacts": 9
+    },
+    {
+      "name": "matrix-v1-sol-high-rendering-candidate-2",
+      "provider_group": "Sol high",
+      "report_present_at_review": true,
+      "native_audit_present_at_review": true,
+      "report_sha256": "969c060a45188c495a6af1eb5026df5ff963c8a3505e0780386de4ceb33d9ad6",
+      "native_audit_sha256": "6063e913a3e44332bb9831e866b4379ad54b5c39c51b036df4e19057e3632d88",
+      "read_artifacts": 9
+    }
+  ],
+  "read_artifacts": 36,
+  "summary": {
+    "source_fact_losses": 0,
+    "invented_actions": 0,
+    "memoise_reuse_explanation_missing": [
+      "workflow-runs/matrix-v1-sol-high-rendering-baseline-1/artifacts/gloss-002.md",
+      "workflow-runs/matrix-v1-sol-high-rendering-baseline-2/artifacts/gloss-002.md"
+    ]
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/intake-brief-v2.json",
+  "timeout_seconds": 900,
+  "worker": "claude-retry",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Fresh current-main versus integrated intake-source diagnostic. Identical full current-main kernel and methodology prefix. One fixed fresh sample per arm, zero retries; historical GPT runs remain separate. Existing intake open-question lexical assessment is preregistered symmetrically and run separately after the unchanged literal runner.",
+  "acceptance": "One fresh baseline and candidate: all6briefs and all12decisions per arm. Preserve original report/capture/raw status and runner code1 on raw failure. Separately run the unchanged assess-intake-questions.mjs under the frozen INTAKE-QUESTIONS-CORRECTION.md on each arm and require assessment pass; no new normalisation, rule waiver or retry. Full policy delivery, complete native actual Opus5.5/model/worker-visible-guidance audit and independent manual source/invention review of every actual brief and all12answers must pass before candidate launch; candidate meets same bars. Existing assessor may correct only its exact greenfield-thin lexical failure and cannot excuse contradictory choices elsewhere. One-pair bounded diagnostic, not five-sample qualification or statistical equivalence.",
+  "samples": [
+    {
+      "name": "intake-main-opus-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "intake-main-opus-v1-candidate-policy.md"
+    }
+  ]
+}

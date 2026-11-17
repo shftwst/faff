@@ -1,0 +1,87 @@
+{
+  "profile": {
+    "exit_code": 3,
+    "stdout": "",
+    "stderr": "faff profile show: no infra profile; run acquisition\n"
+  },
+  "consumer": {
+    "pass": true,
+    "exit_code": 0,
+    "stdout": "{\"chosen_architecture\":\"A local command-line program with a SQLite file on the laptop.\",\"rationale\":\"Local persisted records fit the single-laptop checkout workflow and survive restart without a shared server.\",\"adr_candidates\":[{\"title\":\"Persist local checkouts in SQLite\",\"decision\":\"Use one local SQLite database file.\",\"rationale\":\"The brief requires local records that survive restart.\"}],\"assumptions\":[\"No infra profile is available.\",\"A runtime suitable for a local CLI can be installed after human review.\"],\"recommendation\":\"build\",\"violations\":[]}\n",
+    "stderr": "",
+    "producer_value": {
+      "chosen_architecture": "A local command-line program with a SQLite file on the laptop.",
+      "rationale": "Local persisted records fit the single-laptop checkout workflow and survive restart without a shared server.",
+      "adr_candidates": [
+        {
+          "title": "Persist local checkouts in SQLite",
+          "decision": "Use one local SQLite database file.",
+          "rationale": "The brief requires local records that survive restart."
+        }
+      ],
+      "assumptions": [
+        "No infra profile is available.",
+        "A runtime suitable for a local CLI can be installed after human review."
+      ],
+      "recommendation": "build"
+    },
+    "value": {
+      "chosen_architecture": "A local command-line program with a SQLite file on the laptop.",
+      "rationale": "Local persisted records fit the single-laptop checkout workflow and survive restart without a shared server.",
+      "adr_candidates": [
+        {
+          "title": "Persist local checkouts in SQLite",
+          "decision": "Use one local SQLite database file.",
+          "rationale": "The brief requires local records that survive restart."
+        }
+      ],
+      "assumptions": [
+        "No infra profile is available.",
+        "A runtime suitable for a local CLI can be installed after human review."
+      ],
+      "recommendation": "build",
+      "violations": []
+    }
+  },
+  "invalid_recommendation": {
+    "pass": false,
+    "exit_code": 1,
+    "stdout": "{\"chosen_architecture\":\"A local command-line program with a SQLite file on the laptop.\",\"rationale\":\"Local persisted records fit the single-laptop checkout workflow and survive restart without a shared server.\",\"adr_candidates\":[{\"title\":\"Persist local checkouts in SQLite\",\"decision\":\"Use one local SQLite database file.\",\"rationale\":\"The brief requires local records that survive restart.\"}],\"assumptions\":[\"No infra profile is available.\",\"A runtime suitable for a local CLI can be installed after human review.\"],\"recommendation\":\"invented\",\"violations\":[\"recommendation \\\"invented\\\" not in {build,buy,hybrid}\"]}\n",
+    "stderr": "",
+    "producer_value": {
+      "chosen_architecture": "A local command-line program with a SQLite file on the laptop.",
+      "rationale": "Local persisted records fit the single-laptop checkout workflow and survive restart without a shared server.",
+      "adr_candidates": [
+        {
+          "title": "Persist local checkouts in SQLite",
+          "decision": "Use one local SQLite database file.",
+          "rationale": "The brief requires local records that survive restart."
+        }
+      ],
+      "assumptions": [
+        "No infra profile is available.",
+        "A runtime suitable for a local CLI can be installed after human review."
+      ],
+      "recommendation": "invented"
+    },
+    "value": {
+      "chosen_architecture": "A local command-line program with a SQLite file on the laptop.",
+      "rationale": "Local persisted records fit the single-laptop checkout workflow and survive restart without a shared server.",
+      "adr_candidates": [
+        {
+          "title": "Persist local checkouts in SQLite",
+          "decision": "Use one local SQLite database file.",
+          "rationale": "The brief requires local records that survive restart."
+        }
+      ],
+      "assumptions": [
+        "No infra profile is available.",
+        "A runtime suitable for a local CLI can be installed after human review."
+      ],
+      "recommendation": "invented",
+      "violations": [
+        "recommendation \"invented\" not in {build,buy,hybrid}"
+      ]
+    }
+  }
+}

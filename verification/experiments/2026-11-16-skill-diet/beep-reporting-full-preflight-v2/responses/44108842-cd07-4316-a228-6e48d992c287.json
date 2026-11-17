@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "written": true,
+    "path": "/var/tmp/faff-reporting-measure-GluGnk/cases/dirty-install/.faff/runs/run-20260101-000000-beepboop-list-abc104/summary-facts.json",
+    "sha256": "b113ad4602adf6122a5927ae8db7c208eef1a5e2e11c03010e9bab8973bf76b2"
+  }
+}

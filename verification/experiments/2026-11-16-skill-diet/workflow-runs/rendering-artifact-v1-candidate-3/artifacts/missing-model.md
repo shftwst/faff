@@ -1,0 +1,2 @@
+- Opening of the explanation ("Step one: open the dashboard.") → Lead with the load-bearing model → no load-bearing model to lead with; the producer must supply the governing idea, none is invented here.
+- "Step one ... Step two ... Step three" sentences → Prose skimmability (three or more enumerable items become a markdown list) → render the three steps as a numbered list.

@@ -1,0 +1,530 @@
+{
+  "schema": 1,
+  "status": "held-registered-input-failure",
+  "created_utc": "2026-11-17T13:20:30.045144+00:00",
+  "reviewer_role": "independent semantic artifact reviewer",
+  "run": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate",
+  "scope": "Nine emitted producer-input artifacts and 32 separately labelled policy decisions; source grounding and authority review only.",
+  "fixture_and_policy_match_run_manifest": true,
+  "source_qualification": "held under frozen registration; no regrade or retry",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/kernel-core-contracts-v1-draft.json",
+      "sha256": "b8af47373da31ac4a57ceaa3ff713676f95ade0fc80928c4cb329bd66397a971"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/kernel-core-contracts-v1-with-context.md",
+      "sha256": "1d2ff8fef9b633e101e8d71e1b82e0c246d3f22fda544ed9058e95242feed694"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/capture.json",
+      "sha256": "029f8cc3a9e99be1e737b6565614edaaf98efe4a893a849acd2116215e48b36d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/task.json",
+      "sha256": "f005df36cd15434902f147df60b45b8b886ac77673a083d872a2df94546bf07c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/manifest.json",
+      "sha256": "659cb2b131c5352b9f1951d4a0f6da5e0cda1c4df879086e805fec46aa56205e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/native-audit.json",
+      "sha256": "d578c302bf9856cfd41d8ed8b137875c151c0bd0c902fd85b8a643764ee0c222"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/worker-final-screen.json",
+      "sha256": "00d16da86a1425b92f9bc03d8de4835d3ccecaac40212984835d1ea12de8b923"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-contracts-pair-v1-candidate-actual-consumption.json",
+      "sha256": "ea612e2b21e5124174de0ae590f66189c02aff9b05c1170b2f37718d930a1b60"
+    }
+  ],
+  "artifact_cases": [
+    {
+      "case_id": "review-clean",
+      "status": "pass",
+      "artifact": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/artifacts/review-clean.md",
+      "sha256": "fcb2f519e4de12e873e66e723e4c06aa5c2f9375ff47ab498befbb0bdc747b3b",
+      "assessment": "Empty findings and supplied completed clean review support pass; no invented findings or consumer fields."
+    },
+    {
+      "case_id": "review-provider-outage",
+      "status": "pass",
+      "artifact": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/artifacts/review-provider-outage.md",
+      "sha256": "2347642448f879beb1c6d5c9443782535f6fab046fdf267d0a634d8b18c369eb",
+      "assessment": "Supplied external mandatory-chain failure supports unavailable with no findings. This is declaration of supplied outage detection, not a reviewer claiming its own provider failure; no code judgement or success is invented."
+    },
+    {
+      "case_id": "spec-review-clean",
+      "status": "pass",
+      "artifact": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/artifacts/spec-review-clean.md",
+      "sha256": "764b1af376064ac3faf62615241497cde25bb69fe8dc4e0947a716c9e8ff8486",
+      "assessment": "Supplied approval and zero objections preserved."
+    },
+    {
+      "case_id": "spec-review-founded",
+      "status": "pass",
+      "artifact": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/artifacts/spec-review-founded.md",
+      "sha256": "a860c5b54a5b8f0b7970f1b008dc1cd5612db4b67a15e4a8213428ab2f8c22f1",
+      "assessment": "Revise matches fixable specification defect with sound approach. QA, major, claim, evidence and predicted consequence copied exactly from source; no fabricated rationale or stronger rejection."
+    },
+    {
+      "case_id": "delivery-confirmed",
+      "status": "pass",
+      "artifact": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/artifacts/delivery-confirmed.md",
+      "sha256": "eae65256928260c4c03184e0f9090255ecc7c7c72809009ce383c1a2bdeff0f9",
+      "assessment": "Native merge/deploy confirmations and confirmed_head abc123 ground the success reason and corroborated true. No new downstream operation is claimed beyond declaration of supplied evidence."
+    },
+    {
+      "case_id": "delivery-precondition",
+      "status": "pass",
+      "artifact": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/artifacts/delivery-precondition.md",
+      "sha256": "540fbe71d99a52fa68fc940e22c9efafbcb7f04433039e9b11f9c65eef882ab6",
+      "assessment": "The token-scope namespace, workflow path and operator remedy are source-grounded; not-ready preserves the mechanical deferral. Optional corroborated false is permitted, not required."
+    },
+    {
+      "case_id": "delivery-unconfirmed",
+      "status": "pass",
+      "artifact": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/artifacts/delivery-unconfirmed.md",
+      "sha256": "ced5b55e0e6e998f52f57597350ff1979667dc226c6740c625d20008ac78c1cd",
+      "assessment": "Failed is grounded in the supplied unrecognised terminal result without completion evidence or readiness/precondition deferral. Optional corroborated false is permitted."
+    },
+    {
+      "case_id": "readiness-marked",
+      "status": "pass",
+      "artifact": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/artifacts/readiness-marked.md",
+      "sha256": "dbd60087f2c60942f6ec2856eddf44f5295834f26606117d0f4fdbec06f4083e",
+      "assessment": "Medium confidence and chosen/punt/assumes correspond exactly to the three decision sections. No owner, ratifier, provenance_present or normalized classifications are invented."
+    },
+    {
+      "case_id": "readiness-missing-marker",
+      "status": "registered-input-fail",
+      "artifact": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-contracts-pair-v1-candidate/artifacts/readiness-missing-marker.md",
+      "sha256": "b1f3d39d1cf2ccc0e6f0d43f766e31d47ef0896a1a77bfdd343d5b5e4a80135b",
+      "assessment": "Actual decisions:[{}] preserves a decision lacking a marker and invents no chosen decision. The recorded real CLI rejects it with exit1, markers_valid:false and decisions:[], so refusal direction matches. It does not satisfy the frozen expected producer input decisions:[{marker:\"none\"}]. This registered failure remains a failure; semantic refusal equivalence does not qualify the source.",
+      "expected_input": {
+        "confidence": "high",
+        "decisions": [
+          {
+            "marker": "none"
+          }
+        ]
+      },
+      "actual_input": {
+        "confidence": "high",
+        "decisions": [
+          {}
+        ]
+      },
+      "observed_consumer": {
+        "confidence": "high",
+        "decisions": [],
+        "markers_valid": false,
+        "violations": [
+          "decision[0] has no canonical marker (got undefined)"
+        ]
+      },
+      "observed_exit": 1,
+      "semantic_refusal_preserved": true,
+      "strict_registered_match": false
+    }
+  ],
+  "decision_cases": [
+    {
+      "case_id": "fixed-authority",
+      "status": "pass",
+      "value": {
+        "may_extend_verdicts": false,
+        "recap_overrides_kernel": false,
+        "dialect_swappable": true
+      },
+      "assessment": "Kernel fixed vocabulary overrides recaps; dialect remains swappable."
+    },
+    {
+      "case_id": "standalone-loading",
+      "status": "pass",
+      "value": {
+        "read_before_contract": true,
+        "gateway_absolute_path": "/opt/plugin/skills/faff/SKILL.md",
+        "project_cwd_base": false
+      },
+      "assessment": "Installed sibling resolution, consumer loading and authored-adaptor refer-back match source."
+    },
+    {
+      "case_id": "consumer-loading",
+      "status": "pass",
+      "value": {
+        "consumer_loads_on_entry": true,
+        "delegated_definitions_inherited": true,
+        "newly_authored_adaptor_needs_refer_back": true
+      },
+      "assessment": "Installed sibling resolution, consumer loading and authored-adaptor refer-back match source."
+    },
+    {
+      "case_id": "slot-scope",
+      "status": "pass",
+      "value": {
+        "validate_correct_bundled": false,
+        "validate_wrong_slot": true,
+        "validate_on_error": true,
+        "infer_from_name": false
+      },
+      "assessment": "Deterministic classification, fail-toward-validation and Validate-face procedure match source."
+    },
+    {
+      "case_id": "slot-cache",
+      "status": "pass",
+      "value": {
+        "validations_first_run": 1,
+        "validations_new_run": 1,
+        "record_path_pattern": ".faff/runs/<run-id>/slot-validation.md",
+        "config_can_disable_validation": false
+      },
+      "assessment": "Once-per-run cache, required autonomous path and no disabling knob match source."
+    },
+    {
+      "case_id": "slot-failure",
+      "status": "pass",
+      "value": {
+        "park_unit_a": true,
+        "park_unit_b": false,
+        "abort_run": false,
+        "interactive_uses_failed_occupant": false,
+        "cite_violations_in_comment_and_log": true
+      },
+      "assessment": "Autonomous failures isolate affected units; interactive use stops and violations remain recorded."
+    },
+    {
+      "case_id": "slot-structural-only",
+      "status": "pass",
+      "value": {
+        "semantic_validation_still_required": true,
+        "preflight_checks_nonshipped": true,
+        "preflight_is_optional": true
+      },
+      "assessment": "Structural optional preflight does not replace semantic validation."
+    },
+    {
+      "case_id": "consumer-fold",
+      "status": "pass",
+      "value": {
+        "parse_block_json": true,
+        "pipe_to_real_contract": true,
+        "contract_is_data_authority": true,
+        "producer_may_replace_contract_vocabulary": false
+      },
+      "assessment": "Contract command remains data authority after block extraction."
+    },
+    {
+      "case_id": "review-fallback",
+      "status": "pass",
+      "value": {
+        "absent_block_prose_extraction_allowed": true,
+        "fused_wrapper_allowed": true,
+        "malformed_may_pass": false,
+        "outage_is_malformed_coercion_target": false
+      },
+      "assessment": "Absent-block fallback allowed; malformed data never passes or becomes outage."
+    },
+    {
+      "case_id": "review-revert",
+      "status": "pass",
+      "value": {
+        "revert_distinguishes_fixable_from_persistent": true,
+        "provider_outage_means_review_judged_code": false
+      },
+      "assessment": "Revert distinction and availability-versus-code-judgement preserved."
+    },
+    {
+      "case_id": "spec-review-refusal",
+      "status": "pass",
+      "value": {
+        "approve": false,
+        "park_needs_human": true,
+        "approval_allows_objections": false,
+        "nonapproval_requires_objections": true
+      },
+      "assessment": "Refusal and founded-verdict rules match source."
+    },
+    {
+      "case_id": "delivery-preflight",
+      "status": "pass",
+      "value": {
+        "graft_checks_before_build": true,
+        "ship_rechecks_at_delivery": true,
+        "return_outcome": "not-ready",
+        "retry_later": true,
+        "burn_code_fix_attempt": false,
+        "change_judgement_needs_human": false
+      },
+      "assessment": "Mechanical preconditions remain retry-later deferrals without code-fix expenditure."
+    },
+    {
+      "case_id": "delivery-precondition-kinds",
+      "status": "pass",
+      "value": [
+        "actions-policy",
+        "merge-method",
+        "push",
+        "token-scope"
+      ],
+      "assessment": "Mechanical preconditions remain retry-later deferrals without code-fix expenditure."
+    },
+    {
+      "case_id": "nondelegable-floor",
+      "status": "pass",
+      "value": {
+        "ship_may_clear_floor_refusal": false,
+        "floor_asserted_before_ship": true,
+        "ship_may_add_refusal": true,
+        "conditions_may_be_removed": false
+      },
+      "assessment": "Nondelegable floor and supplied L4-only holdout/order rules preserved; no current caller-policy claim."
+    },
+    {
+      "case_id": "ci-absence",
+      "status": "pass",
+      "value": {
+        "ci_state": "no-ci-coverage",
+        "floor_satisfied": false,
+        "autonomous_park": "needs-human",
+        "interactive_explicit_confirm": true
+      },
+      "assessment": "Empty checks remain distinct nonpass with mode-specific handling."
+    },
+    {
+      "case_id": "l4-floor-order",
+      "status": "pass",
+      "value": {
+        "holdout_required": true,
+        "holdout_asserted_after_ac_ci_review": true,
+        "holdout_delegable": false,
+        "ship_default_readiness_passes": true
+      },
+      "assessment": "Nondelegable floor and supplied L4-only holdout/order rules preserved; no current caller-policy claim."
+    },
+    {
+      "case_id": "delivery-cleanup",
+      "status": "pass",
+      "value": {
+        "ship_cleans_own_temp": true,
+        "ship_tears_down_worktree": false,
+        "graft_owns_worktree_lifecycle": true,
+        "uncorroborated_shipped_trusted": false
+      },
+      "assessment": "Own-artifact cleanup and graft worktree authority preserved."
+    },
+    {
+      "case_id": "routing-admission",
+      "status": "pass",
+      "value": {
+        "vocabulary_changes": false,
+        "only_two_build_ready_verdicts_admitted": true,
+        "other_verdicts_surface_reason": true,
+        "recompute_across_passes": true
+      },
+      "assessment": "Fixed queue admission and across-pass recomputation preserved."
+    },
+    {
+      "case_id": "thread-invalidation",
+      "status": "pass",
+      "value": {
+        "old_cache_valid": false,
+        "refresh_via_narrow_prep_before_verdict": true,
+        "contradictory_challenge_supersedes_rating": true,
+        "inline_consumer_must_reconcile": true
+      },
+      "assessment": "Post-spec resolution/challenge invalidates retained cache and requires narrow prep at inline loci too."
+    },
+    {
+      "case_id": "confidence-routing",
+      "status": "pass",
+      "value": {
+        "high_build_eligible": true,
+        "medium_auto_admitted": false,
+        "medium_moved_to_todo": true,
+        "low_parked": true,
+        "rating_retained_on_attachment": true,
+        "tidy_checks_codebase_drift": true
+      },
+      "assessment": "Confidence retention and mode-specific routing match source."
+    },
+    {
+      "case_id": "failed-resolve",
+      "status": "pass",
+      "value": {
+        "park": true,
+        "root_cause": "punt-not-closed",
+        "wtf_surfaces_park": true,
+        "later_human_resolution_uses_unpark": true
+      },
+      "assessment": "Failed attempted resolution parks with the specified root cause and later unpark path."
+    },
+    {
+      "case_id": "marker-effects",
+      "status": "pass",
+      "value": {
+        "chosen_reopened_by_reader": false,
+        "punt_blocks_build_past_decision": true,
+        "assumes_presence_checked_before_build": true,
+        "missing_assumption_parks": true,
+        "unmarked_tradeoff_valid": false,
+        "collect_punts_and_assumptions_at_top_level": true
+      },
+      "assessment": "Chosen/punt/assumes and unmarked invalidity reflect source."
+    },
+    {
+      "case_id": "punt-owner",
+      "status": "pass",
+      "value": {
+        "any_owner": "(unowned)",
+        "wrong_case_owner": "(unowned)",
+        "free_form_allowed": true,
+        "owner_changes_gate": false,
+        "owner_in_contract_json": false,
+        "parse_across_lines": false
+      },
+      "assessment": "Owner display metadata neither gates nor enters JSON; malformed/any is unowned."
+    },
+    {
+      "case_id": "ratifier-authority",
+      "status": "pass",
+      "value": {
+        "carry_inherited_tag": true,
+        "add_tag_to_untagged_choice": false,
+        "absence_means_agent_chosen": true,
+        "tag_changes_design_objection_gate": true,
+        "tag_in_contract_json": false,
+        "new_tag_requires_human_live_say_so": true
+      },
+      "assessment": "Inherited human ratification retained; no autonomous creation; downstream effect and prose-only placement preserved."
+    },
+    {
+      "case_id": "provenance",
+      "status": "pass",
+      "value": {
+        "model_text": "unknown",
+        "version_text": "unknown",
+        "omit_harness_model_segment": false,
+        "include_full_spec_tracker_sentence": false,
+        "stamp_directly_under_h1": true,
+        "prep_adds_provenance_present": true,
+        "harness_model_and_version_are_gate_inputs": false
+      },
+      "assessment": "Unknown model/version retained, git-only suffix omitted, consumer stamp ownership and nongating identity fields distinguished."
+    },
+    {
+      "case_id": "rendering-authority",
+      "status": "pass",
+      "value": {
+        "terminal_normalised": true,
+        "tracker_description_normalised": true,
+        "tracker_comment_normalised": true,
+        "skill_source_exempt": true,
+        "internal_faff_log_exempt": true,
+        "central_emit_exists": false,
+        "inline_catalogue_extension_allowed": false,
+        "pipeline_branches_on_rendering_contract": false
+      },
+      "assessment": "Universal normalization/exemptions and no rendering contract match source."
+    },
+    {
+      "case_id": "rendering-and-writing",
+      "status": "pass",
+      "value": {
+        "issue_gloss_includes_plain_description_and_unlock_consequence": true,
+        "invented_labels_allowed": false,
+        "cross_reference_restates_subject": true,
+        "descriptive_table_lead_column": true,
+        "redundant_ticket_restatement_required": false
+      },
+      "assessment": "Required gloss components and prose style rules are answered as policy, not a fabricated issue gloss."
+    },
+    {
+      "case_id": "slot-validation-procedure",
+      "status": "pass",
+      "value": {
+        "invoke_authoring_validate_face": true,
+        "pass_occupant_and_slot": true,
+        "cache_fail_verdict_this_run": true
+      },
+      "assessment": "Deterministic classification, fail-toward-validation and Validate-face procedure match source."
+    },
+    {
+      "case_id": "producer-fallbacks",
+      "status": "pass",
+      "value": {
+        "spec_prose_extraction_allowed": true,
+        "spec_fused_wrapper_allowed": true,
+        "delivery_fused_wrapper_allowed": true
+      },
+      "assessment": "Spec prose/wrapper and native delivery wrapper fallbacks supported."
+    },
+    {
+      "case_id": "ci-and-holdout",
+      "status": "pass",
+      "value": {
+        "ci_green_requires_nonempty_set": true,
+        "ci_green_requires_all_passing_terminal": true,
+        "pending_check_satisfies_floor": false,
+        "failed_check_satisfies_floor": false,
+        "below_l4_provisions_holdout_env": false,
+        "l4_holdout_required_verdict": "meets-spec"
+      },
+      "assessment": "Nondelegable floor and supplied L4-only holdout/order rules preserved; no current caller-policy claim."
+    },
+    {
+      "case_id": "spec-durable-authority",
+      "status": "pass",
+      "value": {
+        "medium_attempts_resolution_before_failed_attempt_park": true,
+        "ratification_durable_path": "docs/decisions.md",
+        "ratification_durable_tag": "Ratified-by: human",
+        "confidence_line_at_spec_end": true,
+        "confidence_line_authoritative": true
+      },
+      "assessment": "Resolve attempt, durable ratification record and authoritative confidence token match source."
+    },
+    {
+      "case_id": "provenance-ownership",
+      "status": "pass",
+      "value": {
+        "prep_detects_stamp_with_deterministic_regex": true,
+        "spec_producer_supplies_provenance_present": false,
+        "missing_stamp_can_invalidate_readiness": true
+      },
+      "assessment": "Unknown model/version retained, git-only suffix omitted, consumer stamp ownership and nongating identity fields distinguished."
+    }
+  ],
+  "totals": {
+    "artifacts": 9,
+    "registered_artifact_passes": 8,
+    "registered_artifact_failures": 1,
+    "decision_passes": 32,
+    "decision_failures": 0
+  },
+  "findings": [
+    {
+      "case_id": "readiness-missing-marker",
+      "severity": "qualification-blocking",
+      "finding": "Omitted marker field instead of registered marker:none. Same observed refusal is narrower evidence than producer-input compliance.",
+      "action": "Preserve original strict failure and hold source qualification; no altered oracle, replacement run or regrade."
+    }
+  ],
+  "authority_notes": [
+    "All remaining emitted contracts are source-grounded and preserve producer/consumer authority; objection claim/evidence/consequence match supplied source.",
+    "Unavailable declares supplied external mandatory-provider failure; it does not claim a reviewer inferred its own outage.",
+    "Readiness metadata excludes owner, ratifier and producer-authored provenance_present; consumer owns the stamp check.",
+    "All32 answers match frozen questions and source rules, including failclosed states, ratifier authority, L4-only supplied semantics and deterministic provenance ownership.",
+    "Worker final claims recording and finish only; no downstream cache, park, publication, merge or deployment execution is asserted."
+  ],
+  "limitations": [
+    "Existing actual-consumption record inspected; no CLI replay or native audit rerun in this review.",
+    "Raw/native41/41 completion/pass is distinct from8/9 registered producer-input compliance.",
+    "This is one original candidate in a focused pair, not reliability/statistical equivalence or complete caller-workflow evidence.",
+    "Hypothetical decisions do not prove execution; inherited kernel L4-only policy does not override newer caller rules.",
+    "No runs, fixture, policy, plan, harness or source mutated; only this review record written."
+  ]
+}

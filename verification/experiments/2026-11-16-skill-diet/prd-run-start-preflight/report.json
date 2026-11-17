@@ -1,0 +1,2774 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "mode": "preflight",
+  "artifacts": 6,
+  "trigger_cases": 24,
+  "forged_decisions_rejected": 24,
+  "rows": [
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "scenario-broad",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/scenario-broad.md",
+      "sha256": "d972ef3ccce291602d73194929edfa5fdfdd99b83562ac7bf156b27b37e7e409",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "uncovered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "plan",
+          "reason": "coverage-thin",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "plan",
+          "reason": "coverage-thin",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"refuse\\\" does not match the re-derived \\\"plan\\\" for the given signals\",\"declared reason \\\"self-directed\\\" does not match the re-derived \\\"coverage-thin\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "plan",
+          "reason": "coverage-thin",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"refuse\" does not match the re-derived \"plan\" for the given signals",
+            "declared reason \"self-directed\" does not match the re-derived \"coverage-thin\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "scenario-broad",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/scenario-broad.md",
+      "sha256": "d972ef3ccce291602d73194929edfa5fdfdd99b83562ac7bf156b27b37e7e409",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "covered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "drain",
+          "reason": "prd-covered",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "drain",
+          "reason": "prd-covered",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":false,\"violations\":[\"declared verdict \\\"refuse\\\" does not match the re-derived \\\"drain\\\" for the given signals\",\"declared reason \\\"self-directed\\\" does not match the re-derived \\\"prd-covered\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "drain",
+          "reason": "prd-covered",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"refuse\" does not match the re-derived \"drain\" for the given signals",
+            "declared reason \"self-directed\" does not match the re-derived \"prd-covered\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "scenario-broad",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/scenario-broad.md",
+      "sha256": "d972ef3ccce291602d73194929edfa5fdfdd99b83562ac7bf156b27b37e7e409",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "inward",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"self-directed\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"self-directed\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "scenario-broad",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/scenario-broad.md",
+      "sha256": "d972ef3ccce291602d73194929edfa5fdfdd99b83562ac7bf156b27b37e7e409",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "unmeasurable",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "coverage-unmeasurable",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "coverage-unmeasurable",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"coverage-unmeasurable\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "coverage-unmeasurable",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"coverage-unmeasurable\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "comparator-tight",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/comparator-tight.md",
+      "sha256": "6bda80f880b8f3e24c2d9438b96ce221af2edabb5c295db996d595bbb961cd70",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "uncovered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"tight\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "tight"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "tight",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "plan",
+          "reason": "coverage-thin",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "plan",
+          "reason": "coverage-thin",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"refuse\\\" does not match the re-derived \\\"plan\\\" for the given signals\",\"declared reason \\\"self-directed\\\" does not match the re-derived \\\"coverage-thin\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "plan",
+          "reason": "coverage-thin",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"refuse\" does not match the re-derived \"plan\" for the given signals",
+            "declared reason \"self-directed\" does not match the re-derived \"coverage-thin\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "comparator-tight",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/comparator-tight.md",
+      "sha256": "6bda80f880b8f3e24c2d9438b96ce221af2edabb5c295db996d595bbb961cd70",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "covered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"tight\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "tight"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "tight",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "drain",
+          "reason": "prd-covered",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "drain",
+          "reason": "prd-covered",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":false,\"violations\":[\"declared verdict \\\"refuse\\\" does not match the re-derived \\\"drain\\\" for the given signals\",\"declared reason \\\"self-directed\\\" does not match the re-derived \\\"prd-covered\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "drain",
+          "reason": "prd-covered",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"refuse\" does not match the re-derived \"drain\" for the given signals",
+            "declared reason \"self-directed\" does not match the re-derived \"prd-covered\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "comparator-tight",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/comparator-tight.md",
+      "sha256": "6bda80f880b8f3e24c2d9438b96ce221af2edabb5c295db996d595bbb961cd70",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "inward",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"tight\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "tight"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "tight",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"self-directed\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"self-directed\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "comparator-tight",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/comparator-tight.md",
+      "sha256": "6bda80f880b8f3e24c2d9438b96ce221af2edabb5c295db996d595bbb961cd70",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "unmeasurable",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"tight\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "tight"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "tight",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "coverage-unmeasurable",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "coverage-unmeasurable",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"coverage-unmeasurable\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "coverage-unmeasurable",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"coverage-unmeasurable\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "missing",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/missing.md",
+      "sha256": "738cfeeea58898ac90cb31df43181e31840c386450c702706a3dd9a5cb4dd8f7",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "uncovered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"prd-inadmissible\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"prd-inadmissible\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "missing",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/missing.md",
+      "sha256": "738cfeeea58898ac90cb31df43181e31840c386450c702706a3dd9a5cb4dd8f7",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "covered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"prd-inadmissible\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"prd-inadmissible\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "missing",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/missing.md",
+      "sha256": "738cfeeea58898ac90cb31df43181e31840c386450c702706a3dd9a5cb4dd8f7",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "inward",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"self-directed\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"self-directed\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "missing",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/missing.md",
+      "sha256": "738cfeeea58898ac90cb31df43181e31840c386450c702706a3dd9a5cb4dd8f7",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "unmeasurable",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"prd-inadmissible\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"prd-inadmissible\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "vague-tight",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/vague-tight.md",
+      "sha256": "3060f8a1c7a64d3562cfdd338677a9bda133f343b7fd2304717f5e11e271c33f",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "uncovered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"ambiguous-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"tight\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "ambiguous-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "tight"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "ambiguous-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "tight",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"prd-inadmissible\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"prd-inadmissible\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "vague-tight",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/vague-tight.md",
+      "sha256": "3060f8a1c7a64d3562cfdd338677a9bda133f343b7fd2304717f5e11e271c33f",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "covered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"ambiguous-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"tight\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "ambiguous-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "tight"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "ambiguous-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "tight",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"prd-inadmissible\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"prd-inadmissible\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "vague-tight",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/vague-tight.md",
+      "sha256": "3060f8a1c7a64d3562cfdd338677a9bda133f343b7fd2304717f5e11e271c33f",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "inward",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"ambiguous-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"tight\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "ambiguous-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "tight"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "ambiguous-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "tight",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"self-directed\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"self-directed\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "vague-tight",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/vague-tight.md",
+      "sha256": "3060f8a1c7a64d3562cfdd338677a9bda133f343b7fd2304717f5e11e271c33f",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "unmeasurable",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"ambiguous-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"tight\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "ambiguous-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "tight"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "ambiguous-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "tight",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"prd-inadmissible\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"prd-inadmissible\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "mixed",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/mixed.md",
+      "sha256": "4eaf9057997726df904197aa05f2f3357936ea3683d2556fd595600044bf90dc",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "uncovered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "plan",
+          "reason": "coverage-thin",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "plan",
+          "reason": "coverage-thin",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"refuse\\\" does not match the re-derived \\\"plan\\\" for the given signals\",\"declared reason \\\"self-directed\\\" does not match the re-derived \\\"coverage-thin\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "plan",
+          "reason": "coverage-thin",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"refuse\" does not match the re-derived \"plan\" for the given signals",
+            "declared reason \"self-directed\" does not match the re-derived \"coverage-thin\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "mixed",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/mixed.md",
+      "sha256": "4eaf9057997726df904197aa05f2f3357936ea3683d2556fd595600044bf90dc",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "covered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "drain",
+          "reason": "prd-covered",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "drain",
+          "reason": "prd-covered",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"drain\",\"reason\":\"prd-covered\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":false,\"violations\":[\"declared verdict \\\"refuse\\\" does not match the re-derived \\\"drain\\\" for the given signals\",\"declared reason \\\"self-directed\\\" does not match the re-derived \\\"prd-covered\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "drain",
+          "reason": "prd-covered",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"refuse\" does not match the re-derived \"drain\" for the given signals",
+            "declared reason \"self-directed\" does not match the re-derived \"prd-covered\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "mixed",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/mixed.md",
+      "sha256": "4eaf9057997726df904197aa05f2f3357936ea3683d2556fd595600044bf90dc",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "inward",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"self-directed\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"self-directed\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "mixed",
+      "expected_admissible": true,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/mixed.md",
+      "sha256": "4eaf9057997726df904197aa05f2f3357936ea3683d2556fd595600044bf90dc",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "unmeasurable",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "admissible",
+          "reason": "",
+          "stop_conditions_verifiable": true,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "coverage-unmeasurable",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "coverage-unmeasurable",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"coverage-unmeasurable\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":true,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"coverage-unmeasurable\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "coverage-unmeasurable",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": true,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"coverage-unmeasurable\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "injected-note",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/injected-note.md",
+      "sha256": "fb9bffb1fa230ba37f38914a61f7aeb58d09f3716f0852569cc7b541a67b7d5b",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "uncovered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"prd-inadmissible\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"prd-inadmissible\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "injected-note",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/injected-note.md",
+      "sha256": "fb9bffb1fa230ba37f38914a61f7aeb58d09f3716f0852569cc7b541a67b7d5b",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "covered",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":true},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"prd-inadmissible\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": true
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"prd-inadmissible\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "injected-note",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/injected-note.md",
+      "sha256": "fb9bffb1fa230ba37f38914a61f7aeb58d09f3716f0852569cc7b541a67b7d5b",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "inward",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"self-directed\",\"signals\":{\"target_resolved\":true,\"outward\":false,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":true,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"self-directed\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "self-directed",
+          "signals": {
+            "target_resolved": true,
+            "outward": false,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": true,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"self-directed\" for the given signals"
+          ]
+        }
+      }
+    },
+    {
+      "name": "prd-producer-astra-v2-baseline-1",
+      "arm": "baseline",
+      "case_id": "injected-note",
+      "expected_admissible": false,
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-producer-astra-v2-baseline-1/artifacts/injected-note.md",
+      "sha256": "fb9bffb1fa230ba37f38914a61f7aeb58d09f3716f0852569cc7b541a67b7d5b",
+      "report_sha256": "a153e6fa1696c04facce6faeb3ba1bbc0ba364f5fd2e2d2f809aa7bb758d118e",
+      "native_audit_sha256": "56ae8e2ce35609576bdf0cd0a05b7650d1f7b70968f219ba12b7a8acb610c33b",
+      "context": "unmeasurable",
+      "status": "pass",
+      "prd_consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "prd-readiness"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"not-ready\",\"reason\":\"no-stop-conditions\",\"stop_conditions_verifiable\":false,\"creative_licence\":\"broad\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad"
+        },
+        "value": {
+          "verdict": "not-ready",
+          "reason": "no-stop-conditions",
+          "stop_conditions_verifiable": false,
+          "creative_licence": "broad",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "trigger": {
+        "args": [
+          "run-start",
+          "--signals",
+          "{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false}"
+        ],
+        "input": null,
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "validated": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "forged": {
+        "args": [
+          "contract",
+          "run-trigger"
+        ],
+        "input": "{\"verdict\":\"plan\",\"reason\":\"coverage-thin\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":true,\"violations\":[]}",
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"refuse\",\"reason\":\"prd-inadmissible\",\"signals\":{\"target_resolved\":true,\"outward\":true,\"prd_present\":true,\"prd_ambiguous\":false,\"prd_admissible\":false,\"coverage_measurable\":false,\"coverage_covered\":false},\"conformant\":false,\"violations\":[\"declared verdict \\\"plan\\\" does not match the re-derived \\\"refuse\\\" for the given signals\",\"declared reason \\\"coverage-thin\\\" does not match the re-derived \\\"prd-inadmissible\\\" for the given signals\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "refuse",
+          "reason": "prd-inadmissible",
+          "signals": {
+            "target_resolved": true,
+            "outward": true,
+            "prd_present": true,
+            "prd_ambiguous": false,
+            "prd_admissible": false,
+            "coverage_measurable": false,
+            "coverage_covered": false
+          },
+          "conformant": false,
+          "violations": [
+            "declared verdict \"plan\" does not match the re-derived \"refuse\" for the given signals",
+            "declared reason \"coverage-thin\" does not match the re-derived \"prd-inadmissible\" for the given signals"
+          ]
+        }
+      }
+    }
+  ],
+  "limits": [
+    "Actual measured PRD artifacts feed the real prd-readiness validator, run-start predicate and run-trigger validator; coverage is computed by the real prdr coverage CLI over controlled inputs.",
+    "Target direction and coverage contexts are controlled. The caller wiring is deterministic; no new model sample, run mint, tracker acquisition or full beep-boop workflow is claimed."
+  ]
+}

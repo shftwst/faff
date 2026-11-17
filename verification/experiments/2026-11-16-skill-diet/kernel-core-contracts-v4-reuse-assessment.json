@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "status": "reuse-assessment-no-model-launch",
+  "candidate_sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9",
+  "potential_saved_bytes": 13260,
+  "potential_saved_estimated_tokens": 3253,
+  "existing_adapters": [
+    {
+      "adapter": "eval/control-parity/review-producer.mjs",
+      "fixture": "review-producer-v2.json",
+      "scope": "Seven review artifacts and20 decisions through real review-verdict consumers; caller availability/fallback orchestration remains outside."
+    },
+    {
+      "adapter": "eval/control-parity/rendering-artifact.mjs",
+      "fixture": "spec-review-producer.json",
+      "scope": "Six spec-review artifacts and15 decisions with actual contract/reject-approach replay; not whole prep workflow."
+    },
+    {
+      "adapter": "eval/control-parity/routing-assignment.mjs",
+      "fixture": "routing-assignment.json",
+      "scope": "Ten assignments,two invalid inputs,13decisions with actual routing/punt consumers. Previous baseline root-cause projection variance is held; inspect source ambiguity before any fresh use, never blind retry."
+    },
+    {
+      "adapter": "eval/control-parity/rendering-artifact.mjs",
+      "scope": "Existing rendering fixtures cover declared output surfaces/authority, not every caller emit."
+    }
+  ],
+  "uncovered_operational_domains": [
+    "Foreign-slot validation caching and affected-unit isolation",
+    "Live-thread invalidation and subsequent prep execution",
+    "Delivery preflight/recheck, deferral and producer cleanup ownership",
+    "Actual provenance acquisition and ratifier authority/carry-forward"
+  ],
+  "deterministic_proof": "92 existing contract golden/describe tests pass; installed candidate lint and inventory pass in private integration. These do not measure model behaviour.",
+  "limits": [
+    "Prior cut qualifications are infrastructure precedent only, not acceptance of this new shared kernel.",
+    "No new mandatory reads or new adapter proposed at this checkpoint.",
+    "Do not edit or rescue active/held graft experiments."
+  ]
+}

@@ -1,0 +1,107 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-unserved",
+      "outcome": "overturned",
+      "ground": "unserved",
+      "reason": "The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Export transactions as CSV,Filter transaction exports by date",
+          "--prd-goals",
+          "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "Export serves both cited goals.",
+          "--challenge",
+          "overturned",
+          "--challenge-ground",
+          "unserved",
+          "--challenge-reason",
+          "The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong.",
+          "--dod-covers",
+          "[\"Export transactions as CSV\"]"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"dod_covers\":[\"Export transactions as CSV\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"Export serves both cited goals.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong.\",\"ground\":\"unserved\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong.\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong.\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": false,
+      "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong.",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Export transactions as CSV",
+        "Filter transaction exports by date"
+      ],
+      "dod_covers": [
+        "Export transactions as CSV"
+      ],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": false,
+        "within_scope": false,
+        "verdict": "admit",
+        "reason": "Export serves both cited goals."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong.",
+        "ground": "unserved"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "reject",
+      "upper": {
+        "admit": false,
+        "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (unserved): The PRDR cites two goals, 'Export transactions as CSV' and 'Filter transaction exports by date'. The DoD serves only the first; its second item states that no date input or date filtering is implemented. The cited goal 'Filter transaction exports by date' is therefore unserved, and the Phase-1 claim that export serves both cited goals is wrong."
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

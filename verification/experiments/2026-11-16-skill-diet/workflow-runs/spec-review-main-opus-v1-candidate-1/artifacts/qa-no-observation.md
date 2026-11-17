@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{ "verdict": "revise", "objections": [ { "lens": "QA", "severity": "blocker", "claim": "The Receipt date scenario has no observable Then, MUST or comparator, so it cannot be judged code-blind.", "evidence": "Scenarios, Receipt date: Given a stored receipt, when its receipt is opened.", "predicted_consequence": "The scenario checks nothing, so a receipt that omits a stored date or shows an empty field for an absent date still passes. Add a Then stating the visible date when stored and no date field when absent.", "spec_anchor": "receipt-date" } ] }
+```

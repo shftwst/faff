@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"review-fallback","value":{"absent_block_prose_extraction_allowed":true,"fused_wrapper_allowed":true,"malformed_may_pass":false,"outage_is_malformed_coercion_target":false}}}

@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All five cases finished and their results were persisted through the bridge. `finish` returned `{\"finished\":true}`.\n\nNo departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5c3-8955-75a0-b129-dfb545d2ea26"
+    ],
+    "elapsed_seconds": 161.3,
+    "stdout_sha256": "297205292f6757e91cf2573659a0f4a6071191fb0fef72f6c45b0ce81b0f474e",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

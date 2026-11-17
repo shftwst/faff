@@ -1,0 +1,128 @@
+{
+  "schema": 1,
+  "status": "pass-bounded-artifact-review",
+  "scope": "Root read all 45 baseline and 45 v2 candidate artifacts for source retention, invented actions and the presentation regressions found in v1. This is a bounded qualitative review, not a statistical or unrestricted writing-quality claim.",
+  "runs": [
+    {
+      "name": "rendering-artifact-v1-baseline-1",
+      "arm": "baseline",
+      "capture_sha256": "a9b9ffd58c63a8cbaec324c4bc74144a9e0548d3951c4b79fc90af0aeab9443c",
+      "artifact_count": 9,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "artifact_bytes": 1562,
+      "estimated_artifact_tokens": 370
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-2",
+      "arm": "baseline",
+      "capture_sha256": "907c8c20686f825382bd20d2c5b99b01ff4b6c913e5d436c37b8eee456deb763",
+      "artifact_count": 9,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "artifact_bytes": 1688,
+      "estimated_artifact_tokens": 401
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-3",
+      "arm": "baseline",
+      "capture_sha256": "52b838e52c99b068a9a57a4bf9c7716be5289f95b7b0dd71178384a1eb2f309e",
+      "artifact_count": 9,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "artifact_bytes": 1732,
+      "estimated_artifact_tokens": 412
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-4",
+      "arm": "baseline",
+      "capture_sha256": "fea8dff75ac48cb5c0cbb334ed7a519dcdf87d2b83733c23aa2777ab70acb231",
+      "artifact_count": 9,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "artifact_bytes": 1794,
+      "estimated_artifact_tokens": 428
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-5",
+      "arm": "baseline",
+      "capture_sha256": "9ad3aafd3b1e40ddd799f0b0aab3876c2876030a47d599f6935440e106d81d98",
+      "artifact_count": 9,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "artifact_bytes": 1443,
+      "estimated_artifact_tokens": 339
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-1",
+      "arm": "candidate",
+      "capture_sha256": "83cfebf67b574c4ff6271f7331ea5b41aaf42327ed922ede2211728f54153063",
+      "artifact_count": 9,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "artifact_bytes": 1679,
+      "estimated_artifact_tokens": 401
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-2",
+      "arm": "candidate",
+      "capture_sha256": "228ef1c459bdb59e6dca9e847bbeb23b420906400b2c08929d20b569ce2cb7df",
+      "artifact_count": 9,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "artifact_bytes": 1764,
+      "estimated_artifact_tokens": 422
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-3",
+      "arm": "candidate",
+      "capture_sha256": "9403b57af293bee749b0f0b56535b779a4aeaa6dee559849bf61787fe14dcca9",
+      "artifact_count": 9,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "artifact_bytes": 1824,
+      "estimated_artifact_tokens": 437
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-4",
+      "arm": "candidate",
+      "capture_sha256": "ac24ab6d76459c8086109d37f5fe246e3e24d8668c9f1feb0c29d2895c4e39c3",
+      "artifact_count": 9,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "artifact_bytes": 1832,
+      "estimated_artifact_tokens": 439
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-5",
+      "arm": "candidate",
+      "capture_sha256": "4c1e3f83741c5990bf4ba28148c50355373b6dad7e93ea4e23be70d76981dbe8",
+      "artifact_count": 9,
+      "source_facts_retained": true,
+      "invented_actions": false,
+      "artifact_bytes": 1738,
+      "estimated_artifact_tokens": 415
+    }
+  ],
+  "presentation_checks": {
+    "repeated_gloss_title_and_body": {
+      "baseline": 0,
+      "candidate": 0
+    },
+    "memoise_without_reuse_explanation": {
+      "baseline": 0,
+      "candidate": 0
+    },
+    "four_sentence_explanation_paragraphs": {
+      "baseline": 4,
+      "candidate": 2
+    }
+  },
+  "observations": [
+    "V2 retains the requested facts, concrete terms, table contents, dependency cycle and refusal to invent a missing governing explanation.",
+    "All v2 glosses are one sentence beside the ID. Every memoising gloss explains reuse of a computed result.",
+    "The approximate prose-density issue still occurs in candidate model-hoist samples 4 and 5, also present in four baseline samples; no claim of perfect style compliance.",
+    "Short derived summaries in some definition blocks restate supplied work without adding a new requirement."
+  ],
+  "prior_candidate": "rendering-v1-artifact-review.json"
+}

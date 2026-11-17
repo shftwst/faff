@@ -1,0 +1,90 @@
+{
+  "schema": 1,
+  "status": "hold-combined-candidate",
+  "candidate_launched": false,
+  "retries": 0,
+  "waivers": 0,
+  "model_samples_completed": {
+    "reporting_baseline": 1,
+    "ledger_baseline": 1,
+    "reporting_candidate": 0,
+    "ledger_candidate": 0
+  },
+  "ledger_raw": "13/14: two ledger reconciliations and 11 decisions pass; phase-events fails ledger-not-read-first",
+  "ledger_native": "fail: one heredoc-is-not-json; complete expected model/version/guidance/policy delivery otherwise",
+  "ledger_consumer_replay": "All 3 pass, cannot excuse missing read or native failure",
+  "reporting_raw": "6/6 pass",
+  "reporting_native": "pass",
+  "reporting_existing_assessment": "pass; zero discarded drafts",
+  "runner_console_failure": {
+    "runner": "run-literal-workflow-samples-dependencies.py",
+    "stage": "After actual sample, report, finalscreen and finalstate were fully written; finalconsole summary indexed nonexistent problems field on a decision row.",
+    "exception": "KeyError: 'problems'",
+    "action": "Preserve original runner and raw failure. No model rerun or input/criteria change. Read actual saved report, which independently fails."
+  },
+  "native_audit_project_location": {
+    "registered_template_project": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h",
+    "actual_project": "/Users/shftwst/workspace/shftwst/faff",
+    "reason": "Both unchanged workers run from main checkout; native sessions are stored under that project. Existing auditor searched actual worker project. Only transcript locator differs; exact plans and restrictions unchanged."
+  },
+  "source_savings_not_counted": {
+    "bytes": 8065,
+    "estimated_tokens": 1979
+  },
+  "limits": [
+    "Baseline failure does not establish a reduction regression; neither candidate launched.",
+    "Historical accepted GPT cohorts remain separate; no new Opus parity qualification."
+  ],
+  "reporting_manual": "pass all6 cases; exact canonical summaries/publications/facts/economics/continuation/refusal",
+  "ledger_manual": "hold: phase-events read-before-work omitted; two reconciliation cases and11 decisions otherwise pass",
+  "evidence": [
+    {
+      "path": "beep-reporting-main-opus-v1-baseline-manual-audit.json",
+      "sha256": "0153477cd2f80ad12834440e68a33b09e813dc5655e149cf92fa75b90a3726b0"
+    },
+    {
+      "path": "beep-ledger-main-opus-v1-baseline-manual-audit.json",
+      "sha256": "abcd3ab805c43bcfaa192fc1d0c6b1131e7c5f37f4be5677624095ef60eccc13"
+    },
+    {
+      "path": "beep-reporting-main-opus-v1-baseline-assessment.json",
+      "sha256": "eb27f54cd66fea229a401ec09e4e3f556948ff76c30632e7b8bac566ca262fd9"
+    },
+    {
+      "path": "beep-ledger-main-opus-v1-baseline-consumer-replay.json",
+      "sha256": "3b204a141f0648fc685499a8cfb9a81cf1a328b03426aa910212c39d6656d669"
+    },
+    {
+      "path": "beep-ledger-main-opus-v1-registration.json",
+      "sha256": "07954920ad7fe5f1f1ecbe601ff15dacb271d204f6b06ee75d37983925ee6308"
+    },
+    {
+      "path": "native-audits/beep-ledger-main-opus-v1-baseline.json",
+      "sha256": "3aefe8ee48db0bdffad54a4c9fd5e0d16b1ff3a0fcab3834bc14a057016e6ac6"
+    },
+    {
+      "path": "workflow-runs/beep-ledger-main-opus-v1-baseline-1/report.json",
+      "sha256": "2f7ced67aca04cfbcab8c0f302c8c642a7102933a123cc3358dd62275ad468a4"
+    },
+    {
+      "path": "workflow-runs/beep-ledger-main-opus-v1-baseline-1/capture.json",
+      "sha256": "16140b21e9505e96ac9920fa7a85a90b277817a1de250ce7b795bc01e6974961"
+    },
+    {
+      "path": "beep-reporting-main-opus-v1-registration.json",
+      "sha256": "f5c41965b27c14563acc798968f68609e8881f0b3c6fa1f0055f16e2b7a84228"
+    },
+    {
+      "path": "native-audits/beep-reporting-main-opus-v1-baseline.json",
+      "sha256": "009c73f843923401ceb61c846733b5bd5d4801477bc1e16e8a784d5aa4e378ca"
+    },
+    {
+      "path": "workflow-runs/beep-reporting-main-opus-v1-baseline-1/report.json",
+      "sha256": "c670cf99fcec365f147c45fc63353fc8c4e6e2fe2e658cf4d3daf3aa51dbb081"
+    },
+    {
+      "path": "workflow-runs/beep-reporting-main-opus-v1-baseline-1/capture.json",
+      "sha256": "01f71c0228299be9c55baf57648e9273d720a37e1e36abdbf7d454fc1642366c"
+    }
+  ]
+}

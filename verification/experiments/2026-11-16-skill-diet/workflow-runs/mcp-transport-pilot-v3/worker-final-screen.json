@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All cases finished and results were persisted. No departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e686-9dae-7563-9964-307ba20c89b1"
+    ],
+    "elapsed_seconds": 27.5,
+    "stdout_sha256": "e2037bf4df4362140f8f2a773937748fee2625d8932866be7bedb1a67b163527",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

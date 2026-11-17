@@ -1,0 +1,162 @@
+[
+  {
+    "name": "faff",
+    "description": "Use when invoking /faff without a specific sub-skill, or choosing between planning new work, prioritising, grooming, preparing a ticket, building, onboarding and unattended delivery.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-beep-boop",
+    "description": "Chew through ready work unattended \u2014 overnight or fire-and-forget. Default: full pipeline (tidy \u2192 prep queue drain \u2192 build queue drain). Parks anything ambiguous so /faff-wtf can surface it in the morning. Trigger for: 'beep boop' / 'overnight' / 'fire and forget' / 'run the backlog' / 'unattended build'.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-graft",
+    "description": "Start building an issue \u2014 checks the spec exists, sets up a worktree, commits the spec to the feature branch, and gets out of your way. Trigger for: 'graft ISSUE-XX' / 'start ISSUE-XX' / 'pick up ISSUE-XX' / 'let me build'.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-jot",
+    "description": "Start something new. Kick off an empty project, or capture a new feature, bug, or idea \u2014 and turn it into a sensible set of tickets. Use for 'new project', 'I've got an idea', 'add a feature', 'file a bug', 'scope this', 'kick off'. Or point it at an existing ticket (`/faff-jot ISSUE-XX`) to load and inspect it \u2014 its shaping verbs are deferred, so it displays the ticket and mutates nothing.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-map",
+    "description": "Roadmap synthesis \u2014 outcome initiatives, the workstreams under them, the dependency chains between them, and whether the trigger gates can actually fire. The strategic view above /faff-wtf. Trigger for: 'roadmap', 'where are we going', 'explain the backlog', 'do these join up', 'workstream view', 'strategy view', 'what are the chains', 'big picture', 'walk me through the plan', 'is the plan coherent'.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-onboard",
+    "description": "First-run setup. Bootstrap a working faff config for this repo \u2014 auto-detects your tracker, repo slug, and git host, asks only what it can't infer, and writes a valid `.faff/config.yaml`. Use for 'set up faff', 'onboard', 'first run', 'no faffrc', 'configure faff for this repo', 'get faff working here'.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-plot",
+    "description": "Turn an application-scale idea into a planned, dependency-linked roadmap. Recurses a discovery brief top-down into initiatives \u2192 projects \u2192 first-slice epics. Use for 'plan this out', 'decompose this app', 'break this big thing into a roadmap', 'map out the whole project', 'plot the build'. Or `/faff-plot rehome` to run the whole-backlog rehoming pass \u2014 group loose Backlog work into human-confirmed outcome-led projects ('sort out the loose backlog', 'rehome the backlog').",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-prep",
+    "description": "Turn a vague ticket into something you can actually build \u2014 explores the codebase, writes a spec, attaches it to the issue. Trigger for: 'prep ISSUE-XX' / 'prep this' / 'spec this out' / 'what does this ticket need?'.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-tidy",
+    "description": "Groom the backlog in both directions \u2014 find problems (dupes, vague tickets, stale blockers, dead weight), surface structural diagnostics (cycles, ghost-project pointers, repeat-parks, splittable specs), and promote ready issues to Todo. Trigger for: 'tidy' / 'clean up' / 'backlog' / 'groom' / 'mess'.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-wtf",
+    "description": "Where to focus \u2014 what shipped, what's stuck, what to work on next, and what an overnight beep-boop run parked. Trigger for: 'wtf' / 'what should I work on' / 'catch me up' / 'what happened' / 'what's blocked' / 'what's next', 'Where to focus', 'what's happening', 'where are we', 'where we at', 'whats up', 'the 411', 'lowdown'.",
+    "user_invocable": true
+  },
+  {
+    "name": "faffidavit-rendering",
+    "description": "Default rendering_adaptor: human-facing form, issue glosses, house voice and draft normalisation. No internal contract. Configured slot, not a user command.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffidavit-routing",
+    "description": "Default `routing_adaptor` \u2014 assigns the automation-routing verdict to a spec-gated issue (from diagnostics + confidence + markers + park history), renders it, and validates assignments. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-dark-adversarial-review",
+    "description": "Use when the configured review slot requires a structural review plus an independent adversarial second opinion, or when invoked for an ADR drift or PRDR YAGNI challenge.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-dark-authoring-adaptors",
+    "description": "Author or validate a faff slot skill. Scaffolds a new adaptor/producer/methodology so it carries the correct refer-back prose and maps onto the fixed gateway contract, and validates that an existing slot skill conforms. Use for 'write a new adaptor', 'author a spec/review/routing/rendering skill', 'check my adaptor conforms', 'validate this slot skill'.",
+    "user_invocable": true
+  },
+  {
+    "name": "faffter-dark-concurrency-parallel",
+    "description": "Concurrent build-pass executor for the `concurrency` slot \u2014 runs faff-beep-boop's builds in multiple worktrees at once, capped, with rebase-before-merge. The speed option vs the sequential default. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-dark-methodology-agile-delivery",
+    "description": "Agile-delivery `methodology` lens \u2014 answers backlog/build named-outputs through seven delivery principles (right-sizing, value-by-risk sequencing, surfaced deps). Opinionated alternative to the thematic default. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-dark-nlspec",
+    "description": "Full nlspec-format spec producer for the `spec` slot \u2014 the heavy, formal counterpart to the lite default. Runs via faff-prep, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-dark-spec-review",
+    "description": "L4 adversarial occupant of the `spec_review` slot \u2014 runs each enabled review lens (architectural / infosec / methodology / QA) as an INDEPENDENT refuter prompted to break the spec, then aggregates the refutations onto the fixed `faff-contract:spec-review-verdict` by majority/severity. Swap-in for the single-pass default; runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-adr",
+    "description": "Default `adr` producer \u2014 authors the body of an architecture decision record at graft time (Nygard's Context/Decision/Consequences by default, or a repo's own committed `adr.md` template shape when one exists), from a settled decision plus the spec rationale and the configured ADR log. The single ADR-authoring producer. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-architecture",
+    "description": "Default `architecture` slot occupant \u2014 the generative architecture/infra PROPOSER. Reads the team's infra profile + the brief/spec and proposes one best-fit, build-biased, production-grade architecture, emitting a founded `faff-contract:architecture-proposal` block + ADR promotion intent. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-concurrency-sequential",
+    "description": "Default `concurrency` executor \u2014 runs faff-beep-boop's build pass sequentially, one faff-graft at a time: no worktree contention, no merge races. The safe zero-config default. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-env-code-interface",
+    "description": "Default `env-code-interface` slot occupant \u2014 the code-interface reachability provisioner, composed under `env`. Given a code component and its Tier-1 binding manifest, it builds the component and stands up the Node reflection bridge (faff-bridge-node.mjs) as a health-checked compose service, returning the bridge socket the env occupant folds into its env-handle. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-env-compose",
+    "description": "Default `env` slot occupant \u2014 the environment PROVISIONER. Reads the architecture proposal + the team's infra profile and stands up a representative, health-checked local stand-in via docker-compose, seeds it with a synthetic dataset, and emits a `faff-contract:env-handle` block the evaluator points at and tears down. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-evaluate",
+    "description": "Default `evaluator` slot occupant \u2014 the code-blind holdout JUDGE. Given a spec + a running env (never the codebase), it classifies the spec's DoD, exercises the criteria `faff dod classify` routes to it against the running feature, records an unjudgeable prose scenario as needs-human, and emits a `faff-contract:holdout-verdict` block before tearing the env down. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-intake",
+    "description": "Default `intake` / discovery producer \u2014 turns a loose idea, bug, or empty repo into a structured discovery brief for faff-jot/faff-plot to shape into tickets. The light conversational default. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-methodology-thematic",
+    "description": "Default `methodology` lens (`thematic`) \u2014 opinion-free analysis that reflects the tracker topology: ordering by unlock value, gating on decision closure, composing the shared structural/topology floor (cycle + ghost-project detection). The zero-config baseline every pass uses. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-prd",
+    "description": "Default `prd` slot occupant \u2014 the code-blind PRD-admissibility producer. Given only a PRD document, it judges whether the PRD's stop-conditions are machine-verifiable and how wide the implementation's creative licence is, then produces one `faff-contract:prd-readiness` block. The L4 run-start gate pipes that block to `faff contract prd-readiness` (the deterministic validator) to admit or refuse the run. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-review",
+    "description": "Default code review for the `review` slot \u2014 a senior-engineer pass over the diff: AC coverage, bugs, scope, human-judgement flags. Returns a review verdict (faff contract review-verdict --describe). Runs via faff-graft, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-ship",
+    "description": "Default `ship` producer \u2014 merges a gate-cleared PR through the faff merge-gate interlock (never a raw gh merge), no-op deploy-readiness, emits a native delivery result + a faff-contract:delivery-outcome block faff-graft consumes. Swap for a deploy-capable producer. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-spec",
+    "description": "Default `spec` producer \u2014 turns an issue plus explore findings into a buildable lite-nlspec spec (WHY-WHAT-HOW-DONE) with a confidence self-rating. The light default. Runs via faff-prep, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-spec-review",
+    "description": "Default `spec_review` slot occupant \u2014 the L1\u2013L3 single-pass spec reviewer. Runs four lenses (architectural / infosec / methodology / QA) as one checklist pass over a freshly-rated spec and emits a founded `faff-contract:spec-review-verdict` block. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-transport-private-network",
+    "description": "Default `transport` slot occupant \u2014 the private-network reachability resolver. Given the provision context, resolves the base host the evaluator uses to reach the system under build over a private network where network-layer segmentation alone satisfies \"only the evaluator can reach it\". Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  }
+]

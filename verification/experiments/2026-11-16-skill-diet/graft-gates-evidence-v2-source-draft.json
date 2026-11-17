@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "status": "draft-unmeasured-uninstalled",
+  "source": "plugin/skills/faff-graft/SKILL.md",
+  "source_commit": "994007374548a302c11685318dec5b413a4c0ee6",
+  "baseline": "baseline/graft-gates-evidence-v1.md",
+  "candidate": "candidates/graft-gates-evidence-v2.md",
+  "baseline_sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+  "candidate_sha256": "c28c7fe2bdba534ab27639408e2baf1b3dcc6205aade1a75ba5c8656fdf9d9a2",
+  "before_bytes": 178777,
+  "after_bytes": 166857,
+  "bytes_saved": 11920,
+  "before_estimated_tokens": 44329,
+  "after_estimated_tokens": 41397,
+  "estimated_tokens_saved": 2932,
+  "sections": [
+    {
+      "section": "gates-and-ac",
+      "before_bytes": 13798,
+      "after_bytes": 7882,
+      "bytes_saved": 5916,
+      "baseline_start_line": 261,
+      "baseline_end_line": 326,
+      "before_sha256": "fb8ed833c5be21ef99d0f5c3796ab5fdb5403421d59a6d7e3714db8bbd602399",
+      "after_sha256": "95ed669670e580e17ac60c539aa34f1de01b12e29bf8c30202f23068ab53150b"
+    },
+    {
+      "section": "autonomous-gate-recap",
+      "before_bytes": 731,
+      "after_bytes": 303,
+      "bytes_saved": 428,
+      "baseline_start_line": 725,
+      "baseline_end_line": 726,
+      "before_sha256": "e855b78cff68df75351cedf2e563e97cc60cf34c7c91631e8d01f0fe0bc6452f",
+      "after_sha256": "61aa48d516900aa08af0a32ad9fea910d156defee1e6cafbc996af22d5aa9681"
+    },
+    {
+      "section": "terminal-returns",
+      "before_bytes": 11984,
+      "after_bytes": 6408,
+      "bytes_saved": 5576,
+      "baseline_start_line": 774,
+      "baseline_end_line": 799,
+      "before_sha256": "c5a0112a3341f2e2ce7ca4e6edf41ab8d196ec38db3b091fc1daf047c3b53e73",
+      "after_sha256": "e9cba7336bb3d9a8c65e1af1a2a924a94fd09c149ec8278e1c411bf14386fa90"
+    }
+  ],
+  "outside_sections_unchanged": true,
+  "mandatory_dependencies_added": [],
+  "limits": [
+    "Source draft only; no parity or accepted savings claim.",
+    "Review/judge loops, CI/landing, discovered-scope filing and post-merge execution remain unchanged.",
+    "Future measurement reuses existing consumers and models only bounded checkpoints, not an entire build."
+  ],
+  "baseline_lines": 804,
+  "candidate_lines": 801,
+  "outside_sections_sha256": "7fa1fe31beefefbdf3bfa9ca837cbaa0156f765fed868c9107d1cb6843fc6fae",
+  "supersedes": {
+    "candidate": "candidates/graft-gates-evidence-v1.md",
+    "reason": "Private adapter lint rejects an adjacent-row delivery-outcome enum restatement. V2 uses the unchanged semantic deferral/failure conditions and canonical contract describe reference; no change to mapping or effects."
+  }
+}

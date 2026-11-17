@@ -1,0 +1,72 @@
+{
+  "harness": "eval/control-parity/challenge-calibration-execution.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/challenges.json",
+  "samples": [
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/adversarial-v3.md"
+    }
+  ],
+  "treatment": "Offline same-provider-family judgement and real CLI admission consumption only. Apply the frozen truthful task/tool/scope amendment; no independent-provider eligibility claim. Original policy, case inputs, expected outcomes, runtime and consumers remain unchanged.",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md"
+  ],
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "json_stdin": true,
+  "provider": "codex-cli",
+  "model": "gpt-6-astra",
+  "effort": "medium",
+  "purpose": "cross-model-calibration",
+  "timeout_seconds": 900,
+  "finalist_selection": "gpt-opus-standin-finalist-selection-v1.json",
+  "harder_task_amendment": "gpt-opus-hard-task-amendment-v1.json",
+  "acceptance": "Five planned samples per arm; retain all functional/native failures without rerolls. Compare observed judgement, consumer effects and native completion against the preserved Opus treatment with the disclosed task/guidance/transport differences. Manual review of emitted reasons remains required."
+}

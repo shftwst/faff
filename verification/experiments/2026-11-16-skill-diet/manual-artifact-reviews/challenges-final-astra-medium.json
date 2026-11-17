@@ -1,0 +1,2850 @@
+{
+  "schema": 1,
+  "status": "complete-bounded-review-with-ancillary-overclaim",
+  "updated_utc": "2026-11-16T20:06:23.101976+00:00",
+  "scope": "Read every actual submitted challenge reason in the listed completed Astra-medium samples against frozen fixture inputs, expected judgement/ground and actual CLI admission. Same-provider-family offline calibration only; no independent-provider production eligibility or statistical equivalence claim.",
+  "canonical_hash_encoding": "UTF-8 JSON with sorted keys, compact separators and unescaped Unicode. Reason hashes are exact UTF-8 reason bytes.",
+  "source_bindings": [
+    {
+      "path": "workflow-fixtures/challenges.json",
+      "sha256": "af35e82ab3155f5e540fdf89e9f4c3a3d06bd0987611c0fa061ca51bd001860b"
+    },
+    {
+      "path": "matrix-final-v1-astra-medium-challenges-plan.json",
+      "sha256": "fc0d61afd7e745c233d6c3abf431508f9831b601371dca6d0d615a658c4fb2c8"
+    },
+    {
+      "path": "gpt-opus-hard-task-amendment-v1.json",
+      "sha256": "f3e51673e9cd9b61e46ae8462b32dee1ad0c19edf762f2a999ebf46249d93bfd"
+    },
+    {
+      "path": "baseline/adversarial-review.md",
+      "sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193"
+    },
+    {
+      "path": "candidates/adversarial-v3.md",
+      "sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba"
+    }
+  ],
+  "samples": [
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-1/capture.json",
+          "sha256": "cabb511579fd49a0d6a52d6dccac452f5b5bdd8b4297de84f3ea3c5b391d2255"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-1/report.json",
+          "sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-1/native-audit.json",
+          "sha256": "ddfcc795db907231182f7fab47b14857d39575d713ed6f8e1b874b2548edaa1c"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-1/task.json",
+          "sha256": "9e33615a3c2c79f2204ae05694cc57bf8ff33e5c1f7916e5c852a8ae7d0c786c"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-1/manifest.json",
+          "sha256": "ab3691edf628a75202544f5c460166cb41dffce909af6ca8de044e644dfa7b80"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "arm": "candidate",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-1/capture.json",
+          "sha256": "47432e564df693573d9f7a9a30e2d68486d10fbdd59a9d55b762e9201814fa1f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-1/report.json",
+          "sha256": "ea31812d8b700e5dd29a86f0994e1bbd43cfc5a7794d67a10b7302283c293dbd"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-1/native-audit.json",
+          "sha256": "1b14c9d70311160f92a921ecde6ef086527738f8de080c5102489bd3c96fb049"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-1/task.json",
+          "sha256": "90de798d598f4597aecae0ca57d6b238ed07be6cc64f8aa462ff64a92ba1c469"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-1/manifest.json",
+          "sha256": "7899dd63206cc3304ed0ac7c3ebf9b68de7652e93c921201f14a160384f49a19"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "arm": "candidate",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-2/capture.json",
+          "sha256": "adfa824f5830867560fd8273f57ccf709c0647f69729351adbc64bc5376865d4"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-2/report.json",
+          "sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-2/native-audit.json",
+          "sha256": "584c377fb57186a9a3da139badd2a3d9df1376b717f120e74405d4f630a69b0f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-2/task.json",
+          "sha256": "90de798d598f4597aecae0ca57d6b238ed07be6cc64f8aa462ff64a92ba1c469"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-2/manifest.json",
+          "sha256": "7899dd63206cc3304ed0ac7c3ebf9b68de7652e93c921201f14a160384f49a19"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-2/capture.json",
+          "sha256": "37ef8f069449f480aaaf5537e81fe34d0c9bbfbdafff25d78443de9b7b92fa3e"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-2/report.json",
+          "sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-2/native-audit.json",
+          "sha256": "98958ad86360d1160a4558ba18782bcf9fc877a1903003cc03552dc1392958b1"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-2/task.json",
+          "sha256": "9e33615a3c2c79f2204ae05694cc57bf8ff33e5c1f7916e5c852a8ae7d0c786c"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-2/manifest.json",
+          "sha256": "ab3691edf628a75202544f5c460166cb41dffce909af6ca8de044e644dfa7b80"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-3/capture.json",
+          "sha256": "3f16a87597cf747517e3f71dccf574ca621c4add208910f804d9344ac0bcf00d"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-3/report.json",
+          "sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-3/native-audit.json",
+          "sha256": "d5c9a69aa8e4cefb02028d73eba188f283a333c62da4494ec1f602e0db477d62"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-3/task.json",
+          "sha256": "9e33615a3c2c79f2204ae05694cc57bf8ff33e5c1f7916e5c852a8ae7d0c786c"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-3/manifest.json",
+          "sha256": "ab3691edf628a75202544f5c460166cb41dffce909af6ca8de044e644dfa7b80"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "arm": "candidate",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-3/capture.json",
+          "sha256": "36a353151e881298b352e39395db95823f3fa147eefb8b4cf83f74196ecda464"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-3/report.json",
+          "sha256": "ea31812d8b700e5dd29a86f0994e1bbd43cfc5a7794d67a10b7302283c293dbd"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-3/native-audit.json",
+          "sha256": "f7bd2b064be8f74b016e43d54e6996135e38e1ae16478351a6d06545d7f27323"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-3/task.json",
+          "sha256": "90de798d598f4597aecae0ca57d6b238ed07be6cc64f8aa462ff64a92ba1c469"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-3/manifest.json",
+          "sha256": "7899dd63206cc3304ed0ac7c3ebf9b68de7652e93c921201f14a160384f49a19"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "arm": "candidate",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-4/capture.json",
+          "sha256": "f8e715923fd30ecf5889368b717868323923053513b9032f4092ea2b2f28279f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-4/report.json",
+          "sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-4/native-audit.json",
+          "sha256": "028da88e8d2b49442eafbafbe66968bb4d0ce44cd544b18ea751816456faba32"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-4/task.json",
+          "sha256": "90de798d598f4597aecae0ca57d6b238ed07be6cc64f8aa462ff64a92ba1c469"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-4/manifest.json",
+          "sha256": "7899dd63206cc3304ed0ac7c3ebf9b68de7652e93c921201f14a160384f49a19"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-4/capture.json",
+          "sha256": "61d5be4aee3d792aaecd2288ad1fcfc70517f9b5eb6ec4aee9bb419c23e859d3"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-4/report.json",
+          "sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-4/native-audit.json",
+          "sha256": "95a3c00cd2496aa2875bb8b3eecc2950824a1566732e6ecb8b6b38b4d738539a"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-4/task.json",
+          "sha256": "9e33615a3c2c79f2204ae05694cc57bf8ff33e5c1f7916e5c852a8ae7d0c786c"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-4/manifest.json",
+          "sha256": "ab3691edf628a75202544f5c460166cb41dffce909af6ca8de044e644dfa7b80"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "arm": "baseline",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-5/capture.json",
+          "sha256": "a846267e5c6732b1eb94f544c3db4ec10a6bd9c5ff38ce506945b39b4f1591c3"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-5/report.json",
+          "sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-5/native-audit.json",
+          "sha256": "4bfaa8984d6f95f521ea8c394931a0aac05a1caf43c3a80eb8a9f344555fb6da"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-5/task.json",
+          "sha256": "9e33615a3c2c79f2204ae05694cc57bf8ff33e5c1f7916e5c852a8ae7d0c786c"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-baseline-5/manifest.json",
+          "sha256": "ab3691edf628a75202544f5c460166cb41dffce909af6ca8de044e644dfa7b80"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "reasons_read": 8
+    },
+    {
+      "name": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "arm": "candidate",
+      "bindings": [
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-5/capture.json",
+          "sha256": "b7839b981c56b049a633cfe268eb96697a4c79a257be5883cfadc69da164f02b"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-5/report.json",
+          "sha256": "571720a96f24e428ebc9789eabf7b2f2b5f8af8983239454140d29bea0f63f8f"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-5/native-audit.json",
+          "sha256": "6f99e4d3e9c76bdea5996aaef18cbf5e253e21fb18dfb06852e69beb06db6da4"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-5/task.json",
+          "sha256": "90de798d598f4597aecae0ca57d6b238ed07be6cc64f8aa462ff64a92ba1c469"
+        },
+        {
+          "path": "workflow-runs/matrix-final-v1-astra-medium-challenges-candidate-5/manifest.json",
+          "sha256": "7899dd63206cc3304ed0ac7c3ebf9b68de7652e93c921201f14a160384f49a19"
+        }
+      ],
+      "functional_status": "pass",
+      "native_status": "pass",
+      "reasons_read": 8
+    }
+  ],
+  "read_reasons": 80,
+  "rows": [
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "For this offline calibration, the supersession argument holds: 200+ issue runs and concurrent writers invalidate the old small-run assumption. Per-issue files reduce shared-lock contention and isolate corrupt writes, while the index preserves discovery. The supplied argument identifies concrete changed conditions and a proportionate response. This assessment does not claim provider independence or production challenge eligibility."
+      },
+      "reason_sha256": "b6daef1f555441a762431024e09b6f2c8b5c2a899d39a362875ff2400c57a0af",
+      "canonical_challenge_sha256": "2190e0e61c17d7a4727625b40a8b1d1353460963a77c4c052d80988b3937faf1",
+      "canonical_result_sha256": "3ba92540ecab2fe06b8932d242bdbfd9d864badd362c5d4e75ae5725e262bc1b",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Uses the supplied growth to 200+ issues, concurrent writes and bounded corruption rationale; no added benchmark claim."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The supersession argument is unsound. Gitignore prevents normal version-control tracking, not exposure of plaintext credentials on disk. Persisting resolved keys introduces a durable secret copy and changes the environment-only security boundary. The claimed small read-latency benefit does not justify that change; session memory could cache values without disk persistence. This is an offline calibration judgement, not a claim of provider independence or production challenge eligibility."
+      },
+      "reason_sha256": "7bcad6fd509f8488aae6b50b4e77edc9695c15f3711e7dd049e3e8eac0ce20e3",
+      "canonical_challenge_sha256": "59b630a4b8c434cee11d8266ac59c1241efd576b4c6c27c4df66d33ed2ef232a",
+      "canonical_result_sha256": "0bca7bc20fe2a355fef3086ebe18ed17efcb39cfb3de3e5474d1d41f3d189885",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Identifies durable secret-copy boundary and limits of gitignore; memory caching is presented as an alternative, not an observed implementation.",
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "literal_log_clause": "never committed to the repo or written to `.faff/` logs",
+        "broadens_log_clause_to_all_faff": false,
+        "observation": "Reason discusses environment-only sourcing and added disk persistence without quoting a blanket ban on every .faff write."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt with no opinion. Preserve the absence and omit the challenge; the proposal's apparent merits cannot replace the missing review."
+      },
+      "reason_sha256": "c10bc4e2b709500f417968e5bacc5bffe577877d2f587caba79312ede57e22e6",
+      "canonical_challenge_sha256": "d775f56c8452079bc7896ef54f05eac3e2f817effb18e982ba655b62ecc508f1",
+      "canonical_result_sha256": "18be8275e389a18222188ee44ff34799288dcc181dd331cca3c1a5d180e69f0f",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Preserves missing opinion rather than inferring approval from merits."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The dry-run flag directly serves safe inspection of current merge eligibility. Its DoD requires both eligibility outcomes and proves no merge invocation occurs; reuse of existing floor reads preserves the single source of truth. No historical storage or query capability is added. This is an offline calibration judgement without provider-independence or production-eligibility claims."
+      },
+      "reason_sha256": "6e7e442d5ef46d5a4d328debf5f1bf1d90f32addb67ab9e821a8c94b0b23e520",
+      "canonical_challenge_sha256": "94b1d070c9c215742c1a68ead2ad1cd85184f0b753ff5a7505c17502d884ca6c",
+      "canonical_result_sha256": "0dd64b1f2be37547faa94081785338c72d1414dccb880f15b902b97d3dc34bf7",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Uses the supplied dry-run requirements and unchanged floor logic; does not claim actual test execution."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The PRD explicitly excludes historical storage and query features. The DoD requires persistent evaluation history and a timeline query with date and format options, which exceed those declared goals even though dry-run itself serves safe current inspection. The Phase-1 natural-extension argument does not override that exclusion. This is an offline calibration judgement without provider-independence or production-eligibility claims."
+      },
+      "reason_sha256": "9a760dcda4a73277a175b9f784672d7ffee6dae76df7eda65a1e99d581d560bb",
+      "canonical_challenge_sha256": "7fd924fdcc0d8c7726342db3c038e1d3fb8805581379f2990725984d29780be8",
+      "canonical_result_sha256": "3f082d673b414b3df22e5d117855ce87b512c63766e2d83452b82e1806e6012d",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Identifies the explicit historical-feature exclusion and the proposed history/query capabilities."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "CSV export and date filtering both serve explicitly declared PRD goals, and the DoD serves the cited export goal. Omitting the date-filter goal from the citations is under-citation, not capability beyond the PRD or an unserved cited goal. There is no supported ground to overturn. This is an offline calibration judgement without provider-independence or production-eligibility claims."
+      },
+      "reason_sha256": "e46e4df24c6b8ac2bc792b692bda160c82d5b502d4e9d1357163cb1ad6702fec",
+      "canonical_challenge_sha256": "931396dca904c1ccfa2f8456cf46100bd2e1b434080c9332ac830b2aea1b1d44",
+      "canonical_result_sha256": "20c47330b1fe7a3280aee1ad8db51bb3990c977d2ea7a0daa9d61b64e5e1b64b",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Distinguishes undeclared citation from capability beyond declared PRD goals."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites date filtering, but its DoD expressly excludes date input and date filtering. CSV export alone cannot serve that cited goal, so the Phase-1 claim that export serves both goals is false. The ground is an unserved cited goal, not excess scope or under-citation. This is an offline calibration judgement without provider-independence or production-eligibility claims."
+      },
+      "reason_sha256": "f9fc209f78a93f41b7b2d7fa4272ef0a4fcf4a23fbe4ef037afe18637ba2dfb3",
+      "canonical_challenge_sha256": "c96763c7cb41f34a0c45ab11d374e07848cde6ab73c3094f39ee5203991ab1aa",
+      "canonical_result_sha256": "a86390ad2f2546ccff502984a1a81028671a808403a990d477278e8daab2be2e",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Identifies cited date filtering and DoD explicitly excluding it."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-1",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt with no opinion. Preserve the absent challenge so the caller rejects as phase2-inconclusive; the proposal's apparent merits cannot substitute for an obtained opinion."
+      },
+      "reason_sha256": "0bc2fa8b71df9a0ff2fb245a02bdb511bf9ac3836a1a0eff76e4e3e13cc3ce0f",
+      "canonical_challenge_sha256": "5ec7d47bc66c722c3a6bd74740433e21e2feabb4a78ae669b72b6c16d4e18063",
+      "canonical_result_sha256": "688a86729a6bcb97b920fba2ee482803b164e20aefbd8cff61bee466b81451ed",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Preserves missing opinion and fail-closed admission."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "For this same-provider offline calibration, the supersession argument is sound: growth from fewer than 20 to over 200 issues and concurrent writers invalidate the original small-run premise. Per-issue files directly reduce shared-file lock contention and corruption scope while retaining the directory root and discovery index. This judgement does not establish provider independence or production eligibility."
+      },
+      "reason_sha256": "ea56a0d9022f7a3029450d8d1a318d54212ab11d4aae2f15119b3cf0c79becfa",
+      "canonical_challenge_sha256": "771f62437bcb6e4c441ea197264b18683c0222bca405cc047b275e140f17ee20",
+      "canonical_result_sha256": "001a69ebaa17a6c9bdb8caa614ce3c7e83d98c946423fbf416873af1384d52dd",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read against supplied case facts. Reason supports expected judgement and ground; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The supersession argument is unsound. Writing resolved secrets to a credentials file changes the environment-only security boundary; gitignore only prevents normal tracking and does not remove local disclosure or persistence risks. The claimed small environment-read latency does not justify disk persistence, and session caching could remain in memory. Same-provider offline calibration only."
+      },
+      "reason_sha256": "3a1612f1d0925f153eddbdf1c90d244f69c9a6abe3b7d8fdcf12bc057684a9e7",
+      "canonical_challenge_sha256": "2644029b06e9efa844ebfa6e8609d85c6493e05f2b6780957eedcd87ac40b757",
+      "canonical_result_sha256": "0cee40bc61a04d5da3f14c64e23cd39f2b0b17c13b5b92824feef067f29b6eca",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read against supplied case facts. Reason supports expected judgement and ground; no unsupported fact or production independence claim found.",
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "literal_log_clause": "never committed to the repo or written to `.faff/` logs",
+        "broadens_log_clause_to_all_faff": false,
+        "observation": "Reason discusses environment-only sourcing and added disk persistence without quoting a blanket ban on every .faff write."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt without an opinion. Preserve the absent challenge, regardless of the proposal merits; absence cannot become a pass."
+      },
+      "reason_sha256": "08bf07bdca7edd502db5f4fd5b533dd4ccd8aecffc941235fb89a142224de209",
+      "canonical_challenge_sha256": "2a1643d70cf4accb2ee01c34425beba3e99ca1f6c8f86d6416cb6e916466d9a7",
+      "canonical_result_sha256": "9578794d1ecca7ea01f4b9e2460bf679d87528345304a2d51c2eef3d33a89d5c",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Read against supplied case facts. Reason supports expected judgement and ground; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The flag and DoD directly provide safe inspection of the current merge decision, including blocked reasons and a test that prevents merging. Reusing the existing floor reads preserves the declared single source of truth. No historical storage or query capability is added. Same-provider offline calibration only."
+      },
+      "reason_sha256": "d366fd3f69724b2e8bd008a77defe9bff081f6a8fa0ad770d593e43c0e81cabd",
+      "canonical_challenge_sha256": "969b56d613365f7089002f17a3dc3c6bc49ce636d6015ff43f1ad2d479e1801c",
+      "canonical_result_sha256": "64c590754ece26868d181a2fc85a296d075214c35d890e457f0b16a4fc2b4bbd",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read against supplied case facts. Reason supports expected judgement and ground; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The PRD expressly excludes historical storage and queries. Persisting every evaluation, rendering its historical timeline, and filtering that history add DoD capabilities beyond declared goals. The useful dry-run flag does not justify the rest of the proposal. Same-provider offline calibration only."
+      },
+      "reason_sha256": "83604d11c20f5aad4d7bda4beb7c062938a317bbb9a45bb3f6f5c1e17a1001a9",
+      "canonical_challenge_sha256": "264311269d6b5200de8ec78ef1133dfb616fad6fac1749d11132e5b70eee830e",
+      "canonical_result_sha256": "31e057fba81f7f4e85f0643dcfaaa2ce7c69ad61232eb5356260249974bc88e4",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read against supplied case facts. Reason supports expected judgement and ground; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both CSV export and date filtering are declared PRD goals, and both are served by the DoD. Citing only export is under-citation, not capability beyond the PRD. The CLI owns the dod-covers set test; the uncited import, totals and archival goals do not expand this proposal. Same-provider offline calibration only."
+      },
+      "reason_sha256": "039d79ab8cd857d47a82d1f19aff9520acbace29a8e4cabc4220ad8c4e0af754",
+      "canonical_challenge_sha256": "1a7930abf2c54eb9be55731b297e879b18612d1bc3d7e5f85af050017a3ef4c1",
+      "canonical_result_sha256": "5e4d370a9578741be5b76a6d1dd069d5f6904075a927f9f606ab82fb1f40026c",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read against supplied case facts. Reason supports expected judgement and ground; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites date filtering, but its DoD explicitly excludes date input and filtering. CSV export alone does not serve that cited goal, so the Phase-1 assertion that both are served is false. This is an unserved cited goal, not over-scope. Same-provider offline calibration only."
+      },
+      "reason_sha256": "e82d898b5b8e08bdf9e15f5ea8d1efe71773f180aac66250b90709596864e46c",
+      "canonical_challenge_sha256": "d986f801cb097103ccf0507f4277c0ce8f2787240a4d777b3153f7075ccc9a06",
+      "canonical_result_sha256": "267ab8e6e5a3cd199531e761d172b20cf910c440f8bfc5c9014bd8c17d9e6548",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read against supplied case facts. Reason supports expected judgement and ground; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-1",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false means the provider attempt exhausted without an opinion. Omit the challenge and preserve phase2-inconclusive; the apparent merits of dry-run do not supply the missing opinion."
+      },
+      "reason_sha256": "dc943cfed528c55fb2d58e9902a484d2fcaba2373fc0395cb8d780a555754d57",
+      "canonical_challenge_sha256": "2b540851bab369ae70bac1b8b7b9ce5e60e1fea73305f08007e6be2095cc05a9",
+      "canonical_result_sha256": "8fd57d37c55c5f96d89f503987e90930757676d6cd4bdca25c19b6eeeeee04f5",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Read against supplied case facts. Reason supports expected judgement and ground; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Calibration judgement only, without provider independence or production eligibility: the old decision explicitly assumed fewer than 20 issues per run. The supplied 200+ issue runs and concurrent writes invalidate that assumption. Per-issue files address lock contention and limit corruption to one issue, with an index preserving discovery. The supersession argument is sound on the supplied facts."
+      },
+      "reason_sha256": "1901c7623c8a2878be1d2a57abe7c8c07c47538e35d64882d0217ac7d885b1eb",
+      "canonical_challenge_sha256": "0167f6b2cea3827301f2c89a6d4c2030674beb98b6de7ef56b5c66d4aa1510b0",
+      "canonical_result_sha256": "c025614119ce515dafb9f0bffb57cddd5cf8633438a9ca95e5ce7ec70877e46b",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected ground/admission; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "Calibration judgement only, without provider independence or production eligibility: persisting resolved keys in credentials.json breaks the environment-only secret boundary. Gitignore prevents ordinary tracking, not local disclosure or persistence after the session. The stated small latency benefit does not justify this security change, and session memory caching can avoid repeat reads without writing secrets to disk. The claim of no behaviour change is unsound."
+      },
+      "reason_sha256": "1afb45195046e458e3d227965fe65674f10fe91d290c4c8ade4ff91ec5bb5747",
+      "canonical_challenge_sha256": "a9e1aefddb13eb4d012d0856b2b1de2360bd07a1cc812196e409f4b40a9ef591",
+      "canonical_result_sha256": "142213fb10a9e8630986b574362b44e8ddcc7d865627707f26faa325e8dfe480",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected ground/admission; no unsupported fact or production independence claim found.",
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "literal_log_clause": "never committed to the repo or written to `.faff/` logs",
+        "broadens_log_clause_to_all_faff": false,
+        "observation": "Reason discusses environment-only sourcing and added disk persistence without quoting a blanket ban on every .faff write."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "The supplied provider attempt is exhausted with opinion_available=false. Preserve the absent challenge and omit --challenge; no substantive judgement replaces the missing opinion."
+      },
+      "reason_sha256": "9574c3a8dc7903b8c9ad5f49cd0cc1335892439591e49cced4f7e548f9757674",
+      "canonical_challenge_sha256": "cf66dda0bbaa662d9194679848b40b78c429c37c1b2c0157037579d78a8fa2a2",
+      "canonical_result_sha256": "813dbc686091b698d6fb0843b83d8fef58bd816be42a7377c08977dac76bcb83",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected ground/admission; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Calibration judgement only, without provider independence or production eligibility: dry-run reports the current decision through the existing merge-floor logic and suppresses the merge call, directly serving safe inspection. The DoD checks both eligible and blocked decisions and absence of merge invocation. No historical storage, query capability or separate eligibility logic is added."
+      },
+      "reason_sha256": "223321753bb087094811f418f9555865c1e0eccfa997f171f0743e7ebb403ad5",
+      "canonical_challenge_sha256": "aeb0fe83a6fa38ed8988224d0f2ffecaf9d5a775ff395a43b88001aa3bcce10a",
+      "canonical_result_sha256": "f6c905a1f86e3b01f078378c3e2cd65507da07729a63002f2d318f21678543ec",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected ground/admission; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "Calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The DoD requires persistent evaluation logs and historical timeline queries with date and format options. Those capabilities exceed the declared goals even though dry-run itself serves current safe inspection. Phase 1 incorrectly broadens the inspection goal to include expressly excluded history."
+      },
+      "reason_sha256": "ce2e13b58f2640207c4cd38dd509092e5c529fc63447771bef8acd913a7783c8",
+      "canonical_challenge_sha256": "088d87aa66f1846ee740146553e3c7e910b525aa46f818e11c501433e7aae7a5",
+      "canonical_result_sha256": "24a7b2143931ca803343289088ecf4d47f00e5ca283711710d271ac155bcd569",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected ground/admission; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Calibration judgement only, without provider independence or production eligibility: the CSV rows serve Export transactions as CSV, and the date-range DoD serves Filter transaction exports by date. Both capabilities are declared PRD goals. Omitting the filter goal from cited_goals is under-citation, not over-scope or an unserved cited goal. These two goals are the DoD coverage for the caller to supply to the deterministic CLI set test."
+      },
+      "reason_sha256": "33f96293f9dfd798eed7673c5f657dea0d61daeaf28c97bcbea123b59285f561",
+      "canonical_challenge_sha256": "d3c22e9e74df816fe3d85588ea02d6a218af04874b4597a98c25f6430bf713cb",
+      "canonical_result_sha256": "fe131c4727067d6fad729b8be869c3363cb7a87a3e572bdd54057ab944610b0f",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected ground/admission; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "Calibration judgement only, without provider independence or production eligibility: the PRDR cites Filter transaction exports by date, but its DoD expressly implements no date input or filtering. CSV rows serve only the export goal. Phase 1 falsely claims both cited goals are served. This is an unserved cited goal, not over-scope, and the fact that export lies within the PRD does not cure it."
+      },
+      "reason_sha256": "15388ca83dd84d011707ff35cbc291c2d81e8d61f1956d63dc5e3658efaffb1b",
+      "canonical_challenge_sha256": "1d0578f4857a2e20bb3666cadb09e0e5192b442856ca390f7daae3501807217c",
+      "canonical_result_sha256": "203919ef3e76cce4491cd34a3c744daa914060519c9d9bfca7782e06fbb8fe12",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected ground/admission; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-2",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "The supplied provider attempt is exhausted with opinion_available=false. Preserve the missing opinion and omit --challenge so the caller rejects as phase2-inconclusive. The apparent merits of dry-run cannot substitute for the absent challenge."
+      },
+      "reason_sha256": "75434a1a1da068db78f32456a670464cec7fe3b3556c9972261a1d95877ae307",
+      "canonical_challenge_sha256": "f13aa12605e0f2acd0c6061bcb4c930b19d0cd713c664e733175226f74a2161c",
+      "canonical_result_sha256": "caf7cde2de8bacf8144beccf3e499d9bf274157816e2a9a17f6e370dad5d16e6",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected ground/admission; no unsupported fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Offline same-provider calibration only. The stated small-run assumption no longer holds at 200+ issues with concurrent writers. Per-issue files directly reduce shared-file lock contention and isolate corrupt issue writes, so the supplied supersession argument is sound. This does not claim provider independence or production challenge eligibility."
+      },
+      "reason_sha256": "4d2a0790cc448b3c9bbaf7373e622eb6a516cbfaf59f975508889f648f0b1f98",
+      "canonical_challenge_sha256": "b975d5461f3c24c99c88a91649919fcfa830afcd267c0152a9fa2c1ceec45d91",
+      "canonical_result_sha256": "d8ae57038ecbcba7f6ec13d749b2f1e0df8136cbc505c0772d560cd850656d5a",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected judgement/ground/admission; no unsupported definite fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "Offline same-provider calibration only. Gitignore prevents ordinary tracking, not local secret disclosure or persistence. Writing resolved keys to disk changes the environment-only security boundary. The claimed small latency gain does not justify that change; session memory caching could avoid repeated lookups without persisting credentials. No provider independence or production eligibility is claimed."
+      },
+      "reason_sha256": "ad6e74d853720f209c858d03422b4dd3d0bcf2a73ba8f0567b383142bb42b2e4",
+      "canonical_challenge_sha256": "72d0ba86d0a7a857a9490d4b2f5856de4c005b95ce5d93e80d61b53a0d73f05e",
+      "canonical_result_sha256": "738086796d4d8475890fac0e1dc9e5b0ef3bb52d15ae53bd0f9fcfc33223b05f",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected judgement/ground/admission; no unsupported definite fact or production independence claim found.",
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "literal_log_clause": "never committed to the repo or written to `.faff/` logs",
+        "broadens_log_clause_to_all_faff": false,
+        "observation": "Reason discusses environment-only sourcing and added disk persistence without quoting a blanket ban on every .faff write."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt. Preserve the absent opinion and omit the challenge; the proposal merits cannot substitute for the missing opinion."
+      },
+      "reason_sha256": "fc78a6f15011106d0a9d1fad094fdbc760c65ff8e386d4e218edec984d5e2b58",
+      "canonical_challenge_sha256": "982545d03b010b98230aec8e29fb9352defce51db22187100b1597f05c31c6e4",
+      "canonical_result_sha256": "c95ab31a4c4b85d0e417f4ec99abe5f4183ae7c114139d3226cc5a76256dfbc9",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected judgement/ground/admission; no unsupported definite fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Offline same-provider calibration only. The flag exposes the current floor decision using the existing AC, CI and review checks while suppressing merge execution. Its DoD verifies safe inspection and contains no historical storage or query capability. The proposal serves the declared goals without exceeding them; no provider independence or production eligibility is claimed."
+      },
+      "reason_sha256": "402a290b30ccd7300848d3b4da00b0380b41b96738f4510dff7f4b1fa6fd64a7",
+      "canonical_challenge_sha256": "22a6c1131ee0e35800f58be7fef2c7216edf72d641f430af049d759b5f8f9390",
+      "canonical_result_sha256": "568fc13b27b8317ba3b9cebe5930de3d1d6539156495e316edab1ecd0c1fe9f6",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected judgement/ground/admission; no unsupported definite fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "Offline same-provider calibration only. The PRD expressly excludes historical storage and query features. The DoD requires persistent evaluation history and timeline queries with date and format controls, capabilities beyond the declared goals. The warranted dry-run flag does not justify those additions. No provider independence or production eligibility is claimed."
+      },
+      "reason_sha256": "4ba7437d5fc23ba80358b48e9093537df8bcebd0b514d7c0e5e194e436a85b1d",
+      "canonical_challenge_sha256": "817ffbe32c50b41d646c31e5507be203687d97102a8cd2877026e424b9f38747",
+      "canonical_result_sha256": "30f1180b6fc1cc432d37da0ef0ae28ec034e142c36817b1dfe45d9447595d5c6",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected judgement/ground/admission; no unsupported definite fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Offline same-provider calibration only. CSV export and date filtering each serve an explicit PRD goal. Omitting the filter goal from cited_goals is under-citation, not capability beyond the PRD. The cited export goal is served, and this PRDR need not implement all other goals. No provider independence or production eligibility is claimed."
+      },
+      "reason_sha256": "7bd53b1ca14934d2ae1412f6a0d85127f94a2ad5717d7b81a3e5f47c5f83b5e6",
+      "canonical_challenge_sha256": "31bfe9a166c4536fb30e8453fb67edde7b8d3a4f82c28ef6af5643bd63de7178",
+      "canonical_result_sha256": "2cb6bcb0fb4c3840796d1b7a5d4f09c84726c1a9c48f64516aeb5787a8c8d1a6",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected judgement/ground/admission; no unsupported definite fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "Offline same-provider calibration only. The PRDR cites date filtering, but its DoD explicitly excludes date input and filtering. CSV rows alone cannot serve that cited goal, so the Phase-1 claim that both cited goals are served is false. No provider independence or production eligibility is claimed."
+      },
+      "reason_sha256": "bc01bd3fc06390e08c5f92990ab57a2ae9416be10869dbabfdb04217bd057697",
+      "canonical_challenge_sha256": "5aca8ed5a064097aef51de04147566cb45d148418327102da30c7b00c673e988",
+      "canonical_result_sha256": "654f52ecf5da8ce90b8d3f58bf44270c277d56f43d48a3848e3c146c90b3bd0e",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected judgement/ground/admission; no unsupported definite fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-2",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt. Preserve the absent opinion and omit the challenge. Phase-1 approval and apparent proposal merit cannot replace the unavailable opinion; the upper gate must remain inconclusive."
+      },
+      "reason_sha256": "f92f117023e55acf954d5adf223ff4ec3913085e820422dd3b25320e2cbdfd1b",
+      "canonical_challenge_sha256": "dd2ac0d09ca0ea20b4009a261c76d62ef2fb002ab559667fd4ae983b54895ed7",
+      "canonical_result_sha256": "3b3f6377ee8dc3790730664a71f73482ec43cf9c55519602b7ebabc093cd1c3c",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Read actual reason against supplied case facts and expected judgement/ground/admission; no unsupported definite fact or production independence claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The supplied increase from fewer than 20 to 200+ issues and concurrent writes invalidate the old small-run rationale. Per-issue files directly reduce shared-file lock contention and isolate corruption, while retaining discovery through an index. The supersession argument holds on the supplied facts. This is offline same-provider-family calibration, not an independent production challenge."
+      },
+      "reason_sha256": "5d0469de12723b321ed6b587b2607eb9c3e03860095773efd4a96f17ba6a3e0c",
+      "canonical_challenge_sha256": "46f6d5e958ac42087f82473a3f9082e69e20f9c5dfe7fc9e86412cb064f4696f",
+      "canonical_result_sha256": "64bec1e18d8d682557d3b2d4437cf7a6bdf9e8b85ce5b7c4a1218a888368010b",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission source-supported. Added ancillary assertions are separately flagged, never used to reverse preserved outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "Gitignore prevents ordinary tracking, not access to plaintext credentials on disk. Persisting resolved keys changes the environment-only security boundary and leaves secrets beyond the process lifetime. The claimed small latency saving does not justify that change; session-local memory caching addresses repeated reads without disk persistence. Offline calibration only, with no claim of provider independence or production eligibility."
+      },
+      "reason_sha256": "1e10f87094075fd91dcfd2cfc8085bb1e69dd91c3e0b9b1ab0f201f7922d2eb1",
+      "canonical_challenge_sha256": "b8ce388f0fb03371fbecbf6042aef407bf8f9f1478c3388a8a601a34d477a684",
+      "canonical_result_sha256": "90b6cb29b23801fd1ca15cd62af1cef2f01b725ec874f6398658641a6812a7d0",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "core-correct-with-ancillary-overclaim",
+      "source_based_reasoning": true,
+      "invented_facts": true,
+      "source_fidelity_findings": [
+        {
+          "kind": "unsupported-lifecycle-certainty",
+          "excerpt": "leaves secrets beyond the process lifetime",
+          "observation": "Persistence creates possible lifetime risk, but no cleanup, expiry or deletion behaviour is supplied. Same source-boundary criterion as Opus.",
+          "policy_path": "baseline/adversarial-review.md",
+          "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+          "full_policy_search_findings": "Specific graft logs and anchors are described. No credential cache expiry, cleanup or deletion guarantee is supplied."
+        }
+      ],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission source-supported. Added ancillary assertions are separately flagged, never used to reverse preserved outcomes.",
+      "literal_rule_paraphrase_check": {
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c",
+        "broadens_log_clause_to_all_faff": false,
+        "observation": "Does not quote a blanket prohibition on all .faff writes."
+      }
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt without an opinion. Preserve absence and omit the challenge argument; the merits of the proposal cannot substitute for the missing challenge."
+      },
+      "reason_sha256": "c1c1b2e9b8e6454f4a8d0ea903fab1dc2e5881f2bd5c0ee3806e86bb2aaecc2a",
+      "canonical_challenge_sha256": "0e34c45a56bf01c61ec47b2446e39cbeccd32616f275caa7b65430a57a4b3b27",
+      "canonical_result_sha256": "f01c852a680609d7ed9e384cd5c375f49f73afbe5030a5c96cb6fc6c808ba256",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission source-supported. Added ancillary assertions are separately flagged, never used to reverse preserved outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The dry-run flag exposes the current floor decision and blocked reasons while suppressing merging, directly serving safe inspection. Reusing the existing floor preserves its authority. The DoD adds no historical storage or query capability beyond declared goals. Offline same-provider-family calibration only, not a production-independent challenge."
+      },
+      "reason_sha256": "45c10b2658fe9a7f1be41af2aaac99e6707f6eab34246a3461f60179eeff8da8",
+      "canonical_challenge_sha256": "06353b893f29b60328533c49999ae444e488a76d3b0db9ef93c02c9400155750",
+      "canonical_result_sha256": "647a4c77d6a6991a9da059d7bff05f7c13090a266a7e02a0417f138a6d99b152",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission source-supported. Added ancillary assertions are separately flagged, never used to reverse preserved outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The PRD explicitly excludes historical storage and query features. The DoD requires persisted evaluation history and timeline queries with date and output-format controls, capabilities beyond current safe inspection. Calling these a natural extension does not place them within the declared goals. Offline calibration only; no provider independence or production challenge eligibility is claimed."
+      },
+      "reason_sha256": "be73331422ec2c9ba508ad30854c81b8a8fd010d56cadf410ff406d1377a27d4",
+      "canonical_challenge_sha256": "39bdd0afbe52f9a5946377721e230fda8eee9522912edfae63e80cea718f133e",
+      "canonical_result_sha256": "54e849963ad35b6c6821fafdc651180cd220f8ba8303cdedd72c7c6bd81b7896",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission source-supported. Added ancillary assertions are separately flagged, never used to reverse preserved outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "CSV rows serve the cited export goal, and date filtering serves another explicitly declared PRD goal. Omitting the date-filter goal from citations is under-citation, not excess capability or an unserved cited goal. No overturn is warranted. Offline calibration only, without provider-independence or production-eligibility claims."
+      },
+      "reason_sha256": "e752cf428bf8c529bf33baab8ebacf9025301d215217229d2e6b39cb405e1450",
+      "canonical_challenge_sha256": "b92eaa3f990e9d0a92fa146d16536ddb11fa77ee56c46b9e102dddcd9e395c50",
+      "canonical_result_sha256": "e29815bf6bfb4229d2705667e4ede626313acd9395cae24fe699bd07c9249920",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission source-supported. Added ancillary assertions are separately flagged, never used to reverse preserved outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites filtering exports by date, but its DoD explicitly excludes date input and filtering. Exporting all rows serves CSV export alone and cannot satisfy the second cited goal. The Phase-1 claim that export serves both is unsupported. Offline calibration only, without provider-independence or production-eligibility claims."
+      },
+      "reason_sha256": "574371ee6fb85d8f5ade99a0fd4cdf8058726f98deba34bf779d08d062642ad0",
+      "canonical_challenge_sha256": "1a9a35bf15dc7c09cc55ba606d56a7df32f7c4fa0045f53e3ab3796683503432",
+      "canonical_result_sha256": "09d8cfd52087894b414549c32d06c5eed93c7d377f19be1ad10819fc8f688c76",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission source-supported. Added ancillary assertions are separately flagged, never used to reverse preserved outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-3",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt with no opinion. Preserve the absent challenge and omit --challenge so the caller records the inconclusive Phase 2 rather than inventing an approval."
+      },
+      "reason_sha256": "51047e31092e04e5edca2e0d14b94eaee744785a9a0f87c533794c3272612a82",
+      "canonical_challenge_sha256": "6c73f3d857a0781b66c77a5f9328c527d1231f8fd40207ab63b5e05e939d3147",
+      "canonical_result_sha256": "fc2bdb02d011ff74707f06dbab6d80292e750e71f7ee11b7f867d32ff16ef457",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Core judgement, ground and admission source-supported. Added ancillary assertions are separately flagged, never used to reverse preserved outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Offline same-provider calibration only, without a claim of independent production review. The old rationale explicitly assumes fewer than 20 issues per run; 200+ issues and concurrent writers invalidate that assumption. Per-issue files directly reduce lock contention and isolate corrupt writes, while the index preserves discovery. The supplied supersession argument is sound."
+      },
+      "reason_sha256": "56c83584b93d1f80775de50635e868cd2c03e762052c63438f2dae7b19898f18",
+      "canonical_challenge_sha256": "f2986684e397e8d1dd37ebd5a9119476b2134637986310c7c002cca8353d3d4f",
+      "canonical_result_sha256": "198c4cf7ba5fdcbdae30f6b4ecf08e8d781d95aa0932edde0ff864421e527c90",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read. Supplied facts support core judgement and ground; risks are possibilities rather than asserted project behaviour or guaranteed lifecycle outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "Offline same-provider calibration only. Persisting resolved API keys to credentials.json breaks the environment-only secret boundary. Gitignore prevents ordinary tracking but does not prevent local reads, backups or retention of plaintext credentials. A small claimed process.env lookup saving does not justify that security change; caching in memory would avoid disk persistence. The supersession argument is unsound."
+      },
+      "reason_sha256": "5f54d390eac76299ae74f9bd4bcfef42572186b6dd20c8f9a42b33717cfcfa17",
+      "canonical_challenge_sha256": "4c1682de6c9a8b64a16ab1ab2e2e4b3fb9b6aade62df7e81d6babb5a074de19a",
+      "canonical_result_sha256": "8e59a4291d442fdeedfbf228e2504cdda0fb191a4b1f8eb8ccfde971aa746de0",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read. Supplied facts support core judgement and ground; risks are possibilities rather than asserted project behaviour or guaranteed lifecycle outcomes.",
+      "literal_rule_paraphrase_check": {
+        "broadens_log_clause_to_all_faff": false,
+        "observation": "Discusses environment-only sourcing and persistence without claiming a blanket ban on .faff writes.",
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c"
+      }
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "The supplied provider attempt is exhausted and opinion_available is false. Preserve the absent opinion and omit --challenge; the apparent merits of the proposal cannot substitute for the missing challenge."
+      },
+      "reason_sha256": "7251aace79219ec624ac27939a247a481a7aefb0d0e7e8c7038d9cd0cc49a74b",
+      "canonical_challenge_sha256": "591da148330e95fe48391c14e39995e6f16746ac0281c34dface813877bc4c9a",
+      "canonical_result_sha256": "4c3a4b478c6697db01e67268153f2c7100185f5a7e5da9470bab8c63ed3149a9",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read. Supplied facts support core judgement and ground; risks are possibilities rather than asserted project behaviour or guaranteed lifecycle outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Offline same-provider calibration only. The dry-run decision and DoD directly serve safe inspection of current merge eligibility. They reuse all existing floor conditions and suppress the merge operation, with an explicit no-merge assertion. No historical storage or query capability is added, and no supplied requirement is unserved."
+      },
+      "reason_sha256": "db77c6c85caca5caada26cd9cb7f6480797e7227effc776537a32c851274b515",
+      "canonical_challenge_sha256": "4cdab29d9945f6f6c380906a79d6f1ab9709e8465e188c20e7bcce3e31ade872",
+      "canonical_result_sha256": "104b2b1e6404e5076fc7b2f81870404fd97029ef0b6c2c6694631e696e8f4b65",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read. Supplied facts support core judgement and ground; risks are possibilities rather than asserted project behaviour or guaranteed lifecycle outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "Offline same-provider calibration only. The PRD explicitly excludes historical storage and query features. The required JSONL history, full timeline, date filter and output-format machinery add precisely those excluded capabilities. The valid dry-run portion does not bring the whole proposal within scope; Phase 1 overlooks the explicit exclusion."
+      },
+      "reason_sha256": "45ffe37f4a3c84562b976bcba737559036c5af6b688c27f7cad0dbc82ea697a9",
+      "canonical_challenge_sha256": "fc8b672998efc3785081e1940b4aa13eb201de99e5884894d6d5e68b6e96c6b3",
+      "canonical_result_sha256": "5a9db546fc64cb4abe3db969a787064c861899b6a8c96afa59feeda1f1e74091",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read. Supplied facts support core judgement and ground; risks are possibilities rather than asserted project behaviour or guaranteed lifecycle outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Offline same-provider calibration only. Both CSV export and date filtering are explicitly declared PRD goals. The DoD covers both, although the PRDR cites only CSV export. This is under-citation, not capability beyond the PRD; the cited export goal is served. Leave the deterministic dod-covers set test to the CLI."
+      },
+      "reason_sha256": "3f24ebccac2ece366493c9d9d714a9daa586c5f157b9e39a4037bd7057de1ba7",
+      "canonical_challenge_sha256": "40d6dc4f653ea9c32564b60679be9de83486d27307c74ae9c51f5aa291c0bac0",
+      "canonical_result_sha256": "2215dc168fc4e6953cd5398b688fa94156ca06eeeab422d0b50c0052f2666380",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read. Supplied facts support core judgement and ground; risks are possibilities rather than asserted project behaviour or guaranteed lifecycle outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "Offline same-provider calibration only. The PRDR cites date-filtered exports, but its DoD explicitly excludes date input and filtering. CSV export alone does not serve that cited goal, contrary to Phase 1. This is an unserved cited goal, not over-scope or merely missing citation."
+      },
+      "reason_sha256": "fea1d2dd37a602092a5e30859a87cbb8b00adfb5773e50dfca65cab726c7de60",
+      "canonical_challenge_sha256": "f93afbcaf58bac648dca4e248bf4072efc3b9739eba07800c307e1b3f5daff2e",
+      "canonical_result_sha256": "1de34b5a4c19d80696412360b2bf0dfa8358c3558b9e53eca6845438067ad9ec",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read. Supplied facts support core judgement and ground; risks are possibilities rather than asserted project behaviour or guaranteed lifecycle outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-3",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "The supplied provider attempt is exhausted with opinion_available=false. No challenge opinion exists; omit --challenge and preserve phase2-inconclusive rejection. The Phase-1 admit and apparently in-scope proposal cannot replace the missing opinion."
+      },
+      "reason_sha256": "d741980e9a1fcd7de4edc1b2f7686fdc52b3b5fe04034269f2e3dd3022c90b13",
+      "canonical_challenge_sha256": "b07540d2f13bbf9c7e387f6d1d417c506e78d4ddea9c207d9b942d8c00972563",
+      "canonical_result_sha256": "563c160f5f845fd93cc6664ff2378b071858a2d493950fec0e025953b194a684",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read. Supplied facts support core judgement and ground; risks are possibilities rather than asserted project behaviour or guaranteed lifecycle outcomes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Calibration judgement only, without provider-independence or production-eligibility claims. The original rationale explicitly assumed fewer than 20 issues per run; the supplied facts now describe 200+ issues and concurrent writers. Per-issue files directly reduce shared-write contention and limit corruption to one issue. The small discovery index does not invalidate that supersession argument."
+      },
+      "reason_sha256": "3880f05a06957ec1fd4a6d1b4f7eb9f61946fb42c3914f45a4da0aa17bb9a01b",
+      "canonical_challenge_sha256": "ca9c1881944abcf02108acc7f7a004468a4fd4f8c3c3615e0cd203654c1543ac",
+      "canonical_result_sha256": "43b4790c9185aad3200ead8f90d131e418157de540c70643e05ba97e1c3989e8",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied facts and policy. Correct core judgement; no definite unsupported project/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "Calibration judgement only. Persisting resolved API keys changes the environment-only secret boundary and leaves plaintext credentials on disk. Gitignore addresses version-control inclusion, not local exposure or persistence. The stated small latency saving neither justifies that security change nor explains why a session-local memory cache would be insufficient. The claim of no behaviour change is unsound."
+      },
+      "reason_sha256": "49d3244cb898873306abb4c4c3266d2bff6d3daa4cd26d1f87f79696571c6161",
+      "canonical_challenge_sha256": "97479fd14a6c267be84840d91e936bb814572bd1894340b53d953cd83240da69",
+      "canonical_result_sha256": "12715b13199ca60ce7ef37ff5e0bf3170d535c93f83e2870f5b0f47595e47313",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied facts and policy. Correct core judgement; no definite unsupported project/lifecycle claim found.",
+      "literal_rule_paraphrase_check": {
+        "broadens_log_clause_to_all_faff": false,
+        "observation": "No blanket .faff prohibition quoted.",
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c"
+      }
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "The supplied opinion_available=false records an exhausted attempt with no opinion. Preserve the absent challenge and omit --challenge; the merits of the proposal cannot substitute for the missing opinion."
+      },
+      "reason_sha256": "115854de963931ac48b7db4cd9355275ff42749f27dc364b42078ef890f154ec",
+      "canonical_challenge_sha256": "3714255fb8f8803296a581098ac4177a340375e19799f82f8333b46aa5e23f2a",
+      "canonical_result_sha256": "6ba3749e713415fa120c1da5f6ee8a8d0fc651a77494eda17a28c6b9fc0ebd35",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied facts and policy. Correct core judgement; no definite unsupported project/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Calibration judgement only. The dry-run flag exposes the current merge-floor decision without merging, directly serving safe inspection. Its DoD checks both eligible and blocked decisions and forbids the merge call. Reusing the existing floor preserves the single source of truth, and no historical storage or query capability is added."
+      },
+      "reason_sha256": "069ebc1c1834af822596cdaadd32710911cb148d435c6ba983c42c4d00b69410",
+      "canonical_challenge_sha256": "90a4124748bef841220a546d60277b05e0c49e6fca157211a0a743d204ec396a",
+      "canonical_result_sha256": "e6322c202eeaf4ba19514a224c49268d0550c32e3e88fc1ff913789c70839d4f",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied facts and policy. Correct core judgement; no definite unsupported project/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "Calibration judgement only. The PRD expressly excludes historical storage and query features. The DoD requires persistent evaluation history and timeline queries with date and output-format controls, which exceed the declared goals. The useful dry-run portion does not justify admitting those excluded capabilities; Phase 1 disregarded the explicit scope boundary."
+      },
+      "reason_sha256": "406cf3475e9e3a8c94b1b5c0ac1e7d7b58a9b160ea75754fefd290a0efd4beb4",
+      "canonical_challenge_sha256": "da705ab5e47383021a08716960a5107dd437d5514841895e6de74770e59daf7e",
+      "canonical_result_sha256": "f60db6cca71236b5877e5c2993274cbec6881a996ed0f1e359221ca458be8604",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied facts and policy. Correct core judgement; no definite unsupported project/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Calibration judgement only. Both CSV export and date filtering are declared PRD goals and are served by the DoD. Omitting the date-filter goal from cited_goals is under-citation, not capability beyond the PRD. The covered goals are Export transactions as CSV and Filter transaction exports by date; the caller supplies coverage to the CLI for its deterministic set test. This PRDR need not implement the other unrelated PRD goals."
+      },
+      "reason_sha256": "c2073f79aba8b3e82fdc73715c5d07afa65bad19d95e4999c7fb9155c864076d",
+      "canonical_challenge_sha256": "0f4875c82c73b1b2319926d61cadae17d59948d303785b564874c8c13ee9896f",
+      "canonical_result_sha256": "3aad99ab57be55c5059bef93c828946da3e453c756f09b15229ebd194f712f62",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied facts and policy. Correct core judgement; no definite unsupported project/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "Calibration judgement only. The PRDR cites Filter transaction exports by date, but its DoD explicitly implements no date input or filtering. CSV export alone does not serve that cited goal, so Phase 1 is unsound. This is an unserved cited goal, not over-scope; the deterministic scope set test cannot clear it."
+      },
+      "reason_sha256": "9922e9240454e7e8e3b42c0beb19628fb13f73ca9d6834bf05a545016bdefec6",
+      "canonical_challenge_sha256": "747d133d8154a9bda392ec70628d3af4186ab0056a4c7a40baac6963d5ea5edd",
+      "canonical_result_sha256": "88e1432b0775acc6fb1411ac1e3269cce0a3d358db445adac07d15df0513485a",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied facts and policy. Correct core judgement; no definite unsupported project/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-4",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "The supplied opinion_available=false records an exhausted attempt with no opinion. Preserve the absence and omit --challenge. Phase 1 cannot replace the missing challenge; this case must remain phase2-inconclusive rather than receive a substantive pass."
+      },
+      "reason_sha256": "b9d8fd3354cd125862c6cdd4de940675606f1e594c3e93af527ddcf2ec177cd1",
+      "canonical_challenge_sha256": "c452b26d0abebe4161ec1e384ef0dd413491798284606b44d418b0a8e962324e",
+      "canonical_result_sha256": "d9a11a376c5e4e5f8ed09a91dcd4f36809f643b3149a8be38881691ef46b148a",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied facts and policy. Correct core judgement; no definite unsupported project/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "For this offline same-provider calibration, the supersession argument holds: 200+ issues and concurrent writes invalidate the old small-run assumption. Per-issue files remove the shared per-issue write lock and limit corruption to one issue, while retaining run discovery through an index. This assessment does not establish provider independence or production challenge eligibility."
+      },
+      "reason_sha256": "44a9dd570002432525ec3e5b69caad6c5de5167f38a0572ad6b10bbd68d541fd",
+      "canonical_challenge_sha256": "b03bceef4598194605f4bc46436326dc68366cbbd4e6bfa22057381552beb731",
+      "canonical_result_sha256": "3e0fc185d576b56acf245216f6615c5060ca65549f5dac82ade2af6f54418768",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; possible local exposure is not asserted as actual archival/lifetime behaviour."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The proposed disk cache abandons the environment-only secret boundary. Gitignore prevents ordinary tracking but does not prevent local reads or retention of plaintext credentials. A small claimed lookup saving does not justify this new exposure, and session caching can use memory without writing secrets to disk. Offline calibration only; no provider-independence or production-eligibility claim."
+      },
+      "reason_sha256": "bb9e175f6b2aa459cb2978ebd10739249186eb71f84ae0c4e0720ea03a8b148f",
+      "canonical_challenge_sha256": "cdf46391c06c3220d699875824514eef5c1b88aca20df084fbe3af9ceae9a76f",
+      "canonical_result_sha256": "250451984b500c3b9e347b4b5f906f7c69c84798328e473d367538bf1fd4ca55",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; possible local exposure is not asserted as actual archival/lifetime behaviour.",
+      "literal_rule_paraphrase_check": {
+        "broadens_log_clause_to_all_faff": false,
+        "observation": "No blanket .faff prohibition quoted.",
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c"
+      }
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt. Preserve the absent challenge without substituting a merits judgement; the caller must omit --challenge."
+      },
+      "reason_sha256": "4b8a3c24f2f23dbb16b8a99971579cf85919b395d9b0704f1772331026e8fda7",
+      "canonical_challenge_sha256": "331332fedc6e7339800d80c2ee2dc105d683caba6fc6773778a0ca917d829ec3",
+      "canonical_result_sha256": "a588ee5b8212fb5111a19369d87cafadda7c05eb328cee16eaf17cfb1bacfaa6",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; possible local exposure is not asserted as actual archival/lifetime behaviour."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The dry-run flag directly enables safe inspection of current eligibility. Its DoD checks both eligibility outcomes and prevents merging, while reusing the existing floor logic. It adds no capability beyond the declared goals. Offline same-provider calibration only, without production challenge eligibility or independence claims."
+      },
+      "reason_sha256": "67f83135837fc30ed4338f13e090fe35d7eb3f725c0fb7b40df49b126a699161",
+      "canonical_challenge_sha256": "3ce407572c2a2a7937e925b9422d73e93636f7fe83dcc14c8a25eddb66705457",
+      "canonical_result_sha256": "1f5892967ea0fe2235842cdef57322e69105d9ed7e0c849556ade3cd6dd3365e",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; possible local exposure is not asserted as actual archival/lifetime behaviour."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The PRD explicitly excludes historical storage and query features. Persistent evaluation logs, historical timelines, --since and history output formats exceed those goals even though the dry-run portion is warranted. Calling this a natural extension does not remove that explicit scope boundary. Offline calibration only, without provider independence or production eligibility claims."
+      },
+      "reason_sha256": "ffacb3cd81349d2c16864af3b1c1a1e7c846f197c7575b7a9e618af0bd2ae407",
+      "canonical_challenge_sha256": "f9f8a65271eb11abd682a7146fc8a060d67a9f7008be3d467a36820486777e3b",
+      "canonical_result_sha256": "d34d229b876d14688a3811fcb8c8dbc0b27d8ed6889cfd837fcb139fd2d664bb",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; possible local exposure is not asserted as actual archival/lifetime behaviour."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both CSV export and date filtering serve declared PRD goals, and the cited export goal is served. Omitting the date-filter goal from citations is under-citation, not capability beyond the PRD or an unserved cited goal. The other declared goals need not all be implemented by this PRDR. Offline calibration only; no provider-independence or production-eligibility claim."
+      },
+      "reason_sha256": "8844466e01a828847a68d0281473bf7d20ee21aae4c150797d76b4a3a16faf67",
+      "canonical_challenge_sha256": "dfc85123ab5599f127dc85ac1de2cfe24e4fce1d7ad4c30685a9755afab5b222",
+      "canonical_result_sha256": "dba2478436240b87567fe30f818e56bc90f486c5db5e9e0e1f55f98a87499b98",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; possible local exposure is not asserted as actual archival/lifetime behaviour."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites date-filtered exports but explicitly implements neither date input nor filtering. CSV export alone therefore leaves a cited goal unserved, contrary to the Phase-1 claim. This is an unserved-goal overturn, not over-scope or under-citation. Offline calibration only; no provider-independence or production-eligibility claim."
+      },
+      "reason_sha256": "8654b93ebd217ff3747d9f5c55c8b10f20b9f57c24e71cfd7dbcc2ceaa892cde",
+      "canonical_challenge_sha256": "ecbd1e94ed900bb5ecdb9de0732e427b434c0694fc750a0e2730291d3471d976",
+      "canonical_result_sha256": "2bf5671084e3ae061dc302f09902987de4f48071e04634290a706a19127f4f95",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; possible local exposure is not asserted as actual archival/lifetime behaviour."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-4",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt. Preserve the absent opinion and omit --challenge; the favourable Phase-1 proposal cannot replace the missing challenge."
+      },
+      "reason_sha256": "ab7d9c40cf2c52b06b88d093b62195b0d611fbdc71842eb04156f6829163f16d",
+      "canonical_challenge_sha256": "a6211ba7f9220848e1d08e36195c3f09c0c7f76020c8bca70d0136aeecd3dfc2",
+      "canonical_result_sha256": "4edd56990c57fb49b5bfb07c5296eded2d50d81527a7f3a3c16f0d8d857b3f42",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; possible local exposure is not asserted as actual archival/lifetime behaviour."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "For this offline same-provider calibration, the supersession argument holds: the old decision explicitly assumed fewer than 20 issues per run; the supplied new conditions exceed 200 and introduce parallel writers. Per-issue files directly reduce shared-file write contention and isolate corruption while preserving directory discovery through an index. The argument identifies changed assumptions and a proportionate remedy. This is not a claim of provider independence or production challenge eligibility."
+      },
+      "reason_sha256": "5eb14b0c050499590c80ea9eae9c816850541f094e32d59bb6f5db640c2b5c35",
+      "canonical_challenge_sha256": "08183aed1c34e23b5f7adfce5a9bd563cfac9fd586123bc0fa49ee95fcc58d9a",
+      "canonical_result_sha256": "ac740126c72f1829729e46ea24fa8b85d8208c78ee75347f78f908236a102c67",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Core correct; no unsupported definite project fact/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "The supersession argument is unsound. Gitignore controls tracking, not access to a plaintext credentials file or its persistence. Writing resolved secrets to disk expands exposure beyond the old environment-only decision, so the asserted lack of behaviour change is false. A small environment-read saving does not establish a need for disk storage; session-local memory caching addresses repeated reads without persisting secrets. Offline calibration judgement only."
+      },
+      "reason_sha256": "bcbd7d1866e72494620479ff8bdfc78da2b895b214e5bd28fac79394e39288a2",
+      "canonical_challenge_sha256": "bb7bc38c539d0335d6dbb6e3b17775cf425700f76b8ef788c496c47dc43abf48",
+      "canonical_result_sha256": "801d84eee0b9e96e6ccf56063c2884ca283983ac1c70edb300b18276925fec29",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Core correct; no unsupported definite project fact/lifecycle claim found.",
+      "literal_rule_paraphrase_check": {
+        "broadens_log_clause_to_all_faff": false,
+        "observation": "Discusses environment-only sourcing and new disk exposure without quoting a blanket .faff prohibition.",
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c"
+      }
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt with no opinion. Preserve the absent challenge; the apparent merits of the proposal cannot substitute for the missing opinion."
+      },
+      "reason_sha256": "8ac496ef0ee072bd86d6f8558dbd769e33a41ee1e6512b6f6f90832bf923960c",
+      "canonical_challenge_sha256": "8aa3586e6bee1fd0c2bf01881b77621cb1b3de5b5655f60bc2aab0bedd37ee29",
+      "canonical_result_sha256": "974f3b79b914dc241e4235b1a45f222b9db3cfc7cc660bf0a2f7cadc23831627",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Core correct; no unsupported definite project fact/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The proposed dry-run flag directly serves safe inspection of the current merge decision. Its DoD requires both eligibility outcomes and verifies that no merge occurs. Reusing the existing floor logic preserves the declared single source of truth. No historical storage, query facility, or other capability beyond the PRD goals is proposed. Offline calibration judgement only."
+      },
+      "reason_sha256": "0332ff3439559136649ecabbd90b888d48047b26de9defaa55b907d4c567349a",
+      "canonical_challenge_sha256": "0fad4e880405b22af334d8dfcd555143ed06c2b50b5fc5bfc2c10c1796085aa1",
+      "canonical_result_sha256": "7cd7bc087ff2776acdbd6e030e5d886852f2aa33886fa888bbd9ce7910d3eaa5",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Core correct; no unsupported definite project fact/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The PRD explicitly excludes historical storage and query features. The proposed persistent evaluation log, historical timeline, date filter and format toggle implement that excluded capability. The useful dry-run flag does not justify admitting the additional history system as a natural extension. This is capability beyond the declared goals, not under-citation. Offline calibration judgement only."
+      },
+      "reason_sha256": "680fd4abdc280abd8ba668a159a7da83a1943fa99ead21091f3e246aacd4497f",
+      "canonical_challenge_sha256": "befa1fbc1b022bb9e0bd5b39c4ceb2f3d810ad71dcdca8bf98f49e3c3c569181",
+      "canonical_result_sha256": "613dcbee89e4b82ec95796b71ef74580eb6e0dae268685db0a6e8fc62457c6f7",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Core correct; no unsupported definite project fact/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both CSV export and date filtering are declared PRD goals and are served by the two DoD items. Omitting the date-filter goal from cited_goals is under-citation, not capability beyond the PRD. The cited export goal is served, so there is no unserved ground either. The proposal need not implement the remaining unrelated PRD goals. Offline calibration judgement only."
+      },
+      "reason_sha256": "e86b62f4736303cf34b552eba44f67782571e6e2f245dc864478e7509c3b2185",
+      "canonical_challenge_sha256": "90da72cefdbc33318f6f706d124b17ebfb4999fb8652b2a0b039d3a75daf27c7",
+      "canonical_result_sha256": "722b6c69e40950e98954a0ba7f86725dbe0622c61fbbefab64e7fa641a877acd",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Core correct; no unsupported definite project fact/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites filtering transaction exports by date, but its DoD explicitly excludes date input and date filtering. Export alone serves the CSV goal and cannot satisfy the separately cited filtering goal. This is an unserved cited goal, not over-scope or under-citation. Offline calibration judgement only."
+      },
+      "reason_sha256": "289e6909a0d661e70ad3e4e664c9cad8b49348e869d57d9cf4ca6aa1f5060af6",
+      "canonical_challenge_sha256": "71afbab1db8a49f638396f9bca7429275ca582773df19fc7ff8dc1092396d383",
+      "canonical_result_sha256": "98ad2e1e212cd4425af0157ba3e8fe7a41c9ddd09919919da7c49e303b6b7e5f",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Core correct; no unsupported definite project fact/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-baseline-5",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt with no opinion. Preserve the absent challenge so the caller omits --challenge and retains the phase2-inconclusive rejection. Do not infer survival from the Phase-1 proposal or substitute another case opinion."
+      },
+      "reason_sha256": "2a80798949269d0f26458c94cc5370667c3a85c303b0512e91addcb0995e498a",
+      "canonical_challenge_sha256": "72eeff9fc4e35c09f072bf1c60fc95f2707a0563d7347501a75449310d0aed6e",
+      "canonical_result_sha256": "b6112c0af9bf140a90bc18139ec4d6e9f4bf2637b5a0869d7d9cb42d77252702",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Core correct; no unsupported definite project fact/lifecycle claim found."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "case_id": "adr-1",
+      "challenge": {
+        "case_id": "adr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The supplied growth from fewer than 20 to 200+ issues and concurrent writers invalidate the old small-run rationale. Per-issue files directly reduce the stated shared-lock contention and corrupt-write blast radius. The supersession argument is sound on the supplied evidence. This is a same-provider offline calibration judgement, not evidence of provider independence or production challenge eligibility."
+      },
+      "reason_sha256": "6c5304f87cba827bbb0bbe701c886bcc01737d073f786e36b063367a5d723f44",
+      "canonical_challenge_sha256": "640e8cb471c164c821dac9d469b2ea2d0037a4b8948be7e560a682f6b114d2df",
+      "canonical_result_sha256": "8b77064636a20453593938815f54b843052421df98a6a423949974d599262964",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; environment-only boundary interpretation is permitted and differs from claiming a literal blanket ban on all .faff writes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "case_id": "adr-2",
+      "challenge": {
+        "case_id": "adr-2",
+        "outcome": "overturned",
+        "ground": null,
+        "reason": "Writing resolved secrets to credentials.json replaces the environment-only boundary with persistent secret storage. Gitignore prevents ordinary tracking, not local disclosure or retention. A small environment-read latency saving does not justify that change, and an in-memory session cache would address repeated reads without disk persistence. The claimed absence of behavioural change is unsound. Same-provider offline calibration only."
+      },
+      "reason_sha256": "5e27961216009ea3442c93e1f145546e519a45a77cfc88ca8c2b68b7bb753381",
+      "canonical_challenge_sha256": "146adc61f5a69f88df38e00e06bf7838dac04215ce405c43b5abcba1af073ad9",
+      "canonical_result_sha256": "514e92fdfafb0e3b03dfd996dcef9ea7aa6385b72a6715fac1cb8e9d485912fd",
+      "expected": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; environment-only boundary interpretation is permitted and differs from claiming a literal blanket ban on all .faff writes.",
+      "literal_rule_paraphrase_check": {
+        "broadens_log_clause_to_all_faff": false,
+        "observation": "No blanket .faff prohibition quoted.",
+        "source_old_decision_sha256": "1aee67cd3b820bcb3e28a4abb996b5c62a83d5d611f65160a21153804e8bfa5c"
+      }
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "case_id": "adr-unavailable",
+      "challenge": {
+        "case_id": "adr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records an exhausted provider attempt with no opinion. Preserve the absent challenge and reject; the apparent merits of the proposal cannot substitute for the missing opinion."
+      },
+      "reason_sha256": "e87f2a049f5cdff459fcf8c2da84022a2ddc4bfd117d44f3766695c784068e94",
+      "canonical_challenge_sha256": "c3d7062c9b2ee868c57d5b02c9fbbf3f36d08b12350be9696074f8b1740baec9",
+      "canonical_result_sha256": "9e911b7f31044b6f985cb3f1512b3cfc20e19575a4193e07fc9e6b49efb21017",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; environment-only boundary interpretation is permitted and differs from claiming a literal blanket ban on all .faff writes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "case_id": "prdr-1",
+      "challenge": {
+        "case_id": "prdr-1",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "The flag exposes the current floor decision without merging, directly serving safe inspection. The DoD checks allowed and blocked outcomes plus the absence of a merge invocation. Reusing the existing floor logic preserves the single source of truth, and no historical storage or query capability is added. Same-provider offline calibration only."
+      },
+      "reason_sha256": "3edde369d1651f7d4b84a1e5fa96bc29cd23d4a6fb82c4f8d29645b6ebda95c7",
+      "canonical_challenge_sha256": "912b82617a09ee1f5ba25f749bab145e72b97c0e06ee217c182f118974917f4e",
+      "canonical_result_sha256": "4f8f0d299d52feb73503f6ca0d4ccc6a60aaa9f71c8ab42f0d51fbfbbf62581b",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; environment-only boundary interpretation is permitted and differs from claiming a literal blanket ban on all .faff writes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "case_id": "prdr-2",
+      "challenge": {
+        "case_id": "prdr-2",
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "reason": "The PRD explicitly excludes historical storage and query features. The DoD requires persistent evaluation history and a timeline query with date filtering and format selection, all beyond the declared goals. The valid dry-run portion does not justify admitting those additional capabilities. Same-provider offline calibration only."
+      },
+      "reason_sha256": "b6af03d40e666e50f44db5e5dc90f555126d9b56c34194a07efa1b0f703258a3",
+      "canonical_challenge_sha256": "fb4b496614492df4abc7fd37c7487005990991d5a3f2e26c85f4cacbc6c475f6",
+      "canonical_result_sha256": "ff594d8b0058bde345b0893a479f301929655f0bce238ef6b2574fa4bb4444c7",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "over-scope",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; environment-only boundary interpretation is permitted and differs from claiming a literal blanket ban on all .faff writes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "case_id": "prdr-under-citation",
+      "challenge": {
+        "case_id": "prdr-under-citation",
+        "outcome": "survived",
+        "ground": null,
+        "reason": "Both CSV export and date filtering are declared PRD goals and are implemented by the proposed DoD. Citing only export is under-citation, not capability beyond the PRD. The DoD covers Export transactions as CSV and Filter transaction exports by date; that coverage belongs in the caller CLI set test. The other declared goals need not all be implemented by this PRDR. Same-provider offline calibration only."
+      },
+      "reason_sha256": "63534b522499bf2ea9279dd3e43fd18f4c494fba7e991bac4e4e339508e651fa",
+      "canonical_challenge_sha256": "31da9949072b1655ef7aaaef9fe04b2c93e5bc4ead5d263c361254ea49e5e155",
+      "canonical_result_sha256": "77cee85b3b365d3dac1bafb9dd50e940dfb30b6516f2b693e1ee17261f2ca1a8",
+      "expected": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "actual": {
+        "outcome": "survived",
+        "ground": null,
+        "admit": true
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; environment-only boundary interpretation is permitted and differs from claiming a literal blanket ban on all .faff writes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "case_id": "prdr-unserved",
+      "challenge": {
+        "case_id": "prdr-unserved",
+        "outcome": "overturned",
+        "ground": "unserved",
+        "reason": "The PRDR cites Filter transaction exports by date, but its DoD explicitly excludes date input and filtering. CSV export serves the export goal only, so Phase 1 incorrectly claims both cited goals are served. This is an unserved cited goal, not over-scope or under-citation. Same-provider offline calibration only."
+      },
+      "reason_sha256": "f4140a62bfa4b2e39d8727a270267a0bce2f20fa558fdbc772ebd8c4d354cd30",
+      "canonical_challenge_sha256": "1e34a5d6b5888beccecccc38b245d3a79a9493b60a8961a590adaabd6b24fd01",
+      "canonical_result_sha256": "9a613d50cbad248fe4dac982326ecdcc027bd887bfbb5ad56a364cebb8b455af",
+      "expected": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "actual": {
+        "outcome": "overturned",
+        "ground": "unserved",
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": "not-applicable",
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; environment-only boundary interpretation is permitted and differs from claiming a literal blanket ban on all .faff writes."
+    },
+    {
+      "sample": "matrix-final-v1-astra-medium-challenges-candidate-5",
+      "case_id": "prdr-unavailable",
+      "challenge": {
+        "case_id": "prdr-unavailable",
+        "outcome": null,
+        "ground": null,
+        "reason": "opinion_available=false records exhausted fallbacks without an opinion. Omit the challenge and retain the phase2-inconclusive rejection; the favourable Phase-1 proposal cannot replace the missing challenge."
+      },
+      "reason_sha256": "f7f2f7693d1024ece23e93ab933da2846fb5818d9477ed70e199a0ff4eff63af",
+      "canonical_challenge_sha256": "68f3328bb2a286c3fadc35fc089e3bad80cb06867705ea8d7ef2f97d7b8bd50b",
+      "canonical_result_sha256": "8360ac5f2eeb6621928f8b0d7f56bab5714802b179aee9d257baf8163dfd8303",
+      "expected": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "actual": {
+        "outcome": null,
+        "ground": null,
+        "admit": false
+      },
+      "manual_status": "pass-bounded-reason-review",
+      "source_based_reasoning": true,
+      "invented_facts": false,
+      "source_fidelity_findings": [],
+      "unsupported_authority": false,
+      "absence_preserved": true,
+      "same_provider_scope_truthful": true,
+      "observation": "Actual reason read against supplied inputs and policy. Correct core judgement; environment-only boundary interpretation is permitted and differs from claiming a literal blanket ban on all .faff writes."
+    }
+  ],
+  "limits": [
+    "Manual judgement of supplied reasons; no claim of live provider independence or actual deployment.",
+    "Original functional and native failures remain recorded separately and are never waived by semantic review.",
+    "Only completed report/native-captured samples are included.",
+    "Environment-only sourcing is a defensible basis for rejecting persistent credentials; only an asserted literal prohibition on all .faff writes is a broad logs-clause paraphrase."
+  ],
+  "summary": {
+    "core_judgements_matched": 80,
+    "ancillary_source_overclaim_reasons": 1,
+    "overbroad_log_clause_paraphrases": 0,
+    "missing_opinion_absence_preserved": 20,
+    "functional_samples_passed": 10,
+    "native_samples_passed": 10
+  },
+  "frozen_for_final_comparison": true
+}

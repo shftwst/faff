@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"adr-unavailable","outcome":null,"ground":null,"reason":"No independent opinion was obtained: the provider attempt was exhausted after fallbacks. The absence is preserved as no outcome (absent), which the admission CLI treats as a reject. It is never converted to a pass."}}

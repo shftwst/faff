@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"pass\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"observation\",\"disposition\":\"open\",\"source\":\"adversarial\",\"disposition_rationale\":\"review-call.mjs exit 8: the 1-second total deadline was exhausted before any findings; phase2 skipped-deadline.\",\"model\":\"openai/fixture-model\",\"title\":\"Adversarial review skipped on deadline for openai/fixture-model\",\"location\":\".faff/config.yaml\",\"action\":\"Raise adversarial.deadline from 1 second so the adversarial review can finish, then re-run it.\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": true,
+      "ac_complete": true,
+      "review_verdict": "pass",
+      "holdout": "not-applicable",
+      "reasons": [],
+      "ac_called_out": []
+    }
+  }
+}

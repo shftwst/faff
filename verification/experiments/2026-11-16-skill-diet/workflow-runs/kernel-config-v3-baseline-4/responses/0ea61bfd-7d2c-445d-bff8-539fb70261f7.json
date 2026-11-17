@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 2,
+    "stdout": "",
+    "stderr": "faff config: legacy config filename found (.faffrc.yml). faff uses only `.faff/config.yaml` — rename it to `.faff/config.yaml`. (FAFF-50: single canonical config name; never a silent default.)\n"
+  }
+}

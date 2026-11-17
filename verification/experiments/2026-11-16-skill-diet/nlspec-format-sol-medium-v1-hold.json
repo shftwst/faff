@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "accepted": false,
+  "status": "held-baseline-failure",
+  "sample": "nlspec-format-sol-medium-v1-baseline-1",
+  "reasons": [
+    "Malformed JSON native call fails despite later successful artifact writes.",
+    "All4source snapshots preserved and10decisions correct, but rawartifact and combinedconsumerchecks fail.",
+    "Mechanical/blocking prose and retry headings under Scenarios are parsed as non-observable units.",
+    "Repository-test item is separate, but prose classification precedes code-surface routing; reference-context shape failures overlap rendering rules.",
+    "ValidationResult omits required mutability annotation."
+  ],
+  "bindings": [
+    {
+      "path": "manual-artifact-reviews/nlspec-sol-medium-v1-independent.json",
+      "sha256": "d1aa1dfd95ce1aaf463f99d239e9c68204ba1909e631974f3bb518c86963858d"
+    },
+    {
+      "path": "workflow-runs/nlspec-format-sol-medium-v1-baseline-1/report.json",
+      "sha256": "c6a53d6363548704be6fb56029845dd698b4657428b23da5978b31d8493fbcda"
+    },
+    {
+      "path": "workflow-runs/nlspec-format-sol-medium-v1-baseline-1/native-audit.json",
+      "sha256": "1f41b9c94ae693c8ef66ed86959dc1ea7a20a12c22bfbd9901e87401157ef8d9"
+    },
+    {
+      "path": "workflow-runs/nlspec-format-sol-medium-v1-baseline-1/capture.json",
+      "sha256": "72265a351b1545436e525118b152ced8b11f746c5221245c0e419585bf9a6cba"
+    }
+  ],
+  "candidate_measured": false,
+  "source_changed": false,
+  "savings_counted": false,
+  "rule": "Preserve failed samples. No unchanged sample replacement or relaxation of the frozen acceptance gate."
+}

@@ -1,0 +1,65 @@
+[
+  {
+    "args": [
+      "adr",
+      "format",
+      "--json",
+      "--root",
+      "<case-root>"
+    ],
+    "exit_code": 0,
+    "stdout": "{\n  \"format\": \"nygard\",\n  \"sections\": [\n    {\n      \"name\": \"Context\",\n      \"placeholder\": \"_TODO: what forces this decision._\"\n    },\n    {\n      \"name\": \"Decision\",\n      \"placeholder\": \"_TODO: the decision, stated forward._\"\n    },\n    {\n      \"name\": \"Consequences\",\n      \"placeholder\": \"_TODO: what this constrains downstream._\"\n    }\n  ],\n  \"decision_section\": \"Decision\",\n  \"source\": \"default\",\n  \"template_path\": null,\n  \"degraded\": true,\n  \"notes\": \"faff adr format: .faff/templates/adr.md is empty or has no level-2 headings; using the Nygard default\"\n}\n",
+    "stderr": "faff adr format: .faff/templates/adr.md is empty or has no level-2 headings; using the Nygard default\n"
+  },
+  {
+    "args": [
+      "adr",
+      "new",
+      "--title",
+      "Use UTC timestamps",
+      "--date",
+      "2026-11-16",
+      "--issue",
+      "ADRWORK-1",
+      "--root",
+      "<case-root>"
+    ],
+    "exit_code": 0,
+    "stdout": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/adr-body-replay-preflight/adr-body-astra-v1-baseline-1-empty-template/records/adr/0001-use-utc-timestamps.md\n",
+    "stderr": "faff adr format: .faff/templates/adr.md is empty or has no level-2 headings; using the Nygard default\n"
+  },
+  {
+    "args": [
+      "adr",
+      "validate",
+      "--root",
+      "<case-root>"
+    ],
+    "exit_code": 0,
+    "stdout": "OK — 1 ADR(s) in records/adr valid.\nNOTE  0001-use-utc-timestamps.md: proposed-uncommitted — a Proposed record not yet tracked (the legitimate authoring state)\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "adr",
+      "list",
+      "--json",
+      "--root",
+      "<case-root>"
+    ],
+    "exit_code": 0,
+    "stdout": "[\n  {\n    \"number\": 1,\n    \"id\": \"0001\",\n    \"title\": \"Use UTC timestamps\",\n    \"status\": \"Proposed\",\n    \"date\": \"2026-11-16\",\n    \"provenance\": \"human\",\n    \"file\": \"0001-use-utc-timestamps.md\"\n  }\n]\n",
+    "stderr": ""
+  },
+  {
+    "args": [
+      "adr",
+      "validate",
+      "--root",
+      "<case-root>"
+    ],
+    "exit_code": 1,
+    "stdout": "FAIL  0001-use-utc-timestamps.md: Status \"Invented\" must start with one of Proposed|Accepted|Superseded|Deprecated|Rejected\n",
+    "stderr": ""
+  }
+]

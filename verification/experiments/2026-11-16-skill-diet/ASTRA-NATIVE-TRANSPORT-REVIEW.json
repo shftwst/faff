@@ -1,0 +1,11 @@
+{
+  "status": "metadata-parser-corrected-real-protocol-failure-retained",
+  "reason": "Codex 0.169.0 exposes exec_command through a native exec JavaScript wrapper. The original audit only recognised direct exec_command calls.",
+  "correction": "Parse exactly one text(await tools.exec_command(STATIC_OBJECT)) call with a non-evaluating literal parser. Refuse variables, extra statements, extra tools, duplicate keys and forged or incomplete output.",
+  "tests": "test/codex-native-audit.test.mjs: five pass, including wrapper mutation rejection.",
+  "first_observed_run": "prd-producer-astra-v1-baseline-1",
+  "original_audit_sha256": "013cdd90fbc4802e159d38b7304b5d1818b339858b7f5f5b1eb14cc97a775da3",
+  "corrected_audit_sha256": "aace3cfd19be35fe07ca5ede3500734df8881603e2da88090be6a2affe019ba3",
+  "result": "Corrected audit still fails one command that omitted /workspace/shftwst from the required absolute run directory. The functional pass is not qualified, and no path-alias exception is granted.",
+  "next_treatment": "Fresh PRD Astra V2 pair with repeated exact path guard in both arm prompts. No V1 samples pooled."
+}

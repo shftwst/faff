@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:19:57.129649+00:00",
+  "status": "bounded-root-spot-check",
+  "artifacts": [
+    {
+      "path": "workflow-runs/spec-review-producer-sol-v1-candidate-2/artifacts/methodology-blocker.md",
+      "sha256": "4ddc046f61be27f2b3ba2869a22ee39c0eb1cbad7fad3af5a9992757f13d1812",
+      "status": "read",
+      "finding": "Expected concern and selected lens; founded verdict, evidence and consequence; no unsupported source assertion observed."
+    },
+    {
+      "path": "workflow-runs/spec-review-producer-sol-v1-candidate-2/artifacts/qa-no-observation.md",
+      "sha256": "96beedce48d2a18720e2967a3fc092378c948c8d9216ce344558ecfc15af5b30",
+      "status": "read",
+      "finding": "Expected concern and selected lens; founded verdict, evidence and consequence; no unsupported source assertion observed."
+    },
+    {
+      "path": "workflow-runs/spec-review-producer-sol-v1-candidate-2/artifacts/qa-repo-file.md",
+      "sha256": "0d565628a9dde5632aeb6083b9f46b6e9f732f179b0e50d3c06e3a70e2766c10",
+      "status": "read",
+      "finding": "Expected concern and selected lens; founded verdict, evidence and consequence; no unsupported source assertion observed."
+    },
+    {
+      "path": "workflow-runs/spec-review-producer-sol-v1-candidate-2/artifacts/spec-verdict-001.md",
+      "sha256": "764b1af376064ac3faf62615241497cde25bb69fe8dc4e0947a716c9e8ff8486",
+      "status": "read",
+      "finding": "Expected concern and selected lens; founded verdict, evidence and consequence; no unsupported source assertion observed."
+    },
+    {
+      "path": "workflow-runs/spec-review-producer-sol-v1-candidate-2/artifacts/spec-verdict-002.md",
+      "sha256": "aafc12ad860c4cb7a30f696366004c3500c98cd3278d8b932b2b806db33ea4bf",
+      "status": "read",
+      "finding": "Expected concern and selected lens; founded verdict, evidence and consequence; no unsupported source assertion observed."
+    },
+    {
+      "path": "workflow-runs/spec-review-producer-sol-v1-candidate-2/artifacts/spec-verdict-003.md",
+      "sha256": "68cc11ff7a4adc05f3f5520c122bc41d6c105ef05c225c25355c8302d9892165",
+      "status": "read",
+      "finding": "Expected concern and selected lens; founded verdict, evidence and consequence; no unsupported source assertion observed."
+    }
+  ],
+  "scope": "Root read all six candidate 2 artifacts in full. Independent reviewer owns all 60 planned artifacts. This spot-check alone does not qualify the cut.",
+  "observations": [
+    "JSON rendering receives approve with no objections.",
+    "Mutable global roles, arbitrary server URL fetch and attached methodology blocker receive the expected architectural, infosec and methodology concerns.",
+    "Both QA scenarios receive revise with concrete observability concerns and valid receipt-date anchors. QA blocker severity still maps to revise under the retained roll-up."
+  ],
+  "limits": [
+    "Remaining samples and actual CLI replay are required. No full prep loop or escalation workflow is claimed."
+  ]
+}

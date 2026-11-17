@@ -1,0 +1,14 @@
+{
+  "status": "pending-fresh-astra-pair",
+  "baseline_bytes": 44947,
+  "candidate_bytes": 42689,
+  "baseline_estimated_tokens": 11138,
+  "candidate_estimated_tokens": 10579,
+  "baseline_sha256": "73358ee7786bf114f34e0fe69912dc644fb809a35ae27841f222164bad09aff3",
+  "candidate_sha256": "fafabf033ac31eec5f2aeb6d2fd1730c8009881a40774e5784512c0c5a2d0bd7",
+  "preserved_prefix_sha256": "2cb4e2a827131ceb1292a48f18abd03a83fbe0983fea4c91a25652e5c5759c61",
+  "preserved_suffix_sha256": "81729be528d715fae0184bc046f686eabbe1b37dfc37194f1dec5dfe050e3d27",
+  "preserved_principle_2_sha256": "616cc6b847300968ec9ef2628bea3bd7acc66a88bb4c3fa1c4ed912262627b04",
+  "preserved_rules_sha256": "dec647bc158b43379f11afed70ad0e4b688d2f9c599b190f709017050a63c009",
+  "scope": "Only explanations and diagnosis examples within principles 1 and 3-7; all rules, principle 2, topology authority and every other section remain byte-identical."
+}

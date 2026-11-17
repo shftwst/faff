@@ -1,0 +1,676 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "submit_output",
+      "args": {
+        "case_id": "activity-name",
+        "value": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+          "findings": [
+            {
+              "principle": 1,
+              "diagnosis": "W1, 'Q2 sprint 3', is named for a sprint even though its stated outcome is reducing checkout abandonment and A preserves the checkout address on validation error. The name hides that outcome, making the workstream's purpose and sequencing harder to assess.",
+              "recommended_action": "Rename W1 to 'Reduce checkout abandonment' to expose the outcome already shared by its work."
+            }
+          ]
+        }
+      },
+      "case_id": "activity-name",
+      "result": {
+        "persisted": true,
+        "sha256": "d9eb25150f9b372e618fe24e275b57d7992857fa90dd9d0412aa6be42f65e61a",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 2,
+      "name": "submit_output",
+      "args": {
+        "case_id": "human-wip",
+        "value": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+          "findings": [
+            {
+              "principle": 3,
+              "diagnosis": "Alex is actively building A, B, C and D: four human in-flight issues exceed the cap of three. Pulling proposed next item I would increase context switching and delay finishing current work. Autonomous items E, F and G and H awaiting human review do not count towards this cap.",
+              "recommended_action": "Finish current work before pulling I; reduce human in-flight work below three before recommending another pull."
+            }
+          ]
+        }
+      },
+      "case_id": "human-wip",
+      "result": {
+        "persisted": true,
+        "sha256": "c989de9369a370e0bc3688fbe5499e76fc2341c82de18499fcfb6da9db069322",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 3,
+      "name": "submit_output",
+      "args": {
+        "case_id": "right-size",
+        "value": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+          "findings": [
+            {
+              "principle": 4,
+              "diagnosis": "BIG, 'Improve account access', combines a three-day session-token verifier and an independent three-day account-recovery UI into six days. Either can ship alone; combining them hides progress and delays delivery of the first completed concern.",
+              "recommended_action": "Split BIG into two three-day tickets, one for the session-token verifier and one for the account-recovery UI, so each can ship independently."
+            }
+          ]
+        }
+      },
+      "case_id": "right-size",
+      "result": {
+        "persisted": true,
+        "sha256": "cd2e66616883291d912f571dcc51dafcbe57dbfa174c487864246a9386ff5d9c",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 4,
+      "name": "submit_output",
+      "args": {
+        "case_id": "cohesion",
+        "value": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+          "findings": [
+            {
+              "principle": 5,
+              "diagnosis": "W2, 'Faster onboarding', combines ON, shortening signup to one screen, with BILL, producing monthly invoices for billing accuracy. These are distinct outcomes with different sequencing and completion criteria, so completing W2 does not describe one coherent result.",
+              "recommended_action": "Keep ON under Faster onboarding and propose a separate Billing accuracy outcome home for BILL, preserving both pieces of work."
+            }
+          ]
+        }
+      },
+      "case_id": "cohesion",
+      "result": {
+        "persisted": true,
+        "sha256": "d55ec21245286c71e37df1de374cb7880192ac8588f1522b900c2b5a44c2804b",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 5,
+      "name": "submit_output",
+      "args": {
+        "case_id": "implicit-dependency",
+        "value": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+          "findings": [
+            {
+              "principle": 6,
+              "diagnosis": "CLIENT requires the schema emitted by SCHEMA, 'Publish the schema', before enabling the client, but CLIENT has no blocked_by links and SCHEMA is still in Backlog. The missing link makes CLIENT appear ready before its prerequisite is available.",
+              "recommended_action": "Declare SCHEMA as blocking CLIENT if the dependency is real; if it is not, remove the prerequisite reference from CLIENT's spec."
+            }
+          ]
+        }
+      },
+      "case_id": "implicit-dependency",
+      "result": {
+        "persisted": true,
+        "sha256": "6f72c128391fbf88d3df2e677540f4ad3ff2eb4e54c10ef446421a09b507e7a4",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 6,
+      "name": "submit_output",
+      "args": {
+        "case_id": "late-risk",
+        "value": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+          "findings": [
+            {
+              "principle": 7,
+              "diagnosis": "PAY, 'Accept card payments', places BANK, the unfamiliar bank API integration, after UI and COPY. BANK depends on an external team and has no de-risking spike, so integration surprises would arrive after the earlier work, leaving less time to adjust the payment plan.",
+              "recommended_action": "Propose moving BANK earlier or adding a small integration spike before committing to its full scope, respecting human-curated sequencing."
+            }
+          ]
+        }
+      },
+      "case_id": "late-risk",
+      "result": {
+        "persisted": true,
+        "sha256": "f5899a9c5e38ae6d8f7124c8fb458fb7b2136752e293d3e0ad54bc32400a02b2",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 7,
+      "name": "submit_output",
+      "args": {
+        "case_id": "wip-at-cap",
+        "value": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+          "findings": []
+        }
+      },
+      "case_id": "wip-at-cap",
+      "result": {
+        "persisted": true,
+        "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 8,
+      "name": "submit_output",
+      "args": {
+        "case_id": "autonomous-unbounded",
+        "value": {
+          "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+          "findings": []
+        }
+      },
+      "case_id": "autonomous-unbounded",
+      "result": {
+        "persisted": true,
+        "sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 9,
+      "name": "submit_output",
+      "args": {
+        "case_id": "value-order",
+        "value": false
+      },
+      "case_id": "value-order",
+      "result": {
+        "persisted": true,
+        "sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 10,
+      "name": "submit_output",
+      "args": {
+        "case_id": "increment",
+        "value": "increment"
+      },
+      "case_id": "increment",
+      "result": {
+        "persisted": true,
+        "sha256": "f1799637a5569c1f2b71b9eb3e5ebdec2f089878d1c61f4154b3c749a0262835",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 11,
+      "name": "submit_output",
+      "args": {
+        "case_id": "distance-band",
+        "value": false
+      },
+      "case_id": "distance-band",
+      "result": {
+        "persisted": true,
+        "sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 12,
+      "name": "submit_output",
+      "args": {
+        "case_id": "distance-absent",
+        "value": true
+      },
+      "case_id": "distance-absent",
+      "result": {
+        "persisted": true,
+        "sha256": "a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 13,
+      "name": "submit_output",
+      "args": {
+        "case_id": "distance-neutral",
+        "value": 0
+      },
+      "case_id": "distance-neutral",
+      "result": {
+        "persisted": true,
+        "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 14,
+      "name": "submit_output",
+      "args": {
+        "case_id": "wip-ceiling",
+        "value": 3
+      },
+      "case_id": "wip-ceiling",
+      "result": {
+        "persisted": true,
+        "sha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 15,
+      "name": "submit_output",
+      "args": {
+        "case_id": "review-queue",
+        "value": false
+      },
+      "case_id": "review-queue",
+      "result": {
+        "persisted": true,
+        "sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 16,
+      "name": "submit_output",
+      "args": {
+        "case_id": "runner-cap",
+        "value": false
+      },
+      "case_id": "runner-cap",
+      "result": {
+        "persisted": true,
+        "sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 17,
+      "name": "submit_output",
+      "args": {
+        "case_id": "size-range",
+        "value": {
+          "min": 1,
+          "max": 3
+        }
+      },
+      "case_id": "size-range",
+      "result": {
+        "persisted": true,
+        "sha256": "dc6646b114d3e7b6b2eccdb781a50b101415d487551f43ddcd7ab436d28cb622",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 18,
+      "name": "submit_output",
+      "args": {
+        "case_id": "merge-small",
+        "value": true
+      },
+      "case_id": "merge-small",
+      "result": {
+        "persisted": true,
+        "sha256": "a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 19,
+      "name": "submit_output",
+      "args": {
+        "case_id": "vague",
+        "value": true
+      },
+      "case_id": "vague",
+      "result": {
+        "persisted": true,
+        "sha256": "a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 20,
+      "name": "submit_output",
+      "args": {
+        "case_id": "dependency-choice",
+        "value": [
+          "link-if-real",
+          "remove-reference-if-not"
+        ]
+      },
+      "case_id": "dependency-choice",
+      "result": {
+        "persisted": true,
+        "sha256": "0486a07086866184a01fbf082da80cd2c33b18934afd4848b84f09ba523f2a8e",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 21,
+      "name": "submit_output",
+      "args": {
+        "case_id": "education",
+        "value": [
+          "situation",
+          "consequence",
+          "action"
+        ]
+      },
+      "case_id": "education",
+      "result": {
+        "persisted": true,
+        "sha256": "773d3ecb3c0603517e14221c5e94934fa069e7ccb0a48e6a584711bd5fe37044",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 22,
+      "name": "submit_output",
+      "args": {
+        "case_id": "evidence",
+        "value": false
+      },
+      "case_id": "evidence",
+      "result": {
+        "persisted": true,
+        "sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 23,
+      "name": "submit_output",
+      "args": {
+        "case_id": "writes-low",
+        "value": false
+      },
+      "case_id": "writes-low",
+      "result": {
+        "persisted": true,
+        "sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 24,
+      "name": "submit_output",
+      "args": {
+        "case_id": "delete-full",
+        "value": false
+      },
+      "case_id": "delete-full",
+      "result": {
+        "persisted": true,
+        "sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 25,
+      "name": "submit_output",
+      "args": {
+        "case_id": "human-rule",
+        "value": false
+      },
+      "case_id": "human-rule",
+      "result": {
+        "persisted": true,
+        "sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 26,
+      "name": "submit_output",
+      "args": {
+        "case_id": "structural-floor",
+        "value": false
+      },
+      "case_id": "structural-floor",
+      "result": {
+        "persisted": true,
+        "sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0",
+        "consumer_calls": 0
+      }
+    },
+    {
+      "seq": 27,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "activity-name",
+      "value": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 1,
+            "diagnosis": "W1, 'Q2 sprint 3', is named for a sprint even though its stated outcome is reducing checkout abandonment and A preserves the checkout address on validation error. The name hides that outcome, making the workstream's purpose and sequencing harder to assess.",
+            "recommended_action": "Rename W1 to 'Reduce checkout abandonment' to expose the outcome already shared by its work."
+          }
+        ]
+      },
+      "consumed": [],
+      "persisted_sha256": "d9eb25150f9b372e618fe24e275b57d7992857fa90dd9d0412aa6be42f65e61a"
+    },
+    {
+      "id": "human-wip",
+      "value": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 3,
+            "diagnosis": "Alex is actively building A, B, C and D: four human in-flight issues exceed the cap of three. Pulling proposed next item I would increase context switching and delay finishing current work. Autonomous items E, F and G and H awaiting human review do not count towards this cap.",
+            "recommended_action": "Finish current work before pulling I; reduce human in-flight work below three before recommending another pull."
+          }
+        ]
+      },
+      "consumed": [],
+      "persisted_sha256": "c989de9369a370e0bc3688fbe5499e76fc2341c82de18499fcfb6da9db069322"
+    },
+    {
+      "id": "right-size",
+      "value": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 4,
+            "diagnosis": "BIG, 'Improve account access', combines a three-day session-token verifier and an independent three-day account-recovery UI into six days. Either can ship alone; combining them hides progress and delays delivery of the first completed concern.",
+            "recommended_action": "Split BIG into two three-day tickets, one for the session-token verifier and one for the account-recovery UI, so each can ship independently."
+          }
+        ]
+      },
+      "consumed": [],
+      "persisted_sha256": "cd2e66616883291d912f571dcc51dafcbe57dbfa174c487864246a9386ff5d9c"
+    },
+    {
+      "id": "cohesion",
+      "value": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 5,
+            "diagnosis": "W2, 'Faster onboarding', combines ON, shortening signup to one screen, with BILL, producing monthly invoices for billing accuracy. These are distinct outcomes with different sequencing and completion criteria, so completing W2 does not describe one coherent result.",
+            "recommended_action": "Keep ON under Faster onboarding and propose a separate Billing accuracy outcome home for BILL, preserving both pieces of work."
+          }
+        ]
+      },
+      "consumed": [],
+      "persisted_sha256": "d55ec21245286c71e37df1de374cb7880192ac8588f1522b900c2b5a44c2804b"
+    },
+    {
+      "id": "implicit-dependency",
+      "value": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 6,
+            "diagnosis": "CLIENT requires the schema emitted by SCHEMA, 'Publish the schema', before enabling the client, but CLIENT has no blocked_by links and SCHEMA is still in Backlog. The missing link makes CLIENT appear ready before its prerequisite is available.",
+            "recommended_action": "Declare SCHEMA as blocking CLIENT if the dependency is real; if it is not, remove the prerequisite reference from CLIENT's spec."
+          }
+        ]
+      },
+      "consumed": [],
+      "persisted_sha256": "6f72c128391fbf88d3df2e677540f4ad3ff2eb4e54c10ef446421a09b507e7a4"
+    },
+    {
+      "id": "late-risk",
+      "value": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": [
+          {
+            "principle": 7,
+            "diagnosis": "PAY, 'Accept card payments', places BANK, the unfamiliar bank API integration, after UI and COPY. BANK depends on an external team and has no de-risking spike, so integration surprises would arrive after the earlier work, leaving less time to adjust the payment plan.",
+            "recommended_action": "Propose moving BANK earlier or adding a small integration spike before committing to its full scope, respecting human-curated sequencing."
+          }
+        ]
+      },
+      "consumed": [],
+      "persisted_sha256": "f5899a9c5e38ae6d8f7124c8fb458fb7b2136752e293d3e0ad54bc32400a02b2"
+    },
+    {
+      "id": "wip-at-cap",
+      "value": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": []
+      },
+      "consumed": [],
+      "persisted_sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04"
+    },
+    {
+      "id": "autonomous-unbounded",
+      "value": {
+        "banner": "Methodology: faffter-dark-methodology-agile-delivery",
+        "findings": []
+      },
+      "consumed": [],
+      "persisted_sha256": "1f1f872bd1db9c24e66ad4d906551fc9ea78c9265d426d38902925ce1f970e04"
+    },
+    {
+      "id": "value-order",
+      "value": false,
+      "consumed": [],
+      "persisted_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0"
+    },
+    {
+      "id": "increment",
+      "value": "increment",
+      "consumed": [],
+      "persisted_sha256": "f1799637a5569c1f2b71b9eb3e5ebdec2f089878d1c61f4154b3c749a0262835"
+    },
+    {
+      "id": "distance-band",
+      "value": false,
+      "consumed": [],
+      "persisted_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0"
+    },
+    {
+      "id": "distance-absent",
+      "value": true,
+      "consumed": [],
+      "persisted_sha256": "a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74"
+    },
+    {
+      "id": "distance-neutral",
+      "value": 0,
+      "consumed": [],
+      "persisted_sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+    },
+    {
+      "id": "wip-ceiling",
+      "value": 3,
+      "consumed": [],
+      "persisted_sha256": "1121cfccd5913f0a63fec40a6ffd44ea64f9dc135c66634ba001d10bcf4302a2"
+    },
+    {
+      "id": "review-queue",
+      "value": false,
+      "consumed": [],
+      "persisted_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0"
+    },
+    {
+      "id": "runner-cap",
+      "value": false,
+      "consumed": [],
+      "persisted_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0"
+    },
+    {
+      "id": "size-range",
+      "value": {
+        "min": 1,
+        "max": 3
+      },
+      "consumed": [],
+      "persisted_sha256": "dc6646b114d3e7b6b2eccdb781a50b101415d487551f43ddcd7ab436d28cb622"
+    },
+    {
+      "id": "merge-small",
+      "value": true,
+      "consumed": [],
+      "persisted_sha256": "a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74"
+    },
+    {
+      "id": "vague",
+      "value": true,
+      "consumed": [],
+      "persisted_sha256": "a17fcf0a2f50e2d495e4f90ce263410edc183add6c62699a2facbccf60410f74"
+    },
+    {
+      "id": "dependency-choice",
+      "value": [
+        "link-if-real",
+        "remove-reference-if-not"
+      ],
+      "consumed": [],
+      "persisted_sha256": "0486a07086866184a01fbf082da80cd2c33b18934afd4848b84f09ba523f2a8e"
+    },
+    {
+      "id": "education",
+      "value": [
+        "situation",
+        "consequence",
+        "action"
+      ],
+      "consumed": [],
+      "persisted_sha256": "773d3ecb3c0603517e14221c5e94934fa069e7ccb0a48e6a584711bd5fe37044"
+    },
+    {
+      "id": "evidence",
+      "value": false,
+      "consumed": [],
+      "persisted_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0"
+    },
+    {
+      "id": "writes-low",
+      "value": false,
+      "consumed": [],
+      "persisted_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0"
+    },
+    {
+      "id": "delete-full",
+      "value": false,
+      "consumed": [],
+      "persisted_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0"
+    },
+    {
+      "id": "human-rule",
+      "value": false,
+      "consumed": [],
+      "persisted_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0"
+    },
+    {
+      "id": "structural-floor",
+      "value": false,
+      "consumed": [],
+      "persisted_sha256": "2ed27c1421e6928dbe13dbfdb5c59e1045b30341fe7ebe05700006bc5ac572c0"
+    }
+  ]
+}

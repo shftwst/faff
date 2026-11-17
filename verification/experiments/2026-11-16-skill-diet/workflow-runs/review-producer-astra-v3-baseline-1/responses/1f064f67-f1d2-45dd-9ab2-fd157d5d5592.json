@@ -1,0 +1,27 @@
+{
+  "ok": true,
+  "value": {
+    "appetite": "high",
+    "spec": "Add a negative scanner fixture containing an unguarded user.profile.name access. It is deliberately bad input data for the scanner. No production function changes. Existing scanner tests enumerate every .txt fixture and assert the expected diagnostic.",
+    "full_diff": "Added test/fixtures/bad-null.txt containing the supplied fixture text. No production code changed.",
+    "complete_changed_files": {
+      "test/fixtures/bad-null.txt": "return user.profile.name;\n"
+    },
+    "test_results": {
+      "status": "pass",
+      "command": "node --test",
+      "executed_by": "controlled caller, before this review"
+    },
+    "ac_checklist": [
+      {
+        "criterion": "negative fixture emits unguarded-access in scanner test",
+        "auto_verified": true,
+        "evidence": "test/scanner.test.mjs: bad-null.txt passed"
+      }
+    ],
+    "prior_findings": [],
+    "unchanged_test_context": {
+      "test/scanner.test.mjs": "The suite reads all test/fixtures/*.txt as strings, feeds them into scanSource, and asserts that bad-null.txt reports unguarded-access. The fixture is never executed."
+    }
+  }
+}

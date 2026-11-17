@@ -1,0 +1,444 @@
+TAP version 13
+# Subtest: compareProse: grew, shrank, equal, unlisted, stale and mixed, sorted by path
+ok 1 - compareProse: grew, shrank, equal, unlisted, stale and mixed, sorted by path
+  ---
+  duration_ms: 1.055793
+  type: 'test'
+  ...
+# Subtest: serialiseBaseline writes sorted keys, one per line, a blank line between entries, and round-trips
+ok 2 - serialiseBaseline writes sorted keys, one per line, a blank line between entries, and round-trips
+  ---
+  duration_ms: 0.461376
+  type: 'test'
+  ...
+# Subtest: validateBaseline refuses a wrong schema, a non-object files map and a bad value
+ok 3 - validateBaseline refuses a wrong schema, a non-object files map and a bad value
+  ---
+  duration_ms: 0.130292
+  type: 'test'
+  ...
+# Subtest: coveredFiles: SKILL.md and references/*.md only, not recursive, not other extensions
+ok 4 - coveredFiles: SKILL.md and references/*.md only, not recursive, not other extensions
+  ---
+  duration_ms: 2.500463
+  type: 'test'
+  ...
+# Subtest: validate-adapters fails a covered file that grows, naming it, its baseline and the delta
+ok 5 - validate-adapters fails a covered file that grows, naming it, its baseline and the delta
+  ---
+  duration_ms: 129.969183
+  type: 'test'
+  ...
+# Subtest: validate-adapters prints a RATCHET advisory, exit 0, when a covered file shrinks
+ok 6 - validate-adapters prints a RATCHET advisory, exit 0, when a covered file shrinks
+  ---
+  duration_ms: 144.475167
+  type: 'test'
+  ...
+# Subtest: validate-adapters fails a covered file with no baseline entry, naming its size
+ok 7 - validate-adapters fails a covered file with no baseline entry, naming its size
+  ---
+  duration_ms: 127.433096
+  type: 'test'
+  ...
+# Subtest: validate-adapters fails a baseline entry whose file is missing
+ok 8 - validate-adapters fails a baseline entry whose file is missing
+  ---
+  duration_ms: 135.566235
+  type: 'test'
+  ...
+# Subtest: validate-adapters fails a malformed baseline and skips an absent one for an explicit skills dir
+ok 9 - validate-adapters fails a malformed baseline and skips an absent one for an explicit skills dir
+  ---
+  duration_ms: 244.593174
+  type: 'test'
+  ...
+# Subtest: a 601-line SKILL.md with a matching byte baseline still fails the line cap
+ok 10 - a 601-line SKILL.md with a matching byte baseline still fails the line cap
+  ---
+  duration_ms: 122.452545
+  type: 'test'
+  ...
+# Subtest: the bundled tree fails closed when its baseline is missing or malformed (copied tree, no --skills-dir)
+ok 11 - the bundled tree fails closed when its baseline is missing or malformed (copied tree, no --skills-dir)
+  ---
+  duration_ms: 2187.227414
+  type: 'test'
+  ...
+# Subtest: prose-size baseline --lower lowers a shrunk entry, leaves a grown one, reports both, keeps the format
+ok 12 - prose-size baseline --lower lowers a shrunk entry, leaves a grown one, reports both, keeps the format
+  ---
+  duration_ms: 18.390532
+  type: 'test'
+  ...
+# Subtest: prose-size baseline --lower never adds or removes an entry, and refuses without --lower or a baseline
+ok 13 - prose-size baseline --lower never adds or removes an entry, and refuses without --lower or a baseline
+  ---
+  duration_ms: 59.786062
+  type: 'test'
+  ...
+# Subtest: prose-size tally reports rows, start, end, net, groups and other from git history
+not ok 14 - prose-size tally reports rows, start, end, net, groups and other from git history
+  ---
+  duration_ms: 14.298816
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:231:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+    
+    128 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 128
+  operator: 'strictEqual'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:209:12)
+    commit (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:217:47)
+    syntheticRepo (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:219:13)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:232:26)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: prose-size tally counts a deleted file to 0, ignores uncovered files, and prints a text form
+not ok 15 - prose-size tally counts a deleted file to 0, ignores uncovered files, and prints a text form
+  ---
+  duration_ms: 11.718687
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:246:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+    
+    128 !== 0
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 0
+  actual: 128
+  operator: 'strictEqual'
+  stack: |-
+    git (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:209:12)
+    commit (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:217:47)
+    syntheticRepo (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:219:13)
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:247:26)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: ticketOf takes the last parenthesised key; parseLsTree keeps covered blobs in scope
+ok 16 - ticketOf takes the last parenthesised key; parseLsTree keeps covered blobs in scope
+  ---
+  duration_ms: 0.350459
+  type: 'test'
+  ...
+# Subtest: parseLsTree reads NUL-separated -z output, so a path git would C-quote is still counted
+ok 17 - parseLsTree reads NUL-separated -z output, so a path git would C-quote is still counted
+  ---
+  duration_ms: 0.062
+  type: 'test'
+  ...
+# Subtest: proseRatchet turns a covered-file read failure into a FAIL line, not a throw
+ok 18 - proseRatchet turns a covered-file read failure into a FAIL line, not a throw
+  ---
+  duration_ms: 3.718673
+  type: 'test'
+  ...
+# Subtest: the committed baseline equals the real tree exactly, entry for entry
+not ok 19 - the committed baseline equals the real tree exactly, entry for entry
+  ---
+  duration_ms: 2.073587
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:293:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    faff-wtf/SKILL.md sits exactly at its baseline
+    
+    31369 !== 26581
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 26581
+  actual: 31369
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/prose-size.test.mjs:297:63)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: .gitattributes keeps git from converting line endings in every covered file
+ok 20 - .gitattributes keeps git from converting line endings in every covered file
+  ---
+  duration_ms: 8.17568
+  type: 'test'
+  ...
+# Subtest: flags a SKILL.md over the line cap
+ok 21 - flags a SKILL.md over the line cap
+  ---
+  duration_ms: 142.405289
+  type: 'test'
+  ...
+# Subtest: a hub file gets its own downward-ratchet baseline, not the shared ceiling
+ok 22 - a hub file gets its own downward-ratchet baseline, not the shared ceiling
+  ---
+  duration_ms: 142.629247
+  type: 'test'
+  ...
+# Subtest: flags a wall-of-text paragraph
+ok 23 - flags a wall-of-text paragraph
+  ---
+  duration_ms: 127.434596
+  type: 'test'
+  ...
+# Subtest: flags a transcript run-id marker
+ok 24 - flags a transcript run-id marker
+  ---
+  duration_ms: 120.518542
+  type: 'test'
+  ...
+# Subtest: flags a retrospective war-story phrase
+ok 25 - flags a retrospective war-story phrase
+  ---
+  duration_ms: 124.677758
+  type: 'test'
+  ...
+# Subtest: flags a literal canonical run-id (beepboop)
+ok 26 - flags a literal canonical run-id (beepboop)
+  ---
+  duration_ms: 117.778121
+  type: 'test'
+  ...
+# Subtest: flags a literal canonical run-id (lights-out)
+ok 27 - flags a literal canonical run-id (lights-out)
+  ---
+  duration_ms: 121.23196
+  type: 'test'
+  ...
+# Subtest: FP-guard: the letter-template canonical run-id shape (documentation, no real digits) is NOT a stray marker
+ok 28 - FP-guard: the letter-template canonical run-id shape (documentation, no real digits) is NOT a stray marker
+  ---
+  duration_ms: 128.186764
+  type: 'test'
+  ...
+# Subtest: FP-guard: the entropy-suffixed letter-template run-id shape is NOT a stray marker
+ok 29 - FP-guard: the entropy-suffixed letter-template run-id shape is NOT a stray marker
+  ---
+  duration_ms: 132.527938
+  type: 'test'
+  ...
+# Subtest: flags a literal canonical run-id with an entropy suffix (beepboop)
+ok 30 - flags a literal canonical run-id with an entropy suffix (beepboop)
+  ---
+  duration_ms: 123.504756
+  type: 'test'
+  ...
+# Subtest: flags a literal canonical run-id with an entropy suffix (lights-out)
+ok 31 - flags a literal canonical run-id with an entropy suffix (lights-out)
+  ---
+  duration_ms: 121.571836
+  type: 'test'
+  ...
+# Subtest: FP-guard: a load-bearing FAFF-NN reference is NOT a stray marker
+ok 32 - FP-guard: a load-bearing FAFF-NN reference is NOT a stray marker
+  ---
+  duration_ms: 123.738381
+  type: 'test'
+  ...
+# Subtest: flags a duplicated block shared across two skills
+ok 33 - flags a duplicated block shared across two skills
+  ---
+  duration_ms: 126.188301
+  type: 'test'
+  ...
+# Subtest: FP-guard: the same block within ONE skill is not a cross-file duplicate
+ok 34 - FP-guard: the same block within ONE skill is not a cross-file duplicate
+  ---
+  duration_ms: 116.952745
+  type: 'test'
+  ...
+# Subtest: FAFF-112: flags a non-conformant slot-named skill with a type-specific FAIL (exit 1)
+ok 35 - FAFF-112: flags a non-conformant slot-named skill with a type-specific FAIL (exit 1)
+  ---
+  duration_ms: 130.868852
+  type: 'test'
+  ...
+# Subtest: FAFF-112 positive control: a conformant slot-named skill passes (exit 0)
+ok 36 - FAFF-112 positive control: a conformant slot-named skill passes (exit 0)
+  ---
+  duration_ms: 161.624697
+  type: 'test'
+  ...
+# Subtest: FAFF-439: a concurrency executor missing both posture phrases fails the turn-safe check
+ok 37 - FAFF-439: a concurrency executor missing both posture phrases fails the turn-safe check
+  ---
+  duration_ms: 129.944475
+  type: 'test'
+  ...
+# Subtest: FAFF-439: `run_in_background: false` satisfies the turn-safe check (foreground arm)
+ok 38 - FAFF-439: `run_in_background: false` satisfies the turn-safe check (foreground arm)
+  ---
+  duration_ms: 132.436438
+  type: 'test'
+  ...
+# Subtest: FAFF-439: `never end a turn` satisfies the turn-safe check (await-all arm)
+ok 39 - FAFF-439: `never end a turn` satisfies the turn-safe check (await-all arm)
+  ---
+  duration_ms: 149.192175
+  type: 'test'
+  ...
+# Subtest: FAFF-439: the turn-safe check is case-insensitive (`Never end a turn`)
+ok 40 - FAFF-439: the turn-safe check is case-insensitive (`Never end a turn`)
+  ---
+  duration_ms: 120.229458
+  type: 'test'
+  ...
+# Subtest: FAFF-584: a baselined fixture at exactly its baseline plus one line FAILs the line cap
+ok 41 - FAFF-584: a baselined fixture at exactly its baseline plus one line FAILs the line cap
+  ---
+  duration_ms: 133.227939
+  type: 'test'
+  ...
+# Subtest: FAFF-584: a baselined fixture below its baseline gets a non-failing RATCHET advisory
+ok 42 - FAFF-584: a baselined fixture below its baseline gets a non-failing RATCHET advisory
+  ---
+  duration_ms: 118.897165
+  type: 'test'
+  ...
+# Subtest: FAFF-584: a 260-word bold-lead bullet WARNs the paragraph cap without forcing a non-zero exit
+ok 43 - FAFF-584: a 260-word bold-lead bullet WARNs the paragraph cap without forcing a non-zero exit
+  ---
+  duration_ms: 120.629
+  type: 'test'
+  ...
+# Subtest: FAFF-584: a 260-word non-bullet prose line still FAILs the paragraph cap (plain-prose teeth retained)
+ok 44 - FAFF-584: a 260-word non-bullet prose line still FAILs the paragraph cap (plain-prose teeth retained)
+  ---
+  duration_ms: 121.103043
+  type: 'test'
+  ...
+# Subtest: FAFF-584: an anchor whose target matches a real heading emits no anchor warning
+ok 45 - FAFF-584: an anchor whose target matches a real heading emits no anchor warning
+  ---
+  duration_ms: 126.00426
+  type: 'test'
+  ...
+# Subtest: FAFF-584: an anchor whose leaf is a word-boundary prefix of a longer heading resolves
+ok 46 - FAFF-584: an anchor whose leaf is a word-boundary prefix of a longer heading resolves
+  ---
+  duration_ms: 119.002623
+  type: 'test'
+  ...
+# Subtest: FAFF-584: a mid-word (non-word-boundary) prefix does NOT resolve — negative lenience boundary
+ok 47 - FAFF-584: a mid-word (non-word-boundary) prefix does NOT resolve — negative lenience boundary
+  ---
+  duration_ms: 115.872701
+  type: 'test'
+  ...
+# Subtest: FAFF-584: an anchor with no matching heading anywhere WARNs, without forcing a non-zero exit
+ok 48 - FAFF-584: an anchor with no matching heading anywhere WARNs, without forcing a non-zero exit
+  ---
+  duration_ms: 141.079453
+  type: 'test'
+  ...
+# Subtest: FAFF-584: two identical headings in one fixture file WARN as an ambiguous anchor
+ok 49 - FAFF-584: two identical headings in one fixture file WARN as an ambiguous anchor
+  ---
+  duration_ms: 136.098569
+  type: 'test'
+  ...
+# Subtest: FAFF-584: .example lines are exempt from the anchor lint
+ok 50 - FAFF-584: .example lines are exempt from the anchor lint
+  ---
+  duration_ms: 126.909553
+  type: 'test'
+  ...
+# Subtest: FAFF-584: the two hub files' real committed size sits exactly at their SKILL_LINE_BASELINE (zero headroom, no RATCHET)
+not ok 51 - FAFF-584: the two hub files' real committed size sits exactly at their SKILL_LINE_BASELINE (zero headroom, no RATCHET)
+  ---
+  duration_ms: 690.501196
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/validate-adapters.test.mjs:331:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    faff's SKILL_LINE_BASELINE entry should equal its exact committed size — a RATCHET advisory means the baseline has headroom above the real file
+    
+    true !== false
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: false
+  actual: true
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/validate-adapters.test.mjs:334:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: regression guard: the real shipped tree passes every charter rule clean
+ok 52 - regression guard: the real shipped tree passes every charter rule clean
+  ---
+  duration_ms: 708.007351
+  type: 'test'
+  ...
+# Subtest: FAFF-1139: faff-beep-boop ANCHOR_PHRASES retains the three FAFF-884 phrases and gains foreground-to-terminal
+ok 53 - FAFF-1139: faff-beep-boop ANCHOR_PHRASES retains the three FAFF-884 phrases and gains foreground-to-terminal
+  ---
+  duration_ms: 0.0915
+  type: 'test'
+  ...
+# Subtest: FAFF-1139: the faff-beep-boop anchor lint FAILs on a missing phrase and PASSes with all four present
+ok 54 - FAFF-1139: the faff-beep-boop anchor lint FAILs on a missing phrase and PASSes with all four present
+  ---
+  duration_ms: 597.299284
+  type: 'test'
+  ...
+# Subtest: FAFF-584: the real gateway's duplicate \#\# Routing has been deduped — no ambiguous-anchor WARN
+ok 55 - FAFF-584: the real gateway's duplicate \#\# Routing has been deduped — no ambiguous-anchor WARN
+  ---
+  duration_ms: 740.984867
+  type: 'test'
+  ...
+# Subtest: FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes
+ok 56 - FAFF-1322: HANDREAD flags the whole .faff/config spelling class, excludes non-config shapes
+  ---
+  duration_ms: 0.2885
+  type: 'test'
+  ...
+# Subtest: FAFF-1322: the hand-read guard fires end-to-end over a one-line SKILL.md (integration smoke)
+ok 57 - FAFF-1322: the hand-read guard fires end-to-end over a one-line SKILL.md (integration smoke)
+  ---
+  duration_ms: 535.127885
+  type: 'test'
+  ...
+1..57
+# tests 57
+# suites 0
+# pass 53
+# fail 4
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7199.026554

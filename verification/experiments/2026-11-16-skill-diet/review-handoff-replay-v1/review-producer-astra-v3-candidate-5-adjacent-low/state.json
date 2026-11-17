@@ -1,0 +1,23 @@
+{
+  "schema": 2,
+  "issues": {
+    "ISS-111": [
+      {
+        "id": "ISS-111-c1",
+        "created_at": "2026-11-14T08:00:00Z",
+        "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nsignal: fail\n\n## Findings\n\n### Scope: multiply comment cleanup exceeds scope\n\nsrc/function.mjs:1 changes 'Calculte' to 'Calculate' although documentation cleanup was not requested. Low appetite rejects even trivial adjacent cleanup. Revert only the comment edit, retaining the correct multiplication implementation and tests.\n\n```faff-contract:review-verdict\n{\"signal\":\"fail\",\"findings\":[{\"title\":\"multiply comment cleanup exceeds scope\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert only the comment edit.\",\"location_present\":true,\"action_present\":true,\"severity\":\"minor\",\"source\":\"standard\"}]}\n```\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"
+      }
+    ]
+  },
+  "next_comment_id": "ISS-111-c9",
+  "now": "2026-11-15T12:00:00Z",
+  "creates": 0,
+  "op_counts": {
+    "save_comment": 1
+  },
+  "faults": [],
+  "finished": {
+    "status": "completed",
+    "reason": "updated"
+  }
+}

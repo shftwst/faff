@@ -1,0 +1,103 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-under-citation",
+      "outcome": "survived",
+      "ground": null,
+      "reason": "The DoD covers two declared PRD goals: 'Export transactions as CSV' (one row per transaction) and 'Filter transaction exports by date' (date-range filter). The PRDR cites only the first, so it covers more declared goals than it cites. Under the policy that is under-citation, not over-scope, and it belongs to the CLI's deterministic set test via dod_covers = [Export transactions as CSV, Filter transaction exports by date]. No DoD capability falls outside the declared goals, and the cited goal is served."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Export transactions as CSV",
+          "--prd-goals",
+          "[\"Export transactions as CSV\",\"Filter transaction exports by date\",\"Import validated transactions\",\"Show account totals\",\"Archive old accounts\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "The export and filter both serve declared PRD goals.",
+          "--challenge",
+          "survived",
+          "--challenge-reason",
+          "The DoD covers two declared PRD goals: 'Export transactions as CSV' (one row per transaction) and 'Filter transaction exports by date' (date-range filter). The PRDR cites only the first, so it covers more declared goals than it cites. Under the policy that is under-citation, not over-scope, and it belongs to the CLI's deterministic set test via dod_covers = [Export transactions as CSV, Filter transaction exports by date]. No DoD capability falls outside the declared goals, and the cited goal is served.",
+          "--dod-covers",
+          "[\"Export transactions as CSV\",\"Filter transaction exports by date\"]"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\",\"trace_to_goal\":true,\"cited_goals\":[\"Export transactions as CSV\"],\"dod_covers\":[\"Export transactions as CSV\",\"Filter transaction exports by date\"],\"over_scope\":false,\"proposal\":{\"serves_goal\":false,\"within_scope\":false,\"verdict\":\"admit\",\"reason\":\"The export and filter both serve declared PRD goals.\"},\"challenge\":{\"ran\":true,\"overturns\":false,\"reason\":\"The DoD covers two declared PRD goals: 'Export transactions as CSV' (one row per transaction) and 'Filter transaction exports by date' (date-range filter). The PRDR cites only the first, so it covers more declared goals than it cites. Under the policy that is under-citation, not over-scope, and it belongs to the CLI's deterministic set test via dod_covers = [Export transactions as CSV, Filter transaction exports by date]. No DoD capability falls outside the declared goals, and the cited goal is served.\",\"ground\":\"other\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"admit\",\"upper\":{\"admit\":true,\"reason\":\"The export and filter both serve declared PRD goals.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": true,
+      "reason": "The export and filter both serve declared PRD goals.",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Export transactions as CSV"
+      ],
+      "dod_covers": [
+        "Export transactions as CSV",
+        "Filter transaction exports by date"
+      ],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": false,
+        "within_scope": false,
+        "verdict": "admit",
+        "reason": "The export and filter both serve declared PRD goals."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": false,
+        "reason": "The DoD covers two declared PRD goals: 'Export transactions as CSV' (one row per transaction) and 'Filter transaction exports by date' (date-range filter). The PRDR cites only the first, so it covers more declared goals than it cites. Under the policy that is under-citation, not over-scope, and it belongs to the CLI's deterministic set test via dod_covers = [Export transactions as CSV, Filter transaction exports by date]. No DoD capability falls outside the declared goals, and the cited goal is served.",
+        "ground": "other"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "admit",
+      "upper": {
+        "admit": true,
+        "reason": "The export and filter both serve declared PRD goals."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

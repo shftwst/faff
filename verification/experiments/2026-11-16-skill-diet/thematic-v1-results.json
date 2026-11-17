@@ -1,0 +1,429 @@
+{
+  "schema": 1,
+  "qualification_status": "requires-separate-native-protocol-review",
+  "status": "pass",
+  "plans": [
+    "verification/experiments/2026-11-16-skill-diet/thematic-readonly-baseline-plan.json",
+    "verification/experiments/2026-11-16-skill-diet/thematic-readonly-candidate-plan.json"
+  ],
+  "arms": {
+    "baseline": {
+      "case_kinds": {
+        "decision": {
+          "passed": 60,
+          "total": 60
+        },
+        "artifact": {
+          "passed": 15,
+          "total": 15
+        },
+        "consumer": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "runs": 5,
+      "passed": 80,
+      "total": 80,
+      "recorded_data_bytes": 936540,
+      "estimated_recorded_data_tokens": 232245
+    },
+    "candidate": {
+      "case_kinds": {
+        "decision": {
+          "passed": 60,
+          "total": 60
+        },
+        "artifact": {
+          "passed": 15,
+          "total": 15
+        },
+        "consumer": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "runs": 5,
+      "passed": 80,
+      "total": 80,
+      "recorded_data_bytes": 907315,
+      "estimated_recorded_data_tokens": 225115
+    }
+  },
+  "missing": [],
+  "problems": [],
+  "normalised_effect_state_gate_projections_equal": null,
+  "bounded_output_projections_equal": true,
+  "artifact_rubric_projections_equal": null,
+  "runs": [
+    {
+      "case_kinds": {
+        "decision": {
+          "passed": 12,
+          "total": 12
+        },
+        "artifact": {
+          "passed": 3,
+          "total": 3
+        },
+        "consumer": {
+          "passed": 1,
+          "total": 1
+        }
+      },
+      "name": "thematic-readonly-v1-baseline-1",
+      "arm": "baseline",
+      "kind": "methodology-output-consumption",
+      "report_sha256": "72eed53b76d02f32d5e75d63f0ceeb874982dc6b5e05db6c83de63843dc51227",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "diagnostics": [],
+      "policy_sha256": "7f26d5084b3536c7278d1c881656529f29bb2afb86fa493220ccbc66ef90ab96",
+      "projection_sha256": "2f6449f037f6306479f01504064d952d66e8f58776694d2e1641252548c3cc68",
+      "policy_chunks": 28,
+      "cases_passed": 16,
+      "cases_total": 16,
+      "config_path_reads": null,
+      "event_counts": {
+        "submit_output": 16,
+        "finish": 1
+      },
+      "recorded_data_bytes": 187308,
+      "estimated_recorded_data_tokens": 46449
+    },
+    {
+      "case_kinds": {
+        "decision": {
+          "passed": 12,
+          "total": 12
+        },
+        "artifact": {
+          "passed": 3,
+          "total": 3
+        },
+        "consumer": {
+          "passed": 1,
+          "total": 1
+        }
+      },
+      "name": "thematic-readonly-v1-baseline-2",
+      "arm": "baseline",
+      "kind": "methodology-output-consumption",
+      "report_sha256": "49b6ae1c73307dba34e9bb4c8565cc824284d1741eea1fc7021af5adfb1dafdd",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "diagnostics": [],
+      "policy_sha256": "7f26d5084b3536c7278d1c881656529f29bb2afb86fa493220ccbc66ef90ab96",
+      "projection_sha256": "2f6449f037f6306479f01504064d952d66e8f58776694d2e1641252548c3cc68",
+      "policy_chunks": 28,
+      "cases_passed": 16,
+      "cases_total": 16,
+      "config_path_reads": null,
+      "event_counts": {
+        "submit_output": 16,
+        "finish": 1
+      },
+      "recorded_data_bytes": 187308,
+      "estimated_recorded_data_tokens": 46449
+    },
+    {
+      "case_kinds": {
+        "decision": {
+          "passed": 12,
+          "total": 12
+        },
+        "artifact": {
+          "passed": 3,
+          "total": 3
+        },
+        "consumer": {
+          "passed": 1,
+          "total": 1
+        }
+      },
+      "name": "thematic-readonly-v1-baseline-3",
+      "arm": "baseline",
+      "kind": "methodology-output-consumption",
+      "report_sha256": "ecdfe40a73465dba5b53477a7469447f77e3e1fcbed1873e475ec887bfb79504",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "diagnostics": [],
+      "policy_sha256": "7f26d5084b3536c7278d1c881656529f29bb2afb86fa493220ccbc66ef90ab96",
+      "projection_sha256": "2f6449f037f6306479f01504064d952d66e8f58776694d2e1641252548c3cc68",
+      "policy_chunks": 28,
+      "cases_passed": 16,
+      "cases_total": 16,
+      "config_path_reads": null,
+      "event_counts": {
+        "submit_output": 16,
+        "finish": 1
+      },
+      "recorded_data_bytes": 187308,
+      "estimated_recorded_data_tokens": 46449
+    },
+    {
+      "case_kinds": {
+        "decision": {
+          "passed": 12,
+          "total": 12
+        },
+        "artifact": {
+          "passed": 3,
+          "total": 3
+        },
+        "consumer": {
+          "passed": 1,
+          "total": 1
+        }
+      },
+      "name": "thematic-readonly-v1-baseline-4",
+      "arm": "baseline",
+      "kind": "methodology-output-consumption",
+      "report_sha256": "49b6ae1c73307dba34e9bb4c8565cc824284d1741eea1fc7021af5adfb1dafdd",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "diagnostics": [],
+      "policy_sha256": "7f26d5084b3536c7278d1c881656529f29bb2afb86fa493220ccbc66ef90ab96",
+      "projection_sha256": "2f6449f037f6306479f01504064d952d66e8f58776694d2e1641252548c3cc68",
+      "policy_chunks": 28,
+      "cases_passed": 16,
+      "cases_total": 16,
+      "config_path_reads": null,
+      "event_counts": {
+        "submit_output": 16,
+        "finish": 1
+      },
+      "recorded_data_bytes": 187308,
+      "estimated_recorded_data_tokens": 46449
+    },
+    {
+      "case_kinds": {
+        "decision": {
+          "passed": 12,
+          "total": 12
+        },
+        "artifact": {
+          "passed": 3,
+          "total": 3
+        },
+        "consumer": {
+          "passed": 1,
+          "total": 1
+        }
+      },
+      "name": "thematic-readonly-v1-baseline-5",
+      "arm": "baseline",
+      "kind": "methodology-output-consumption",
+      "report_sha256": "49b6ae1c73307dba34e9bb4c8565cc824284d1741eea1fc7021af5adfb1dafdd",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "diagnostics": [],
+      "policy_sha256": "7f26d5084b3536c7278d1c881656529f29bb2afb86fa493220ccbc66ef90ab96",
+      "projection_sha256": "2f6449f037f6306479f01504064d952d66e8f58776694d2e1641252548c3cc68",
+      "policy_chunks": 28,
+      "cases_passed": 16,
+      "cases_total": 16,
+      "config_path_reads": null,
+      "event_counts": {
+        "submit_output": 16,
+        "finish": 1
+      },
+      "recorded_data_bytes": 187308,
+      "estimated_recorded_data_tokens": 46449
+    },
+    {
+      "case_kinds": {
+        "decision": {
+          "passed": 12,
+          "total": 12
+        },
+        "artifact": {
+          "passed": 3,
+          "total": 3
+        },
+        "consumer": {
+          "passed": 1,
+          "total": 1
+        }
+      },
+      "name": "thematic-readonly-v1-candidate-1",
+      "arm": "candidate",
+      "kind": "methodology-output-consumption",
+      "report_sha256": "0c0952ecbcd62a56025215eb1a35661815a3d70b090129f9c65dbdd6e6e8bb06",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "diagnostics": [],
+      "policy_sha256": "b5d85fd66b94a757410bae689fde7d130ffad49e4776b06fe9a9faa5ed928f4f",
+      "projection_sha256": "2f6449f037f6306479f01504064d952d66e8f58776694d2e1641252548c3cc68",
+      "policy_chunks": 27,
+      "cases_passed": 16,
+      "cases_total": 16,
+      "config_path_reads": null,
+      "event_counts": {
+        "submit_output": 16,
+        "finish": 1
+      },
+      "recorded_data_bytes": 181463,
+      "estimated_recorded_data_tokens": 45023
+    },
+    {
+      "case_kinds": {
+        "decision": {
+          "passed": 12,
+          "total": 12
+        },
+        "artifact": {
+          "passed": 3,
+          "total": 3
+        },
+        "consumer": {
+          "passed": 1,
+          "total": 1
+        }
+      },
+      "name": "thematic-readonly-v1-candidate-2",
+      "arm": "candidate",
+      "kind": "methodology-output-consumption",
+      "report_sha256": "7820c2ccc4f474f5127856c9e3a2486fc32f9bb421c011744d71c3d9a56bf3f6",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "diagnostics": [],
+      "policy_sha256": "b5d85fd66b94a757410bae689fde7d130ffad49e4776b06fe9a9faa5ed928f4f",
+      "projection_sha256": "2f6449f037f6306479f01504064d952d66e8f58776694d2e1641252548c3cc68",
+      "policy_chunks": 27,
+      "cases_passed": 16,
+      "cases_total": 16,
+      "config_path_reads": null,
+      "event_counts": {
+        "submit_output": 16,
+        "finish": 1
+      },
+      "recorded_data_bytes": 181463,
+      "estimated_recorded_data_tokens": 45023
+    },
+    {
+      "case_kinds": {
+        "decision": {
+          "passed": 12,
+          "total": 12
+        },
+        "artifact": {
+          "passed": 3,
+          "total": 3
+        },
+        "consumer": {
+          "passed": 1,
+          "total": 1
+        }
+      },
+      "name": "thematic-readonly-v1-candidate-3",
+      "arm": "candidate",
+      "kind": "methodology-output-consumption",
+      "report_sha256": "38fa30aa5bcaf20f5cb6a161295afb376cebd089e0384c9f8ecb6ee2570bcc8e",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "diagnostics": [],
+      "policy_sha256": "b5d85fd66b94a757410bae689fde7d130ffad49e4776b06fe9a9faa5ed928f4f",
+      "projection_sha256": "2f6449f037f6306479f01504064d952d66e8f58776694d2e1641252548c3cc68",
+      "policy_chunks": 27,
+      "cases_passed": 16,
+      "cases_total": 16,
+      "config_path_reads": null,
+      "event_counts": {
+        "submit_output": 16,
+        "finish": 1
+      },
+      "recorded_data_bytes": 181463,
+      "estimated_recorded_data_tokens": 45023
+    },
+    {
+      "case_kinds": {
+        "decision": {
+          "passed": 12,
+          "total": 12
+        },
+        "artifact": {
+          "passed": 3,
+          "total": 3
+        },
+        "consumer": {
+          "passed": 1,
+          "total": 1
+        }
+      },
+      "name": "thematic-readonly-v1-candidate-4",
+      "arm": "candidate",
+      "kind": "methodology-output-consumption",
+      "report_sha256": "49224cb80167a828dc37a4c0dc4e11dd53ce45e54a4b823adba7dce3468f0c5d",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "diagnostics": [],
+      "policy_sha256": "b5d85fd66b94a757410bae689fde7d130ffad49e4776b06fe9a9faa5ed928f4f",
+      "projection_sha256": "2f6449f037f6306479f01504064d952d66e8f58776694d2e1641252548c3cc68",
+      "policy_chunks": 27,
+      "cases_passed": 16,
+      "cases_total": 16,
+      "config_path_reads": null,
+      "event_counts": {
+        "submit_output": 16,
+        "finish": 1
+      },
+      "recorded_data_bytes": 181463,
+      "estimated_recorded_data_tokens": 45023
+    },
+    {
+      "case_kinds": {
+        "decision": {
+          "passed": 12,
+          "total": 12
+        },
+        "artifact": {
+          "passed": 3,
+          "total": 3
+        },
+        "consumer": {
+          "passed": 1,
+          "total": 1
+        }
+      },
+      "name": "thematic-readonly-v1-candidate-5",
+      "arm": "candidate",
+      "kind": "methodology-output-consumption",
+      "report_sha256": "e21ca15ef0ab4a5caf8e0329bef14c25c3279c58d3e28f5b05875fc387724cb5",
+      "assessment_sha256": null,
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "diagnostics": [],
+      "policy_sha256": "b5d85fd66b94a757410bae689fde7d130ffad49e4776b06fe9a9faa5ed928f4f",
+      "projection_sha256": "2f6449f037f6306479f01504064d952d66e8f58776694d2e1641252548c3cc68",
+      "policy_chunks": 27,
+      "cases_passed": 16,
+      "cases_total": 16,
+      "config_path_reads": null,
+      "event_counts": {
+        "submit_output": 16,
+        "finish": 1
+      },
+      "recorded_data_bytes": 181463,
+      "estimated_recorded_data_tokens": 45023
+    }
+  ],
+  "limits": [
+    "Payload proxy counts task JSON plus compact successful bridge-response values, including policy chunks, each counted once. It excludes native tool framing, system/catalog/history, model output and cached reprocessing; it is not provider usage or billed cost.",
+    "Token estimate is ceil(UTF-16 characters/4) per payload, summed.",
+    "Effect and state comparison uses only the predeclared path/time/read normalisations. Finding prose varies and is graded separately by the fixture.",
+    "Native screens are retained separately and require protocol review; this numerical summary does not certify absence of out-of-bridge activity.",
+    "Rendering compares persisted artifact integrity and fact/form rubric outcomes, not byte-identical prose or subjective quality. Artifact, execution and decision counts are reported separately.",
+    "Named-output comparisons project only the requested fields and consumer outcomes; free-form artifact descriptions require a separate reading. Catalogue choices do not execute workflows.",
+    "Small correlated samples do not establish statistical equivalence."
+  ]
+}

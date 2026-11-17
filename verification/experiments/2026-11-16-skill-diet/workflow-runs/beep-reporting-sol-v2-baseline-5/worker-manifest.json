@@ -1,0 +1,57 @@
+{
+  "arm": "baseline",
+  "requested_model": "gpt-6.1-sol",
+  "effort": "medium",
+  "codex_cli": "0.169.0",
+  "harness_command": [
+    "node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/beep-reporting-with-context.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-sol-v2-baseline-5"
+  ],
+  "runner_sha256": "34b5e732717f921e7403940957fcc072b766ff1d870e7521d2b089059edc71c8",
+  "bridge_sha256": "3feb07ca89eb0ddb815a064bac88d10848f05b662f89efbc684d5c51326df49d",
+  "prompt_sha256": "4d675291a4f60770a071310c9310f98c7b17a5587d98154ca51c898fb4a1447d",
+  "common_context": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "bytes": 22605
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "bytes": 5591
+    }
+  ],
+  "command": [
+    "codex",
+    "exec",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-c",
+    "approval_policy=\"never\"",
+    "--sandbox",
+    "workspace-write",
+    "--cd",
+    "/tmp/faff-matrix-measure-neaa3rkd/cwd",
+    "--add-dir",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-sol-v2-baseline-5",
+    "--json",
+    "--output-last-message",
+    "/tmp/faff-matrix-measure-neaa3rkd/final.txt",
+    "-"
+  ],
+  "provider_usage": "unmetered",
+  "private_native_capture": "/tmp/faff-matrix-measure-neaa3rkd",
+  "context_reset_requested": true
+}

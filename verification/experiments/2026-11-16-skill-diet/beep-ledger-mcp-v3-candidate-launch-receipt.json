@@ -1,0 +1,10 @@
+{
+  "schema": 1,
+  "prepared_utc": "2026-11-17T01:10:47.737125+00:00",
+  "baseline_gate_sha256": "53f912adee2a6665a97d9556cd621854a7b417069b7b1732bc0680f2493801ef",
+  "baseline_manual_sha256": "3ea8c3e2ec826af2757fbdcdae4a6442c5412e5bdbd29830f459fbc62323ef10",
+  "baseline_runner_exit_code": 0,
+  "parallel_pilot_runner_exit_code": 0,
+  "parallel_pilot_session_id": 34360,
+  "next": "Launch exact registered Astra candidate plan on serial V4. Pilot semantic/independent readiness is separate from this already-passed ledger baseline gate."
+}

@@ -1,0 +1,34 @@
+```faff-contract:architecture-proposal
+{
+  "chosen_architecture": "Build one Node 22 timesheet application with users, projects and entries modules, deployed through the existing Docker Compose setup and backed by the existing PostgreSQL datastore. Use GitHub Actions for migration and application checks.",
+  "rationale": "Small internal timesheet tool for a handful of users: one application serves this bounded workload. Relational users/projects/entries: PostgreSQL tables use primary keys, foreign keys and required-field constraints. Records must survive restarts: commit records to PostgreSQL with its data directory on persistent storage; retain backups and verify restoration. Concurrent edits need transactional integrity: perform related writes in database transactions, with entry version checks so a stale edit returns a conflict instead of overwriting a newer edit. Use the existing team runtime and deployment: Node 22, Docker Compose, PostgreSQL and GitHub Actions are recorded in the supplied profile. No streaming or high-throughput ingestion requirement: process timesheet requests synchronously in the application. This is a proposal for later human review.",
+  "adr_candidates": [
+    {
+      "title": "Run the timesheet application on the existing Node and Compose stack",
+      "decision": "Build one Node 22 application with users, projects and entries modules, using the existing Docker Compose deployment and GitHub Actions checks.",
+      "rationale": "The small internal workload fits one deployable and the profile records this runtime, deployment target and CI."
+    },
+    {
+      "title": "Persist timesheets transactionally in PostgreSQL",
+      "decision": "Use the existing PostgreSQL datastore with relational constraints, persistent storage, transactional writes, entry version checks and tested backup restoration.",
+      "rationale": "Users, projects and entries need relational integrity, survival across restarts and protection against conflicting concurrent edits."
+    }
+  ],
+  "assumptions": [
+    "The supplied successful profile-show result describes the team's available infrastructure.",
+    "The existing PostgreSQL deployment has persistent storage, available capacity and an operator who can configure backups and test restoration before release.",
+    "The existing deployment provides an internal access boundary and a usable identity mechanism; confirm access requirements before implementation.",
+    "A handful of users and ordinary synchronous timesheet requests remain the expected workload."
+  ],
+  "recommendation": "build"
+}
+```
+
+## ADR promotion intent
+
+- Run the timesheet application on the existing Node and Compose stack: candidate to record the Node 22 application, domain modules, Compose deployment and GitHub Actions checks. Rationale: the small workload fits the recorded team stack.
+- Persist timesheets transactionally in PostgreSQL: candidate to record relational constraints, persistent storage, transactional writes, entry version checks and tested backup restoration. Rationale: relational records must survive restarts and concurrent edits must preserve integrity.
+
+Candidates are intent only, for later review and materialisation by graft Step 4b.
+
+confidence: high

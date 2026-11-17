@@ -1,0 +1,2 @@
+- Draft explanation → no load-bearing model to lead with → producer must supply the governing statement; none can be hoisted from the source.
+- Steps one to three → three enumerable items are written inline → render the supplied steps as a list.

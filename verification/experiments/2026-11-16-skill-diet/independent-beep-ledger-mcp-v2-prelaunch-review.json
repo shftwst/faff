@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only prelaunch plan/binding verifier",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "clear-for-exact-registered-five-baseline-plan-only",
+  "model_calls_by_review": 0,
+  "source_installation_or_acceptance_by_review": false,
+  "candidate_launch_cleared": false,
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v2-registration.json",
+      "sha256": "206683a5aafc9ec16281bb8db0cf1968af179375928df18cdc288e305c505030"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v2-baseline-plan.json",
+      "sha256": "d54ad9cf805cb542eb20f5c71e8443a07d89244262715edb389320349aebca84"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v2-candidate-plan.json",
+      "sha256": "05d274ac9664b29977dbb783e44fbb1fdfa58c8d075047584b31d447f8343cc5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/verify-ledger-mcp-arm-v2.mjs",
+      "sha256": "9485254f9e6330abe47ba42d3e6a2fb8af6787f8e9ef2ef3ff6f5cc648aaf895"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-ledger-mcp-v2-gate-review.json",
+      "sha256": "6baa1daaa84316bb633e1e89dfb86aeedc0a97b6a04237340e45565a386117c6"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v2-evaluator-review.json",
+      "sha256": "afb927ed99b19c957dea1ef17248510e895b431a2251c9eb433d01ee39fdcd56"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-v2-integration.json",
+      "sha256": "272598d65ebe9f33bc128a160237cf43e980a0fa1951e9c80ec19701da8db5bf"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-final-qualification.json",
+      "sha256": "84817cb65c0946867ea087bc08f0818fc2a3b279267e9de5590976e1009f5b6e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/mcp-transport-v4-qualification.json",
+      "sha256": "909bb9bff077b2d993b16e36e09fe9ab78b20dffd2a7310fbb2ce60c81fb7018"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-mcp-transport-v4-review.json",
+      "sha256": "529b6e4d966753bfbb86f58da6978e7e03293ebfcdaeaacd4c5e528455fc0eca"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/preflight.json",
+      "sha256": "b6c65ebb5185714eb4c1ff0784632eb0bfba7f2fed8ce45dffa2bfd0a103cb2a"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger-mcp-preflight-v2-final/consumer-replay.json",
+      "sha256": "0811d377d9eedbd79a9c8a84288e6572a51dec23c44d0f32c1b727c04c3e5343"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v4.py",
+      "sha256": "85840dcfc17bedb3a9760eb344e28187ecd45d3ed5c8e2b761050f8575fd7c75"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/beep-ledger-mcp-v2-evaluator-tests-final.txt",
+      "sha256": "8eae3b34fbbd8e287adcd6e3821feb66ea64fb1cda1fa1fe33adba7a541a92a1"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v1-hold.json",
+      "sha256": "d94e96d28716c20de3cf54c0fa878223ddbb64a30e08e80230e87b66d9985d67"
+    }
+  ],
+  "frozen_design": {
+    "unique_inputs_per_arm": 46,
+    "plan_and_input_hash_comparisons": 94,
+    "mismatches": 0,
+    "frozen_input_maps_identical": true,
+    "baseline_samples": 5,
+    "candidate_samples": 5,
+    "all10_names_unique_and_new": true,
+    "v2_sample_directories_present_at_review": 0,
+    "model": "gpt-6.1-sol",
+    "effort": "medium",
+    "harness": "eval/control-parity/ledger-execution-v2.mjs",
+    "runner": "run-mcp-workflow-samples-v4.py",
+    "fixture": "workflow-fixtures/beep-ledger-v3.json",
+    "assessment_configured": false
+  },
+  "source_prerequisite": {
+    "reporting_qualification_accepted": true,
+    "accepted_reporting_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+    "installed_baseline_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+    "candidate_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+    "bare_and_context_policies_unchanged_from_v1": true,
+    "same_fixed_context": true,
+    "private_head": "1a00415927e9c356d42eba08d71fe940e994e3f8",
+    "private_source_and_base_commit_match": true,
+    "private143_tests_lint_inventory_hashes_match": true,
+    "new_evaluator_final81_test_log_complete": true
+  },
+  "runtime": {
+    "commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "actual_head_matches": true,
+    "bound_artifacts_checked": 578,
+    "mismatches": 0,
+    "scope": "Original pinned CLI runtime, separate from newly delivered policy prose."
+  },
+  "readiness_evidence": {
+    "final_v2_evaluator_review_bound": true,
+    "final_preflight_exact_registered_harness_hash_matches": true,
+    "final_preflight_calls": 71,
+    "execution_cases": 3,
+    "decisions": 11,
+    "omission_negatives": 14,
+    "exact_consumer_replay_cases_passed": 3,
+    "preflight_files_hashes_match": true,
+    "runner_v4_ast_replay_smoke": "Independently executed and bound in evaluator review; parses with newline and exact matching grade.",
+    "transport_v4": "Qualified transport record and independent review bound externally, as with architecture; per-sample native audit still mandatory."
+  },
+  "gate_review": {
+    "status": "gate-code-review-pass",
+    "independent_record_sha256": "6baa1daaa84316bb633e1e89dfb86aeedc0a97b6a04237340e45565a386117c6",
+    "same_frozen_verifier_sha256": "9485254f9e6330abe47ba42d3e6a2fb8af6787f8e9ef2ef3ff6f5cc648aaf895",
+    "separately_owned_review_read_and_bound": true,
+    "gate_not_executed": true
+  },
+  "mandatory_progression": [
+    "Launch exactly registered five fresh baseline samples.",
+    "Each sample requires fresh native audit, unchanged frozen bindings, new automatic grade, retained legacy exact diagnostics and exact restored consumer replay.",
+    "Independent review must cover actual ledger/events/consumer outputs, all11 decisions and every extra detail path/value/meaning, with verifyLedgerDetailReview and fresh snapshot bindings. Automatic pass alone cannot qualify.",
+    "Complete five-baseline verify-ledger-mcp-arm-v2 gate must pass before any candidate launch; generic runner does not enforce this external prerequisite.",
+    "Require same five-candidate gates and current-source integration/lint/inventory before installation, acceptance or counted savings."
+  ],
+  "version_and_limits": [
+    "V1 failed cohort and grader remain unchanged, failed and unpooled. V2 uses a fresh explicit workload, not post-hoc acceptance of held outputs.",
+    "No V2 model output was available or reviewed; no sample or source acceptance claimed.",
+    "81-test log and143 private integration tests were bound/read, not re-executed by this prelaunch check; evaluator review records independent current25 and earlier legacy verification.",
+    "Full preflight is deterministic in-process structured bridge; native model session attribution remains a sample gate.",
+    "No full unattended loop, run-open/close/governance, actual review/landing/filing, hosted publication or billing proof.",
+    "Inherited schema/token-class prose mismatch remains disclosed; CLI-owned emitted fields are checked separately.",
+    "No skill source or source totals changed by this review."
+  ]
+}

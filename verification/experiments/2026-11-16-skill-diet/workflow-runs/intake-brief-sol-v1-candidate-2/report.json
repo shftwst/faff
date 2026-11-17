@@ -1,0 +1,403 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 42,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 136659,
+    "utf16_characters": 135458,
+    "sha256": "69f342334338e4a72e86fcb26f82ea6aa7a4e7872792f08884c8b0f3457b5658",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6066,
+        "sha256": "4fecdf7d00a98d84389100cd4cb563d4b061a98c81a3c79167c7c6aae952b11c"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "d08b239c5aba52ef7a27a1494b7712dbc3aa82ea86a81743d1e0ef25314480fe"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "9d12dbe234cae4eb9a569bcdbf850dab312573da3121283f91bd94418647a011"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6030,
+        "sha256": "965fba20d53d9395ba778d600480f381900f60af7b52a47f1eb549b5a512b7b7"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "97e1adb3b6da96bbc1f1d2933ef97a3ac72fe228d17f245824717932d2cb6d1f"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "652a0907bc7be017f442b085ab47a569d5b258fe6a5da7e63e358b4e800de853"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "581515ab7c62b00397e932da0c20a05e613ffd227c5d90339baef6b048ff6258"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6047,
+        "sha256": "80f8797ecfb8a8d018b6380a1f344c17794199eafef4021661ba0ffe74332443"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6048,
+        "sha256": "40c4c3a36f95c0de1ec9ea10b424e84d288710bc486b24fbd6a4ab40c30da3c3"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "80a98469f25addd14159c54b44a8e4e55724ed8d9afeeb2a0b4cbff424d38103"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "d2afc8b8684e4ca2213e95a4f95a9dfb38ca03db0618376876955c2484bb7828"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6051,
+        "sha256": "49de46e2f382b0fc7be40fa14b20006960c7b6a363fe165a83529d007c1ab962"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "95057539ff97d25f8970218e64536eaa9582e5d1462f459d48280f57546983c0"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6064,
+        "sha256": "07076f5439a752a9cbce15124bda49a3c44a63132a1cbff50fa8f6de821c2b8f"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "4ade12647479586632c67d133801fe5992274943bc43a9387d6394eae379b9c3"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6067,
+        "sha256": "702eb5fd9dfd61ca960c3e8ed0478f0754499c8534415a99f09381c08b0cd890"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "0a39ce66ba9be86bf9dde4f7c7910e9dff041bef1862a127ce710f1dccf5d54d"
+      },
+      {
+        "offset": 102000,
+        "end": 108000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "930ca60df7f10bca2de1dfd76b0955b50107524b8b5d343d7f604daef2b5c117"
+      },
+      {
+        "offset": 108000,
+        "end": 114000,
+        "characters": 6000,
+        "bytes": 6072,
+        "sha256": "c5e74b90b3286805cc9319f4510267e00a3498bc2da39b441dcec6371b68668d"
+      },
+      {
+        "offset": 114000,
+        "end": 120000,
+        "characters": 6000,
+        "bytes": 6076,
+        "sha256": "c9dcad4e0c352256b8d1611b8e1110282a6e3cac8046539aba85665b80b25487"
+      },
+      {
+        "offset": 120000,
+        "end": 126000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "57250042ab8d0c82df6e83ec4afd325ea5e10c94449a362632228243769abf04"
+      },
+      {
+        "offset": 126000,
+        "end": 132000,
+        "characters": 6000,
+        "bytes": 6036,
+        "sha256": "9616567a75ec487c99a6a776861df8ed35e6ed0780c1f9172d73d60a96f30c47"
+      },
+      {
+        "offset": 132000,
+        "end": 135458,
+        "characters": 3458,
+        "bytes": 3488,
+        "sha256": "c08ceedcc0a83f487c08f426103859a50db8c9dbe1ec46411c0418122b09e6e2"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "greenfield-complete",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 4,
+          "passed": 4,
+          "vector": [
+            true,
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "greenfield-thin",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "single-bug",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "single-split",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "minor-ambiguity",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "greenfield-repo-signal",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 3,
+          "passed": 3,
+          "vector": [
+            true,
+            true,
+            true
+          ]
+        }
+      },
+      {
+        "id": "mode-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "owner": "faff-jot"
+        }
+      },
+      {
+        "id": "ticket-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "slot": "methodology",
+          "producer_creates_tickets": false
+        }
+      },
+      {
+        "id": "open-questions",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "block": false,
+          "carry_forward": true
+        }
+      },
+      {
+        "id": "required",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "sections": [
+            "Goal",
+            "Constraints",
+            "Out of scope"
+          ]
+        }
+      },
+      {
+        "id": "exclusive",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "both": false,
+          "required": "Item"
+        }
+      },
+      {
+        "id": "empty",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "omit": true
+        }
+      },
+      {
+        "id": "invented-goals",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "allowed": false
+        }
+      },
+      {
+        "id": "appetite",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "levels": [
+            "low",
+            "medium"
+          ]
+        }
+      },
+      {
+        "id": "minor",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "section": "Open questions"
+        }
+      },
+      {
+        "id": "split",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "force_split": false,
+          "flag_for_methodology": true
+        }
+      },
+      {
+        "id": "codes",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "use_codes": false
+        }
+      },
+      {
+        "id": "implementation",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "skill": "faff-prep"
+        }
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Bounded final discovery-brief production from completed conversation snapshots. Core discovery steps, formal output template and appetite behaviour stay byte-identical. No elicitation conversation, methodology ticket-shaping, tracker mutation or full jot/plot workflow claim.",
+  "accounting": "unmetered"
+}

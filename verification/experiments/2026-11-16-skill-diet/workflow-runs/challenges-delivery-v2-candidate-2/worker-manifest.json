@@ -1,0 +1,19 @@
+{
+  "arm": "candidate",
+  "requested_model": "claude-opus-5-5",
+  "effort": "medium",
+  "claude_cli": "2.1.325",
+  "worker": "claude-challenges",
+  "prompt_sha256": "de6c33541b1a1f45736d0247c1381a97c8654077b7510c13ba0b8bd2a09e89a7",
+  "harness_command": [
+    "node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/challenge-execution.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/adversarial-v3.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/challenges.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/challenges-delivery-v2-candidate-2"
+  ],
+  "context_reset_requested": true,
+  "provider_usage": "unmetered"
+}

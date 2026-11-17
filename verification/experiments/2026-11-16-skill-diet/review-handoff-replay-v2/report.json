@@ -1,0 +1,3619 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "mode": "actual-artifact-replay",
+  "artifacts": 70,
+  "results": [
+    {
+      "name": "review-producer-astra-v3-baseline-1",
+      "arm": "baseline",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-1/artifacts/clean.md",
+      "sha256": "5fd4bb795a82c86d36a4b5ef0b57dbb320d99c49daa0eb3f866553f27d78a72a",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a23c5e1c07abadd2c91bfe35f9a31155825457cd799386706d59b82086cd3a44",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "7d181d5d8f3c6a98c46c73566b10593a15435cf1bf83e0fc289c81a3eb2e0d9b",
+      "persisted_body_sha256": "7d181d5d8f3c6a98c46c73566b10593a15435cf1bf83e0fc289c81a3eb2e0d9b"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-1",
+      "arm": "baseline",
+      "case_id": "boundary-bug",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-1/artifacts/boundary-bug.md",
+      "sha256": "c52de336a3db9152d230c91f8bbba7420a1f9227a62677358ff03e07442c0fa0",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a23c5e1c07abadd2c91bfe35f9a31155825457cd799386706d59b82086cd3a44",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality accepted by belowLimit\",\"location\":\"src/function.mjs:1\",\"action\":\"Replace <= with <.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality rejection lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Assert that belowLimit(5,5) returns false.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Equality rejection lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Assert that belowLimit(5,5) returns false.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality rejection lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Assert that belowLimit(5,5) returns false."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "107599ffb9baf738ef7eb94c8f276e2fdac1efdb755adc7913cf4c3bfad4e1a3",
+      "persisted_body_sha256": "107599ffb9baf738ef7eb94c8f276e2fdac1efdb755adc7913cf4c3bfad4e1a3"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-1",
+      "arm": "baseline",
+      "case_id": "missing-coverage",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-1/artifacts/missing-coverage.md",
+      "sha256": "78541cd685b32a8efaaffa03a2f08efae626a15099d84fa25b358908334f69af",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a23c5e1c07abadd2c91bfe35f9a31155825457cd799386706d59b82086cd3a44",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Mixed-case conversion lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an automated assertion that lower('AbC') returns 'abc'.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Mixed-case conversion lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an automated assertion that lower('AbC') returns 'abc'.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Mixed-case conversion lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an automated assertion that lower('AbC') returns 'abc'."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "2a51aee532d1b4f192837abbf11797e52dc2f5aae5291920c125689a823f0f09",
+      "persisted_body_sha256": "2a51aee532d1b4f192837abbf11797e52dc2f5aae5291920c125689a823f0f09"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-1",
+      "arm": "baseline",
+      "case_id": "planted-fixture",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-1/artifacts/planted-fixture.md",
+      "sha256": "7ccb5d2b180fefda7023a1d731408c6e20e9a8ed0204d82f7a68dd5a9c0e876a",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a23c5e1c07abadd2c91bfe35f9a31155825457cd799386706d59b82086cd3a44",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "173b0b68ecdd484962dd8c92d265abe047782ce57a75dc2e12d617f8164002a0",
+      "persisted_body_sha256": "173b0b68ecdd484962dd8c92d265abe047782ce57a75dc2e12d617f8164002a0"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-1",
+      "arm": "baseline",
+      "case_id": "adjacent-low",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-1/artifacts/adjacent-low.md",
+      "sha256": "ad9763a1b1ab59d25cf2c087c10c6f977bd34dc378c041776f2c3d431488b3cd",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a23c5e1c07abadd2c91bfe35f9a31155825457cd799386706d59b82086cd3a44",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"minor\",\"source\":\"standard\",\"title\":\"Unrequested comment typo correction\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment typo correction.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Unrequested comment typo correction",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment typo correction.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard",
+              "title": "Unrequested comment typo correction",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment typo correction."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "d1a4e7708a0c6cfc0137362b70bc72e2b9773e8bc2d920c6652edd41f2f803e5",
+      "persisted_body_sha256": "d1a4e7708a0c6cfc0137362b70bc72e2b9773e8bc2d920c6652edd41f2f803e5"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-1",
+      "arm": "baseline",
+      "case_id": "adjacent-high",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-1/artifacts/adjacent-high.md",
+      "sha256": "48dec47d9f8ba38b2865a6ee43d55a05a15aaa1ddbc47b42d4e93b13b095fbde",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a23c5e1c07abadd2c91bfe35f9a31155825457cd799386706d59b82086cd3a44",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "01f435a7f76c237dad544c98bf1b1eacfd565607af911e759349ce8beabf559f",
+      "persisted_body_sha256": "01f435a7f76c237dad544c98bf1b1eacfd565607af911e759349ce8beabf559f"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-1",
+      "arm": "baseline",
+      "case_id": "prior-findings",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-1/artifacts/prior-findings.md",
+      "sha256": "e3ae62649d6db618f068455e7c28babea06e78c1367d74692a79bd6395badc67",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a23c5e1c07abadd2c91bfe35f9a31155825457cd799386706d59b82086cd3a44",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing profile guard in lookup\",\"location\":\"src/function.mjs:4\",\"action\":\"Return the matched user directly without dereferencing profile or reconstructing it.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Unchanged matching user lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add a matching user without profile and assert that lookup returns that same object.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "carried_id": "P2",
+              "action": "Return the matched user directly without dereferencing profile or reconstructing it.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Unchanged matching user lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a matching user without profile and assert that lookup returns that same object.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "action": "Return the matched user directly without dereferencing profile or reconstructing it."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Unchanged matching user lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a matching user without profile and assert that lookup returns that same object."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "c3bea75a524472036ea5e38331bf5fdb43fd88dd811f72694244439e8e41e73f",
+      "persisted_body_sha256": "c3bea75a524472036ea5e38331bf5fdb43fd88dd811f72694244439e8e41e73f"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-2",
+      "arm": "baseline",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-2/artifacts/clean.md",
+      "sha256": "4583ed91bd192df1daa143adf05fb896ee2e5b4b1663b909bb2ad35bffd23688",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "efeb660efc74a6d874d6f1dd89df509e24952d8b7299079c8332eb35553709c6",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "da01992f2ee470a7110aa119a5ac39e0330206eaff27322e41eea664b9f51bca",
+      "persisted_body_sha256": "da01992f2ee470a7110aa119a5ac39e0330206eaff27322e41eea664b9f51bca"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-2",
+      "arm": "baseline",
+      "case_id": "boundary-bug",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-2/artifacts/boundary-bug.md",
+      "sha256": "de48672ec75ccaba7a64a0095c8c8b80b9c34274244955e321aaaa730ecf1707",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "efeb660efc74a6d874d6f1dd89df509e24952d8b7299079c8332eb35553709c6",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality accepted by belowLimit\",\"location\":\"src/function.mjs:1\",\"action\":\"Replace <= with <.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality rejection untested\",\"location\":\"test/function.test.mjs:4\",\"action\":\"Add an assertion that belowLimit(5,5) returns false.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Equality rejection untested",
+              "location": "test/function.test.mjs:4",
+              "action": "Add an assertion that belowLimit(5,5) returns false.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality rejection untested",
+              "location": "test/function.test.mjs:4",
+              "action": "Add an assertion that belowLimit(5,5) returns false."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "b3c590d6cc52724151ad2c28bdc5c329a6d168760b5517524b80ce523ab3d47d",
+      "persisted_body_sha256": "b3c590d6cc52724151ad2c28bdc5c329a6d168760b5517524b80ce523ab3d47d"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-2",
+      "arm": "baseline",
+      "case_id": "missing-coverage",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-2/artifacts/missing-coverage.md",
+      "sha256": "86f37f74fbed76b64b2cb359fc518e9f8e4626c35ff6ab67490d02e9ee66b9c6",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "efeb660efc74a6d874d6f1dd89df509e24952d8b7299079c8332eb35553709c6",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Mixed-case conversion untested\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an automated assertion that lower('AbC') returns 'abc'.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Mixed-case conversion untested",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an automated assertion that lower('AbC') returns 'abc'.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Mixed-case conversion untested",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an automated assertion that lower('AbC') returns 'abc'."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "55ac4f5cfecf881df16766225d0aa5242e4c4f2275c66c75826bd592f3241c63",
+      "persisted_body_sha256": "55ac4f5cfecf881df16766225d0aa5242e4c4f2275c66c75826bd592f3241c63"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-2",
+      "arm": "baseline",
+      "case_id": "planted-fixture",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-2/artifacts/planted-fixture.md",
+      "sha256": "73a9d25c403787d63bd16d110eefb4e91bb4b40936702549d795e635058962dc",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "efeb660efc74a6d874d6f1dd89df509e24952d8b7299079c8332eb35553709c6",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "5449a7be5d5edb701e676bd97e7d25e11711dfd65c830c8621887f04ab06c236",
+      "persisted_body_sha256": "5449a7be5d5edb701e676bd97e7d25e11711dfd65c830c8621887f04ab06c236"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-2",
+      "arm": "baseline",
+      "case_id": "adjacent-low",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-2/artifacts/adjacent-low.md",
+      "sha256": "0a274056cfdb4c87d37604623b460877a5582995c9b3bfe8e43f394e923cbacd",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "efeb660efc74a6d874d6f1dd89df509e24952d8b7299079c8332eb35553709c6",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"minor\",\"source\":\"standard\",\"title\":\"Unrequested comment correction\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment-only typo correction.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Unrequested comment correction",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment-only typo correction.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard",
+              "title": "Unrequested comment correction",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment-only typo correction."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "691d726b472aafe19a3329711bf774bde8b82c9672a44b9422ce7dd3d22faff0",
+      "persisted_body_sha256": "691d726b472aafe19a3329711bf774bde8b82c9672a44b9422ce7dd3d22faff0"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-2",
+      "arm": "baseline",
+      "case_id": "adjacent-high",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-2/artifacts/adjacent-high.md",
+      "sha256": "1e08d03a527efa6df9ed92bcb613315e11a3e38b53b21a509f418190d598a8f9",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "efeb660efc74a6d874d6f1dd89df509e24952d8b7299079c8332eb35553709c6",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "2260c913dcc96c413694313b5bcbd3851bc80337bd5ceea2ee0c73b3ca726b2b",
+      "persisted_body_sha256": "2260c913dcc96c413694313b5bcbd3851bc80337bd5ceea2ee0c73b3ca726b2b"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-2",
+      "arm": "baseline",
+      "case_id": "prior-findings",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-2/artifacts/prior-findings.md",
+      "sha256": "0b17fd4ce042dadc08b1fa1a148ee9ade0c6afae5711b37f0877cfb82e222fe0",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "efeb660efc74a6d874d6f1dd89df509e24952d8b7299079c8332eb35553709c6",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing profile guard in lookup\",\"location\":\"src/function.mjs:4\",\"action\":\"Return user directly without dereferencing profile or constructing a replacement object.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Matching user preservation untested\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add a matching user without profile and assert that lookup returns that same object.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "carried_id": "P2",
+              "action": "Return user directly without dereferencing profile or constructing a replacement object.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Matching user preservation untested",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a matching user without profile and assert that lookup returns that same object.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "action": "Return user directly without dereferencing profile or constructing a replacement object."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Matching user preservation untested",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a matching user without profile and assert that lookup returns that same object."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "0a93e80d8e1665269e57e4880340cd0d300f6299c35bd28815ff4d284450b994",
+      "persisted_body_sha256": "0a93e80d8e1665269e57e4880340cd0d300f6299c35bd28815ff4d284450b994"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-3",
+      "arm": "baseline",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-3/artifacts/clean.md",
+      "sha256": "1a59f9412c7943dc30f61d4d3079ea2797f6ad9cd0be79b1198dcb836878963a",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "06aee3c766016fb6b2904a049bd4a6a4289df41d18f3f589362eb02aa8c8753f",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "fcc61056e6ee906353609921e4c53fdfdc698ea68513bc3b877c348ee1318078",
+      "persisted_body_sha256": "fcc61056e6ee906353609921e4c53fdfdc698ea68513bc3b877c348ee1318078"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-3",
+      "arm": "baseline",
+      "case_id": "boundary-bug",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-3/artifacts/boundary-bug.md",
+      "sha256": "10443df09eb3dd859defcbe841142f0d681a755cf0d30ebe145d77f08275d4c1",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "06aee3c766016fb6b2904a049bd4a6a4289df41d18f3f589362eb02aa8c8753f",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"source\":\"standard\",\"title\":\"Equality accepted by belowLimit\",\"location\":\"src/function.mjs:1\",\"action\":\"Replace <= with <.\"},{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"source\":\"standard\",\"title\":\"Missing equality assertion\",\"location\":\"test/function.test.mjs:4\",\"action\":\"Assert that belowLimit(5,5) is false.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard"
+            },
+            {
+              "title": "Missing equality assertion",
+              "location": "test/function.test.mjs:4",
+              "action": "Assert that belowLimit(5,5) is false.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard",
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard",
+              "title": "Missing equality assertion",
+              "location": "test/function.test.mjs:4",
+              "action": "Assert that belowLimit(5,5) is false."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "6853b50268fecd4ed8894253705323b9fa5ff34aff37310d1ff79550ce19bcd1",
+      "persisted_body_sha256": "6853b50268fecd4ed8894253705323b9fa5ff34aff37310d1ff79550ce19bcd1"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-3",
+      "arm": "baseline",
+      "case_id": "missing-coverage",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-3/artifacts/missing-coverage.md",
+      "sha256": "b1d7b7539d10c8d39de668a58c20156bbc35c0b2594afd1afc380a756eaa7a47",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "06aee3c766016fb6b2904a049bd4a6a4289df41d18f3f589362eb02aa8c8753f",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"source\":\"standard\",\"title\":\"Missing mixed-case test for lower\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an automated assertion that lower('AbC') returns 'abc'.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing mixed-case test for lower",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an automated assertion that lower('AbC') returns 'abc'.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard",
+              "title": "Missing mixed-case test for lower",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an automated assertion that lower('AbC') returns 'abc'."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "d4eb4da1e08c6a3defe94704006b954c3a2c461fbdb9a5b411fb49aa15fda2aa",
+      "persisted_body_sha256": "d4eb4da1e08c6a3defe94704006b954c3a2c461fbdb9a5b411fb49aa15fda2aa"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-3",
+      "arm": "baseline",
+      "case_id": "planted-fixture",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-3/artifacts/planted-fixture.md",
+      "sha256": "7cdac8dd3add1affba73ac4f0699b68f56180fb80fc78f5da32df28f4d6b379a",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "06aee3c766016fb6b2904a049bd4a6a4289df41d18f3f589362eb02aa8c8753f",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "ebcdf543d15aea93c53ce017e3a9d997d2079ed85a3fc248132c9ffb06b110c3",
+      "persisted_body_sha256": "ebcdf543d15aea93c53ce017e3a9d997d2079ed85a3fc248132c9ffb06b110c3"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-3",
+      "arm": "baseline",
+      "case_id": "adjacent-low",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-3/artifacts/adjacent-low.md",
+      "sha256": "1de35482726aa5a9ec261461173b52b92dcb062077916add2a1625f49a4e741d",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "06aee3c766016fb6b2904a049bd4a6a4289df41d18f3f589362eb02aa8c8753f",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"minor\",\"source\":\"standard\",\"title\":\"Unrequested comment typo correction\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment-only typo correction.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Unrequested comment typo correction",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment-only typo correction.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard",
+              "title": "Unrequested comment typo correction",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment-only typo correction."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "d2548f41169eb344d081bcd2e430babcb9de1a07657b524abb4230c0253b9038",
+      "persisted_body_sha256": "d2548f41169eb344d081bcd2e430babcb9de1a07657b524abb4230c0253b9038"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-3",
+      "arm": "baseline",
+      "case_id": "adjacent-high",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-3/artifacts/adjacent-high.md",
+      "sha256": "252ff1ef42b6c567347015123517603a83e62ef6c973c9244aac09f4480d88f0",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "06aee3c766016fb6b2904a049bd4a6a4289df41d18f3f589362eb02aa8c8753f",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "78bbbf9b1c59ab466fa06d37969f1c79c43e756d64a5341fdc601a35786de4ee",
+      "persisted_body_sha256": "78bbbf9b1c59ab466fa06d37969f1c79c43e756d64a5341fdc601a35786de4ee"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-3",
+      "arm": "baseline",
+      "case_id": "prior-findings",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-3/artifacts/prior-findings.md",
+      "sha256": "ce86db0b691cca90feba8b516faaa62c9223d47b753221ca41a8caf085af7331",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "06aee3c766016fb6b2904a049bd4a6a4289df41d18f3f589362eb02aa8c8753f",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"source\":\"standard\",\"title\":\"Missing profile guard in lookup\",\"location\":\"src/function.mjs:4\",\"action\":\"Return the matching user directly without reconstructing it or accessing profile.\"},{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"source\":\"standard\",\"title\":\"Missing matching-user test in lookup\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add a strict-identity assertion for a matching user without profile.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "carried_id": "P2",
+              "action": "Return the matching user directly without reconstructing it or accessing profile.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard"
+            },
+            {
+              "title": "Missing matching-user test in lookup",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a strict-identity assertion for a matching user without profile.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard",
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "action": "Return the matching user directly without reconstructing it or accessing profile."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard",
+              "title": "Missing matching-user test in lookup",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a strict-identity assertion for a matching user without profile."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "8659a348132ce0a2c65c43fd3750f46b7b97a9e311b5cb43b4112bae0ab25851",
+      "persisted_body_sha256": "8659a348132ce0a2c65c43fd3750f46b7b97a9e311b5cb43b4112bae0ab25851"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-4",
+      "arm": "baseline",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-4/artifacts/clean.md",
+      "sha256": "52db3aee631d8f7440e920ddb369657e36d0aa603fb6ee2cfa3ac656b86fba78",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a259924ff34b9cd578919512de89793add8c459d111a3eacd69a7aec31db8305",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "041d815f16b1c8dbaeb21566c8334c4265bbad1c0fd776cf75cd73fa1d94931d",
+      "persisted_body_sha256": "041d815f16b1c8dbaeb21566c8334c4265bbad1c0fd776cf75cd73fa1d94931d"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-4",
+      "arm": "baseline",
+      "case_id": "boundary-bug",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-4/artifacts/boundary-bug.md",
+      "sha256": "c4e672f8108a6c64f5083aa725cb42cd2ef32ed69fb6e9ed1e1cbfc9ac7d9872",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a259924ff34b9cd578919512de89793add8c459d111a3eacd69a7aec31db8305",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality accepted by belowLimit\",\"location\":\"src/function.mjs:1\",\"action\":\"Replace <= with <.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality rejection lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Assert that belowLimit(5,5) returns false.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Equality rejection lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Assert that belowLimit(5,5) returns false.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality rejection lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Assert that belowLimit(5,5) returns false."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "e25cb1043fd5786a62c20773b30298b729ce5b2120b20e3662e52ff9e8e6972e",
+      "persisted_body_sha256": "e25cb1043fd5786a62c20773b30298b729ce5b2120b20e3662e52ff9e8e6972e"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-4",
+      "arm": "baseline",
+      "case_id": "missing-coverage",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-4/artifacts/missing-coverage.md",
+      "sha256": "8ab5b5b6adc7657e3313174a9f702d3bda66eaf8021b4f526a83e414e9443d12",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a259924ff34b9cd578919512de89793add8c459d111a3eacd69a7aec31db8305",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Mixed-case conversion lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that lower('AbC') returns 'abc'.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Mixed-case conversion lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') returns 'abc'.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Mixed-case conversion lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') returns 'abc'."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "0e9a6a5c165a4464f50d58956fc06a2d13503069bf396316af844b4f4c16bd6f",
+      "persisted_body_sha256": "0e9a6a5c165a4464f50d58956fc06a2d13503069bf396316af844b4f4c16bd6f"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-4",
+      "arm": "baseline",
+      "case_id": "planted-fixture",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-4/artifacts/planted-fixture.md",
+      "sha256": "3eaaa0116dca72935e7b57b44b0adc6b7a3f5b150fd8e45ed73e3900b9544eda",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a259924ff34b9cd578919512de89793add8c459d111a3eacd69a7aec31db8305",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "c9a23c7c9033b852a2236ebacd04d27b9e5b8ed42337945e2d9472bdae19ba5b",
+      "persisted_body_sha256": "c9a23c7c9033b852a2236ebacd04d27b9e5b8ed42337945e2d9472bdae19ba5b"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-4",
+      "arm": "baseline",
+      "case_id": "adjacent-low",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-4/artifacts/adjacent-low.md",
+      "sha256": "6339ba380c7f349617a3d9eb9c35946b415fa61abcc3947402a13ecdec7e0765",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a259924ff34b9cd578919512de89793add8c459d111a3eacd69a7aec31db8305",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"minor\",\"source\":\"standard\",\"title\":\"Unrequested comment typo cleanup\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment typo edit while retaining the implementation and tests.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Unrequested comment typo cleanup",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment typo edit while retaining the implementation and tests.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "severity": "minor"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard",
+              "title": "Unrequested comment typo cleanup",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment typo edit while retaining the implementation and tests."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "cc570f1d23ffcaf2d18a33df2aac3adb7523e91262a4350c211b9348abbba05d",
+      "persisted_body_sha256": "cc570f1d23ffcaf2d18a33df2aac3adb7523e91262a4350c211b9348abbba05d"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-4",
+      "arm": "baseline",
+      "case_id": "adjacent-high",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-4/artifacts/adjacent-high.md",
+      "sha256": "11cd4ee456757d25a6157414b2beee399d9d6b3ab2318945b26eb8330c341fe7",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a259924ff34b9cd578919512de89793add8c459d111a3eacd69a7aec31db8305",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "66dc74d73275ed7d9c7223fc3859cf6b6629188ed32f58d507ff1ebbdf3634b4",
+      "persisted_body_sha256": "66dc74d73275ed7d9c7223fc3859cf6b6629188ed32f58d507ff1ebbdf3634b4"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-4",
+      "arm": "baseline",
+      "case_id": "prior-findings",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-4/artifacts/prior-findings.md",
+      "sha256": "db2cf54411b072c3050cd06cb840bcc998babc2c20ef22f6f24cc621961ea99c",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "a259924ff34b9cd578919512de89793add8c459d111a3eacd69a7aec31db8305",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing profile guard in lookup\",\"location\":\"src/function.mjs:4\",\"action\":\"Return the matched user directly without dereferencing profile or constructing a replacement object.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Matching user preservation lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Test a matched user without profile and assert strict identity with the returned object.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "carried_id": "P2",
+              "action": "Return the matched user directly without dereferencing profile or constructing a replacement object.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Matching user preservation lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Test a matched user without profile and assert strict identity with the returned object.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "action": "Return the matched user directly without dereferencing profile or constructing a replacement object."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Matching user preservation lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Test a matched user without profile and assert strict identity with the returned object."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "d6e2bf310db4bf633fefeaafc80638d9d9adf8a50476b6f13a92f448e7089249",
+      "persisted_body_sha256": "d6e2bf310db4bf633fefeaafc80638d9d9adf8a50476b6f13a92f448e7089249"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-5",
+      "arm": "baseline",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-5/artifacts/clean.md",
+      "sha256": "b088e7992b7d56799359bd6c2d43d162007d1624f573b1363aa4f408b99ea90c",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "713a3f94db9ff20757297e7170a316b2b5b7f808f0c63f4f8f8f650fbcb718c8",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "3dd3b88201805d8ecfd2cabe697f68a1c16839f76cd0eb2ca2507517ac380223",
+      "persisted_body_sha256": "3dd3b88201805d8ecfd2cabe697f68a1c16839f76cd0eb2ca2507517ac380223"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-5",
+      "arm": "baseline",
+      "case_id": "boundary-bug",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-5/artifacts/boundary-bug.md",
+      "sha256": "67c5539fff5bbe06797ea061abc6c057bc78c132a238373dbc221e6505cb8f80",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "713a3f94db9ff20757297e7170a316b2b5b7f808f0c63f4f8f8f650fbcb718c8",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"source\":\"standard\",\"title\":\"Equality accepted by belowLimit\",\"location\":\"src/function.mjs:1\",\"action\":\"Replace <= with <.\"},{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"source\":\"standard\",\"title\":\"Equality rejection lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Assert that belowLimit(5,5) is false.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard"
+            },
+            {
+              "title": "Equality rejection lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Assert that belowLimit(5,5) is false.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard",
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard",
+              "title": "Equality rejection lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Assert that belowLimit(5,5) is false."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "82161749116e379c79caffa1f923dee57192fc7bbf8127a36b473acf0c2be852",
+      "persisted_body_sha256": "82161749116e379c79caffa1f923dee57192fc7bbf8127a36b473acf0c2be852"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-5",
+      "arm": "baseline",
+      "case_id": "missing-coverage",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-5/artifacts/missing-coverage.md",
+      "sha256": "df589764831dc07d2fe01b2e93e38562ba83abdd14de1d8433edeab7b33684e6",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "713a3f94db9ff20757297e7170a316b2b5b7f808f0c63f4f8f8f650fbcb718c8",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"source\":\"standard\",\"title\":\"Mixed-case conversion lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that lower('AbC') returns 'abc'.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Mixed-case conversion lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') returns 'abc'.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard",
+              "title": "Mixed-case conversion lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') returns 'abc'."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "c8ae9c4b1f6eed57e46cc21ab60f895b657437482b6543239bf6afab9b5f7713",
+      "persisted_body_sha256": "c8ae9c4b1f6eed57e46cc21ab60f895b657437482b6543239bf6afab9b5f7713"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-5",
+      "arm": "baseline",
+      "case_id": "planted-fixture",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-5/artifacts/planted-fixture.md",
+      "sha256": "03b76e3e2dfa2d228436f842dce6b0d01ec84525ef7bf2f51fdcc58f256c9e9c",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "713a3f94db9ff20757297e7170a316b2b5b7f808f0c63f4f8f8f650fbcb718c8",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "50f51845495ae7d4290d054a8a38e0972791950aad7cb0fd7be5e448708c8935",
+      "persisted_body_sha256": "50f51845495ae7d4290d054a8a38e0972791950aad7cb0fd7be5e448708c8935"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-5",
+      "arm": "baseline",
+      "case_id": "adjacent-low",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-5/artifacts/adjacent-low.md",
+      "sha256": "ff372eee5b7f620fe7ab83bfb52ac904c6bf325b234c9ed8c29d8c8603b50b6a",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "713a3f94db9ff20757297e7170a316b2b5b7f808f0c63f4f8f8f650fbcb718c8",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"minor\",\"source\":\"standard\",\"title\":\"Unrequested comment correction\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment typo correction while retaining the multiplication fix and test.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Unrequested comment correction",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment typo correction while retaining the multiplication fix and test.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard",
+              "title": "Unrequested comment correction",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment typo correction while retaining the multiplication fix and test."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "856119b90ad011e36f6f5a56426cc8cbb9ba7b6b11aef5e6b3bc387db7e7f8cb",
+      "persisted_body_sha256": "856119b90ad011e36f6f5a56426cc8cbb9ba7b6b11aef5e6b3bc387db7e7f8cb"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-5",
+      "arm": "baseline",
+      "case_id": "adjacent-high",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-5/artifacts/adjacent-high.md",
+      "sha256": "989cb723fb306ea5364b4af602fce63d7d9fb02c7d1143109552e63e34eafd46",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "713a3f94db9ff20757297e7170a316b2b5b7f808f0c63f4f8f8f650fbcb718c8",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "b061f394a29cb55cafc9f8d7abfac682509b5fc8fa1979cdf17fc68fd89f5c9c",
+      "persisted_body_sha256": "b061f394a29cb55cafc9f8d7abfac682509b5fc8fa1979cdf17fc68fd89f5c9c"
+    },
+    {
+      "name": "review-producer-astra-v3-baseline-5",
+      "arm": "baseline",
+      "case_id": "prior-findings",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v3-baseline-5/artifacts/prior-findings.md",
+      "sha256": "0262140614da3a3830a6d2fcefaa6a666506d6be59bb652da9189c16991a4a49",
+      "report_sha256": "e626ff2ee4fa5b7507fd6a92d88cd1e82a7d78f24f6244564fe63b300f724b92",
+      "native_audit_sha256": "713a3f94db9ff20757297e7170a316b2b5b7f808f0c63f4f8f8f650fbcb718c8",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"source\":\"standard\",\"title\":\"Missing profile guard in lookup\",\"location\":\"src/function.mjs:4\",\"action\":\"Return the matched user directly without dereferencing profile or rebuilding the object.\"},{\"location_present\":true,\"action_present\":true,\"severity\":\"major\",\"source\":\"standard\",\"title\":\"Matching-user preservation lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Assert strict identity for matching users with and without profile and with an additional field.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "carried_id": "P2",
+              "action": "Return the matched user directly without dereferencing profile or rebuilding the object.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard"
+            },
+            {
+              "title": "Matching-user preservation lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Assert strict identity for matching users with and without profile and with an additional field.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard",
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "action": "Return the matched user directly without dereferencing profile or rebuilding the object."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "major",
+              "source": "standard",
+              "title": "Matching-user preservation lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Assert strict identity for matching users with and without profile and with an additional field."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "ec6cfc2ee3be95f3cf017322b073f80448549b476200674fa2dc105e5e388c5f",
+      "persisted_body_sha256": "ec6cfc2ee3be95f3cf017322b073f80448549b476200674fa2dc105e5e388c5f"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-1",
+      "arm": "candidate",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-1/artifacts/clean.md",
+      "sha256": "7a991fabeccf93239121c96ec3fe094f11414c1cb84b7299b1e838d1de6b4f14",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "c032198921b48f92d9d33fa3b46022b0dbd3f8428ad1fec87bd694e8318328b5",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "f5b0f9f156268a8a3f00c87de69d558ff81dc3cf8e869419de5774e7347319b5",
+      "persisted_body_sha256": "f5b0f9f156268a8a3f00c87de69d558ff81dc3cf8e869419de5774e7347319b5"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-1",
+      "arm": "candidate",
+      "case_id": "boundary-bug",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-1/artifacts/boundary-bug.md",
+      "sha256": "cbc473c7d3c4c6b8c40a7c692969890bdd93cfc4cf5a50b0ca490cafc7be4c47",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "c032198921b48f92d9d33fa3b46022b0dbd3f8428ad1fec87bd694e8318328b5",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality accepted by belowLimit\",\"location\":\"src/function.mjs:1\",\"action\":\"Replace <= with <.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality rejection lacks a test\",\"location\":\"test/function.test.mjs:4\",\"action\":\"Add an assertion that belowLimit(5,5) returns false.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Equality rejection lacks a test",
+              "location": "test/function.test.mjs:4",
+              "action": "Add an assertion that belowLimit(5,5) returns false.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality rejection lacks a test",
+              "location": "test/function.test.mjs:4",
+              "action": "Add an assertion that belowLimit(5,5) returns false."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "f689147d229089b4aefd92bcf51e5bcad9fd45f6a6106be6f60e9bec2db03f81",
+      "persisted_body_sha256": "f689147d229089b4aefd92bcf51e5bcad9fd45f6a6106be6f60e9bec2db03f81"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-1",
+      "arm": "candidate",
+      "case_id": "missing-coverage",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-1/artifacts/missing-coverage.md",
+      "sha256": "fd53f35aa1d45487f202ea6cd3243be711a8ccb31f64654ee316140b6915b3a7",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "c032198921b48f92d9d33fa3b46022b0dbd3f8428ad1fec87bd694e8318328b5",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Mixed-case lower conversion lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that lower('AbC') returns 'abc'.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Mixed-case lower conversion lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') returns 'abc'.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Mixed-case lower conversion lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') returns 'abc'."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "733e75848f54f958bdf420b94f126c8de9f2c9ebfafcd6a9875f4d1b6d9d6665",
+      "persisted_body_sha256": "733e75848f54f958bdf420b94f126c8de9f2c9ebfafcd6a9875f4d1b6d9d6665"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-1",
+      "arm": "candidate",
+      "case_id": "planted-fixture",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-1/artifacts/planted-fixture.md",
+      "sha256": "6c6dd49867dd598f7a918d80698adab789f7f5bd7d1fbf6e8d8e87f773bfa479",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "c032198921b48f92d9d33fa3b46022b0dbd3f8428ad1fec87bd694e8318328b5",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "a8db2f42fb5cef27a7088ffcc32bdd7a66c0983df5ac9bcd9ca26e647e239e47",
+      "persisted_body_sha256": "a8db2f42fb5cef27a7088ffcc32bdd7a66c0983df5ac9bcd9ca26e647e239e47"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-1",
+      "arm": "candidate",
+      "case_id": "adjacent-low",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-1/artifacts/adjacent-low.md",
+      "sha256": "680f5ee69e052fdb7432b2dfa89426e5d243dd1f6c3d7c8b9f954c3bf0a3b05e",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "c032198921b48f92d9d33fa3b46022b0dbd3f8428ad1fec87bd694e8318328b5",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Unrequested multiply comment correction\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment correction while retaining the product implementation and tests.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Unrequested multiply comment correction",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment correction while retaining the product implementation and tests.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Unrequested multiply comment correction",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment correction while retaining the product implementation and tests."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "d8386371c069349db29b809b2c166e085833d3c02a2283c9f449b2355059d6ac",
+      "persisted_body_sha256": "d8386371c069349db29b809b2c166e085833d3c02a2283c9f449b2355059d6ac"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-1",
+      "arm": "candidate",
+      "case_id": "adjacent-high",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-1/artifacts/adjacent-high.md",
+      "sha256": "252ff1ef42b6c567347015123517603a83e62ef6c973c9244aac09f4480d88f0",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "c032198921b48f92d9d33fa3b46022b0dbd3f8428ad1fec87bd694e8318328b5",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "78bbbf9b1c59ab466fa06d37969f1c79c43e756d64a5341fdc601a35786de4ee",
+      "persisted_body_sha256": "78bbbf9b1c59ab466fa06d37969f1c79c43e756d64a5341fdc601a35786de4ee"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-1",
+      "arm": "candidate",
+      "case_id": "prior-findings",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-1/artifacts/prior-findings.md",
+      "sha256": "18a364b57f78dc2797fd9b370751f540df6010729da5eb941f0dfe80831acb36",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "c032198921b48f92d9d33fa3b46022b0dbd3f8428ad1fec87bd694e8318328b5",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing profile guard in lookup\",\"location\":\"src/function.mjs:4\",\"action\":\"Return user directly without accessing profile.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Matching lookup result lacks a test\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add a matching user without a profile and assert that lookup returns the same object unchanged.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "carried_id": "P2",
+              "action": "Return user directly without accessing profile.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Matching lookup result lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a matching user without a profile and assert that lookup returns the same object unchanged.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "action": "Return user directly without accessing profile."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Matching lookup result lacks a test",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a matching user without a profile and assert that lookup returns the same object unchanged."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "c964a195be1004a059c5c424ec72274746867ea3fc1f067fc2705f1ac166603b",
+      "persisted_body_sha256": "c964a195be1004a059c5c424ec72274746867ea3fc1f067fc2705f1ac166603b"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-2",
+      "arm": "candidate",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-2/artifacts/clean.md",
+      "sha256": "3ad0e3db6c99151658767f03b0134e7298701b9ab4e7d682229745cef6ec45ce",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "430553e199ded89506ef366f519e4001b6a74b46d29b865d3b6ff59b8cddfc4e",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "74fbdc433dec95d1a31f26e9bdbdf99a7ef458079d463c59b53c963d835ad30f",
+      "persisted_body_sha256": "74fbdc433dec95d1a31f26e9bdbdf99a7ef458079d463c59b53c963d835ad30f"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-2",
+      "arm": "candidate",
+      "case_id": "boundary-bug",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-2/artifacts/boundary-bug.md",
+      "sha256": "fc6e099b1e5deaa878e95b1a91114a7e49f6cde0f8d0976b52199e35f1272ea8",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "430553e199ded89506ef366f519e4001b6a74b46d29b865d3b6ff59b8cddfc4e",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"belowLimit accepts equality\",\"location\":\"src/function.mjs:1\",\"action\":\"Replace <= with <.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"belowLimit equality test missing\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that belowLimit(5,5) is false.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "belowLimit accepts equality",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "belowLimit equality test missing",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that belowLimit(5,5) is false.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "belowLimit accepts equality",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "belowLimit equality test missing",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that belowLimit(5,5) is false."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "ace9166f2fedddf33e63138530a74391946eacbad66329bab9bf4b4a96f2bd22",
+      "persisted_body_sha256": "ace9166f2fedddf33e63138530a74391946eacbad66329bab9bf4b4a96f2bd22"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-2",
+      "arm": "candidate",
+      "case_id": "missing-coverage",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-2/artifacts/missing-coverage.md",
+      "sha256": "aa9ab12ba853b879095aed541b404ec389ef98dad2453d55c661450d21c8d30f",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "430553e199ded89506ef366f519e4001b6a74b46d29b865d3b6ff59b8cddfc4e",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"lower mixed-case test missing\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that lower('AbC') returns 'abc'.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "lower mixed-case test missing",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') returns 'abc'.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "lower mixed-case test missing",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') returns 'abc'."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "0938f77e85999a251a1815d5106c45b0ec671eeff66df7458d426d1d226fa0fa",
+      "persisted_body_sha256": "0938f77e85999a251a1815d5106c45b0ec671eeff66df7458d426d1d226fa0fa"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-2",
+      "arm": "candidate",
+      "case_id": "planted-fixture",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-2/artifacts/planted-fixture.md",
+      "sha256": "0fa3e05903286c6dfcde7a3f1110daa6b0bc71cdd82f9a10b0f6911155e3681d",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "430553e199ded89506ef366f519e4001b6a74b46d29b865d3b6ff59b8cddfc4e",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "475277bf1e538deae964b7495d3d1ca466ecff4d080b659b4b749c8ac573be3a",
+      "persisted_body_sha256": "475277bf1e538deae964b7495d3d1ca466ecff4d080b659b4b749c8ac573be3a"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-2",
+      "arm": "candidate",
+      "case_id": "adjacent-low",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-2/artifacts/adjacent-low.md",
+      "sha256": "0a2886c26beda49d95b3fb95aaa9d7445781007309760e7d8a3db17a382f5950",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "430553e199ded89506ef366f519e4001b6a74b46d29b865d3b6ff59b8cddfc4e",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"minor\",\"source\":\"standard\",\"title\":\"multiply comment cleanup outside scope\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment spelling change while retaining the multiplication fix and tests.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "multiply comment cleanup outside scope",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment spelling change while retaining the multiplication fix and tests.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard",
+              "title": "multiply comment cleanup outside scope",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment spelling change while retaining the multiplication fix and tests."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "b7adcd96ce5bdbced1c36f4feeae7354203c0c5a4388a28e036f3c0e9608b59d",
+      "persisted_body_sha256": "b7adcd96ce5bdbced1c36f4feeae7354203c0c5a4388a28e036f3c0e9608b59d"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-2",
+      "arm": "candidate",
+      "case_id": "adjacent-high",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-2/artifacts/adjacent-high.md",
+      "sha256": "1b9a175c4a14b43a2e9a4b2decd590971e5bb5aa410b24267a403f78c0fad26b",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "430553e199ded89506ef366f519e4001b6a74b46d29b865d3b6ff59b8cddfc4e",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "1602ea6cb2c8503685fd222597a8ee5e162313fdf551562fe031c5ecce73af9a",
+      "persisted_body_sha256": "1602ea6cb2c8503685fd222597a8ee5e162313fdf551562fe031c5ecce73af9a"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-2",
+      "arm": "candidate",
+      "case_id": "prior-findings",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-2/artifacts/prior-findings.md",
+      "sha256": "6f33d62382f479531aa29817772dbaa10b3d8bcdee8312bc9b604d6f0a90559a",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "430553e199ded89506ef366f519e4001b6a74b46d29b865d3b6ff59b8cddfc4e",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing profile guard in lookup\",\"location\":\"src/function.mjs:4\",\"action\":\"Return user directly to preserve identity and fields without accessing profile.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"lookup matching-user test missing\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add a strict identity assertion for a matching user without a profile.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "carried_id": "P2",
+              "action": "Return user directly to preserve identity and fields without accessing profile.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "lookup matching-user test missing",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a strict identity assertion for a matching user without a profile.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "action": "Return user directly to preserve identity and fields without accessing profile."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "lookup matching-user test missing",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a strict identity assertion for a matching user without a profile."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "9318b11cd86995887cf01f41039d93f57d6f762704fe4e9904f34cc24096d6ca",
+      "persisted_body_sha256": "9318b11cd86995887cf01f41039d93f57d6f762704fe4e9904f34cc24096d6ca"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-3",
+      "arm": "candidate",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-3/artifacts/clean.md",
+      "sha256": "629f6e3895b56e6dc79fde17f6a8ba3f64bd6d88478b9bb939ff24c6a8110b24",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "f019f0fe59c86f501d07a4f4422b1ab6601b94965216b8791b8cf48060b132e2",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "ba46b2ed5c5db0b15f5993ab311b434eb5016b92bfb3f1d7327eea99f2c1f1b6",
+      "persisted_body_sha256": "ba46b2ed5c5db0b15f5993ab311b434eb5016b92bfb3f1d7327eea99f2c1f1b6"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-3",
+      "arm": "candidate",
+      "case_id": "boundary-bug",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-3/artifacts/boundary-bug.md",
+      "sha256": "5a1c1651f0ea54d3d11153a2eaab21c362549e9e08450fc787139aca01dab2cf",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "f019f0fe59c86f501d07a4f4422b1ab6601b94965216b8791b8cf48060b132e2",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality accepted by belowLimit\",\"location\":\"src/function.mjs:1\",\"action\":\"Replace <= with <.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing equality test for belowLimit\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that belowLimit(5,5) is false.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Missing equality test for belowLimit",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that belowLimit(5,5) is false.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing equality test for belowLimit",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that belowLimit(5,5) is false."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "64c6e044ea1edbd8fefa8185bdcfcb6f8795d6c973eb1003d84fb6c448b7d465",
+      "persisted_body_sha256": "64c6e044ea1edbd8fefa8185bdcfcb6f8795d6c973eb1003d84fb6c448b7d465"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-3",
+      "arm": "candidate",
+      "case_id": "missing-coverage",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-3/artifacts/missing-coverage.md",
+      "sha256": "24a6f3364f79ad9f00b939ea42ac357f5b0d6d6fada82cd99055a128ddf57329",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "f019f0fe59c86f501d07a4f4422b1ab6601b94965216b8791b8cf48060b132e2",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing mixed-case test for lower\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that lower('AbC') returns 'abc'.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing mixed-case test for lower",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') returns 'abc'.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing mixed-case test for lower",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') returns 'abc'."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "0a52ed441be073c12a486fb26a11480ac2733cdd308ee539995efbb6facadc0a",
+      "persisted_body_sha256": "0a52ed441be073c12a486fb26a11480ac2733cdd308ee539995efbb6facadc0a"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-3",
+      "arm": "candidate",
+      "case_id": "planted-fixture",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-3/artifacts/planted-fixture.md",
+      "sha256": "d8490f9af652e9966e22a723df8a6c969d114c5635b105b13aaf1fe784121491",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "f019f0fe59c86f501d07a4f4422b1ab6601b94965216b8791b8cf48060b132e2",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "d35b3aa10cc51e1518f24c8a67ba41c0493fdb4cd875cb459839bcb9e9f8caea",
+      "persisted_body_sha256": "d35b3aa10cc51e1518f24c8a67ba41c0493fdb4cd875cb459839bcb9e9f8caea"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-3",
+      "arm": "candidate",
+      "case_id": "adjacent-low",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-3/artifacts/adjacent-low.md",
+      "sha256": "4d4a46a940f537044e49edf094145b57628b7d562c98584f0adec94f99ff8fc9",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "f019f0fe59c86f501d07a4f4422b1ab6601b94965216b8791b8cf48060b132e2",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"minor\",\"source\":\"standard\",\"title\":\"Unrequested comment correction beside multiply\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment correction while retaining the product implementation and tests.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Unrequested comment correction beside multiply",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment correction while retaining the product implementation and tests.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard",
+              "title": "Unrequested comment correction beside multiply",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment correction while retaining the product implementation and tests."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "056faaecfd437a83c52d30e8d787e2cb9f344e56c4d99aa4696b89c8b3f93d75",
+      "persisted_body_sha256": "056faaecfd437a83c52d30e8d787e2cb9f344e56c4d99aa4696b89c8b3f93d75"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-3",
+      "arm": "candidate",
+      "case_id": "adjacent-high",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-3/artifacts/adjacent-high.md",
+      "sha256": "ecc69b67b243f8c1c1f5d8a3de385442e6491e00c0645cf5c4ba525a9a9abd7f",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "f019f0fe59c86f501d07a4f4422b1ab6601b94965216b8791b8cf48060b132e2",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "59e27ee9657e324600282b728d5790348a393db0c44d7aa44a479ea0bcf3ad59",
+      "persisted_body_sha256": "59e27ee9657e324600282b728d5790348a393db0c44d7aa44a479ea0bcf3ad59"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-3",
+      "arm": "candidate",
+      "case_id": "prior-findings",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-3/artifacts/prior-findings.md",
+      "sha256": "c17e04894d39009c212b8021a12880a6b1bce80c70c49552b7fe60c1dc0ead1b",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "f019f0fe59c86f501d07a4f4422b1ab6601b94965216b8791b8cf48060b132e2",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing profile guard in lookup\",\"location\":\"src/function.mjs:4\",\"action\":\"Return user directly without dereferencing profile.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing matching-user test for lookup\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add a strict identity assertion that lookup returns the matching user unchanged, using a user without a profile.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "carried_id": "P2",
+              "action": "Return user directly without dereferencing profile.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Missing matching-user test for lookup",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a strict identity assertion that lookup returns the matching user unchanged, using a user without a profile.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "action": "Return user directly without dereferencing profile."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing matching-user test for lookup",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a strict identity assertion that lookup returns the matching user unchanged, using a user without a profile."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "c0a8da4caa36e4f9dc67804b7474a3d8a9453aa7313bdf29ff1393d0ad36f1e2",
+      "persisted_body_sha256": "c0a8da4caa36e4f9dc67804b7474a3d8a9453aa7313bdf29ff1393d0ad36f1e2"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-4",
+      "arm": "candidate",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-4/artifacts/clean.md",
+      "sha256": "c516301670f8fd5f03e53a3c62cb15f62abcc23c5e3dde39f6d7225c7312fedb",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "dbb09533ebf183579f9c1d7081c3e1ca86780d6219a2a570cafabcccc72616b9",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "ff4de7f4224420225fbd84e5d3e7316aff58704e779220b05ea4af4d923ab45b",
+      "persisted_body_sha256": "ff4de7f4224420225fbd84e5d3e7316aff58704e779220b05ea4af4d923ab45b"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-4",
+      "arm": "candidate",
+      "case_id": "boundary-bug",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-4/artifacts/boundary-bug.md",
+      "sha256": "523fb0e7c67a0a554eb46b35e6aff55cf0cd97c996442bdb5ca7d7848819d11b",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "dbb09533ebf183579f9c1d7081c3e1ca86780d6219a2a570cafabcccc72616b9",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality accepted by belowLimit\",\"location\":\"src/function.mjs:1\",\"action\":\"Replace <= with <.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality rejection untested in belowLimit\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that belowLimit(5,5) is false.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Equality rejection untested in belowLimit",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that belowLimit(5,5) is false.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality rejection untested in belowLimit",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that belowLimit(5,5) is false."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "9e9ebf10cf1ccc22144ccc21604a02c4603011165ddb5b340e96f504dac565e1",
+      "persisted_body_sha256": "9e9ebf10cf1ccc22144ccc21604a02c4603011165ddb5b340e96f504dac565e1"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-4",
+      "arm": "candidate",
+      "case_id": "missing-coverage",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-4/artifacts/missing-coverage.md",
+      "sha256": "165f589f1ae398f272ade946f0820c85f0f8a80659380497e9c1871f7fc66481",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "dbb09533ebf183579f9c1d7081c3e1ca86780d6219a2a570cafabcccc72616b9",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Mixed-case conversion untested in lower\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that lower('AbC') equals 'abc'.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Mixed-case conversion untested in lower",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') equals 'abc'.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Mixed-case conversion untested in lower",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') equals 'abc'."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "c87002f4239956dda4dec7a357984b770316b86868aafc07a30f8804d7dc797f",
+      "persisted_body_sha256": "c87002f4239956dda4dec7a357984b770316b86868aafc07a30f8804d7dc797f"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-4",
+      "arm": "candidate",
+      "case_id": "planted-fixture",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-4/artifacts/planted-fixture.md",
+      "sha256": "bf2d42b1cc469c6ece603b042fb80435bf4f582675ba78da1a7ecc498e16e9e6",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "dbb09533ebf183579f9c1d7081c3e1ca86780d6219a2a570cafabcccc72616b9",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "cdb41ec32959bc52e958eef1424a372d3b122dc536aa46143544bbaa9f1a0895",
+      "persisted_body_sha256": "cdb41ec32959bc52e958eef1424a372d3b122dc536aa46143544bbaa9f1a0895"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-4",
+      "arm": "candidate",
+      "case_id": "adjacent-low",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-4/artifacts/adjacent-low.md",
+      "sha256": "d9e88f9bc29732a28c01955a66c053f7f1c514f50e2a84310a3d646545513ffd",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "dbb09533ebf183579f9c1d7081c3e1ca86780d6219a2a570cafabcccc72616b9",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"severity\":\"minor\",\"source\":\"standard\",\"title\":\"Unrequested comment cleanup beside multiply\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment-only change while retaining the multiplication fix and test.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Unrequested comment cleanup beside multiply",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment-only change while retaining the multiplication fix and test.",
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "severity": "minor",
+              "source": "standard",
+              "title": "Unrequested comment cleanup beside multiply",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment-only change while retaining the multiplication fix and test."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "941b4917babf0f6968f521ef0bb1c70001d99843300cf6466ffa6b4f48743bdf",
+      "persisted_body_sha256": "941b4917babf0f6968f521ef0bb1c70001d99843300cf6466ffa6b4f48743bdf"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-4",
+      "arm": "candidate",
+      "case_id": "adjacent-high",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-4/artifacts/adjacent-high.md",
+      "sha256": "02445c9c102188da3e6ffbe6db24b2bb1c2ac22cfd5f7aa3c320712f6f43bc40",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "dbb09533ebf183579f9c1d7081c3e1ca86780d6219a2a570cafabcccc72616b9",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "837da1c2bd8ce0f8459010d714940d2587c3a8a855df05d562ef1e15bc279a55",
+      "persisted_body_sha256": "837da1c2bd8ce0f8459010d714940d2587c3a8a855df05d562ef1e15bc279a55"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-4",
+      "arm": "candidate",
+      "case_id": "prior-findings",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-4/artifacts/prior-findings.md",
+      "sha256": "4a4971a7c0450a127b20b4ef9ee39d859f2ac86b4e52f2f58dfa1b4a6f424474",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "dbb09533ebf183579f9c1d7081c3e1ca86780d6219a2a570cafabcccc72616b9",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing profile guard in lookup\",\"location\":\"src/function.mjs:4\",\"action\":\"Return user directly to preserve the object and avoid the optional-profile dereference.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Matching-user preservation untested in lookup\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add a strict identity assertion for a matching user without profile.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "carried_id": "P2",
+              "action": "Return user directly to preserve the object and avoid the optional-profile dereference.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Matching-user preservation untested in lookup",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a strict identity assertion for a matching user without profile.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "action": "Return user directly to preserve the object and avoid the optional-profile dereference."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Matching-user preservation untested in lookup",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a strict identity assertion for a matching user without profile."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "a4667d4dffdcedcaebaa3bd13b006550d83db4455ebc5cdc54ca0c7950248bd5",
+      "persisted_body_sha256": "a4667d4dffdcedcaebaa3bd13b006550d83db4455ebc5cdc54ca0c7950248bd5"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-5",
+      "arm": "candidate",
+      "case_id": "clean",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-5/artifacts/clean.md",
+      "sha256": "0c384008c5a1ff75f09c4ee25775dcccc13514fd90c3c0646435ae3fb038dd3c",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "ef10267436c886443ac2b3f97d08a7b64e3364459da7b6f230326c17ee74c7dd",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "a06df45fa9dad9e611188ba5f5756c3c6c75ddd6e1f2bfb4756c154a9aad9d9b",
+      "persisted_body_sha256": "a06df45fa9dad9e611188ba5f5756c3c6c75ddd6e1f2bfb4756c154a9aad9d9b"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-5",
+      "arm": "candidate",
+      "case_id": "boundary-bug",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-5/artifacts/boundary-bug.md",
+      "sha256": "410280ef4a845c7c3a30ec6b8ba1ddbec127874004be7c77d2aa52ad04052a9d",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "ef10267436c886443ac2b3f97d08a7b64e3364459da7b6f230326c17ee74c7dd",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Equality accepted by belowLimit\",\"location\":\"src/function.mjs:1\",\"action\":\"Replace <= with <.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing equality test for belowLimit\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that belowLimit(5,5) is false.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Missing equality test for belowLimit",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that belowLimit(5,5) is false.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Equality accepted by belowLimit",
+              "location": "src/function.mjs:1",
+              "action": "Replace <= with <."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing equality test for belowLimit",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that belowLimit(5,5) is false."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "2a109e5127ae2362bab052e27ab2dcf19bf7ad03098b9a651e67102c47640797",
+      "persisted_body_sha256": "2a109e5127ae2362bab052e27ab2dcf19bf7ad03098b9a651e67102c47640797"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-5",
+      "arm": "candidate",
+      "case_id": "missing-coverage",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-5/artifacts/missing-coverage.md",
+      "sha256": "dc87eeb83fbc3e7a2867bed8e3e12d3728cf628a810cc3125b1e5bba4f643609",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "ef10267436c886443ac2b3f97d08a7b64e3364459da7b6f230326c17ee74c7dd",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing mixed-case test for lower\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add an assertion that lower('AbC') equals 'abc'.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing mixed-case test for lower",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') equals 'abc'.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing mixed-case test for lower",
+              "location": "test/function.test.mjs:3",
+              "action": "Add an assertion that lower('AbC') equals 'abc'."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "7aef58e6feadf132070c1f7ee0764a92a463e8c667a1912c9f7289f0baa1da5e",
+      "persisted_body_sha256": "7aef58e6feadf132070c1f7ee0764a92a463e8c667a1912c9f7289f0baa1da5e"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-5",
+      "arm": "candidate",
+      "case_id": "planted-fixture",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-5/artifacts/planted-fixture.md",
+      "sha256": "29e4b71a27e4be9fb599410c9d1129e51beca493089702d0294372b49112bb73",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "ef10267436c886443ac2b3f97d08a7b64e3364459da7b6f230326c17ee74c7dd",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "80de2ac5666064c4cdf6469a26f5edb70ad18f4a3050fe307911101852e51310",
+      "persisted_body_sha256": "80de2ac5666064c4cdf6469a26f5edb70ad18f4a3050fe307911101852e51310"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-5",
+      "arm": "candidate",
+      "case_id": "adjacent-low",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-5/artifacts/adjacent-low.md",
+      "sha256": "6a8862ae7ae9e60d0cce295947caae03e6d6d9e4debfc9dbf25332965d137c60",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "ef10267436c886443ac2b3f97d08a7b64e3364459da7b6f230326c17ee74c7dd",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Unrequested comment cleanup in multiply\",\"location\":\"src/function.mjs:1\",\"action\":\"Revert the comment-only typo correction.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Unrequested comment cleanup in multiply",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment-only typo correction.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Unrequested comment cleanup in multiply",
+              "location": "src/function.mjs:1",
+              "action": "Revert the comment-only typo correction."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "646409c2bb35766b57d1a926b93ac6f7e9813bef87c7351499fb90a08de52b9c",
+      "persisted_body_sha256": "646409c2bb35766b57d1a926b93ac6f7e9813bef87c7351499fb90a08de52b9c"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-5",
+      "arm": "candidate",
+      "case_id": "adjacent-high",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-5/artifacts/adjacent-high.md",
+      "sha256": "196ec61c5d0c2c58cdd9f18169d9a4e1afb142df0a337b570c82d28543358f74",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "ef10267436c886443ac2b3f97d08a7b64e3364459da7b6f230326c17ee74c7dd",
+      "status": "pass",
+      "signal": "pass",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "pass",
+          "findings": []
+        },
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "f041c1e10f9c382124582dfdf615c4f845d1785ba8e597b575404c08aa2da5c1",
+      "persisted_body_sha256": "f041c1e10f9c382124582dfdf615c4f845d1785ba8e597b575404c08aa2da5c1"
+    },
+    {
+      "name": "review-producer-astra-v4-candidate-5",
+      "arm": "candidate",
+      "case_id": "prior-findings",
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/review-producer-astra-v4-candidate-5/artifacts/prior-findings.md",
+      "sha256": "1f74a89189d65e69fcf7b5d075f8cb38cf6f93dbb463e93077d63b6cbca152d0",
+      "report_sha256": "4242ff3cbff128f9e94f247fc1e62a1fcd529c4e12f72ccee57ee0f175fcfe90",
+      "native_audit_sha256": "ef10267436c886443ac2b3f97d08a7b64e3364459da7b6f230326c17ee74c7dd",
+      "status": "pass",
+      "signal": "fail",
+      "consumer": {
+        "pass": true,
+        "args": [
+          "contract",
+          "review-verdict"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"fail\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing profile guard in lookup\",\"location\":\"src/function.mjs:4\",\"action\":\"Return user directly without dereferencing profile or constructing a replacement object.\"},{\"location_present\":true,\"action_present\":true,\"source\":\"standard\",\"title\":\"Missing matching-user test for lookup\",\"location\":\"test/function.test.mjs:3\",\"action\":\"Add a strict identity assertion for a matching user without a profile.\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "producer_value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "carried_id": "P2",
+              "action": "Return user directly without dereferencing profile or constructing a replacement object.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            },
+            {
+              "title": "Missing matching-user test for lookup",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a strict identity assertion for a matching user without a profile.",
+              "location_present": true,
+              "action_present": true,
+              "source": "standard"
+            }
+          ]
+        },
+        "value": {
+          "signal": "fail",
+          "findings": [
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing profile guard in lookup",
+              "location": "src/function.mjs:4",
+              "action": "Return user directly without dereferencing profile or constructing a replacement object."
+            },
+            {
+              "location_present": true,
+              "action_present": true,
+              "source": "standard",
+              "title": "Missing matching-user test for lookup",
+              "location": "test/function.test.mjs:3",
+              "action": "Add a strict identity assertion for a matching user without a profile."
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "handoff": "followed",
+      "reads": 2,
+      "acknowledged_writes": 1,
+      "expected_body_sha256": "445859efc73c52c56fb71e559a21f1f235f2cab4485aefde406b0b84469f4faa",
+      "persisted_body_sha256": "445859efc73c52c56fb71e559a21f1f235f2cab4485aefde406b0b84469f4faa"
+    }
+  ],
+  "limits": [
+    "Deterministic replay of actual measured producer artifacts through the real review-verdict CLI and stored-comment connector with a subprocess fixture tracker.",
+    "The controlled caller performs prepare/apply/finish. This does not measure model selection of those calls, full graft orchestration, or hosted tracker behaviour.",
+    "The two mutation checks require escaped output and normalised outside-region CRLF to differ from the independent literal byte oracle."
+  ]
+}

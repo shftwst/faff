@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"slot-cache","value":{"validations_first_run":1,"validations_new_run":1,"record_path_pattern":".faff/runs/<run-id>/slot-validation.md","config_can_disable_validation":false}}}

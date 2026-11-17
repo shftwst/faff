@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"delivery-cleanup","value":{"ship_cleans_own_temp":true,"ship_tears_down_worktree":false,"graft_owns_worktree_lifecycle":true,"uncorroborated_shipped_trusted":false}}}

@@ -1,0 +1,152 @@
+{
+  "cases": [
+    {
+      "id": "case-a",
+      "actions": [
+        {
+          "name": "offer_onboarding",
+          "message": "No faff config found. Set up faff for this repo now? (y/n)"
+        },
+        {
+          "name": "run_faff",
+          "args": [
+            "config",
+            "init",
+            "--set",
+            "tracking.spec_docs_path="
+          ]
+        },
+        {
+          "name": "run_faff",
+          "args": [
+            "gitignore-ensure"
+          ]
+        },
+        {
+          "name": "run_faff",
+          "args": [
+            "hooks-ensure"
+          ]
+        },
+        {
+          "name": "invoke_skill",
+          "skill": "faff-wtf",
+          "args": []
+        }
+      ],
+      "final_files": {
+        ".claude/settings.json": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  }\n}\n",
+        ".faff/.gitignore": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n",
+        ".faff/config.yaml": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n",
+        "keep.txt": "Unrelated project content.\n"
+      },
+      "no_write": false,
+      "path_exit": 3
+    },
+    {
+      "id": "case-b",
+      "actions": [
+        {
+          "name": "offer_onboarding",
+          "message": "No faff config found. Set up faff for this repo now? (y/n)"
+        },
+        {
+          "name": "run_faff",
+          "args": [
+            "config",
+            "init",
+            "--set",
+            "tracking.spec_docs_path="
+          ]
+        },
+        {
+          "name": "run_faff",
+          "args": [
+            "gitignore-ensure"
+          ]
+        },
+        {
+          "name": "run_faff",
+          "args": [
+            "hooks-ensure"
+          ]
+        },
+        {
+          "name": "invoke_skill",
+          "skill": "faff-prep",
+          "args": [
+            "FAFF-7001"
+          ]
+        }
+      ],
+      "final_files": {
+        ".claude/settings.json": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n",
+        ".faff/.gitignore": "# Keep this existing exception\n!/keep.txt\n\n# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n",
+        ".faff/config.yaml": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n",
+        ".faff/keep.txt": "Keep this existing local file.\n",
+        ".gitignore": "node_modules/\n",
+        "keep.txt": "Unrelated project content.\n"
+      },
+      "no_write": false,
+      "path_exit": 3
+    },
+    {
+      "id": "case-c",
+      "actions": [
+        {
+          "name": "invoke_skill",
+          "skill": "faff-beep-boop",
+          "args": []
+        }
+      ],
+      "final_files": {
+        "keep.txt": "Unrelated project content.\n"
+      },
+      "no_write": true,
+      "path_exit": 3
+    },
+    {
+      "id": "case-d",
+      "actions": [
+        {
+          "name": "invoke_skill",
+          "skill": "faff-wtf",
+          "args": []
+        }
+      ],
+      "final_files": {
+        ".faff/config.yaml": "tracking:\n  spec_docs_path: \"\"\n",
+        "keep.txt": "Unrelated project content.\n"
+      },
+      "no_write": true,
+      "path_exit": 0
+    },
+    {
+      "id": "case-e",
+      "actions": [
+        {
+          "name": "offer_onboarding",
+          "message": "No faff config found. Set up faff for this repo now? (y/n)"
+        },
+        {
+          "name": "invoke_skill",
+          "skill": "faff-onboard",
+          "args": []
+        },
+        {
+          "name": "invoke_skill",
+          "skill": "faff-map",
+          "args": []
+        }
+      ],
+      "final_files": {
+        ".claude/settings.json": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  }\n}\n",
+        ".faff/.gitignore": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n",
+        ".faff/config.yaml": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: records/specs\n",
+        "keep.txt": "Unrelated project content.\n"
+      },
+      "no_write": false,
+      "path_exit": 3
+    }
+  ]
+}

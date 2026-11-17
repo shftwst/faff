@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T03:04:50.350330+00:00",
+  "reviewer": "/root/verify_wtf_scope; independent narrow static and exact-read verifier",
+  "status": "compact_task_presentation_fix_verified_prior_bounded_review_reused",
+  "bindings": {
+    "eval/control-parity/graft-checkpoint-execution.mjs": {
+      "sha256": "da743a47820a6b94695151a1e9ca56a6355271493141c4566a9185c72c190663",
+      "bytes": 26623
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-size-prelaunch-check.json": {
+      "sha256": "17e5bcb02f6dcce0435f6a2c2416567f47ca0f547d708a463bd602649aab89f6",
+      "bytes": 4356
+    },
+    "verification/experiments/2026-11-16-skill-diet/independent-graft-checkpoints-v1-adapter-review.json": {
+      "sha256": "b0b27109364588f1ce1877ffbeef2370184f6b25a197c807a5674c7f28999325",
+      "bytes": 12578
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/preflight.json": {
+      "sha256": "01f1591ac69ad22bcdf07e2ae0bfdb7fd7cbc440b21cc3fb52f8a1b98658aa05",
+      "bytes": 4525
+    },
+    "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v5.py": {
+      "sha256": "08f0a8c3644e916a1ab317985423fb7f570d4b9f1ec979afc6c4758be1424053",
+      "bytes": 14958
+    },
+    "eval/control-parity/codex-mcp-native-audit.mjs": {
+      "sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+      "bytes": 14244
+    },
+    "test/control-parity-graft-checkpoint.test.mjs": {
+      "sha256": "596ab429a3255a21fa9c9a1feb1bf8164354eb3fef54063439f154d95e06ee84",
+      "bytes": 11354
+    },
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v1-draft.json": {
+      "sha256": "aeea37201a2f485f31a39f9e3d94ce2d58498d50ebf40d17d6109fd25132afcb",
+      "bytes": 10075
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/task.json": {
+      "sha256": "346436583087e17b4e9cf0c3f89ff5e06a50ace0acfe969616d0dd397915f448",
+      "bytes": 60532
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/manifest.json": {
+      "sha256": "111258640a0d682fef57fc6ca53e9d74c8de7fc22d88735f4bc62e009bbc04c3",
+      "bytes": 83827
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/read-scope.json": {
+      "sha256": "7ac1929d2c6e19e3a10c87da41a111d37551484b9006689198384a9ac70c097c",
+      "bytes": 284
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/initial-read-result.json": {
+      "sha256": "50aa30cde3c6f3aa84ed37e70ae57444825ca33f43c2c5499f541377f7e91076",
+      "bytes": 418
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/report.json": {
+      "sha256": "4cb3a61d013ae1c35d5c474530daa1734ba7e4e0f84ed7363e69f52b8be55ae3",
+      "bytes": 13144
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/task.json": {
+      "sha256": "e4cec05ba773bba4229ce1999f202da6829ab7b51d1813394e2f45ad2cd36a23",
+      "bytes": 42244
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/manifest.json": {
+      "sha256": "041152326708ed51c5886df785e8b7a7192c6e8f85548e89bc7a7b62189dba69",
+      "bytes": 83827
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/read-scope.json": {
+      "sha256": "7ba874ae0771509270fb058a2d68a0bc23daac03aa67b4408613752fc10ba530",
+      "bytes": 284
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/initial-read-result.json": {
+      "sha256": "eac66def6ff140ef4fa40c7ee1b097e1c7fa1df074f0227ca7c641513f1df929",
+      "bytes": 471
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/report.json": {
+      "sha256": "4cb3a61d013ae1c35d5c474530daa1734ba7e4e0f84ed7363e69f52b8be55ae3",
+      "bytes": 13144
+    }
+  },
+  "source_delta": {
+    "exactly_one_replacement": true,
+    "before": "write(join(output, 'task.json'), task);",
+    "after": "writeFileSync(join(output, 'task.json'), JSON.stringify(task) + '\\n');",
+    "reconstructed_previous_source_sha256": "210024d4b0455a4c9f4427539c619168af8ae9a5ddaaa15f70a304f732471264",
+    "current_source_sha256": "da743a47820a6b94695151a1e9ca56a6355271493141c4566a9185c72c190663",
+    "execution_grade_tool_environment_and_consumer_bytes_unchanged": true
+  },
+  "parsed_task_equality": {
+    "equal": true,
+    "normalisation_only": "Replace the single independently minted /var/tmp/graft-checkpoint-* root prefix in each parsed task with the same placeholder; no other values normalised.",
+    "pretty_root": "/var/tmp/graft-checkpoint-AqUseh",
+    "compact_root": "/var/tmp/graft-checkpoint-FskYXR"
+  },
+  "independent_exact_initial_reads": {
+    "scope": "Both exact cat commands independently executed through exec_command at max_output_tokens 12000 and yield_time_ms 10000; full output inspected internally and omitted from review.",
+    "pretty": {
+      "bytes": 60532,
+      "original_token_count": 15133,
+      "returned_characters": 48105,
+      "exit_code": 0,
+      "truncation_marker": true,
+      "json_parseable": false
+    },
+    "compact": {
+      "bytes": 42244,
+      "original_token_count": 10561,
+      "returned_characters": 42244,
+      "exit_code": 0,
+      "truncation_marker": false,
+      "json_parseable": true
+    }
+  },
+  "manifest_verification": {
+    "all_size_evidence_bindings_match_current": true,
+    "both_task_byte_hashes_match_own_manifest": true,
+    "pretty_manifest_harness_matches_old_source": true,
+    "compact_manifest_harness_matches_new_source": true
+  },
+  "closed_preflight_reuse": {
+    "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/preflight.json",
+    "sha256": "01f1591ac69ad22bcdf07e2ae0bfdb7fd7cbc440b21cc3fb52f8a1b98658aa05",
+    "graded_cases": 14,
+    "prior_independent_review_reused": true,
+    "prior_four_tests_eight_mutations_and_exact_grade_replay_retained": true,
+    "reason_no_full_rerun": "Exact sole serialization replacement reconstructs the previously reviewed source hash; execution and grading are unchanged. Test/fixture hashes match prior closed preflight.",
+    "rerun_all14": false
+  },
+  "limits": [
+    "Deliberate immediate-finish pretty/compact development reports both remain raw fail; neither is workflow qualification or model evidence.",
+    "V5 runner, auditor and native limits unchanged; generic transport compatibility remains source-reviewed, not demonstrated by these cat-only checks.",
+    "This closes the initial task truncation blocker for this exact task, not arbitrary future task growth.",
+    "Prior bounded adapter review requirements remain: full frozen input/runtime/import closure, external fresh graft replay and real persisted-consumer replay, independent manual semantics and optional-detail grounding, complete paired gates and integration before acceptance.",
+    "No model calls, source edits or test/harness creation by this reviewer. Only this addendum written."
+  ]
+}

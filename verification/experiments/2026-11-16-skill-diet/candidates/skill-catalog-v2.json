@@ -1,0 +1,162 @@
+[
+  {
+    "name": "faff",
+    "description": "Use when invoking /faff without a specific sub-skill, or choosing between planning new work, prioritising, grooming, preparing a ticket, building, onboarding and unattended delivery.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-beep-boop",
+    "description": "Run ready work unattended: tidy, drain prep, then drain builds. Parks ambiguity for /faff-wtf. Use for overnight, fire-and-forget or running the backlog.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-graft",
+    "description": "Build an existing issue: check its spec, create a worktree and commit the spec to the feature branch. Use for graft, start or pick up an issue.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-jot",
+    "description": "Start something new. Kick off an empty project, or capture a new feature, bug, or idea \u2014 and turn it into a sensible set of tickets. Use for 'new project', 'I've got an idea', 'add a feature', 'file a bug', 'scope this', 'kick off'. Or point it at an existing ticket (`/faff-jot ISSUE-XX`) to load and inspect it \u2014 its shaping verbs are deferred, so it displays the ticket and mutates nothing.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-map",
+    "description": "Explain the strategic roadmap: outcome initiatives, workstreams, dependency chains and trigger gates. Use for big-picture plans, strategy or roadmap coherence.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-onboard",
+    "description": "First-run repository setup: detect tracker, repository and git host, ask for missing facts, and write valid .faff/config.yaml. Use to onboard or configure faff.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-plot",
+    "description": "Plan an application-scale idea as initiatives, projects and first-slice epics. Use rehome to group loose Backlog work into human-confirmed outcome projects.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-prep",
+    "description": "Turn a vague ticket into something you can actually build \u2014 explores the codebase, writes a spec, attaches it to the issue. Trigger for: 'prep ISSUE-XX' / 'prep this' / 'spec this out' / 'what does this ticket need?'.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-tidy",
+    "description": "Groom the backlog: find duplicates, vague work, stale blockers and structural problems; promote ready issues to Todo. Use for tidy, clean up or groom.",
+    "user_invocable": true
+  },
+  {
+    "name": "faff-wtf",
+    "description": "Brief on what shipped, what is blocked, what to work on next and what an unattended run parked. Use for catch me up, current focus or what happened.",
+    "user_invocable": true
+  },
+  {
+    "name": "faffidavit-rendering",
+    "description": "Default rendering_adaptor: human-facing form, issue glosses, house voice and draft normalisation. No internal contract. Configured slot, not a user command.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffidavit-routing",
+    "description": "Default routing_adaptor slot: assign and render automation verdicts from diagnostics, confidence, markers and park history; validate assignments.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-dark-adversarial-review",
+    "description": "Use when the configured review slot requires a structural review plus an independent adversarial second opinion, or when invoked for an ADR drift or PRDR YAGNI challenge.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-dark-authoring-adaptors",
+    "description": "Author or validate a slot skill: scaffold adaptors, producers or methodologies against the fixed gateway contract and check conformance.",
+    "user_invocable": true
+  },
+  {
+    "name": "faffter-dark-concurrency-parallel",
+    "description": "Parallel concurrency slot: execute beep-boop builds in capped concurrent worktrees, with rebase before merge. Alternative to the sequential default.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-dark-methodology-agile-delivery",
+    "description": "Agile-delivery methodology slot: answer backlog/build requests using seven delivery principles, right-sizing, value/risk order and surfaced dependencies.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-dark-nlspec",
+    "description": "Formal, full nlspec producer for the spec slot via faff-prep. Use when the configured spec format requires the heavier alternative to lite-nlspec.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-dark-spec-review",
+    "description": "L4 spec_review slot: independent architectural, infosec, methodology and QA refuters; aggregate enabled lenses by majority/severity into the fixed verdict.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-adr",
+    "description": "Default adr producer: author a settled architecture decision from spec rationale and the ADR log, using the committed adr.md template or Nygard format.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-architecture",
+    "description": "Default architecture slot: propose a build-biased production architecture from the infrastructure profile and brief/spec; emit proposal and ADR promotion intent.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-concurrency-sequential",
+    "description": "Default concurrency slot: execute the beep-boop build pass one faff-graft at a time, avoiding concurrent worktree and merge conflicts.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-env-code-interface",
+    "description": "Default env-code-interface slot under env: build a component from its Tier-1 binding manifest and provision a health-checked Node reflection bridge service.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-env-compose",
+    "description": "Default env provisioner: create a representative Docker Compose stand-in from architecture/profile, seed synthetic data, and return a health-checked env-handle.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-evaluate",
+    "description": "Default code-blind evaluator slot: judge routed DoD criteria against a running environment, mark unjudgeable prose needs-human, emit holdout verdict and tear down.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-intake",
+    "description": "Default intake/discovery producer: turn an idea, bug or empty repository into a discovery brief for faff-jot or faff-plot through a light conversation.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-methodology-thematic",
+    "description": "Default `methodology` lens (`thematic`) \u2014 opinion-free analysis that reflects the tracker topology: ordering by unlock value, gating on decision closure, composing the shared structural/topology floor (cycle + ghost-project detection). The zero-config baseline every pass uses. Runs as a configured slot, not the user `/` menu.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-prd",
+    "description": "Default code-blind prd slot: judge machine-verifiable PRD stop conditions and creative licence; emit prd-readiness for the deterministic L4 run-start gate.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-review",
+    "description": "Default review slot via faff-graft: senior-engineer diff review for acceptance coverage, bugs, scope and human judgement; return a review verdict.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-ship",
+    "description": "Default ship producer: merge a gate-cleared PR through the merge-gate interlock, with no-op deployment; return native delivery result and delivery-outcome.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-spec",
+    "description": "Default spec producer via faff-prep: turn an issue and explore findings into lite-nlspec (WHY-WHAT-HOW-DONE) with a confidence self-rating.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-spec-review",
+    "description": "Default L1-L3 spec_review slot: one architectural, infosec, methodology and QA checklist pass over a freshly rated spec; emit a founded spec-review verdict.",
+    "user_invocable": false
+  },
+  {
+    "name": "faffter-noon-transport-private-network",
+    "description": "Default transport slot: resolve the evaluator host over a private network whose segmentation provides evaluator-only access to the system under build.",
+    "user_invocable": false
+  }
+]

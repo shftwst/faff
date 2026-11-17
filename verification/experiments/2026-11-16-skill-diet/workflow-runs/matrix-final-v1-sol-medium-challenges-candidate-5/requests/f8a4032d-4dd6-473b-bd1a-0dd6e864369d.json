@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"opinion_available=false records an exhausted provider attempt with no opinion. Preserve the absence and omit the challenge argument. The Phase-1 admission proposal cannot replace a missing Phase-2 opinion; the caller must reject as phase2-inconclusive."}}

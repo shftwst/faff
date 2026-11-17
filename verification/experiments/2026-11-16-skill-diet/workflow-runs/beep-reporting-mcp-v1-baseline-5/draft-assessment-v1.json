@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "Post-hoc oracle assessment, frozen before remaining baselines or any candidate. Recognises only unused pre-publication rendering drafts; original raw scores, native calls, intermediate text and overhead remain unchanged. Controlled identity rendering and publication only; no rendering-quality or hosted-publication claim.",
+  "raw": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "shipped-precedence",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "review-holds",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "budget-zero-ship",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "dirty-install",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "no-budget-continuation",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "unreadable-ledger",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      }
+    ],
+    "errors": []
+  },
+  "assessed": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "shipped-precedence",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "review-holds",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "budget-zero-ship",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "dirty-install",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "no-budget-continuation",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "unreadable-ledger",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      }
+    ],
+    "errors": []
+  },
+  "errors": [],
+  "discarded_drafts": [],
+  "normalisation_calls": 8,
+  "assessor_sha256": "f1dc98f052da42022faf2aa72ff0f926c725e44d5513d7f33bc1f20fd374afd1",
+  "source_hashes": {
+    "capture.json": "1c8b3c743f1dae312c5741d5426df7eba51166ec06167bd254e94083bc2d5957",
+    "expected.json": "0f93c4b1bc20fb9f892adc766b42843901d70ad48835b976c8df5313cba678f7",
+    "report.json": "266fd96422640b2b78f5925b3155cdecaee7a042c7342bb4efe9995f039dfeb2",
+    "native-audit.json": "411230eaf7f6a4f1bd7d649545510b44be16ddeaffa5ff57b155860f87396910"
+  },
+  "fixture_sha256": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3"
+}

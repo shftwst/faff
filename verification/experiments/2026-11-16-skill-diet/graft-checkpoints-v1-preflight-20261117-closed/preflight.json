@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "Deterministic controller round trip only; no model, policy delivery, native transport, hosted review/PR or lifecycle qualification.",
+  "root_commit": "7db5ab7e9e20ec99c28c438788d24860d4399a02",
+  "commands": [
+    [
+      "/usr/local/bin/node",
+      "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-preflight-controller-20261117.mjs",
+      "graft-checkpoints-v1-preflight-20261117-closed"
+    ]
+  ],
+  "cases": 14,
+  "inputs": [
+    {
+      "path": "eval/control-parity/graft-checkpoint-execution.mjs",
+      "sha256": "210024d4b0455a4c9f4427539c619168af8ae9a5ddaaa15f70a304f732471264"
+    },
+    {
+      "path": "test/control-parity-graft-checkpoint.test.mjs",
+      "sha256": "596ab429a3255a21fa9c9a1feb1bf8164354eb3fef54063439f154d95e06ee84"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v1-draft.json",
+      "sha256": "aeea37201a2f485f31a39f9e3d94ce2d58498d50ebf40d17d6109fd25132afcb"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json",
+      "sha256": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+      "sha256": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-evidence-consumer-reuse-notes.json",
+      "sha256": "17fda0f8cfdf2f7358b3c046558e7c0989e448f4a2aae86e6831124a452af7a3"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution.mjs",
+      "sha256": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution-v2.mjs",
+      "sha256": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180"
+    },
+    {
+      "path": "eval/control-parity/candidate-command.mjs",
+      "sha256": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50"
+    },
+    {
+      "path": "eval/control-parity/policy-reader.mjs",
+      "sha256": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a"
+    },
+    {
+      "path": "eval/control-parity/interactive-handoff.mjs",
+      "sha256": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0"
+    },
+    {
+      "path": "eval/control-parity/schema.mjs",
+      "sha256": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-preflight-controller-20261117.mjs",
+      "sha256": "b2405e213e6a0f79284618b3ee895413d1caa8e922e02bf4900780e5f46e89af"
+    }
+  ],
+  "outputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/public-cases.json",
+      "sha256": "afa086c6b18bd7494bbe908e8f0901ea33b778852ec48225fbd8439bff8b5c05"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/capture.json",
+      "sha256": "a5361dadb651eef1a518faad3fefe3aa7f4ea7a0c33997bc7f10d7d820b96e4e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/consumers.json",
+      "sha256": "0a225855a316c608098f25e04148abe6948dcadc3750e7911cc08aacd0422f04"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/grade.json",
+      "sha256": "d3b1d8be602313aea65ef1224feec10879710ea103d09ef6f625516ef7059c19"
+    }
+  ],
+  "limitations": [
+    "Six new checkpoint cases plus two unmodified reused ledger cases. Long gate budget/resume/timeout variants remain covered by existing tests and are not model-executed here.",
+    "Source assertions and actual output provenance need independent manual review. Deterministic grader remains draft.",
+    "No separate errored-rung producer case; existing gates-budget tests cover real timeout/errored results. Failed and missing gates are actual bounded cases.",
+    "Inherited consumer mismatch: discovery:none yields needs-human/rungs:[] from real gates; the actual quality-gates contract validator refuses that shape. The missing-gates case requires reporting this real refusal, never fabricating rungs or a conformant contract."
+  ],
+  "manual_detail_gate_required": true
+}

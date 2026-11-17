@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"review-revert","value":{"revert_distinguishes_fixable_from_persistent":true,"provider_outage_means_review_judged_code":false}}}

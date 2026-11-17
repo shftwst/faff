@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "value": {
+    "ledger": {
+      "schema_version": 1,
+      "run_id": "run-20260101-000000-beepboop-list-abc101",
+      "level": "L3",
+      "admitted": [],
+      "outcomes": {},
+      "base_sha": null,
+      "base_sha_required": true,
+      "owner": {
+        "status": "running",
+        "session_id": "run-20260101-000000-beepboop-list-abc101",
+        "pid": 1361801,
+        "started_at": "2026-11-17T04:08:50.609Z",
+        "utc_offset_min": 0,
+        "last_heartbeat": "2026-11-17T04:08:50.609Z",
+        "faff_version": "0.45.0"
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "status": "not-qualified-oracle-correction-required",
+  "original_report_sha256": "b23a14543881bf6928f459483ed5d67d70ceca03a3132bf08e40d41527af0f47",
+  "artifact_sha256": "72004c06239c2c245415167f58897457a24ff426d7b9f688ff5398e10145d360",
+  "observed": "The unchanged producer correctly returned fail, named test/function.test.mjs, and requested assert.equal(lower(AbC), abc) for AC2. The action regex required mixed, test or coverage, rejecting the equivalent concrete assertion.",
+  "correction": "Fresh V2 fixture adds cover, assert and AC2 action wording; no policy, inputs, signal, presence fields, prior-identity or contract expectations change.",
+  "sampling": "V1 first sample is retained and excluded from qualification. V2 requires a complete fresh five-versus-five pair. Candidate has not been authored."
+}

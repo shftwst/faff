@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All six artifact cases and ten rule answers were persisted. `finish` succeeded.\n\nNo departures from the restrictions. Each individual `exec_command` was invoked through the required tool wrapper. No output files were inspected.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e44f-9cfa-78c2-9837-adf226b7e645"
+    ],
+    "elapsed_seconds": 269.1,
+    "stdout_sha256": "9dfb7d9a32f66f5fbfd43a7d51018bd14de2d9f01a9a8895e9d6d8c5041d0944",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

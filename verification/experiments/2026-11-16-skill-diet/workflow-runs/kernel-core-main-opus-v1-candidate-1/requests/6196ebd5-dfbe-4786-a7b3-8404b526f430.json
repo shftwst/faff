@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"spec-review-refusal","value":{"approve":false,"park_needs_human":true,"approval_allows_objections":false,"nonapproval_requires_objections":true}}}

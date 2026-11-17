@@ -1,0 +1,61 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc102",
+      "--root",
+      "/var/tmp/faff-ledger-measure-9cLLBB/actual/phase-events",
+      "--tokens",
+      "--session-id",
+      "ledger-measurement-session"
+    ],
+    "input": "{\"phase\":\"prep\",\"type\":\"prep-done\",\"issue\":\"PREP-1\"}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":7,\"ts\":\"2026-11-17T00:48:55.604Z\",\"prev\":\"55b4d07ad023584f7651b8c094fabeb31a93ec808053a6754d3d8ca5d983e525\",\"phase\":\"prep\",\"type\":\"prep-done\",\"issue\":\"PREP-1\",\"data\":{\"tokens\":{\"input\":205,\"output\":25,\"cache_write_5m\":4,\"cache_write_1h\":2,\"cache_read\":8},\"tokens_source\":\"transcript\",\"ledger_sha256_before\":\"cabdd241a05f4f82f1c66634d0973ad0c9721b6c32981cb11dc6dabddf2d92ac\",\"ledger_sha256_after\":\"a6e7341850ecafab278c009d0a1842fd86c68dcd56fdd6199805a559659031eb\"}}\n",
+    "stderr": "",
+    "error": null,
+    "ledger_before_sha256": "cabdd241a05f4f82f1c66634d0973ad0c9721b6c32981cb11dc6dabddf2d92ac",
+    "ledger_after_sha256": "a6e7341850ecafab278c009d0a1842fd86c68dcd56fdd6199805a559659031eb",
+    "prior_events_sha256": "0494ce0e2c30354a6cc1c2b3a5b97cea8e7dc271863a90b317b9a559841117d9",
+    "events_after_sha256": "2854497fc076594baf92a41e0321f6636c88454278a7fc01a20a2eebf5a9ae99",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 6,
+        "ts": "2026-11-17T00:48:55.604Z",
+        "prev": "0d7794e68ab7195593ccf79fae54002bfa332ac7039d0fba0bd986b27e0131e8",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "a6e7341850ecafab278c009d0a1842fd86c68dcd56fdd6199805a559659031eb"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 7,
+        "ts": "2026-11-17T00:48:55.604Z",
+        "prev": "55b4d07ad023584f7651b8c094fabeb31a93ec808053a6754d3d8ca5d983e525",
+        "phase": "prep",
+        "type": "prep-done",
+        "issue": "PREP-1",
+        "data": {
+          "tokens": {
+            "input": 205,
+            "output": 25,
+            "cache_write_5m": 4,
+            "cache_write_1h": 2,
+            "cache_read": 8
+          },
+          "tokens_source": "transcript",
+          "ledger_sha256_before": "cabdd241a05f4f82f1c66634d0973ad0c9721b6c32981cb11dc6dabddf2d92ac",
+          "ledger_sha256_after": "a6e7341850ecafab278c009d0a1842fd86c68dcd56fdd6199805a559659031eb"
+        }
+      }
+    ]
+  }
+}

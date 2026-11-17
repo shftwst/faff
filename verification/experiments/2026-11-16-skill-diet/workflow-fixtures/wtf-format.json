@@ -1,0 +1,540 @@
+{
+  "schema": 1,
+  "scope": "Persisted interactive WTF briefs at the completed-fetch boundary. Only the Output Format example and duplicated Notes are eligible for compression. All collection, dispatch, mutation gates, chaining and autonomous sections remain byte-identical. Source facts are controlled caller snapshots; no live tracker fetch, mutation or full entry workflow is claimed.",
+  "cases": [
+    {
+      "id": "empty",
+      "task": "Render the complete interactive /faff-wtf brief from this completed live-fetch snapshot and already-returned methodology outputs. Collection and dispatch have finished outside this rendering boundary; do not fetch, dispatch, mutate or invoke skills. Preserve supplied order and facts, omit empty optional sections and use the policy output layout. Include applicable yes/no next-step offers as text only. Persist the actual Markdown brief.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology_configured": false,
+        "milestones": [],
+        "shipped": [],
+        "in_progress": [],
+        "blocked": [],
+        "parked": [],
+        "awaiting_review": [],
+        "awaiting_spec_review": [],
+        "adr_proposals": [],
+        "methodology_outputs": {
+          "pick_ordering": [],
+          "structural_diagnostics": []
+        },
+        "build_queue": [],
+        "prep_queue": [],
+        "calibration_signals": [],
+        "risks": []
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Automation preview"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "Automation preview",
+          "Build queue[\\s\\S]{0,100}\\(none\\)",
+          "Prep queue[\\s\\S]{0,100}\\(none\\)",
+          "Structural diagnostics[\\s\\S]{0,100}clean"
+        ],
+        "allowed_ids": [],
+        "forbidden_patterns": [
+          "SHF-",
+          "ISSUE-",
+          "WIP at 2",
+          "week 6",
+          "auto-(?:filed|created|demoted)"
+        ]
+      },
+      "reference": "## What is up: 2026-11-16\n\n### Automation preview\nBuild queue: (none)\nPrep queue: (none)\n\n### Structural diagnostics\nStructural diagnostics: clean\n"
+    },
+    {
+      "id": "operations",
+      "task": "Render the complete interactive /faff-wtf brief from this completed live-fetch snapshot and already-returned methodology outputs. Collection and dispatch have finished outside this rendering boundary; do not fetch, dispatch, mutate or invoke skills. Preserve supplied order and facts, omit empty optional sections and use the policy output layout. Include applicable yes/no next-step offers as text only. Persist the actual Markdown brief.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology_configured": "faffter-noon-methodology-thematic",
+        "milestones": [
+          {
+            "project": "Account recovery",
+            "id": "Recovery beta",
+            "target": "2026-11-23",
+            "progress": "50%"
+          }
+        ],
+        "shipped": [
+          {
+            "id": "BRF-10",
+            "title": "Record recovery attempts",
+            "unlocked": [
+              "BRF-11"
+            ]
+          }
+        ],
+        "in_progress": [
+          {
+            "id": "BRF-12",
+            "title": "Add recovery screen",
+            "status": "Building"
+          }
+        ],
+        "blocked": [
+          {
+            "id": "BRF-13",
+            "title": "Send recovery emails",
+            "reason": "waiting for BRF-11"
+          }
+        ],
+        "coming_up": [
+          {
+            "id": "BRF-11",
+            "title": "Issue recovery tokens",
+            "just_unlocked_by": "BRF-10",
+            "priority_source": "issue",
+            "chain": [
+              "BRF-13",
+              "BRF-14"
+            ]
+          },
+          {
+            "id": "BRF-14",
+            "title": "Audit recovery delivery",
+            "blocked_by": [
+              "BRF-13"
+            ]
+          }
+        ],
+        "parked": [
+          {
+            "id": "BRF-20",
+            "title": "Choose retention period",
+            "source": "interactive prep",
+            "cause": "product retention decision remains open",
+            "unpark": "/faff-prep BRF-20",
+            "log": null
+          },
+          {
+            "id": "BRF-21",
+            "title": "Repair importer",
+            "source": "autonomous graft",
+            "cause": "schema compatibility is unclear",
+            "unpark": "/faff-graft BRF-21",
+            "log": ".faff/runs/run-a/BRF-21/graft.md"
+          }
+        ],
+        "awaiting_review": [
+          {
+            "id": "BRF-22",
+            "title": "Deduplicate recovery emails",
+            "attempt": 1,
+            "limit": 3,
+            "durable": "branch pushed",
+            "next": "next build drain, without rebuilding"
+          }
+        ],
+        "awaiting_spec_review": [
+          {
+            "id": "BRF-23",
+            "title": "Scope expiry policy",
+            "attempt": 2,
+            "limit": 4,
+            "durable": "spec attached",
+            "next": "next prep drain, without re-spec"
+          }
+        ],
+        "adr_proposals": [
+          {
+            "new": "ADR-0042",
+            "new_title": "Use token ledger",
+            "old": "ADR-0031",
+            "old_title": "Use transient tokens",
+            "issue": "BRF-12",
+            "why": "Need a durable retry record",
+            "disposition": "propose-only"
+          }
+        ],
+        "methodology_outputs": {
+          "pick_ordering": [
+            "BRF-11",
+            "BRF-12"
+          ],
+          "standup_digest": {
+            "wip": 1,
+            "cap": 3,
+            "remaining_headroom": 2,
+            "structural_findings": []
+          },
+          "structural_diagnostics": []
+        },
+        "todays_focus": [
+          {
+            "id": "BRF-11",
+            "title": "Issue recovery tokens",
+            "priority_source": "issue",
+            "just_unlocked_by": "BRF-10"
+          },
+          {
+            "id": "BRF-12",
+            "title": "Add recovery screen",
+            "priority_source": "issue"
+          }
+        ],
+        "automation_preview": {
+          "value_chains": [
+            {
+              "head": "BRF-11",
+              "title": "Issue recovery tokens",
+              "dependents": [
+                "BRF-13",
+                "BRF-14"
+              ],
+              "blocked_only_by_head": 1,
+              "still_gated": [
+                "BRF-14"
+              ]
+            }
+          ],
+          "build_queue": {
+            "independents": [
+              {
+                "id": "BRF-11",
+                "title": "Issue recovery tokens",
+                "verdict": "fire-and-forget"
+              }
+            ],
+            "collision_groups": []
+          },
+          "needs_your_call": [
+            {
+              "id": "BRF-30",
+              "title": "Select rate limit store",
+              "verdict": "needs-decision-first",
+              "owner": "architecture",
+              "punt": "Redis or database?"
+            },
+            {
+              "id": "BRF-31",
+              "title": "Set recovery policy",
+              "verdict": "needs-decision-first",
+              "owner": "product",
+              "punt": "Who can reset an account?"
+            },
+            {
+              "id": "BRF-32",
+              "title": "Choose replay window",
+              "verdict": "needs-decision-first",
+              "owner": "unowned",
+              "confidence": "medium",
+              "thin_area": "retry timing"
+            }
+          ],
+          "prep_queue": [
+            {
+              "id": "BRF-33",
+              "title": "Record token revocation",
+              "reason": "no spec"
+            }
+          ]
+        },
+        "calibration_signals": [],
+        "risks": [],
+        "ready_to_pick_up": [
+          {
+            "id": "BRF-11",
+            "title": "Issue recovery tokens",
+            "reason": "spec ready; just unlocked by BRF-10"
+          }
+        ]
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Automation preview"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "Methodology:.*faffter-noon-methodology-thematic",
+          "Recovery beta",
+          "2026-11-23",
+          "50%",
+          "BRF-10",
+          "BRF-11",
+          "(?:just|newly|recently)[ -]unlocked",
+          "BRF-20[\\s\\S]{0,500}retention",
+          "BRF-21[\\s\\S]{0,600}schema",
+          "\\.faff/runs/run-a/BRF-21/graft\\.md",
+          "Awaiting review",
+          "Awaiting spec.review",
+          "(?:1\\s*(?:/|of)\\s*3)",
+          "(?:2\\s*(?:/|of)\\s*4)",
+          "ADR-0042",
+          "ADR-0031",
+          "Ratify[\\s\\S]{0,150}(?:y/n|yes/no)",
+          "Automation preview",
+          "BRF-30",
+          "architecture",
+          "BRF-31",
+          "product",
+          "BRF-32[\\s\\S]{0,400}medium",
+          "retry timing",
+          "BRF-33",
+          "no spec",
+          "Structural diagnostics[\\s\\S]{0,100}clean"
+        ],
+        "allowed_ids": [
+          "BRF-10",
+          "BRF-11",
+          "BRF-12",
+          "BRF-13",
+          "BRF-14",
+          "BRF-20",
+          "BRF-21",
+          "BRF-22",
+          "BRF-23",
+          "BRF-30",
+          "BRF-31",
+          "BRF-32",
+          "BRF-33",
+          "ADR-0042",
+          "ADR-0031"
+        ],
+        "forbidden_patterns": [
+          "SHF-12",
+          "ISSUE-XX",
+          "(?:I|We) (?:superseded|merged|filed|demoted)"
+        ]
+      },
+      "reference": "Methodology: faffter-noon-methodology-thematic\n## What is up: 2026-11-16\n7 days to Recovery beta\n### Milestones\n#### Account recovery\n| Milestone | Target | Progress |\n|---|---|---|\n| Recovery beta | 2026-11-23 | 50% |\n### Shipped\nBRF-10: Record recovery attempts; just unlocked BRF-11.\n### In progress\nBRF-12: Add recovery screen; building.\n### Blocked\nBRF-13: Send recovery emails; waiting for BRF-11.\n### Parked work\nBRF-20: Choose retention period; product retention decision remains open. Re-prep with /faff-prep BRF-20.\nBRF-21: Repair importer; schema compatibility is unclear. Resume with /faff-graft BRF-21. Log: .faff/runs/run-a/BRF-21/graft.md.\n### Awaiting review\nBRF-22: Deduplicate recovery emails; provider outage, attempt 1/3. Auto-resumes next build drain without rebuilding; no action needed.\n### Awaiting spec-review\nBRF-23: Scope expiry policy; provider outage, held drain 2/4. Auto-resumes next prep drain without re-spec; no action needed.\n### ADR supersession proposals awaiting ratification\nADR-0042 (Use token ledger) proposes to supersede ADR-0031 (Use transient tokens), authored by BRF-12: need a durable retry record. Ratify? (y/n)\n### Do this\n1. BRF-11: Issue recovery tokens; just unlocked by BRF-10. Priority source: issue. Opens BRF-13, then BRF-14. Start building via /faff-graft? (y/n)\n2. BRF-12: Add recovery screen; finish the in-progress work. Priority source: issue.\n### Methodology findings\nHuman WIP 1, cap 3: two starts available. No structural findings.\n### Automation preview\nValue chain: BRF-11 \u2192 BRF-13 \u2192 BRF-14. Only BRF-13 is blocked solely by the head; BRF-14 still waits for BRF-13.\nBuild queue: fire-and-forget BRF-11, independent; no collision groups.\nNeeds your call:\narchitecture: BRF-30, Select rate limit store. Punt: Redis or database?\nproduct: BRF-31, Set recovery policy. Punt: Who can reset an account?\n(unowned): BRF-32, Choose replay window. confidence: medium; spec thin on retry timing.\nPrep queue: BRF-33, Record token revocation; no spec.\nRun /faff-beep-boop full pipeline? (y/n)\n### Structural diagnostics\nStructural diagnostics: clean\n### Ready to pick up\nBRF-11: Issue recovery tokens; spec ready, just unlocked by BRF-10. Promote to Todo? (y/n)\n"
+    },
+    {
+      "id": "wip-cap",
+      "task": "Render the complete interactive /faff-wtf brief from this completed live-fetch snapshot and already-returned methodology outputs. Collection and dispatch have finished outside this rendering boundary; do not fetch, dispatch, mutate or invoke skills. Preserve supplied order and facts, omit empty optional sections and use the policy output layout. Include applicable yes/no next-step offers as text only. Persist the actual Markdown brief.",
+      "source": {
+        "date": "2026-11-16",
+        "tracker": "connected",
+        "methodology_configured": "faffter-dark-methodology-agile-delivery",
+        "milestones": [],
+        "shipped": [],
+        "in_progress": [
+          {
+            "id": "WIP-1",
+            "title": "Finish checkout",
+            "actor": "human"
+          },
+          {
+            "id": "WIP-2",
+            "title": "Finish refund screen",
+            "actor": "human"
+          },
+          {
+            "id": "WIP-3",
+            "title": "Build audit export",
+            "actor": "autonomous"
+          }
+        ],
+        "blocked": [],
+        "parked": [],
+        "awaiting_review": [],
+        "awaiting_spec_review": [],
+        "adr_proposals": [],
+        "methodology_outputs": {
+          "pick_ordering": [
+            "WIP-4",
+            "WIP-1",
+            "WIP-2"
+          ],
+          "standup_digest": {
+            "human_wip": 2,
+            "cap": 2,
+            "remaining_headroom": 0,
+            "structural_findings": [
+              {
+                "severity": 1,
+                "kind": "chain-gap",
+                "subtype": "upstream",
+                "issue": "WIP-1",
+                "detail": "Required tax mapping has no ticket."
+              },
+              {
+                "severity": 2,
+                "kind": "repeat-park",
+                "issue": "WIP-5",
+                "detail": "Repeated currency decision parks."
+              },
+              {
+                "severity": 3,
+                "kind": "ghost-project",
+                "issue": "WIP-6",
+                "detail": "Old payment project is missing."
+              }
+            ]
+          },
+          "structural_diagnostics": [
+            {
+              "kind": "chain-gap",
+              "subtype": "upstream",
+              "issue": "WIP-1",
+              "detail": "Required tax mapping has no ticket."
+            },
+            {
+              "kind": "repeat-park",
+              "issue": "WIP-5",
+              "detail": "Repeated currency decision parks."
+            },
+            {
+              "kind": "ghost-project",
+              "issue": "WIP-6",
+              "detail": "Old payment project is missing."
+            }
+          ]
+        },
+        "issue_glosses": {
+          "WIP-4": "Add receipts",
+          "WIP-5": "Set refund currency",
+          "WIP-6": "Link payment alerts"
+        },
+        "automation_preview": {
+          "value_chains": [],
+          "build_queue": {
+            "independents": [
+              {
+                "id": "WIP-4",
+                "title": "Add receipts",
+                "verdict": "fire-and-forget"
+              }
+            ],
+            "collision_groups": []
+          },
+          "needs_your_call": [],
+          "prep_queue": []
+        },
+        "calibration_signals": [
+          {
+            "root_cause": "currency decision",
+            "events": 4,
+            "period_days": 14,
+            "source": "advisory; suggest three possible actions without claiming they occurred"
+          }
+        ],
+        "risks": [],
+        "ready_to_pick_up": []
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Automation preview"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "WIP-1",
+          "WIP-2",
+          "(?:WIP|in.flight|in.progress)[\\s\\S]{0,100}(?:cap|2)",
+          "Methodology findings",
+          "more in.*faff-tidy",
+          "Heads up[\\s\\S]{0,1500}upstream",
+          "Heads up[\\s\\S]{0,1500}(?:repeat|park)",
+          "Calibration",
+          "4",
+          "14",
+          "currency",
+          "Automation preview[\\s\\S]{0,1200}WIP-4",
+          "Prep queue[\\s\\S]{0,100}\\(none\\)"
+        ],
+        "allowed_ids": [
+          "WIP-1",
+          "WIP-2",
+          "WIP-3",
+          "WIP-4",
+          "WIP-5",
+          "WIP-6"
+        ],
+        "forbidden_patterns": [
+          "(?:I|We) (?:created|filed|demoted)",
+          "(?:human WIP|WIP at) 3"
+        ]
+      },
+      "reference": "Methodology: faffter-dark-methodology-agile-delivery\n## What is up: 2026-11-16\n### In progress\nWIP-1: Finish checkout, human.\nWIP-2: Finish refund screen, human.\nWIP-3: Build audit export, autonomous.\n### Do this\n1. WIP-1: Finish checkout.\n2. WIP-2: Finish refund screen.\nHuman WIP is at cap 2. Finish in-flight work; no new human starts.\n### Methodology findings\n1. Upstream chain gap: WIP-1 needs tax mapping with no ticket.\n2. Repeat-park: WIP-5 has repeated currency decision parks.\n(more in /faff-tidy)\n### Heads up\nUpstream chain gap: WIP-1 needs tax mapping with no ticket.\nRepeat-park: WIP-5, Set refund currency, keeps parking on the currency decision.\n### Automation preview\nBuild queue: fire-and-forget WIP-4, Add receipts, independent. The automated queue does not add human WIP.\nPrep queue: (none)\nRun /faff-beep-boop full pipeline? (y/n)\n### Structural diagnostics\nUpstream chain gap: WIP-1, missing tax mapping ticket.\nRepeat-park: WIP-5, currency decision.\nGhost project: WIP-6, Link payment alerts, points at a missing Old payment project.\n### Calibration signals\nCurrency decision: 4 events in 14 days. Suggested actions: clarify the currency rule, inspect the repeated park causes, or record a decision in the spec. These are advisory options.\n"
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "empty-preview",
+      "question": "When both automation queues are empty, should the preview retain both queue headers with (none)? Return a boolean.",
+      "expected": true
+    },
+    {
+      "id": "methodology-line",
+      "question": "When a methodology skill is configured, return the exact first-line label prefix before its name as a JSON string.",
+      "expected": "Methodology:"
+    },
+    {
+      "id": "milestone-columns",
+      "question": "Return the milestone table columns as a JSON array of strings.",
+      "expected": [
+        "Milestone",
+        "Target",
+        "Progress"
+      ]
+    },
+    {
+      "id": "diagnostics-clean",
+      "question": "With no structural findings, should the brief still render the clean diagnostics status? Return a boolean.",
+      "expected": true
+    },
+    {
+      "id": "calibration-empty",
+      "question": "Should an empty calibration section be rendered? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "wip-cap",
+      "question": "The digest says human WIP is at cap. May Today's Focus recommend a new start? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "autonomous-wip",
+      "question": "Does a beep-boop build or open PR count against the human WIP cap? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "findings-cap",
+      "question": "Return the maximum structural findings displayed in Methodology findings as an integer.",
+      "expected": 2
+    },
+    {
+      "id": "ordering-owner",
+      "question": "Who orders focus and queue candidates? Return the exact named methodology output as a JSON string.",
+      "expected": "pick-ordering"
+    },
+    {
+      "id": "parked-manual",
+      "question": "Must an interactively parked labelled issue appear even without a run log? Return a boolean.",
+      "expected": true
+    },
+    {
+      "id": "no-ratification",
+      "question": "An ADR supersession proposal has no human confirmation. Should rendering execute the supersession or delete the proposal? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "prep-no-spec",
+      "question": "A focus issue has no spec and the user confirms prep. Return the next skill name as a JSON string.",
+      "expected": "faff-prep"
+    },
+    {
+      "id": "graft-spec",
+      "question": "A focus issue has a spec and the user confirms building. Return the next skill name as a JSON string.",
+      "expected": "faff-graft"
+    },
+    {
+      "id": "medium-owner",
+      "question": "An issue has retained confidence: medium and no Punt owner. Return the owner group label as a JSON string.",
+      "expected": "(unowned)"
+    }
+  ]
+}

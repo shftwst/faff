@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All eight cases finished and their actual results were persisted through the bridge. `finish` returned `{\"finished\":true}`.\n\nNo departures from the restrictions. No provider independence or production challenge eligibility is claimed.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5f1-43c3-74d0-9772-47bfc3bfae0c"
+    ],
+    "elapsed_seconds": 187.5,
+    "stdout_sha256": "92f8b85ed1a2d196d185b6070da54b4467103ca879dcbeccd58f1b96a719eb82",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

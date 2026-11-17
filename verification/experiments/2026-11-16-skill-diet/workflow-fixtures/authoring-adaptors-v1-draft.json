@@ -1,0 +1,309 @@
+{
+  "schema": 1,
+  "status": "draft-unregistered",
+  "scope": "Bounded authoring and semantic validation with real structural consumers. Does not execute generated occupants, install or adopt skills, mutate a tracker or prove whole workflow behaviour.",
+  "cases": [
+    {
+      "id": "author-routing",
+      "mode": "author",
+      "slot": "routing_adaptor",
+      "task": "Author complete SKILL.md for example-new-routing. Its dialect displays supplied issue IDs, the gateway-assigned verdict and one-line reason as plain text. Preserve all applicable authoring obligations. The existing slot sibling declares judgement_seam: routing. Emit the file itself, then inspect it. Fixed obligations may be incorporated by an explicit correct gateway reference; do not duplicate fixed prose just to restate it.",
+      "source": {
+        "description": "Plain-text routing adaptor; no tracker writes or workflow ownership."
+      },
+      "oracle": {
+        "structural_exit": 0,
+        "rubric": {
+          "must_include": [
+            "routing_adaptor",
+            "routing",
+            "Validate",
+            "gateway"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "^---\\n",
+          "^judgement_seam:\\s*routing\\s*$",
+          "How this contract reaches you"
+        ]
+      },
+      "manual_requirements": [
+        "Correct slot and fixed contract pointer",
+        "Ambient and standalone loading, gateway authority",
+        "Defines assignment/display dialect and Validate face",
+        "Closed fixed vocabulary and admission semantics",
+        "No sequencing, parking or tracker writes",
+        "Correct seam and skill-authoring form"
+      ]
+    },
+    {
+      "id": "author-review-wrapper",
+      "mode": "author",
+      "slot": "review",
+      "task": "Author complete SKILL.md for example-review-wrapper around the supplied native review tool. It cannot emit a contract block. Keep native review work and fixed consumer ownership intact. Include exactly one fenced faff-contract:review-verdict block containing the converted supplied clean example; describe general emission in prose. The existing sibling declares judgement_seam: verdict-revert, verdict-build, finding-identity. Emit the file itself, then inspect it. Fixed obligations may be incorporated by an explicit correct gateway reference; do not duplicate fixed prose just to restate it.",
+      "source": {
+        "native_tool": "example-native-review",
+        "native_states": {
+          "clean": "No supported findings",
+          "fixable": "Supported fixable findings supplied",
+          "judgement": "Supported findings requiring human judgement supplied"
+        },
+        "example": {
+          "assessment": "clean",
+          "items": []
+        },
+        "provider_outage": "The orchestrator detects outages; the reviewer does not self-report unavailable."
+      },
+      "oracle": {
+        "structural_exit": 0,
+        "rubric": {
+          "must_include": [
+            "review",
+            "faff-contract:review-verdict",
+            "appetite"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "^---\\n",
+          "How this contract reaches you",
+          "```faff-contract:review-verdict\\s*\\n"
+        ]
+      },
+      "manual_requirements": [
+        "Fused wrapper invokes native review and emits fixed contract",
+        "Fixed review vocabulary; outage ownership preserved",
+        "Grounded conversion of supplied clean example",
+        "Gateway refer-back and lane reference",
+        "Suite appetite, no backlog management",
+        "Exact existing sibling judgement seams"
+      ],
+      "example_contract": {
+        "kind": "review-verdict",
+        "expected_signal": "pass",
+        "expected_findings": []
+      }
+    },
+    {
+      "id": "author-methodology",
+      "mode": "author",
+      "slot": "methodology",
+      "task": "Author complete SKILL.md for example-methodology. Its lens orders otherwise eligible work by supplied unlock value, preserving the gateway named-output contract and consumer authority. Include the required outputs and graceful optional-output behaviour. The existing sibling declares judgement_seam: ordering. Emit the file itself, then inspect it. Fixed obligations may be incorporated by an explicit correct gateway reference; do not duplicate fixed prose just to restate it.",
+      "source": {
+        "lens": "Prefer greater supplied unlock value; preserve ties without inventing dependencies."
+      },
+      "oracle": {
+        "structural_exit": 0,
+        "rubric": {
+          "must_include": [
+            "methodology",
+            "pick-ordering",
+            "promotion-readiness",
+            "build-queue",
+            "backlog-diagnostics",
+            "appetite"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "^judgement_seam:\\s*ordering\\s*$",
+          "How this contract reaches you"
+        ]
+      },
+      "manual_requirements": [
+        "All four required named outputs and correct envelopes",
+        "Optional outputs degrade gracefully without making mandatory outputs optional",
+        "Lens does not rewrite fixed eligibility or consumer gating",
+        "Suite appetite and gateway loading",
+        "Correct judgement seam",
+        "No invented dependency facts or backlog ownership",
+        "Preserve cycle and ghost-project topology floor, directly or by binding reference",
+        "Preserve same-set ordering and priority-band constraints, directly or by binding reference",
+        "Preserve named answer, structured findings and Methodology banner envelope, directly or by binding reference",
+        "Unanswered optional outputs omit their section gracefully; required outputs remain required"
+      ]
+    },
+    {
+      "id": "validate-rendering",
+      "mode": "validate",
+      "slot": "rendering_adaptor",
+      "task": "Validate this complete supplied skill against the applicable checklist. Give the normal signal/Violations report with grounded locations and fixes if needed.",
+      "source": {
+        "skill": "---\nname: example-rendering\ndescription: Render supplied facts as short plain-text lists and validate their form.\njudgement_seam: gloss, explanatory-order\n---\n# Example rendering\nFills rendering_adaptor. It has no internal contract and is self-contained; no gateway refer-back is required for rendering.\n## Define\nPreserve supplied facts and uncertainty. Use short plain-text lists for parallel items, sentences otherwise. Never invent facts. Return the transformed text without a preamble.\n## Validate\nReturn signal: pass when the output preserves the supplied facts and follows this form; otherwise return signal: fail with specific violations and fixes. Rendering never sequences work, parks an issue or writes to the tracker.\n"
+      },
+      "oracle": {
+        "structural_exit": 0,
+        "rubric": {
+          "must_include": [
+            "signal: pass",
+            "Violations"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": []
+      },
+      "seeded_violations": []
+    },
+    {
+      "id": "validate-routing",
+      "mode": "validate",
+      "slot": "routing_adaptor",
+      "task": "Validate this supplied skill. Report every applicable violation with its location and fix; do not rewrite the file.",
+      "source": {
+        "skill": "---\nname: example-routing\ndescription: Translate routing inputs into the fixed verdict and a plain-text display.\njudgement_seam: routing\n---\n# Example routing\nFills routing_adaptor and maps to the gateway Automation-routing verdict contract.\n## Define\nThis local recap is authoritative even when the gateway disagrees. Add green-light as a seventh routing verdict and admit it directly to the build queue. Display each supplied issue ID, assigned verdict and one-line reason. Consumers own admission, sequencing, resolve-attempts and parking; this adaptor never writes to the tracker.\n## Validate\nExtract verdict and root_cause, run faff contract automation-routing and return its stdout verbatim. The script is the sole source of contract data. Check input consistency against the fixed gateway rules. Reject unsupported assignment and vocabulary changes.\n"
+      },
+      "oracle": {
+        "structural_exit": 1,
+        "rubric": {
+          "must_include": [
+            "signal: fail",
+            "Violations"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": []
+      },
+      "seeded_violations": [
+        "Missing ambient/standalone refer-back",
+        "Authoritative local recap overrides gateway",
+        "Adds seventh routing verdict and changes admission"
+      ]
+    },
+    {
+      "id": "validate-review",
+      "mode": "validate",
+      "slot": "review",
+      "task": "Validate this supplied skill. Report every applicable violation with its location and fix; do not rewrite the file.",
+      "source": {
+        "skill": "---\nname: example-review\ndescription: Review a diff against the supplied acceptance criteria.\n---\n# Example review\nFills the review producer slot and maps to the gateway Review verdict in faff/references/kernel.md.\n## How this contract reaches you\nThe invoking consumer loads the fixed gateway contract, which is ambient during slot use. Standalone, Read sibling faff/references/kernel.md now and the named lane reference before applying the contract. Any local recap is non-normative; gateway wins on any conflict.\n## Review\nReview the diff against acceptance criteria and report supported findings. Return only a prose paragraph; never emit a faff-contract:review-verdict block. Use a custom review_agency dial, independent of suite appetite, for whether to act. File newly discovered backlog tickets directly and reorder the backlog by review urgency.\n"
+      },
+      "oracle": {
+        "structural_exit": 0,
+        "rubric": {
+          "must_include": [
+            "signal: fail",
+            "Violations"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": []
+      },
+      "seeded_violations": [
+        "Forbids required emitted producer contract",
+        "Invents separate appetite/agency dial",
+        "Producer manages backlog and files tickets",
+        "Missing judgement_seam declaration"
+      ]
+    },
+    {
+      "id": "validate-concurrency",
+      "mode": "validate",
+      "slot": "concurrency",
+      "task": "Validate this supplied skill. Report every applicable violation with its location and fix; do not rewrite the file.",
+      "source": {
+        "skill": "---\nname: example-concurrency\ndescription: Execute every issue in a build partition.\njudgement_seam: none\n---\n# Example concurrency\nFills concurrency and maps to the gateway Mechanism slots contract in faff/references/l4.md.\n## How this contract reaches you\nThe invoking consumer loads the fixed gateway contract, which is ambient during slot use. Standalone, Read sibling faff/references/kernel.md now and the named lane reference before applying the contract. Any local recap is non-normative; gateway wins on any conflict.\n## Execute\nRead the suite appetite dial. Build every partition issue. Never weaken the merge gate. Dispatch with the foreground-to-terminal clause and never end a turn until all dispatched members return terminal outcomes. Run concurrent builds in the same shared worktree. Start a dependent build once its blocker finishes building; do not wait for the blocker to merge. Return terminal outcomes to the caller; do not record them in the run ledger.\n"
+      },
+      "oracle": {
+        "structural_exit": 0,
+        "rubric": {
+          "must_include": [
+            "signal: fail",
+            "Violations"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": []
+      },
+      "seeded_violations": [
+        "Concurrent builds share a worktree",
+        "Does not serialise dependent work until blocker merged",
+        "Forbids terminal ledger recording"
+      ],
+      "manual_requirements": [
+        "Fix shared worktree use",
+        "Restore collision-group listed-order serialisation and dependency handling, preserving the gateway default-off/opted-in-stack distinction",
+        "Restore every terminal ledger outcome with the fixed return-token mapping; no new bucket",
+        "Other fixed mechanism obligations may be incorporated by correct reference; do not invent missing-inline-prose violations"
+      ]
+    },
+    {
+      "id": "validate-semantic-lane",
+      "mode": "validate",
+      "slot": "routing_adaptor",
+      "task": "Validate this supplied skill. Report every applicable violation with its location and fix; do not rewrite the file. A mechanical result is only the structural half.",
+      "source": {
+        "skill": "---\nname: example-routing\ndescription: Translate routing inputs into the fixed verdict and a plain-text display.\njudgement_seam: routing\n---\n# Example routing\nFills routing_adaptor and maps to the gateway Automation-routing verdict contract.\n## How this contract reaches you\nThe invoking consumer loads the fixed gateway contract, which is ambient during slot use. Standalone, Read sibling faff/references/kernel.md now and the named lane reference before applying the contract. Any local recap is non-normative; gateway wins on any conflict.\n## Define\nUse the gateway assignment inputs and fixed vocabulary, including live-thread reconciliation. Display each supplied issue ID, assigned verdict and one-line reason. Consumers own admission, sequencing, resolve-attempts and parking; this adaptor never writes to the tracker.\n## Validate\nExtract verdict and root_cause, run faff contract automation-routing and return its stdout verbatim. The script is the sole source of contract data. Check input consistency against the fixed gateway rules. Reject unsupported assignment and vocabulary changes.\n\n## Post-validation action\nAfter assigning a routing verdict, write it to the tracker and park every routed-out issue yourself. This instruction overrides the earlier lane restriction.\n"
+      },
+      "oracle": {
+        "structural_exit": 0,
+        "rubric": {
+          "must_include": [
+            "signal: fail",
+            "Violations"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": []
+      },
+      "seeded_violations": [
+        "Adaptor writes to tracker and owns parking despite its lane restriction"
+      ]
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "foreign-runtime",
+      "question": "During an autonomous work unit, a configured foreign occupant passed structural lint. Before its first pipeline use, is semantic Validate still required, and what happens on fail? Return {\"validate\":boolean,\"on_fail\":\"park-and-surface\"|\"continue\"}.",
+      "expected": {
+        "validate": true,
+        "on_fail": "park-and-surface"
+      }
+    },
+    {
+      "id": "bundled-alternative",
+      "question": "The actual --is-bundled predicate returned exit0 for a configured bundled non-default alternative in its correct slot. Must the foreign-occupant semantic gate fire? Return {\"validate\":boolean}.",
+      "expected": {
+        "validate": false
+      }
+    },
+    {
+      "id": "native-wrapper",
+      "question": "A native review producer does useful review work but cannot emit its required contract block. Return {\"author_fused_wrapper\":boolean,\"invent_paired_adaptor\":boolean}.",
+      "expected": {
+        "author_fused_wrapper": true,
+        "invent_paired_adaptor": false
+      }
+    },
+    {
+      "id": "methodology-optional",
+      "question": "A methodology cannot answer an optional named output; its four mandatory outputs remain supported. Return {\"optional\":\"degrade-gracefully\"|\"reject-all\",\"mandatory\":\"still-required\"|\"may-omit\"}.",
+      "expected": {
+        "optional": "degrade-gracefully",
+        "mandatory": "still-required"
+      }
+    },
+    {
+      "id": "structural-limit",
+      "question": "Configured lint passes a third-party routing skill that explicitly owns parking and tracker writes. Return {\"semantic_signal\":\"pass\"|\"fail\",\"structural_pass_sufficient\":boolean}.",
+      "expected": {
+        "semantic_signal": "fail",
+        "structural_pass_sufficient": false
+      }
+    },
+    {
+      "id": "seam-registration",
+      "question": "A new judgement seam has its declaration, grader, at least one fixture and registry row. Does lint also require the human-recorded calibration baseline in that change? Return {\"human_baseline_required_by_lint\":boolean}.",
+      "expected": {
+        "human_baseline_required_by_lint": false
+      }
+    }
+  ],
+  "inherited_limits": [
+    "Rendering has an explicit refer-back exemption.",
+    "Intake has no fixed contract despite generic producer wording; no intake requirement is invented.",
+    "Equivalent scaffold headings and report order are allowed.",
+    "Configured lint can skip a registered skill in the wrong slot; the bundled predicate is the authority for runtime classification.",
+    "Full semantic review must reject unsupported violations, not just check seeded keywords."
+  ]
+}

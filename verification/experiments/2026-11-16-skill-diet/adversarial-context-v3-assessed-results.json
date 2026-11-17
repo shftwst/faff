@@ -1,0 +1,385 @@
+{
+  "schema": 1,
+  "qualification_status": "requires-separate-native-protocol-review",
+  "status": "pass",
+  "plans": [
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/adversarial-context-v3-plan.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/adversarial-context-v3-even-plan.json"
+  ],
+  "arms": {
+    "baseline": {
+      "case_kinds": {
+        "execution": {
+          "passed": 50,
+          "total": 50
+        }
+      },
+      "runs": 5,
+      "passed": 50,
+      "total": 50,
+      "recorded_data_bytes": 668278,
+      "estimated_recorded_data_tokens": 166518
+    },
+    "candidate": {
+      "case_kinds": {
+        "execution": {
+          "passed": 50,
+          "total": 50
+        }
+      },
+      "runs": 5,
+      "passed": 50,
+      "total": 50,
+      "recorded_data_bytes": 382505,
+      "estimated_recorded_data_tokens": 95824
+    }
+  },
+  "missing": [],
+  "problems": [],
+  "normalised_effect_state_gate_projections_equal": true,
+  "artifact_rubric_projections_equal": null,
+  "runs": [
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "name": "adversarial-context-v3-baseline-1",
+      "arm": "baseline",
+      "kind": "adversarial-review-execution",
+      "report_sha256": "8bf73aead1cb113cce74a8194d65998441a0996f7028acc3cae12c6545cd7447",
+      "assessment_sha256": "2bd8cad6124d84a65cc3257337f0b281eb3bca14de24e0984f11819e3bb2c9b0",
+      "original_status": "pass",
+      "original_cases_passed": 10,
+      "diagnostics": [],
+      "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+      "projection_sha256": "3ddefe50747964e7ea812c7c872768da890c644b85e48adbf9b0f213357ebbbf",
+      "policy_chunks": 13,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "config_path_reads": null,
+      "event_counts": {
+        "invoke_skill": 10,
+        "read_file": 20,
+        "run_command": 98,
+        "write_file": 8,
+        "submit_review": 10
+      },
+      "recorded_data_bytes": 130794,
+      "estimated_recorded_data_tokens": 32592
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "name": "adversarial-context-v3-candidate-1",
+      "arm": "candidate",
+      "kind": "adversarial-review-execution",
+      "report_sha256": "118c99aacf510906ba067fed03130c9c65988f70dd151b67b7d7f55b146faefb",
+      "assessment_sha256": "e0c1c48ccaa718527e563c6b44f32cdba03281a8c2c674a1e692869ef5a1f2d7",
+      "original_status": "pass",
+      "original_cases_passed": 10,
+      "diagnostics": [],
+      "policy_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "projection_sha256": "3ddefe50747964e7ea812c7c872768da890c644b85e48adbf9b0f213357ebbbf",
+      "policy_chunks": 4,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "config_path_reads": null,
+      "event_counts": {
+        "invoke_skill": 10,
+        "read_file": 20,
+        "run_command": 98,
+        "write_file": 8,
+        "submit_review": 10
+      },
+      "recorded_data_bytes": 76818,
+      "estimated_recorded_data_tokens": 19246
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "name": "adversarial-context-v3-baseline-3",
+      "arm": "baseline",
+      "kind": "adversarial-review-execution",
+      "report_sha256": "3b19a9381fba30844145d6bfb7c4a9df9f53b04689f93cee3f65b282532532a1",
+      "assessment_sha256": "14a29868934de09372522adeaf15c8509c320f35b0e7df8f2098ef0071e82edb",
+      "original_status": "fail",
+      "original_cases_passed": 9,
+      "diagnostics": [],
+      "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+      "projection_sha256": "3ddefe50747964e7ea812c7c872768da890c644b85e48adbf9b0f213357ebbbf",
+      "policy_chunks": 13,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "config_path_reads": null,
+      "event_counts": {
+        "invoke_skill": 10,
+        "run_command": 99,
+        "read_file": 18,
+        "write_file": 8,
+        "submit_review": 10
+      },
+      "recorded_data_bytes": 134646,
+      "estimated_recorded_data_tokens": 33546
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "name": "adversarial-context-v3-candidate-3",
+      "arm": "candidate",
+      "kind": "adversarial-review-execution",
+      "report_sha256": "1c4d7ef77142e7bd00ff103ce0a468cbec0fe8b5027c030cd300a6808a37a5a5",
+      "assessment_sha256": "24e31e0919dfe6a164aed0da7c5fda0fb7e4a2f8f79b2e7690a6c104243a4f16",
+      "original_status": "pass",
+      "original_cases_passed": 10,
+      "diagnostics": [],
+      "policy_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "projection_sha256": "3ddefe50747964e7ea812c7c872768da890c644b85e48adbf9b0f213357ebbbf",
+      "policy_chunks": 4,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "config_path_reads": null,
+      "event_counts": {
+        "invoke_skill": 10,
+        "run_command": 98,
+        "read_file": 18,
+        "write_file": 8,
+        "submit_review": 10
+      },
+      "recorded_data_bytes": 76447,
+      "estimated_recorded_data_tokens": 19152
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "name": "adversarial-context-v3-baseline-5",
+      "arm": "baseline",
+      "kind": "adversarial-review-execution",
+      "report_sha256": "86ab210610a285be217874d51fd49bd7ea9457aa6f6881928491259432968f32",
+      "assessment_sha256": "47ed73ab976a5e45de73ec65969fc9131d0b2df1a87e4d9ff528c9c5c10a1113",
+      "original_status": "pass",
+      "original_cases_passed": 10,
+      "diagnostics": [],
+      "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+      "projection_sha256": "3ddefe50747964e7ea812c7c872768da890c644b85e48adbf9b0f213357ebbbf",
+      "policy_chunks": 13,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "config_path_reads": null,
+      "event_counts": {
+        "invoke_skill": 10,
+        "read_file": 20,
+        "run_command": 106,
+        "write_file": 8,
+        "submit_review": 10
+      },
+      "recorded_data_bytes": 131434,
+      "estimated_recorded_data_tokens": 32754
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "name": "adversarial-context-v3-candidate-5",
+      "arm": "candidate",
+      "kind": "adversarial-review-execution",
+      "report_sha256": "6a0ca4e326f9f18f1e84a04cc6c09b5fdd99662a1b0cbef29d71332a17ff3ec3",
+      "assessment_sha256": "8af04de1b730dd8f662cadc8ec2db3bd27b63e96b166f1012a21d037e0c9cbde",
+      "original_status": "pass",
+      "original_cases_passed": 10,
+      "diagnostics": [
+        {
+          "seq": 4,
+          "case_id": "case-a",
+          "kind": "unwritten-output-read",
+          "path": "/tmp/faff-adversarial-workflow-LNwA4w/case-a/review-system.txt",
+          "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-LNwA4w/case-a/review-system.txt'"
+        }
+      ],
+      "policy_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "projection_sha256": "3ddefe50747964e7ea812c7c872768da890c644b85e48adbf9b0f213357ebbbf",
+      "policy_chunks": 4,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "config_path_reads": null,
+      "event_counts": {
+        "invoke_skill": 10,
+        "read_file": 21,
+        "run_command": 98,
+        "write_file": 8,
+        "submit_review": 10
+      },
+      "recorded_data_bytes": 76912,
+      "estimated_recorded_data_tokens": 19268
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "name": "adversarial-context-v3-candidate-2",
+      "arm": "candidate",
+      "kind": "adversarial-review-execution",
+      "report_sha256": "ad4aa52d258b3ce9719ef8be8e082031675e4326ce927606ee2e4adf78df39ad",
+      "assessment_sha256": "bc664e10c560bd23d9c1fe9eeb4700abb938430d107d111fd593cd2f24cd2461",
+      "original_status": "fail",
+      "original_cases_passed": 9,
+      "diagnostics": [
+        {
+          "seq": 3,
+          "case_id": "case-a",
+          "kind": "unwritten-output-read",
+          "path": "/tmp/faff-adversarial-workflow-djSf7i/case-a/review-system.txt",
+          "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-djSf7i/case-a/review-system.txt'"
+        }
+      ],
+      "policy_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "projection_sha256": "3ddefe50747964e7ea812c7c872768da890c644b85e48adbf9b0f213357ebbbf",
+      "policy_chunks": 4,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "config_path_reads": null,
+      "event_counts": {
+        "invoke_skill": 10,
+        "read_file": 12,
+        "run_command": 79,
+        "write_file": 8,
+        "submit_review": 10
+      },
+      "recorded_data_bytes": 74941,
+      "estimated_recorded_data_tokens": 18768
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "name": "adversarial-context-v3-baseline-2",
+      "arm": "baseline",
+      "kind": "adversarial-review-execution",
+      "report_sha256": "293cc53110ab05db14d62a72e1b2511a3230b6909039c18b055cd30f0e082221",
+      "assessment_sha256": "fea025e62bb037a33ca2b45cad8231d3258402813cd4408d72bb2880b5df7474",
+      "original_status": "pass",
+      "original_cases_passed": 10,
+      "diagnostics": [],
+      "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+      "projection_sha256": "3ddefe50747964e7ea812c7c872768da890c644b85e48adbf9b0f213357ebbbf",
+      "policy_chunks": 13,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "config_path_reads": null,
+      "event_counts": {
+        "invoke_skill": 10,
+        "read_file": 20,
+        "run_command": 107,
+        "write_file": 8,
+        "submit_review": 10
+      },
+      "recorded_data_bytes": 135285,
+      "estimated_recorded_data_tokens": 33710
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "name": "adversarial-context-v3-candidate-4",
+      "arm": "candidate",
+      "kind": "adversarial-review-execution",
+      "report_sha256": "d52fedaca5ea8c161ee6adc0551321e93443f58c8543bfdc5b52dc445cdde925",
+      "assessment_sha256": "6198ae12a4d5915c104912197c9c0c82d2e119c613155102b0fe1c4931f870f5",
+      "original_status": "pass",
+      "original_cases_passed": 10,
+      "diagnostics": [
+        {
+          "seq": 4,
+          "case_id": "case-a",
+          "kind": "unwritten-output-read",
+          "path": "/tmp/faff-adversarial-workflow-e4Nvow/case-a/review-system.txt",
+          "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-e4Nvow/case-a/review-system.txt'"
+        }
+      ],
+      "policy_sha256": "5ae8d0dd3b6181adbe23996eb321dccda4e9257c5d956360236436747e6dd9ba",
+      "projection_sha256": "3ddefe50747964e7ea812c7c872768da890c644b85e48adbf9b0f213357ebbbf",
+      "policy_chunks": 4,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "config_path_reads": null,
+      "event_counts": {
+        "invoke_skill": 10,
+        "read_file": 21,
+        "run_command": 106,
+        "write_file": 8,
+        "submit_review": 10
+      },
+      "recorded_data_bytes": 77387,
+      "estimated_recorded_data_tokens": 19390
+    },
+    {
+      "case_kinds": {
+        "execution": {
+          "passed": 10,
+          "total": 10
+        }
+      },
+      "name": "adversarial-context-v3-baseline-4",
+      "arm": "baseline",
+      "kind": "adversarial-review-execution",
+      "report_sha256": "6adcf9da02b62b12e10f120b1d686e7e2e9ce55b8de3193ac4b74229966778a7",
+      "assessment_sha256": "590005b27aa267f7a52ad4e58fdc9c3bd722347069fd70a8dc42fdc5b9dd9090",
+      "original_status": "pass",
+      "original_cases_passed": 10,
+      "diagnostics": [],
+      "policy_sha256": "4be6a2c38923d00b7dca1dc00d6d5923a00f0b9329141de0a2bbe2a14c4a1193",
+      "projection_sha256": "3ddefe50747964e7ea812c7c872768da890c644b85e48adbf9b0f213357ebbbf",
+      "policy_chunks": 13,
+      "cases_passed": 10,
+      "cases_total": 10,
+      "config_path_reads": null,
+      "event_counts": {
+        "invoke_skill": 10,
+        "read_file": 20,
+        "run_command": 99,
+        "write_file": 8,
+        "submit_review": 10
+      },
+      "recorded_data_bytes": 136119,
+      "estimated_recorded_data_tokens": 33916
+    }
+  ],
+  "limits": [
+    "Payload proxy counts task JSON plus compact successful bridge-response values, including policy chunks, each counted once. It excludes native tool framing, system/catalog/history, model output and cached reprocessing; it is not provider usage or billed cost.",
+    "Token estimate is ceil(UTF-16 characters/4) per payload, summed.",
+    "Effect and state comparison uses only the predeclared path/time/read normalisations. Finding prose varies and is graded separately by the fixture.",
+    "Native screens are retained separately and require protocol review; this numerical summary does not certify absence of out-of-bridge activity.",
+    "Rendering compares persisted artifact integrity and fact/form rubric outcomes, not byte-identical prose or subjective quality. Artifact, execution and decision counts are reported separately.",
+    "Small correlated samples do not establish statistical equivalence."
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "config:   /tmp/faff-kernel-config-E2GZDI/layered/.faff/config.yaml\nconfig local: /tmp/faff-kernel-config-E2GZDI/layered/.faff/config.local.yaml\nappetite: high (default)\nslot spec: fixture-base-spec\nslot review: fixture-overlay-review\n",
+    "stderr": ""
+  }
+}

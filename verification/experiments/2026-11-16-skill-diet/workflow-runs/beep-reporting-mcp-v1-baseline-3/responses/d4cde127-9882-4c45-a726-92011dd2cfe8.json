@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "value": {
+    "surfaced": true,
+    "reason": "faff run summary exited 2: cannot read /var/tmp/faff-reporting-measure-ZStHFT/cases/unreadable-ledger/.faff/runs/run-20260101-000000-beepboop-list-abc106/run-ledger.json: Expected property name or '}' in JSON at position 2 (line 1 column 3). No successful summary was persisted or published."
+  }
+}

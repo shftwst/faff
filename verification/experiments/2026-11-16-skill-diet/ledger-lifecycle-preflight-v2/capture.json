@@ -1,0 +1,144 @@
+{
+  "cases": [],
+  "commands": [
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-Hewdrp",
+      "args": [
+        "run",
+        "open",
+        "--mode",
+        "full",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp",
+        "--session-id",
+        "ledger-preflight-complete",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "{\"run_dir\":\"/var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60\",\"governance\":\"admitted\",\"fail_closed_cause\":null,\"budget_envelope\":{\"ceilings\":{\"until\":null,\"max_attempts\":null,\"tokens\":null,\"cost\":null},\"until_invalid\":null,\"price_per_mtok_removed\":null,\"at_ceiling\":\"stop\",\"price_per_mtok\":0,\"pricing\":\"map\",\"window\":null,\"allow_unmetered\":[]},\"steps\":{\"mint\":\"ok\",\"enrich\":\"ok\",\"envelope\":\"ok\",\"baseline\":\"ok\",\"governance\":\"ok\",\"poller\":\"ok\",\"hooks\":\"ok\"},\"hooks_report\":\"added runcheck, prepcheck, inflightcheck, resumecheck, sentrycheck, turncheck, Bash::merge-fence, Bash::background-fence, Monitor::background-fence → /var/tmp/faff-ledger-lifecycle-Hewdrp/.claude/settings.json\",\"faults\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-Hewdrp",
+      "args": [
+        "events",
+        "append",
+        "--run",
+        "run-20261116-225706-beepboop-full-b48f60",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp"
+      ],
+      "input": "{\"phase\":\"run\",\"type\":\"ledger-write\"}",
+      "exit_code": 0,
+      "stdout": "{\"schema\":2,\"run_id\":\"run-20261116-225706-beepboop-full-b48f60\",\"seq\":8,\"ts\":\"2026-11-16T22:57:07.358Z\",\"prev\":\"5f6a6db7db7e288a0f013ab632a5a7ce8aa288617e3cd91fe1b001d474239556\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"96fbe2d06268e5fe25b8e67ecd63aa11439c770b771f8566877344847c6a8f4c\"}}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-Hewdrp",
+      "args": [
+        "run-ledger",
+        "record-outcome",
+        "--issue",
+        "LIFE-A",
+        "--outcome",
+        "parked",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "recorded LIFE-A=parked (owner running) in /var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-Hewdrp",
+      "args": [
+        "heartbeat",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-Hewdrp",
+      "args": [
+        "run-ledger",
+        "record-outcome",
+        "--issue",
+        "LIFE-B",
+        "--outcome",
+        "superseded",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "recorded LIFE-B=superseded (owner done) in /var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-Hewdrp",
+      "args": [
+        "runcheck",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "{\n  \"run_id\": \"run-20261116-225706-beepboop-full-b48f60\",\n  \"admitted\": [\n    \"LIFE-A\",\n    \"LIFE-B\"\n  ],\n  \"undispatched\": [],\n  \"invalid_outcomes\": [],\n  \"clean\": true,\n  \"run_dir\": \"/var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60\"\n}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-Hewdrp",
+      "args": [
+        "run",
+        "close",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60",
+        "--stop-reason",
+        "queue-drained",
+        "--root",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp",
+        "--session-id",
+        "ledger-preflight-complete",
+        "--json"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "{\"closed\":true,\"undispatched\":[],\"abort_exempt\":false,\"owner_status\":\"done\",\"steps\":{\"run_end\":\"ok\",\"owner_close\":\"ok\",\"poller_stop\":\"ok\",\"governance_probe\":\"ok\",\"conclude\":[{\"issue\":\"LIFE-A\",\"reconcile_exit\":0,\"conclude_exit\":0},{\"issue\":\"LIFE-B\",\"reconcile_exit\":0,\"conclude_exit\":0}],\"anchor_run\":\"skipped\",\"anchor_commit\":\"skipped\",\"bundle_publish\":\"skipped\",\"judge_trail\":\"ok\",\"andon\":\"ok\"},\"faults\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    {
+      "root": "/var/tmp/faff-ledger-lifecycle-Hewdrp",
+      "args": [
+        "sentry-poller",
+        "stop",
+        "--run-dir",
+        "/var/tmp/faff-ledger-lifecycle-Hewdrp/.faff/runs/run-20261116-225706-beepboop-full-b48f60"
+      ],
+      "input": "",
+      "exit_code": 0,
+      "stdout": "faff sentry-poller: stop sentinel written (pid 1217764, alive)\n",
+      "stderr": "",
+      "error": null
+    }
+  ],
+  "failure": {
+    "message": "Expected values to be strictly equal:\n+ actual - expected\n\n+ 'ledger-write'\n- 'run-start'\n",
+    "stack": "AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:\n+ actual - expected\n\n+ 'ledger-write'\n- 'run-start'\n\n    at file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/preflight-ledger-lifecycle-v2.mjs:73:10\n    at ModuleJob.run (node:internal/modules/esm/module_job:343:25)\n    at async onImport.tracePromise.__proto__ (node:internal/modules/esm/loader:681:26)\n    at async asyncRunEntryPointWithESMLoader (node:internal/modules/run_main:117:5)"
+  }
+}

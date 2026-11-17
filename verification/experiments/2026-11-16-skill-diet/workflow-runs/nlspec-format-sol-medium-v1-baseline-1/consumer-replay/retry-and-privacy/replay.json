@@ -1,0 +1,111 @@
+{
+  "id": "retry-and-privacy",
+  "status": "fail",
+  "problems": [
+    "artifact-rules",
+    "observable-scenarios",
+    "repository-test-floor"
+  ],
+  "source_sha256": "57765290372971bdc34bcd66a2cfa71ca453d956b093d52db7dcbe3b03765a8e",
+  "attached_sha256": "19ded3bfe9839c9e92b392c470432aae0829474c86a063f0ce3fe2ca15da49f5",
+  "artifact": {
+    "pass": false,
+    "problems": [
+      "missing-pattern:System[^\\n]*Language[^\\n]*Relevance"
+    ],
+    "rubric": {
+      "score": 1,
+      "checks": 5,
+      "passed": 5,
+      "vector": [
+        true,
+        true,
+        true,
+        true,
+        true
+      ]
+    }
+  },
+  "commands": [
+    {
+      "name": "contract",
+      "argv": [
+        "contract",
+        "spec-readiness"
+      ],
+      "stdin_sha256": "3dff06bc579cff0ab175492bf7811fc950860b54feb659e9fa4fa985a35fd599",
+      "exit_code": 0,
+      "stdout": "{\"confidence\":\"high\",\"decisions\":[{\"classification\":\"closed\"}],\"markers_valid\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    {
+      "name": "admissible",
+      "argv": [
+        "admissible",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/retry-and-privacy/spec.md",
+        "--lights-out",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"admissible\":true,\"reasons\":[],\"checks\":[{\"id\":\"R1.scenarios\",\"pass\":true,\"detail\":\"4 born-verifiable scenario(s) (need >=1)\"},{\"id\":\"R2a.done-present\",\"pass\":true,\"detail\":\"7 DONE checklist item(s) (need >=1)\"},{\"id\":\"R2b.done-concrete\",\"pass\":true,\"detail\":\"0 vague DONE item(s)\"},{\"id\":\"R2c.human-judgement-untagged\",\"pass\":true,\"detail\":\"0 untagged human-judgement DONE item(s)\"},{\"id\":\"R2d.not-all-human-only\",\"pass\":true,\"detail\":\"7 DONE item(s) not tagged human-only (need at least 1)\"},{\"id\":\"R2e.human-marker-reason\",\"pass\":true,\"detail\":\"0 DONE item(s) begin needs-human: with no reason\"}],\"warnings\":[\"prose-DONE advisory: 7 DONE item(s) are loose prose and are delegated to the AC checklist, not judged by the holdout (judged count: 7; phrase an item with Then or must to keep it code-blind): Success returns the original successful value with | Permanent errors propagate immediately as the orig | Only transient `ImportError` instances are retried | The third transient failure propagates its origina | Retry logs contain only attempt numbers and no pay | The existing runner calls the unchanged `runImport | `test/import-retry.test.ts` passes.  (2 appear to restate a born-verifiable scenario — candidates to remove: The third transient failure propagates its origina | Retry logs contain only attempt numbers and no pay)\",\"scenarios-prose advisory: 3 Scenarios unit(s) are prose (no Then, no MUST or comparator) and cannot be judged code-blind; restate each as a Given/When/Then with an observable Then: scenarios:1 ### Immediate success | scenarios:3 ### Transient failure then success | scenarios:5 ### Three transient failures\"]}\n",
+      "stderr": ""
+    },
+    {
+      "name": "dod",
+      "argv": [
+        "dod",
+        "classify",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/retry-and-privacy/spec.md",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"criteria\":[{\"text\":\"### Immediate success\",\"class\":\"prose\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:1\"},{\"text\":\"Given importOnce succeeds on its first call with value V\\nWhen the existing job runner calls runImport with payload P\\nThen runImport returns the original value V\\nAnd importOnce is called exactly once\\nAnd no retry is logged\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:2\"},{\"text\":\"### Transient failure then success\",\"class\":\"prose\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:3\"},{\"text\":\"Given importOnce first raises ImportError with transient true and then succeeds with value V\\nWhen the existing job runner calls runImport with payload P\\nThen runImport returns the original value V after exactly two calls\\nAnd the retry log contains attempt number 2 only\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:4\"},{\"text\":\"### Three transient failures\",\"class\":\"prose\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:5\"},{\"text\":\"Given the first three importOnce calls raise transient ImportError objects E1, E2 and E3\\nWhen the existing job runner calls runImport with payload P\\nThen runImport propagates the original error E3 after exactly three calls\\nAnd no fourth call occurs\\nAnd the retry logs contain attempt numbers 2 and 3 only\",\"class\":\"scenario\",\"source\":\"scenarios\",\"holdout\":true,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:6\"},{\"text\":\"**Log privacy:** Retry logs MUST NOT contain payloads; retry fields MUST contain only the attempt number.\",\"class\":\"assertion\",\"source\":\"scenarios\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"running-stack\",\"verifier\":\"holdout\",\"id\":\"scenarios:7\"},{\"text\":\"Success returns the original successful value without further attempts.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:1\",\"local_ac_id\":\"done:1\"},{\"text\":\"Permanent errors propagate immediately as the original error object.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:2\",\"local_ac_id\":\"done:2\"},{\"text\":\"Only transient `ImportError` instances are retried, with at most three total calls.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:3\",\"local_ac_id\":\"done:3\"},{\"text\":\"The third transient failure propagates its original error object and no fourth call occurs.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:4\",\"local_ac_id\":\"done:4\"},{\"text\":\"Retry logs contain only attempt numbers and no payloads.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:5\",\"local_ac_id\":\"done:5\"},{\"text\":\"The existing runner calls the unchanged `runImport` interface; retries occur immediately without backoff.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:6\",\"local_ac_id\":\"done:6\"},{\"text\":\"`test/import-retry.test.ts` passes.\",\"class\":\"prose\",\"source\":\"done\",\"holdout\":false,\"human_only\":false,\"oracle_less\":false,\"verification_tier\":\"delegated\",\"verifier\":\"ac-checklist\",\"id\":\"done:7\",\"local_ac_id\":\"done:7\"}],\"counts\":{\"scenario\":3,\"assertion\":1,\"prose\":10},\"holdout_counts\":{\"holdout\":1,\"visible\":13},\"oracle_less_count\":0,\"verification_tier_counts\":{\"running-stack\":7,\"integration\":0,\"delegated\":7},\"judged_count\":7,\"integration_count\":0,\"delegated_count\":7}\n",
+      "stderr": ""
+    },
+    {
+      "name": "punt",
+      "argv": [
+        "punt-scan",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/retry-and-privacy/spec.md"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"punts\":[],\"eligible_count\":0,\"blocking_open_count\":0}\n",
+      "stderr": ""
+    },
+    {
+      "name": "attach",
+      "argv": [
+        "prep",
+        "attach",
+        "--issue",
+        "SPEC-2",
+        "--spec",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/retry-and-privacy/spec.md",
+        "--mode",
+        "interactive",
+        "--root",
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/retry-and-privacy",
+        "--json"
+      ],
+      "stdin_sha256": null,
+      "exit_code": 0,
+      "stdout": "{\"issue\":\"SPEC-2\",\"token\":\"ready-to-post\",\"body_path\":\"/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/nlspec-format-sol-medium-v1-baseline-1/consumer-replay/retry-and-privacy/spec.md\",\"spec_sha256\":\"19ded3bfe9839c9e92b392c470432aae0829474c86a063f0ce3fe2ca15da49f5\",\"confidence\":\"high\",\"build_tier\":\"standard\",\"admissibility\":{\"admissible\":true,\"reasons\":[],\"scenarios_prose\":[\"scenarios:1\",\"scenarios:3\",\"scenarios:5\"]}}\n",
+      "stderr": ""
+    }
+  ],
+  "expected": {
+    "confidence": "high",
+    "admissible": true,
+    "blocking_punts": 0,
+    "eligible_punts": 0,
+    "holdouts": true,
+    "review_test_item": true,
+    "behavioural_scenarios": 3,
+    "visible_behavioural_scenarios": 2
+  }
+}

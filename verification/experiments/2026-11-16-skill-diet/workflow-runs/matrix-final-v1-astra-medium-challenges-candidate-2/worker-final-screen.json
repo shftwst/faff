@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All 8 cases finished and their actual results were persisted through the bridge. `finish` returned `{\"finished\":true}`.\n\nNo departures from the restrictions. This was calibration only; no provider independence or production eligibility is claimed.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5e1-eb2b-7b03-bdb9-777b170f122e"
+    ],
+    "elapsed_seconds": 167.8,
+    "stdout_sha256": "26e3cf44f01a57735e06ec588ec1b802f2e168678d067cfeac31b2c7bf1572a2",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

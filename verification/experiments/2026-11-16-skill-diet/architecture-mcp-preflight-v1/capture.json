@@ -1,0 +1,302 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "write_output",
+      "args": {
+        "case_id": "relational",
+        "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A Node service in docker-compose using the existing Postgres database.\",\n  \"rationale\": \"The existing Node/Compose profile fits the small load. Postgres transactions provide transactional integrity for concurrent edits and durable storage to survive restarts.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Keep timesheets in Postgres\",\n      \"decision\": \"Use the existing relational database with transactions.\",\n      \"rationale\": \"Relational records need durability and transactional integrity.\"\n    }\n  ],\n  \"assumptions\": [\n    \"The existing database has capacity for the small load.\"\n  ],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Keep timesheets in Postgres: Use the existing relational database with transactions. Relational records need durability and transactional integrity.\n\nconfidence: medium\n"
+      },
+      "case_id": "relational",
+      "result": {
+        "written": true,
+        "bytes": 892,
+        "sha256": "3f37fd6d57366b06fb7ecce5223f6fa50700db3490b2d514fa6d906cf10d5966"
+      }
+    },
+    {
+      "seq": 2,
+      "name": "write_output",
+      "args": {
+        "case_id": "nightly-batch",
+        "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A scheduled Node batch job in the existing Compose deployment, querying Postgres and writing summary rows.\",\n  \"rationale\": \"The nightly schedule and small load fit one SQL aggregation against the existing database.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Schedule weekly summary aggregation\",\n      \"decision\": \"Run a nightly Node job against existing Postgres.\",\n      \"rationale\": \"The brief needs batch summaries with a small row count.\"\n    }\n  ],\n  \"assumptions\": [\n    \"The deployment can run a scheduled process.\"\n  ],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Schedule weekly summary aggregation: Run a nightly Node job against existing Postgres. The brief needs batch summaries with a small row count.\n\nconfidence: medium\n"
+      },
+      "case_id": "nightly-batch",
+      "result": {
+        "written": true,
+        "bytes": 825,
+        "sha256": "e47afc003679299570a0a75092be825250b595e79d064618f4b0e2dbc8ece398"
+      }
+    },
+    {
+      "seq": 3,
+      "name": "write_output",
+      "args": {
+        "case_id": "no-profile",
+        "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A local command-line program with a SQLite file on the laptop.\",\n  \"rationale\": \"Local persisted records fit the single-laptop checkout workflow and survive restart without a shared server.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Persist local checkouts in SQLite\",\n      \"decision\": \"Use one local SQLite database file.\",\n      \"rationale\": \"The brief requires local records that survive restart.\"\n    }\n  ],\n  \"assumptions\": [\n    \"No infra profile is available.\",\n    \"A runtime suitable for a local CLI can be installed after human review.\"\n  ],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Persist local checkouts in SQLite: Use one local SQLite database file. The brief requires local records that survive restart.\n\nconfidence: medium\n"
+      },
+      "case_id": "no-profile",
+      "result": {
+        "written": true,
+        "bytes": 831,
+        "sha256": "509382f38e11227ae3125a4d437dd1b30c17025cac88bdda8bac22163bfc5e77"
+      }
+    },
+    {
+      "seq": 4,
+      "name": "write_output",
+      "args": {
+        "case_id": "external-only",
+        "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"Use the certified FixtureSign signing service, conditional on human procurement and access approval.\",\n  \"rationale\": \"The required certification is unavailable to an in-house implementation in this release. A non-build recommendation needs human review before any action.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Require certified FixtureSign signatures\",\n      \"decision\": \"Propose the certified service subject to human approval.\",\n      \"rationale\": \"Certification is mandatory and not locally buildable in the release.\"\n    }\n  ],\n  \"assumptions\": [\n    \"No licence or service access exists; a human must approve procurement.\"\n  ],\n  \"recommendation\": \"buy\"\n}\n```\n\n## ADR promotion intent\n\n- Require certified FixtureSign signatures: Propose the certified service subject to human approval. Certification is mandatory and not locally buildable in the release.\n\nconfidence: medium\n"
+      },
+      "case_id": "external-only",
+      "result": {
+        "written": true,
+        "bytes": 957,
+        "sha256": "9314a4954769a4fed62d688720b2f7d0f7e56378b8dda6c395ce6850c9cf9303"
+      }
+    },
+    {
+      "seq": 5,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "profile-read",
+        "value": {
+          "command": "faff profile show --json"
+        }
+      },
+      "case_id": "profile-read",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 6,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "missing-profile",
+        "value": {
+          "stop": false,
+          "state_no_profile_assumption": true,
+          "use_brief": true
+        }
+      },
+      "case_id": "missing-profile",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 7,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "default",
+        "value": {
+          "recommendation": "build"
+        }
+      },
+      "case_id": "default",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 8,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "non-build",
+        "value": {
+          "act": false,
+          "surface_for_human": true
+        }
+      },
+      "case_id": "non-build",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 9,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "materialise",
+        "value": {
+          "call": false
+        }
+      },
+      "case_id": "materialise",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 10,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "critic",
+        "value": {
+          "issue_verdict": false
+        }
+      },
+      "case_id": "critic",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 11,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "needs",
+        "value": {
+          "required": true
+        }
+      },
+      "case_id": "needs",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 12,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "alternatives",
+        "value": {
+          "argue_against_unchosen": false
+        }
+      },
+      "case_id": "alternatives",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 13,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "intent",
+        "value": {
+          "echo_each": true
+        }
+      },
+      "case_id": "intent",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 14,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "confidence",
+        "value": {
+          "advisory": true,
+          "gates_quality": false
+        }
+      },
+      "case_id": "confidence",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 15,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "relational",
+      "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A Node service in docker-compose using the existing Postgres database.\",\n  \"rationale\": \"The existing Node/Compose profile fits the small load. Postgres transactions provide transactional integrity for concurrent edits and durable storage to survive restarts.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Keep timesheets in Postgres\",\n      \"decision\": \"Use the existing relational database with transactions.\",\n      \"rationale\": \"Relational records need durability and transactional integrity.\"\n    }\n  ],\n  \"assumptions\": [\n    \"The existing database has capacity for the small load.\"\n  ],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Keep timesheets in Postgres: Use the existing relational database with transactions. Relational records need durability and transactional integrity.\n\nconfidence: medium\n",
+      "persisted_sha256": "3f37fd6d57366b06fb7ecce5223f6fa50700db3490b2d514fa6d906cf10d5966"
+    },
+    {
+      "id": "nightly-batch",
+      "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A scheduled Node batch job in the existing Compose deployment, querying Postgres and writing summary rows.\",\n  \"rationale\": \"The nightly schedule and small load fit one SQL aggregation against the existing database.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Schedule weekly summary aggregation\",\n      \"decision\": \"Run a nightly Node job against existing Postgres.\",\n      \"rationale\": \"The brief needs batch summaries with a small row count.\"\n    }\n  ],\n  \"assumptions\": [\n    \"The deployment can run a scheduled process.\"\n  ],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Schedule weekly summary aggregation: Run a nightly Node job against existing Postgres. The brief needs batch summaries with a small row count.\n\nconfidence: medium\n",
+      "persisted_sha256": "e47afc003679299570a0a75092be825250b595e79d064618f4b0e2dbc8ece398"
+    },
+    {
+      "id": "no-profile",
+      "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"A local command-line program with a SQLite file on the laptop.\",\n  \"rationale\": \"Local persisted records fit the single-laptop checkout workflow and survive restart without a shared server.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Persist local checkouts in SQLite\",\n      \"decision\": \"Use one local SQLite database file.\",\n      \"rationale\": \"The brief requires local records that survive restart.\"\n    }\n  ],\n  \"assumptions\": [\n    \"No infra profile is available.\",\n    \"A runtime suitable for a local CLI can be installed after human review.\"\n  ],\n  \"recommendation\": \"build\"\n}\n```\n\n## ADR promotion intent\n\n- Persist local checkouts in SQLite: Use one local SQLite database file. The brief requires local records that survive restart.\n\nconfidence: medium\n",
+      "persisted_sha256": "509382f38e11227ae3125a4d437dd1b30c17025cac88bdda8bac22163bfc5e77"
+    },
+    {
+      "id": "external-only",
+      "text": "```faff-contract:architecture-proposal\n{\n  \"chosen_architecture\": \"Use the certified FixtureSign signing service, conditional on human procurement and access approval.\",\n  \"rationale\": \"The required certification is unavailable to an in-house implementation in this release. A non-build recommendation needs human review before any action.\",\n  \"adr_candidates\": [\n    {\n      \"title\": \"Require certified FixtureSign signatures\",\n      \"decision\": \"Propose the certified service subject to human approval.\",\n      \"rationale\": \"Certification is mandatory and not locally buildable in the release.\"\n    }\n  ],\n  \"assumptions\": [\n    \"No licence or service access exists; a human must approve procurement.\"\n  ],\n  \"recommendation\": \"buy\"\n}\n```\n\n## ADR promotion intent\n\n- Require certified FixtureSign signatures: Propose the certified service subject to human approval. Certification is mandatory and not locally buildable in the release.\n\nconfidence: medium\n",
+      "persisted_sha256": "9314a4954769a4fed62d688720b2f7d0f7e56378b8dda6c395ce6850c9cf9303"
+    }
+  ],
+  "rule_answers": [
+    {
+      "id": "profile-read",
+      "value": {
+        "command": "faff profile show --json"
+      }
+    },
+    {
+      "id": "missing-profile",
+      "value": {
+        "stop": false,
+        "state_no_profile_assumption": true,
+        "use_brief": true
+      }
+    },
+    {
+      "id": "default",
+      "value": {
+        "recommendation": "build"
+      }
+    },
+    {
+      "id": "non-build",
+      "value": {
+        "act": false,
+        "surface_for_human": true
+      }
+    },
+    {
+      "id": "materialise",
+      "value": {
+        "call": false
+      }
+    },
+    {
+      "id": "critic",
+      "value": {
+        "issue_verdict": false
+      }
+    },
+    {
+      "id": "needs",
+      "value": {
+        "required": true
+      }
+    },
+    {
+      "id": "alternatives",
+      "value": {
+        "argue_against_unchosen": false
+      }
+    },
+    {
+      "id": "intent",
+      "value": {
+        "echo_each": true
+      }
+    },
+    {
+      "id": "confidence",
+      "value": {
+        "advisory": true,
+        "gates_quality": false
+      }
+    }
+  ]
+}

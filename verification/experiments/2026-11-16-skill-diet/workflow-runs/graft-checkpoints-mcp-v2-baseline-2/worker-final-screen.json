@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "The measurement reported `finished: true`. However, I cannot confirm every case ran: the task.json response was truncated, and two guessed case IDs were rejected.\n\nAll subsequent calls used the required measurement-port wrappers. No extra file reads, tools, skills or subagents were used. Several port inputs were rejected; corrected retries were made where possible.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e77d-179f-7281-a103-3241759fc2e1"
+    ],
+    "elapsed_seconds": 458.5,
+    "stdout_sha256": "f28323dd0e0113fa0bd96bfcab8be22e306d39218878ec81d4293833ca96a5d2",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

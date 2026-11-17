@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "directory": "/var/tmp/faff-beep-ledger-v1-integration",
+  "base_commit": "d9c6e69a53cbc05e4a2def91f9d5e24e0784febc",
+  "isolated_commit": "775273cb30510ecee00df2b8f0bb448881cdd32c",
+  "source_sha256": "8bcedb9ac1a76c397011d367992a272547c1653c7664d0eecd57c6625d0d7d95",
+  "production_installed": false,
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=4",
+        "test/run-ledger-init-self-drain.test.mjs",
+        "test/run-ledger-serialiser.test.mjs",
+        "test/run-ledger-record-outcome.test.mjs",
+        "test/run-ledger-record-declined.test.mjs",
+        "test/run-summary.test.mjs",
+        "test/heartbeat.test.mjs",
+        "test/heartbeat-concurrency.test.mjs",
+        "test/events.test.mjs",
+        "test/events-chain.test.mjs",
+        "test/events-concurrency.test.mjs",
+        "test/run-close.test.mjs"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-ledger-v1-integration-tests.txt",
+      "sha256": "1b46ad289c761d3785fb3c40a0bbf890c4f1c05a687341776b17d69e03010ffc"
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-ledger-v1-integration-adapter-lint.txt",
+      "sha256": "fe64e7c7e129f03531e7a640d40ec41fe5b9434e6d7caf7c54e3d980fac79994"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-ledger-v1-integration-rule-inventory.txt",
+      "sha256": "006a694d371b4081c794a2c306cf1e45fe0c277046ce6fa6cbee077cef7a10e3"
+    }
+  ],
+  "limits": [
+    "Deterministic integration only. Model pair, native/actual-output review and real downstream consumers remain required. Do not install this whole-file draft after a Reporting acceptance without rebasing the two changed sections."
+  ]
+}

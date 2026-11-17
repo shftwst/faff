@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "contract": {
+      "exit_code": 0,
+      "signal": null,
+      "stdout": "{\"signal\":\"needs-human\",\"findings\":[{\"location_present\":true,\"action_present\":true,\"disposition\":\"open\",\"source\":\"adversarial\",\"disposition_rationale\":\"review-call.mjs exit 7: HTTP 401 from the only configured backend; no second opinion was obtained.\",\"model\":\"openai/fixture-model\",\"title\":\"Adversarial backend authentication failure for openai/fixture-model\",\"location\":\".faff/config.yaml\",\"action\":\"Set a valid API key in the env var named by the adversarial backend's api_key_env, then re-run the adversarial review.\"}],\"conformant\":true,\"violations\":[]}\n",
+      "stderr": ""
+    },
+    "gate": {
+      "issue": "FAFF-7001",
+      "pass": false,
+      "ac_complete": true,
+      "review_verdict": "needs-human",
+      "holdout": "not-applicable",
+      "reasons": [
+        "review-verdict needs-human"
+      ],
+      "ac_called_out": []
+    }
+  }
+}

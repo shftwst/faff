@@ -1,0 +1,1 @@
+{"name":"submit_review","args":{"case_id":"adjacent-high","text":"signal: pass\n\n## Findings\n\nNone. Multiplication matches the spec and the supplied tests pass. High appetite permits the trivial adjacent comment typo correction in the touched file.\n\n```faff-contract:review-verdict\n{\"signal\":\"pass\",\"findings\":[]}\n```"}}

@@ -1,0 +1,196 @@
+{
+  "schema": 1,
+  "status": "parallel-phase-zero-model-review-pass",
+  "scope": "Future runner source/identity/state-isolation review, independent zero-model scheduler tests, and exact final deterministic MCP/real-CLI preflight bindings. No models launched, concurrent Codex service/session-database or provider-runtime/usage-limit qualification, source acceptance or current-cohort transport change.",
+  "runner_sha256": "08f0a8c3644e916a1ab317985423fb7f570d4b9f1ec979afc6c4758be1424053",
+  "per_sample_identity": {
+    "v4_body_byte_identical_excluding_trailing_blank_lines": true,
+    "v4_body_ast_identical": true,
+    "body_sha256": "0b751aec30e6aa982426f5884ea2f573ca70f4d88cc279a64e6901c6779db5c5",
+    "limits": "Parallel dispatch intentionally changes phase scheduling and completion after an individual failure, requiring fresh preregistration. It does not alter the body of any original sample."
+  },
+  "resolved_findings": [
+    {
+      "issue": "SystemExit from per-sample existing-directory refusal could escape collection and lose complete phase result summary.",
+      "resolution": "Collector catches Exception and SystemExit; independent test verifies five original results and retained failed sample."
+    },
+    {
+      "issue": "Lexical uniqueness could admit path aliases or unknown arms.",
+      "resolution": "Safe lowercase path-component regex, closed baseline/candidate arm values, exactly five unique names and one arm are checked before submission."
+    }
+  ],
+  "tests": {
+    "command": "node --test test/control-parity-parallel-phase.test.mjs",
+    "exit_code": 0,
+    "tests": 4,
+    "pass": 4,
+    "fail": 0,
+    "log_path": "/tmp/faff-parallel-phase-independent-tests-v2.log",
+    "log_sha256": "17d5c7a25ee3cc2cb83b31f30d90593e68f1df385ccddbc25c245cfbcd9984c0",
+    "meaning": [
+      "Executes actual run_phase AST extracted from reviewed runner, not a duplicate implementation.",
+      "Five-worker barrier requires all five to start concurrently, with exactly one invocation each and ordered results.",
+      "RuntimeError and SystemExit are retained as sample failures while all originals finish, without retries.",
+      "Invalid count/name/arm/duplicate/mixed-arm phases invoke zero sample callbacks."
+    ],
+    "limits": "Tests isolate run_phase. Preregistered policy and existing-directory module gates were reviewed statically; no full concurrent model runner was executed."
+  },
+  "isolation": {
+    "per_sample": [
+      "Output directory and server log",
+      "Harness unique temporary roots and real CLI persistence",
+      "Synthetic transcript config/project paths",
+      "Private Codex cwd/stdout/stderr/final path",
+      "Native capture lookup by actual unique thread ID"
+    ],
+    "shared": "Frozen read-only source/runtime/plan inputs and global Codex service/session storage. Deterministic preflights do not test the latter.",
+    "synthetic_session_labels": "Repeated labels remain isolated by unique CLAUDE_CONFIG_DIR and project root paths.",
+    "unique_actual_case_roots_verified": 15
+  },
+  "final_preflight": {
+    "aggregate": "parallel-phase-v2-preflight.json",
+    "runner_hash_matches_current": true,
+    "client_hash_matches_current": true,
+    "samples": [
+      {
+        "name": "ledger-mcp-parallel-preflight-v2-1",
+        "status": "pass",
+        "execution_cases": 3,
+        "decisions": 11,
+        "checks_passed": 14,
+        "checks": 14,
+        "calls": 71,
+        "missing_output_mutations_rejected": 14
+      },
+      {
+        "name": "ledger-mcp-parallel-preflight-v2-2",
+        "status": "pass",
+        "execution_cases": 3,
+        "decisions": 11,
+        "checks_passed": 14,
+        "checks": 14,
+        "calls": 71,
+        "missing_output_mutations_rejected": 14
+      },
+      {
+        "name": "ledger-mcp-parallel-preflight-v2-3",
+        "status": "pass",
+        "execution_cases": 3,
+        "decisions": 11,
+        "checks_passed": 14,
+        "checks": 14,
+        "calls": 71,
+        "missing_output_mutations_rejected": 14
+      },
+      {
+        "name": "ledger-mcp-parallel-preflight-v2-4",
+        "status": "pass",
+        "execution_cases": 3,
+        "decisions": 11,
+        "checks_passed": 14,
+        "checks": 14,
+        "calls": 71,
+        "missing_output_mutations_rejected": 14
+      },
+      {
+        "name": "ledger-mcp-parallel-preflight-v2-5",
+        "status": "pass",
+        "execution_cases": 3,
+        "decisions": 11,
+        "checks_passed": 14,
+        "checks": 14,
+        "calls": 71,
+        "missing_output_mutations_rejected": 14
+      }
+    ],
+    "total_recorded_and_counted_mcp_calls": 355,
+    "event_windows": [
+      {
+        "name": "ledger-mcp-parallel-preflight-v2-1",
+        "first_event": "2026-11-17T00:48:51.248Z",
+        "last_event": "2026-11-17T00:48:56.398Z"
+      },
+      {
+        "name": "ledger-mcp-parallel-preflight-v2-2",
+        "first_event": "2026-11-17T00:48:51.260Z",
+        "last_event": "2026-11-17T00:48:56.393Z"
+      },
+      {
+        "name": "ledger-mcp-parallel-preflight-v2-3",
+        "first_event": "2026-11-17T00:48:51.249Z",
+        "last_event": "2026-11-17T00:48:56.397Z"
+      },
+      {
+        "name": "ledger-mcp-parallel-preflight-v2-4",
+        "first_event": "2026-11-17T00:48:51.260Z",
+        "last_event": "2026-11-17T00:48:56.393Z"
+      },
+      {
+        "name": "ledger-mcp-parallel-preflight-v2-5",
+        "first_event": "2026-11-17T00:48:51.251Z",
+        "last_event": "2026-11-17T00:48:56.408Z"
+      }
+    ],
+    "all_event_windows_overlap": true,
+    "preflight_client_scope": "Reference producer inputs via actual MCP mailbox and real CLI consumers. Old V1 plan is used only for pinned runtime location/commit, not for model evidence or held-sample qualification.",
+    "prior_v1_preflight_retained": true
+  },
+  "remaining_blockers_within_reviewed_scope": [],
+  "conditions_for_future_use": [
+    "Fresh plan explicitly sets sample_execution_policy=parallel-complete-original-phase and freezes current V5 runner/tests/preflight hashes.",
+    "Exactly five original samples of one arm, unique safe names and no existing directories.",
+    "Retain phase stdout summary and per-sample artifacts. No failed sample replacement or resubmission.",
+    "All original samples finish even if one fails; any failure blocks the next arm and source acceptance.",
+    "Independent full baseline gate precedes any candidate launch.",
+    "Concurrent model sessions may encounter service/database/provider resource failures; preserve them under the unchanged strict bar without retries.",
+    "Current Astra serial V4 cohort remains unchanged and separate."
+  ],
+  "artifacts": {
+    "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v4.py": "85840dcfc17bedb3a9760eb344e28187ecd45d3ed5c8e2b761050f8575fd7c75",
+    "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v5.py": "08f0a8c3644e916a1ab317985423fb7f570d4b9f1ec979afc6c4758be1424053",
+    "test/control-parity-parallel-phase.test.mjs": "e1c5ebb4224196892390a0f3518ffd8b77ac056d33a787deeb6518422a22af20",
+    "verification/experiments/2026-11-16-skill-diet/preflight-ledger-mcp-v2.mjs": "f9a10db53665afcbe743f24bd8ef3ca6ed9bef6af71e752ec373f3db4ab37e27",
+    "verification/experiments/2026-11-16-skill-diet/parallel-phase-v1-preflight.json": "bc753eacf00d88e00ce165939625494ea892628e4d0cc591337250343f90f065",
+    "verification/experiments/2026-11-16-skill-diet/parallel-phase-v2-preflight.json": "70b4da581703e1f29a06e64bcaef06a194dab9bf7a75d63950ff4b25ce3b6653",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-1/preflight.json": "f6e9c43ea37a6b99cb0e8f0d678c36ee34db16c3fef02398854e79b16533223f",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-1/mcp-trace.jsonl": "eb0531f4d0a01cb025a29d665159a424b1a827fd0696b83c5630315ca6180fa6",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-1/mcp-server-manifest.json": "09f3e7e3fbaea4a9db6413d31d3020ea1d7cee688f69f0e3915ada90ebdd9fd3",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-1/task.json": "8c72dfd3029f598d28393fc11932756ce00cd71ce7566ee2834a88ffe98d3c0b",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-1/manifest.json": "a26f3c2a914cad5b289999f60b32e019a5b711ceff7e9c6de4a4e73c3be76d6d",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-1/capture.json": "b2e1da36c9d73f2a20068a65b5f95da53c13754fd31116e638baa5366a37a5a7",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-1/expected.json": "513d2ef7df567d161d25691e4b9017887f447fa25f6b93c3c8ef89c2c722973f",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-1/report.json": "f0eb490dda46f6d7ed37c75cc75b222079c21abe222e5335d3b5df5c45ed2da8",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-2/preflight.json": "a61346987c6dc9a8c43fc376d8f70361fedff5e334c2b1bfacbb85e51b6f8c1a",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-2/mcp-trace.jsonl": "c3c7a49fde89cb9dd4f994df20625fa4c48ff2d0dbcb33e57fa0607267ff0229",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-2/mcp-server-manifest.json": "1f98ebb7ada2fe3bcef0aa998a2e9901399eedd206041b0f8d8706fc6957f119",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-2/task.json": "876b0d26bb27f186caf7c9d05d3d9471bb644a0a54df8de9caa74c048c1f7fe4",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-2/manifest.json": "d51dac43d2a9cb3740586b92f91a2e7015b9432da510070ecb63a94799de3bc8",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-2/capture.json": "315cc46ac36f579719a41cebbe0b054d36041599eb75794ee43034702db93620",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-2/expected.json": "af6d6191b9b82bbf94e92cbb4b5e5537f358ac4bc90479d5ef410c68cf098021",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-2/report.json": "f0eb490dda46f6d7ed37c75cc75b222079c21abe222e5335d3b5df5c45ed2da8",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-3/preflight.json": "86cf58ee3db3046de2353db367e58cc2e8be4da4880c33cbef2e025b9cd12fce",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-3/mcp-trace.jsonl": "79898fe6df8640008caea80896c9625c4a865f335169aba01937ea6416ea1a52",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-3/mcp-server-manifest.json": "ff301a29a57479001a2db960564e02864c277c431fe4c9038bbb5a3f8366bee5",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-3/task.json": "81237b9a73ff4b9df81c0dc5310c98ea1fe94268c19f85cb85964385d2d3b0b3",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-3/manifest.json": "2306b31876c681a3d5397c2386ccd8c083a0231e0eed66e0f1d98b2157b6e89b",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-3/capture.json": "4c7b2e88dd34f7b37a9356c5439f4a449775e3874387c9e644c5e4915d2e6412",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-3/expected.json": "0617c849ca8f0ca344b526b9432fae197fbd0fe9160ca9b4ef215b8b9366b9fd",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-3/report.json": "f0eb490dda46f6d7ed37c75cc75b222079c21abe222e5335d3b5df5c45ed2da8",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-4/preflight.json": "4c70756c8bcd8c2ac17c8b7d08815407b3fc4b1df50a30d2a9309572f4315153",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-4/mcp-trace.jsonl": "3d24d2de695a5b418090a56ef5ae83745f521cf9a80cb3c62e14da8aa2bc9b7b",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-4/mcp-server-manifest.json": "bff0b455dfe48e9c80adba66855eb67faebadbe6c985bc4afdfda77ba72f9509",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-4/task.json": "88a4263b0388797f75d886016f6e9f6c6dce86a5bbcc5548fd6c7d747ed9bdbb",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-4/manifest.json": "b32f460767ece053187355f3404fab5929189e0a5376c05293242079d6f6c7f1",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-4/capture.json": "d977227515ab6e6d471576ac7bf6272462e58b85de33f4ef27480e1e94e2ff66",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-4/expected.json": "c0c7dbf64abdec9527830296a797ee7703653a1bf12f63201bc3083f27a82f1d",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-4/report.json": "f0eb490dda46f6d7ed37c75cc75b222079c21abe222e5335d3b5df5c45ed2da8",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-5/preflight.json": "0d97ec9163c7a610142972cbc4bfcc24763ce0870f60cd17faa15554ca2faa1e",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-5/mcp-trace.jsonl": "68655a67faefbd2799147c0ed268e0cf2607b5a6c46cbb80a0c3b22afa6e3441",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-5/mcp-server-manifest.json": "1b53332ac9341cc60592ec7540fccbd1653a1d720f5699a2105273ed9f495606",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-5/task.json": "3d3408104f5409124907c090044a42412cf40bcbe21ae927101d088bce7f299b",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-5/manifest.json": "62d5c07b0e76494989018daa01a125ff66d1adf942139740dad611ba7d440fb1",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-5/capture.json": "1109be60e062b5e0699476fed042cb7ebd2bc64ea8606d519b9954ba809be194",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-5/expected.json": "3a6c0de29cc9a7c546465b50fd369981745ced2c6339010a51a281114fb1cf9a",
+    "verification/experiments/2026-11-16-skill-diet/ledger-mcp-parallel-preflight-v2-5/report.json": "f0eb490dda46f6d7ed37c75cc75b222079c21abe222e5335d3b5df5c45ed2da8"
+  }
+}

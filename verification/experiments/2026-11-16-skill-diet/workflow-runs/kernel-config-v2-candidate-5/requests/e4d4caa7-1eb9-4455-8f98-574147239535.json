@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"malformed-base","status":"blocked","values":{},"reason":"config get exited 2: .faff/config.yaml does not parse to a mapping; a malformed base is never a silent default and no repair or lenient override is authorised, so the spec producer was not invoked."}}

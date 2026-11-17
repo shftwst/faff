@@ -1,0 +1,501 @@
+{
+  "schema": 1,
+  "scope": "Shared kernel config/dispatch boundary: actual configuration CLI in private Git workspaces, recorded downstream stub dispatch, preserved files and timestamps. No claim of full prep/graft/beep workflow execution. Separately labelled bounded questions cover configuration and slot/model boundary decisions; those questions are not workflow execution.",
+  "normalisations": [
+    "Ignore config get --json and explicit -d fallback syntax when identifying the same read; actual result and exit remain authoritative.",
+    "Ignore ordering of dispatch flags; all names and values must match, including absence of tier.",
+    "Canonicalise optional faff: prefix on skill names.",
+    "Compare file bytes and preserve no-write mtimes; temporary root paths are excluded.",
+    "Config get of an ancestor or config resolved may supply the same explicit scalar. A config read refusing a malformed file may use any read entry point. Raw configuration-file access fails; reading CLAUDE.md for context is permitted.",
+    "Optional reported slot/model/effort values are accepted only when consistent with the observed correct result; requested values remain required.",
+    "Architecture stage names graft Step 4b and faff-graft Step 4b are equivalent."
+  ],
+  "cases": [
+    {
+      "id": "layered",
+      "task": "Invoke the configured spec producer, then the configured review producer. Configuration is unknown. No configuration changes were requested.",
+      "files": {
+        ".faff/config.yaml": "slots:\n  spec: fixture-base-spec\n  review: fixture-base-review\n",
+        ".faff/config.local.yaml": "slots:\n  review: fixture-overlay-review\n",
+        "CLAUDE.md": "For context only: slots.spec = misleading-doc-spec.\n"
+      },
+      "expected": {
+        "status": "complete",
+        "reads": [
+          {
+            "args": [
+              "config",
+              "get",
+              "slots.spec"
+            ],
+            "exit": 0,
+            "before_effect": 0,
+            "value": "fixture-base-spec"
+          },
+          {
+            "args": [
+              "config",
+              "get",
+              "slots.review"
+            ],
+            "exit": 0,
+            "before_effect": 1,
+            "value": "fixture-overlay-review"
+          }
+        ],
+        "effects": [
+          {
+            "tool": "invoke_skill",
+            "name": "fixture-base-spec"
+          },
+          {
+            "tool": "invoke_skill",
+            "name": "fixture-overlay-review"
+          }
+        ],
+        "values": {},
+        "writes": [],
+        "optional_values": {
+          "spec": "fixture-base-spec",
+          "review": "fixture-overlay-review"
+        }
+      }
+    },
+    {
+      "id": "defaults",
+      "task": "Resolve and invoke the spec producer. Also report the configured logging value. No setup or configuration changes were requested.",
+      "files": {
+        ".faff/config.yaml": "# Comment-only config; preserve it.\n"
+      },
+      "expected": {
+        "status": "complete",
+        "reads": [
+          {
+            "args": [
+              "config",
+              "get",
+              "slots.spec"
+            ],
+            "exit": 0,
+            "before_effect": 0,
+            "value": "faffter-noon-spec"
+          },
+          {
+            "args": [
+              "config",
+              "get",
+              "logging"
+            ],
+            "exit": 0,
+            "value": "full"
+          }
+        ],
+        "effects": [
+          {
+            "tool": "invoke_skill",
+            "name": "faffter-noon-spec"
+          }
+        ],
+        "values": {
+          "logging": "full"
+        },
+        "writes": [],
+        "optional_values": {
+          "spec": "faffter-noon-spec"
+        }
+      }
+    },
+    {
+      "id": "scalar-write",
+      "task": "Set appetite to medium in the shared base configuration, then read it back and report appetite. Preserve unrelated content.",
+      "files": {
+        ".faff/config.yaml": "# Preserve this comment.\ntracking:\n  repo: fixture/project\n  spec_docs_path: records/specs\n"
+      },
+      "expected": {
+        "status": "complete",
+        "reads": [
+          {
+            "args": [
+              "config",
+              "get",
+              "appetite"
+            ],
+            "exit": 0,
+            "value": "medium"
+          }
+        ],
+        "effects": [],
+        "values": {
+          "appetite": "medium"
+        },
+        "writes": [
+          [
+            "config",
+            "set",
+            "appetite",
+            "medium"
+          ]
+        ],
+        "optional_values": {}
+      }
+    },
+    {
+      "id": "malformed-base",
+      "task": "Resolve and invoke the configured spec producer. No repair or configuration change is authorised.",
+      "files": {
+        ".faff/config.yaml": "- not\n- a map\n"
+      },
+      "expected": {
+        "status": "blocked",
+        "reads": [
+          {
+            "args": [
+              "config",
+              "get",
+              "slots.spec"
+            ],
+            "exit": 2
+          }
+        ],
+        "effects": [],
+        "values": {},
+        "writes": [],
+        "optional_values": {}
+      }
+    },
+    {
+      "id": "malformed-overlay",
+      "task": "Resolve and invoke the configured spec producer. No repair or configuration change is authorised.",
+      "files": {
+        ".faff/config.yaml": "slots:\n  spec: fixture-base-spec\n",
+        ".faff/config.local.yaml": "- invalid\n- overlay\n"
+      },
+      "expected": {
+        "status": "blocked",
+        "reads": [
+          {
+            "args": [
+              "config",
+              "get",
+              "slots.spec"
+            ],
+            "exit": 2
+          }
+        ],
+        "effects": [],
+        "values": {},
+        "writes": [],
+        "optional_values": {}
+      }
+    },
+    {
+      "id": "legacy-name",
+      "task": "Resolve and invoke the configured spec producer. No repair, migration or configuration change is authorised.",
+      "files": {
+        ".faffrc.yml": "slots:\n  spec: fixture-legacy-spec\n"
+      },
+      "expected": {
+        "status": "blocked",
+        "reads": [
+          {
+            "args": [
+              "config",
+              "get",
+              "slots.spec"
+            ],
+            "exit": 2
+          }
+        ],
+        "effects": [],
+        "values": {},
+        "writes": [],
+        "optional_values": {}
+      }
+    },
+    {
+      "id": "tier-precedence",
+      "task": "Dispatch a build agent for a mechanical-tier issue with high confidence. Record the resolved model and effort through the dispatch port; no configuration changes.",
+      "files": {
+        ".faff/config.yaml": "dispatch:\n  build:\n    model: opus\n    effort: low\n    by_tier:\n      default:\n        model: fable\n        effort: medium\n      mechanical:\n        model: haiku\n        effort: high\n    by_confidence:\n      high:\n        model: sonnet\n"
+      },
+      "expected": {
+        "status": "complete",
+        "reads": [
+          {
+            "args": [
+              "dispatch",
+              "resolve",
+              "build",
+              "--tier",
+              "mechanical",
+              "--confidence",
+              "high"
+            ],
+            "exit": 0,
+            "before_effect": 0
+          }
+        ],
+        "effects": [
+          {
+            "tool": "dispatch_build",
+            "model": "haiku",
+            "resolved_effort": "high"
+          }
+        ],
+        "values": {},
+        "writes": [],
+        "optional_values": {
+          "model": "haiku",
+          "effort": "high",
+          "effort_applied": false
+        }
+      }
+    },
+    {
+      "id": "absent-tier",
+      "task": "Dispatch a build agent for an issue with high confidence and no build tier supplied. Record the resolved model and effort through the dispatch port; no configuration changes.",
+      "files": {
+        ".faff/config.yaml": "dispatch:\n  build:\n    model: opus\n    effort: low\n    by_tier:\n      default:\n        model: fable\n        effort: medium\n      mechanical:\n        model: haiku\n        effort: high\n    by_confidence:\n      high:\n        model: sonnet\n"
+      },
+      "expected": {
+        "status": "complete",
+        "reads": [
+          {
+            "args": [
+              "dispatch",
+              "resolve",
+              "build",
+              "--confidence",
+              "high"
+            ],
+            "exit": 0,
+            "before_effect": 0
+          }
+        ],
+        "effects": [
+          {
+            "tool": "dispatch_build",
+            "model": "sonnet",
+            "resolved_effort": "medium"
+          }
+        ],
+        "values": {},
+        "writes": [],
+        "optional_values": {
+          "model": "sonnet",
+          "effort": "medium",
+          "effort_applied": false
+        }
+      }
+    },
+    {
+      "id": "invalid-unused-leaf",
+      "task": "Dispatch a build agent for a mechanical-tier issue with high confidence. No repair or configuration change is authorised.",
+      "files": {
+        ".faff/config.yaml": "dispatch:\n  build:\n    model: opus\n    effort: low\n    by_tier:\n      default:\n        model: fable\n        effort: medium\n      mechanical:\n        model: haiku\n        effort: high\n    by_confidence:\n      high:\n        model: sonnet\n      medium:\n        model: invalid-model\n"
+      },
+      "expected": {
+        "status": "blocked",
+        "reads": [
+          {
+            "args": [
+              "dispatch",
+              "resolve",
+              "build",
+              "--tier",
+              "mechanical",
+              "--confidence",
+              "high"
+            ],
+            "exit": 2
+          }
+        ],
+        "effects": [],
+        "values": {},
+        "writes": [],
+        "optional_values": {}
+      }
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "posture",
+      "question": "Before committing a valid base config, config check reports that the overlay is not ignored. Does this advisory check itself block work? Return {\"run_check\":boolean,\"block_on_posture_finding\":boolean,\"recommend_base_committed\":boolean,\"recommend_overlay_ignored\":boolean}.",
+      "expected": {
+        "run_check": true,
+        "block_on_posture_finding": false,
+        "recommend_base_committed": true,
+        "recommend_overlay_ignored": true
+      }
+    },
+    {
+      "id": "legacy-valid",
+      "question": "config path resolves .faffrc.yaml and prints a deprecation/move warning; config get succeeds. Is this valid fallback readable, or does the name itself require refusal? Return \"readable-deprecated\" or \"refuse-name\".",
+      "expected": "readable-deprecated"
+    },
+    {
+      "id": "lenient-l4",
+      "question": "The operator set FAFF_CONFIG_BASE_LENIENT=1 to continue through malformed base config. May a new L4 lights-out run be minted while it is set? Return {\"mint_allowed\":boolean,\"warnings_continue\":boolean}.",
+      "expected": {
+        "mint_allowed": false,
+        "warnings_continue": true
+      }
+    },
+    {
+      "id": "sentry-malformed",
+      "question": "With a malformed base, what should the existing sentry check do? Return \"degrade-with-defaults-and-config_malformed\" or \"abort-poller\".",
+      "expected": "degrade-with-defaults-and-config_malformed"
+    },
+    {
+      "id": "sequence-exception",
+      "question": "A requested change adds a sequence item under adversarial.backends in the shared base. Choose the permitted writer: \"config-set\", \"committed-base-hand-edit\", or \"overlay-hand-edit\".",
+      "expected": "committed-base-hand-edit"
+    },
+    {
+      "id": "unset-map",
+      "question": "A requested change removes the dispatch.build map subtree. Choose \"config-unset\", \"raw-file-edit\", or \"unsupported\".",
+      "expected": "config-unset"
+    },
+    {
+      "id": "mutable-state",
+      "question": "A tracker response contains a current cycle name and target dates. Should these become stable config fields? Return {\"store_in_config\":boolean,\"refetch_on_next_invocation\":boolean}.",
+      "expected": {
+        "store_in_config": false,
+        "refetch_on_next_invocation": true
+      }
+    },
+    {
+      "id": "executable-fallback",
+      "question": "faff is absent from PATH; CLAUDE_PLUGIN_ROOT=/plugin/current; its bundled executable exists. Which candidate should be used before searching ~/.claude? Return the absolute executable path.",
+      "expected": "/plugin/current/skills/faff/bin/faff"
+    },
+    {
+      "id": "descriptor-validation",
+      "question": "An infra-profile descriptor and a producer review-verdict arrive. Return their validators as {\"infra_profile\":string,\"review_verdict\":string}.",
+      "expected": {
+        "infra_profile": "faff profile validate",
+        "review_verdict": "faff contract review-verdict"
+      }
+    },
+    {
+      "id": "producer-contract",
+      "question": "A custom spec producer emits a faff-contract:spec-readiness JSON artifact. Choose the next consumer route: \"parse-and-contract-validate\", \"prose-extraction-adaptor\", or \"accept-prose-only\".",
+      "expected": "parse-and-contract-validate"
+    },
+    {
+      "id": "architecture-proposal",
+      "question": "The architecture producer returns a validated architecture-proposal. Return {\"producer_commits_candidates\":boolean,\"attach_block_to_spec_verbatim\":boolean,\"downstream_reads_from_spec\":boolean,\"materialising_stage\":string}.",
+      "expected": {
+        "producer_commits_candidates": false,
+        "attach_block_to_spec_verbatim": true,
+        "downstream_reads_from_spec": true,
+        "materialising_stage": "graft Step 4b"
+      }
+    },
+    {
+      "id": "env-no-build",
+      "question": "The architecture recommendation is not build. Return {\"provision\":boolean,\"surface_for_human\":boolean,\"only_ready_passes_env_contract\":boolean}.",
+      "expected": {
+        "provision": false,
+        "surface_for_human": true,
+        "only_ready_passes_env_contract": true
+      }
+    },
+    {
+      "id": "holdout-boundary",
+      "question": "The evaluator is given a spec, running env and repository source. A criterion cannot be judged in the env. Return {\"read_source\":boolean,\"criterion_value\":string,\"reason_code_required\":boolean,\"verdict_before_teardown\":boolean}.",
+      "expected": {
+        "read_source": false,
+        "criterion_value": "needs-human",
+        "reason_code_required": true,
+        "verdict_before_teardown": true
+      }
+    },
+    {
+      "id": "prd-boundary",
+      "question": "The PRD-readiness producer is offered tracker state and code to help judge a PRD. Return {\"read_tracker_or_code\":boolean,\"input_document\":string,\"admit_only_on\":string}.",
+      "expected": {
+        "read_tracker_or_code": false,
+        "input_document": "PRD",
+        "admit_only_on": "admissible"
+      }
+    },
+    {
+      "id": "inline-model",
+      "question": "Graft invokes review and ship inline through Skill. Can dispatch keys switch their model? Return {\"model_source\":string,\"dispatch_can_switch_inline_model\":boolean}.",
+      "expected": {
+        "model_source": "session",
+        "dispatch_can_switch_inline_model": false
+      }
+    },
+    {
+      "id": "agent-effort",
+      "question": "A true producer Agent dispatch resolves model=sonnet and effort=high. The Agent tool has no effort parameter. Return {\"model\":string,\"effort_applied\":boolean,\"record_not_applied\":boolean}.",
+      "expected": {
+        "model": "sonnet",
+        "effort_applied": false,
+        "record_not_applied": true
+      }
+    },
+    {
+      "id": "engine-allowlist",
+      "question": "Which of these producer lanes may use model: engine:<name> in the current pure-data allowlist: spec, spec_review, methodology, intake, architecture, adr? Return a sorted array of lane names.",
+      "expected": [
+        "intake",
+        "methodology"
+      ]
+    },
+    {
+      "id": "engine-failure",
+      "question": "An allowed engine lane cannot reach its configured provider. Return {\"silently_use_session_model\":boolean,\"use_fallback_chain\":boolean,\"named_dispatch_failure\":boolean}.",
+      "expected": {
+        "silently_use_session_model": false,
+        "use_fallback_chain": false,
+        "named_dispatch_failure": true
+      }
+    },
+    {
+      "id": "engine-effort",
+      "question": "The selected engine family cannot carry the requested effort. Choose \"refuse\" or \"silently-ignore-effort\".",
+      "expected": "refuse"
+    },
+    {
+      "id": "eval-settings",
+      "question": "The eval harness has no model override and the account default is Opus. Return {\"model\":string,\"settings_block\":string,\"is_dispatch_lane\":boolean}.",
+      "expected": {
+        "model": "claude-sonnet-4-6",
+        "settings_block": "eval",
+        "is_dispatch_lane": false
+      }
+    },
+    {
+      "id": "missing-slot",
+      "question": "A supported slot is absent from configuration. Choose \"use-built-in-default\" or \"park-until-configured\".",
+      "expected": "use-built-in-default"
+    },
+    {
+      "id": "profile-default",
+      "question": "No profile slot is set. Return {\"acquire_with\":string,\"validate_with\":string,\"write_after_validation\":string,\"miner_network_allowed\":boolean}.",
+      "expected": {
+        "acquire_with": "faff profile mine",
+        "validate_with": "faff profile validate",
+        "write_after_validation": ".faff/infra-profile.json",
+        "miner_network_allowed": false
+      }
+    },
+    {
+      "id": "rendering",
+      "question": "Does rendering_adaptor emit a fixed internal contract that must be run through faff contract? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "build-no-confidence-effort",
+      "question": "A build issue has no tier and high confidence. Config has by_tier.default effort=medium, scalar effort=low, and high-confidence model=sonnet. Return {\"model\":string,\"effort\":string,\"guess_tier\":boolean}.",
+      "expected": {
+        "model": "sonnet",
+        "effort": "medium",
+        "guess_tier": false
+      }
+    }
+  ]
+}

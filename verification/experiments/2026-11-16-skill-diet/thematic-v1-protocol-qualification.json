@@ -1,0 +1,456 @@
+{
+  "schema": 1,
+  "status": "qualified-bounded-methodology-outputs-requires-artifact-review",
+  "summary": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/thematic-v1-results.json",
+  "summary_sha256": "355b7de02ec234df7be1ab695b1705bf5d1fa4972f39cce1ab844f3b02dfc5e7",
+  "arms": {
+    "baseline": {
+      "case_kinds": {
+        "decision": {
+          "passed": 60,
+          "total": 60
+        },
+        "artifact": {
+          "passed": 15,
+          "total": 15
+        },
+        "consumer": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "runs": 5,
+      "passed": 80,
+      "total": 80,
+      "recorded_data_bytes": 936540,
+      "estimated_recorded_data_tokens": 232245
+    },
+    "candidate": {
+      "case_kinds": {
+        "decision": {
+          "passed": 60,
+          "total": 60
+        },
+        "artifact": {
+          "passed": 15,
+          "total": 15
+        },
+        "consumer": {
+          "passed": 5,
+          "total": 5
+        }
+      },
+      "runs": 5,
+      "passed": 80,
+      "total": 80,
+      "recorded_data_bytes": 907315,
+      "estimated_recorded_data_tokens": 225115
+    }
+  },
+  "runs": [
+    {
+      "name": "thematic-readonly-v1-baseline-1",
+      "arm": "baseline",
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "assessed_cases_passed": 16,
+      "cases_total": 16,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 48,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-readonly-v1-baseline-1/task.json",
+          "complete": true,
+          "content_sha256": "b79539fe066650faa25322e636a60e847e6258a6c2c04424be28068d0a748eab",
+          "content_bytes": 15076
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/thematic-v1-paired.json",
+      "audit_sha256": "2897cab45802a637ff8e0006f85d75dc2f45c332249a93a6dd877f3f17b1acd8"
+    },
+    {
+      "name": "thematic-readonly-v1-baseline-2",
+      "arm": "baseline",
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "assessed_cases_passed": 16,
+      "cases_total": 16,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 48,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-readonly-v1-baseline-2/task.json",
+          "complete": true,
+          "content_sha256": "b79539fe066650faa25322e636a60e847e6258a6c2c04424be28068d0a748eab",
+          "content_bytes": 15076
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/thematic-v1-paired.json",
+      "audit_sha256": "2897cab45802a637ff8e0006f85d75dc2f45c332249a93a6dd877f3f17b1acd8"
+    },
+    {
+      "name": "thematic-readonly-v1-baseline-3",
+      "arm": "baseline",
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "assessed_cases_passed": 16,
+      "cases_total": 16,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 48,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-readonly-v1-baseline-3/task.json",
+          "complete": true,
+          "content_sha256": "b79539fe066650faa25322e636a60e847e6258a6c2c04424be28068d0a748eab",
+          "content_bytes": 15076
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/thematic-v1-paired.json",
+      "audit_sha256": "2897cab45802a637ff8e0006f85d75dc2f45c332249a93a6dd877f3f17b1acd8"
+    },
+    {
+      "name": "thematic-readonly-v1-baseline-4",
+      "arm": "baseline",
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "assessed_cases_passed": 16,
+      "cases_total": 16,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 48,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-readonly-v1-baseline-4/task.json",
+          "complete": true,
+          "content_sha256": "b79539fe066650faa25322e636a60e847e6258a6c2c04424be28068d0a748eab",
+          "content_bytes": 15076
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/thematic-v1-paired.json",
+      "audit_sha256": "2897cab45802a637ff8e0006f85d75dc2f45c332249a93a6dd877f3f17b1acd8"
+    },
+    {
+      "name": "thematic-readonly-v1-baseline-5",
+      "arm": "baseline",
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "assessed_cases_passed": 16,
+      "cases_total": 16,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 48,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-readonly-v1-baseline-5/task.json",
+          "complete": true,
+          "content_sha256": "b79539fe066650faa25322e636a60e847e6258a6c2c04424be28068d0a748eab",
+          "content_bytes": 15076
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/thematic-v1-paired.json",
+      "audit_sha256": "2897cab45802a637ff8e0006f85d75dc2f45c332249a93a6dd877f3f17b1acd8"
+    },
+    {
+      "name": "thematic-readonly-v1-candidate-1",
+      "arm": "candidate",
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "assessed_cases_passed": 16,
+      "cases_total": 16,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 47,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-readonly-v1-candidate-1/task.json",
+          "complete": true,
+          "content_sha256": "6da452a70247929dca3103b4cb08be3a0f3a0905b08fe8f91b21e1113732b306",
+          "content_bytes": 15076
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/thematic-v1-paired.json",
+      "audit_sha256": "2897cab45802a637ff8e0006f85d75dc2f45c332249a93a6dd877f3f17b1acd8"
+    },
+    {
+      "name": "thematic-readonly-v1-candidate-2",
+      "arm": "candidate",
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "assessed_cases_passed": 16,
+      "cases_total": 16,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 47,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-readonly-v1-candidate-2/task.json",
+          "complete": true,
+          "content_sha256": "6da452a70247929dca3103b4cb08be3a0f3a0905b08fe8f91b21e1113732b306",
+          "content_bytes": 15076
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/thematic-v1-paired.json",
+      "audit_sha256": "2897cab45802a637ff8e0006f85d75dc2f45c332249a93a6dd877f3f17b1acd8"
+    },
+    {
+      "name": "thematic-readonly-v1-candidate-3",
+      "arm": "candidate",
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "assessed_cases_passed": 16,
+      "cases_total": 16,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 47,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-readonly-v1-candidate-3/task.json",
+          "complete": true,
+          "content_sha256": "6da452a70247929dca3103b4cb08be3a0f3a0905b08fe8f91b21e1113732b306",
+          "content_bytes": 15076
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/thematic-v1-paired.json",
+      "audit_sha256": "2897cab45802a637ff8e0006f85d75dc2f45c332249a93a6dd877f3f17b1acd8"
+    },
+    {
+      "name": "thematic-readonly-v1-candidate-4",
+      "arm": "candidate",
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "assessed_cases_passed": 16,
+      "cases_total": 16,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 47,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-readonly-v1-candidate-4/task.json",
+          "complete": true,
+          "content_sha256": "6da452a70247929dca3103b4cb08be3a0f3a0905b08fe8f91b21e1113732b306",
+          "content_bytes": 15076
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/thematic-v1-paired.json",
+      "audit_sha256": "2897cab45802a637ff8e0006f85d75dc2f45c332249a93a6dd877f3f17b1acd8"
+    },
+    {
+      "name": "thematic-readonly-v1-candidate-5",
+      "arm": "candidate",
+      "original_status": "pass",
+      "original_cases_passed": 16,
+      "assessed_cases_passed": 16,
+      "cases_total": 16,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 47,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "content_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+          "content_bytes": 5591
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/thematic-readonly-v1-candidate-5/task.json",
+          "complete": true,
+          "content_sha256": "6da452a70247929dca3103b4cb08be3a0f3a0905b08fe8f91b21e1113732b306",
+          "content_bytes": 15076
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/thematic-v1-paired.json",
+      "audit_sha256": "2897cab45802a637ff8e0006f85d75dc2f45c332249a93a6dd877f3f17b1acd8"
+    }
+  ],
+  "delivered_guidance_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+  "common_context": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+      "bytes": 21125
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "bytes": 5591
+    }
+  ],
+  "normalised_effect_state_gate_projections_equal": null,
+  "artifact_rubric_projections_equal": null,
+  "bounded_output_projections_equal": true,
+  "limits": [
+    "Actual native tool metadata and model identities are verified. Full caller workflows, hosted publication and statistical equivalence are not claimed.",
+    "Kernel cases use the real configuration/dispatch CLI and prevalidated downstream stubs. Separate policy decisions are not counted as executed workflows.",
+    "Rendering compares actual persisted artifacts and source-fact/form rubrics; a separate reading of the outputs is required before qualifying writing quality.",
+    "Delivered operator guidance is common across arms; the orchestrator file hash describes a different container view.",
+    "Methodology consumers exercise the real termination CLI; other outputs are separate decisions or persisted proposals. Catalogue selection does not execute the selected workflow.",
+    "Source and recorded payload token estimates are not provider usage or billed cost."
+  ]
+}

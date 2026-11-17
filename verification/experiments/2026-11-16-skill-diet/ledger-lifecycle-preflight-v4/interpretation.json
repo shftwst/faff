@@ -1,0 +1,6 @@
+{
+  "status": "failed-preflight",
+  "cause": "The preflight incorrectly expected synchronous sentry-poller termination. Production stop writes a sentinel; the poller observes it at its next interval.",
+  "cleanup_correction": "All V1-V4 owned pollers later exited after noticing deleted roots, independently verified. The original immediate-cleanup statement was too strong; ledger-lifecycle-owned-cleanup-v1.json records the correction.",
+  "next": "V5 checks the stop sentinel, retains each root until exact owned process exit is verified, and uses SIGTERM only for a still-matching fixture-owned command after a stop signal. No model fidelity samples have run."
+}

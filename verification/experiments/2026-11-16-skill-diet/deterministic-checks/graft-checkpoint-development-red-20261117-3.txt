@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: gate failure is a normal CLI result and premature downstream requests remain observable
+not ok 1 - gate failure is a normal CLI result and premature downstream requests remain observable
+  ---
+  duration_ms: 22.468985
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint.test.mjs:51:1'
+  failureType: 'testCodeFailure'
+  error: 'failed-gate checkpoint is supplied'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint.test.mjs:54:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: evidence absence, writer refusal and changed bytes produce different real consumer outcomes
+not ok 2 - evidence absence, writer refusal and changed bytes produce different real consumer outcomes
+  ---
+  duration_ms: 0.265375
+  type: 'test'
+  location: '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint.test.mjs:70:1'
+  failureType: 'testCodeFailure'
+  error: 'distinct evidence checkpoints are supplied'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/test/control-parity-graft-checkpoint.test.mjs:74:10)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 0
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 55.346629

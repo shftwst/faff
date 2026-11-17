@@ -1,0 +1,45 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-16T19:11:12.225358+00:00",
+  "status": "frozen-before-finalist-selection-and-any-hard-task-model-run",
+  "amends": "gpt-opus-standin-matrix-v1.json",
+  "reason": "The original task calls the challenger independent of an OpenAI primary. GPT shares that provider family; retain judgement and real CLI consumption only with truthful task and report scope.",
+  "hard_task_harness": {
+    "path": "eval/control-parity/challenge-calibration-execution.mjs",
+    "sha256": "6547c7aba15393ab22fd0c0557ef1598be10855079d3b3d8371865b91d89c026"
+  },
+  "unchanged_core_harness": {
+    "path": "eval/control-parity/challenge-execution.mjs",
+    "sha256": "8be468411350c7e29d4dbcaebc2043bb191919c1d44c175669c31f666dd098ce"
+  },
+  "case_fixture": {
+    "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/challenges.json",
+    "sha256": "af35e82ab3155f5e540fdf89e9f4c3a3d06bd0987611c0fa061ca51bd001860b"
+  },
+  "preregistered_changes": [
+    "Replace the task independence claim with explicit same-provider-family calibration instructions.",
+    "Use calibration challenge outcome in the submit tool description.",
+    "Override manifest/report scope; preserve original scope only under an explicitly unclaimed historical field."
+  ],
+  "unchanged": [
+    "Policy bytes",
+    "Case inputs and expected outcomes",
+    "Real CLI runtime commit",
+    "Environment, grader and status gates imported unchanged",
+    "Tool schemas and remaining tool descriptions",
+    "Policy reader and request/timeout bounds"
+  ],
+  "preflight": {
+    "path": "challenge-calibration-preflight-v2/preflight.json",
+    "sha256": "6841b3558957dcddba7f022219080438af7777fbee0e30565894eca94005eed9",
+    "actual_cli_cases": 8,
+    "altered_outcomes_rejected": 8,
+    "original_opus_effect_projection_equal": true
+  },
+  "preflight_initial_failure": "V1 stopped after first policy read because the preflight client expected an envelope from a bridge that returns its value. V2 corrects only the deterministic client. No model was involved.",
+  "limits": [
+    "GPT task wording and bridge transport now differ from the historical Opus treatment; the comparison is bounded judgement/consumption, not a pure model-only experiment.",
+    "No provider independence or production challenge eligibility is certified.",
+    "No new model samples replace screen failures. Finalist selection still follows the frozen ranking."
+  ]
+}

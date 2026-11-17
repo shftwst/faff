@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only source/fixture reviewer",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "clear-for-harness-implementation-only",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v1-draft.json",
+      "sha256": "6bce853ad5380185fa30e5228c5f6d0671e57f708d4a6aa085cfc6251d3242f8"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-ledger-v1.md",
+      "sha256": "8bcedb9ac1a76c397011d367992a272547c1653c7664d0eecd57c6625d0d7d95"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/post-merge.js",
+      "sha256": "5739a5148d9130fa5fb27e61269e7bceca7e85c71d5effd56c0071ed694279a5"
+    },
+    {
+      "path": "plugin/skills/faff/bin/lib/runcheck.js",
+      "sha256": "871f72753c44a8f9e44b0da3c537e716680dcbb12e0c19cb1e5b67dd1b5a4572"
+    },
+    {
+      "path": "verification/evidence/v0.3/schema/events/budget-checkpoint.schema.json",
+      "sha256": "0af959ea08c5296c73597fe2c8cc167f9b3140495bc361855ad0ed4073f90b65"
+    },
+    {
+      "path": "verification/evidence/v0.3/schema/events/sentry-checkpoint.schema.json",
+      "sha256": "48d2c59c8a6fa8b8bd26584f01d135e88e0f87965511e5a8816ec3e7479d1706"
+    },
+    {
+      "path": "verification/evidence/v0.3/schema/events/issue-outcome.schema.json",
+      "sha256": "3b9b4f651d04fd5a63cca6bafc7be67f8457f7b0e824cff54ba63880f0bf81c5"
+    }
+  ],
+  "corrected_findings": [
+    "NEW-2 explicitly belongs to POST-1 post-merge filing and acknowledgement list is exhaustive; count2 now unambiguous.",
+    "Review/post-merge objects explicitly labelled relevant-field extracts, not complete persisted records.",
+    "Gate/rework inclusion is an explicit workload requirement for otherwise optional telemetry.",
+    "Budget and sentry caller payloads now carry supplied values; budget spent fields conform to actual event schema. Sentry run_dir:null/verdicts:[] is a permitted supplied partial payload.",
+    "Unique unordered fields declared for annotation/admission arrays and caller_fields.",
+    "Incomplete case correctly expects runcheck exit3 and exactly OPEN-1 undispatched.",
+    "Known schema2 and five-token-class CLI outputs remain separately documented from older skill prose."
+  ],
+  "required_real_boundary_proof": [
+    "Mint each independent run via actual init-self-drain under isolated L3-compatible fixture root. Do not claim run open, governor, hooks, owner lifecycle or model mint behaviour exercised.",
+    "Augmentation must write actual ledger bytes, accept only declared producer fields, and compare preserved command-owned state before/after. Real ledger-write append follows the mutation and its computed hash must match those bytes.",
+    "Run real runcheck over augmented state: mixed exit0 with clean:true; incomplete exit3 with OPEN-1 only, no invented outcome, invalid bucket or prep admission.",
+    "Use actual summary consumer with explicitly fixed external dependencies; verify annotation membership and nonduplication, separate prep-outage/slow subsections, superseded distinct, and rich details not completeness. Do not require publication or finalisation of incomplete checkpoint.",
+    "Invoke actual events append for source transitions, inspect caller arguments as well as persisted lines, and validate/read through real consumers. Preserve supplied data; compare CLI-added token/hash fields separately.",
+    "Controlled transcript cumulative increments must prove advancing deltas for at least two tagged emissions. A missing-transcript emission must prove estimate/null, without claiming provider billing.",
+    "Bind runtime commit/artifact tree, fixture, helper and task hashes; guard runtime before/after. Strip all private oracle/expected/status/review fields from model task."
+  ],
+  "minimum_negative_groups": [
+    "Alter command-owned level, owner, budget, schema_version or unrelated files; mutation must not qualify.",
+    "Omit/reorder required ledger-write after augmentation or forge caller ledger hash.",
+    "Use an object/unknown string outcome or put detail in outcomes.",
+    "Invent terminal OPEN-1 outcome, remove it from admission, or let annotations/details satisfy completeness.",
+    "Admit prep holds or assign them build outcomes; swap prep outage and slow annotations.",
+    "Annotate hard human landing as resumable or change skipped-review/post-merge/unverified classifications or supplied failure details.",
+    "Change filing count or duplicate unordered IDs; reordered unique arrays must remain positive.",
+    "Skip/duplicate an expected event, emit a micro-action, duplicate genesis/run-end or change phase/issue/outcome.",
+    "Omit required tokens flag, tag an opening event, use wrong pinned root/session, freeze cumulative tokens instead of delta, or mistake missing transcript for metered zero.",
+    "Omit/alter explicitly requested gate/rework metadata, add gate to clean/non-gate result, or use invalid gate/noninteger rework.",
+    "Alter supplied budget/sentry data or add unknown caller fields that CLI would drop with warning. Grading only sanitised persisted output would miss this violation.",
+    "Omit any case/decision, perform unknown operation or claim fixture completion before cases finish."
+  ],
+  "implementation_cautions": [
+    "The supplied budget payload says tokens_source:transcript. Choose missing-transcript fallback on a transition without a conflicting supplied tokens_source, or declare a separate consistent source payload; do not overwrite source facts silently during comparison.",
+    "Event oracle expected.data describes caller data, not full persisted data after --tokens. Absence of optional data and empty data can be semantically equivalent for payload-free events.",
+    "Rule caller_fields is a unique set of allowed field names; issue/data are optional per event. Do not require every event to contain all four.",
+    "No array order requirement should arise accidentally from deep equality after fixture marks a field unordered; duplicates remain invalid."
+  ],
+  "limits": [
+    "Draft review only: no harness or model qualification, no measurements launched, no tests run by this review.",
+    "Three producer cases and ten decisions are bounded correlated probes, not full unattended workflow or statistical equivalence.",
+    "Unchanged owner/heartbeat/Stop hook/governance/budget internals remain outside model treatment.",
+    "No claim of executing reviews, post-merge checks, landing, filing or external publication from the supplied completed observation extracts."
+  ]
+}

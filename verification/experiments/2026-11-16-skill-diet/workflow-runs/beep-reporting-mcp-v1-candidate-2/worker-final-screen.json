@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All six cases finished; `finish` returned success. Four reports were published in both channels, ready work was dispatched, and the unreadable-ledger failure was recorded.\n\nNo departures from the measurement restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e6b5-d6f5-7760-8c9f-4a876777889b"
+    ],
+    "elapsed_seconds": 332.5,
+    "stdout_sha256": "4fbca906d01f97e32fdaf9d15d5a873e5c84d0c6c59a557626f592281a4e077b",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

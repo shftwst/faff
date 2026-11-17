@@ -1,0 +1,1 @@
+{"name":"submit_challenge","args":{"case_id":"prdr-unavailable","outcome":null,"ground":null,"reason":"opinion_available=false means the provider attempt exhausted without an opinion. Omit the challenge and preserve phase2-inconclusive; the apparent merits of dry-run do not supply the missing opinion."}}

@@ -1,0 +1,62 @@
+{
+  "updated_utc": "2026-11-16T21:32:04.683336+00:00",
+  "deadline_utc": "2026-11-16 16:13:53 UTC",
+  "accepted_saved_bytes": 107242,
+  "accepted_saved_estimated_tokens": 26409,
+  "accepted_total_bytes": 1262193,
+  "accepted_total_estimated_tokens": 312870,
+  "accepted": "Gateway, adversarial, rendering V2, thematic, kernel V4, PRD Astra V2, review Astra V4 and 26 discovery descriptions. Default spec review Sol V1 accepted: 1405 bytes and 344 estimated tokens saved. Focus report sourceV5 / SolV3 accepted: 4217 bytes and 1027 estimated tokens saved.",
+  "pending": "Intake Astra-medium baseline3-5 continues with a separately recorded narrow lexical assessment of original captures; baseline2 raw failure retained. Beep reporting Sol-medium baseline runs with full skill/current kernel and real handler boundary. Architecture Sol baseline2 held on missing heredoc delimiter; no candidate launch. No new source savings yet.",
+  "integration": "All PR checks passed at f2a2c8f0451a675a67bf2674b48bd96899132081. Private intake629, focus576 and spec-review599 deterministic tests pass; none substitutes for paired fidelity/native qualification.",
+  "claude_usage": "Weekly allowance exhausted. All Claude queues stopped; no usage credits enabled.",
+  "fallback": "Practical temporary default gpt-6.1-sol / medium; gpt-6-astra / medium second check. Six-combination comparison complete; no clear finalist fidelity winner. Earlier incomplete sessions and all native failures retained.",
+  "downstream_proof": "PRD: 60 actual artifacts, 240 run-start cases and 240 forged-decision rejections. Review V4: all 70 actual artifacts pass real stored-comment replay with exact preserved bytes. Spec review: all60 actual artifacts consumed by real contract and reject-approach route, with60 unfounded verdict rejections.",
+  "continued_by_user_utc": "2026-11-16T18:36:39.190886+00:00",
+  "original_deadline_elapsed": true,
+  "latest_user_steering": "Resume skill diet; use calibrated stand-ins, retain existing fidelity bars and continue committing verified reductions.",
+  "model_matrix": "Complete: six combinations screened on eight runs each. Sol medium and Astra medium expanded to30 runs each against30 preserved Opus references. Each model passes420/420 assessed case checks and30/30 native audits; raw410/420 remains. All90rendering artifacts/model and80judgement reasons/model reviewed, with explicit manual caveats.",
+  "harder_calibration": "gpt-opus-hard-task-amendment-v1.json: same-family judgement only, no independent-provider eligibility claim; deterministic8-case preflight plus8altered-outcome rejections pass.",
+  "isolated_pending_source_commits": {
+    "intake_held": "5031834e02dbafea2f2235b0975376030c7871fb",
+    "spec_review": "4b481889ce3bbb373b42b0b71d6244e9cb2f2a72",
+    "wtf_v4_then_v5": [
+      "16675291aad3f0b003cc709d1e5dc7626c617ac1",
+      "4b213238042b79b6373d662fae355f1bc872b9f4"
+    ]
+  },
+  "calibration_completed": "gpt-opus-finalist-results-v1.json binds final samples, scores, manual reviews and independent audit; GPT-OPUS-STANDIN-RESULTS.md records recommendation and limits. Sol164.0sec versusAstra182.0sec mean observed run time, including queue/tool overhead.",
+  "current_sessions": {
+    "intake_astra_medium_remaining_baselines": 60787,
+    "beep_reporting_sol_baselines": 57010
+  },
+  "qualification_files": [
+    "spec-review-producer-sol-v1-final-qualification.json",
+    "wtf-format-sol-v3-final-qualification.json"
+  ],
+  "finalist_scope": "32 planned new runs: Sol-medium challenges10; Astra-medium challenges10, gateway6, rendering6. Reuse registered screen2 plus additional3 perarm; Sol-medium gateway/rendering already has5 perarm. Same-family challenge scope amendment frozen; no production provider-independence claim.",
+  "accepted_source_head": "ea19ca083647fc7cdce91c847b39ba20b55aa8c1",
+  "evidence_parent_head": "f2a2c8f0451a675a67bf2674b48bd96899132081",
+  "renewal_queue": "opus-renewal-priority-queue.json;40 planned Opus samples across default review, default spec review, PRD and focus report;prepared-not-launched.",
+  "final_tally_audit": "independent-tally-final-audit-sol.json:83checks pass, held intake absent, source/ledger/measurements reconcile.",
+  "release_status": "Draft PR1202; no merge or release.",
+  "historical_controller_logs": {
+    "prd": "/tmp/faff-astra-prd-v2-baseline.log and /tmp/faff-astra-prd-v2-pair.log",
+    "review": "/tmp/faff-astra-review-v4-pair.log",
+    "agile": "Baseline capture only; candidate continuation stopped. Hold: agile-principles-astra-v3-hold.json.",
+    "wtf": "/tmp/faff-astra-wtf-v2-pair.log",
+    "routing": "All five baselines captured; held before candidate",
+    "artifact_replays": "/tmp/faff-artifact-replays.log waits for complete PRD/review pairs.",
+    "adr": "Held on baseline; no continuation.",
+    "intake": "/tmp/faff-astra-intake-v2-baseline.log and /tmp/faff-astra-intake-v2-pair.log",
+    "architecture": "Held on native path failure; no candidates",
+    "review_replay": "/tmp/faff-review-v4-replay.log",
+    "sol_gateway": "/tmp/faff-sol-gateway-calibration.log",
+    "sol_rendering": "/tmp/faff-sol-rendering-calibration.log",
+    "sol_intake": "Stopped on candidate3 native protocol failure; no candidate4/5",
+    "sol_wtf": "Complete; sourceV5 accepted and sourceV4 held.",
+    "sol_native_correction": "Watcher stopped after original captures were corrected; all original audits retained.",
+    "sol_spec_review": "/tmp/faff-sol-spec-review-baseline.log and /tmp/faff-sol-spec-review-pair.log",
+    "model_matrix": "/tmp/faff-finalist-matrix.log; all four lanes completed with exit0"
+  },
+  "proof_work": "New reporting boundary passes16 deterministic tests; intake lexical assessor passes3. All19 combined tests pass; independent preflight review closed. Full runtime/dependency limits recorded before baseline."
+}

@@ -1,0 +1,48 @@
+{
+  "provider": "codex-cli",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "purpose": "skill-diet-qualification",
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/nlspec-format-v1.json",
+  "timeout_seconds": 900,
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Final full-nlspec production from completed issue/explore/self-review/punt-scan snapshots. Full target skill plus identical current accepted kernel/rendering and exact inherited self-review section. No upstream review execution or live tracker operation. Four actual specs and ten decisions per sample.",
+  "acceptance": "Five fresh baselines pass artifact/native/manual/real consumer gates before five fresh candidates. All40actualspecs independently reviewed for source facts, body-to-DONE completeness, marker/prose agreement, rationale, no invented guarantees and body-visible holdout requirements. Real contract/admissibility/dod/punt/prep-attach checks plus integration required. Keep all failures; stop on failure, no replacement or pooling.",
+  "samples": [
+    {
+      "name": "nlspec-format-sol-medium-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "candidates/nlspec-format-v1-with-context.md"
+    },
+    {
+      "name": "nlspec-format-sol-medium-v1-candidate-2",
+      "arm": "candidate",
+      "policy": "candidates/nlspec-format-v1-with-context.md"
+    },
+    {
+      "name": "nlspec-format-sol-medium-v1-candidate-3",
+      "arm": "candidate",
+      "policy": "candidates/nlspec-format-v1-with-context.md"
+    },
+    {
+      "name": "nlspec-format-sol-medium-v1-candidate-4",
+      "arm": "candidate",
+      "policy": "candidates/nlspec-format-v1-with-context.md"
+    },
+    {
+      "name": "nlspec-format-sol-medium-v1-candidate-5",
+      "arm": "candidate",
+      "policy": "candidates/nlspec-format-v1-with-context.md"
+    }
+  ],
+  "consumer_replay": "eval/control-parity/nlspec-replay.mjs",
+  "unchanged_branches": "Failure modes, anti-pattern/rule inventory, temporal anchors, Scenarios, Confidence, inherited review, contract and Rules remain byte-identical. No full prep workflow or intended-driver Opus equivalence claim."
+}

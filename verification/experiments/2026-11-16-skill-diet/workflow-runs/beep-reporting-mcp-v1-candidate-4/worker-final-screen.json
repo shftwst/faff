@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All six cases finished and their results were persisted through the authorised ports. Four reports were published to both channels, NEXT-1 was dispatched, and the unreadable-ledger failure was recorded. `finish` succeeded.\n\nNo departures from the measurement restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e6c0-2c2b-7a72-a7c1-7566c2458840"
+    ],
+    "elapsed_seconds": 324.9,
+    "stdout_sha256": "324ed7e6d5cfae9f91fcdebd45020730bed7fab5b7f9339b6de2d59b489f9e36",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

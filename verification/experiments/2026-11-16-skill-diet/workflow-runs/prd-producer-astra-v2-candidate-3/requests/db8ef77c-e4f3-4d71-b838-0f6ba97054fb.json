@@ -1,0 +1,1 @@
+{"name":"submit_verdict","args":{"case_id":"scenario-broad","text":"The export scenario provides a machine-checkable ownership and completeness condition. Implementation choices remain open.\n\n```faff-contract:prd-readiness\n{\"verdict\":\"admissible\",\"reason\":\"\",\"stop_conditions_verifiable\":true,\"creative_licence\":\"broad\"}\n```"}}

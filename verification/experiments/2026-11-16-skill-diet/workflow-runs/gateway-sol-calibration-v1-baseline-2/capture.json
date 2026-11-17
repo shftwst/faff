@@ -1,0 +1,1391 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-a",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "config",
+          "path"
+        ]
+      },
+      "case_id": "case-a",
+      "before_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 3,
+        "stdout": "",
+        "stderr": ""
+      },
+      "after_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 2,
+      "name": "offer_onboarding",
+      "args": {
+        "case_id": "case-a",
+        "message": "No faff config found. Set up faff for this repo now? (y/n)"
+      },
+      "case_id": "case-a",
+      "before_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "answer": "n"
+      },
+      "after_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 3,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-a",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "config",
+          "init",
+          "--set",
+          "tracking.spec_docs_path="
+        ]
+      },
+      "case_id": "case-a",
+      "before_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 0,
+        "stdout": "config init: created .faff/config.yaml with 1 key(s).\n",
+        "stderr": ""
+      },
+      "after_files": {
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854365351.5842,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 4,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-a",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "gitignore-ensure"
+        ]
+      },
+      "case_id": "case-a",
+      "before_files": {
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854365351.5842,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 0,
+        "stdout": "/tmp/faff-gateway-workflow-0VYmaG/cases/case-a/.gitignore needs no faff lines (nothing in this target's pattern set)\ncreated /tmp/faff-gateway-workflow-0VYmaG/cases/case-a/.faff/.gitignore — added: /*, !/.gitignore, !/anchors/, !/templates/, !/decisions.md, !/conventions.md, !/config.yaml, !/config.example.yaml\n",
+        "stderr": ""
+      },
+      "after_files": {
+        ".faff/.gitignore": {
+          "bytes": 166,
+          "sha256": "5265751c9276016300a001a8ad2dbc10ba62ec7ab1c76b230c9a3b4183a11af4",
+          "mtime_ms": 1794854370783.5703,
+          "text": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854365351.5842,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 5,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-a",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "hooks-ensure"
+        ]
+      },
+      "case_id": "case-a",
+      "before_files": {
+        ".faff/.gitignore": {
+          "bytes": 166,
+          "sha256": "5265751c9276016300a001a8ad2dbc10ba62ec7ab1c76b230c9a3b4183a11af4",
+          "mtime_ms": 1794854370783.5703,
+          "text": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854365351.5842,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 0,
+        "stdout": "added runcheck, prepcheck, inflightcheck, resumecheck, sentrycheck, turncheck, Bash::merge-fence, Bash::background-fence, Monitor::background-fence → /tmp/faff-gateway-workflow-0VYmaG/cases/case-a/.claude/settings.json\n",
+        "stderr": ""
+      },
+      "after_files": {
+        ".claude/settings.json": {
+          "bytes": 2099,
+          "sha256": "476819cc7683a4e9e8dceb23132718532bdfd755cadfaf237833f917a93576d7",
+          "mtime_ms": 1794854376186.5564,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 166,
+          "sha256": "5265751c9276016300a001a8ad2dbc10ba62ec7ab1c76b230c9a3b4183a11af4",
+          "mtime_ms": 1794854370783.5703,
+          "text": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854365351.5842,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 6,
+      "name": "invoke_skill",
+      "args": {
+        "case_id": "case-a",
+        "name": "faff-wtf",
+        "args": []
+      },
+      "case_id": "case-a",
+      "before_files": {
+        ".claude/settings.json": {
+          "bytes": 2099,
+          "sha256": "476819cc7683a4e9e8dceb23132718532bdfd755cadfaf237833f917a93576d7",
+          "mtime_ms": 1794854376186.5564,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 166,
+          "sha256": "5265751c9276016300a001a8ad2dbc10ba62ec7ab1c76b230c9a3b4183a11af4",
+          "mtime_ms": 1794854370783.5703,
+          "text": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854365351.5842,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "completed": true,
+        "downstream": "fixture-stub",
+        "config_path_exists": true
+      },
+      "after_files": {
+        ".claude/settings.json": {
+          "bytes": 2099,
+          "sha256": "476819cc7683a4e9e8dceb23132718532bdfd755cadfaf237833f917a93576d7",
+          "mtime_ms": 1794854376186.5564,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 166,
+          "sha256": "5265751c9276016300a001a8ad2dbc10ba62ec7ab1c76b230c9a3b4183a11af4",
+          "mtime_ms": 1794854370783.5703,
+          "text": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854365351.5842,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 7,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-b",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "config",
+          "path"
+        ]
+      },
+      "case_id": "case-b",
+      "before_files": {
+        ".claude/settings.json": {
+          "bytes": 223,
+          "sha256": "5831198e604bc82ada2a72510acf9a8de72954aabd20f204050da50d54c52674",
+          "mtime_ms": 1794854325499.6677,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 42,
+          "sha256": "acaffb1b3993b40390680e498941398afcfd41a3642b74403f61b3b4a595ea2c",
+          "mtime_ms": 1794854325499.6677,
+          "text": "# Keep this existing exception\n!/keep.txt\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 3,
+        "stdout": "",
+        "stderr": ""
+      },
+      "after_files": {
+        ".claude/settings.json": {
+          "bytes": 223,
+          "sha256": "5831198e604bc82ada2a72510acf9a8de72954aabd20f204050da50d54c52674",
+          "mtime_ms": 1794854325499.6677,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 42,
+          "sha256": "acaffb1b3993b40390680e498941398afcfd41a3642b74403f61b3b4a595ea2c",
+          "mtime_ms": 1794854325499.6677,
+          "text": "# Keep this existing exception\n!/keep.txt\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 8,
+      "name": "offer_onboarding",
+      "args": {
+        "case_id": "case-b",
+        "message": "No faff config found. Set up faff for this repo now? (y/n)"
+      },
+      "case_id": "case-b",
+      "before_files": {
+        ".claude/settings.json": {
+          "bytes": 223,
+          "sha256": "5831198e604bc82ada2a72510acf9a8de72954aabd20f204050da50d54c52674",
+          "mtime_ms": 1794854325499.6677,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 42,
+          "sha256": "acaffb1b3993b40390680e498941398afcfd41a3642b74403f61b3b4a595ea2c",
+          "mtime_ms": 1794854325499.6677,
+          "text": "# Keep this existing exception\n!/keep.txt\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "answer": "n"
+      },
+      "after_files": {
+        ".claude/settings.json": {
+          "bytes": 223,
+          "sha256": "5831198e604bc82ada2a72510acf9a8de72954aabd20f204050da50d54c52674",
+          "mtime_ms": 1794854325499.6677,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 42,
+          "sha256": "acaffb1b3993b40390680e498941398afcfd41a3642b74403f61b3b4a595ea2c",
+          "mtime_ms": 1794854325499.6677,
+          "text": "# Keep this existing exception\n!/keep.txt\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 9,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-b",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "config",
+          "init",
+          "--set",
+          "tracking.spec_docs_path="
+        ]
+      },
+      "case_id": "case-b",
+      "before_files": {
+        ".claude/settings.json": {
+          "bytes": 223,
+          "sha256": "5831198e604bc82ada2a72510acf9a8de72954aabd20f204050da50d54c52674",
+          "mtime_ms": 1794854325499.6677,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 42,
+          "sha256": "acaffb1b3993b40390680e498941398afcfd41a3642b74403f61b3b4a595ea2c",
+          "mtime_ms": 1794854325499.6677,
+          "text": "# Keep this existing exception\n!/keep.txt\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 0,
+        "stdout": "config init: created .faff/config.yaml with 1 key(s).\n",
+        "stderr": ""
+      },
+      "after_files": {
+        ".claude/settings.json": {
+          "bytes": 223,
+          "sha256": "5831198e604bc82ada2a72510acf9a8de72954aabd20f204050da50d54c52674",
+          "mtime_ms": 1794854325499.6677,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 42,
+          "sha256": "acaffb1b3993b40390680e498941398afcfd41a3642b74403f61b3b4a595ea2c",
+          "mtime_ms": 1794854325499.6677,
+          "text": "# Keep this existing exception\n!/keep.txt\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854397889.501,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 10,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-b",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "gitignore-ensure"
+        ]
+      },
+      "case_id": "case-b",
+      "before_files": {
+        ".claude/settings.json": {
+          "bytes": 223,
+          "sha256": "5831198e604bc82ada2a72510acf9a8de72954aabd20f204050da50d54c52674",
+          "mtime_ms": 1794854325499.6677,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 42,
+          "sha256": "acaffb1b3993b40390680e498941398afcfd41a3642b74403f61b3b4a595ea2c",
+          "mtime_ms": 1794854325499.6677,
+          "text": "# Keep this existing exception\n!/keep.txt\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854397889.501,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 0,
+        "stdout": "/tmp/faff-gateway-workflow-0VYmaG/cases/case-b/.gitignore needs no faff lines (nothing in this target's pattern set)\nupdated /tmp/faff-gateway-workflow-0VYmaG/cases/case-b/.faff/.gitignore — added: /*, !/.gitignore, !/anchors/, !/templates/, !/decisions.md, !/conventions.md, !/config.yaml, !/config.example.yaml\n",
+        "stderr": ""
+      },
+      "after_files": {
+        ".claude/settings.json": {
+          "bytes": 223,
+          "sha256": "5831198e604bc82ada2a72510acf9a8de72954aabd20f204050da50d54c52674",
+          "mtime_ms": 1794854325499.6677,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 209,
+          "sha256": "8e351a94604a778b80b7997c4ab9d59186c6434eeab13e758907350f5442f2e4",
+          "mtime_ms": 1794854403164.4875,
+          "text": "# Keep this existing exception\n!/keep.txt\n\n# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854397889.501,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 11,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-b",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "hooks-ensure"
+        ]
+      },
+      "case_id": "case-b",
+      "before_files": {
+        ".claude/settings.json": {
+          "bytes": 223,
+          "sha256": "5831198e604bc82ada2a72510acf9a8de72954aabd20f204050da50d54c52674",
+          "mtime_ms": 1794854325499.6677,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 209,
+          "sha256": "8e351a94604a778b80b7997c4ab9d59186c6434eeab13e758907350f5442f2e4",
+          "mtime_ms": 1794854403164.4875,
+          "text": "# Keep this existing exception\n!/keep.txt\n\n# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854397889.501,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 0,
+        "stdout": "added runcheck, prepcheck, inflightcheck, resumecheck, sentrycheck, turncheck, Bash::merge-fence, Bash::background-fence, Monitor::background-fence → /tmp/faff-gateway-workflow-0VYmaG/cases/case-b/.claude/settings.json\n",
+        "stderr": ""
+      },
+      "after_files": {
+        ".claude/settings.json": {
+          "bytes": 2237,
+          "sha256": "c3141f48a40ed717c93d0191bce5341917b35cd32d46de084b14f60365ab61ad",
+          "mtime_ms": 1794854408893.391,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 209,
+          "sha256": "8e351a94604a778b80b7997c4ab9d59186c6434eeab13e758907350f5442f2e4",
+          "mtime_ms": 1794854403164.4875,
+          "text": "# Keep this existing exception\n!/keep.txt\n\n# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854397889.501,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 12,
+      "name": "invoke_skill",
+      "args": {
+        "case_id": "case-b",
+        "name": "faff-prep",
+        "args": [
+          "FAFF-7001"
+        ]
+      },
+      "case_id": "case-b",
+      "before_files": {
+        ".claude/settings.json": {
+          "bytes": 2237,
+          "sha256": "c3141f48a40ed717c93d0191bce5341917b35cd32d46de084b14f60365ab61ad",
+          "mtime_ms": 1794854408893.391,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 209,
+          "sha256": "8e351a94604a778b80b7997c4ab9d59186c6434eeab13e758907350f5442f2e4",
+          "mtime_ms": 1794854403164.4875,
+          "text": "# Keep this existing exception\n!/keep.txt\n\n# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854397889.501,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "completed": true,
+        "downstream": "fixture-stub",
+        "config_path_exists": true
+      },
+      "after_files": {
+        ".claude/settings.json": {
+          "bytes": 2237,
+          "sha256": "c3141f48a40ed717c93d0191bce5341917b35cd32d46de084b14f60365ab61ad",
+          "mtime_ms": 1794854408893.391,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 209,
+          "sha256": "8e351a94604a778b80b7997c4ab9d59186c6434eeab13e758907350f5442f2e4",
+          "mtime_ms": 1794854403164.4875,
+          "text": "# Keep this existing exception\n!/keep.txt\n\n# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854397889.501,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 13,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-c",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "config",
+          "path"
+        ]
+      },
+      "case_id": "case-c",
+      "before_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325743.6855,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 3,
+        "stdout": "",
+        "stderr": ""
+      },
+      "after_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325743.6855,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 14,
+      "name": "invoke_skill",
+      "args": {
+        "case_id": "case-c",
+        "name": "faff-beep-boop",
+        "args": []
+      },
+      "case_id": "case-c",
+      "before_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325743.6855,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "completed": true,
+        "downstream": "fixture-stub",
+        "config_path_exists": false
+      },
+      "after_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325743.6855,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 15,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-d",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "config",
+          "path"
+        ]
+      },
+      "case_id": "case-d",
+      "before_files": {
+        ".faff/config.yaml": {
+          "bytes": 31,
+          "sha256": "2123ea163849affe1b75bdf28932995553c15c1334a6bc95cad203cfd5bbc220",
+          "mtime_ms": 1794854325746.8406,
+          "text": "tracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325746.8406,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 0,
+        "stdout": "/tmp/faff-gateway-workflow-0VYmaG/cases/case-d/.faff/config.yaml\n",
+        "stderr": ""
+      },
+      "after_files": {
+        ".faff/config.yaml": {
+          "bytes": 31,
+          "sha256": "2123ea163849affe1b75bdf28932995553c15c1334a6bc95cad203cfd5bbc220",
+          "mtime_ms": 1794854325746.8406,
+          "text": "tracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325746.8406,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 16,
+      "name": "invoke_skill",
+      "args": {
+        "case_id": "case-d",
+        "name": "faff-wtf",
+        "args": []
+      },
+      "case_id": "case-d",
+      "before_files": {
+        ".faff/config.yaml": {
+          "bytes": 31,
+          "sha256": "2123ea163849affe1b75bdf28932995553c15c1334a6bc95cad203cfd5bbc220",
+          "mtime_ms": 1794854325746.8406,
+          "text": "tracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325746.8406,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "completed": true,
+        "downstream": "fixture-stub",
+        "config_path_exists": true
+      },
+      "after_files": {
+        ".faff/config.yaml": {
+          "bytes": 31,
+          "sha256": "2123ea163849affe1b75bdf28932995553c15c1334a6bc95cad203cfd5bbc220",
+          "mtime_ms": 1794854325746.8406,
+          "text": "tracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325746.8406,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 17,
+      "name": "run_faff",
+      "args": {
+        "case_id": "case-e",
+        "executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "args": [
+          "config",
+          "path"
+        ]
+      },
+      "case_id": "case-e",
+      "before_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325749.9773,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "exit_code": 3,
+        "stdout": "",
+        "stderr": ""
+      },
+      "after_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325749.9773,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 18,
+      "name": "offer_onboarding",
+      "args": {
+        "case_id": "case-e",
+        "message": "No faff config found. Set up faff for this repo now? (y/n)"
+      },
+      "case_id": "case-e",
+      "before_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325749.9773,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "answer": "y"
+      },
+      "after_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325749.9773,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 19,
+      "name": "invoke_skill",
+      "args": {
+        "case_id": "case-e",
+        "name": "faff-onboard",
+        "args": []
+      },
+      "case_id": "case-e",
+      "before_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325749.9773,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "delegated_cli": [
+        {
+          "args": [
+            "config",
+            "init",
+            "--set",
+            "tracking.spec_docs_path=records/specs"
+          ],
+          "result": {
+            "exit_code": 0,
+            "stdout": "config init: created .faff/config.yaml with 1 key(s).\n",
+            "stderr": ""
+          }
+        },
+        {
+          "args": [
+            "gitignore-ensure"
+          ],
+          "result": {
+            "exit_code": 0,
+            "stdout": "/tmp/faff-gateway-workflow-0VYmaG/cases/case-e/.gitignore needs no faff lines (nothing in this target's pattern set)\ncreated /tmp/faff-gateway-workflow-0VYmaG/cases/case-e/.faff/.gitignore — added: /*, !/.gitignore, !/anchors/, !/templates/, !/decisions.md, !/conventions.md, !/config.yaml, !/config.example.yaml\n",
+            "stderr": ""
+          }
+        },
+        {
+          "args": [
+            "hooks-ensure"
+          ],
+          "result": {
+            "exit_code": 0,
+            "stdout": "added runcheck, prepcheck, inflightcheck, resumecheck, sentrycheck, turncheck, Bash::merge-fence, Bash::background-fence, Monitor::background-fence → /tmp/faff-gateway-workflow-0VYmaG/cases/case-e/.claude/settings.json\n",
+            "stderr": ""
+          }
+        }
+      ],
+      "result": {
+        "completed": true,
+        "downstream": "fixture-stub",
+        "config_path_exists": true
+      },
+      "after_files": {
+        ".claude/settings.json": {
+          "bytes": 2099,
+          "sha256": "476819cc7683a4e9e8dceb23132718532bdfd755cadfaf237833f917a93576d7",
+          "mtime_ms": 1794854449651.2615,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 166,
+          "sha256": "5265751c9276016300a001a8ad2dbc10ba62ec7ab1c76b230c9a3b4183a11af4",
+          "mtime_ms": 1794854449426.2622,
+          "text": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 117,
+          "sha256": "89a63a8bb5c8b726fc0e2b7dbfadab1755aa0c6b2c5c4f951312cc9c38e91751",
+          "mtime_ms": 1794854449409.2622,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: records/specs\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325749.9773,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 20,
+      "name": "invoke_skill",
+      "args": {
+        "case_id": "case-e",
+        "name": "faff-map",
+        "args": []
+      },
+      "case_id": "case-e",
+      "before_files": {
+        ".claude/settings.json": {
+          "bytes": 2099,
+          "sha256": "476819cc7683a4e9e8dceb23132718532bdfd755cadfaf237833f917a93576d7",
+          "mtime_ms": 1794854449651.2615,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 166,
+          "sha256": "5265751c9276016300a001a8ad2dbc10ba62ec7ab1c76b230c9a3b4183a11af4",
+          "mtime_ms": 1794854449426.2622,
+          "text": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 117,
+          "sha256": "89a63a8bb5c8b726fc0e2b7dbfadab1755aa0c6b2c5c4f951312cc9c38e91751",
+          "mtime_ms": 1794854449409.2622,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: records/specs\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325749.9773,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "result": {
+        "completed": true,
+        "downstream": "fixture-stub",
+        "config_path_exists": true
+      },
+      "after_files": {
+        ".claude/settings.json": {
+          "bytes": 2099,
+          "sha256": "476819cc7683a4e9e8dceb23132718532bdfd755cadfaf237833f917a93576d7",
+          "mtime_ms": 1794854449651.2615,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 166,
+          "sha256": "5265751c9276016300a001a8ad2dbc10ba62ec7ab1c76b230c9a3b4183a11af4",
+          "mtime_ms": 1794854449426.2622,
+          "text": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 117,
+          "sha256": "89a63a8bb5c8b726fc0e2b7dbfadab1755aa0c6b2c5c4f951312cc9c38e91751",
+          "mtime_ms": 1794854449409.2622,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: records/specs\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325749.9773,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "seq": 21,
+      "name": "finish",
+      "args": {},
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "cases": [
+    {
+      "id": "case-a",
+      "initial_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "final_files": {
+        ".claude/settings.json": {
+          "bytes": 2099,
+          "sha256": "476819cc7683a4e9e8dceb23132718532bdfd755cadfaf237833f917a93576d7",
+          "mtime_ms": 1794854376186.5564,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 166,
+          "sha256": "5265751c9276016300a001a8ad2dbc10ba62ec7ab1c76b230c9a3b4183a11af4",
+          "mtime_ms": 1794854370783.5703,
+          "text": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854365351.5842,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325235.3967,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "id": "case-b",
+      "initial_files": {
+        ".claude/settings.json": {
+          "bytes": 223,
+          "sha256": "5831198e604bc82ada2a72510acf9a8de72954aabd20f204050da50d54c52674",
+          "mtime_ms": 1794854325499.6677,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 42,
+          "sha256": "acaffb1b3993b40390680e498941398afcfd41a3642b74403f61b3b4a595ea2c",
+          "mtime_ms": 1794854325499.6677,
+          "text": "# Keep this existing exception\n!/keep.txt\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "final_files": {
+        ".claude/settings.json": {
+          "bytes": 2237,
+          "sha256": "c3141f48a40ed717c93d0191bce5341917b35cd32d46de084b14f60365ab61ad",
+          "mtime_ms": 1794854408893.391,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo preserve-hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  },\n  \"fixture_note\": \"preserve-setting\"\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 209,
+          "sha256": "8e351a94604a778b80b7997c4ab9d59186c6434eeab13e758907350f5442f2e4",
+          "mtime_ms": 1794854403164.4875,
+          "text": "# Keep this existing exception\n!/keep.txt\n\n# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 106,
+          "sha256": "34ff2a1e6e321f854434b99d267b64f6f3ce2b47a042fd24b3bfba3b8b0907d6",
+          "mtime_ms": 1794854397889.501,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: \"\"\n"
+        },
+        ".faff/keep.txt": {
+          "bytes": 31,
+          "sha256": "f99171373da613b58b8ee4eac72261f5ae9f090c35181e519c0d8d83b3f16917",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Keep this existing local file.\n"
+        },
+        ".gitignore": {
+          "bytes": 14,
+          "sha256": "4d56952b0fb13bf8f9b6c13a6d4c34a075bac3af447636a1df4335d7576e2f97",
+          "mtime_ms": 1794854325499.6677,
+          "text": "node_modules/\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325499.6677,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "id": "case-c",
+      "initial_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325743.6855,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "final_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325743.6855,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "id": "case-d",
+      "initial_files": {
+        ".faff/config.yaml": {
+          "bytes": 31,
+          "sha256": "2123ea163849affe1b75bdf28932995553c15c1334a6bc95cad203cfd5bbc220",
+          "mtime_ms": 1794854325746.8406,
+          "text": "tracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325746.8406,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "final_files": {
+        ".faff/config.yaml": {
+          "bytes": 31,
+          "sha256": "2123ea163849affe1b75bdf28932995553c15c1334a6bc95cad203cfd5bbc220",
+          "mtime_ms": 1794854325746.8406,
+          "text": "tracking:\n  spec_docs_path: \"\"\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325746.8406,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    },
+    {
+      "id": "case-e",
+      "initial_files": {
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325749.9773,
+          "text": "Unrelated project content.\n"
+        }
+      },
+      "final_files": {
+        ".claude/settings.json": {
+          "bytes": 2099,
+          "sha256": "476819cc7683a4e9e8dceb23132718532bdfd755cadfaf237833f917a93576d7",
+          "mtime_ms": 1794854449651.2615,
+          "text": "{\n  \"hooks\": {\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff runcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff prepcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff inflightcheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff resumecheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff sentrycheck --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff turncheck --hook\"\n          }\n        ]\n      }\n    ],\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff merge-fence --hook\"\n          },\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      },\n      {\n        \"matcher\": \"Monitor\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff background-fence --hook\"\n          }\n        ]\n      }\n    ]\n  }\n}\n"
+        },
+        ".faff/.gitignore": {
+          "bytes": 166,
+          "sha256": "5265751c9276016300a001a8ad2dbc10ba62ec7ab1c76b230c9a3b4183a11af4",
+          "mtime_ms": 1794854449426.2622,
+          "text": "# faff local artifacts (added by `faff gitignore-ensure`)\n/*\n!/.gitignore\n!/anchors/\n!/templates/\n!/decisions.md\n!/conventions.md\n!/config.yaml\n!/config.example.yaml\n"
+        },
+        ".faff/config.yaml": {
+          "bytes": 117,
+          "sha256": "89a63a8bb5c8b726fc0e2b7dbfadab1755aa0c6b2c5c4f951312cc9c38e91751",
+          "mtime_ms": 1794854449409.2622,
+          "text": "# .faff/config.yaml — faff configuration (written by `faff config init`)\ntracking:\n  spec_docs_path: records/specs\n"
+        },
+        "keep.txt": {
+          "bytes": 27,
+          "sha256": "06d7e8d2f1c79c65052c8d5121b9af05cf60d96ccdcb276e44f9524d8f7ad15e",
+          "mtime_ms": 1794854325749.9773,
+          "text": "Unrelated project content.\n"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,485 @@
+{
+  "schema": 1,
+  "scope": "Persisted rendering artifacts and deterministic source-fact/form checks, with separate rule decisions. Rendering has no gated internal contract. No tracker write, full caller workflow, subjective-quality equivalence or provider-cost claim.",
+  "cases": [
+    {
+      "id": "gloss-001",
+      "task": "Write the one-line synthesis gloss for ISS-Z. Include the tracker ID. Do not invent source details.",
+      "source": {
+        "version": 1,
+        "issues": [
+          {
+            "id": "ISS-Z",
+            "title": "Add rate limiting to the login endpoint",
+            "state": "Todo",
+            "relations": {
+              "blocks": [
+                "ISS-AA"
+              ],
+              "blockedBy": [],
+              "relatedTo": []
+            }
+          }
+        ]
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            [
+              "login",
+              "sign-in",
+              "sign in",
+              "authentication",
+              "auth"
+            ],
+            [
+              "rate",
+              "throttl",
+              "limit"
+            ],
+            "ISS-Z"
+          ],
+          "must_avoid": [
+            "leverage",
+            "synergy",
+            "as a user I want"
+          ]
+        },
+        "allowed_ids": [
+          "ISS-Z"
+        ],
+        "forbidden_patterns": [
+          "\\u2014"
+        ]
+      },
+      "reference": "ISS-Z: Limit login attempts to reduce repeated sign-in requests."
+    },
+    {
+      "id": "gloss-002",
+      "task": "Write the one-line gloss for ISS-BB. Include the tracker ID. Do not invent source details.",
+      "source": {
+        "version": 1,
+        "issues": [
+          {
+            "id": "ISS-BB",
+            "title": "Memoise the config resolver to cut cold-start",
+            "state": "Todo",
+            "relations": {
+              "blocks": [],
+              "blockedBy": [],
+              "relatedTo": []
+            }
+          }
+        ]
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            [
+              "config",
+              "configuration"
+            ],
+            [
+              "cold-start",
+              "cold start",
+              "startup",
+              "start-up",
+              "start up"
+            ],
+            "ISS-BB",
+            [
+              "memois",
+              "memoiz"
+            ]
+          ],
+          "must_avoid": [
+            "leverage",
+            "robust",
+            "seamless"
+          ]
+        },
+        "allowed_ids": [
+          "ISS-BB"
+        ],
+        "forbidden_patterns": [
+          "\\u2014"
+        ]
+      },
+      "reference": "ISS-BB: Memoise configuration resolution to reduce cold-start work."
+    },
+    {
+      "id": "gloss-003",
+      "task": "Write the one-line synthesis gloss for ISS-CC. Include the tracker ID. Do not invent source details.",
+      "source": {
+        "version": 1,
+        "issues": [
+          {
+            "id": "ISS-CC",
+            "title": "Record cache_read_input_tokens per request in the eval harness",
+            "state": "Todo",
+            "relations": {
+              "blocks": [],
+              "blockedBy": [],
+              "relatedTo": []
+            }
+          }
+        ]
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            [
+              "cache",
+              "cached"
+            ],
+            [
+              "token",
+              "usage",
+              "read"
+            ],
+            "ISS-CC",
+            "cache_read_input_tokens",
+            "eval"
+          ],
+          "must_avoid": [
+            "optimi",
+            "improve performance",
+            "leverage",
+            "efficiency"
+          ]
+        },
+        "allowed_ids": [
+          "ISS-CC"
+        ],
+        "forbidden_patterns": [
+          "\\u2014"
+        ]
+      },
+      "reference": "ISS-CC: Record cache_read_input_tokens for each eval request so cached token use is visible."
+    },
+    {
+      "id": "long-table",
+      "task": "Normalise this tracker comment. Preserve each row and all facts. Source issue descriptions are supplied for grounding.",
+      "source": {
+        "draft": "| Ticket | State | Scope |\n|---|---|---|\n| ISS-101 | Done | Add cache_read_input_tokens to every eval request log. Retain the raw provider count. |\n| ISS-102 | Todo | Publish a cached-token comparison for maintainers. Read the raw provider count from request logs. |",
+        "issues": {
+          "ISS-101": "Record the raw cached-token count in each eval request log.",
+          "ISS-102": "Publish a cached-token comparison from request logs."
+        }
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "ISS-101",
+            "ISS-102",
+            "Done",
+            "Todo",
+            "cache_read_input_tokens",
+            [
+              "raw",
+              "unmodified"
+            ],
+            [
+              "comparison",
+              "compare"
+            ]
+          ],
+          "must_avoid": [
+            "truncat"
+          ]
+        },
+        "required_patterns": [
+          "─{40}"
+        ],
+        "forbidden_patterns": [
+          "^\\s*\\|",
+          "\\u2014"
+        ],
+        "allowed_ids": [
+          "ISS-101",
+          "ISS-102"
+        ]
+      },
+      "reference": "ISS-101: Record cached-token counts\nState: Done\nScope: Add cache_read_input_tokens to every eval request log and retain the raw provider count.\n────────────────────────────────────────\nISS-102: Publish a cached-token comparison\nState: Todo\nScope: Compare the raw provider counts from request logs."
+    },
+    {
+      "id": "short-table",
+      "task": "Normalise this terminal status-count table without changing the counts.",
+      "source": "| State | Count |\n|---|---:|\n| Done | 3 |\n| Todo | 2 |",
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "Done",
+            "Todo",
+            "3",
+            "2"
+          ],
+          "must_avoid": []
+        },
+        "required_patterns": [
+          "^\\s*\\|.*State.*Count.*\\|",
+          "^\\s*\\|.*Done.*3.*\\|",
+          "^\\s*\\|.*Todo.*2.*\\|"
+        ],
+        "forbidden_patterns": [
+          "\\u2014"
+        ]
+      },
+      "reference": "| State | Count |\n|---|---:|\n| Done | 3 |\n| Todo | 2 |"
+    },
+    {
+      "id": "enumeration",
+      "task": "Normalise this tracker comment, preserving all three questions.",
+      "source": "Here is the list you asked for. Open questions: Which team owns the queue? · How long should leases last? · Which metric detects lost work? Let me know if you would like more.",
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "team",
+            "queue",
+            "leases",
+            [
+              "long",
+              "duration",
+              "TTL"
+            ],
+            "metric",
+            [
+              "lost work",
+              "lost tasks"
+            ]
+          ],
+          "must_avoid": [
+            "here is",
+            "let me know"
+          ]
+        },
+        "minimum_bullets": 3,
+        "forbidden_patterns": [
+          "\\u2014"
+        ]
+      },
+      "reference": "- **Queue:** Which team owns it?\n- **Leases:** How long should they last?\n- **Lost work:** Which metric detects it?"
+    },
+    {
+      "id": "model-hoist",
+      "task": "Normalise this explanation. Preserve its existing governing statement and the concrete metric name.",
+      "source": "The SDK checks the longest matching request prefix and recomputes its suffix. Measure hits using cache_read_input_tokens. Prompt caching depends on an identical leading token sequence. Therefore put stable system text before the volatile user turn.",
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "prefix",
+            "suffix",
+            "cache_read_input_tokens",
+            "stable",
+            "volatile"
+          ],
+          "must_avoid": [
+            "content-based caching"
+          ]
+        },
+        "first_line": "identical leading token sequence",
+        "forbidden_patterns": [
+          "\\u2014"
+        ]
+      },
+      "reference": "Prompt caching depends on an identical leading token sequence.\n\nThe SDK checks the longest matching request prefix and recomputes its suffix. Measure hits using cache_read_input_tokens. Put stable system text before the volatile user turn."
+    },
+    {
+      "id": "missing-model",
+      "task": "Validate this draft explanation and report violations only. Do not create an explanation absent from the source.",
+      "source": "Step one: open the dashboard. Step two: copy the displayed number. Step three: close the tab.",
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "no load-bearing model to lead with"
+          ],
+          "must_avoid": [
+            "cache_read_input_tokens",
+            "lease expires",
+            "prefix-based"
+          ]
+        },
+        "forbidden_patterns": [
+          "\\u2014"
+        ]
+      },
+      "reference": "Draft explanation: no load-bearing model to lead with; ask the producer for the governing idea."
+    },
+    {
+      "id": "cycle",
+      "task": "Normalise this three-edge dependency cycle for terminal output. Ground all issue IDs from their supplied descriptions. No recommendation is supplied.",
+      "source": {
+        "draft": "ISS-201 depends on ISS-202, which depends on ISS-203, which depends on ISS-201.",
+        "issues": {
+          "ISS-201": "Build the login form.",
+          "ISS-202": "Validate session tokens.",
+          "ISS-203": "Refresh expired sessions."
+        }
+      },
+      "oracle": {
+        "rubric": {
+          "must_include": [
+            "ISS-201",
+            "ISS-202",
+            "ISS-203",
+            "login",
+            [
+              "token",
+              "tokens"
+            ],
+            [
+              "refresh",
+              "renew"
+            ]
+          ],
+          "must_avoid": [
+            "recommend",
+            "delete",
+            "remove"
+          ]
+        },
+        "required_patterns": [
+          "\\[[^\\n]*ISS-201[^\\n]*ISS-202[^\\n]*ISS-203[^\\n]*ISS-201[^\\n]*\\]"
+        ],
+        "forbidden_patterns": [
+          "\\u2014"
+        ],
+        "allowed_ids": [
+          "ISS-201",
+          "ISS-202",
+          "ISS-203"
+        ]
+      },
+      "reference": "ISS-201: Build the login form.\nISS-202: Validate session tokens.\nISS-203: Refresh expired sessions.\n\n[ISS-201 → ISS-202 → ISS-203 → ISS-201]"
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "scope",
+      "question": "Which surfaces are covered? Return {\"terminal\":boolean,\"tracker_description\":boolean,\"tracker_comment\":boolean,\"skill_source\":boolean,\"internal_log\":boolean}.",
+      "expected": {
+        "terminal": true,
+        "tracker_description": true,
+        "tracker_comment": true,
+        "skill_source": false,
+        "internal_log": false
+      }
+    },
+    {
+      "id": "contract",
+      "question": "Does rendering have a fixed internal contract that controls pipeline gates? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "normalise-authority",
+      "question": "A normalisation pass dislikes a delivery recommendation in the source. May it replace that recommendation with its own? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "two-item-dependency",
+      "question": "For a simple two-item dependency, choose \"prose\", \"cycle-bracket\", or \"cycle-box\".",
+      "expected": "prose"
+    },
+    {
+      "id": "branching-cycle",
+      "question": "A dependency cycle has branching and five edges. Choose \"cycle-bracket\" or \"cycle-box\".",
+      "expected": "cycle-box"
+    },
+    {
+      "id": "closed-catalogue",
+      "question": "May a caller invent a new visual form inline before adding it to the catalogue? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "density",
+      "question": "Return the numeric caps {\"cycle_visualisations\":number,\"queue_rows\":number,\"live_initiatives\":number}.",
+      "expected": {
+        "cycle_visualisations": 3,
+        "queue_rows": 10,
+        "live_initiatives": 7
+      }
+    },
+    {
+      "id": "overflow",
+      "question": "There are twelve queue rows. Return {\"visible_rows\":number,\"overflow_marker\":string,\"full_list_location\":string}.",
+      "expected": {
+        "visible_rows": 10,
+        "overflow_marker": "(+ 2 more)",
+        "full_list_location": "log"
+      }
+    },
+    {
+      "id": "gloss-source",
+      "question": "A spec has a one-line summary, while the title and description use older wording. Choose the preferred source: \"spec-summary\", \"title\", or \"description\".",
+      "expected": "spec-summary"
+    },
+    {
+      "id": "gloss-grounding",
+      "question": "An issue ID appears twice; only its first appearance has a clear gloss. Is the once-per-whole-output mechanical grounding requirement met? Return a boolean.",
+      "expected": true
+    },
+    {
+      "id": "later-humanisation",
+      "question": "A later bare issue reference becomes unintelligible in its new section, although grounded earlier. Should that section re-ground it for the reader? Return a boolean.",
+      "expected": true
+    },
+    {
+      "id": "unlock-one",
+      "question": "An issue has exactly one isolated dependent and no longer chain. Should its gloss include an unlock consequence line? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "unlock-chain",
+      "question": "An issue has one direct dependent that gates two more issues. Should a consequence be described in human terms? Return a boolean.",
+      "expected": true
+    },
+    {
+      "id": "unlock-count",
+      "question": "Choose the permitted consequence: \"Unlocks 3 issues\" or \"The alerting work can now use a real log schema\".",
+      "expected": "The alerting work can now use a real log schema"
+    },
+    {
+      "id": "ambiguous-gloss",
+      "question": "The spec is ambiguous between extending a logger and replacing it. Return {\"state_ambiguity\":boolean,\"invent_resolution\":boolean}.",
+      "expected": {
+        "state_ambiguity": true,
+        "invent_resolution": false
+      }
+    },
+    {
+      "id": "gloss-cache",
+      "question": "Return {\"reuse_within_invocation\":boolean,\"reuse_across_invocations\":boolean}.",
+      "expected": {
+        "reuse_within_invocation": true,
+        "reuse_across_invocations": false
+      }
+    },
+    {
+      "id": "surface-concrete",
+      "question": "A source contains a category label but no field name. May the renderer invent a precise field to make it sound concrete? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "voice-source",
+      "question": "Return the fixed repository file and heading that own the prose voice as {\"file\":string,\"heading\":string}.",
+      "expected": {
+        "file": "AGENTS.md",
+        "heading": "Writing style"
+      }
+    },
+    {
+      "id": "voice-swap",
+      "question": "Does swapping rendering_adaptor alone change the fixed voice-source path? Return a boolean.",
+      "expected": false
+    },
+    {
+      "id": "prose-carveouts",
+      "question": "Which of these stay prose? Return {\"synthesis_gloss\":boolean,\"diagnosis\":boolean,\"TLDR\":boolean}.",
+      "expected": {
+        "synthesis_gloss": true,
+        "diagnosis": true,
+        "TLDR": true
+      }
+    }
+  ]
+}

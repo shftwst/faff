@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "status": "held-registered-candidate-input-mismatch",
+  "qualified": false,
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "sampling": "One original baseline and one original candidate; focused paired smoke evidence, not repeated-trial reliability.",
+  "registration": {
+    "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-contracts-pair-v1-registration.json",
+    "sha256": "a5464049fb5d5684e00d1b0e13e04050a95d4b3f464a7de2ecfafcbbcffa499a"
+  },
+  "arms": [
+    {
+      "arm": "baseline",
+      "raw_status": "pass",
+      "native_status": "pass",
+      "policy_chunks": 18,
+      "registered_artifacts_passed": 9,
+      "registered_artifacts_total": 9,
+      "actual_cli_outcomes_matched": 9,
+      "rule_decisions_passed": 32,
+      "rule_decisions_total": 32,
+      "actual_consumption": {
+        "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-contracts-pair-v1-baseline-actual-consumption.json",
+        "sha256": "a4011af00c4fc1717814b419a29dab8a2b0b9be777478212815b0f7c3f5a6826"
+      },
+      "independent_review": {
+        "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/kernel-core-contracts-pair-v1-baseline-independent.json",
+        "sha256": "ccf63040d76f5a929b54b02c43d8bdd4f2b5aeb446ff857323451d2ff33ae3d4"
+      },
+      "report_sha256": "5a80b84a19c6f8281ca1cbfd73a58b06a68027aa0c584513f03583ab129c1177",
+      "native_audit_sha256": "565e33f34d9f956a596c7827bde934858f97b9d222454ff81a919c1445bf29cf"
+    },
+    {
+      "arm": "candidate",
+      "raw_status": "pass",
+      "native_status": "pass",
+      "policy_chunks": 16,
+      "registered_artifacts_passed": 8,
+      "registered_artifacts_total": 9,
+      "actual_cli_outcomes_matched": 9,
+      "rule_decisions_passed": 32,
+      "rule_decisions_total": 32,
+      "actual_consumption": {
+        "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-contracts-pair-v1-candidate-actual-consumption.json",
+        "sha256": "ea612e2b21e5124174de0ae590f66189c02aff9b05c1170b2f37718d930a1b60"
+      },
+      "independent_review": {
+        "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/kernel-core-contracts-pair-v1-candidate-independent.json",
+        "sha256": "9d170c500239d74405db569cbfc21100eb54b290b74801c7306e5f21e6cfceb7"
+      },
+      "report_sha256": "4af49d97f3d7d5c76155b476bc8e5aae64d46f28ffca6aa4234be584d0959640",
+      "native_audit_sha256": "d578c302bf9856cfd41d8ed8b137875c151c0bd0c902fd85b8a643764ee0c222"
+    }
+  ],
+  "failure": {
+    "case": "readiness-missing-marker",
+    "registered_input": {
+      "confidence": "high",
+      "decisions": [
+        {
+          "marker": "none"
+        }
+      ]
+    },
+    "actual_candidate_input": {
+      "confidence": "high",
+      "decisions": [
+        {}
+      ]
+    },
+    "consumer_result": {
+      "exit_code": 1,
+      "markers_valid": false,
+      "decisions": []
+    },
+    "interpretation": "The same refusal was observed, but the registered producer-input requirement failed. Preserve the failure; no regrade, replacement or retry."
+  },
+  "scope": "Nine emitted artifacts consumed by pinned actual CLI and nine invalid controls per arm, plus32 policy decisions. No complete caller execution, caching, parking, publication or repeated-trial reliability claim.",
+  "source_delta": {
+    "bytes_removed": 13260,
+    "estimated_tokens_removed": 3253,
+    "implemented_on_branch": "feat/skill-diet-source-batch",
+    "model_qualification": "outstanding"
+  },
+  "further_model_runs": 0
+}

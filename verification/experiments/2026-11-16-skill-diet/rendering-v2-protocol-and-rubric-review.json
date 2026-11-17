@@ -1,0 +1,381 @@
+{
+  "schema": 1,
+  "status": "qualified-rendering-rubrics-requires-artifact-review",
+  "summary": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/rendering-v2-results.json",
+  "summary_sha256": "e6b4af1c580618891af1f6e91ce271b5536d6af002e3327bcf00b4243868ed10",
+  "arms": {
+    "baseline": {
+      "case_kinds": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 100,
+          "total": 100
+        }
+      },
+      "runs": 5,
+      "passed": 145,
+      "total": 145,
+      "recorded_data_bytes": 185815,
+      "estimated_recorded_data_tokens": 45940
+    },
+    "candidate": {
+      "case_kinds": {
+        "artifact": {
+          "passed": 45,
+          "total": 45
+        },
+        "decision": {
+          "passed": 100,
+          "total": 100
+        }
+      },
+      "runs": 5,
+      "passed": 145,
+      "total": 145,
+      "recorded_data_bytes": 116206,
+      "estimated_recorded_data_tokens": 28911
+    }
+  },
+  "runs": [
+    {
+      "name": "rendering-artifact-v1-baseline-1",
+      "arm": "baseline",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "assessed_cases_passed": 29,
+      "cases_total": 29,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 37,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/rendering-artifact-v1-baseline-1/task.json",
+          "complete": true,
+          "content_sha256": "9a5db9f9cb6a4cac761f6fb125374da4b61edca28703f927ee5a34e86af054f8",
+          "content_bytes": 10195
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/rendering-baseline.json",
+      "audit_sha256": "adae9f1a39f2b5569d536130a1738925ee9e36a1147162d68b29bc1d5bc28bff"
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-2",
+      "arm": "baseline",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "assessed_cases_passed": 29,
+      "cases_total": 29,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 37,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/rendering-artifact-v1-baseline-2/task.json",
+          "complete": true,
+          "content_sha256": "9a5db9f9cb6a4cac761f6fb125374da4b61edca28703f927ee5a34e86af054f8",
+          "content_bytes": 10195
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/rendering-baseline.json",
+      "audit_sha256": "adae9f1a39f2b5569d536130a1738925ee9e36a1147162d68b29bc1d5bc28bff"
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-3",
+      "arm": "baseline",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "assessed_cases_passed": 29,
+      "cases_total": 29,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 37,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/rendering-artifact-v1-baseline-3/task.json",
+          "complete": true,
+          "content_sha256": "9a5db9f9cb6a4cac761f6fb125374da4b61edca28703f927ee5a34e86af054f8",
+          "content_bytes": 10195
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/rendering-baseline.json",
+      "audit_sha256": "adae9f1a39f2b5569d536130a1738925ee9e36a1147162d68b29bc1d5bc28bff"
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-4",
+      "arm": "baseline",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "assessed_cases_passed": 29,
+      "cases_total": 29,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 37,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/rendering-artifact-v1-baseline-4/task.json",
+          "complete": true,
+          "content_sha256": "9a5db9f9cb6a4cac761f6fb125374da4b61edca28703f927ee5a34e86af054f8",
+          "content_bytes": 10195
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/rendering-baseline.json",
+      "audit_sha256": "adae9f1a39f2b5569d536130a1738925ee9e36a1147162d68b29bc1d5bc28bff"
+    },
+    {
+      "name": "rendering-artifact-v1-baseline-5",
+      "arm": "baseline",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "assessed_cases_passed": 29,
+      "cases_total": 29,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 37,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/rendering-artifact-v1-baseline-5/task.json",
+          "complete": true,
+          "content_sha256": "9a5db9f9cb6a4cac761f6fb125374da4b61edca28703f927ee5a34e86af054f8",
+          "content_bytes": 10195
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/rendering-baseline.json",
+      "audit_sha256": "adae9f1a39f2b5569d536130a1738925ee9e36a1147162d68b29bc1d5bc28bff"
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-1",
+      "arm": "candidate",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "assessed_cases_passed": 29,
+      "cases_total": 29,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 34,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/rendering-artifact-v2-candidate-1/task.json",
+          "complete": true,
+          "content_sha256": "8507d2b1f688dc342be872649d54c81abff7da354e3497fba0d27e68b2718efe",
+          "content_bytes": 10195
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/rendering-v2-candidate.json",
+      "audit_sha256": "9c890bb2956341ec090b208289349274fb1de4eca35d45d12cb11fa3ed1dfef1"
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-2",
+      "arm": "candidate",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "assessed_cases_passed": 29,
+      "cases_total": 29,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 34,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/rendering-artifact-v2-candidate-2/task.json",
+          "complete": true,
+          "content_sha256": "8507d2b1f688dc342be872649d54c81abff7da354e3497fba0d27e68b2718efe",
+          "content_bytes": 10195
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/rendering-v2-candidate.json",
+      "audit_sha256": "9c890bb2956341ec090b208289349274fb1de4eca35d45d12cb11fa3ed1dfef1"
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-3",
+      "arm": "candidate",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "assessed_cases_passed": 29,
+      "cases_total": 29,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 34,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/rendering-artifact-v2-candidate-3/task.json",
+          "complete": true,
+          "content_sha256": "8507d2b1f688dc342be872649d54c81abff7da354e3497fba0d27e68b2718efe",
+          "content_bytes": 10195
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/rendering-v2-candidate.json",
+      "audit_sha256": "9c890bb2956341ec090b208289349274fb1de4eca35d45d12cb11fa3ed1dfef1"
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-4",
+      "arm": "candidate",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "assessed_cases_passed": 29,
+      "cases_total": 29,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 34,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/rendering-artifact-v2-candidate-4/task.json",
+          "complete": true,
+          "content_sha256": "8507d2b1f688dc342be872649d54c81abff7da354e3497fba0d27e68b2718efe",
+          "content_bytes": 10195
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/rendering-v2-candidate.json",
+      "audit_sha256": "9c890bb2956341ec090b208289349274fb1de4eca35d45d12cb11fa3ed1dfef1"
+    },
+    {
+      "name": "rendering-artifact-v2-candidate-5",
+      "arm": "candidate",
+      "original_status": "fail",
+      "original_cases_passed": 28,
+      "assessed_cases_passed": 29,
+      "cases_total": 29,
+      "status": "pass",
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "native_tool_calls": 34,
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/rendering-artifact-v2-candidate-5/task.json",
+          "complete": true,
+          "content_sha256": "8507d2b1f688dc342be872649d54c81abff7da354e3497fba0d27e68b2718efe",
+          "content_bytes": 10195
+        }
+      ],
+      "audit": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/rendering-v2-candidate.json",
+      "audit_sha256": "9c890bb2956341ec090b208289349274fb1de4eca35d45d12cb11fa3ed1dfef1"
+    }
+  ],
+  "delivered_guidance_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+  "common_context": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+      "bytes": 21125
+    }
+  ],
+  "normalised_effect_state_gate_projections_equal": null,
+  "artifact_rubric_projections_equal": true,
+  "limits": [
+    "Actual native tool metadata and model identities are verified. Full caller workflows, hosted publication and statistical equivalence are not claimed.",
+    "Kernel cases use the real configuration/dispatch CLI and prevalidated downstream stubs. Separate policy decisions are not counted as executed workflows.",
+    "Rendering compares actual persisted artifacts and source-fact/form rubrics; a separate reading of the outputs is required before qualifying writing quality.",
+    "Delivered operator guidance is common across arms; the orchestrator file hash describes a different container view.",
+    "Source and recorded payload token estimates are not provider usage or billed cost."
+  ]
+}

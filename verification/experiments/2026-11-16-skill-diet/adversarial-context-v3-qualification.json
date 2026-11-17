@@ -1,0 +1,459 @@
+{
+  "schema": 1,
+  "status": "qualified-bounded-adversarial-workflow",
+  "summary": "adversarial-context-v3-assessed-results.json",
+  "summary_sha256": "cd088d5b95723e3b50f3b5bb417325b9daa54b7ed3260c4e96d472c8beab5c89",
+  "runs": [
+    {
+      "name": "adversarial-context-v3-baseline-1",
+      "arm": "baseline",
+      "status": "pass",
+      "original_report_status": "pass",
+      "original_cases_passed": 10,
+      "assessed_cases_passed": 10,
+      "total": 10,
+      "native_status": "pass",
+      "native_tool_calls": 162,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "audit": "native-audits/main-complete-v2.json",
+      "audit_sha256": "73ca13d2e24b1da17a1bb37ddb225a9e55ea59159df80e4f3b5551909ee53ba7",
+      "assessment_sha256": "2bd8cad6124d84a65cc3257337f0b281eb3bca14de24e0984f11819e3bb2c9b0",
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-context-v3-baseline-1/task.json",
+          "complete": true,
+          "content_sha256": "91a26f573df13d4151d8c2cf95680d3413df03dd6adfd524f908fef38201fd7f",
+          "content_bytes": 27064
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "adversarial-context-v3-candidate-1",
+      "arm": "candidate",
+      "status": "pass",
+      "original_report_status": "pass",
+      "original_cases_passed": 10,
+      "assessed_cases_passed": 10,
+      "total": 10,
+      "native_status": "pass",
+      "native_tool_calls": 153,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "audit": "native-audits/main-complete-v2.json",
+      "audit_sha256": "73ca13d2e24b1da17a1bb37ddb225a9e55ea59159df80e4f3b5551909ee53ba7",
+      "assessment_sha256": "e0c1c48ccaa718527e563c6b44f32cdba03281a8c2c674a1e692869ef5a1f2d7",
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-context-v3-candidate-1/task.json",
+          "complete": true,
+          "content_sha256": "f04e55d1cf0ed905af0c7047cb2d9663f91aea77250fd28c6a9140268d4146f7",
+          "content_bytes": 27064
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "adversarial-context-v3-baseline-3",
+      "arm": "baseline",
+      "status": "pass",
+      "original_report_status": "fail",
+      "original_cases_passed": 9,
+      "assessed_cases_passed": 10,
+      "total": 10,
+      "native_status": "pass",
+      "native_tool_calls": 161,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "audit": "native-audits/main-complete-v2.json",
+      "audit_sha256": "73ca13d2e24b1da17a1bb37ddb225a9e55ea59159df80e4f3b5551909ee53ba7",
+      "assessment_sha256": "14a29868934de09372522adeaf15c8509c320f35b0e7df8f2098ef0071e82edb",
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-context-v3-baseline-3/task.json",
+          "complete": true,
+          "content_sha256": "19bc5fb1f85fefbfed12f28b44045951c95fa8c28946c3019164d8ff690af530",
+          "content_bytes": 27064
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "adversarial-context-v3-candidate-3",
+      "arm": "candidate",
+      "status": "pass",
+      "original_report_status": "pass",
+      "original_cases_passed": 10,
+      "assessed_cases_passed": 10,
+      "total": 10,
+      "native_status": "pass",
+      "native_tool_calls": 151,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "audit": "native-audits/main-complete-v2.json",
+      "audit_sha256": "73ca13d2e24b1da17a1bb37ddb225a9e55ea59159df80e4f3b5551909ee53ba7",
+      "assessment_sha256": "24e31e0919dfe6a164aed0da7c5fda0fb7e4a2f8f79b2e7690a6c104243a4f16",
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-context-v3-candidate-3/task.json",
+          "complete": true,
+          "content_sha256": "69c2d4c712b9d5c9a33ac3ec3483c5136df9d41dffec020ac3894ec4bd91d9f0",
+          "content_bytes": 27064
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "adversarial-context-v3-baseline-5",
+      "arm": "baseline",
+      "status": "pass",
+      "original_report_status": "pass",
+      "original_cases_passed": 10,
+      "assessed_cases_passed": 10,
+      "total": 10,
+      "native_status": "pass",
+      "native_tool_calls": 170,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "audit": "native-audits/main-complete-v2.json",
+      "audit_sha256": "73ca13d2e24b1da17a1bb37ddb225a9e55ea59159df80e4f3b5551909ee53ba7",
+      "assessment_sha256": "47ed73ab976a5e45de73ec65969fc9131d0b2df1a87e4d9ff528c9c5c10a1113",
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-context-v3-baseline-5/task.json",
+          "complete": true,
+          "content_sha256": "2bf90bdab21f270f6e7a1b40c56d8153576b6456664b2e049f5cde7fb6bd85ef",
+          "content_bytes": 27064
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "adversarial-context-v3-candidate-5",
+      "arm": "candidate",
+      "status": "pass-with-recorded-diagnostic",
+      "original_report_status": "pass",
+      "original_cases_passed": 10,
+      "assessed_cases_passed": 10,
+      "total": 10,
+      "native_status": "fail",
+      "native_tool_calls": 154,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "audit": "native-audits/main-complete-v2.json",
+      "audit_sha256": "73ca13d2e24b1da17a1bb37ddb225a9e55ea59159df80e4f3b5551909ee53ba7",
+      "assessment_sha256": "8af04de1b730dd8f662cadc8ec2db3bd27b63e96b166f1012a21d037e0c9cbde",
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-context-v3-candidate-5/task.json",
+          "complete": true,
+          "content_sha256": "0fd4940869a7d6cf216b3c0edcad55a79078cfc331eb6fccafa3310c012d8b3e",
+          "content_bytes": 27064
+        }
+      ],
+      "diagnostics": [
+        {
+          "seq": 4,
+          "case_id": "case-a",
+          "kind": "unwritten-output-read",
+          "path": "/tmp/faff-adversarial-workflow-LNwA4w/case-a/review-system.txt",
+          "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-LNwA4w/case-a/review-system.txt'",
+          "native_tool_id": "toolu_01HYL4nHdRJfdrkZ66rRAtuC",
+          "arguments_sha256": "d83700222d02da5dd66c67b59b1628f1207cc10fe48126103971d057441151e4"
+        }
+      ]
+    },
+    {
+      "name": "adversarial-context-v3-candidate-2",
+      "arm": "candidate",
+      "status": "pass-with-recorded-diagnostic",
+      "original_report_status": "fail",
+      "original_cases_passed": 9,
+      "assessed_cases_passed": 10,
+      "total": 10,
+      "native_status": "fail",
+      "native_tool_calls": 126,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "audit": "native-audits/second-adversarial-final.json",
+      "audit_sha256": "6df85aa3707b783b0be39110b4e252f252efb43c8250561b8eb0c79a031df574",
+      "assessment_sha256": "bc664e10c560bd23d9c1fe9eeb4700abb938430d107d111fd593cd2f24cd2461",
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-context-v3-candidate-2/task.json",
+          "complete": true,
+          "content_sha256": "e7f65fb98c4bae7d459533849e987e8a9e247395197e4c8609848dc2cbdc927e",
+          "content_bytes": 27064
+        }
+      ],
+      "diagnostics": [
+        {
+          "seq": 3,
+          "case_id": "case-a",
+          "kind": "unwritten-output-read",
+          "path": "/tmp/faff-adversarial-workflow-djSf7i/case-a/review-system.txt",
+          "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-djSf7i/case-a/review-system.txt'",
+          "native_tool_id": "toolu_01Tqh8uoYEeq1p3BaQgTxdd3",
+          "arguments_sha256": "ba4fb458acd7e9050ea10011e0143bf05a257f8c14ed1d0ed953a2358832396e"
+        }
+      ]
+    },
+    {
+      "name": "adversarial-context-v3-baseline-2",
+      "arm": "baseline",
+      "status": "pass",
+      "original_report_status": "pass",
+      "original_cases_passed": 10,
+      "assessed_cases_passed": 10,
+      "total": 10,
+      "native_status": "pass",
+      "native_tool_calls": 171,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "audit": "native-audits/second-adversarial-final.json",
+      "audit_sha256": "6df85aa3707b783b0be39110b4e252f252efb43c8250561b8eb0c79a031df574",
+      "assessment_sha256": "fea025e62bb037a33ca2b45cad8231d3258402813cd4408d72bb2880b5df7474",
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-context-v3-baseline-2/task.json",
+          "complete": true,
+          "content_sha256": "69a1096c70cb83e577b23590567a42df0d1003b2813a8fd36040898f9d390c11",
+          "content_bytes": 27064
+        }
+      ],
+      "diagnostics": []
+    },
+    {
+      "name": "adversarial-context-v3-candidate-4",
+      "arm": "candidate",
+      "status": "pass-with-recorded-diagnostic",
+      "original_report_status": "pass",
+      "original_cases_passed": 10,
+      "assessed_cases_passed": 10,
+      "total": 10,
+      "native_status": "fail",
+      "native_tool_calls": 162,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "audit": "native-audits/second-adversarial-final.json",
+      "audit_sha256": "6df85aa3707b783b0be39110b4e252f252efb43c8250561b8eb0c79a031df574",
+      "assessment_sha256": "6198ae12a4d5915c104912197c9c0c82d2e119c613155102b0fe1c4931f870f5",
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-context-v3-candidate-4/task.json",
+          "complete": true,
+          "content_sha256": "4741f7d549b0526804b4ca7b9c34d2371f75c156dea8c605f276214d979aaf3b",
+          "content_bytes": 27064
+        }
+      ],
+      "diagnostics": [
+        {
+          "seq": 4,
+          "case_id": "case-a",
+          "kind": "unwritten-output-read",
+          "path": "/tmp/faff-adversarial-workflow-e4Nvow/case-a/review-system.txt",
+          "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-e4Nvow/case-a/review-system.txt'",
+          "native_tool_id": "toolu_01JMojHtgygeZqf5UJ5ZH2nq",
+          "arguments_sha256": "589cf5ef0b1568ddc56466b1f2eb0a215cc31fc2597f607ecc04d0db2bc3aec5"
+        }
+      ]
+    },
+    {
+      "name": "adversarial-context-v3-baseline-4",
+      "arm": "baseline",
+      "status": "pass",
+      "original_report_status": "pass",
+      "original_cases_passed": 10,
+      "assessed_cases_passed": 10,
+      "total": 10,
+      "native_status": "pass",
+      "native_tool_calls": 163,
+      "model_ids": [
+        "claude-opus-5-5"
+      ],
+      "versions": [
+        "2.1.325"
+      ],
+      "audit": "native-audits/second-adversarial-final.json",
+      "audit_sha256": "6df85aa3707b783b0be39110b4e252f252efb43c8250561b8eb0c79a031df574",
+      "assessment_sha256": "590005b27aa267f7a52ad4e58fdc9c3bd722347069fd70a8dc42fdc5b9dd9090",
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "content_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+          "content_bytes": 21125
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/adversarial-context-v3-baseline-4/task.json",
+          "complete": true,
+          "content_sha256": "7db7e09569f9ba2810546eeba6f1953700ba98ba3c28cfea78a26c84c07391bd",
+          "content_bytes": 27064
+        }
+      ],
+      "diagnostics": []
+    }
+  ],
+  "arms": {
+    "baseline": {
+      "case_kinds": {
+        "execution": {
+          "passed": 50,
+          "total": 50
+        }
+      },
+      "runs": 5,
+      "passed": 50,
+      "total": 50,
+      "recorded_data_bytes": 668278,
+      "estimated_recorded_data_tokens": 166518
+    },
+    "candidate": {
+      "case_kinds": {
+        "execution": {
+          "passed": 50,
+          "total": 50
+        }
+      },
+      "runs": 5,
+      "passed": 50,
+      "total": 50,
+      "recorded_data_bytes": 382505,
+      "estimated_recorded_data_tokens": 95824
+    }
+  },
+  "normalised_signals_helper_exits_checkpoints_and_merge_gates_equal": true,
+  "challenge_results_sha256": "612a5303a9bd8bbc7d7632e18e687c487f9cab502d75fb0902e5eac516d8fcef",
+  "challenge_native_review_sha256": "7a009b54e9672c55bdfd5493b07f81ec3a65a4d309a7405923afca9198ae6501",
+  "delivered_guidance_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+  "diagnostics": [
+    {
+      "run": "adversarial-context-v3-candidate-5",
+      "seq": 4,
+      "case_id": "case-a",
+      "kind": "unwritten-output-read",
+      "path": "/tmp/faff-adversarial-workflow-LNwA4w/case-a/review-system.txt",
+      "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-LNwA4w/case-a/review-system.txt'",
+      "native_tool_id": "toolu_01HYL4nHdRJfdrkZ66rRAtuC",
+      "arguments_sha256": "d83700222d02da5dd66c67b59b1628f1207cc10fe48126103971d057441151e4"
+    },
+    {
+      "run": "adversarial-context-v3-candidate-2",
+      "seq": 3,
+      "case_id": "case-a",
+      "kind": "unwritten-output-read",
+      "path": "/tmp/faff-adversarial-workflow-djSf7i/case-a/review-system.txt",
+      "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-djSf7i/case-a/review-system.txt'",
+      "native_tool_id": "toolu_01Tqh8uoYEeq1p3BaQgTxdd3",
+      "arguments_sha256": "ba4fb458acd7e9050ea10011e0143bf05a257f8c14ed1d0ed953a2358832396e"
+    },
+    {
+      "run": "adversarial-context-v3-candidate-4",
+      "seq": 4,
+      "case_id": "case-a",
+      "kind": "unwritten-output-read",
+      "path": "/tmp/faff-adversarial-workflow-e4Nvow/case-a/review-system.txt",
+      "error": "ENOENT: no such file or directory, open '/tmp/faff-adversarial-workflow-e4Nvow/case-a/review-system.txt'",
+      "native_tool_id": "toolu_01JMojHtgygeZqf5UJ5ZH2nq",
+      "arguments_sha256": "589cf5ef0b1568ddc56466b1f2eb0a215cc31fc2597f607ecc04d0db2bc3aec5"
+    }
+  ],
+  "limits": [
+    "Controlled local provider responses and a stub primary reviewer exercise control flow, not independent model judgement. Existing separate artifact-review probes cover the bounded judgement cases.",
+    "Actual native tool metadata, bridge calls, files and merge-floor consumption are checked. Read counts, optional interactive findings files and prompt wording can differ within declared rules.",
+    "Original reports and native errors are retained. Two explicit oracle corrections are applied to both arms through hash-bound assessments; no guard rejection or other error is waived.",
+    "Actual delivered operator guidance is common across arms; the orchestrator-side file hash describes a separate container view.",
+    "No live GitHub/tracker publication, full graft/ship workflow, statistical equivalence or provider billing claim."
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "ok": true,
+  "value": {
+    "signal": "fail",
+    "findings": [
+      {
+        "title": "Missing requirement",
+        "location": "src/store.js:1",
+        "action": "Implement the stated requirement.",
+        "location_present": true,
+        "action_present": true
+      }
+    ],
+    "fixture_delegate": true
+  }
+}

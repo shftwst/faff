@@ -1,0 +1,112 @@
+TAP version 13
+# Subtest: authored and supplied exact skills pass real configured consumers without writes
+ok 1 - authored and supplied exact skills pass real configured consumers without writes
+  ---
+  duration_ms: 236.099769
+  type: 'test'
+  ...
+# Subtest: real pre-check rejects a routing occupant without the refer-back
+ok 2 - real pre-check rejects a routing occupant without the refer-back
+  ---
+  duration_ms: 120.357486
+  type: 'test'
+  ...
+# Subtest: structural success does not provide a semantic pass
+ok 3 - structural success does not provide a semantic pass
+  ---
+  duration_ms: 183.854722
+  type: 'test'
+  ...
+# Subtest: qualification rejects missing inspection
+ok 4 - qualification rejects missing inspection
+  ---
+  duration_ms: 167.725497
+  type: 'test'
+  ...
+# Subtest: qualification rejects duplicate inspection
+ok 5 - qualification rejects duplicate inspection
+  ---
+  duration_ms: 168.351079
+  type: 'test'
+  ...
+# Subtest: qualification rejects unexpected inspection
+ok 6 - qualification rejects unexpected inspection
+  ---
+  duration_ms: 164.48621
+  type: 'test'
+  ...
+# Subtest: qualification rejects different inspected bytes
+ok 7 - qualification rejects different inspected bytes
+  ---
+  duration_ms: 172.391198
+  type: 'test'
+  ...
+# Subtest: qualification rejects inspection after Validate report
+ok 8 - qualification rejects inspection after Validate report
+  ---
+  duration_ms: 164.586877
+  type: 'test'
+  ...
+# Subtest: qualification rejects changed fixture config
+ok 9 - qualification rejects changed fixture config
+  ---
+  duration_ms: 170.405659
+  type: 'test'
+  ...
+# Subtest: qualification rejects command failure disguised as a lint exit
+ok 10 - qualification rejects command failure disguised as a lint exit
+  ---
+  duration_ms: 159.301593
+  type: 'test'
+  ...
+# Subtest: qualification rejects CLI crash disguised as a lint exit
+ok 11 - qualification rejects CLI crash disguised as a lint exit
+  ---
+  duration_ms: 159.02151
+  type: 'test'
+  ...
+# Subtest: qualification rejects zero inspected occupants
+ok 12 - qualification rejects zero inspected occupants
+  ---
+  duration_ms: 155.337391
+  type: 'test'
+  ...
+# Subtest: inspection cannot precede an authored output or repeat
+ok 13 - inspection cannot precede an authored output or repeat
+  ---
+  duration_ms: 79.29938
+  type: 'test'
+  ...
+# Subtest: the real fixed-contract consumer admits the exact converted review example
+ok 14 - the real fixed-contract consumer admits the exact converted review example
+  ---
+  duration_ms: 120.048944
+  type: 'test'
+  ...
+# Subtest: structural review success cannot admit an invented verdict
+ok 15 - structural review success cannot admit an invented verdict
+  ---
+  duration_ms: 115.096451
+  type: 'test'
+  ...
+# Subtest: missing, duplicate and malformed example blocks fail closed
+ok 16 - missing, duplicate and malformed example blocks fail closed
+  ---
+  duration_ms: 235.800852
+  type: 'test'
+  ...
+# Subtest: a conformant consumer result for different example bytes is rejected
+ok 17 - a conformant consumer result for different example bytes is rejected
+  ---
+  duration_ms: 113.697287
+  type: 'test'
+  ...
+1..17
+# tests 17
+# suites 0
+# pass 17
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2794.81816

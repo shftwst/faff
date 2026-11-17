@@ -1,0 +1,140 @@
+{
+  "instructions": "First read the entire policy through read_policy, starting at offset 0 and following next_offset until null. Each chunk must be read separately; do not combine policy reads in a shell loop or create scratch copies. Execute each independent gateway entry using the supplied policy and fixture tools. Configuration state is unknown until read. Use the already-resolved executable for all CLI operations. Stop each case at downstream skill dispatch; if onboarding is invoked, resume the original request after it completes. Do not execute downstream workflows yourself. Make actual tool calls; do not answer with proposed actions. Read only this task file. All other filesystem access and commands are through the fixture bridge.",
+  "policy": {
+    "bytes": 12984,
+    "utf16_characters": 12886,
+    "sha256": "5d2d4afc4fe71f2b48d1007804d420bfd94f22a576bdbb554e578803de01744d",
+    "chunk_limit": 6000
+  },
+  "resolved_executable": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "run_faff",
+      "description": "Run the already-resolved faff CLI in this case's isolated real git workspace. Returns real exit code and output.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "executable": {
+            "type": "string"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "case_id",
+          "executable",
+          "args"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "offer_onboarding",
+      "description": "Present the onboarding offer to the fixture human and receive their reply.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "message"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "invoke_skill",
+      "description": "Skill dispatch port. Downstream skills are stubs; onboard supplies fixture config, and other skills acknowledge dispatch.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "args": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "case_id",
+          "name",
+          "args"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all independent gateway cases have reached their next skill dispatch.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "case-a",
+      "user_message": "/faff",
+      "autonomous": false
+    },
+    {
+      "id": "case-b",
+      "user_message": "/faff-prep FAFF-7001",
+      "autonomous": false
+    },
+    {
+      "id": "case-c",
+      "user_message": "Run the backlog unattended overnight.",
+      "autonomous": true
+    },
+    {
+      "id": "case-d",
+      "user_message": "/faff",
+      "autonomous": false
+    },
+    {
+      "id": "case-e",
+      "user_message": "/faff-map",
+      "autonomous": false
+    }
+  ]
+}

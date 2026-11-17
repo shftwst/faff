@@ -1,0 +1,104 @@
+{
+  "ok": true,
+  "value": {
+    "challenge": {
+      "case_id": "prdr-2",
+      "outcome": "overturned",
+      "ground": "over-scope",
+      "reason": "Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery."
+    },
+    "calls": [
+      {
+        "args": [
+          "prdr",
+          "yagni",
+          "--prd-goal",
+          "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.",
+          "--prd-goals",
+          "[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\",\"The merge-floor logic (AC + CI + review) stays the single source of truth for merge eligibility\"]",
+          "--proposal",
+          "admit",
+          "--proposal-reason",
+          "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.",
+          "--serves-goal",
+          "--within-scope",
+          "--challenge",
+          "overturned",
+          "--challenge-ground",
+          "over-scope",
+          "--challenge-reason",
+          "Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery."
+        ],
+        "exit_code": 0,
+        "stdout": "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery.\",\"trace_to_goal\":true,\"cited_goals\":[\"Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD.\"],\"dod_covers\":[],\"over_scope\":false,\"proposal\":{\"serves_goal\":true,\"within_scope\":true,\"verdict\":\"admit\",\"reason\":\"The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'.\"},\"challenge\":{\"ran\":true,\"overturns\":true,\"reason\":\"Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery.\",\"ground\":\"over-scope\"},\"grounding_present\":false,\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      },
+      {
+        "args": [
+          "prdr",
+          "admit",
+          "fixture",
+          "--actor",
+          "loop",
+          "--supersedes-provenance",
+          "loop",
+          "--upper",
+          "{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery.\"}"
+        ],
+        "exit_code": 0,
+        "stdout": "{\"disposition\":\"reject\",\"upper\":{\"admit\":false,\"reason\":\"conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery.\"},\"lower\":{\"covered\":true,\"uncovered_goals\":[]},\"authority\":{\"actor\":\"loop\",\"supersedes_provenance\":\"loop\",\"by_level\":\"ok\"},\"ratchet\":{\"lineage_supersessions\":0,\"breached\":false},\"reasons\":[\"upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery.\"],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": ""
+      }
+    ],
+    "upper": {
+      "admit": false,
+      "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery.",
+      "trace_to_goal": true,
+      "cited_goals": [
+        "Operators can inspect the current merge-eligibility decision without risking a merge. Historical storage and query features are outside this PRD."
+      ],
+      "dod_covers": [],
+      "over_scope": false,
+      "proposal": {
+        "serves_goal": true,
+        "within_scope": true,
+        "verdict": "admit",
+        "reason": "The core `--dry-run` flag serves the inspection goal directly, and the added history log plus `--explain`/`--since`/`--format` machinery is a natural extension of the same inspection capability, so the whole PRDR stays within scope of 'operators can inspect merge eligibility'."
+      },
+      "challenge": {
+        "ran": true,
+        "overturns": true,
+        "reason": "Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery.",
+        "ground": "over-scope"
+      },
+      "grounding_present": false,
+      "conformant": true,
+      "violations": []
+    },
+    "admission": {
+      "disposition": "reject",
+      "upper": {
+        "admit": false,
+        "reason": "conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery."
+      },
+      "lower": {
+        "covered": true,
+        "uncovered_goals": []
+      },
+      "authority": {
+        "actor": "loop",
+        "supersedes_provenance": "loop",
+        "by_level": "ok"
+      },
+      "ratchet": {
+        "lineage_supersessions": 0,
+        "breached": false
+      },
+      "reasons": [
+        "upper/YAGNI gate did not admit: conservative reject (no gold-plating on doubt) — adversarial challenge overturned (over-scope): Offline calibration judgement only, without provider independence or production eligibility: the PRD explicitly excludes historical storage and query features. The history JSONL log, full timeline, date filter and output-format toggle add DoD capabilities beyond current safe eligibility inspection. The useful dry-run flag does not justify admitting the excluded machinery."
+      ],
+      "conformant": true,
+      "violations": []
+    }
+  }
+}

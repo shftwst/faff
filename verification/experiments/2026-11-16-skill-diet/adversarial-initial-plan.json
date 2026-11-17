@@ -1,0 +1,16 @@
+{
+  "skill": "faffter-dark-adversarial-review",
+  "fixture": "fixtures/adversarial-input.json",
+  "oracle": "fixtures/adversarial-oracle.json",
+  "samples": [
+    {
+      "name": "adversarial-control",
+      "arm": "control"
+    },
+    {
+      "name": "adversarial-baseline-1",
+      "arm": "baseline",
+      "policy": "baseline/adversarial-review.md"
+    }
+  ]
+}

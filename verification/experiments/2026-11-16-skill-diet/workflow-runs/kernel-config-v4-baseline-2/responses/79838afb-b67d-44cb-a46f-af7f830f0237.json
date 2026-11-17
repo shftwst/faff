@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "exit_code": 0,
+    "stdout": "{\"model\":\"haiku\",\"effort\":\"high\"}\n",
+    "stderr": ""
+  }
+}

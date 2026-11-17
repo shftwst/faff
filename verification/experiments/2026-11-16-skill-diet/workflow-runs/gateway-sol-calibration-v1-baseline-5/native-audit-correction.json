@@ -1,0 +1,11 @@
+{
+  "correction": "model/effort expectation only; unchanged native session and core tool/read rules",
+  "source_sha256": "7a4735e4716a37ee7febf534a9c8a093994b4f91324dfae0b2b04e65fd331572",
+  "original_report": "native-audit-astra-expectation.json",
+  "original_sha256": "2b7afcf2f3bc151583231588fc910490635415e4da1f3aa76f18b6d638f81fa5",
+  "corrected_report": "native-audit.json",
+  "corrected_sha256": "c3e7a7029f1cf85a34bcc426cdaacb11502478848f650c82af8ed8bc112d4124",
+  "correction_note_sha256": "aa271c9dd647dafd2a3f5c7bb5433d521f263a4410d81f3db429b43d980001eb",
+  "original_status": "fail",
+  "corrected_status": "pass"
+}

@@ -1,26 +1,15 @@
 ---
 name: faffter-noon-intake
-description: "Default `intake` / discovery producer — turns a loose idea, bug, or empty repo into a structured discovery brief for faff-jot/faff-plot to shape into tickets. The light conversational default. Runs as a configured slot, not the user `/` menu."
+description: "Default intake/discovery producer: turn an idea, bug or empty repository into a discovery brief for faff-jot or faff-plot through a light conversation."
 user-invocable: false
 judgement_seam: modedetect
 ---
 
 # faffter-noon-intake
 
-The default intake / discovery producer. Turns a loose starting point — "I want to build X", a bug report, a half-formed feature idea, or an empty repo — into a structured **discovery brief** that the orchestrator hands to the `methodology` slot for shaping into tickets.
+Default `intake` slot: a light discovery conversation that turns an idea, bug or new repository into a discovery brief. Faff-jot supplies the mode and context, then applies the methodology's `ticket-shaping` output to the brief. Heavier intake skills can replace this producer if they emit the same required sections.
 
-This is the implicit default for the `intake` slot when none is configured. It is the light, conversational counterpart to heavier ideation skills (`superpowers:brainstorming`, `gstack:office-hours`): same slot, same output contract, less ceremony. Extracted here so it can be invoked standalone, tested, and swapped.
-
-```yaml
-slots:
-  intake: faffter-noon-intake   # the default — explicit for clarity
-```
-
-## When it runs
-
-Invoked by `/faff-jot` as the configured `intake` skill (the default when the slot is unset). `/faff-jot` decides the mode and passes it in; this skill runs the discovery conversation and returns the brief. It does **not** create tickets, touch the tracker, or write code — that is the orchestrator's job (`/faff-jot`), which applies the `methodology` slot to the brief this skill produces.
-
-Can also be invoked standalone: "help me scope a new feature" produces a discovery brief for review without the tracker lifecycle.
+Standalone invocation returns a brief for review. This producer never creates tickets, mutates the tracker or writes code. The orchestrator owns that lifecycle; methodology owns ticket titles, relationships, sequencing and container placement.
 
 ## Input
 
@@ -57,9 +46,9 @@ Establish enough to write one well-formed ticket (or a small set if it splits):
 
 Stop pulling threads once the brief below can be filled. Unresolved questions are captured, not chased — they go into the brief as open questions for prep to resolve, not as blockers here.
 
-## Output — the discovery brief (the `intake` slot contract)
+## Output: the discovery brief
 
-A single markdown document in the shape below. This is the **intake-slot output contract**: the orchestrator and the `methodology` slot's `ticket-shaping` output both consume it, so any skill placed in the `intake` slot (including `superpowers:brainstorming` or `gstack:office-hours`) must emit this shape. Producers may add sections; they must not omit the required ones.
+Emit one Markdown document in this intake-slot contract, consumed by the orchestrator and methodology. Additional sections are allowed; required sections cannot be omitted.
 
 ```markdown
 # Discovery brief: <short name>
@@ -99,20 +88,14 @@ split-sense: unitary | possibly-splittable (<the two concerns, if so>)
 ...
 ```
 
-Rules for the brief:
+Brief rules:
 
-- **Required sections:** `Goal`, exactly one of `Capabilities` (greenfield) or `Item` (single-item), `Constraints`, `Out of scope`. The rest are included when they have content; an empty section is omitted, not left blank.
-- **No tickets here.** The brief describes the shape of the work; turning it into tickets (titles, relationships, sequencing, container placement) is the `methodology` slot's `ticket-shaping` output, applied by the orchestrator. Do not pre-write ticket titles or pick a structure — that is a methodology decision, and hard-coding it here defeats the point of the swappable `methodology` slot.
-- **Names over invented codes.** Capabilities and dependencies are named in plain English, not labelled `C1`/`D2`. (Same skimmable writing-style rules the rest of faff follows.)
-- **Greenfield ≠ a spec.** The brief is the input to ticket creation, not a build spec. Per-ticket specs are produced later by `/faff-prep`.
+- Always include `Goal`, `Constraints`, `Out of scope` and exactly one of `Capabilities` (greenfield) or `Item` (single-item). Include other sections only when populated; omit empty optional sections.
+- Describe the work without pre-writing ticket titles or choosing its ticket structure. Flag possible splits for methodology to decide.
+- Name capabilities and dependencies in plain English, never invented `C1`/`D2` codes.
+- A thin brief with open questions is valid. Capture unresolved questions for prep; never refuse the brief because of them. Discovery stops once the shape is clear; implementation detail and per-ticket specs belong to `/faff-prep`.
 
 ## Appetite
 
 This skill reads the suite-wide `appetite` setting but has little to modulate — discovery is inherently a conversation with the human, so it runs the same at every level. The one effect: at `low`/`medium` appetite it asks more clarifying questions before closing the brief; at `high`/`full` it makes reasonable assumptions on minor ambiguities and records them under `Open questions` rather than stopping to ask. It never invents goals the human didn't express.
 
-## Rules
-
-- Discovery extracts what changes how work breaks down — no more. Resist drifting into implementation detail; that belongs to `/faff-prep`.
-- This skill produces the brief; it does **not** create tickets, mutate the tracker, or write code. The orchestrator (`/faff-jot`) owns those, applying the `methodology` slot to the brief.
-- The discovery-brief shape is the slot contract. A third-party `intake` skill conforms by emitting the same required sections; the orchestrator then shapes and creates tickets identically regardless of which intake skill ran.
-- Unresolved questions are captured in the brief, never used as a reason to refuse to produce one. A thin brief with open questions is valid output — prep resolves the rest.

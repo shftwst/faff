@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"consumer-fold","value":{"parse_block_json":true,"pipe_to_real_contract":true,"contract_is_data_authority":true,"producer_may_replace_contract_vocabulary":false}}}

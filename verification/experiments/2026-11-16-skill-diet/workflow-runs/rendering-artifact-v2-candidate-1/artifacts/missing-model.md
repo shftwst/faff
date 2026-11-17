@@ -1,0 +1,2 @@
+- Whole draft → Lead with the load-bearing model → no load-bearing model to lead with; flag for the producer to supply the governing idea, do not invent one.
+- "Step one ... Step three" → Prose skimmability (three or more enumerable items) → render the three steps as a numbered list instead of a run-on sentence.

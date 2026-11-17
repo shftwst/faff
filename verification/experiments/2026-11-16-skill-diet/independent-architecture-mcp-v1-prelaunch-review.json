@@ -1,0 +1,488 @@
+{
+  "schema": 1,
+  "status": "prelaunch-review-pass",
+  "scope": "Read-only registration/source parity review and deterministic recorded-evidence replay. Qualified only for a fresh bounded structured-MCP architecture proposal comparison. No model calls, source acceptance, architectural quality, full graft, profile acquisition, ADR creation or procurement claim.",
+  "registration_plan_hash_checks": [
+    {
+      "path": "architecture-proposal-mcp-v1-baseline-plan.json",
+      "registered": "1f395fa4edee39569ab444de43104c22258b733fd6e3aac77feeef182e6cec7d",
+      "actual": "1f395fa4edee39569ab444de43104c22258b733fd6e3aac77feeef182e6cec7d",
+      "matches": true
+    },
+    {
+      "path": "architecture-proposal-mcp-v1-candidate-plan.json",
+      "registered": "4f3d6bf7db23e10386eedf3edae0a582cb71250e8d362c973e09dcd80d790312",
+      "actual": "4f3d6bf7db23e10386eedf3edae0a582cb71250e8d362c973e09dcd80d790312",
+      "matches": true
+    }
+  ],
+  "frozen_input_checks": [
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs",
+      "registered": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+      "actual": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-native-audit.mjs",
+      "registered": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+      "actual": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-startup-context.json",
+      "registered": "01d2e7e23dd2555aee16496dbc8313609de76ca80407438d1f46cdb7dbb85a8f",
+      "actual": "01d2e7e23dd2555aee16496dbc8313609de76ca80407438d1f46cdb7dbb85a8f",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-tool-declaration.json",
+      "registered": "62f1512b6a3813318cfd88dbd35b74fea6a07212eea397725efbd66031713645",
+      "actual": "62f1512b6a3813318cfd88dbd35b74fea6a07212eea397725efbd66031713645",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-native-audit.mjs",
+      "registered": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+      "actual": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/interactive-handoff.mjs",
+      "registered": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+      "actual": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/policy-reader.mjs",
+      "registered": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+      "actual": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/rendering-artifact.mjs",
+      "registered": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+      "actual": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/schema.mjs",
+      "registered": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+      "actual": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/architecture-artifact.mjs",
+      "registered": "db6d655637d5474f4f1e0d58c29d1b300ec3d0042d046c9ff035079f86d54dbb",
+      "actual": "db6d655637d5474f4f1e0d58c29d1b300ec3d0042d046c9ff035079f86d54dbb",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/grader.mjs",
+      "registered": "d952e359b0464f8905c7706cd2bf08573c7a3406dbe218dba9b4c02109ba07b0",
+      "actual": "d952e359b0464f8905c7706cd2bf08573c7a3406dbe218dba9b4c02109ba07b0",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "registered": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "actual": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "registered": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "actual": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v1.py",
+      "registered": "6a621e5b735676d1dae51c786dd6eeca6be183951857b0afbaef6b3898cec4ec",
+      "actual": "6a621e5b735676d1dae51c786dd6eeca6be183951857b0afbaef6b3898cec4ec",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/preflight-artifact-mcp-v1.mjs",
+      "registered": "8c4e81b6b2708b52f641bf0cfa99f42bc680b2a73affcb18aed17afdadc8c3ca",
+      "actual": "8c4e81b6b2708b52f641bf0cfa99f42bc680b2a73affcb18aed17afdadc8c3ca",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/preflight.json",
+      "registered": "aa48fcdd748590e55d8b176321dd56a1bfbc2903d08557c143f40f0330f01b95",
+      "actual": "aa48fcdd748590e55d8b176321dd56a1bfbc2903d08557c143f40f0330f01b95",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+      "registered": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac",
+      "actual": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-proposal-astra-v1-hold.json",
+      "registered": "d08569b44d7dd4785adb7dc522b086d0e942c802f45fd1c50593de52a1c4c32b",
+      "actual": "d08569b44d7dd4785adb7dc522b086d0e942c802f45fd1c50593de52a1c4c32b",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-proposal-sol-v1-hold.json",
+      "registered": "f43d19336e1fc7926da18b3824f739c3e45d3c7ed3697da76b6a4cf25b64bb95",
+      "actual": "f43d19336e1fc7926da18b3824f739c3e45d3c7ed3697da76b6a4cf25b64bb95",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/architecture-proposal.json",
+      "registered": "f1b3185a451858a9b6692207c9dd333b1b6e46364c55a6425a157706acca5025",
+      "actual": "f1b3185a451858a9b6692207c9dd333b1b6e46364c55a6425a157706acca5025",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/architecture-proposal-with-context.md",
+      "registered": "97038604a7eff768d3b5baad782f0103bca9ebefd074de68c08f7cbb1446fa02",
+      "actual": "97038604a7eff768d3b5baad782f0103bca9ebefd074de68c08f7cbb1446fa02",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/architecture-proposal-v1-with-context.md",
+      "registered": "75b2c5776b5dc290c1271befbb1903990c9df67782c2fb51ff921738b93592fd",
+      "actual": "75b2c5776b5dc290c1271befbb1903990c9df67782c2fb51ff921738b93592fd",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/architecture-proposal-v1.md",
+      "registered": "43ee9b702de2ed3c7d6a5e2076aa1c5780b16aa6b6e223b3d186aa8e6cda5ba2",
+      "actual": "43ee9b702de2ed3c7d6a5e2076aa1c5780b16aa6b6e223b3d186aa8e6cda5ba2",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/replay-architecture-proposals.mjs",
+      "registered": "741b4f9894969f4011db7080fa7ee164e58bd8df9b85b5eeb143f9884a902a7d",
+      "actual": "741b4f9894969f4011db7080fa7ee164e58bd8df9b85b5eeb143f9884a902a7d",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs",
+      "registered": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+      "actual": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-native-audit.mjs",
+      "registered": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+      "actual": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-startup-context.json",
+      "registered": "01d2e7e23dd2555aee16496dbc8313609de76ca80407438d1f46cdb7dbb85a8f",
+      "actual": "01d2e7e23dd2555aee16496dbc8313609de76ca80407438d1f46cdb7dbb85a8f",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-tool-declaration.json",
+      "registered": "62f1512b6a3813318cfd88dbd35b74fea6a07212eea397725efbd66031713645",
+      "actual": "62f1512b6a3813318cfd88dbd35b74fea6a07212eea397725efbd66031713645",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-native-audit.mjs",
+      "registered": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+      "actual": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/interactive-handoff.mjs",
+      "registered": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+      "actual": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/policy-reader.mjs",
+      "registered": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+      "actual": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/rendering-artifact.mjs",
+      "registered": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+      "actual": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/schema.mjs",
+      "registered": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+      "actual": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/architecture-artifact.mjs",
+      "registered": "db6d655637d5474f4f1e0d58c29d1b300ec3d0042d046c9ff035079f86d54dbb",
+      "actual": "db6d655637d5474f4f1e0d58c29d1b300ec3d0042d046c9ff035079f86d54dbb",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/grader.mjs",
+      "registered": "d952e359b0464f8905c7706cd2bf08573c7a3406dbe218dba9b4c02109ba07b0",
+      "actual": "d952e359b0464f8905c7706cd2bf08573c7a3406dbe218dba9b4c02109ba07b0",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "registered": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "actual": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "registered": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "actual": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v1.py",
+      "registered": "6a621e5b735676d1dae51c786dd6eeca6be183951857b0afbaef6b3898cec4ec",
+      "actual": "6a621e5b735676d1dae51c786dd6eeca6be183951857b0afbaef6b3898cec4ec",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/preflight-artifact-mcp-v1.mjs",
+      "registered": "8c4e81b6b2708b52f641bf0cfa99f42bc680b2a73affcb18aed17afdadc8c3ca",
+      "actual": "8c4e81b6b2708b52f641bf0cfa99f42bc680b2a73affcb18aed17afdadc8c3ca",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/preflight.json",
+      "registered": "aa48fcdd748590e55d8b176321dd56a1bfbc2903d08557c143f40f0330f01b95",
+      "actual": "aa48fcdd748590e55d8b176321dd56a1bfbc2903d08557c143f40f0330f01b95",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json",
+      "registered": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac",
+      "actual": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-proposal-astra-v1-hold.json",
+      "registered": "d08569b44d7dd4785adb7dc522b086d0e942c802f45fd1c50593de52a1c4c32b",
+      "actual": "d08569b44d7dd4785adb7dc522b086d0e942c802f45fd1c50593de52a1c4c32b",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/architecture-proposal-sol-v1-hold.json",
+      "registered": "f43d19336e1fc7926da18b3824f739c3e45d3c7ed3697da76b6a4cf25b64bb95",
+      "actual": "f43d19336e1fc7926da18b3824f739c3e45d3c7ed3697da76b6a4cf25b64bb95",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/architecture-proposal.json",
+      "registered": "f1b3185a451858a9b6692207c9dd333b1b6e46364c55a6425a157706acca5025",
+      "actual": "f1b3185a451858a9b6692207c9dd333b1b6e46364c55a6425a157706acca5025",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/architecture-proposal-with-context.md",
+      "registered": "97038604a7eff768d3b5baad782f0103bca9ebefd074de68c08f7cbb1446fa02",
+      "actual": "97038604a7eff768d3b5baad782f0103bca9ebefd074de68c08f7cbb1446fa02",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/architecture-proposal-v1-with-context.md",
+      "registered": "75b2c5776b5dc290c1271befbb1903990c9df67782c2fb51ff921738b93592fd",
+      "actual": "75b2c5776b5dc290c1271befbb1903990c9df67782c2fb51ff921738b93592fd",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/architecture-proposal-v1.md",
+      "registered": "43ee9b702de2ed3c7d6a5e2076aa1c5780b16aa6b6e223b3d186aa8e6cda5ba2",
+      "actual": "43ee9b702de2ed3c7d6a5e2076aa1c5780b16aa6b6e223b3d186aa8e6cda5ba2",
+      "matches": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/replay-architecture-proposals.mjs",
+      "registered": "741b4f9894969f4011db7080fa7ee164e58bd8df9b85b5eeb143f9884a902a7d",
+      "actual": "741b4f9894969f4011db7080fa7ee164e58bd8df9b85b5eeb143f9884a902a7d",
+      "matches": true
+    }
+  ],
+  "external_transport_prerequisite": {
+    "qualification_path": "mcp-transport-v4-qualification.json",
+    "sha256": "909bb9bff077b2d993b16e36e09fe9ab78b20dffd2a7310fbb2ce60c81fb7018",
+    "status": "qualified-for-fresh-measurements",
+    "bound_checks": {
+      "independent_review": {
+        "path": "independent-mcp-transport-v4-review.json",
+        "sha256": "529b6e4d966753bfbb86f58da6978e7e03293ebfcdaeaacd4c5e528455fc0eca",
+        "matches": true
+      },
+      "live_pilot_native": {
+        "path": "workflow-runs/mcp-transport-pilot-v4/native-audit.json",
+        "sha256": "57c4ea2b1bcf21412760b42b5f8ec70b4ecdd4751902da27bc0576d36a932cfd",
+        "matches": true
+      },
+      "reporting_preflight": {
+        "path": "beep-reporting-mcp-preflight-v1/preflight.json",
+        "sha256": "72dd4dfc00d99b323c70f6e96dd262761dd6e3a21c5aac4c524841d6f29cd499",
+        "matches": true
+      }
+    },
+    "scope": "Transport prerequisite only. Architecture-specific feasibility supplied by this review; prior Reporting-only next-step text is historical."
+  },
+  "independent_preflight_replay": {
+    "trace_and_policy_and_capture_joins": true,
+    "calls": 32,
+    "policy_reads": 17,
+    "operations": 15,
+    "raw_grade_exactly_reproduced": true,
+    "omitted_case_mutations_rejected": 14,
+    "real_consumer_records_verified": true,
+    "real_consumer_artifacts": 4
+  },
+  "old_plan_preflight_disclosure": {
+    "bridge_preflight_plan_sha256": "b543acd28a45f45f8d83a7bc034b88bb9868804d25ecae393c141cff73ee4f68",
+    "plan": "architecture-proposal-sol-v1-baseline-plan.json",
+    "role": "Deterministic location/runtime/fixture/policy reference only. No model sample counted.",
+    "new_plan_reference_fields_verified_equal": [
+      "harness",
+      "runtime_root",
+      "runtime_commit",
+      "fixture",
+      "context_files",
+      "baseline policy path"
+    ],
+    "real_consumer_preflight_bound_to_new_mcp_plans": true
+  },
+  "source_parity": {
+    "source_bytes": 4787,
+    "candidate_bytes": 3889,
+    "source_sha256": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88",
+    "candidate_sha256": "43ee9b702de2ed3c7d6a5e2076aa1c5780b16aa6b6e223b3d186aa8e6cda5ba2",
+    "potential_bytes_saved": 898,
+    "potential_estimated_tokens_saved": 221,
+    "previous_policies_and_fixture_unchanged": true,
+    "candidate_installed": false,
+    "savings_counted": false
+  },
+  "manual_criteria_assessment": {
+    "registered_criteria_symmetric": true,
+    "required_actual_reads": 40,
+    "requirements": [
+      "Read each actual proposal in full and record exact hashes.",
+      "Check every stated brief need has a named matching design decision using the brief wording; no invented profile facts, deployed actions or unchosen alternative design list.",
+      "No-profile assumption must explicitly disclose absent profile and rely on the brief.",
+      "One valid contract block, matching ADR promotion intent entry for each candidate and advisory confidence line.",
+      "Non-build recommendation must be surfaced for human judgement and must not imply procurement authority or completed service action."
+    ],
+    "automatic_limits": "Shape/regex grade cannot replace manual requirement coverage, source fidelity and ADR intent review."
+  },
+  "launch_conditions": [
+    "Five entirely fresh baseline samples under new names, each strict native and functional gate passing.",
+    "Record full baseline manual and real profile/contract consumption gate before any candidate launch; generic runner does not enforce this external prerequisite.",
+    "Stop and retain any new failure. No old cohort pooling or failed-sample replacement.",
+    "Five fresh candidate samples require identical gates; replay all 40 actual artifacts and invalid recommendation mutations before source acceptance.",
+    "Run integration plus main adapter lint and inventory before installing/counting source."
+  ],
+  "no_new_cohort_sample_dirs_at_review": true,
+  "blockers": [],
+  "artifacts": {
+    "verification/experiments/2026-11-16-skill-diet/architecture-proposal-mcp-v1-registration.json": "7c16f09ccac313b28c9b6f128d3e61acf6f4d14a51b6b7c1e646b0e85bc35bad",
+    "verification/experiments/2026-11-16-skill-diet/architecture-proposal-mcp-v1-baseline-plan.json": "1f395fa4edee39569ab444de43104c22258b733fd6e3aac77feeef182e6cec7d",
+    "verification/experiments/2026-11-16-skill-diet/architecture-proposal-mcp-v1-candidate-plan.json": "4f3d6bf7db23e10386eedf3edae0a582cb71250e8d362c973e09dcd80d790312",
+    "verification/experiments/2026-11-16-skill-diet/architecture-proposal-sol-v1-baseline-plan.json": "b543acd28a45f45f8d83a7bc034b88bb9868804d25ecae393c141cff73ee4f68",
+    "verification/experiments/2026-11-16-skill-diet/mcp-transport-v4-qualification.json": "909bb9bff077b2d993b16e36e09fe9ab78b20dffd2a7310fbb2ce60c81fb7018",
+    "verification/experiments/2026-11-16-skill-diet/independent-mcp-transport-v4-review.json": "529b6e4d966753bfbb86f58da6978e7e03293ebfcdaeaacd4c5e528455fc0eca",
+    "verification/experiments/2026-11-16-skill-diet/preflight-artifact-mcp-v1.mjs": "8c4e81b6b2708b52f641bf0cfa99f42bc680b2a73affcb18aed17afdadc8c3ca",
+    "verification/experiments/2026-11-16-skill-diet/replay-architecture-proposals.mjs": "741b4f9894969f4011db7080fa7ee164e58bd8df9b85b5eeb143f9884a902a7d",
+    "eval/control-parity/architecture-artifact.mjs": "db6d655637d5474f4f1e0d58c29d1b300ec3d0042d046c9ff035079f86d54dbb",
+    "verification/experiments/2026-11-16-skill-diet/architecture-proposal-v1-source-review.json": "a1b975e581c08d2c567b1a83f113cfaf4d3a32693b2140c1ec121346ed838eac",
+    "plugin/skills/faffter-noon-architecture/SKILL.md": "5238f14f249ca9d7841a3160cd8bf1cc9a44fbe11e931222914d38ab9a0d4a88",
+    "verification/experiments/2026-11-16-skill-diet/candidates/architecture-proposal-v1.md": "43ee9b702de2ed3c7d6a5e2076aa1c5780b16aa6b6e223b3d186aa8e6cda5ba2",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/report.json": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/mcp-server-manifest.json": "0dfab235ffa611ece3a993c5fda85e7dd61c8b8ff5ca1bde81db2de153c4567b",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/task.json": "702ab54806e7ea6cd47034fca4ead53051c423c75c9f3c9e555c9abad78738bb",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/capture.json": "c6e3864409ab47ee0f3401e3becee415aed4f8df61de4f26cbe64a860b938531",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/mcp-trace.jsonl": "ea777d13abad946688e842db2534d4582b2bd08cbbf705da2bf5eb3235cf8d71",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/manifest.json": "1bd3d2c3aaa7ef0bb75e077d33d3a4cc51a3937edec6e6685cc092dae45112cf",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/ready.json": "25d16e9f4b9c1254c3171646c95738076bbd1a89e09c24f5be83a528302c0b5a",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/preflight.json": "aa48fcdd748590e55d8b176321dd56a1bfbc2903d08557c143f40f0330f01b95",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/artifacts/relational.md": "3f37fd6d57366b06fb7ecce5223f6fa50700db3490b2d514fa6d906cf10d5966",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/artifacts/external-only.md": "9314a4954769a4fed62d688720b2f7d0f7e56378b8dda6c395ce6850c9cf9303",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/artifacts/no-profile.md": "509382f38e11227ae3125a4d437dd1b30c17025cac88bdda8bac22163bfc5e77",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/artifacts/nightly-batch.md": "e47afc003679299570a0a75092be825250b595e79d064618f4b0e2dbc8ece398",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/19e5c548-210f-4c7d-b16c-0f2358c426c2.json": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/dbaf1e77-c3c5-4831-bf99-6ba615e31ccc.json": "7460c4fb8db4c4b308fca59b0e41f9311ade7c14a14b9c8743e157ac58e4861c",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/0ce39402-611e-4853-b04e-b015b15b0107.json": "09a869b6537941fa74768681d3e84b65ac363c674e205a03c456fcc42f5e9525",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/be51e222-7c4d-4c6d-a165-244fdf358322.json": "df580dc2b0c4c1e12f201a37b356d07836e10334a4d6112724dc63f535195c92",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/4c46843e-fff9-4f9f-9142-b48631eff948.json": "dd7d1400eeb421a337d418e5a1503955d62a9fa3f6becd36cbb7aec7459e5f73",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/f8ea207f-570c-4b06-b395-cee65eee6f7d.json": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/c495cf55-8793-40dd-bac0-cabf30b1e9eb.json": "234e366d083eed1f7f3f0acc77845f864ba4e43fb1d7cb4dc2df786bc4ce982f",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/cc581da4-86ed-4a22-89b8-36695f5463c8.json": "f2d3bd809d86c535c6d055cd87c24412d2647c9c6c551150a6296834db152534",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/5f965fa8-036e-4f68-9678-ffc8eb5746f5.json": "5d1c5d48d0cc9f0e417b17b3522fa362dc624bc10d1af405c4f177721b6ab748",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/c335cc22-f2f2-453e-abba-106da51d62af.json": "6fd00b6c7104646345cb90dce35d794b2300ddd5d35e34b51d7763cad5897c18",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/268c6e1d-f94b-4913-8c31-2401fbfc48b0.json": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/fdfff7db-10b1-4045-ab78-456969897d32.json": "1178c70a95c46a0b7a9354d7659015e94bf196e63400f56f3990f591aec5eab1",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/6ea721c9-bb70-4831-81e3-f2686d163105.json": "0959bff9c981da81742b951be2f5b94c73866631c212e43b9a0af90a84173268",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/203c3451-1ef5-4458-a439-fb9272406b9d.json": "e36fa1837f97b2697c26ee6474e2aca7e6e7fc61045cd4cc8a1bd0ace75db9fb",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/eea01300-c688-491a-8201-6314123cf9fe.json": "2315868742053b2d441a37174b7c77647fd221e9a2b5678a27158b1887316a3f",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/c497ca7c-44f3-4982-9a47-b7881f93453d.json": "92f7547020a7c47e40ec41787dc3ee1be138c3d18bda474593edde116d936c58",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/12d49545-493b-483e-90b4-c5e332b897ea.json": "75c4d7f407f74cf3a503624f09e2b3c7def81b9c4facb6e8de0ae849ee20ae90",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/e7168c1b-c3f8-411e-a314-4b48c25315cd.json": "10249083f8b9d922f4731d2e5f1483f82127c05b8d818b1369d0639a57e2aac5",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/03656124-9690-411f-ac44-894de7f42acd.json": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/1ae442c0-79e0-4c44-8b8a-3a679b39ffab.json": "93437b67beada71ef90338228d0ec3818bc4deb4cce7a7adf13650d5d35c355e",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/89641aa6-02a8-40e9-81d5-c3a54a5a0aa0.json": "9d22346b3d6f7aeccbabc216ba5dd8aa54a1da1277f1a84ce8755b12e5a2c530",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/adc6019d-e4c5-4e22-a38f-55251c404db7.json": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/53fbe1a1-515d-441b-bc40-9625f0aed3db.json": "3449f80b44cc98a36e211a21b74e5165acfa0f1d048a6f2380ffb33e8594d7ff",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/374616fe-4efe-4018-b215-fd0b7635d784.json": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/43343346-ed54-48e7-9549-e0eef1912a1b.json": "fc4dd7cbcbc8fbc861f8ee47e955b9ffe28c677602e3bbfb7b6a0647d9538bfa",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/9f6a6221-4bff-491c-9427-aa987d3a466b.json": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/85283ea7-ba7b-42ec-9638-68d0b076723f.json": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/1c4f6506-c6d0-4fa2-8989-40c07429ffbc.json": "167b76459be82a8367b2369034070283e238bb663122ec1678669d2c9c9a8223",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/0598ea62-51a8-47eb-b2fc-cce6e5e1d08a.json": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/31d681cb-7f8a-4d3b-a704-0fe55f840055.json": "2f56a7031a259e5c996416fa401e1383f4941101d76956c93416046c39d21c27",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/6de42eda-f900-4f65-bcea-fb9c3b6de7b9.json": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/responses/44cdb348-6998-4a7d-acb9-4d480af0c3d9.json": "c1f106c8b948475c84ee8e13ae0b95967bf1343f969a95e2d419650f15d9d253",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/19e5c548-210f-4c7d-b16c-0f2358c426c2.json": "ab6f90e0e428dec88461f245c6d64cbe78cbe3420660c9a0070e7b2d3fb64435",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/dbaf1e77-c3c5-4831-bf99-6ba615e31ccc.json": "57c16669cf7318f34d73d124a306944170f59dd154c2293f605b849a4cb064de",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/0ce39402-611e-4853-b04e-b015b15b0107.json": "504b8435068b50ec3ac57e2439e32113998075e5a718bb6142daa39235803a18",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/be51e222-7c4d-4c6d-a165-244fdf358322.json": "8bcf1cc879b8338b6e0efab99239a76349ec1e3f5f9bf7e3b99e8d3c828a0159",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/4c46843e-fff9-4f9f-9142-b48631eff948.json": "4ae0719fbc4970a0f53872f830ccd11f8778192bbd927b7b4fbe9f399e28c4e6",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/f8ea207f-570c-4b06-b395-cee65eee6f7d.json": "831f8740f2fe42ea5bf077b11741a488596283ec7e92a8e693231ece5a929c66",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/c495cf55-8793-40dd-bac0-cabf30b1e9eb.json": "2f78c2022ddef1868098331049d3930f26edac33453217b3d30b733281243524",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/cc581da4-86ed-4a22-89b8-36695f5463c8.json": "162389227bff44818b2a0e2b5ea019ac3b88669fdba69f1f39691496dd1929c2",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/5f965fa8-036e-4f68-9678-ffc8eb5746f5.json": "baa809e9476c760fd1df9a0f7040cc266d89ac6a7ae801e879a940430b625d4a",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/c335cc22-f2f2-453e-abba-106da51d62af.json": "e8057722d7722c811e525c9890eec678a58b3c19eba5a05390bb8cb0ad71ce33",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/268c6e1d-f94b-4913-8c31-2401fbfc48b0.json": "052377b7bf1c5ef899784340097d21d428a2b2f8c167e2085abe656cf1f81990",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/fdfff7db-10b1-4045-ab78-456969897d32.json": "ac47c102ec5a334ad278ab0f34623dd083732741b70ffe171002efec91726278",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/6ea721c9-bb70-4831-81e3-f2686d163105.json": "118b97f7cbcb7f21f2c92bd62cf41d765aab814a013f3030f9d4c7cf9bd1d005",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/203c3451-1ef5-4458-a439-fb9272406b9d.json": "95c09d4c2e08b7b8fbe2072d0cf625f72e79416d6dca383e12b7de0a71d2c83b",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/eea01300-c688-491a-8201-6314123cf9fe.json": "6dd2a7cbde0e33e87cc962540e782ed419931a3f4f1c0391f14413d31d219dcb",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/c497ca7c-44f3-4982-9a47-b7881f93453d.json": "9f03433adb2e4c9b3b1e219a7128647e6972e09324dd407522bd9933a054401c",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/12d49545-493b-483e-90b4-c5e332b897ea.json": "0ab6ce6113bfdce2a7eacf83829a8e243f4d02d9d872129fb621204a4c301cbc",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/e7168c1b-c3f8-411e-a314-4b48c25315cd.json": "096cbf6c640213865c884c2a74f22078a35f5073609b70d35ca0f3df60198cfb",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/03656124-9690-411f-ac44-894de7f42acd.json": "dca7bc23dd96b09510292a39d96db57cf91992c784f8ece6d739aa47bf8356ad",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/1ae442c0-79e0-4c44-8b8a-3a679b39ffab.json": "3772b4be3f36fdc6b95635b0618d7b07c05adefa9b7553ccfbb4fdd42dfd43b5",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/89641aa6-02a8-40e9-81d5-c3a54a5a0aa0.json": "c56652631c09d05c773898fc1dae3a145b42a38435945822d44e733c43e427ac",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/adc6019d-e4c5-4e22-a38f-55251c404db7.json": "c207645eb37cf9a04f79b743ef96287c16f8a0fff0a8f5c5ed7811895a3d3772",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/53fbe1a1-515d-441b-bc40-9625f0aed3db.json": "e0db3111596ce07e8c845a311e1c508a2dd54c46a091ff377c11efd2d3385ecb",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/374616fe-4efe-4018-b215-fd0b7635d784.json": "c11672f51255af098a683c16296bc644705253253bd623ba0766c17dd7706064",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/43343346-ed54-48e7-9549-e0eef1912a1b.json": "be29fb64ef540b2d794d117fdb05ea5f149bcfe4e169e6b09c403478578a721c",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/9f6a6221-4bff-491c-9427-aa987d3a466b.json": "7d335cea7e61446d74b737b7e5ad87d9dd702ddb3143d3d52be3aed0e25c36c0",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/85283ea7-ba7b-42ec-9638-68d0b076723f.json": "0f3dc72b302d0a8e70948332f080de1cf47044b2a2dff26aa32af04bc19446a2",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/1c4f6506-c6d0-4fa2-8989-40c07429ffbc.json": "e760ee655814b05b8b86acb57230c9b5b9c23aaa096b319d2219baf69de0dd61",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/0598ea62-51a8-47eb-b2fc-cce6e5e1d08a.json": "f2247d0ad685782dcba80d663a33510b565ad6eb20d150858356f35ef478f70a",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/31d681cb-7f8a-4d3b-a704-0fe55f840055.json": "77b321e2419cfa258a36a151395dc221d97e39da24c0e4adaeebb38ee128bee6",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/6de42eda-f900-4f65-bcea-fb9c3b6de7b9.json": "2f062a5a73745c2a720e52971ea1053c5a39ad2d00a93c09487c96caaa39c1b5",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-preflight-v1/requests/44cdb348-6998-4a7d-acb9-4d480af0c3d9.json": "d3bb833df96ca1bed2733ced9928e24e8f891b9aac51059c784e25c84385e0fc",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-replay-preflight-v1/report.json": "bad50b8d5a7f4604a8ea69e6f3aecb7662cd36366543d708a5c9e3704ccf1983",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-replay-preflight-v1/manifest.json": "2fe6192499a48f445aa8ed5f1691e725708909999c9e8cb9d0fe8043c55da8d3",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-replay-preflight-v1/architecture-proposal-mcp-v1-baseline-1-external-only/consumption.json": "d0fd2efeea51949395f35371268c1a7597e0912bba45dd2e31ce3eb2dec07c70",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-replay-preflight-v1/architecture-proposal-mcp-v1-baseline-1-external-only/.faff/infra-profile.json": "bb2228c4e89344e8b5711b071ec44c1c62d4498cbfa4fde776bf0f9d8f795289",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-replay-preflight-v1/architecture-proposal-mcp-v1-baseline-1-relational/consumption.json": "a6d968dd4dfc9bf5634b3a3121ba4f533587caf303ce9043a2ddb268bbdc9a8c",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-replay-preflight-v1/architecture-proposal-mcp-v1-baseline-1-relational/.faff/infra-profile.json": "c58cbd00afb1d00cefe74dc4373bee33473318202730c1ee67c146aa44ff7f90",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-replay-preflight-v1/architecture-proposal-mcp-v1-baseline-1-no-profile/consumption.json": "340436d697d6c0b63f9013ccbf479f2abed5a4ba113a48b00d1fb76e6e35114d",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-replay-preflight-v1/architecture-proposal-mcp-v1-baseline-1-nightly-batch/consumption.json": "a73096998f3590d65ee4ffac857f598d5c3f58806d921690badf90efe0343368",
+    "verification/experiments/2026-11-16-skill-diet/architecture-mcp-replay-preflight-v1/architecture-proposal-mcp-v1-baseline-1-nightly-batch/.faff/infra-profile.json": "c58cbd00afb1d00cefe74dc4373bee33473318202730c1ee67c146aa44ff7f90"
+  },
+  "independent_replay_summary_sha256": "efdd3e4252e99afdaac4e145dca969d49c17018e67465f5f5c7a01c4add4f19f"
+}

@@ -1,0 +1,307 @@
+{
+  "status": "fail",
+  "total": 37,
+  "passed": 15,
+  "failed": 22,
+  "errors": [],
+  "cases": [
+    {
+      "id": "phase1-reject",
+      "pass": true
+    },
+    {
+      "id": "interactive-critical",
+      "pass": false,
+      "expected": {
+        "signal": "pass",
+        "emit_escalated_criticals": false,
+        "outage_annotation": false
+      },
+      "actual": {
+        "signal": "fail",
+        "emit_escalated_criticals": false,
+        "outage_annotation": false
+      }
+    },
+    {
+      "id": "unattended-critical",
+      "pass": false,
+      "expected": {
+        "signal": "needs-human",
+        "emit_escalated_criticals": true,
+        "outage_annotation": false
+      },
+      "actual": {
+        "signal": "fail",
+        "emit_escalated_criticals": true,
+        "outage_annotation": false
+      }
+    },
+    {
+      "id": "unattended-major",
+      "pass": true
+    },
+    {
+      "id": "missing-mode",
+      "pass": false,
+      "expected": {
+        "signal": "pass",
+        "emit_escalated_criticals": false,
+        "outage_annotation": false
+      },
+      "actual": {
+        "signal": "fail",
+        "emit_escalated_criticals": false,
+        "outage_annotation": false
+      }
+    },
+    {
+      "id": "fixture-capped",
+      "pass": true
+    },
+    {
+      "id": "auto-refuted",
+      "pass": true
+    },
+    {
+      "id": "fault-2",
+      "pass": false,
+      "expected": "needs-human",
+      "actual": "error"
+    },
+    {
+      "id": "fault-4",
+      "pass": false,
+      "expected": "needs-human",
+      "actual": "error"
+    },
+    {
+      "id": "fault-6",
+      "pass": false,
+      "expected": "needs-human",
+      "actual": "error"
+    },
+    {
+      "id": "fault-7",
+      "pass": false,
+      "expected": "needs-human",
+      "actual": "error"
+    },
+    {
+      "id": "fault-11",
+      "pass": false,
+      "expected": "needs-human",
+      "actual": "error"
+    },
+    {
+      "id": "l2-outage",
+      "pass": false,
+      "expected": {
+        "signal": "pass",
+        "adversarial_outcome": null,
+        "phase2_checkpoint": null
+      },
+      "actual": {
+        "signal": "pass",
+        "adversarial_outcome": "outage",
+        "phase2_checkpoint": null
+      }
+    },
+    {
+      "id": "l3-outage",
+      "pass": false,
+      "expected": {
+        "signal": "pass",
+        "adversarial_outcome": "chain-outage-skipped",
+        "phase2_checkpoint": "skipped_unreachable"
+      },
+      "actual": {
+        "signal": "pass",
+        "adversarial_outcome": "outage",
+        "phase2_checkpoint": "adversarial-outage"
+      }
+    },
+    {
+      "id": "l3-deadline",
+      "pass": false,
+      "expected": {
+        "signal": "pass",
+        "adversarial_outcome": null,
+        "phase2_checkpoint": "skipped_deadline"
+      },
+      "actual": {
+        "signal": "pass",
+        "adversarial_outcome": "deadline",
+        "phase2_checkpoint": "adversarial-deadline"
+      }
+    },
+    {
+      "id": "l4-outage",
+      "pass": false,
+      "expected": {
+        "signal": "unavailable",
+        "adversarial_outcome": "mandatory-chain-outage",
+        "phase2_checkpoint": null
+      },
+      "actual": {
+        "signal": "fail",
+        "adversarial_outcome": "outage",
+        "phase2_checkpoint": null
+      }
+    },
+    {
+      "id": "l3-throttle",
+      "pass": false,
+      "expected": {
+        "signal": "pass",
+        "adversarial_outcome": "chain-outage-skipped",
+        "phase2_checkpoint": "skipped_unreachable"
+      },
+      "actual": {
+        "signal": "pass",
+        "adversarial_outcome": "throttled",
+        "phase2_checkpoint": "adversarial-throttled"
+      }
+    },
+    {
+      "id": "unconfigured-chain",
+      "pass": false,
+      "expected": {
+        "signal": "needs-human",
+        "invoke_review_call": false,
+        "try_localhost": false
+      },
+      "actual": {
+        "signal": "skipped",
+        "invoke_review_call": false,
+        "try_localhost": false
+      }
+    },
+    {
+      "id": "malformed-chain",
+      "pass": false,
+      "expected": {
+        "signal": "needs-human",
+        "use_primary_only": false
+      },
+      "actual": {
+        "signal": "error",
+        "use_primary_only": false
+      }
+    },
+    {
+      "id": "mandatory-path",
+      "pass": true
+    },
+    {
+      "id": "resume",
+      "pass": false,
+      "expected": {
+        "repeat_phase1": false,
+        "before_call_checkpoint": "in_flight"
+      },
+      "actual": {
+        "repeat_phase1": false,
+        "before_call_checkpoint": "phase2-start"
+      }
+    },
+    {
+      "id": "no-resume-hint",
+      "pass": true
+    },
+    {
+      "id": "fixture-resolution",
+      "pass": true
+    },
+    {
+      "id": "context-assembly",
+      "pass": true
+    },
+    {
+      "id": "backend-boundary",
+      "pass": false,
+      "expected": {
+        "network_path": "review-spawn.mjs -> review-call.mjs",
+        "chain_source": "faff adversarial-backends"
+      },
+      "actual": {
+        "network_path": "faff adversarial-review",
+        "chain_source": "faff adversarial-backends"
+      }
+    },
+    {
+      "id": "clean-review",
+      "pass": false,
+      "expected": "### observation: no findings",
+      "actual": "## Findings\n\nNone."
+    },
+    {
+      "id": "critical-carry",
+      "pass": true
+    },
+    {
+      "id": "attribution",
+      "pass": true
+    },
+    {
+      "id": "no-trim-global",
+      "pass": false,
+      "expected": false,
+      "actual": true
+    },
+    {
+      "id": "no-trim-consumer",
+      "pass": true
+    },
+    {
+      "id": "token-cap",
+      "pass": false,
+      "expected": 2000,
+      "actual": 5000
+    },
+    {
+      "id": "adr-outage",
+      "pass": false,
+      "expected": {
+        "consumer": null,
+        "contract": "adr-admission",
+        "absent_is_pass": false
+      },
+      "actual": {
+        "consumer": "adr-drift",
+        "contract": "advisory",
+        "absent_is_pass": true
+      }
+    },
+    {
+      "id": "prdr-shape",
+      "pass": false,
+      "expected": {
+        "consumer": "prdr_review",
+        "input_shape": "proposal",
+        "contract": "prdr-yagni"
+      },
+      "actual": {
+        "consumer": "prdr-yagni",
+        "input_shape": "proposal",
+        "contract": "advisory"
+      }
+    },
+    {
+      "id": "prdr-under-citation",
+      "pass": true
+    },
+    {
+      "id": "prdr-gold-plating",
+      "pass": true
+    },
+    {
+      "id": "rebuttal",
+      "pass": true
+    },
+    {
+      "id": "settled-findings",
+      "pass": true
+    }
+  ]
+}

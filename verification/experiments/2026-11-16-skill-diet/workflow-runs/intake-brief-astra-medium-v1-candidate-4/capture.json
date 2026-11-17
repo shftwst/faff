@@ -1,0 +1,394 @@
+{
+  "events": [
+    {
+      "seq": 1,
+      "name": "write_output",
+      "args": {
+        "case_id": "greenfield-complete",
+        "text": "# Discovery brief: Tool library lending desk\n\nmode: greenfield\n\n## Goal\nTrack tools lent to neighbours and their return at a neighbourhood tool library. One volunteer operates the lending desk on a laptop.\n\n## Capabilities\n- Tool catalogue: records the tools available at the library.\n- Checkout and return log: tracks tools lent to neighbours and their return.\n\n## First slice\nRecord a checkout and its return for an existing tool.\n\n## Constraints\n- Python CLI, as specified in the existing README.\n- Operates offline on one laptop.\n\n## Out of scope\n- Online marketplace.\n- Payments.\n\n## Open questions\n- How long should completed checkout records be retained? Carry forward for prep.\n"
+      },
+      "case_id": "greenfield-complete",
+      "result": {
+        "written": true,
+        "bytes": 686,
+        "sha256": "421704313b398daa6069888a6fefc75a262612232a97609124e01c0666dcd295"
+      }
+    },
+    {
+      "seq": 2,
+      "name": "write_output",
+      "args": {
+        "case_id": "greenfield-thin",
+        "text": "# Discovery brief: Street-library book loans\n\nmode: greenfield\n\n## Goal\nTrack borrowed books for street-library volunteers.\n\n## Capabilities\n- Book loan tracking: records books borrowed from the street library.\n\n## Constraints\nNone specified. The repository is empty; no framework or language has been chosen.\n\n## Out of scope\nNo explicit non-goals specified.\n\n## Open questions\n- Platform and language are undecided.\n- The smallest useful first slice is not yet specified.\n\nCarry these questions forward for prep.\n"
+      },
+      "case_id": "greenfield-thin",
+      "result": {
+        "written": true,
+        "bytes": 515,
+        "sha256": "31e5a2df7ea3c6f0858f78fd65f60801e4fd3d9ebe1b3383515e2a346d88de5b"
+      }
+    },
+    {
+      "seq": 3,
+      "name": "write_output",
+      "args": {
+        "case_id": "single-bug",
+        "text": "# Discovery brief: CSV export empty rows\n\nmode: single-item\n\n## Goal\nRemove the extra empty row inserted after each record in CSV export for reporting users.\n\n## Item\nintent: Remove the extra empty rows from CSV export.\ndone-signal: Two records export as two data rows under the existing header.\narea: Reporting\nsplit-sense: unitary\n\n## Constraints\n- Preserve the existing columns and header.\n- Use existing issue naming conventions.\n\n## Dependencies\n- REPORT-17: Correct CSV parser row boundaries. This correction must ship first.\n\n## Out of scope\n- Report UI redesign.\n"
+      },
+      "case_id": "single-bug",
+      "result": {
+        "written": true,
+        "bytes": 571,
+        "sha256": "bedd3342733bd0cceb79f1b757d243b7c1bd00dd5f60428bf79e9c584f11fe64"
+      }
+    },
+    {
+      "seq": 4,
+      "name": "write_output",
+      "args": {
+        "case_id": "single-split",
+        "text": "# Discovery brief: Import retries and operator notifications\n\nmode: single-item\n\n## Goal\nRetry transient import failures and notify operators when retries are exhausted.\n\n## Item\nintent: Retry transient import failures and notify operators after exhaustion.\ndone-signal: A transient failure retries; exhausted retries produce an operator notification.\narea: Data imports\nsplit-sense: possibly-splittable (retry execution and operator notification can be developed independently; methodology decides whether to split them)\n\n## Constraints\n- Use the existing job runner.\n\n## Out of scope\n- Replacing the job runner.\n\n## Open questions\n- Should retry execution and operator notification be split? Carry this question to methodology for ticket shaping.\n"
+      },
+      "case_id": "single-split",
+      "result": {
+        "written": true,
+        "bytes": 749,
+        "sha256": "2ee2470a04d9a4a041f030f42a57da00d817b22984da4722d2e31590c5e2376e"
+      }
+    },
+    {
+      "seq": 5,
+      "name": "write_output",
+      "args": {
+        "case_id": "minor-ambiguity",
+        "text": "# Discovery brief: Delivery date on order receipts\n\nmode: single-item\n\n## Goal\nShow the delivery date already stored on an order to people reading its receipt.\n\n## Item\nintent: Show the delivery date already stored on the order.\ndone-signal: A receipt with a stored delivery date shows it; one without it omits the field.\narea: Checkout\nsplit-sense: unitary\n\n## Constraints\n- Use the existing receipt layout and component.\n\n## Out of scope\n- New delivery estimation logic.\n\n## Open questions\n- The display timezone is unresolved. Carry forward for prep.\n"
+      },
+      "case_id": "minor-ambiguity",
+      "result": {
+        "written": true,
+        "bytes": 554,
+        "sha256": "bd95db0cb5e7591b057f55277909217bc17dd8d481e7cf209932244ee6917d76"
+      }
+    },
+    {
+      "seq": 6,
+      "name": "write_output",
+      "args": {
+        "case_id": "greenfield-repo-signal",
+        "text": "# Discovery brief: Local rehearsal recordings\n\nmode: greenfield\n\n## Goal\nLet band members organise local rehearsal recordings.\n\n## Capabilities\n- Recording catalogue: lists local rehearsal recordings.\n- Search by rehearsal date: finds recordings by their rehearsal date.\n\n## First slice\nList manually selected local recordings by rehearsal date.\n\n## Constraints\n- TypeScript and a browser UI, specified in the repository README and confirmed by the human.\n- Files remain local.\n\n## Out of scope\n- Cloud upload.\n- Audio editing.\n\n## Open questions\n- How should recordings without a date be shown? Carry forward for prep.\n"
+      },
+      "case_id": "greenfield-repo-signal",
+      "result": {
+        "written": true,
+        "bytes": 620,
+        "sha256": "a956a530af4d1d816ad97a3897c4b1ab305f4cc78a9a4ba7f9598a89a933862a"
+      }
+    },
+    {
+      "seq": 7,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "mode-owner",
+        "value": {
+          "owner": "faff-jot"
+        }
+      },
+      "case_id": "mode-owner",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 8,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "ticket-owner",
+        "value": {
+          "slot": "methodology",
+          "producer_creates_tickets": false
+        }
+      },
+      "case_id": "ticket-owner",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 9,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "open-questions",
+        "value": {
+          "block": false,
+          "carry_forward": true
+        }
+      },
+      "case_id": "open-questions",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 10,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "required",
+        "value": {
+          "sections": [
+            "Goal",
+            "Constraints",
+            "Out of scope"
+          ]
+        }
+      },
+      "case_id": "required",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 11,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "exclusive",
+        "value": {
+          "both": false,
+          "required": "Item"
+        }
+      },
+      "case_id": "exclusive",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 12,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "empty",
+        "value": {
+          "omit": true
+        }
+      },
+      "case_id": "empty",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 13,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "invented-goals",
+        "value": {
+          "allowed": false
+        }
+      },
+      "case_id": "invented-goals",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 14,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "appetite",
+        "value": {
+          "levels": [
+            "low",
+            "medium"
+          ]
+        }
+      },
+      "case_id": "appetite",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 15,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "minor",
+        "value": {
+          "section": "Open questions"
+        }
+      },
+      "case_id": "minor",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 16,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "split",
+        "value": {
+          "force_split": false,
+          "flag_for_methodology": true
+        }
+      },
+      "case_id": "split",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 17,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "codes",
+        "value": {
+          "use_codes": false
+        }
+      },
+      "case_id": "codes",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 18,
+      "name": "answer_rule",
+      "args": {
+        "case_id": "implementation",
+        "value": {
+          "skill": "faff-prep"
+        }
+      },
+      "case_id": "implementation",
+      "result": {
+        "recorded": true
+      }
+    },
+    {
+      "seq": 19,
+      "name": "finish",
+      "args": {},
+      "case_id": null,
+      "result": {
+        "finished": true
+      }
+    }
+  ],
+  "errors": [],
+  "outputs": [
+    {
+      "id": "greenfield-complete",
+      "text": "# Discovery brief: Tool library lending desk\n\nmode: greenfield\n\n## Goal\nTrack tools lent to neighbours and their return at a neighbourhood tool library. One volunteer operates the lending desk on a laptop.\n\n## Capabilities\n- Tool catalogue: records the tools available at the library.\n- Checkout and return log: tracks tools lent to neighbours and their return.\n\n## First slice\nRecord a checkout and its return for an existing tool.\n\n## Constraints\n- Python CLI, as specified in the existing README.\n- Operates offline on one laptop.\n\n## Out of scope\n- Online marketplace.\n- Payments.\n\n## Open questions\n- How long should completed checkout records be retained? Carry forward for prep.\n",
+      "persisted_sha256": "421704313b398daa6069888a6fefc75a262612232a97609124e01c0666dcd295"
+    },
+    {
+      "id": "greenfield-thin",
+      "text": "# Discovery brief: Street-library book loans\n\nmode: greenfield\n\n## Goal\nTrack borrowed books for street-library volunteers.\n\n## Capabilities\n- Book loan tracking: records books borrowed from the street library.\n\n## Constraints\nNone specified. The repository is empty; no framework or language has been chosen.\n\n## Out of scope\nNo explicit non-goals specified.\n\n## Open questions\n- Platform and language are undecided.\n- The smallest useful first slice is not yet specified.\n\nCarry these questions forward for prep.\n",
+      "persisted_sha256": "31e5a2df7ea3c6f0858f78fd65f60801e4fd3d9ebe1b3383515e2a346d88de5b"
+    },
+    {
+      "id": "single-bug",
+      "text": "# Discovery brief: CSV export empty rows\n\nmode: single-item\n\n## Goal\nRemove the extra empty row inserted after each record in CSV export for reporting users.\n\n## Item\nintent: Remove the extra empty rows from CSV export.\ndone-signal: Two records export as two data rows under the existing header.\narea: Reporting\nsplit-sense: unitary\n\n## Constraints\n- Preserve the existing columns and header.\n- Use existing issue naming conventions.\n\n## Dependencies\n- REPORT-17: Correct CSV parser row boundaries. This correction must ship first.\n\n## Out of scope\n- Report UI redesign.\n",
+      "persisted_sha256": "bedd3342733bd0cceb79f1b757d243b7c1bd00dd5f60428bf79e9c584f11fe64"
+    },
+    {
+      "id": "single-split",
+      "text": "# Discovery brief: Import retries and operator notifications\n\nmode: single-item\n\n## Goal\nRetry transient import failures and notify operators when retries are exhausted.\n\n## Item\nintent: Retry transient import failures and notify operators after exhaustion.\ndone-signal: A transient failure retries; exhausted retries produce an operator notification.\narea: Data imports\nsplit-sense: possibly-splittable (retry execution and operator notification can be developed independently; methodology decides whether to split them)\n\n## Constraints\n- Use the existing job runner.\n\n## Out of scope\n- Replacing the job runner.\n\n## Open questions\n- Should retry execution and operator notification be split? Carry this question to methodology for ticket shaping.\n",
+      "persisted_sha256": "2ee2470a04d9a4a041f030f42a57da00d817b22984da4722d2e31590c5e2376e"
+    },
+    {
+      "id": "minor-ambiguity",
+      "text": "# Discovery brief: Delivery date on order receipts\n\nmode: single-item\n\n## Goal\nShow the delivery date already stored on an order to people reading its receipt.\n\n## Item\nintent: Show the delivery date already stored on the order.\ndone-signal: A receipt with a stored delivery date shows it; one without it omits the field.\narea: Checkout\nsplit-sense: unitary\n\n## Constraints\n- Use the existing receipt layout and component.\n\n## Out of scope\n- New delivery estimation logic.\n\n## Open questions\n- The display timezone is unresolved. Carry forward for prep.\n",
+      "persisted_sha256": "bd95db0cb5e7591b057f55277909217bc17dd8d481e7cf209932244ee6917d76"
+    },
+    {
+      "id": "greenfield-repo-signal",
+      "text": "# Discovery brief: Local rehearsal recordings\n\nmode: greenfield\n\n## Goal\nLet band members organise local rehearsal recordings.\n\n## Capabilities\n- Recording catalogue: lists local rehearsal recordings.\n- Search by rehearsal date: finds recordings by their rehearsal date.\n\n## First slice\nList manually selected local recordings by rehearsal date.\n\n## Constraints\n- TypeScript and a browser UI, specified in the repository README and confirmed by the human.\n- Files remain local.\n\n## Out of scope\n- Cloud upload.\n- Audio editing.\n\n## Open questions\n- How should recordings without a date be shown? Carry forward for prep.\n",
+      "persisted_sha256": "a956a530af4d1d816ad97a3897c4b1ab305f4cc78a9a4ba7f9598a89a933862a"
+    }
+  ],
+  "rule_answers": [
+    {
+      "id": "mode-owner",
+      "value": {
+        "owner": "faff-jot"
+      }
+    },
+    {
+      "id": "ticket-owner",
+      "value": {
+        "slot": "methodology",
+        "producer_creates_tickets": false
+      }
+    },
+    {
+      "id": "open-questions",
+      "value": {
+        "block": false,
+        "carry_forward": true
+      }
+    },
+    {
+      "id": "required",
+      "value": {
+        "sections": [
+          "Goal",
+          "Constraints",
+          "Out of scope"
+        ]
+      }
+    },
+    {
+      "id": "exclusive",
+      "value": {
+        "both": false,
+        "required": "Item"
+      }
+    },
+    {
+      "id": "empty",
+      "value": {
+        "omit": true
+      }
+    },
+    {
+      "id": "invented-goals",
+      "value": {
+        "allowed": false
+      }
+    },
+    {
+      "id": "appetite",
+      "value": {
+        "levels": [
+          "low",
+          "medium"
+        ]
+      }
+    },
+    {
+      "id": "minor",
+      "value": {
+        "section": "Open questions"
+      }
+    },
+    {
+      "id": "split",
+      "value": {
+        "force_split": false,
+        "flag_for_methodology": true
+      }
+    },
+    {
+      "id": "codes",
+      "value": {
+        "use_codes": false
+      }
+    },
+    {
+      "id": "implementation",
+      "value": {
+        "skill": "faff-prep"
+      }
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "status": "draft-unmeasured-on-reporting-candidate-base",
+  "source": "plugin/skills/faff-beep-boop/SKILL.md",
+  "candidate": "candidates/beep-ledger-v2.md",
+  "baseline_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+  "candidate_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+  "baseline_bytes": 156107,
+  "candidate_bytes": 149485,
+  "baseline_estimated_tokens": 38688,
+  "candidate_estimated_tokens": 37063,
+  "fixed_context_sha256": "baa070e8ece423b4c96dcd35face879c55a957c873c093958bb291edfdc66984",
+  "potential_savings": {
+    "bytes": 6622,
+    "estimated_tokens": 1625
+  },
+  "unchanged_outside_two_sections_verified": true,
+  "reporting_change_preserved": true,
+  "prerequisite": "Do not freeze measurement plans until this exact baseline is accepted and installed by the Reporting qualification. No production source installed here.",
+  "proof_required": "Independent source review, frozen five-baseline/five-candidate model/native/manual/real-consumer gates, rebased private integration and installed main lint/inventory.",
+  "mandatory_dependencies_added": []
+}

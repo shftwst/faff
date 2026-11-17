@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All 8 cases finished and their actual admission results were persisted through the bridge. `finish` returned `{\"finished\":true}`.\n\nNo departures from the restrictions. Results are same-provider-family calibration judgements, without a claim of provider independence or production eligibility.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e5e8-df03-7061-a215-f55a0e0e4eb7"
+    ],
+    "elapsed_seconds": 122.3,
+    "stdout_sha256": "f77f4eda095d6bf895e19f08788e2630c4d544100d835483416589ee9a41c4d4",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -1,0 +1,26 @@
+[
+  {
+    "plan": "matrix-final-v1-sol-medium-challenges-plan.json",
+    "exit_code": 0,
+    "elapsed_seconds": 1550.9,
+    "log": "/tmp/faff-matrix-final-v1-sol-medium-challenges.log"
+  },
+  {
+    "plan": "matrix-final-v1-astra-medium-gateway-plan.json",
+    "exit_code": 0,
+    "elapsed_seconds": 953.2,
+    "log": "/tmp/faff-matrix-final-v1-astra-medium-gateway.log"
+  },
+  {
+    "plan": "matrix-final-v1-astra-medium-rendering-plan.json",
+    "exit_code": 0,
+    "elapsed_seconds": 1396.3,
+    "log": "/tmp/faff-matrix-final-v1-astra-medium-rendering.log"
+  },
+  {
+    "plan": "matrix-final-v1-astra-medium-challenges-plan.json",
+    "exit_code": 0,
+    "elapsed_seconds": 1690.0,
+    "log": "/tmp/faff-matrix-final-v1-astra-medium-challenges.log"
+  }
+]

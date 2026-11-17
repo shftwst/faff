@@ -1,0 +1,680 @@
+{
+  "schema": 1,
+  "status": "draft-not-registered",
+  "scope": "Changed ledger augmentation and event producer boundaries only. Actual runcheck/summary/event consumers, controlled observations and transcript fixtures. No model execution of unchanged owner/governance, review, landing, filing or hosted publication.",
+  "cases": [
+    {
+      "id": "mixed-ledger",
+      "kind": "ledger",
+      "task": "Reconcile the supplied observations into the existing run ledger through the controlled augmentation port. Preserve command-owned state. Record the required ledger event after the direct edit. Earlier tracker changes, review, landing and filing are completed preconditions, not tasks to repeat.",
+      "source": {
+        "mode": "autonomous",
+        "admitted_build_ids": [
+          "SKIP-1",
+          "HOLD-1",
+          "LAND-1",
+          "HUMAN-1",
+          "POST-1",
+          "UNKNOWN-1",
+          "RESOLVE-1",
+          "SUPER-1"
+        ],
+        "build_observations": [
+          {
+            "issue": "SKIP-1",
+            "observation": "Merged this run after a full second-opinion backend outage; review returned pass.",
+            "review_verdict": {
+              "signal": "pass",
+              "adversarial_outcome": "chain-outage-skipped"
+            }
+          },
+          {
+            "issue": "HOLD-1",
+            "observation": "Graft returned retry-later because mandatory review was unavailable; resumable build-progress checkpoint exists."
+          },
+          {
+            "issue": "LAND-1",
+            "observation": "Graft returned the resumable-hold token after its 25-minute landing budget; PR still open waiting for CI."
+          },
+          {
+            "issue": "HUMAN-1",
+            "observation": "Graft returned pr-open-for-human after three landing cycles."
+          },
+          {
+            "issue": "POST-1",
+            "observation": "Merged this run. Step 10 already filed a tracker comment and source: post-merge discovered-scope ticket.",
+            "post_merge_artifact": {
+              "verdict": "verified-fail",
+              "issue": "POST-1",
+              "pr": 501,
+              "merge_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "npm test"
+            }
+          },
+          {
+            "issue": "UNKNOWN-1",
+            "observation": "Merged this run; no UNIT rung declared and no additional ticket filed.",
+            "post_merge_artifact": {
+              "verdict": "unverified"
+            }
+          },
+          {
+            "issue": "RESOLVE-1",
+            "observation": "The needs-decision-first resolve-attempt failed; the shared Park protocol completed."
+          },
+          {
+            "issue": "SUPER-1",
+            "observation": "Moved to Done because PRIOR-7 already merged all deliverables. This run built nothing and opened no PR."
+          }
+        ],
+        "prep_observations": [
+          {
+            "issue": "PREP-OUT",
+            "return_token": "spec-review-held",
+            "observation": "Adversarial provider outage; never admitted to build."
+          },
+          {
+            "issue": "PREP-SLOW",
+            "return_token": "spec-review-pending",
+            "observation": "Healthy fan-out exceeded prep.spec_review_turn_budget_secs; never admitted to build."
+          }
+        ],
+        "discovered_ticket_acknowledgements": [
+          {
+            "id": "NEW-1",
+            "filed_at": "step 8.0",
+            "admitted": false
+          },
+          {
+            "id": "NEW-2",
+            "filed_at": "step 10",
+            "admitted": false,
+            "for_issue": "POST-1",
+            "source": "post-merge"
+          }
+        ],
+        "issue_detail": {
+          "SKIP-1": {
+            "merged_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "tests": [
+              "npm test"
+            ]
+          }
+        },
+        "discovered_ticket_acknowledgements_exhaustive": true,
+        "artifact_scope": "Review/post-merge objects are relevant-field extracts from already completed per-issue artifacts, not complete persisted records."
+      },
+      "oracle": {
+        "patch": {
+          "admitted": [
+            "SKIP-1",
+            "HOLD-1",
+            "LAND-1",
+            "HUMAN-1",
+            "POST-1",
+            "UNKNOWN-1",
+            "RESOLVE-1",
+            "SUPER-1"
+          ],
+          "outcomes": {
+            "SKIP-1": "shipped",
+            "HOLD-1": "parked",
+            "LAND-1": "pr-open",
+            "HUMAN-1": "pr-open",
+            "POST-1": "shipped",
+            "UNKNOWN-1": "shipped",
+            "RESOLVE-1": "parked",
+            "SUPER-1": "superseded"
+          },
+          "discovered_scope_filed": 2,
+          "review_adversarial_skipped": [
+            "SKIP-1"
+          ],
+          "review_outage_pending": [
+            "HOLD-1"
+          ],
+          "spec_review_outage_pending": [
+            "PREP-OUT"
+          ],
+          "spec_review_turn_budget_pending": [
+            "PREP-SLOW"
+          ],
+          "landing_resumable": [
+            "LAND-1"
+          ],
+          "post_merge_verification_failures": [
+            {
+              "issue": "POST-1",
+              "pr": 501,
+              "merge_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "npm test"
+            }
+          ],
+          "post_merge_verification_unverified": [
+            "UNKNOWN-1"
+          ],
+          "outcome_details": {
+            "SKIP-1": {
+              "merged_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "tests": [
+                "npm test"
+              ]
+            }
+          }
+        },
+        "undispatched": [],
+        "unordered_unique_fields": [
+          "admitted",
+          "review_adversarial_skipped",
+          "review_outage_pending",
+          "spec_review_outage_pending",
+          "spec_review_turn_budget_pending",
+          "landing_resumable",
+          "post_merge_verification_unverified"
+        ],
+        "runcheck_exit_code": 0
+      }
+    },
+    {
+      "id": "incomplete-ledger",
+      "kind": "ledger",
+      "task": "Reconcile only observed outcomes. OPEN-1 is admitted and still in flight with no terminal result; preserve that incompleteness. Do not invent an outcome, dispatch work, park it, close the run or publish a final summary in this checkpoint.",
+      "source": {
+        "mode": "autonomous",
+        "admitted_build_ids": [
+          "SKIP-1",
+          "HOLD-1",
+          "LAND-1",
+          "HUMAN-1",
+          "POST-1",
+          "UNKNOWN-1",
+          "RESOLVE-1",
+          "SUPER-1",
+          "OPEN-1"
+        ],
+        "build_observations": [
+          {
+            "issue": "SKIP-1",
+            "observation": "Merged this run after a full second-opinion backend outage; review returned pass.",
+            "review_verdict": {
+              "signal": "pass",
+              "adversarial_outcome": "chain-outage-skipped"
+            }
+          },
+          {
+            "issue": "HOLD-1",
+            "observation": "Graft returned retry-later because mandatory review was unavailable; resumable build-progress checkpoint exists."
+          },
+          {
+            "issue": "LAND-1",
+            "observation": "Graft returned the resumable-hold token after its 25-minute landing budget; PR still open waiting for CI."
+          },
+          {
+            "issue": "HUMAN-1",
+            "observation": "Graft returned pr-open-for-human after three landing cycles."
+          },
+          {
+            "issue": "POST-1",
+            "observation": "Merged this run. Step 10 already filed a tracker comment and source: post-merge discovered-scope ticket.",
+            "post_merge_artifact": {
+              "verdict": "verified-fail",
+              "issue": "POST-1",
+              "pr": 501,
+              "merge_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "npm test"
+            }
+          },
+          {
+            "issue": "UNKNOWN-1",
+            "observation": "Merged this run; no UNIT rung declared and no additional ticket filed.",
+            "post_merge_artifact": {
+              "verdict": "unverified"
+            }
+          },
+          {
+            "issue": "RESOLVE-1",
+            "observation": "The needs-decision-first resolve-attempt failed; the shared Park protocol completed."
+          },
+          {
+            "issue": "SUPER-1",
+            "observation": "Moved to Done because PRIOR-7 already merged all deliverables. This run built nothing and opened no PR."
+          },
+          {
+            "issue": "OPEN-1",
+            "observation": "Still in flight, no terminal result."
+          }
+        ],
+        "prep_observations": [
+          {
+            "issue": "PREP-OUT",
+            "return_token": "spec-review-held",
+            "observation": "Adversarial provider outage; never admitted to build."
+          },
+          {
+            "issue": "PREP-SLOW",
+            "return_token": "spec-review-pending",
+            "observation": "Healthy fan-out exceeded prep.spec_review_turn_budget_secs; never admitted to build."
+          }
+        ],
+        "discovered_ticket_acknowledgements": [
+          {
+            "id": "NEW-1",
+            "filed_at": "step 8.0",
+            "admitted": false
+          },
+          {
+            "id": "NEW-2",
+            "filed_at": "step 10",
+            "admitted": false,
+            "for_issue": "POST-1",
+            "source": "post-merge"
+          }
+        ],
+        "issue_detail": {
+          "SKIP-1": {
+            "merged_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "tests": [
+              "npm test"
+            ]
+          }
+        },
+        "discovered_ticket_acknowledgements_exhaustive": true,
+        "artifact_scope": "Review/post-merge objects are relevant-field extracts from already completed per-issue artifacts, not complete persisted records."
+      },
+      "oracle": {
+        "patch": {
+          "admitted": [
+            "SKIP-1",
+            "HOLD-1",
+            "LAND-1",
+            "HUMAN-1",
+            "POST-1",
+            "UNKNOWN-1",
+            "RESOLVE-1",
+            "SUPER-1",
+            "OPEN-1"
+          ],
+          "outcomes": {
+            "SKIP-1": "shipped",
+            "HOLD-1": "parked",
+            "LAND-1": "pr-open",
+            "HUMAN-1": "pr-open",
+            "POST-1": "shipped",
+            "UNKNOWN-1": "shipped",
+            "RESOLVE-1": "parked",
+            "SUPER-1": "superseded"
+          },
+          "discovered_scope_filed": 2,
+          "review_adversarial_skipped": [
+            "SKIP-1"
+          ],
+          "review_outage_pending": [
+            "HOLD-1"
+          ],
+          "spec_review_outage_pending": [
+            "PREP-OUT"
+          ],
+          "spec_review_turn_budget_pending": [
+            "PREP-SLOW"
+          ],
+          "landing_resumable": [
+            "LAND-1"
+          ],
+          "post_merge_verification_failures": [
+            {
+              "issue": "POST-1",
+              "pr": 501,
+              "merge_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+              "command": "npm test"
+            }
+          ],
+          "post_merge_verification_unverified": [
+            "UNKNOWN-1"
+          ],
+          "outcome_details": {
+            "SKIP-1": {
+              "merged_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "tests": [
+                "npm test"
+              ]
+            }
+          }
+        },
+        "undispatched": [
+          "OPEN-1"
+        ],
+        "unordered_unique_fields": [
+          "admitted",
+          "review_adversarial_skipped",
+          "review_outage_pending",
+          "spec_review_outage_pending",
+          "spec_review_turn_budget_pending",
+          "landing_resumable",
+          "post_merge_verification_unverified"
+        ],
+        "runcheck_exit_code": 3
+      }
+    },
+    {
+      "id": "phase-events",
+      "kind": "events",
+      "task": "Emit appropriate events for these observed transitions in order, including available quality metadata. The fixture already owns genesis and final close; do not duplicate those events. Skip micro-actions. Use the supplied pinned measurement root and session on token-tagged calls. Transcript availability and increments are controlled fixture inputs. For this workload, include every supplied gate/rework value. This is an explicit task request for otherwise optional metadata; never add a gate to a clean ship or non-gate park.",
+      "source": {
+        "transitions": [
+          {
+            "id": "tidy",
+            "observation": "Tidy pass returned."
+          },
+          {
+            "id": "prep-start",
+            "observation": "Prep starts for PREP-1."
+          },
+          {
+            "id": "prep-done",
+            "observation": "Prep completed for PREP-1."
+          },
+          {
+            "id": "build-start",
+            "observation": "Graft subagent dispatched for BUILD-1."
+          },
+          {
+            "id": "micro",
+            "observation": "One file was read while the build ran."
+          },
+          {
+            "id": "build-return",
+            "observation": "BUILD-1 returned parked after the adversarial gate caught it. Two gate-driven fix-and-re-run loops completed."
+          },
+          {
+            "id": "clean-return",
+            "observation": "BUILD-2 returned shipped on the first clean pass, zero rework loops."
+          },
+          {
+            "id": "nongate-return",
+            "observation": "BUILD-3 returned parked for missing operator access, not a quality gate. Zero rework loops."
+          },
+          {
+            "id": "park",
+            "observation": "Build issue PARK-1 is parked."
+          },
+          {
+            "id": "filed",
+            "observation": "A discovered-scope ticket was filed."
+          },
+          {
+            "id": "budget",
+            "observation": "A budget checkpoint completed with this supplied BudgetState: {\"spent\":{\"elapsed_ms\":1000,\"attempts\":1,\"tokens\":120,\"cost\":0.25},\"tokens_source\":\"transcript\",\"breached\":[],\"outcome\":\"continue\",\"warnings\":[]}"
+          },
+          {
+            "id": "sentry",
+            "observation": "A sentry checkpoint completed with this supplied payload: {\"run_dir\":null,\"verdicts\":[]}"
+          }
+        ]
+      },
+      "oracle": {
+        "transitions": [
+          {
+            "id": "tidy",
+            "observation": "Tidy pass returned.",
+            "expected": {
+              "phase": "tidy",
+              "type": "tidy-done"
+            },
+            "tokens": true
+          },
+          {
+            "id": "prep-start",
+            "observation": "Prep starts for PREP-1.",
+            "expected": {
+              "phase": "prep",
+              "type": "prep-start",
+              "issue": "PREP-1"
+            },
+            "tokens": false
+          },
+          {
+            "id": "prep-done",
+            "observation": "Prep completed for PREP-1.",
+            "expected": {
+              "phase": "prep",
+              "type": "prep-done",
+              "issue": "PREP-1"
+            },
+            "tokens": true
+          },
+          {
+            "id": "build-start",
+            "observation": "Graft subagent dispatched for BUILD-1.",
+            "expected": {
+              "phase": "build",
+              "type": "build-start",
+              "issue": "BUILD-1"
+            },
+            "tokens": false
+          },
+          {
+            "id": "micro",
+            "observation": "One file was read while the build ran.",
+            "expected": null,
+            "tokens": false
+          },
+          {
+            "id": "build-return",
+            "observation": "BUILD-1 returned parked after the adversarial gate caught it. Two gate-driven fix-and-re-run loops completed.",
+            "expected": {
+              "phase": "build",
+              "type": "issue-outcome",
+              "issue": "BUILD-1",
+              "data": {
+                "outcome": "parked",
+                "gate": "adversarial",
+                "rework_turns": 2
+              }
+            },
+            "tokens": true
+          },
+          {
+            "id": "clean-return",
+            "observation": "BUILD-2 returned shipped on the first clean pass, zero rework loops.",
+            "expected": {
+              "phase": "build",
+              "type": "issue-outcome",
+              "issue": "BUILD-2",
+              "data": {
+                "outcome": "shipped",
+                "rework_turns": 0
+              }
+            },
+            "tokens": true
+          },
+          {
+            "id": "nongate-return",
+            "observation": "BUILD-3 returned parked for missing operator access, not a quality gate. Zero rework loops.",
+            "expected": {
+              "phase": "build",
+              "type": "issue-outcome",
+              "issue": "BUILD-3",
+              "data": {
+                "outcome": "parked",
+                "rework_turns": 0
+              }
+            },
+            "tokens": true
+          },
+          {
+            "id": "park",
+            "observation": "Build issue PARK-1 is parked.",
+            "expected": {
+              "phase": "build",
+              "type": "park",
+              "issue": "PARK-1"
+            },
+            "tokens": true
+          },
+          {
+            "id": "filed",
+            "observation": "A discovered-scope ticket was filed.",
+            "expected": {
+              "phase": "run",
+              "type": "discovered-scope-filed"
+            },
+            "tokens": false
+          },
+          {
+            "id": "budget",
+            "observation": "A budget checkpoint completed with this supplied BudgetState: {\"spent\":{\"elapsed_ms\":1000,\"attempts\":1,\"tokens\":120,\"cost\":0.25},\"tokens_source\":\"transcript\",\"breached\":[],\"outcome\":\"continue\",\"warnings\":[]}",
+            "expected": {
+              "phase": "run",
+              "type": "budget-checkpoint",
+              "data": {
+                "spent": {
+                  "elapsed_ms": 1000,
+                  "attempts": 1,
+                  "tokens": 120,
+                  "cost": 0.25
+                },
+                "tokens_source": "transcript",
+                "breached": [],
+                "outcome": "continue",
+                "warnings": []
+              }
+            },
+            "tokens": true
+          },
+          {
+            "id": "sentry",
+            "observation": "A sentry checkpoint completed with this supplied payload: {\"run_dir\":null,\"verdicts\":[]}",
+            "expected": {
+              "phase": "run",
+              "type": "sentry-checkpoint",
+              "data": {
+                "run_dir": null,
+                "verdicts": []
+              }
+            },
+            "tokens": false
+          }
+        ]
+      }
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "failed-resolution",
+      "question": "A needs-decision-first resolve-attempt fails. Return {\"outcome\":string}.",
+      "expected": {
+        "outcome": "parked"
+      }
+    },
+    {
+      "id": "superseded",
+      "question": "Other tickets already merged all deliverables; this run built nothing. Return {\"outcome\":string,\"post_merge_rollup\":boolean}.",
+      "expected": {
+        "outcome": "superseded",
+        "post_merge_rollup": false
+      }
+    },
+    {
+      "id": "review-hold",
+      "question": "Graft returned retry-later for mandatory-review unavailable. Return {\"outcome\":string,\"annotation\":string,\"human_action_required\":boolean}.",
+      "expected": {
+        "outcome": "parked",
+        "annotation": "review_outage_pending",
+        "human_action_required": false
+      }
+    },
+    {
+      "id": "slow-prep",
+      "question": "Prep returned spec-review-pending for healthy slow fan-out. Return {\"annotation\":string,\"admitted\":boolean,\"outcome\":null,\"provider_outage\":boolean}.",
+      "expected": {
+        "annotation": "spec_review_turn_budget_pending",
+        "admitted": false,
+        "outcome": null,
+        "provider_outage": false
+      }
+    },
+    {
+      "id": "outage-prep",
+      "question": "Prep returned spec-review-held for adversarial outage. Return {\"annotation\":string,\"admitted\":boolean,\"outcome\":null}.",
+      "expected": {
+        "annotation": "spec_review_outage_pending",
+        "admitted": false,
+        "outcome": null
+      }
+    },
+    {
+      "id": "landing-human",
+      "question": "Graft returned hard-park pr-open-for-human after three cycles. Return {\"outcome\":string,\"landing_resumable\":boolean}.",
+      "expected": {
+        "outcome": "pr-open",
+        "landing_resumable": false
+      }
+    },
+    {
+      "id": "post-merge-writer",
+      "question": "Who populates the run-level post-merge arrays? Return {\"writer\":\"orchestrator\"|\"build-subagent\",\"reinvoke_check\":boolean,\"terminal_outcome\":string}.",
+      "expected": {
+        "writer": "orchestrator",
+        "reinvoke_check": false,
+        "terminal_outcome": "shipped"
+      }
+    },
+    {
+      "id": "new-ticket",
+      "question": "A new discovered ticket was filed but not admitted. Return {\"affects_completeness\":boolean}.",
+      "expected": {
+        "affects_completeness": false
+      }
+    },
+    {
+      "id": "rich-detail",
+      "question": "Rich merged-head/review/test detail needs storage. Return {\"field\":string,\"outcome_value_type\":string,\"satisfies_missing_outcome\":boolean}.",
+      "expected": {
+        "field": "outcome_details",
+        "outcome_value_type": "string",
+        "satisfies_missing_outcome": false
+      }
+    },
+    {
+      "id": "event-ownership",
+      "question": "Return {\"caller_fields\":string[],\"order_by\":string,\"caller_supplies_ledger_hash\":boolean}.",
+      "expected": {
+        "caller_fields": [
+          "phase",
+          "type",
+          "issue",
+          "data"
+        ],
+        "order_by": "seq",
+        "caller_supplies_ledger_hash": false
+      },
+      "unordered_unique_fields": [
+        "caller_fields"
+      ]
+    },
+    {
+      "id": "stop-reason-ownership",
+      "question": "For the run-level stop_reason return {\"normal_writer\":\"run close\"|\"build-subagent\",\"checkpoint_fail_closed_token\":string,\"affects_completeness\":boolean,\"legacy_absence_allowed\":boolean}.",
+      "expected": {
+        "normal_writer": "run close",
+        "checkpoint_fail_closed_token": "sentry-abort",
+        "affects_completeness": false,
+        "legacy_absence_allowed": true
+      }
+    }
+  ],
+  "known_existing_mismatches": [
+    "Skill event schema-1 prose versus actual CLI schema2.",
+    "Skill four-class cache_write prose versus actual CLI cache_write_5m/cache_write_1h fields; the CLI owns emitted token fields."
+  ],
+  "required_before_freeze": [
+    "Validate actual post-merge artifact schema and all event payload schemas.",
+    "Implement isolated real CLI consumers and transcript increments.",
+    "Strip oracle/expected/status fields from model task.",
+    "Preflight all cases and meaningful negative mutations.",
+    "Independent fixture/source/harness review.",
+    "Rebase the two changed skill sections after any earlier Reporting acceptance.",
+    "Compare caller event data separately from CLI-injected token and ledger-hash fields; unknown caller fields or altered supplied values fail."
+  ],
+  "revision": "V2 adds one bounded decision for the reworded stop_reason paragraph; the three producer cases and their source/oracle fields are unchanged."
+}

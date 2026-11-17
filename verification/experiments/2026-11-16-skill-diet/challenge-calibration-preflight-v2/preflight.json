@@ -1,0 +1,10 @@
+{
+  "status": "pass",
+  "kind": "deterministic-preflight-not-model-sample",
+  "actual_cli_cases": 8,
+  "altered_outcomes_rejected": 8,
+  "original_opus_effect_projection_equal": true,
+  "task_case_policy_and_tool_schemas_unchanged": true,
+  "manifest_sha256": "ab3691edf628a75202544f5c460166cb41dffce909af6ca8de044e644dfa7b80",
+  "report_sha256": "8c05655026650941c0b088bc2401b26b2dab00781aa08ba20972655b8fe79c3f"
+}

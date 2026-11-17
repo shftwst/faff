@@ -1,0 +1,37 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc102",
+      "--root",
+      "/var/tmp/faff-ledger-measure-GnXrdR/actual/phase-events"
+    ],
+    "input": "{\"phase\":\"run\",\"type\":\"sentry-checkpoint\",\"data\":{\"run_dir\":null,\"verdicts\":[]}}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":19,\"ts\":\"2026-11-17T01:39:44.351Z\",\"prev\":\"812528b9ac4f7527a34891b6d5a68e8944547b605f4ff37f47b052a14d678d9c\",\"phase\":\"run\",\"type\":\"sentry-checkpoint\",\"data\":{\"run_dir\":null,\"verdicts\":[]}}\n",
+    "stderr": "",
+    "error": null,
+    "ledger_before_sha256": "4e74bd22665394a1d310a9f9b4ba3843ec62bcbde9facb5fee59eab2480322c7",
+    "ledger_after_sha256": "4e74bd22665394a1d310a9f9b4ba3843ec62bcbde9facb5fee59eab2480322c7",
+    "prior_events_sha256": "872f08c94663b9e23734fc0b1b991c4607361907d0a810480ab347bcc5031afe",
+    "events_after_sha256": "5ad5ab10108fc7db78aac25ba27a30fea9cd301b17f7e2ddc93c112f2c54edf5",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 19,
+        "ts": "2026-11-17T01:39:44.351Z",
+        "prev": "812528b9ac4f7527a34891b6d5a68e8944547b605f4ff37f47b052a14d678d9c",
+        "phase": "run",
+        "type": "sentry-checkpoint",
+        "data": {
+          "run_dir": null,
+          "verdicts": []
+        }
+      }
+    ]
+  }
+}

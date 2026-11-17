@@ -1,0 +1,36 @@
+{
+  "ok": true,
+  "value": {
+    "issue": {
+      "id": "ROUTE-1",
+      "title": "Export account records",
+      "status": "Todo"
+    },
+    "confidence": "medium",
+    "spec": "# Account export\n\nconfidence: medium\n\n**Chosen:** export the authenticated account records as JSON.\n\n**Punt:** export schedule (decides: product)\n",
+    "diagnostics": {
+      "in_cycle": false,
+      "ghost_project_or_missing_dep": null
+    },
+    "conflict": {
+      "independent": true,
+      "collision_group": [],
+      "in_queue_blockers": []
+    },
+    "park_history": [
+      {
+        "root_cause": "punt-not-closed",
+        "autonomous": true
+      },
+      {
+        "root_cause": "punt-not-closed",
+        "autonomous": true
+      },
+      {
+        "root_cause": "punt-not-closed",
+        "autonomous": true
+      }
+    ],
+    "spec_path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/routing-assignment-astra-v1-baseline-5/specs/repeat-park.md"
+  }
+}

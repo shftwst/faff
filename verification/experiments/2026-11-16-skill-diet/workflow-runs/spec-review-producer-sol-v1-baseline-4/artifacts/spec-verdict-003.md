@@ -1,0 +1,3 @@
+```faff-contract:spec-review-verdict
+{"verdict":"needs-human","objections":[{"lens":"infosec","severity":"blocker","claim":"Unrestricted server-side URL fetching and response echo permit server-side request forgery.","evidence":"HOW explicitly chooses fetch(userUrl), no allow-list, and streams the response body to the caller.","predicted_consequence":"A caller can submit a loopback or private-network URL reachable by the backend and read the internal service response through the preview endpoint.","spec_anchor":"how"}]}
+```

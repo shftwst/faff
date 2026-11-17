@@ -1,0 +1,101 @@
+{
+  "status": "pass",
+  "mode": "preflight-reference-verdicts",
+  "artifacts": 6,
+  "results": [
+    {
+      "name": "spec-review-producer-sol-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "spec-verdict-001",
+      "path": null,
+      "sha256": "d120cd1d48cab5f7ad7299256d061bad6068347d5d7efce96bd95501a868a2e7",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "verdict": "approve",
+      "destination": null,
+      "objections": 0,
+      "unfounded_verdict_rejected": true,
+      "consumption_sha256": "f88e2d3d198a98f5fecab1d511eb0fb17f0d0e28c2b842ce4d985df59542f83c"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "spec-verdict-002",
+      "path": null,
+      "sha256": "db45a811de46cc124c29a4db74edad03b0c34b0470235e5c6b76084d7fd4e18c",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "verdict": "reject-approach",
+      "destination": "prep",
+      "objections": 1,
+      "unfounded_verdict_rejected": true,
+      "consumption_sha256": "e10d3ea61f062a68b27599408fb728696eace5faea5c2080a63f3da906a60aff"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "spec-verdict-003",
+      "path": null,
+      "sha256": "4bfe6928fca400052ce0d90ba50bf358062740a2775c53136b3c416ca98bed6c",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "verdict": "needs-human",
+      "destination": null,
+      "objections": 1,
+      "unfounded_verdict_rejected": true,
+      "consumption_sha256": "56fa48b821f3c17d0be75ba21268743125fb2acd8e1222a93f88a669001c3b3f"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "qa-repo-file",
+      "path": null,
+      "sha256": "74b77783defb0d1e5fa3a34f985c731e9999ef0706ef4c10fa0b25a04a23f409",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "verdict": "revise",
+      "destination": null,
+      "objections": 1,
+      "unfounded_verdict_rejected": true,
+      "consumption_sha256": "c109ddf970542fef97919956f1b6f48450eaa1449dea16ed34fa4175307a0107"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "qa-no-observation",
+      "path": null,
+      "sha256": "4955620fb6eb496bce08366e137d48d542b92ff40d0c96b0de78a3e95ce0ffdd",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "verdict": "revise",
+      "destination": null,
+      "objections": 1,
+      "unfounded_verdict_rejected": true,
+      "consumption_sha256": "4a09b996079283d98d3111db8b0f377bfd234157ee2de7f3a3b88f159eb218a4"
+    },
+    {
+      "name": "spec-review-producer-sol-v1-baseline-1",
+      "arm": "baseline",
+      "case_id": "methodology-blocker",
+      "path": null,
+      "sha256": "797c828ce2a61cf3a95ba6dc8548b4f1732d6af0d7c1b1f0ef023419468fd3a7",
+      "report_sha256": null,
+      "native_audit_sha256": null,
+      "status": "pass",
+      "verdict": "reject-approach",
+      "destination": "plot",
+      "objections": 1,
+      "unfounded_verdict_rejected": true,
+      "consumption_sha256": "04000e4dd32a8405e3a92d7a0140be8b52f4781b746a234606d103e366e1a4b9"
+    }
+  ],
+  "limits": [
+    "Real contract and reject-approach route consumption of actual persisted artifacts, with founded-verdict negative controls.",
+    "No prep iteration, live tracker mutation, human escalation or L4 refuter execution. Judgement and source-fact fidelity require separate manual review."
+  ]
+}

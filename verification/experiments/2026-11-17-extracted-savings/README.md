@@ -1,36 +1,39 @@
 # Extracted skill reductions
 
-`status.json` records bytes, estimated tokens, source hashes and fidelity limits.
-Runtime tokens use the ceiling of UTF-16 code units divided by four per file.
+`status.json` records source hashes, bytes, estimated tokens and fidelity limits.
+Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 
 | PR | Runtime saving | Estimated token saving | State |
 |---|---:|---:|---|
 | [1207](https://github.com/shftwst/faff/pull/1207), adversarial review | 52,030 B | 12,859 | Merged |
 | [1208](https://github.com/shftwst/faff/pull/1208), gateway | 7,152 B | 1,764 | Merged |
 | [1209](https://github.com/shftwst/faff/pull/1209), kernel configuration | 11,346 B | 2,795 | Merged |
-| [1210](https://github.com/shftwst/faff/pull/1210), rendering | 9,842 B | 2,401 | Open, CI passed |
+| [1210](https://github.com/shftwst/faff/pull/1210), rendering | 9,842 B | 2,401 | Merged |
+| [1211](https://github.com/shftwst/faff/pull/1211), thematic | 3,672 B | 896 | Open, CI running |
+| [1212](https://github.com/shftwst/faff/pull/1212), PRD | 2,001 B | 494 | Open, CI running |
 
-Cumulative savings merged since the quick-pass starting main are **112,578
-bytes / 27,744 estimated tokens**. Main now totals 1,259,503 bytes and 312,185
-estimated tokens across 41 covered files. Pending rendering savings are
-9,842 bytes / 2,401 estimated tokens. Local and held reductions are excluded.
+Merged savings since the quick-pass starting main: **122,420 bytes / 30,145
+estimated tokens**. Main totals **1,249,661 bytes / 309,784 estimated tokens**
+across 41 covered files. Open PRs contribute another 5,673 bytes / 1,390 tokens.
+Local and held reductions are excluded from both totals.
 
-The thematic integration saves 3,672 bytes / 896 estimated tokens locally;
-a fresh one-pair Opus diagnostic is in progress. Historical five-sample evidence
-remains separate from this exact integration.
+Fresh Opus diagnostics used one fixed sample per arm. Thematic passed 16/16
+cases and 9/9 real termination CLI scenarios per arm. PRD passed 14/14 cases
+and 6/6 real contract consumptions per arm. Both passed independent manual
+output review and native tool/delivery audits, with zero retries, waivers or
+normalisations. Historical five-sample results remain separate; these bounded
+checks do not establish complete caller execution or statistical equivalence.
 
-Default review remains held. Its fresh Opus baseline passed all 27 automated
-cases and native delivery checks, but manual inspection found five prose/JSON
-finding-title mismatches in four artifacts. No candidate was launched or retry
-made. This is a baseline failure, not evidence of a reduction-caused regression.
-Its local 5,320 bytes / 1,309 estimated tokens are excluded from savings totals.
+Default review remains held: its fresh baseline passed automated/native checks
+but five finding titles differed between prose and JSON in four artifacts.
+No candidate was launched. This is a baseline failure, not a measured regression
+from reduction. Tidy housekeeping is also outside the merge queue: its source
+review and 133 existing tests pass, but model behaviour remains unmeasured.
+Intake and default spec-review are the next smaller measured extractions.
 
-Kernel CI exposed a missed line allowance. The correction lowers it from 465
-to 435 and preserves the gateway allowance of 62; 151 local tests and 14
-integration checks passed. All four CI unit shards and the Node 24 source lane
-passed. macOS validation was cancelled after merge. Prompt bytes did not change.
+Kernel's missed line allowance was corrected from 465 to 435. Linux checks
+passed; macOS was cancelled after merge. The other merged extractions had
+passing CI. Runtime prompt bytes and recorded fidelity limits remain unchanged.
 
-Historical evidence remains at immutable commits linked in each PR. Rendering
-preserves main's synthesis heading for its consumers. The implementation PRs
-contain prompt edits, required inventories and ratchets, and any necessary
-consumer fix. The experiment harness and raw runs remain off main.
+Implementation PRs contain prompt changes, required inventories and ratchets,
+and necessary consumer fixes. Experiment harnesses and raw runs stay off main.

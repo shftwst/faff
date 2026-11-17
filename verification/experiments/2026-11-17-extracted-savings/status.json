@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "cd633ecf2fc24e175b2146e6af6bb551fcb9dffb",
+  "base": "8b64039c0ef7605cbafc8b5f94867730b0a5f6a6",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -9,87 +9,174 @@
   },
   "current_main": {
     "files": 41,
-    "bytes": 1259503,
-    "estimated_tokens": 312185
+    "bytes": 1249661,
+    "estimated_tokens": 309784
   },
   "landed_savings": {
-    "bytes": 112578,
-    "estimated_tokens": 27744
+    "bytes": 122420,
+    "estimated_tokens": 30145
   },
   "pending_extractions": [
     {
-      "skill": "rendering",
-      "pr": "https://github.com/shftwst/faff/pull/1210",
-      "head": "939b98ac81b0cf19e38f46198772a20af5a872d2",
-      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "skill": "thematic",
+      "pr": "https://github.com/shftwst/faff/pull/1211",
+      "head": "7c34333a89c55e898ef0c0b495c54fae967fae29",
       "before": {
-        "bytes": 21133,
-        "estimated_tokens": 5179,
-        "sha256": "71a385627cab006746af22cc0c46bbb81f8bcd787539c3aa3be158659a1dd75f"
+        "bytes": 32157,
+        "estimated_tokens": 7951,
+        "sha256": "cd702155b615269532975789404964e57449e2ea65b035e4e706bff04b257f41"
       },
       "after": {
-        "bytes": 11291,
-        "estimated_tokens": 2778,
-        "sha256": "9c9fc6eae6ca1de5032d4cb0b3bd495defe578642906ba86d81a803243b87f0c"
+        "bytes": 28485,
+        "estimated_tokens": 7055,
+        "sha256": "a664849ed53305386e82eb81c6d30cd507b3845ea76c57bbc01b0f326efe3605"
       },
       "saved": {
-        "bytes": 9842,
-        "estimated_tokens": 2401
+        "bytes": 3672,
+        "estimated_tokens": 896
       },
-      "historical_fidelity": {
-        "model": "claude-opus-5-5",
-        "runs_per_arm": 5,
-        "artifacts_per_arm": "45/45",
-        "raw_decisions_per_arm": "95/100",
-        "assessed_decisions_per_arm": "100/100",
-        "assessment": "Previously recorded Markdown-heading-marker equivalence",
-        "qualification_commit": "dfbf747ee28f399d569b0299dd10b999b8dafcb4",
-        "scope": "Bounded text transforms with common voice guidance; no complete caller, gateway injection or statistical equivalence claim"
+      "fresh_fidelity": {
+        "baseline": {
+          "samples": 1,
+          "raw_cases_passed": 16,
+          "raw_cases_total": 16,
+          "artifact_cases": 3,
+          "decision_cases": 12,
+          "termination_policy_cases": 1,
+          "cli_scenarios_passed": 9,
+          "cli_scenarios_total": 9,
+          "native": "pass",
+          "manual": "pass",
+          "actual_model": [
+            "claude-opus-5-5"
+          ],
+          "actual_cli": [
+            "2.1.325"
+          ]
+        },
+        "candidate": {
+          "samples": 1,
+          "raw_cases_passed": 16,
+          "raw_cases_total": 16,
+          "artifact_cases": 3,
+          "decision_cases": 12,
+          "termination_policy_cases": 1,
+          "cli_scenarios_passed": 9,
+          "cli_scenarios_total": 9,
+          "native": "pass",
+          "manual": "pass",
+          "actual_model": [
+            "claude-opus-5-5"
+          ],
+          "actual_cli": [
+            "2.1.325"
+          ]
+        }
       },
-      "integration": {
-        "from_heading": "## Synthesis: the issue-gloss contract",
-        "to_heading": "## Synthesis \u2014 the issue-gloss contract",
-        "added_bytes": 3,
-        "reversal_equals_qualified": true,
-        "root_approved": true
-      },
+      "qualification_commit": "4cc32b79a8b5de1210fd7397c2d08d4088f1cd4c",
+      "qualification_path": "verification/experiments/2026-11-16-skill-diet/thematic-main-opus-v1-qualification.json",
+      "limits": [
+        "Fresh bounded diagnostic with one sample per arm; historical five-sample Opus evidence remains separate.",
+        "Does not execute every preserved L4-drain, parked-issue or build-queue branch; source preservation review covers those rules.",
+        "No live tracker mutation, complete caller workflow, statistical equivalence or provider billing claim."
+      ],
       "local_checks": {
-        "tests_passed": 179,
+        "tests_passed": 155,
         "adapter_lint": "pass",
         "rule_inventory": "pass"
       },
-      "new_model_samples": 0,
       "status": "open",
       "ci": {
-        "status": "pass"
-      }
+        "status": "running"
+      },
+      "new_model_samples": 2
+    },
+    {
+      "skill": "PRD",
+      "pr": "https://github.com/shftwst/faff/pull/1212",
+      "head": "54ec8959c20fe0532c019d6767326f11a90f801e",
+      "before": {
+        "bytes": 4517,
+        "sha256": "be742410026685601a5d762c42ff56a430920492314d8eacfdb12628bed12152",
+        "estimated_tokens": 1123
+      },
+      "after": {
+        "bytes": 2516,
+        "sha256": "ea0a17ed8ce3640e273743d3766353082a60c1e93b917049a7b65205d33b3657",
+        "estimated_tokens": 629
+      },
+      "saved": {
+        "bytes": 2001,
+        "estimated_tokens": 494
+      },
+      "fresh_fidelity": {
+        "baseline": {
+          "samples": 1,
+          "raw_cases_passed": 14,
+          "raw_cases_total": 14,
+          "artifact_cases": 6,
+          "decision_cases": 8,
+          "cli_consumptions_passed": 6,
+          "cli_consumptions_total": 6,
+          "native": "pass",
+          "manual": "pass",
+          "actual_model": [
+            "claude-opus-5-5"
+          ],
+          "actual_cli": [
+            "2.1.325"
+          ]
+        },
+        "candidate": {
+          "samples": 1,
+          "raw_cases_passed": 14,
+          "raw_cases_total": 14,
+          "artifact_cases": 6,
+          "decision_cases": 8,
+          "cli_consumptions_passed": 6,
+          "cli_consumptions_total": 6,
+          "native": "pass",
+          "manual": "pass",
+          "actual_model": [
+            "claude-opus-5-5"
+          ],
+          "actual_cli": [
+            "2.1.325"
+          ]
+        }
+      },
+      "qualification_commit": "46cc3a87c8940f61eef0832ce9fce567a9113ec3",
+      "qualification_path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-qualification.json",
+      "limits": [
+        "One fixed sample per arm, fresh bounded diagnostic. Historical Astra-low and incomplete Opus runs remain separate.",
+        "No implementation inspection, live tracker acquisition, full run-start workflow, statistical equivalence or provider billing claim."
+      ],
+      "local_checks": {
+        "tests_passed": 183,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass"
+      },
+      "status": "open",
+      "ci": {
+        "status": "running"
+      },
+      "new_model_samples": 2
     }
   ],
   "pending_savings": {
-    "bytes": 9842,
-    "estimated_tokens": 2401
+    "bytes": 5673,
+    "estimated_tokens": 1390
   },
   "limits": [
-    "PRs 1207, 1208 and 1209 have merged. Historical measurements retain their recorded limits.",
+    "PRs 1207 through 1210 have merged. Fresh thematic and PRD diagnostics remain separate from their historical evidence.",
     "No raw runs, harness or bulk evidence imported into implementation branches.",
     "Optional documentation, tests and rule inventories are not runtime prompt savings.",
     "#1203 remains draft; other implemented or held cuts are not promoted by these extractions."
   ],
-  "next_candidates_not_counted": [
-    {
-      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
-      "qualified_candidate": "thematic-v1.md",
-      "qualified_sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f",
-      "main_bytes": 32157,
-      "historical_candidate_bytes": 29418,
-      "nominal_saving_bytes": 2739,
-      "integration_note": "Overlaps recent paragraph edits. Preserve precise unmet-unpark and nearest-met-DoD wording; remeasure final source.",
-      "qualification_commit": "3ff076dffacd0dae430dde4364d13a8714939da7"
-    }
-  ],
+  "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1249661,
-    "estimated_tokens": 309784
+    "bytes": 1243988,
+    "estimated_tokens": 308394
   },
   "landed_extractions": [
     {
@@ -273,18 +360,57 @@
         "ci": "The previously failing shard and Node 24 source-lane job passed; macOS was cancelled after merge."
       },
       "merge_commit": "cd633ecf2fc24e175b2146e6af6bb551fcb9dffb"
+    },
+    {
+      "skill": "rendering",
+      "pr": "https://github.com/shftwst/faff/pull/1210",
+      "head": "939b98ac81b0cf19e38f46198772a20af5a872d2",
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "before": {
+        "bytes": 21133,
+        "estimated_tokens": 5179,
+        "sha256": "71a385627cab006746af22cc0c46bbb81f8bcd787539c3aa3be158659a1dd75f"
+      },
+      "after": {
+        "bytes": 11291,
+        "estimated_tokens": 2778,
+        "sha256": "9c9fc6eae6ca1de5032d4cb0b3bd495defe578642906ba86d81a803243b87f0c"
+      },
+      "saved": {
+        "bytes": 9842,
+        "estimated_tokens": 2401
+      },
+      "historical_fidelity": {
+        "model": "claude-opus-5-5",
+        "runs_per_arm": 5,
+        "artifacts_per_arm": "45/45",
+        "raw_decisions_per_arm": "95/100",
+        "assessed_decisions_per_arm": "100/100",
+        "assessment": "Previously recorded Markdown-heading-marker equivalence",
+        "qualification_commit": "dfbf747ee28f399d569b0299dd10b999b8dafcb4",
+        "scope": "Bounded text transforms with common voice guidance; no complete caller, gateway injection or statistical equivalence claim"
+      },
+      "integration": {
+        "from_heading": "## Synthesis: the issue-gloss contract",
+        "to_heading": "## Synthesis \u2014 the issue-gloss contract",
+        "added_bytes": 3,
+        "reversal_equals_qualified": true,
+        "root_approved": true
+      },
+      "local_checks": {
+        "tests_passed": 179,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass"
+      },
+      "new_model_samples": 0,
+      "status": "merged",
+      "ci": {
+        "status": "pass"
+      },
+      "merge_commit": "8b64039c0ef7605cbafc8b5f94867730b0a5f6a6"
     }
   ],
   "local_not_counted": [
-    {
-      "skill": "thematic",
-      "head": "b6012dfe40d4a25dbbf414b27a557a74c270c5be",
-      "saved": {
-        "bytes": 3672,
-        "estimated_tokens": 896
-      },
-      "status": "fresh one-pair Opus diagnostic in progress; previous five-sample evidence separate"
-    },
     {
       "skill": "default review",
       "head": "ce7faa9fef82aa8806f47aadb6344fc390f03f2d",
@@ -297,6 +423,32 @@
       "manual_baseline": "Four artifacts contain five prose/JSON title mismatches",
       "native_baseline": "pass",
       "retry_count": 0
+    },
+    {
+      "skill": "intake",
+      "saved": {
+        "bytes": 2027,
+        "estimated_tokens": 501
+      },
+      "status": "fresh Opus baseline running; source review passes"
+    },
+    {
+      "skill": "default spec-review",
+      "saved": {
+        "bytes": 1550,
+        "estimated_tokens": 380
+      },
+      "status": "historically Sol-medium qualified; fresh Opus diagnostic being prepared"
+    },
+    {
+      "skill": "tidy housekeeping",
+      "head": "bae5e23304233153958ea37a339bf8ae4a165f09",
+      "saved": {
+        "bytes": 5013,
+        "estimated_tokens": 1236
+      },
+      "status": "source review and 133 tests pass; model behaviour unmeasured; not in merge queue"
     }
-  ]
+  ],
+  "recorded_at_utc": "2026-11-17T19:46:53.700316+00:00"
 }

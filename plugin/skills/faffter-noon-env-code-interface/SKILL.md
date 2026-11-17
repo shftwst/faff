@@ -7,15 +7,15 @@ judgement_seam: none
 
 # faffter-noon-env-code-interface
 
-The default occupant of the **`env-code-interface`** slot, composed **inline** under `env` exactly as `transport` is: given a code component that the code-blind evaluator must reach over the wire, it builds the component, starts the Node reflection bridge (`faff-bridge-node.mjs`) beside it in the SUT cage, health-checks the bridge socket, and returns a plain reachability result the `env` occupant folds into the one `env-handle` it still emits. The bridge *is a service on the wire* (it reflects a Tier-1 manifest and answers session-RPC over HTTP), so the frozen `env-handle` / `transport` / wire / holdout contracts are untouched — this occupant adds a reachability mechanism, not a contract.
+The default **`env-code-interface`** occupant composes **inline** under `env`, like `transport`. For a code component the code-blind evaluator must reach over the wire, it builds the component, starts `faff-bridge-node.mjs` beside it in the SUT cage, health-checks the socket and returns reachability for the single `env-handle`. The bridge reflects a Tier-1 manifest and answers session-RPC over HTTP: it adds a wire service without changing the frozen `env-handle` / `transport` / wire / holdout contracts.
 
 > When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/l4.md` (the L4 concurrency & evaluator lane it consumes). This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 
-One provisioning mechanism: build a code component and expose it over the wire through the Node reflection bridge (`faff-bridge-node.mjs`). It never crosses a trust boundary on its own and carries **no gated `faff-contract` block** — the `env` occupant that calls it consumes the returned object inline, in the same turn, exactly as it consumes the `transport` slot's base host. `env` remains the sole `env-handle` emitter.
+Build a component and expose it through `faff-bridge-node.mjs`. It crosses no trust boundary itself and emits **no gated `faff-contract` block**. The calling `env` occupant consumes its object inline in the same turn, like `transport`'s base host, and remains the sole `env-handle` emitter.
 
-It is a **mechanism, not a judgement**: *which* subject an issue's holdout must exercise, and *whether* a code component is best reached via the bridge (versus composed as a service, or both), is the calling `env` occupant's per-issue provisioning call. This occupant is invoked once that call has chosen the bridge path for a component; its job is to stand the bridge up correctly and hand back the socket.
+It is a **mechanism, not a judgement**. The calling `env` occupant decides per issue which subjects to exercise and whether each needs a bridge, composed service or both. Invoke this occupant after choosing the bridge path; it stands up the bridge and returns the socket.
 
 ## Inputs
 

@@ -1,0 +1,123 @@
+{
+  "main_base": "63e71d1f6bfa5ea8ba6590861ab2fd76b7042f2d",
+  "source_sweep_base": "3c148dc6f07032e5112989651e210217af7ef13b",
+  "cohort": "producers",
+  "files": [
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "before_bytes": 4460,
+      "after_bytes": 4158,
+      "saved_bytes": 302,
+      "saved_estimated_tokens": 75,
+      "before_sha256": "f58e9b3f16a23a3869d7a642d3547cd8baede891c3a1cfe7d3e2de27c97b7157",
+      "after_sha256": "4200bf0c0a33b34b77be0c01388cf5b01b79857a9a9a3f74aa0da7d47e221d73",
+      "headings_fences_unchanged": true
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "before_bytes": 4967,
+      "after_bytes": 4608,
+      "saved_bytes": 359,
+      "saved_estimated_tokens": 88,
+      "before_sha256": "cdfaaca22d2f577cb3c1496b652c22020c6264dbcc98352512c5d7ae40a7e6ed",
+      "after_sha256": "778f167bb055dd79651a9eb456f7040b9a90ca948ce0b4aaf6d5f00b0b7cf968",
+      "headings_fences_unchanged": true
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "before_bytes": 18605,
+      "after_bytes": 18149,
+      "saved_bytes": 456,
+      "saved_estimated_tokens": 110,
+      "before_sha256": "e3308c33e5cf68379704357f18cdabbbc3d02c40a80534aac4f8b293d2d1e28a",
+      "after_sha256": "0528187357695659f9a226527525190f6e447055792dd6584204284cec8109e9",
+      "headings_fences_unchanged": true
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "before_bytes": 9862,
+      "after_bytes": 9400,
+      "saved_bytes": 462,
+      "saved_estimated_tokens": 115,
+      "before_sha256": "0583fd07595fd1e09a407d30514fbbee372c46dfecddab3cbaba2d2b3360b398",
+      "after_sha256": "978b9458e68cd5697c52a1561fa60e2535f1cabcb1de15f67fd16c24b4797976",
+      "headings_fences_unchanged": true
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "before_bytes": 12443,
+      "after_bytes": 12054,
+      "saved_bytes": 389,
+      "saved_estimated_tokens": 95,
+      "before_sha256": "279c55c58c16cfee1b74e4ca54711dcd5b97b039dbce2db35e581576a3477046",
+      "after_sha256": "24a8f950e049026e401673673563a3a9a916aaf158b1e9afa1790f6008e848b2",
+      "headings_fences_unchanged": true
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "before_bytes": 16192,
+      "after_bytes": 15758,
+      "saved_bytes": 434,
+      "saved_estimated_tokens": 105,
+      "before_sha256": "b5309423190169dee6b3499b5891cad7565e1e0378f07590ec6831b929d6925f",
+      "after_sha256": "81aeaa273338c66cd4460c3eb2b6f7a9b00981b740959daa77702b02125b021b",
+      "headings_fences_unchanged": true
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "before_bytes": 7715,
+      "after_bytes": 7594,
+      "saved_bytes": 121,
+      "saved_estimated_tokens": 30,
+      "before_sha256": "7851000ca07fffdb5155f757526f2d5dc636537495be47e43ece8ae9359561ad",
+      "after_sha256": "4c0ac1a434a46ec5f388fc17e652c4463e63ffa75eec0cae37ddf6e99f6e3562",
+      "headings_fences_unchanged": true
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "before_bytes": 35118,
+      "after_bytes": 34734,
+      "saved_bytes": 384,
+      "saved_estimated_tokens": 94,
+      "before_sha256": "5c5ccd71a7bce35a406be9381acd606f3ae8af51622ddedbe0a28a503ba0c797",
+      "after_sha256": "0c57deb813e690969c8670ff70cafa4ed62630f0005494303d7787ff3a79876f",
+      "headings_fences_unchanged": true
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "before_bytes": 14189,
+      "after_bytes": 13651,
+      "saved_bytes": 538,
+      "saved_estimated_tokens": 132,
+      "before_sha256": "0def991641eeffae8fc708e05a4c93a709c9a0dee36aee1280b81eecad2803e4",
+      "after_sha256": "f45287619eb5931874fb1c7c42aeac265cf12f58a4cd5160d3005d2fe6edbdea",
+      "headings_fences_unchanged": true
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "before_bytes": 17805,
+      "after_bytes": 17088,
+      "saved_bytes": 717,
+      "saved_estimated_tokens": 176,
+      "before_sha256": "06d507e7472e409816df4e55c256eb8b351d3f4fe55c9e0d70b80304df333a85",
+      "after_sha256": "452153f23a48b9cc96664350072563915deabea2dbb6bf99c0b8bce8dbd21c86",
+      "headings_fences_unchanged": true
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "before_bytes": 6442,
+      "after_bytes": 6143,
+      "saved_bytes": 299,
+      "saved_estimated_tokens": 73,
+      "before_sha256": "a7cd58988d8ff5809f7f0348eb4fc617a9f8498e439535b153c9309c68a71779",
+      "after_sha256": "0bbfaf11dfcd72e732cf5dd473fd31fb058098df81c0271180886fc810f4db2e",
+      "headings_fences_unchanged": true
+    }
+  ],
+  "saved_bytes": 4461,
+  "saved_estimated_tokens": 1093,
+  "token_method": "ceil(UTF-16 code units /4) per full file, summed; estimate not billing",
+  "source_review": "See feat/skill-diet-prose-sweep: verification/experiments/2026-11-17-prose-sweep/producers-adaptors-independent-review.json",
+  "model_parity_claim": false,
+  "inventory_rows": 31
+}

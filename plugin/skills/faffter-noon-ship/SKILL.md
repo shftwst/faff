@@ -7,7 +7,7 @@ judgement_seam: none
 
 # faffter-noon-ship
 
-The default **producer** for the `ship` slot. Delivers a PR that `/faff-graft` has already cleared through the **integrity floor** (AC-verified + CI-green + review `pass`): runs a deploy-readiness check, merges, and cleans up what it created — then emits a native delivery result **plus a `faff-contract:delivery-outcome` block** that faff-graft Step 10 parses (via `faff contract delivery-outcome`) onto the fixed outcome vocabulary graft routes on (canonical semantics: `faff contract delivery-outcome --describe`). The safe, zero-config default — a no-op readiness check and a merge through the `faff merge-gate` interlock (never a raw `gh pr merge`), no deploy step. Swap to a deploy-capable producer (e.g. `gstack:land-and-deploy`) when delivery means more than a merge.
+The default **producer** for `ship` delivers an integrity-floor-cleared PR (AC-verified + CI-green + review `pass`): no-op deploy readiness, merge through `faff merge-gate` (never raw `gh pr merge`), cleanup of its own artifacts, and no deploy. Emit the native result **plus a `faff-contract:delivery-outcome` block** for faff-graft Step 10 to parse via `faff contract delivery-outcome` and route (canonical semantics: `faff contract delivery-outcome --describe`). Swap to a deploy-capable producer (e.g. `gstack:land-and-deploy`) when delivery extends beyond merge.
 
 ```yaml
 slots:
@@ -16,7 +16,7 @@ slots:
 
 ## When it runs
 
-Invoked by `/faff-graft`'s **Step 10** (the merge-confidence gate) once the integrity floor has passed — in interactive mode after the user confirms "merge now", in autonomous mode automatically on green. It is **not** a user-invokable slash command. It is a **producer**: it *performs* delivery, emits a native result, and self-declares it in a `faff-contract:delivery-outcome` block; faff-graft (the consumer) parses that block onto the fixed outcome vocabulary (the `ship_adaptor` slot was retired).
+Invoked by `/faff-graft`'s **Step 10** after the integrity floor passes: interactive after "merge now" confirmation, autonomous automatically on green. It is not a user slash command. It performs delivery and self-declares the native result in `faff-contract:delivery-outcome`; faff-graft parses and routes it. The `ship_adaptor` slot was retired.
 
 ## The contract
 
@@ -57,7 +57,7 @@ On a merge conflict or any `gh` failure, the producer declares `failed:<reason>`
 
 ## Contract artifact
 
-After emitting the native result (step 5), append **one** fenced code block — tagged `faff-contract:delivery-outcome`, as the **last** thing in the output — declaring the delivery outcome you just produced, so faff-graft (the consumer) parses it **deterministically** (no LLM re-read of the `gh`/deploy result) via `faff contract delivery-outcome`. You ran the merge and read its exit, so you declare the outcome directly; the block mirrors the native result, it is not a second source of truth. (Same pattern the `spec` producer adopted for `faff-contract:spec-readiness`.)
+After the native result (step 5), append **one** fenced block tagged `faff-contract:delivery-outcome`, **last** in the output. Faff-graft parses it deterministically via `faff contract delivery-outcome`, without an LLM re-read of the `gh`/deploy result. Declare the merge exit you observed: the block mirrors the native result, not a second source of truth (the same pattern as `faff-contract:spec-readiness`).
 
 ````
 ```faff-contract:delivery-outcome

@@ -1,0 +1,17 @@
+{
+  "node": "v22.23.5",
+  "claude_cli": "2.1.325 (Claude Code)",
+  "transcripts_readable": true,
+  "guidance": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "bytes": 21125,
+      "sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "bytes": 5591,
+      "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+    }
+  ]
+}

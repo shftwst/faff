@@ -1,0 +1,12 @@
+{
+  "status": "pass-candidate-launch-gate",
+  "raw": "pass",
+  "native": "pass",
+  "actual_model_matches": true,
+  "worker_guidance_matches": true,
+  "registration_files_unchanged": true,
+  "manual_status": "pass",
+  "manual_sha256": "555d3575874f076e3c45892e06a297233e58733f9fad78802a4e7b32d1edced2",
+  "retries": 0,
+  "waivers": 0
+}

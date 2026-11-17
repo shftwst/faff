@@ -1,0 +1,91 @@
+{
+  "main_base": "cd633ecf2fc24e175b2146e6af6bb551fcb9dffb",
+  "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+  "main_bytes": 4517,
+  "integrated_bytes": 2516,
+  "saved_bytes": 2001,
+  "main_estimated_tokens": 1123,
+  "integrated_estimated_tokens": 629,
+  "saved_estimated_tokens": 494,
+  "main_sha256": "be742410026685601a5d762c42ff56a430920492314d8eacfdb12628bed12152",
+  "historical_candidate": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/candidates/prd-producer-v1.md",
+  "historical_candidate_sha256": "c0296bbf7b29ec22a8da958a64788b81d21f730bd9183c4e18d521ba7a256aeb",
+  "integrated_sha256": "ea0a17ed8ce3640e273743d3766353082a60c1e93b917049a7b65205d33b3657",
+  "qualification_record": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/prd-producer-astra-v2-final-qualification.json",
+  "qualification_record_sha256": "c654efeb307245d0ae454741e9df664f4664a9b0574f07e3c46cd2c0a793cbc0",
+  "historical_model": "gpt-6-astra",
+  "historical_effort": "low",
+  "qualification_status": "qualified-bounded-prd-production-and-run-start-consumption",
+  "integration_deltas": [
+    {
+      "from": "## Rubric",
+      "to": "## The rubric (the LLM applies this)",
+      "reason": "Preserve exact existing main source-loader heading; no loader/test change."
+    },
+    {
+      "from": "## Output",
+      "to": "## Output (the contract artifact)",
+      "reason": "Preserve exact existing main source-loader heading; no loader/test change."
+    }
+  ],
+  "reverse_only_deltas_recovers_historical_candidate": true,
+  "main_change_preservation": "PRD main equals a850 original; intake retains both existing main discovery paragraph trims.",
+  "limits": [
+    "Historically GPT verified only; no Opus/Claude verification claimed or performed.",
+    "No new model/harness/test/runtime behavior. Main-compatible source integration only."
+  ],
+  "inventory_rows": 20,
+  "inventory_bytes": 2948,
+  "inventory_path": "records/specs/2026-11-17-skill-diet-prd-main-design.md",
+  "commit": "233275e8b74b7a28c5cc4656c5c79214aa283909",
+  "branch": "feat/skill-diet-prd-main",
+  "worktree_clean": true,
+  "commits": [
+    "233275e8b74b7a28c5cc4656c5c79214aa283909"
+  ],
+  "files_committed": [
+    "plugin/skills/faff/prose-baseline.json",
+    "plugin/skills/faffter-noon-prd/SKILL.md",
+    "records/specs/2026-11-17-skill-diet-prd-main-design.md"
+  ],
+  "signed_off_by": "Alec Hill <alec@shftwst.dev>",
+  "checks": [
+    {
+      "log": "/var/tmp/faff-prd-main-source-consumer-tests.txt",
+      "sha256": "be06a4ca51de609544304c539659a34a508c5c21e470d267b85cd4d982603350",
+      "status": "pass",
+      "tests": 98,
+      "pass": 98,
+      "fail": 0
+    },
+    {
+      "log": "/var/tmp/faff-prd-main-prose-adapter-tests.txt",
+      "sha256": "93811aaea65e7bd4dd5d7f13c8187d745dcbc6db8697696c4d86c1c0ea0deac5",
+      "status": "pass",
+      "tests": 85,
+      "pass": 85,
+      "fail": 0
+    },
+    {
+      "log": "/var/tmp/faff-prd-main-adapter-lint.txt",
+      "sha256": "1601b691f953422c0cb71693868296d8615d4c26d72cccd02320ef5b3a146a27",
+      "status": "pass"
+    },
+    {
+      "log": "/var/tmp/faff-prd-main-rule-inventory.json",
+      "sha256": "5888f5a1767bbb77ef5aaba29305333500e5ef96e7458717b498624ed269e7b3",
+      "status": "pass"
+    }
+  ],
+  "inventory": {
+    "blocks_deleted": 20,
+    "covered_moved": 4,
+    "covered_by_row": 16
+  },
+  "test_counts": {
+    "unique_passed": 183,
+    "failed": 0,
+    "additional_hygiene_rechecks_passed": 0
+  },
+  "no_push_or_pr": true
+}

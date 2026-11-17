@@ -1,0 +1,306 @@
+{
+  "schema": 1,
+  "registered_at_utc": "2026-11-17T19:34:21.274272+00:00",
+  "status": "registered-before-launch",
+  "baseline_commit": "cd633ecf2fc24e175b2146e6af6bb551fcb9dffb",
+  "candidate_commit": "233275e8b74b7a28c5cc4656c5c79214aa283909",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "runtime_plugin_tree": "76e906eef73675093ae66ae715eb1506453e69eb",
+  "runtime_worktree_clean": true,
+  "target": "plugin/skills/faffter-noon-prd/SKILL.md",
+  "before": {
+    "bytes": 4517,
+    "sha256": "be742410026685601a5d762c42ff56a430920492314d8eacfdb12628bed12152"
+  },
+  "after": {
+    "bytes": 2516,
+    "sha256": "ea0a17ed8ce3640e273743d3766353082a60c1e93b917049a7b65205d33b3657"
+  },
+  "common_sources": [
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "sha256": "aa76c16a0d51ee966c3e77cf5df8564834966173f08dd2100da174b82c97ac89",
+      "bytes": 83652
+    }
+  ],
+  "common_prefix_sha256": "cf4aa0891a4e048f2a21aaf94352dd315566b26d30fd0f5bb35c7b1a186b3cfd",
+  "worker_guidance": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "bytes": 21125,
+      "sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "bytes": 5591,
+      "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+    }
+  ],
+  "claude_cli": "2.1.325 (Claude Code)",
+  "expected_actual_model": "claude-opus-5-5",
+  "requested_effort": "medium",
+  "plans": [
+    "prd-main-opus-v1-baseline-plan.json",
+    "prd-main-opus-v1-candidate-plan.json"
+  ],
+  "retries": 0,
+  "samples_per_arm": 1,
+  "candidate_gate": "Strict raw, policy-delivery, native-model/guidance and all-artifact manual baseline pass required. Otherwise hold without candidate launch.",
+  "limits": [
+    "One fixed sample per arm, fresh bounded diagnostic. Historical Astra-low and incomplete Opus runs remain separate.",
+    "No implementation inspection, live tracker acquisition, full run-start workflow, statistical equivalence or provider billing claim."
+  ],
+  "files": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-baseline-plan.json",
+      "bytes": 1498,
+      "sha256": "dba327920eadfd56c738f8fa7626bfcfd0c39b61de76d983fd9bdd898db9a510"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-candidate-plan.json",
+      "bytes": 1501,
+      "sha256": "6909a1e420fe793255e72d318efa39cc8e7f30a20e725b9233957e3e4e036030"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-baseline-policy.md",
+      "bytes": 88171,
+      "sha256": "d0b228dafb81a872d446d6ba09ab8719220ca29cef93235e78935faa8cf0a69c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-candidate-policy.md",
+      "bytes": 86170,
+      "sha256": "07e6d1d86184efcf43c81e15c97f334a45f8a5916936db0675440329bc78fba8"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/prd-producer.json",
+      "bytes": 6206,
+      "sha256": "a6b623e579b307694ad10946c5990048bc6a02e72358350da25bee83ad91544e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/run-literal-workflow-samples.py",
+      "bytes": 6749,
+      "sha256": "9729ab8093dac62581fd1911840b39a9c1d07d25e9f964f364a4670231b74cff"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-worker-preflight.json",
+      "bytes": 494,
+      "sha256": "81ec2343ceac4d95e79977f5c1b19eb7ecaa0d2280bea1cda0e7001c1313e327"
+    },
+    {
+      "path": "eval/control-parity/adversarial-execution.mjs",
+      "bytes": 27260,
+      "sha256": "e43b74a4bcbbaf36475b4b1fb87b81bd3ca3af148a8fc64b4df468c46f7e2de2"
+    },
+    {
+      "path": "eval/control-parity/architecture-artifact.mjs",
+      "bytes": 1046,
+      "sha256": "db6d655637d5474f4f1e0d58c29d1b300ec3d0042d046c9ff035079f86d54dbb"
+    },
+    {
+      "path": "eval/control-parity/authoring-artifact.mjs",
+      "bytes": 12501,
+      "sha256": "d6b3b233e811506e69d81312c4da85ff3d8b0d1ee26c25f0d3a20cb4fafaa8b8"
+    },
+    {
+      "path": "eval/control-parity/candidate-command.mjs",
+      "bytes": 7740,
+      "sha256": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50"
+    },
+    {
+      "path": "eval/control-parity/challenge-calibration-execution.mjs",
+      "bytes": 5117,
+      "sha256": "6547c7aba15393ab22fd0c0557ef1598be10855079d3b3d8371865b91d89c026"
+    },
+    {
+      "path": "eval/control-parity/challenge-execution.mjs",
+      "bytes": 10972,
+      "sha256": "8be468411350c7e29d4dbcaebc2043bb191919c1d44c175669c31f666dd098ce"
+    },
+    {
+      "path": "eval/control-parity/claude-driver.mjs",
+      "bytes": 16248,
+      "sha256": "8bec8694952fdcd5a0dac61098f3863b9053141489b10283ca781117417e96b3"
+    },
+    {
+      "path": "eval/control-parity/codex-mcp-native-audit.mjs",
+      "bytes": 14244,
+      "sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0"
+    },
+    {
+      "path": "eval/control-parity/codex-model-native-audit.mjs",
+      "bytes": 2234,
+      "sha256": "2718b08adf2e517ab2633c9ad82bfa62ac4697a1596c39baa723401700096b43"
+    },
+    {
+      "path": "eval/control-parity/codex-native-audit.mjs",
+      "bytes": 8052,
+      "sha256": "c46dd016be2aa62cb31803e15afb3cc4a57acf79f248500dd59d3d04a2ec10ac"
+    },
+    {
+      "path": "eval/control-parity/codex-sol-native-audit.mjs",
+      "bytes": 1858,
+      "sha256": "4bb429c5d1318c028fbcdfee0b5211ea839c3eae68542d5cc4c95bddf8ce7e4f"
+    },
+    {
+      "path": "eval/control-parity/command-use.mjs",
+      "bytes": 5469,
+      "sha256": "13148a5154c13d99b0da924a8515650c6f7cb1cc652ac443e1109ddd12ab504b"
+    },
+    {
+      "path": "eval/control-parity/gateway-execution.mjs",
+      "bytes": 14795,
+      "sha256": "0ba2493356bc0b1f763616a2f68a500053298877ab8542717cfe623d055412de"
+    },
+    {
+      "path": "eval/control-parity/graft-checkpoint-execution-v2.mjs",
+      "bytes": 27748,
+      "sha256": "0cfb3138c52fe9c3e6bb0e549c54a0142ee3efaa731897143141b442b9c7e2ea"
+    },
+    {
+      "path": "eval/control-parity/graft-checkpoint-execution-v3.mjs",
+      "bytes": 30265,
+      "sha256": "016859b43982b3bae73bed432d22b5261168490f30a940d9280d5852e3411310"
+    },
+    {
+      "path": "eval/control-parity/graft-checkpoint-execution.mjs",
+      "bytes": 26623,
+      "sha256": "da743a47820a6b94695151a1e9ca56a6355271493141c4566a9185c72c190663"
+    },
+    {
+      "path": "eval/control-parity/handoff-tools.mjs",
+      "bytes": 7054,
+      "sha256": "f82516f04bcd5458f4dc5f018b7dad2c379a82db4880e8484ff18c5dda573acd"
+    },
+    {
+      "path": "eval/control-parity/interactive-handoff.mjs",
+      "bytes": 8344,
+      "sha256": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0"
+    },
+    {
+      "path": "eval/control-parity/kernel-config-execution.mjs",
+      "bytes": 16253,
+      "sha256": "6f0202c04843c3420aa636e9e6865e495341b70359da7a172e2c6eefbdd35fed"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution-v2.mjs",
+      "bytes": 8948,
+      "sha256": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180"
+    },
+    {
+      "path": "eval/control-parity/ledger-execution.mjs",
+      "bytes": 26721,
+      "sha256": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31"
+    },
+    {
+      "path": "eval/control-parity/mailbox-call.mjs",
+      "bytes": 618,
+      "sha256": "3feb07ca89eb0ddb815a064bac88d10848f05b662f89efbc684d5c51326df49d"
+    },
+    {
+      "path": "eval/control-parity/mailbox-file-call.mjs",
+      "bytes": 620,
+      "sha256": "673aeb1afff8a9b267c21e88999599ad50f59059476d1ace178951db2f28a1b3"
+    },
+    {
+      "path": "eval/control-parity/mailbox-mcp.mjs",
+      "bytes": 9230,
+      "sha256": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a"
+    },
+    {
+      "path": "eval/control-parity/methodology-output.mjs",
+      "bytes": 9180,
+      "sha256": "b2c6a588af180b9290f3fea452d117c65bf6934c1b4a30361795bcfe666fff98"
+    },
+    {
+      "path": "eval/control-parity/native-tool-audit.mjs",
+      "bytes": 10283,
+      "sha256": "3f40f2fe4bc5094e14bb6f5796b2f5e46d9c9730b7fcbf8c04dfca03cacf5027"
+    },
+    {
+      "path": "eval/control-parity/nlspec-replay.mjs",
+      "bytes": 7970,
+      "sha256": "d737b0c93427d98a698c7127a92c787f7f7ae9f47ce6fed453ca5b5687e0c26b"
+    },
+    {
+      "path": "eval/control-parity/paired.mjs",
+      "bytes": 14806,
+      "sha256": "3ab9b105be108ece6cc80caaa758139f0e54c67d96306709309a01e9fb46fd15"
+    },
+    {
+      "path": "eval/control-parity/policy-reader.mjs",
+      "bytes": 2228,
+      "sha256": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a"
+    },
+    {
+      "path": "eval/control-parity/prd-producer.mjs",
+      "bytes": 10003,
+      "sha256": "5caf5a41dbe189c51444c7f1c1a373dfa9d54dc570cb48bfe94c6f07aceae35d"
+    },
+    {
+      "path": "eval/control-parity/proxy.mjs",
+      "bytes": 12954,
+      "sha256": "9ff58bf997a97998ea3d17883371874ce9c5bc918cd312329523145e6f5f90e7"
+    },
+    {
+      "path": "eval/control-parity/rendering-artifact.mjs",
+      "bytes": 8289,
+      "sha256": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36"
+    },
+    {
+      "path": "eval/control-parity/reporting-execution.mjs",
+      "bytes": 20670,
+      "sha256": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58"
+    },
+    {
+      "path": "eval/control-parity/review-producer.mjs",
+      "bytes": 11438,
+      "sha256": "a8bfef507eeb8a223779a63a97045b1e1ec8ba1fc7471125cab64d9a3732bc22"
+    },
+    {
+      "path": "eval/control-parity/routing-assignment.mjs",
+      "bytes": 11413,
+      "sha256": "13445fa5de9d0a68fb4e6f8e3483d2fa5af3e930fac3ed4599133f43919206f4"
+    },
+    {
+      "path": "eval/control-parity/run-handoff-diagnostic.mjs",
+      "bytes": 7298,
+      "sha256": "131a61bfc62f7f302002151a4bc1c32313dc6bfc19c22f574996b2fe37dec265"
+    },
+    {
+      "path": "eval/control-parity/run.mjs",
+      "bytes": 31021,
+      "sha256": "cbdb7cbffad646141ca59a4825c8ed590eb8f15d1bb09c2b435aa4d3e16fc38e"
+    },
+    {
+      "path": "eval/control-parity/schema.mjs",
+      "bytes": 15363,
+      "sha256": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234"
+    },
+    {
+      "path": "eval/control-parity/skill-catalog-selection.mjs",
+      "bytes": 3641,
+      "sha256": "d13e3beaa13d5f592163c8598c3e441476a76710bc30781f31288edc7f00104d"
+    },
+    {
+      "path": "eval/control-parity/spec-review-artifact.mjs",
+      "bytes": 1352,
+      "sha256": "228bed92cfd24d3b69110b74ae13b84ca1170ddaed76cf04df654df2b8e32843"
+    },
+    {
+      "path": "eval/control-parity/tool-server.mjs",
+      "bytes": 4790,
+      "sha256": "2b030e728798ea7ae889ac69b5207945306470f3a2f832f6273689e92b422a27"
+    },
+    {
+      "path": "eval/control-parity/tracker.mjs",
+      "bytes": 9507,
+      "sha256": "84f94a671cbe78c82da20a405bac30f7f7ce5afbde6b389f5a3a948766461b04"
+    },
+    {
+      "path": "eval/control-parity/treatments.mjs",
+      "bytes": 6572,
+      "sha256": "961e4bd3de7b1d4b5228c9f84e0aed17703b20e6c55aac77fa841d5c680f57f6"
+    }
+  ],
+  "worker": "claude-challenges"
+}

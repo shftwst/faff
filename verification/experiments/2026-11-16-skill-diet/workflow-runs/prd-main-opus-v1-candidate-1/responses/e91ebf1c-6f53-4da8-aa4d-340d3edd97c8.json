@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "text": "applies this)\n\n| Question | Judgement |\n|---|---|\n| Verifiable stop conditions? | At least one concrete machine-checkable Given/When/Then scenario or single MUST/comparator assertion makes `stop_conditions_verifiable` true. If all criteria are absent or vague, it is false. \"Stable system\" or \"satisfied users\" is insufficient. |\n| Creative licence? | `tight` when technology, API shapes or data models are prescribed; `broad` when goals/behaviours leave wide implementation space. Carry this downstream for scope strictness; it never decides this gate. |\n\nAt least one verifiable stop condition gives `admissible`; none gives `not-ready`. Judge only what is written. Never invent criteria or soften a vague PRD to unblock a run. When uncertain, choose `not-ready`.\n\n## Output (the contract artifact)\n\nEmit exactly one valid JSON block, last in the output:\n\n```faff-contract:prd-readiness\n{ \"verdict\": \"admissible\",\n  \"reason\": \"\",\n  \"stop_conditions_verifiable\": true,\n  \"creative_licence\": \"broad\" }\n```\n\n`admissible` requires true and an empty reason. For `not-ready`, use false and the non-empty closed reason for missing done-criteria, present but uncheckable criteria, or another reason. Canonical values and semantics: `faff contract prd-readiness --describe`.\n\nThe caller parses the block and pipes it to the contract CLI, the sole source of contract data and gate authority. Emit conformant data; do not re-validate or make the caller's admission decision. A replacement rubric or model conforms through the same block.\n",
+    "next_offset": null,
+    "policy_sha256": "07e6d1d86184efcf43c81e15c97f334a45f8a5916936db0675440329bc78fba8"
+  }
+}

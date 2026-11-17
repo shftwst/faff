@@ -1,0 +1,119 @@
+{
+  "status": "pass-bounded-one-pair-diagnostic",
+  "recorded_at_utc": "2026-11-17T19:43:43.623054+00:00",
+  "registration": "prd-main-opus-v1-registration.json",
+  "registration_sha256": "593e3c7814d428cfce099fc9a484d0c80a6b9daa732c43f99721c1a233d82baf",
+  "before": {
+    "bytes": 4517,
+    "sha256": "be742410026685601a5d762c42ff56a430920492314d8eacfdb12628bed12152",
+    "estimated_tokens": 1123
+  },
+  "after": {
+    "bytes": 2516,
+    "sha256": "ea0a17ed8ce3640e273743d3766353082a60c1e93b917049a7b65205d33b3657",
+    "estimated_tokens": 629
+  },
+  "saved": {
+    "bytes": 2001,
+    "estimated_tokens": 494
+  },
+  "arms": {
+    "baseline": {
+      "samples": 1,
+      "raw_cases_passed": 14,
+      "raw_cases_total": 14,
+      "artifact_cases": 6,
+      "decision_cases": 8,
+      "cli_consumptions_passed": 6,
+      "cli_consumptions_total": 6,
+      "native": "pass",
+      "manual": "pass",
+      "actual_model": [
+        "claude-opus-5-5"
+      ],
+      "actual_cli": [
+        "2.1.325"
+      ]
+    },
+    "candidate": {
+      "samples": 1,
+      "raw_cases_passed": 14,
+      "raw_cases_total": 14,
+      "artifact_cases": 6,
+      "decision_cases": 8,
+      "cli_consumptions_passed": 6,
+      "cli_consumptions_total": 6,
+      "native": "pass",
+      "manual": "pass",
+      "actual_model": [
+        "claude-opus-5-5"
+      ],
+      "actual_cli": [
+        "2.1.325"
+      ]
+    }
+  },
+  "publication": {
+    "integration_commit": "54ec8959c20fe0532c019d6767326f11a90f801e",
+    "base": "8b64039c0ef7605cbafc8b5f94867730b0a5f6a6",
+    "measured_source_sha256": "ea0a17ed8ce3640e273743d3766353082a60c1e93b917049a7b65205d33b3657",
+    "measured_source_unchanged": true
+  },
+  "runtime_tree_scope": {
+    "registered_field_runtime_plugin_tree_refers_to": "HEAD:plugin/skills",
+    "skills_tree": "76e906eef73675093ae66ae715eb1506453e69eb",
+    "manifest_plugin_tree_refers_to": "HEAD:plugin",
+    "plugin_tree": "95a737122d9d74167045d24fa0619c6a47f11991",
+    "runtime_changed": false,
+    "note": "Both trees are fixed by the same registered commit. Field-scope clarification only; registrations, inputs, runs and acceptance unchanged."
+  },
+  "evidence": [
+    {
+      "path": "workflow-runs/prd-main-opus-v1-baseline-1/report.json",
+      "sha256": "2b2672d944d6cb13ee5295afa602b3d69b219d049ca291af7dcb70b609e1021f"
+    },
+    {
+      "path": "workflow-runs/prd-main-opus-v1-baseline-1/capture.json",
+      "sha256": "822741186325ba0e003dd68cee32c1cdf65e539ee3b996029efe0eb7a2fc72f3"
+    },
+    {
+      "path": "workflow-runs/prd-main-opus-v1-baseline-1/manifest.json",
+      "sha256": "7301dee561392e1fc2b0ac67a63d77659f497591790ca3ae0fc0a4799c306540"
+    },
+    {
+      "path": "native-audits/prd-main-opus-v1-baseline.json",
+      "sha256": "0c565f16f61137b56f9fd1ad830d5be4070785f96a1b0d4df36f584f70195fb4"
+    },
+    {
+      "path": "prd-main-opus-v1-baseline-manual-audit.json",
+      "sha256": "555d3575874f076e3c45892e06a297233e58733f9fad78802a4e7b32d1edced2"
+    },
+    {
+      "path": "workflow-runs/prd-main-opus-v1-candidate-1/report.json",
+      "sha256": "99783063e959242753e2f80b1cab0185319e966c2748429a08e2b350974e6500"
+    },
+    {
+      "path": "workflow-runs/prd-main-opus-v1-candidate-1/capture.json",
+      "sha256": "5313394d664f22e0436b89b7a7b84bee28606b8953cb73a4062cbcd79bf0053e"
+    },
+    {
+      "path": "workflow-runs/prd-main-opus-v1-candidate-1/manifest.json",
+      "sha256": "c87b14f7e277777938d02270d2349d30b1acaa0f401c3259be1a0b3107364824"
+    },
+    {
+      "path": "native-audits/prd-main-opus-v1-candidate.json",
+      "sha256": "4949270c58a44d1f95a39e5cbf2c3d72db108f1d36b1a7d8f228bd683095bdb7"
+    },
+    {
+      "path": "prd-main-opus-v1-candidate-manual-audit.json",
+      "sha256": "6603a11c023d4460419bcc11131869bb9528957ed0951d829355fb1d61f6c176"
+    }
+  ],
+  "retries": 0,
+  "waivers": 0,
+  "normalisations": 0,
+  "limits": [
+    "One fixed sample per arm, fresh bounded diagnostic. Historical Astra-low and incomplete Opus runs remain separate.",
+    "No implementation inspection, live tracker acquisition, full run-start workflow, statistical equivalence or provider billing claim."
+  ]
+}

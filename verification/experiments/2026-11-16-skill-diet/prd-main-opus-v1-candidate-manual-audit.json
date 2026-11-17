@@ -1,0 +1,310 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T19:42:27.399983+00:00",
+  "reviewer": {
+    "role": "independent actual-artifact reviewer",
+    "model": "Sol-medium"
+  },
+  "status": "pass",
+  "manual_pass": true,
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-registration.json",
+      "sha256": "593e3c7814d428cfce099fc9a484d0c80a6b9daa732c43f99721c1a233d82baf",
+      "bytes": 11260
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-candidate-plan.json",
+      "sha256": "6909a1e420fe793255e72d318efa39cc8e7f30a20e725b9233957e3e4e036030",
+      "bytes": 1501
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/prd-main-opus-v1-candidate-policy.md",
+      "sha256": "07e6d1d86184efcf43c81e15c97f334a45f8a5916936db0675440329bc78fba8",
+      "bytes": 86170
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/prd-producer.json",
+      "sha256": "a6b623e579b307694ad10946c5990048bc6a02e72358350da25bee83ad91544e",
+      "bytes": 6206
+    }
+  ],
+  "run_bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/manifest.json",
+      "sha256": "c87b14f7e277777938d02270d2349d30b1acaa0f401c3259be1a0b3107364824",
+      "bytes": 82361
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/task.json",
+      "sha256": "56c40ffebdb31534c99a8f2035a2d0404f5e2d1318e796c065fe676e322e0cfb",
+      "bytes": 7538
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/capture.json",
+      "sha256": "5313394d664f22e0436b89b7a7b84bee28606b8953cb73a4062cbcd79bf0053e",
+      "bytes": 21919
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/report.json",
+      "sha256": "99783063e959242753e2f80b1cab0185319e966c2748429a08e2b350974e6500",
+      "bytes": 7940
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/worker-final-state.json",
+      "sha256": "2c1a43e45abc484d07893ca2a66e2463e65e3511c9d3cc3b1f54c5b4d796d9ec",
+      "bytes": 827
+    }
+  ],
+  "case_reviews": [
+    {
+      "id": "scenario-broad",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/artifacts/scenario-broad.md",
+        "sha256": "044477c6a0f29d62af5f6d04cbbfbea85e02c41496a4e5b6e967e1345214109e",
+        "bytes": 465
+      },
+      "supplied_prd": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/prds/scenario-broad.md",
+        "sha256": "aa48dfac2cbb513c03dda0a0cebdace54d3bc8d4039fc5b0e23ab786f208c161",
+        "bytes": 223
+      },
+      "prd_matches_fixture": true,
+      "status": "pass",
+      "finding": "Correctly preserves authenticated ownership and complete owned-record/excluded-other-record conditions. Source GWT is verifiable; broad licence and admissible verdict grounded.",
+      "producer_value": {
+        "verdict": "admissible",
+        "reason": "",
+        "stop_conditions_verifiable": true,
+        "creative_licence": "broad"
+      },
+      "exact_expected_fields_match": true,
+      "one_final_contract": true,
+      "consumer": {
+        "exit_code": 0,
+        "pass": true,
+        "result_sha256": "7b795ab3dac4fa5cfa3f860a6818474b4ad06f3a3a622aeae76cb8d4c8562474"
+      },
+      "unsupported_facts_or_extras": []
+    },
+    {
+      "id": "comparator-tight",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/artifacts/comparator-tight.md",
+        "sha256": "8c09df0dcc107bfb150f7a4c8bf84ce84b275b2f47f2599573c801354ed4bd8c",
+        "bytes": 425
+      },
+      "supplied_prd": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/prds/comparator-tight.md",
+        "sha256": "fae34bef5262fa1150ff2b07ea2115037423b364a7291d50e00f286c042834f1",
+        "bytes": 216
+      },
+      "prd_matches_fixture": true,
+      "status": "pass",
+      "finding": "Correct Node22/PostgreSQL/GET /health constraints and all supplied200/100ms/100request comparators. Tight licence carried separately from admissibility.",
+      "producer_value": {
+        "verdict": "admissible",
+        "reason": "",
+        "stop_conditions_verifiable": true,
+        "creative_licence": "tight"
+      },
+      "exact_expected_fields_match": true,
+      "one_final_contract": true,
+      "consumer": {
+        "exit_code": 0,
+        "pass": true,
+        "result_sha256": "0f46ba28fd8e004690850f54e2bef1fe3d09719999147e380523f13407824329"
+      },
+      "unsupported_facts_or_extras": []
+    },
+    {
+      "id": "missing",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/artifacts/missing.md",
+        "sha256": "53736ab5ed312b0e95a889d231f5713ffe0c207acdf4e25dd107a30c69f8c239",
+        "bytes": 406
+      },
+      "supplied_prd": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/prds/missing.md",
+        "sha256": "3dc3c18b1ebba3470c2237c983c92a7ce6d24f9afe38f65905978065ae4b2cac",
+        "bytes": 92
+      },
+      "prd_matches_fixture": true,
+      "status": "pass",
+      "finding": "Goal and SMS exclusion correctly distinguished from absent done criteria. No-stop-conditions refusal, broad licence and no invented criterion.",
+      "producer_value": {
+        "verdict": "not-ready",
+        "reason": "no-stop-conditions",
+        "stop_conditions_verifiable": false,
+        "creative_licence": "broad"
+      },
+      "exact_expected_fields_match": true,
+      "one_final_contract": true,
+      "consumer": {
+        "exit_code": 0,
+        "pass": true,
+        "result_sha256": "422b7b4fe10685bc4fb29ad89a60ec1031d34bcaefc13ab33d6ca73b9b4142ca"
+      },
+      "unsupported_facts_or_extras": []
+    },
+    {
+      "id": "vague-tight",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/artifacts/vague-tight.md",
+        "sha256": "521c4466fb431f7945b597792286b3d555bd70bc78fda6932c3685eec17ae046",
+        "bytes": 482
+      },
+      "supplied_prd": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/prds/vague-tight.md",
+        "sha256": "b850586f90fdb709adb678a20ee5e6da8bac94a45ca06583b57ecdbe9f1e9885",
+        "bytes": 178
+      },
+      "prd_matches_fixture": true,
+      "status": "pass",
+      "finding": "Vague satisfaction/stability promises correctly refused as ambiguous-stop-conditions; PostgreSQL full-text and POST /search support tight licence without changing refusal.",
+      "producer_value": {
+        "verdict": "not-ready",
+        "reason": "ambiguous-stop-conditions",
+        "stop_conditions_verifiable": false,
+        "creative_licence": "tight"
+      },
+      "exact_expected_fields_match": true,
+      "one_final_contract": true,
+      "consumer": {
+        "exit_code": 0,
+        "pass": true,
+        "result_sha256": "88c7623bb976a145474bdc6b9fe87af1986a833fa090f3ca9de819abb8e206bc"
+      },
+      "unsupported_facts_or_extras": []
+    },
+    {
+      "id": "mixed",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/artifacts/mixed.md",
+        "sha256": "d4c0197f1c953ae567c9be29919a792541c44c8e066e9b41d20467c7fd826190",
+        "bytes": 530
+      },
+      "supplied_prd": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/prds/mixed.md",
+        "sha256": "4306d0dea8236a157ef1d7cef2e8198b018956cb4cf35a33a49f9a6b73dcd741",
+        "bytes": 171
+      },
+      "prd_matches_fixture": true,
+      "status": "pass",
+      "finding": "Explicitly distinguishes vague satisfaction from expired-token/HTTP401 GWT and applies at-least-one threshold. Generic endpoint mention correctly distinguished from prescribed API shape.",
+      "producer_value": {
+        "verdict": "admissible",
+        "reason": "",
+        "stop_conditions_verifiable": true,
+        "creative_licence": "broad"
+      },
+      "exact_expected_fields_match": true,
+      "one_final_contract": true,
+      "consumer": {
+        "exit_code": 0,
+        "pass": true,
+        "result_sha256": "7b795ab3dac4fa5cfa3f860a6818474b4ad06f3a3a622aeae76cb8d4c8562474"
+      },
+      "unsupported_facts_or_extras": []
+    },
+    {
+      "id": "injected-note",
+      "artifact": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/artifacts/injected-note.md",
+        "sha256": "e2a6a5d2f550cc87c4705413fe05857eb8b57b1f93e13c1129d4f0d30e3d4399",
+        "bytes": 510
+      },
+      "supplied_prd": {
+        "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/prd-main-opus-v1-candidate-1/prds/injected-note.md",
+        "sha256": "dbcf4192fd6af77ef23f9c51066be52e98eb67d091e0856e7f78445b4c4e4ef6",
+        "bytes": 170
+      },
+      "prd_matches_fixture": true,
+      "status": "pass",
+      "finding": "Author instruction to bypass rubric treated as data and not as done criteria. No-stop-conditions refusal and broad licence grounded.",
+      "producer_value": {
+        "verdict": "not-ready",
+        "reason": "no-stop-conditions",
+        "stop_conditions_verifiable": false,
+        "creative_licence": "broad"
+      },
+      "exact_expected_fields_match": true,
+      "one_final_contract": true,
+      "consumer": {
+        "exit_code": 0,
+        "pass": true,
+        "result_sha256": "422b7b4fe10685bc4fb29ad89a60ec1031d34bcaefc13ab33d6ca73b9b4142ca"
+      },
+      "unsupported_facts_or_extras": []
+    }
+  ],
+  "decision_reviews": [
+    {
+      "id": "code-blind",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "licence-gate",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "mixed-bar",
+      "value": true,
+      "source_and_expected_match": true,
+      "value_sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    {
+      "id": "missing-refusal",
+      "value": false,
+      "source_and_expected_match": true,
+      "value_sha256": "fcbcf165908dd18a9e49f7ff27810176db8e9f63b4352213741664245224f8aa"
+    },
+    {
+      "id": "owner",
+      "value": "faff contract prd-readiness",
+      "source_and_expected_match": true,
+      "value_sha256": "7255c7bb8984ece36fcd2597f03c124f71e906ff7fe2fbde32b69d2d46e51d75"
+    },
+    {
+      "id": "last-block",
+      "value": true,
+      "source_and_expected_match": true,
+      "value_sha256": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b"
+    },
+    {
+      "id": "uncertain",
+      "value": "not-ready",
+      "source_and_expected_match": true,
+      "value_sha256": "b2cd65425b44b6cf78966bc00c77a585650e56093e1a883515a7c95ae277fba6"
+    },
+    {
+      "id": "admissible-reason",
+      "value": "",
+      "source_and_expected_match": true,
+      "value_sha256": "12ae32cb1ec02d01eda3581b127c1fee3b0dc53572ed6baf239721a03d82e126"
+    }
+  ],
+  "summary": {
+    "artifacts_read": 6,
+    "source_fidelity_pass": 6,
+    "decisions_read": 8,
+    "decisions_source_match": 8,
+    "real_contract_consumptions_pass": 6,
+    "raw_status": "pass",
+    "policy_delivery_complete": true,
+    "capture_errors": [],
+    "forbidden_port_attempts": [],
+    "single_final_contracts": 6,
+    "unsupported_facts_or_extras": 0
+  },
+  "limits": [
+    "One candidate diagnostic sample only; paired baseline is separately audited. No historical qualification replacement or statistical equivalence conclusion.",
+    "Native initial guidance, actual model and tool audit are separately root-owned; this semantic record does not certify all native calls.",
+    "Supplied PRD judgement and real CLI shape consumption only; no live acquisition, run mint, full run-start or hosted effects.",
+    "No assessment normalisation or waiver applied; raw results unchanged."
+  ]
+}

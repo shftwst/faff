@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "value": {
+    "persisted": true,
+    "sha256": "b971bb07fbab139ec0671c0fb640db1bccd5a88a9bbd45ae6d407555b285763a",
+    "consumed_by": "faff contract prd-readiness"
+  }
+}

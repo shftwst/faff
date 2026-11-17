@@ -494,7 +494,7 @@ PROCEDURE transition_to_in_review(issue):
   5. NEVER fail the build for a missing state or a failed status write; the loop proceeds regardless.
 ```
 
-Use Step 5's live-status re-read and agent-mediated forward-rank `save_issue`, including dispatched lanes. Add no control label: `faff-claimed` accompanies In Progress only; In Review needs none. Never revert a further-along issue.
+Use Step 5's live-status re-read and agent-mediated forward-rank `save_issue`, including dispatched lanes. Step 5 pairs its In Progress write with `faff-claimed`; add no In Review equivalent. Never revert a further-along issue.
 
 **Anti-patterns:** adding `faff status set` (status writes remain agent-mediated at Step 5, here and tidy's sweep; merge-time `→ Done` is forge-driven via PR `Closes`); failing the build for a missing In Review state (a no-op, never a merge precondition).
 

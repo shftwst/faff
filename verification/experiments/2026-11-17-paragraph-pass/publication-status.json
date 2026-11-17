@@ -1,0 +1,27 @@
+{
+  "source_pr": {
+    "number": 1205,
+    "url": "https://github.com/shftwst/faff/pull/1205",
+    "head": "dd254a8cdcd38f05477a6bd75a122207839932ad",
+    "base": "feat/skill-diet-prose-main"
+  },
+  "preceding_pr": {
+    "number": 1204,
+    "head": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+    "ci": "all checks successful",
+    "merge": "not performed"
+  },
+  "landing_blocker": {
+    "raw_command": "rejected by repository PreToolUse merge-fence hook",
+    "sanctioned_check": "merge-gate --check-only returned exit 2, anchor-missing",
+    "cause": "This non-graft prose change has no committed run anchor. No supported retrospective adoption route was found; model review and CI results are not substituted for absent run provenance.",
+    "human_action": "Merge the green PR at the forge; then rebase and retarget the follow-up onto main.",
+    "rules_consulted": [
+      "plugin/skills/faff/bin/lib/merge-gate.js",
+      "plugin/skills/faff/bin/lib/merge-gate-floor.js",
+      "plugin/skills/faff/bin/lib/merge-gate-classify.js",
+      "docs/guide/cli.md"
+    ]
+  },
+  "pr_create_audit_warning": "pr-create opened #1205 successfully but its automatic effect-ledger append failed because /var/tmp/faff-paragraph-publication did not exist. No pre-action declaration was fabricated afterwards."
+}

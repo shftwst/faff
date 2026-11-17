@@ -1,0 +1,68 @@
+{
+  "before": {
+    "bytes": 32157,
+    "estimated_tokens": 7951,
+    "sha256": "cd702155b615269532975789404964e57449e2ea65b035e4e706bff04b257f41"
+  },
+  "after": {
+    "bytes": 28485,
+    "estimated_tokens": 7055,
+    "sha256": "a664849ed53305386e82eb81c6d30cd507b3845ea76c57bbc01b0f326efe3605"
+  },
+  "changes": [
+    {
+      "section": "# faffter-noon-methodology-thematic",
+      "owner": "qualified candidate"
+    },
+    {
+      "section": "## Core ordering rule",
+      "owner": "qualified candidate"
+    },
+    {
+      "section": "## Outputs",
+      "owner": "qualified candidate"
+    },
+    {
+      "section": "### `pick-ordering`",
+      "owner": "qualified candidate"
+    },
+    {
+      "section": "### `ticket-shaping`",
+      "owner": "qualified candidate"
+    },
+    {
+      "section": "### `horizon-assignment`",
+      "owner": "qualified candidate with current-main subject precision"
+    },
+    {
+      "section": "### `run-termination-policy`",
+      "owner": "qualified candidate"
+    },
+    {
+      "section": "### `rehome-set`",
+      "owner": "qualified candidate"
+    },
+    {
+      "section": "## Appetite integration",
+      "owner": "main, removing the duplicate opinion rule already removed in the qualified candidate"
+    },
+    {
+      "section": "## Rules",
+      "owner": "qualified candidate"
+    }
+  ],
+  "preserved_from_main": [
+    "promotion-readiness",
+    "build-queue",
+    "all other sections not listed under changes"
+  ],
+  "limits": "Historical reused rule qualification and fresh current-main one-pair diagnostic are separate; no statistical or full caller equivalence claim.",
+  "saved": {
+    "bytes": 3672,
+    "estimated_tokens": 896
+  },
+  "final_adjustments": [
+    "Restore current-main in an L4 drain condition in pick-ordering.",
+    "Remove trailing empty line."
+  ]
+}

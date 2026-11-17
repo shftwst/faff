@@ -1,0 +1,23 @@
+{
+  "harness": "eval/control-parity/methodology-output.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/thematic-readonly.json",
+  "timeout_seconds": 900,
+  "worker": "claude-retry",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "Fresh current-main versus integrated thematic-source diagnostic. Identical current-main kernel/methodology prefix; selective historical wording plus current-main promotion, build-queue and scope conditions. One fixed sample per arm; zero retries.",
+  "acceptance": "One fresh baseline and candidate, 16 scored cases per arm: 12 decisions, 3 shaping artifacts and one termination policy with 9 real CLI consumer scenarios. Require raw pass, full policy delivery, native Opus5.5/model and worker-visible guidance binding, and independent manual review of every output. Candidate launches only after strict baseline pass. No waivers, new normalization or retries. Limited replication; no full live workflow or statistical equivalence claim.",
+  "samples": [
+    {
+      "name": "thematic-main-opus-v1-candidate-1",
+      "arm": "candidate",
+      "policy": "thematic-main-opus-v1-candidate-policy.md"
+    }
+  ]
+}

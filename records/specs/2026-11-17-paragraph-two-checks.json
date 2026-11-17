@@ -81,5 +81,12 @@
       "sha256": "abbd1671b7317bf6994bf37ddf636abb4bcfa29819e3a925e36bd4fb3f557007"
     }
   ],
-  "fidelity_limit": "Source review and existing deterministic tests. Separate one-pair Opus focus-report diagnostic is in progress; no full model parity claim."
+  "fidelity_limit": "Source review and existing deterministic tests pass. One Opus baseline exposed two report-format failures; candidate was not launched. No model parity claim.",
+  "opus_diagnostic": {
+    "status": "held-baseline-manual-format-failure",
+    "baseline_calls": 1,
+    "candidate_calls": 0,
+    "retries": 0,
+    "evidence": "https://github.com/shftwst/faff/blob/b455d4380b104cf87940a019365348697f21e636/verification/experiments/2026-11-17-paragraph-two/opus-diagnostic/result.json"
+  }
 }

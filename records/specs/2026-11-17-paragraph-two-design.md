@@ -2,7 +2,7 @@
 
 Compress repeated explanations while retaining conditions, commands, examples, source headings and authority boundaries. This pass starts on main after PRs #1204 and #1205. It changes no executable code, test assertions or mandatory reads.
 
-Independent source review found two wording losses in thematic methodology; both were restored and independently checked. Focus-report and rendering reviews found no lost obligations. Existing tests and source review do not establish full model behavioural parity. A separate one-pair Opus diagnostic is planned for the focus report at the completed-fetch rendering boundary only.
+Independent source review found two wording losses in thematic methodology; both were restored and independently checked. Focus-report and rendering reviews found no lost obligations. Existing tests and source review do not establish full model behavioural parity. A separate Opus diagnostic at the completed-fetch focus-report boundary stopped after two baseline report-format failures; the candidate was not run.
 
 ## Rule inventory
 

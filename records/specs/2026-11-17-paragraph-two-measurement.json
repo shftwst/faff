@@ -39,5 +39,5 @@
   "saved_bytes": 8390,
   "saved_estimated_tokens": 2054,
   "fidelity": "Independent source review with both findings corrected;120 existing source-consumer tests and adapter lint pass. No full model behavioural parity claim.",
-  "model_status": "One-pair Opus focus-report diagnostic planned separately; not yet measured."
+  "model_status": "Opus baseline held for report-format failures; candidate not launched. No model parity claim."
 }

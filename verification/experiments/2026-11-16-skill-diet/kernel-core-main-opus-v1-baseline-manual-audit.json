@@ -1,0 +1,548 @@
+{
+  "status": "pass",
+  "manual_gate": "9/9 artifacts and32/32 decisions",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-main-opus-v1-registration.json",
+      "sha256": "38b6bc9d8988f3f889fb18546d285322d4655c0f05ba553ec0a51ef431fa343b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-main-opus-v1-baseline-policy.md",
+      "sha256": "d2fdd7035ee0f90dce1a30afbe2915c66b5345bec02e10e88fbd3decf93c7df0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-fixed-contract-descriptions-v1.md",
+      "sha256": "50ff35b97b5d5d851068cb484e7310bba6c7d588fdade61d6be2582e9cfbb783"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/kernel-core-contracts-v1-draft.json",
+      "sha256": "b8af47373da31ac4a57ceaa3ff713676f95ade0fc80928c4cb329bd66397a971"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/task.json",
+      "sha256": "a92ff6344fbdee2bd56d6cc399155876b4a85d984c03d06dc24d13c14aba54b5"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/capture.json",
+      "sha256": "0e65c476626f95c2d6ccfc7b5ea5a2cbdd49365fb227e5dbc7acf2bd62e4e4cd"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/report.json",
+      "sha256": "c344cd48dec2d6bd51f8c517da1f849941135a5e500ffe2ea0905b56bf4c456b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/manifest.json",
+      "sha256": "69fca190a8b31b223cd4e8a7fac343f71a64aea9b692fcb3ff1aa5f5b9171742"
+    }
+  ],
+  "cases": [
+    {
+      "id": "review-clean",
+      "status": "pass",
+      "artifact_path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/artifacts/review-clean.md",
+      "artifact_sha256": "a284408fd6eaf85d71f4296948be600ea8868572a6380df341ec260aabd40332",
+      "actual_producer_input": {
+        "signal": "pass",
+        "findings": []
+      },
+      "assessment": "Completed clean review supports pass and empty findings.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "review-provider-outage",
+      "status": "pass",
+      "artifact_path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/artifacts/review-provider-outage.md",
+      "artifact_sha256": "2c8872185d228df23d879698fa7e58460f6ecd594b96608aeb3add08318dd51e",
+      "actual_producer_input": {
+        "signal": "unavailable",
+        "findings": []
+      },
+      "assessment": "Declares supplied all-provider outage, not a self-reported inability or judgement about code; unavailable and empty findings preserve that distinction.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "spec-review-clean",
+      "status": "pass",
+      "artifact_path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/artifacts/spec-review-clean.md",
+      "artifact_sha256": "3c25cd6a20084042c63f349512062565f1d3d401409414c015a373b62517d0d6",
+      "actual_producer_input": {
+        "verdict": "approve",
+        "objections": []
+      },
+      "assessment": "Supplied approval has zero objections.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "spec-review-founded",
+      "status": "pass",
+      "artifact_path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/artifacts/spec-review-founded.md",
+      "artifact_sha256": "90d50e2368ec4315ec7d3c75dd097fa8bb51f235154d431a4853dfa86a5368ea",
+      "actual_producer_input": {
+        "verdict": "revise",
+        "objections": [
+          {
+            "lens": "QA",
+            "severity": "major",
+            "claim": "Expected receipt content is unspecified",
+            "evidence": "The DONE section says only that the receipt works",
+            "predicted_consequence": "A verifier cannot decide whether a displayed receipt satisfies the criterion"
+          }
+        ]
+      },
+      "assessment": "Exact supplied QA major objection and all three enrichment strings retained; sound approach needing revision maps to revise.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "delivery-confirmed",
+      "status": "pass",
+      "artifact_path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/artifacts/delivery-confirmed.md",
+      "artifact_sha256": "0d5a6b6cf629c400f670c56bef999bb97fa77ca37ab91822769c28e0f52798a0",
+      "actual_producer_input": {
+        "outcome": "shipped",
+        "reason": "Merged and deployed; native result confirms head abc123.",
+        "corroborated": true
+      },
+      "assessment": "Native merged/deployed true and abc123 support shipped, corroborated true and the optional grounded success reason.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "delivery-precondition",
+      "status": "pass",
+      "artifact_path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/artifacts/delivery-precondition.md",
+      "artifact_sha256": "79bc83a111252a70f61b68404a8042fb56c13ea1babde30b3309e507a655c0d6",
+      "actual_producer_input": {
+        "outcome": "not-ready",
+        "reason": "not-ready:precondition:token-scope \u2014 the token lacks workflow scope needed to change .github/workflows/check.yml; remedy: operator supplies a token with workflow scope",
+        "corroborated": false
+      },
+      "assessment": "Token workflow-scope failure preserves namespaced precondition kind, path and operator remedy; not-ready rather than failed or change-judgement escalation. Optional corroborated false is supported by merged false.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "delivery-unconfirmed",
+      "status": "pass",
+      "artifact_path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/artifacts/delivery-unconfirmed.md",
+      "artifact_sha256": "60978fce19341e5120738c1b9a61d5039e92263a8b20df76e6dfd3aba45dde06",
+      "actual_producer_input": {
+        "outcome": "failed",
+        "reason": "Unrecognised terminal delivery result with no merge or deployment evidence; completion cannot be corroborated.",
+        "corroborated": false
+      },
+      "assessment": "Unrecognized terminal result without completion evidence or deferral supports failed and grounded reason; corroborated false, no invented readiness cause.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "readiness-marked",
+      "status": "pass",
+      "artifact_path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/artifacts/readiness-marked.md",
+      "artifact_sha256": "625433cb0aad05de6741ffd3082077a7bf5a44dc8bdbbea12323d05f50629a1b",
+      "actual_producer_input": {
+        "confidence": "medium",
+        "decisions": [
+          {
+            "marker": "chosen"
+          },
+          {
+            "marker": "punt"
+          },
+          {
+            "marker": "assumes"
+          }
+        ]
+      },
+      "assessment": "Medium confidence and chosen/punt/assumes markers match actual spec in order; owner/ratifier/provenance metadata correctly excluded.",
+      "unsupported_fields_or_facts": []
+    },
+    {
+      "id": "readiness-missing-marker",
+      "status": "pass",
+      "artifact_path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/artifacts/readiness-missing-marker.md",
+      "artifact_sha256": "5c76dbccfd3af8ab644e7eda556b4b9bc4728be43dedcd7e6542928ff03085ad",
+      "actual_producer_input": {
+        "confidence": "high",
+        "decisions": [
+          {
+            "marker": "none"
+          }
+        ]
+      },
+      "assessment": "Unmarked Choice comparison remains present as marker none; high confidence retained. No empty-object substitution and no consumer-normalized fields.",
+      "unsupported_fields_or_facts": []
+    }
+  ],
+  "decisions": [
+    {
+      "id": "fixed-authority",
+      "value": {
+        "may_extend_verdicts": false,
+        "recap_overrides_kernel": false,
+        "dialect_swappable": true
+      },
+      "status": "pass",
+      "assessment": "Kernel fixed vocabulary wins; dialect only swappable."
+    },
+    {
+      "id": "standalone-loading",
+      "value": {
+        "read_before_contract": true,
+        "gateway_absolute_path": "/opt/plugin/skills/faff/SKILL.md",
+        "project_cwd_base": false
+      },
+      "status": "pass",
+      "assessment": "Absolute sibling path resolves from installed skill, before applying contract."
+    },
+    {
+      "id": "consumer-loading",
+      "value": {
+        "consumer_loads_on_entry": true,
+        "delegated_definitions_inherited": true,
+        "newly_authored_adaptor_needs_refer_back": true
+      },
+      "status": "pass",
+      "assessment": "Consumer entry loading, delegated inheritance and author refer-back required."
+    },
+    {
+      "id": "slot-scope",
+      "value": {
+        "validate_correct_bundled": false,
+        "validate_wrong_slot": true,
+        "validate_on_error": true,
+        "infer_from_name": false
+      },
+      "status": "pass",
+      "assessment": "Mechanical predicate controls scope; wrong-slot/error validates, no name inference."
+    },
+    {
+      "id": "slot-cache",
+      "value": {
+        "validations_first_run": 1,
+        "validations_new_run": 1,
+        "record_path_pattern": ".faff/runs/<run-id>/slot-validation.md",
+        "config_can_disable_validation": false
+      },
+      "status": "pass",
+      "assessment": "One validation per distinct occupant per run, autonomous record and no disabling knob."
+    },
+    {
+      "id": "slot-failure",
+      "value": {
+        "park_unit_a": true,
+        "park_unit_b": false,
+        "abort_run": false,
+        "interactive_uses_failed_occupant": false,
+        "cite_violations_in_comment_and_log": true
+      },
+      "status": "pass",
+      "assessment": "Only dependent work unit parks; interactive stop and violations recorded."
+    },
+    {
+      "id": "slot-structural-only",
+      "value": {
+        "semantic_validation_still_required": true,
+        "preflight_checks_nonshipped": true,
+        "preflight_is_optional": true
+      },
+      "status": "pass",
+      "assessment": "Optional structural preflight does not replace semantic gate."
+    },
+    {
+      "id": "consumer-fold",
+      "value": {
+        "parse_block_json": true,
+        "pipe_to_real_contract": true,
+        "contract_is_data_authority": true,
+        "producer_may_replace_contract_vocabulary": false
+      },
+      "status": "pass",
+      "assessment": "Recognized block is parsed and real contract owns data and vocabulary."
+    },
+    {
+      "id": "review-fallback",
+      "value": {
+        "absent_block_prose_extraction_allowed": true,
+        "fused_wrapper_allowed": true,
+        "malformed_may_pass": false,
+        "outage_is_malformed_coercion_target": false
+      },
+      "status": "pass",
+      "assessment": "Absent review block permits prose/fused wrapper; malformed never passes or becomes outage."
+    },
+    {
+      "id": "review-revert",
+      "value": {
+        "revert_distinguishes_fixable_from_persistent": true,
+        "provider_outage_means_review_judged_code": false
+      },
+      "status": "pass",
+      "assessment": "Revert distinguishes fixability; provider outage is not code judgement."
+    },
+    {
+      "id": "spec-review-refusal",
+      "value": {
+        "approve": false,
+        "park_needs_human": true,
+        "approval_allows_objections": false,
+        "nonapproval_requires_objections": true
+      },
+      "status": "pass",
+      "assessment": "Absent/garbled/exit1/2 parks needs-human; founded approval/nonapproval invariants retained."
+    },
+    {
+      "id": "delivery-preflight",
+      "value": {
+        "graft_checks_before_build": true,
+        "ship_rechecks_at_delivery": true,
+        "return_outcome": "not-ready",
+        "retry_later": true,
+        "burn_code_fix_attempt": false,
+        "change_judgement_needs_human": false
+      },
+      "status": "pass",
+      "assessment": "Read-only preflight before build and delivery recheck; precondition defers without code-fix or judgement escalation."
+    },
+    {
+      "id": "delivery-precondition-kinds",
+      "value": [
+        "actions-policy",
+        "merge-method",
+        "push",
+        "token-scope"
+      ],
+      "status": "pass",
+      "assessment": "All four exact kinds, alphabetically sorted."
+    },
+    {
+      "id": "nondelegable-floor",
+      "value": {
+        "ship_may_clear_floor_refusal": false,
+        "floor_asserted_before_ship": true,
+        "ship_may_add_refusal": true,
+        "conditions_may_be_removed": false
+      },
+      "status": "pass",
+      "assessment": "Nondelegable pre-ship floor cannot be weakened; ship can add refusal."
+    },
+    {
+      "id": "ci-absence",
+      "value": {
+        "ci_state": "no-ci-coverage",
+        "floor_satisfied": false,
+        "autonomous_park": "needs-human",
+        "interactive_explicit_confirm": true
+      },
+      "status": "pass",
+      "assessment": "Empty checks are no-ci-coverage, not green; explicit interactive confirmation or autonomous needs-human."
+    },
+    {
+      "id": "l4-floor-order",
+      "value": {
+        "holdout_required": true,
+        "holdout_asserted_after_ac_ci_review": true,
+        "holdout_delegable": false,
+        "ship_default_readiness_passes": true
+      },
+      "status": "pass",
+      "assessment": "L4 holdout follows AC/CI/review and is nondelegable; default ship readiness passes."
+    },
+    {
+      "id": "delivery-cleanup",
+      "value": {
+        "ship_cleans_own_temp": true,
+        "ship_tears_down_worktree": false,
+        "graft_owns_worktree_lifecycle": true,
+        "uncorroborated_shipped_trusted": false
+      },
+      "status": "pass",
+      "assessment": "Ship owns its temp cleanup, graft worktree lifecycle; no uncorroborated shipment trust."
+    },
+    {
+      "id": "routing-admission",
+      "value": {
+        "vocabulary_changes": false,
+        "only_two_build_ready_verdicts_admitted": true,
+        "other_verdicts_surface_reason": true,
+        "recompute_across_passes": true
+      },
+      "status": "pass",
+      "assessment": "Fixed admission and reasons across methodology swaps; per-pass recomputation."
+    },
+    {
+      "id": "thread-invalidation",
+      "value": {
+        "old_cache_valid": false,
+        "refresh_via_narrow_prep_before_verdict": true,
+        "contradictory_challenge_supersedes_rating": true,
+        "inline_consumer_must_reconcile": true
+      },
+      "status": "pass",
+      "assessment": "Human resolution/challenge invalidates cache and requires narrow prep, including inline consumers."
+    },
+    {
+      "id": "confidence-routing",
+      "value": {
+        "high_build_eligible": true,
+        "medium_auto_admitted": false,
+        "medium_moved_to_todo": true,
+        "low_parked": true,
+        "rating_retained_on_attachment": true,
+        "tidy_checks_codebase_drift": true
+      },
+      "status": "pass",
+      "assessment": "High/medium/low routing and durable rating match source; tidy checks code drift."
+    },
+    {
+      "id": "failed-resolve",
+      "value": {
+        "park": true,
+        "root_cause": "punt-not-closed",
+        "wtf_surfaces_park": true,
+        "later_human_resolution_uses_unpark": true
+      },
+      "status": "pass",
+      "assessment": "Actual failed resolve parks punt-not-closed, surfaced by wtf and later unpark."
+    },
+    {
+      "id": "marker-effects",
+      "value": {
+        "chosen_reopened_by_reader": false,
+        "punt_blocks_build_past_decision": true,
+        "assumes_presence_checked_before_build": true,
+        "missing_assumption_parks": true,
+        "unmarked_tradeoff_valid": false,
+        "collect_punts_and_assumptions_at_top_level": true
+      },
+      "status": "pass",
+      "assessment": "Chosen/Punt/Assumes actions and invalid unmarked tradeoff preserved; top-level collection required."
+    },
+    {
+      "id": "punt-owner",
+      "value": {
+        "any_owner": "(unowned)",
+        "wrong_case_owner": "(unowned)",
+        "free_form_allowed": true,
+        "owner_changes_gate": false,
+        "owner_in_contract_json": false,
+        "parse_across_lines": false
+      },
+      "status": "pass",
+      "assessment": "Owner parsing stays single-line/prose-only, any and malformed wrong-case are unowned; free handle allowed."
+    },
+    {
+      "id": "ratifier-authority",
+      "value": {
+        "carry_inherited_tag": true,
+        "add_tag_to_untagged_choice": false,
+        "absence_means_agent_chosen": true,
+        "tag_changes_design_objection_gate": true,
+        "tag_in_contract_json": false,
+        "new_tag_requires_human_live_say_so": true
+      },
+      "status": "pass",
+      "assessment": "Inherited human ratifier kept; no autonomous minting, live human authority and downstream gate effect retained."
+    },
+    {
+      "id": "provenance",
+      "value": {
+        "model_text": "unknown",
+        "version_text": "unknown",
+        "omit_harness_model_segment": false,
+        "include_full_spec_tracker_sentence": false,
+        "stamp_directly_under_h1": true,
+        "prep_adds_provenance_present": true,
+        "harness_model_and_version_are_gate_inputs": false
+      },
+      "status": "pass",
+      "assessment": "Unknown model/version literal; git-only removes tracker sentence only; prep owns stamp and metadata is not gate input."
+    },
+    {
+      "id": "rendering-authority",
+      "value": {
+        "terminal_normalised": true,
+        "tracker_description_normalised": true,
+        "tracker_comment_normalised": true,
+        "skill_source_exempt": true,
+        "internal_faff_log_exempt": true,
+        "central_emit_exists": false,
+        "inline_catalogue_extension_allowed": false,
+        "pipeline_branches_on_rendering_contract": false
+      },
+      "status": "pass",
+      "assessment": "Every human emit normalized; only skill source/internal logs exempt; no central emit or inline catalogue extension."
+    },
+    {
+      "id": "rendering-and-writing",
+      "value": {
+        "issue_gloss_includes_plain_description_and_unlock_consequence": true,
+        "invented_labels_allowed": false,
+        "cross_reference_restates_subject": true,
+        "descriptive_table_lead_column": true,
+        "redundant_ticket_restatement_required": false
+      },
+      "status": "pass",
+      "assessment": "Description/unlock gloss and writing rules preserved without redundant ticket restatement."
+    },
+    {
+      "id": "slot-validation-procedure",
+      "value": {
+        "invoke_authoring_validate_face": true,
+        "pass_occupant_and_slot": true,
+        "cache_fail_verdict_this_run": true
+      },
+      "status": "pass",
+      "assessment": "Authoring Validate receives occupant and slot; pass and fail cached."
+    },
+    {
+      "id": "producer-fallbacks",
+      "value": {
+        "spec_prose_extraction_allowed": true,
+        "spec_fused_wrapper_allowed": true,
+        "delivery_fused_wrapper_allowed": true
+      },
+      "status": "pass",
+      "assessment": "Spec extraction/fused wrapper and delivery fused wrapper remain permitted."
+    },
+    {
+      "id": "ci-and-holdout",
+      "value": {
+        "ci_green_requires_nonempty_set": true,
+        "ci_green_requires_all_passing_terminal": true,
+        "pending_check_satisfies_floor": false,
+        "failed_check_satisfies_floor": false,
+        "below_l4_provisions_holdout_env": false,
+        "l4_holdout_required_verdict": "meets-spec"
+      },
+      "status": "pass",
+      "assessment": "CI needs nonempty all-passing terminal checks; no pending/failed shortcut; below-L4 no holdout environment."
+    },
+    {
+      "id": "spec-durable-authority",
+      "value": {
+        "medium_attempts_resolution_before_failed_attempt_park": true,
+        "ratification_durable_path": "docs/decisions.md",
+        "ratification_durable_tag": "Ratified-by: human",
+        "confidence_line_at_spec_end": true,
+        "confidence_line_authoritative": true
+      },
+      "status": "pass",
+      "assessment": "Positive medium resolve-attempt duty, durable docs/decisions.md ratification and authoritative terminal confidence line retained."
+    },
+    {
+      "id": "provenance-ownership",
+      "value": {
+        "prep_detects_stamp_with_deterministic_regex": true,
+        "spec_producer_supplies_provenance_present": false,
+        "missing_stamp_can_invalidate_readiness": true
+      },
+      "status": "pass",
+      "assessment": "Prep owns deterministic stamp detection and provenance_present; absence can invalidate readiness."
+    }
+  ],
+  "findings": [],
+  "method": "Independent full artifact and answer review against supplied snapshots, registered kernel rules and fixed contract descriptions; checks include optional producer fields and authority distinctions, not just subset grader.",
+  "limits": [
+    "Actual pinned CLI replay9+9 invalid controls and native model/guidance/policy delivery are separate root-owned gates; any available records are bound but not certified by this manual audit.",
+    "Single fresh baseline sample, no candidate acceptance or measurement reuse. Previous Sol candidate strict8/9 input failure remains held.",
+    "No actual cache, park, publication, deployment, tracker mutation or full caller workflow execution claimed by policy decisions.",
+    "No model calls, retries, source edits, harness changes or waivers."
+  ]
+}

@@ -1,0 +1,65 @@
+{
+  "case_id": "readiness-missing-marker",
+  "artifact": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-candidate-1/artifacts/readiness-missing-marker.md",
+  "artifact_sha256": "3e9cda620912c36332a2480cbe648a4568587080799f0ed533c8962e40a9f924",
+  "producer_input": {
+    "confidence": "high",
+    "decisions": [
+      {
+        "marker": "none"
+      }
+    ]
+  },
+  "expected_input": {
+    "confidence": "high",
+    "decisions": [
+      {
+        "marker": "none"
+      }
+    ]
+  },
+  "input_matches_registered_expectations": true,
+  "prohibited_fields": [],
+  "consumer_additions": {
+    "provenance_present": true
+  },
+  "positive": {
+    "argv": [
+      "node",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "spec-readiness"
+    ],
+    "stdin": "{\"confidence\": \"high\", \"decisions\": [{\"marker\": \"none\"}], \"provenance_present\": true}",
+    "exit_code": 1,
+    "stdout": "{\"confidence\":\"high\",\"decisions\":[],\"markers_valid\":false,\"violations\":[\"decision[0] has no canonical marker (got \\\"none\\\")\"]}\n",
+    "stderr": "",
+    "value": {
+      "confidence": "high",
+      "decisions": [],
+      "markers_valid": false,
+      "violations": [
+        "decision[0] has no canonical marker (got \"none\")"
+      ]
+    }
+  },
+  "negative": {
+    "argv": [
+      "node",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "spec-readiness"
+    ],
+    "stdin": "{\"confidence\": \"unknown\", \"decisions\": [{\"marker\": \"chosen\"}], \"provenance_present\": true}",
+    "exit_code": 2,
+    "stdout": "",
+    "stderr": "faff contract spec-readiness: fail-loud: confidence \"unknown\" not in {high,medium,low}\n",
+    "value": null
+  },
+  "positive_pass": true,
+  "negative_pass": true,
+  "status": "pass",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture_sha256": "b8af47373da31ac4a57ceaa3ff713676f95ade0fc80928c4cb329bd66397a971",
+  "plan_sha256": "8a5b19232e925c6db7e049cb3fd6406a8f9b6ab171131c8541abc3daf811f594"
+}

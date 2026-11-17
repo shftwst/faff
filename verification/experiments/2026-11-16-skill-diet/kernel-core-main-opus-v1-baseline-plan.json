@@ -1,0 +1,23 @@
+{
+  "harness": "eval/control-parity/rendering-artifact.mjs",
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture": "workflow-fixtures/kernel-core-contracts-v1-draft.json",
+  "timeout_seconds": 900,
+  "worker": "claude-retry",
+  "context_files": [
+    "/Users/shftwst/.agents/AGENTS.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md"
+  ],
+  "json_stdin": true,
+  "bridge": "eval/control-parity/mailbox-call.mjs",
+  "treatment": "New corrected kernel core-contract source treatment on current main. Identical full current-main rendering context, existing fixed real contract descriptions, then full kernel under comparison. Explicit marker enum, producer-consumer END anchor, never-silently literal and positive autonomous resolve-attempt retained. Prior held Sol pair remains held and unpooled. One fixed fresh sample per arm; zero retries.",
+  "acceptance": "Require raw41/41, full policy delivery and native actual claude-opus-5-5 medium/verified guidance; independent manual review of all9 artifacts and32 answers; nine actual pinned CLI consumptions and nine unchanged fixture invalid controls. Parse actual artifact producer inputs and require recursive expected-object subset matching against unchanged fixture expected_input (scalar types/values equal; arrays exact length/order, each expected item recursively matched) before adding only consumer_additions. No invented consumer-normalized or provenance fields; CLI pass cannot excuse producer-input mismatch. Baseline must pass all gates before candidate launch. No retries, waivers or new normalisation; bounded one-pair diagnostic, not repeated-trial reliability or complete caller workflow.",
+  "samples": [
+    {
+      "name": "kernel-core-main-opus-v1-baseline-1",
+      "arm": "baseline",
+      "policy": "kernel-core-main-opus-v1-baseline-policy.md"
+    }
+  ]
+}

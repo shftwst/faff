@@ -1,0 +1,40 @@
+{
+  "status": "hold-one-operative-precision-loss",
+  "base": "8b64039",
+  "source": "plugin/skills/faff/references/kernel.md",
+  "sha256": "2633da0b1555656ad47b219443819bda4f8620e20db73760542968f014511349",
+  "bytes": 70465,
+  "saved_bytes": 13187,
+  "checks": {
+    "prefix_before_core_contracts_byte_identical": true,
+    "core_contracts_extends_to_eof": true,
+    "marker_enum_restored": true,
+    "producer_consumer_end_anchor_present": true,
+    "malformed_review_literal_restored": true
+  },
+  "findings": [
+    {
+      "section": "Spec readiness (fixed)",
+      "baseline": "A retained medium rating maps to needs-decision-first, so an autonomous run gives it a resolve-attempt; a resolve-attempt that fails invokes the shared Park protocol.",
+      "candidate": "Medium maps to needs-decision-first. An autonomous resolve-attempt that fails invokes Park protocol.",
+      "loss": "The positive obligation to perform the resolve-attempt is omitted; conditional failure handling alone does not require attempting resolution.",
+      "minimal_correction": "State that an autonomous run gives it a resolve-attempt, then retain existing failure, label, cause and no-merely-surfaced instructions."
+    }
+  ],
+  "preserved_obligations": [
+    "Fixed-contract authority and non-normative adaptor recaps; install-relative standalone loading.",
+    "Mechanical bundled/foreign classification, error-to-validate, once-per-run cache, autonomous unit-only park and interactive stop; structural preflight does not replace semantic validation.",
+    "Producer artifact info-strings, JSON parsing, CLI authority, individual absent-block fallbacks, spec-review exit0 versus1/2 routing.",
+    "Review availability versus judgement distinction; malformed verdicts fail toward human judgement.",
+    "Delivery precondition kinds and remedy routing, corroboration, nondelegable floor, L4 holdout ordering, CI absence handling, producer cleanup versus graft worktree ownership.",
+    "Routing admission, per-pass cache and post-spec live-thread invalidation/narrow-prep refresh.",
+    "Marker actions, Punt owner regex/non-gating, ratifier human-only interactive authority and inherited carry-forward, durable decisions record.",
+    "Provenance stamp ownership, unknown values and git-only exception; provenance_present consumer-owned deterministic extraction; metadata excluded from producer JSON.",
+    "Rendering catalogue authority and universal per-write normalisation with original exceptions."
+  ],
+  "limits": [
+    "Source comparison only; no models, tests or source changes.",
+    "Prior measured treatment remains held at8/9 strict input binding. Restored enum, loader anchor and literal do not inherit model qualification.",
+    "Review does not certify full caller workflows or replace fresh preregistered measurement."
+  ]
+}

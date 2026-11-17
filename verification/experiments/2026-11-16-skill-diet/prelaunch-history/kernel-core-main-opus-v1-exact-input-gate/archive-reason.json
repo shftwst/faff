@@ -1,0 +1,32 @@
+{
+  "created_at_utc": "2026-11-17T19:57:26.542580+00:00",
+  "reason": "Before any model launch or observed sample, correct invalid exact-key-set input gate: fixture expected_input objects are partial expectations. Preserve scalar equality and arrays exact length/order with recursive expected-object subsets; full CLI shape validation and forbidden consumer-owned fields remain required. Missing marker:none still fails without synthesis.",
+  "no_sample_directories_exist": true,
+  "files": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-main-opus-v1-baseline-plan.json",
+      "bytes": 1864,
+      "sha256": "9a5aa47086ab2593c0e27894bd972acb26b2de60d0d080ba4502663dd44fdf27"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-main-opus-v1-baseline-policy.md",
+      "bytes": 104575,
+      "sha256": "d2fdd7035ee0f90dce1a30afbe2915c66b5345bec02e10e88fbd3decf93c7df0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-main-opus-v1-candidate-plan.json",
+      "bytes": 1867,
+      "sha256": "e2605c6a895fd958ba116971d337be381739a5e584abdb220bb748b040feed5e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-main-opus-v1-candidate-policy.md",
+      "bytes": 91401,
+      "sha256": "bf986e273054e2cca171244ba9bc80a040c170a3991697bc89b9727224f72be0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-core-main-opus-v1-registration.json",
+      "bytes": 26640,
+      "sha256": "b44d444dcc8bf8e3917444ff007f9ee03f8dc10f9572d3cb051c5de1aba63a6f"
+    }
+  ]
+}

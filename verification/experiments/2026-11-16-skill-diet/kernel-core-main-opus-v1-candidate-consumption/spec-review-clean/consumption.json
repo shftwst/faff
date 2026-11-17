@@ -1,0 +1,59 @@
+{
+  "case_id": "spec-review-clean",
+  "artifact": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-candidate-1/artifacts/spec-review-clean.md",
+  "artifact_sha256": "764b1af376064ac3faf62615241497cde25bb69fe8dc4e0947a716c9e8ff8486",
+  "producer_input": {
+    "verdict": "approve",
+    "objections": []
+  },
+  "expected_input": {
+    "verdict": "approve"
+  },
+  "input_matches_registered_expectations": true,
+  "prohibited_fields": [],
+  "consumer_additions": {},
+  "positive": {
+    "argv": [
+      "node",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "spec-review-verdict"
+    ],
+    "stdin": "{\"verdict\": \"approve\", \"objections\": []}",
+    "exit_code": 0,
+    "stdout": "{\"verdict\":\"approve\",\"objections\":[],\"conformant\":true,\"violations\":[]}\n",
+    "stderr": "",
+    "value": {
+      "verdict": "approve",
+      "objections": [],
+      "conformant": true,
+      "violations": []
+    }
+  },
+  "negative": {
+    "argv": [
+      "node",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "spec-review-verdict"
+    ],
+    "stdin": "{\"verdict\": \"revise\", \"objections\": []}",
+    "exit_code": 1,
+    "stdout": "{\"verdict\":\"revise\",\"objections\":[],\"conformant\":false,\"violations\":[\"revise carries no objections\"]}\n",
+    "stderr": "",
+    "value": {
+      "verdict": "revise",
+      "objections": [],
+      "conformant": false,
+      "violations": [
+        "revise carries no objections"
+      ]
+    }
+  },
+  "positive_pass": true,
+  "negative_pass": true,
+  "status": "pass",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture_sha256": "b8af47373da31ac4a57ceaa3ff713676f95ade0fc80928c4cb329bd66397a971",
+  "plan_sha256": "8a5b19232e925c6db7e049cb3fd6406a8f9b6ab171131c8541abc3daf811f594"
+}

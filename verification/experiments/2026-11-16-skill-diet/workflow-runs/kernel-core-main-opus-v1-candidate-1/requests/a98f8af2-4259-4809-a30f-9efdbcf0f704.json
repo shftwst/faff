@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"l4-floor-order","value":{"holdout_required":true,"holdout_asserted_after_ac_ci_review":true,"holdout_delegable":false,"ship_default_readiness_passes":true}}}

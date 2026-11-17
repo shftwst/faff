@@ -1,0 +1,204 @@
+{
+  "status": "pass-bounded-corrected-source-one-pair-diagnostic",
+  "registration": "kernel-core-main-opus-v1-registration.json",
+  "registration_sha256": "38b6bc9d8988f3f889fb18546d285322d4655c0f05ba553ec0a51ef431fa343b",
+  "before": {
+    "bytes": 83652,
+    "sha256": "aa76c16a0d51ee966c3e77cf5df8564834966173f08dd2100da174b82c97ac89",
+    "estimated_tokens": 20753
+  },
+  "after": {
+    "bytes": 70478,
+    "sha256": "4505afeeec9f75b9d2d388564f5f61ce9b7daeac7bbf21bd546d04de41f4e1f5",
+    "estimated_tokens": 17522
+  },
+  "saved": {
+    "bytes": 13174,
+    "estimated_tokens": 3231
+  },
+  "arms": {
+    "baseline": {
+      "samples": 1,
+      "raw_cases_passed": 41,
+      "raw_cases_total": 41,
+      "artifact_cases": 9,
+      "decision_cases": 32,
+      "producer_input_bindings_passed": 9,
+      "producer_input_bindings_total": 9,
+      "real_cli_expected_outcomes_matched": 9,
+      "real_cli_cases_total": 9,
+      "invalid_control_expected_outcomes_matched": 9,
+      "invalid_controls_total": 9,
+      "native": "pass",
+      "manual": "pass",
+      "actual_model": [
+        "claude-opus-5-5"
+      ],
+      "actual_cli": [
+        "2.1.325"
+      ]
+    },
+    "candidate": {
+      "samples": 1,
+      "raw_cases_passed": 41,
+      "raw_cases_total": 41,
+      "artifact_cases": 9,
+      "decision_cases": 32,
+      "producer_input_bindings_passed": 9,
+      "producer_input_bindings_total": 9,
+      "real_cli_expected_outcomes_matched": 9,
+      "real_cli_cases_total": 9,
+      "invalid_control_expected_outcomes_matched": 9,
+      "invalid_controls_total": 9,
+      "native": "pass",
+      "manual": "pass",
+      "actual_model": [
+        "claude-opus-5-5"
+      ],
+      "actual_cli": [
+        "2.1.325"
+      ]
+    }
+  },
+  "publication": {
+    "integration_commit": "ba3b13aa6229d8324bc5da69ae4257d70c716910",
+    "base": "2d8cb231c515861e88f5aa79bf5ab43f13223d72",
+    "measured_source_sha256": "4505afeeec9f75b9d2d388564f5f61ce9b7daeac7bbf21bd546d04de41f4e1f5",
+    "measured_source_unchanged": true
+  },
+  "source_corrections": [
+    "Restore explicit chosen|punt|assumes|none marker enum.",
+    "Retain source-batch producer-consumer END anchor required by unchanged loader.",
+    "Restore original never silently to pass source-consumer literal.",
+    "Restore original positive autonomous run resolve-attempt obligation."
+  ],
+  "prior_hold": {
+    "path": "kernel-core-contracts-pair-v1-result.json",
+    "status": "held; unchanged and unpooled",
+    "cause": "Prior Sol pair raw41/41 each but candidate producer input8/9: missing explicit marker:none in readiness-missing-marker. CLI9/9 did not excuse that input mismatch."
+  },
+  "prelaunch_gate_correction": "Before any sample, corrected object-key equality to the existing partial expected-input subset semantics; arrays remain ordered/exact length, missing required markers fail. Previous registrations preserved in prelaunch-history. No observed result prompted this correction.",
+  "evidence": [
+    {
+      "path": "workflow-runs/kernel-core-main-opus-v1-baseline-1/report.json",
+      "sha256": "c344cd48dec2d6bd51f8c517da1f849941135a5e500ffe2ea0905b56bf4c456b"
+    },
+    {
+      "path": "workflow-runs/kernel-core-main-opus-v1-baseline-1/capture.json",
+      "sha256": "0e65c476626f95c2d6ccfc7b5ea5a2cbdd49365fb227e5dbc7acf2bd62e4e4cd"
+    },
+    {
+      "path": "workflow-runs/kernel-core-main-opus-v1-baseline-1/manifest.json",
+      "sha256": "69fca190a8b31b223cd4e8a7fac343f71a64aea9b692fcb3ff1aa5f5b9171742"
+    },
+    {
+      "path": "native-audits/kernel-core-main-opus-v1-baseline.json",
+      "sha256": "bcebfe3bb1b0f2c5325807c55b5fa28b8740e730acf8ae194c0d334f57f6edef"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-baseline-manual-audit.json",
+      "sha256": "1204adad7c6c0d44faec43c3824e688fbcbbce988694a8e65a89e8cf85943574"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-baseline-consumption/review-provider-outage/consumption.json",
+      "sha256": "8afcbd87f472c11ac250ffa0ba7cc9270f6b08528a68b8fdc661312000d56f6d"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-baseline-consumption/delivery-unconfirmed/consumption.json",
+      "sha256": "0c91e092d0dca85ad28fdb70e6af3b9a9ca18cf0148c1527d4b61b50b3446d16"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-baseline-consumption/delivery-precondition/consumption.json",
+      "sha256": "f18d58fb1939b7d0ec43b19a1561eed4c79891636200ca625fc73b72baaa4c47"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-baseline-consumption/delivery-confirmed/consumption.json",
+      "sha256": "fc57561f665a83a0265deb65cecdadda36ed9cc6efc7cb941189d209a9901051"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-baseline-consumption/readiness-missing-marker/consumption.json",
+      "sha256": "782822bf2cd292d1a0862808c4d4533b8c717390323e00335ab41da8a1490f66"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-baseline-consumption/spec-review-founded/consumption.json",
+      "sha256": "f6f7d4a88decce9fff19bf2b685ce6635cd8dce35f25da83e93c5b5d8fd5ae63"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-baseline-consumption/spec-review-clean/consumption.json",
+      "sha256": "563debae057390bdc2deea1bf7c7098779edff2125916d857e861718e5b38aba"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-baseline-consumption/readiness-marked/consumption.json",
+      "sha256": "119a1b8b317fe566d58e4330c995965d7cf66cb7ee93a25ce6711928f1966db3"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-baseline-consumption/review-clean/consumption.json",
+      "sha256": "139af919a54995617027423587b9f9c04203dfdabcc3a757e946db89f0e821bd"
+    },
+    {
+      "path": "workflow-runs/kernel-core-main-opus-v1-candidate-1/report.json",
+      "sha256": "a365c15869c91211a9dea3e7e1c5bb37e8b578f51380caa8c8e3cb1bb5234335"
+    },
+    {
+      "path": "workflow-runs/kernel-core-main-opus-v1-candidate-1/capture.json",
+      "sha256": "3096c3bc866b3e783c9906723fab188216507d808786b9041c8e7fae7373f4f9"
+    },
+    {
+      "path": "workflow-runs/kernel-core-main-opus-v1-candidate-1/manifest.json",
+      "sha256": "b426ece137f00a2fdf6290dcb60d95687700f7d52ee17c3249d62023a7371116"
+    },
+    {
+      "path": "native-audits/kernel-core-main-opus-v1-candidate.json",
+      "sha256": "34075e81670cd9e17a6db64cd7cfde208b17445695ed15c52d341e011d9a15ea"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-candidate-manual-audit.json",
+      "sha256": "979f8bee74ff2db534b315d52842c93e6e6df19d03b233d3bb8e113d79fc776f"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-candidate-consumption/review-provider-outage/consumption.json",
+      "sha256": "d55738f41a94c0485a65f883677b751134336e5ec99fe0919b71c3044d294736"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-candidate-consumption/delivery-unconfirmed/consumption.json",
+      "sha256": "70b8124e6cfa2ee6398b61da0daa337d25f644b586c63803ccd6972bb6c8dfd7"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-candidate-consumption/delivery-precondition/consumption.json",
+      "sha256": "6785d03f3d9a13ee5671d8f52865900bc2cf9c803731365f2a345507c3a8f4a5"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-candidate-consumption/delivery-confirmed/consumption.json",
+      "sha256": "d248f499dc962b4980ceb0355363c2080813de1489367aa88d6c7fcf9258d594"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-candidate-consumption/readiness-missing-marker/consumption.json",
+      "sha256": "9333b5fbb792e774ebf4d338d186ca314b11e1fd5b4f70082d601dcae4d4c725"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-candidate-consumption/spec-review-founded/consumption.json",
+      "sha256": "251fced7ccf0571971dc0942ae4fae93a9ade5423fb3cf15f6a806130b23c086"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-candidate-consumption/spec-review-clean/consumption.json",
+      "sha256": "2590cf57db5e51cea82bd1be7bad2ba53f91fc1f8c6fd55fda49bface6ecb600"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-candidate-consumption/readiness-marked/consumption.json",
+      "sha256": "ebfe92b75058945c76d248e0ad65ac96e96975c5bf17c267e363192dd45e1b61"
+    },
+    {
+      "path": "kernel-core-main-opus-v1-candidate-consumption/review-clean/consumption.json",
+      "sha256": "e74d027be86c35c6567ac580f183ec9552ecaccd56d1273c6b511e846e512374"
+    }
+  ],
+  "retries": 0,
+  "waivers": 0,
+  "normalisations": 0,
+  "limits": [
+    "New corrected treatment; prior held Sol evidence is immutable, unpooled and not qualification of these bytes.",
+    "One fixed fresh sample per arm is a bounded diagnostic, not five-run reliability or statistical equivalence.",
+    "No actual caching/invalidation, parking, publication, deployment, complete caller execution, provider independence or billing claim.",
+    "Real consumption and manual/native gates are separate required evidence using unchanged pinned CLI and fixture; no new harness/replayer framework or normalisation."
+  ]
+}

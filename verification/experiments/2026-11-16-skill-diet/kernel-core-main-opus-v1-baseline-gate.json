@@ -1,0 +1,14 @@
+{
+  "status": "pass-candidate-launch-gate",
+  "raw_cases": "41/41",
+  "input_bindings": "9/9",
+  "real_cli_cases": "9/9",
+  "invalid_controls": "9/9",
+  "native": "pass",
+  "manual": "pass",
+  "manual_sha256": "1204adad7c6c0d44faec43c3824e688fbcbbce988694a8e65a89e8cf85943574",
+  "frozen_files_match": 54,
+  "worker_model_guidance_match": true,
+  "retries": 0,
+  "waivers": 0
+}

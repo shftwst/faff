@@ -1,0 +1,60 @@
+{
+  "case_id": "delivery-unconfirmed",
+  "artifact": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/kernel-core-main-opus-v1-baseline-1/artifacts/delivery-unconfirmed.md",
+  "artifact_sha256": "60978fce19341e5120738c1b9a61d5039e92263a8b20df76e6dfd3aba45dde06",
+  "producer_input": {
+    "outcome": "failed",
+    "reason": "Unrecognised terminal delivery result with no merge or deployment evidence; completion cannot be corroborated.",
+    "corroborated": false
+  },
+  "expected_input": {
+    "outcome": "failed"
+  },
+  "input_matches_registered_expectations": true,
+  "prohibited_fields": [],
+  "consumer_additions": {},
+  "positive": {
+    "argv": [
+      "node",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "delivery-outcome"
+    ],
+    "stdin": "{\"outcome\": \"failed\", \"reason\": \"Unrecognised terminal delivery result with no merge or deployment evidence; completion cannot be corroborated.\", \"corroborated\": false}",
+    "exit_code": 0,
+    "stdout": "{\"outcome\":\"failed\",\"reason\":\"Unrecognised terminal delivery result with no merge or deployment evidence; completion cannot be corroborated.\",\"conformant\":true,\"violations\":[]}\n",
+    "stderr": "",
+    "value": {
+      "outcome": "failed",
+      "reason": "Unrecognised terminal delivery result with no merge or deployment evidence; completion cannot be corroborated.",
+      "conformant": true,
+      "violations": []
+    }
+  },
+  "negative": {
+    "argv": [
+      "node",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "contract",
+      "delivery-outcome"
+    ],
+    "stdin": "{\"outcome\": \"shipped\", \"corroborated\": false}",
+    "exit_code": 1,
+    "stdout": "{\"outcome\":\"failed\",\"reason\":\"unconfirmed merge/deploy\",\"conformant\":false,\"violations\":[\"shipped is not corroborated by the producer's result \u2014 coerced to failed\"]}\n",
+    "stderr": "",
+    "value": {
+      "outcome": "failed",
+      "reason": "unconfirmed merge/deploy",
+      "conformant": false,
+      "violations": [
+        "shipped is not corroborated by the producer's result \u2014 coerced to failed"
+      ]
+    }
+  },
+  "positive_pass": true,
+  "negative_pass": true,
+  "status": "pass",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "fixture_sha256": "b8af47373da31ac4a57ceaa3ff713676f95ade0fc80928c4cb329bd66397a971",
+  "plan_sha256": "ad0a8599decb8e1f14d2d6797b72a79608b05636d5b77398244e654c5aeba9ce"
+}

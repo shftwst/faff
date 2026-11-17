@@ -1,0 +1,301 @@
+{
+  "instructions": "Read the complete rendering policy through read_policy. For each independent artifact case, transform the supplied draft or source into the requested output and persist it through write_output. These are isolated human-facing outputs; preserve their facts and use the supplied source material. Do not query a tracker or read additional files. Separately answer every bounded rule question. Global operator guidance applies. Finish after every case is recorded.",
+  "policy": {
+    "bytes": 104575,
+    "utf16_characters": 103648,
+    "sha256": "d2fdd7035ee0f90dce1a30afbe2915c66b5345bec02e10e88fbd3decf93c7df0",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_output",
+      "description": "Persist the completed rendering for one artifact case. Write once per case; provide the actual normalised text or violation report requested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "answer_rule",
+      "description": "Answer one separate bounded policy question in its stated value shape. Do not perform hypothetical actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all artifacts and rule answers are recorded.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "review-clean",
+      "task": "Declare the supplied completed review result. Persist the producer-input JSON in one fenced faff-contract:review-verdict block. Do not invent normalized consumer fields.",
+      "source": {
+        "review_completed": true,
+        "findings": [],
+        "decision": "The complete review found no defect or unresolved judgement item."
+      }
+    },
+    {
+      "id": "review-provider-outage",
+      "task": "Declare the supplied mandatory review-chain result without treating absence of a review as a judgement about the code. Persist the producer-input JSON in one fenced faff-contract:review-verdict block. Do not invent normalized consumer fields.",
+      "source": {
+        "review_completed": false,
+        "provider_result": "Every configured mandatory provider was unreachable after its allowed fallback. No verdict or findings were produced."
+      }
+    },
+    {
+      "id": "spec-review-clean",
+      "task": "Declare the supplied completed approach-review result. Persist the producer-input JSON in one fenced faff-contract:spec-review-verdict block. Do not invent normalized consumer fields.",
+      "source": {
+        "review_completed": true,
+        "decision": "Approach approved as written.",
+        "objections": []
+      }
+    },
+    {
+      "id": "spec-review-founded",
+      "task": "Declare the supplied completed approach-review result, retaining its founded objection. Persist the producer-input JSON in one fenced faff-contract:spec-review-verdict block. Do not invent normalized consumer fields.",
+      "source": {
+        "review_completed": true,
+        "decision": "Changes to the spec are required before approval; the approach itself remains sound.",
+        "objection": {
+          "lens": "QA",
+          "severity": "major",
+          "claim": "Expected receipt content is unspecified",
+          "evidence": "The DONE section says only that the receipt works",
+          "predicted_consequence": "A verifier cannot decide whether a displayed receipt satisfies the criterion"
+        }
+      }
+    },
+    {
+      "id": "delivery-confirmed",
+      "task": "Declare the delivery result from the supplied native completion evidence. Persist the producer-input JSON in one fenced faff-contract:delivery-outcome block. Do not invent normalized consumer fields.",
+      "source": {
+        "native_result": {
+          "merged": true,
+          "deployed": true,
+          "confirmed_head": "abc123"
+        },
+        "producer": "deploy-capable",
+        "integrity_floor": "Already cleared by the caller."
+      }
+    },
+    {
+      "id": "delivery-precondition",
+      "task": "Declare the delivery result with its namespaced reason and remedy. Persist the producer-input JSON in one fenced faff-contract:delivery-outcome block. Do not invent normalized consumer fields.",
+      "source": {
+        "native_result": {
+          "merged": false,
+          "precondition_failure": "The token lacks workflow scope needed to change .github/workflows/check.yml.",
+          "remedy": "Operator supplies a token with workflow scope."
+        },
+        "code_and_spec_defect": false
+      }
+    },
+    {
+      "id": "delivery-unconfirmed",
+      "task": "Declare the delivery result supported by this complete native response. Persist the producer-input JSON in one fenced faff-contract:delivery-outcome block. Do not invent normalized consumer fields.",
+      "source": {
+        "native_result": {
+          "status": "complete",
+          "text": "The terminal delivery attempt produced an unrecognized result with no merge or deployment evidence."
+        },
+        "confirmation": "No completion can be corroborated; no readiness/precondition deferral was reported."
+      }
+    },
+    {
+      "id": "readiness-marked",
+      "task": "Declare the markers and confidence actually present in the supplied spec as its producer. Caller provenance detection is separate. Persist the producer-input JSON in one fenced faff-contract:spec-readiness block. Do not invent normalized consumer fields.",
+      "source": {
+        "spec": "# Receipt delivery\n\n> Spec: supplied · 2026-01-01 · interactive · codex/unknown · faff unknown · confidence: medium. Full spec on tracker EX-1.\n\n## Storage\n**Chosen:** Store UTC (ratified: human)\n\n## Colour\n**Punt:** Red or blue - needs human (decides: product)\n\n## Dependency\n**Assumes:** Queue service exists\n\n## Open-Questions / Assumptions\n- Colour remains a human decision.\n- Queue presence must be checked.\n\nconfidence: medium\n",
+        "role": "spec producer, not prep consumer"
+      }
+    },
+    {
+      "id": "readiness-missing-marker",
+      "task": "Declare the markers and confidence actually present, preserving a decision that lacks a canonical marker. Persist the producer-input JSON in one fenced faff-contract:spec-readiness block. Do not invent normalized consumer fields.",
+      "source": {
+        "spec": "# Storage\n\n> Spec: supplied · 2026-01-01 · interactive · codex/unknown · faff unknown · confidence: high.\n\n## Choice\nSQL has joins; a document store has a flexible schema.\n\nconfidence: high\n",
+        "role": "spec producer, not prep consumer"
+      }
+    }
+  ],
+  "rule_questions": [
+    {
+      "id": "fixed-authority",
+      "question": "A foreign adaptor adds a new queue-admitting verdict and says its recap overrides the kernel. Return {\"may_extend_verdicts\":boolean,\"recap_overrides_kernel\":boolean,\"dialect_swappable\":boolean}."
+    },
+    {
+      "id": "standalone-loading",
+      "question": "A directly invoked adaptor is installed at /opt/plugin/skills/custom/SKILL.md; project CWD is /workspace/project and no gateway is loaded. Return {\"read_before_contract\":boolean,\"gateway_absolute_path\":string,\"project_cwd_base\":boolean}."
+    },
+    {
+      "id": "consumer-loading",
+      "question": "A fixed consumer enters with the gateway absent; it later delegates to an occupant after loading definitions. Return {\"consumer_loads_on_entry\":boolean,\"delegated_definitions_inherited\":boolean,\"newly_authored_adaptor_needs_refer_back\":boolean}."
+    },
+    {
+      "id": "slot-scope",
+      "question": "The real --is-bundled predicate returns0 for a bundled alternative in the correct slot,1 for the same bundled name in a wrong slot, and errors for an unknown path. Return {\"validate_correct_bundled\":boolean,\"validate_wrong_slot\":boolean,\"validate_on_error\":boolean,\"infer_from_name\":boolean}."
+    },
+    {
+      "id": "slot-cache",
+      "question": "One foreign occupant is first used twice within one autonomous run, then first used in a new run. Its first validation passes. Return {\"validations_first_run\":number,\"validations_new_run\":number,\"record_path_pattern\":string,\"config_can_disable_validation\":boolean}."
+    },
+    {
+      "id": "slot-failure",
+      "question": "A foreign occupant fails conformance. In an autonomous run, UnitA needs it; UnitB never uses its slot. Return {\"park_unit_a\":boolean,\"park_unit_b\":boolean,\"abort_run\":boolean,\"interactive_uses_failed_occupant\":boolean,\"cite_violations_in_comment_and_log\":boolean}."
+    },
+    {
+      "id": "slot-structural-only",
+      "question": "Configured structural preflight passes for a foreign occupant. Return {\"semantic_validation_still_required\":boolean,\"preflight_checks_nonshipped\":boolean,\"preflight_is_optional\":boolean}."
+    },
+    {
+      "id": "consumer-fold",
+      "question": "A producer artifact contains a recognized contract block and competing prose. Return {\"parse_block_json\":boolean,\"pipe_to_real_contract\":boolean,\"contract_is_data_authority\":boolean,\"producer_may_replace_contract_vocabulary\":boolean}."
+    },
+    {
+      "id": "review-fallback",
+      "question": "A review producer emits native signal/Findings prose but no block. A different review emits malformed verdict data. Return {\"absent_block_prose_extraction_allowed\":boolean,\"fused_wrapper_allowed\":boolean,\"malformed_may_pass\":boolean,\"outage_is_malformed_coercion_target\":boolean}."
+    },
+    {
+      "id": "review-revert",
+      "question": "One defect disappears when the change is reverted; another effect persists after revert. Return {\"revert_distinguishes_fixable_from_persistent\":boolean,\"provider_outage_means_review_judged_code\":boolean}."
+    },
+    {
+      "id": "spec-review-refusal",
+      "question": "A spec-review block is absent/garbled, or its real contract invocation exits1/2. Return {\"approve\":boolean,\"park_needs_human\":boolean,\"approval_allows_objections\":boolean,\"nonapproval_requires_objections\":boolean}."
+    },
+    {
+      "id": "delivery-preflight",
+      "question": "A token-scope precondition blocks an otherwise correct change. Return {\"graft_checks_before_build\":boolean,\"ship_rechecks_at_delivery\":boolean,\"return_outcome\":string,\"retry_later\":boolean,\"burn_code_fix_attempt\":boolean,\"change_judgement_needs_human\":boolean}."
+    },
+    {
+      "id": "delivery-precondition-kinds",
+      "question": "Return the four delivery precondition kinds as an alphabetically sorted JSON array."
+    },
+    {
+      "id": "nondelegable-floor",
+      "question": "Ship says its deployment window is open, but graft review has not passed. Return {\"ship_may_clear_floor_refusal\":boolean,\"floor_asserted_before_ship\":boolean,\"ship_may_add_refusal\":boolean,\"conditions_may_be_removed\":boolean}."
+    },
+    {
+      "id": "ci-absence",
+      "question": "The applicable PR-check set is empty. Return {\"ci_state\":string,\"floor_satisfied\":boolean,\"autonomous_park\":string,\"interactive_explicit_confirm\":boolean}."
+    },
+    {
+      "id": "l4-floor-order",
+      "question": "Apply the supplied kernel section as written: L4 lights-out adds its per-issue holdout condition. Return {\"holdout_required\":boolean,\"holdout_asserted_after_ac_ci_review\":boolean,\"holdout_delegable\":boolean,\"ship_default_readiness_passes\":boolean}."
+    },
+    {
+      "id": "delivery-cleanup",
+      "question": "Ship created temporary deployment state; graft created the worktree. Return {\"ship_cleans_own_temp\":boolean,\"ship_tears_down_worktree\":boolean,\"graft_owns_worktree_lifecycle\":boolean,\"uncorroborated_shipped_trusted\":boolean}."
+    },
+    {
+      "id": "routing-admission",
+      "question": "A methodology changes while routing is evaluated. Return {\"vocabulary_changes\":boolean,\"only_two_build_ready_verdicts_admitted\":boolean,\"other_verdicts_surface_reason\":boolean,\"recompute_across_passes\":boolean}."
+    },
+    {
+      "id": "thread-invalidation",
+      "question": "After a cached medium/open-Punt verdict, a human resolves the Punt in the live thread. Another issue gets a new contradictory constraint. No tidy has run since. Return {\"old_cache_valid\":boolean,\"refresh_via_narrow_prep_before_verdict\":boolean,\"contradictory_challenge_supersedes_rating\":boolean,\"inline_consumer_must_reconcile\":boolean}."
+    },
+    {
+      "id": "confidence-routing",
+      "question": "Return {\"high_build_eligible\":boolean,\"medium_auto_admitted\":boolean,\"medium_moved_to_todo\":boolean,\"low_parked\":boolean,\"rating_retained_on_attachment\":boolean,\"tidy_checks_codebase_drift\":boolean}."
+    },
+    {
+      "id": "failed-resolve",
+      "question": "An autonomous medium-confidence resolve-attempt has actually failed to close the human decision. Return {\"park\":boolean,\"root_cause\":string,\"wtf_surfaces_park\":boolean,\"later_human_resolution_uses_unpark\":boolean}."
+    },
+    {
+      "id": "marker-effects",
+      "question": "Return {\"chosen_reopened_by_reader\":boolean,\"punt_blocks_build_past_decision\":boolean,\"assumes_presence_checked_before_build\":boolean,\"missing_assumption_parks\":boolean,\"unmarked_tradeoff_valid\":boolean,\"collect_punts_and_assumptions_at_top_level\":boolean}."
+    },
+    {
+      "id": "punt-owner",
+      "question": "A Punt ends in (decides: any); another has (Decides: product); a third uses a valid free-form handle. Return {\"any_owner\":string,\"wrong_case_owner\":string,\"free_form_allowed\":boolean,\"owner_changes_gate\":boolean,\"owner_in_contract_json\":boolean,\"parse_across_lines\":boolean}."
+    },
+    {
+      "id": "ratifier-authority",
+      "question": "An autonomous dispatcher sees an inherited Chosen (ratified: human) and an untagged Chosen that a model likes. Return {\"carry_inherited_tag\":boolean,\"add_tag_to_untagged_choice\":boolean,\"absence_means_agent_chosen\":boolean,\"tag_changes_design_objection_gate\":boolean,\"tag_in_contract_json\":boolean,\"new_tag_requires_human_live_say_so\":boolean}."
+    },
+    {
+      "id": "provenance",
+      "question": "Supplied identify output has harness codex and unresolved model; supplied version output is unresolved. This is git-only mode. Return {\"model_text\":string,\"version_text\":string,\"omit_harness_model_segment\":boolean,\"include_full_spec_tracker_sentence\":boolean,\"stamp_directly_under_h1\":boolean,\"prep_adds_provenance_present\":boolean,\"harness_model_and_version_are_gate_inputs\":boolean}."
+    },
+    {
+      "id": "rendering-authority",
+      "question": "Return {\"terminal_normalised\":boolean,\"tracker_description_normalised\":boolean,\"tracker_comment_normalised\":boolean,\"skill_source_exempt\":boolean,\"internal_faff_log_exempt\":boolean,\"central_emit_exists\":boolean,\"inline_catalogue_extension_allowed\":boolean,\"pipeline_branches_on_rendering_contract\":boolean}."
+    },
+    {
+      "id": "rendering-and-writing",
+      "question": "Return {\"issue_gloss_includes_plain_description_and_unlock_consequence\":boolean,\"invented_labels_allowed\":boolean,\"cross_reference_restates_subject\":boolean,\"descriptive_table_lead_column\":boolean,\"redundant_ticket_restatement_required\":boolean}."
+    },
+    {
+      "id": "slot-validation-procedure",
+      "question": "A foreign occupant needs first-use validation. Return {\"invoke_authoring_validate_face\":boolean,\"pass_occupant_and_slot\":boolean,\"cache_fail_verdict_this_run\":boolean}."
+    },
+    {
+      "id": "producer-fallbacks",
+      "question": "A spec producer emits prose but no readiness block; a native delivery tool cannot emit its block. Return {\"spec_prose_extraction_allowed\":boolean,\"spec_fused_wrapper_allowed\":boolean,\"delivery_fused_wrapper_allowed\":boolean}."
+    },
+    {
+      "id": "ci-and-holdout",
+      "question": "Apply the supplied kernel wording. Return {\"ci_green_requires_nonempty_set\":boolean,\"ci_green_requires_all_passing_terminal\":boolean,\"pending_check_satisfies_floor\":boolean,\"failed_check_satisfies_floor\":boolean,\"below_l4_provisions_holdout_env\":boolean,\"l4_holdout_required_verdict\":string}."
+    },
+    {
+      "id": "spec-durable-authority",
+      "question": "Return {\"medium_attempts_resolution_before_failed_attempt_park\":boolean,\"ratification_durable_path\":string,\"ratification_durable_tag\":string,\"confidence_line_at_spec_end\":boolean,\"confidence_line_authoritative\":boolean}."
+    },
+    {
+      "id": "provenance-ownership",
+      "question": "Return {\"prep_detects_stamp_with_deterministic_regex\":boolean,\"spec_producer_supplies_provenance_present\":boolean,\"missing_stamp_can_invalidate_readiness\":boolean}."
+    }
+  ]
+}

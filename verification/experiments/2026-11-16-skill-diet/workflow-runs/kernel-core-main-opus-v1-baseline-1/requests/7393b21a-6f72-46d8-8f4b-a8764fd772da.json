@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"readiness-missing-marker","text":"```faff-contract:spec-readiness\n{\"confidence\":\"high\",\"decisions\":[{\"marker\":\"none\"}]}\n```\n"}}

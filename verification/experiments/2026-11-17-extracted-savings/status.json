@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "42b02efc67b2d08162dc10237bc7f5fc2e6f0bc6",
+  "base": "cd633ecf2fc24e175b2146e6af6bb551fcb9dffb",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -9,110 +9,73 @@
   },
   "current_main": {
     "files": 41,
-    "bytes": 1270849,
-    "estimated_tokens": 314980
+    "bytes": 1259503,
+    "estimated_tokens": 312185
   },
   "landed_savings": {
-    "bytes": 101232,
-    "estimated_tokens": 24949
+    "bytes": 112578,
+    "estimated_tokens": 27744
   },
   "pending_extractions": [
     {
-      "skill": "kernel configuration",
-      "pr": "https://github.com/shftwst/faff/pull/1209",
-      "head": "ec3ef82a02ab928995b9e3443050301e30b0a9f9",
-      "path": "plugin/skills/faff/references/kernel.md",
+      "skill": "rendering",
+      "pr": "https://github.com/shftwst/faff/pull/1210",
+      "head": "939b98ac81b0cf19e38f46198772a20af5a872d2",
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
       "before": {
-        "bytes": 94998,
-        "estimated_tokens": 23548,
-        "sha256": "d8cd2bd9cf7e0d78534ae3a56bd46fdff148bfaf1ed168f9592fe3d1f26f908b"
+        "bytes": 21133,
+        "estimated_tokens": 5179,
+        "sha256": "71a385627cab006746af22cc0c46bbb81f8bcd787539c3aa3be158659a1dd75f"
       },
       "after": {
-        "bytes": 83652,
-        "estimated_tokens": 20753,
-        "sha256": "aa76c16a0d51ee966c3e77cf5df8564834966173f08dd2100da174b82c97ac89"
+        "bytes": 11291,
+        "estimated_tokens": 2778,
+        "sha256": "9c9fc6eae6ca1de5032d4cb0b3bd495defe578642906ba86d81a803243b87f0c"
       },
       "saved": {
-        "bytes": 11346,
-        "estimated_tokens": 2795
-      },
-      "source_binding": {
-        "configuration_section_matches_measured_candidate": true,
-        "all_other_bytes_match_main": true,
-        "qualified_candidate_sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
-        "preserved_main_change": "Interactive next-step offer introductory paragraph simplification,420bytes"
+        "bytes": 9842,
+        "estimated_tokens": 2401
       },
       "historical_fidelity": {
         "model": "claude-opus-5-5",
         "runs_per_arm": 5,
-        "before": {
-          "configuration_executions_passed": 45,
-          "configuration_executions_total": 45,
-          "decisions_passed": 120,
-          "decisions_total": 120
-        },
-        "after": {
-          "configuration_executions_passed": 45,
-          "configuration_executions_total": 45,
-          "decisions_passed": 120,
-          "decisions_total": 120
-        },
-        "native_audit": "pass",
-        "qualification_commit": "d4c11473f64f93da4287af48282393eb21c126d5",
-        "scope": "Bounded real config/dispatch CLI and separate policy decisions; downstream stubs, no complete caller workflow/statistical equivalence claim"
+        "artifacts_per_arm": "45/45",
+        "raw_decisions_per_arm": "95/100",
+        "assessed_decisions_per_arm": "100/100",
+        "assessment": "Previously recorded Markdown-heading-marker equivalence",
+        "qualification_commit": "dfbf747ee28f399d569b0299dd10b999b8dafcb4",
+        "scope": "Bounded text transforms with common voice guidance; no complete caller, gateway injection or statistical equivalence claim"
+      },
+      "integration": {
+        "from_heading": "## Synthesis: the issue-gloss contract",
+        "to_heading": "## Synthesis \u2014 the issue-gloss contract",
+        "added_bytes": 3,
+        "reversal_equals_qualified": true,
+        "root_approved": true
       },
       "local_checks": {
-        "tests_passed": 151,
+        "tests_passed": 179,
         "adapter_lint": "pass",
         "rule_inventory": "pass"
       },
-      "ci": {
-        "status": "awaiting-macos-runner",
-        "all_four_unit_shards": "pass",
-        "node24_source_lane": "pass",
-        "validate": "pass",
-        "failed_checks": [],
-        "remaining": [
-          {
-            "name": "validate-macos",
-            "status": "queued"
-          }
-        ]
-      },
       "new_model_samples": 0,
-      "status": "open-pr-not-landed",
-      "ci_followup": {
-        "cause": "The kernel line baseline was left at465 while the file shrank to435lines. Existing zero-headroom test failed.",
-        "fix": "Lower KERNEL_LINE_BASELINE to435; preserve the merged gateway baseline62.",
-        "prompt_bytes_unchanged": true,
-        "tests_passed": 151,
-        "integration_checks_passed": 14,
-        "commit": "ec3ef82a02ab928995b9e3443050301e30b0a9f9",
-        "ci": "The previously failing shard and Node24 source-lane job pass; macOS remains queued."
+      "status": "open",
+      "ci": {
+        "status": "pass"
       }
     }
   ],
   "pending_savings": {
-    "bytes": 11346,
-    "estimated_tokens": 2795
+    "bytes": 9842,
+    "estimated_tokens": 2401
   },
   "limits": [
-    "Kernel PR1209 has not merged; the gateway and adversarial PRs have merged. Historical measured source and its recorded limitations remain unchanged.",
+    "PRs 1207, 1208 and 1209 have merged. Historical measurements retain their recorded limits.",
     "No raw runs, harness or bulk evidence imported into implementation branches.",
     "Optional documentation, tests and rule inventories are not runtime prompt savings.",
     "#1203 remains draft; other implemented or held cuts are not promoted by these extractions."
   ],
   "next_candidates_not_counted": [
-    {
-      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
-      "qualified_candidate": "rendering-v2.md",
-      "qualified_sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4",
-      "main_bytes": 21133,
-      "historical_candidate_bytes": 11288,
-      "nominal_saving_bytes": 9845,
-      "integration_note": "Overlaps recent paragraph edits. Reconcile rather than replacing blindly; remeasure final source.",
-      "qualification_commit": "dfbf747ee28f399d569b0299dd10b999b8dafcb4"
-    },
     {
       "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
       "qualified_candidate": "thematic-v1.md",
@@ -125,8 +88,8 @@
     }
   ],
   "projected_after_all_prs": {
-    "bytes": 1259503,
-    "estimated_tokens": 312185
+    "bytes": 1249661,
+    "estimated_tokens": 309784
   },
   "landed_extractions": [
     {
@@ -239,6 +202,101 @@
         ]
       },
       "merge_commit": "42b02efc67b2d08162dc10237bc7f5fc2e6f0bc6"
+    },
+    {
+      "skill": "kernel configuration",
+      "pr": "https://github.com/shftwst/faff/pull/1209",
+      "head": "ec3ef82a02ab928995b9e3443050301e30b0a9f9",
+      "path": "plugin/skills/faff/references/kernel.md",
+      "before": {
+        "bytes": 94998,
+        "estimated_tokens": 23548,
+        "sha256": "d8cd2bd9cf7e0d78534ae3a56bd46fdff148bfaf1ed168f9592fe3d1f26f908b"
+      },
+      "after": {
+        "bytes": 83652,
+        "estimated_tokens": 20753,
+        "sha256": "aa76c16a0d51ee966c3e77cf5df8564834966173f08dd2100da174b82c97ac89"
+      },
+      "saved": {
+        "bytes": 11346,
+        "estimated_tokens": 2795
+      },
+      "source_binding": {
+        "configuration_section_matches_measured_candidate": true,
+        "all_other_bytes_match_main": true,
+        "qualified_candidate_sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+        "preserved_main_change": "Interactive next-step offer introductory paragraph simplification, 420 bytes"
+      },
+      "historical_fidelity": {
+        "model": "claude-opus-5-5",
+        "runs_per_arm": 5,
+        "before": {
+          "configuration_executions_passed": 45,
+          "configuration_executions_total": 45,
+          "decisions_passed": 120,
+          "decisions_total": 120
+        },
+        "after": {
+          "configuration_executions_passed": 45,
+          "configuration_executions_total": 45,
+          "decisions_passed": 120,
+          "decisions_total": 120
+        },
+        "native_audit": "pass",
+        "qualification_commit": "d4c11473f64f93da4287af48282393eb21c126d5",
+        "scope": "Bounded real config/dispatch CLI and separate policy decisions; downstream stubs, no complete caller workflow/statistical equivalence claim"
+      },
+      "local_checks": {
+        "tests_passed": 151,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass"
+      },
+      "ci": {
+        "status": "merged-after-linux-checks",
+        "all_four_unit_shards": "pass",
+        "node24_source_lane": "pass",
+        "validate": "pass",
+        "failed_checks": [],
+        "remaining": [],
+        "macos": "cancelled"
+      },
+      "new_model_samples": 0,
+      "status": "merged",
+      "ci_followup": {
+        "cause": "The kernel line baseline remained at 465 while the file shrank to 435 lines. The existing zero-headroom test failed.",
+        "fix": "Lower KERNEL_LINE_BASELINE to 435; preserve the gateway baseline of 62.",
+        "prompt_bytes_unchanged": true,
+        "tests_passed": 151,
+        "integration_checks_passed": 14,
+        "commit": "ec3ef82a02ab928995b9e3443050301e30b0a9f9",
+        "ci": "The previously failing shard and Node 24 source-lane job passed; macOS was cancelled after merge."
+      },
+      "merge_commit": "cd633ecf2fc24e175b2146e6af6bb551fcb9dffb"
+    }
+  ],
+  "local_not_counted": [
+    {
+      "skill": "thematic",
+      "head": "b6012dfe40d4a25dbbf414b27a557a74c270c5be",
+      "saved": {
+        "bytes": 3672,
+        "estimated_tokens": 896
+      },
+      "status": "fresh one-pair Opus diagnostic in progress; previous five-sample evidence separate"
+    },
+    {
+      "skill": "default review",
+      "head": "ce7faa9fef82aa8806f47aadb6344fc390f03f2d",
+      "saved": {
+        "bytes": 5320,
+        "estimated_tokens": 1309
+      },
+      "status": "held: fresh Opus baseline manual title equality failure; candidate not launched",
+      "raw_baseline": "27/27",
+      "manual_baseline": "Four artifacts contain five prose/JSON title mismatches",
+      "native_baseline": "pass",
+      "retry_count": 0
     }
   ]
 }

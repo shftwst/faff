@@ -1,0 +1,20 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "gates",
+      "run",
+      "--root",
+      "/var/tmp/graft-checkpoint-ZXmOJR/dispatched-pass",
+      "--json"
+    ],
+    "stdin": "",
+    "cwd": "/var/tmp/graft-checkpoint-ZXmOJR/dispatched-pass",
+    "exit_code": 0,
+    "stdout": "{\n  \"signal\": \"pass\",\n  \"discovery\": \"confident\",\n  \"coverage\": {\n    \"eligible_steps\": 0,\n    \"recognised_steps\": 0,\n    \"ratio\": 1\n  },\n  \"exclusions\": [],\n  \"rungs\": [\n    {\n      \"kind\": \"LINT\",\n      \"name\": \"lint (package.json: npm run lint)\",\n      \"command\": \"npm run lint\",\n      \"status\": \"pass\",\n      \"duration_ms\": 71,\n      \"detail\": \"\\n> lint\\n> node fixture-check.cjs lint\\n\\nlint fixture executed\\n\"\n    },\n    {\n      \"kind\": \"UNIT\",\n      \"name\": \"unit (package.json: npm run test)\",\n      \"command\": \"npm run test\",\n      \"status\": \"pass\",\n      \"duration_ms\": 70,\n      \"detail\": \"\\n> test\\n> node fixture-check.cjs test\\n\\ntest fixture executed\\n\"\n    }\n  ],\n  \"partialWarning\": false,\n  \"contract\": {\n    \"signal\": \"pass\",\n    \"rungs\": [\n      {\n        \"kind\": \"LINT\",\n        \"status\": \"pass\"\n      },\n      {\n        \"kind\": \"UNIT\",\n        \"status\": \"pass\"\n      }\n    ]\n  }\n}\n",
+    "stderr": "",
+    "error": null
+  }
+}

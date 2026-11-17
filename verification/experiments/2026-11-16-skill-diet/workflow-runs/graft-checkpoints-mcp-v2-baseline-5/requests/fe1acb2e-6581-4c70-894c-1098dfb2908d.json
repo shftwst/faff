@@ -1,0 +1,1 @@
+{"name":"run_command","args":{"case_id":"evidence-tamper","command_id":"verify-return","input":"{\"issue\":\"FAFF-9\",\"ac_checklist\":{\"present\":true,\"sha256\":\"f23aeeb06d1d0f42c2844c1355873cd8496f9fc3b8b5847b440100942b140a47\"},\"review_verdict\":{\"present\":false,\"sha256\":null},\"human_only_acs\":{\"present\":false,\"sha256\":null}}\n"}}

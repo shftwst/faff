@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "evidence",
+      "write",
+      "human-only-acs",
+      "--run-dir",
+      "/var/tmp/graft-checkpoint-ZXmOJR/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+      "--issue",
+      "FAFF-9"
+    ],
+    "stdin": "{\"human_only_ac_ids\":[\"faff-9#ac-2\"]}",
+    "cwd": "/var/tmp/graft-checkpoint-ZXmOJR/dispatched-pass",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "faff evidence write human-only-acs: refused: missing required property \"issue\"\nfaff evidence write human-only-acs: refused: missing required property \"level\"\nfaff evidence write human-only-acs: refused: missing required property \"unattended\"\nfaff evidence write human-only-acs: refused: missing required property \"human_only\"\n",
+    "error": null
+  }
+}

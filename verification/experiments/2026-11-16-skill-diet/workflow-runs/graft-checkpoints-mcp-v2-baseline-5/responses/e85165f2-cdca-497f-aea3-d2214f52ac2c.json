@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc100",
+      "--root",
+      "/var/tmp/graft-checkpoint-fmldT1/reconciliation/actual/mixed-ledger"
+    ],
+    "input": "{\"type\":\"ledger-write\",\"data\":{\"fields\":[\"admitted\",\"outcomes\",\"review_adversarial_skipped\",\"review_outage_pending\",\"landing_resumable\",\"post_merge_verification_failures\",\"post_merge_verification_unverified\",\"outcome_details\"]}}",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "- phase 'undefined' not in Phase {run, tidy, prep, build, plot}\n",
+    "error": null,
+    "ledger_before_sha256": "855b4e0857b5ae9e84a13f1b0d582872c1017abf81a2714767129440e901ca81",
+    "ledger_after_sha256": "855b4e0857b5ae9e84a13f1b0d582872c1017abf81a2714767129440e901ca81",
+    "prior_events_sha256": "1daf2d1c5f48ad5979adcc7b0e9c2807d15504db58596d89c7bda0c6b2f73045",
+    "events_after_sha256": "1daf2d1c5f48ad5979adcc7b0e9c2807d15504db58596d89c7bda0c6b2f73045",
+    "appended": []
+  }
+}

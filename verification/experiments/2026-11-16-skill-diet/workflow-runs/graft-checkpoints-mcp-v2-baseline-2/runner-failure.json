@@ -1,0 +1,5 @@
+{
+  "status": "fail",
+  "error": "Command '['/usr/local/bin/node', '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/codex-mcp-native-audit.mjs', '/Users/shftwst/.codex/sessions/2026/11/17/rollout-2026-11-17T03-11-37-01a1e77d-179f-7281-a103-3241759fc2e1.jsonl', '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-2', '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/graft-gates-evidence-v2-with-context-draft.md', '/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-2/native-audit.json']' returned non-zero exit status 1.",
+  "policy": "Retain the failed sample and stop; no replacement or waiver."
+}

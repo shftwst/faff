@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "scope": "Native structured transport and unchanged mailbox attribution. Semantic fidelity, case completion and production runtime binding require the separately recorded workflow grade and integration checks. No reasoning or tool content is exported.",
+  "auditor_sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+  "source_sha256": "9d55981aa1b92c133156977851b071e50084968d75bd68d188d59c541708cd6c",
+  "evidence_hashes": {
+    "task.json": "b75f11af9c4e9a22fc1ceee965fabd57134fd8ec567f9a49448540a6b57f8b6e",
+    "startup-binding.json": "f4006281c47e5cdc1b228c3fb9f4576f9727ad20deac11d1aa40b5484e2a05cb",
+    "worker-manifest.json": "d6128d668c15a3a7c2ecb2ae61dad50ca0eac56305ab09de065c62538c3189b4",
+    "worker-final-state.json": "8f5276ebe145d5ef24a4047b06949b23a016276aa0b945e0813297d67946a0fe",
+    "mcp-server-manifest.json": "788289eb048678f41442749c4346faca262f6f0a174e45ffee7e093678a79d15",
+    "mcp-trace.jsonl": "866c13c40b598ff7e7b3e7a897e7229479ef385b640a722ed4c4e447b14d08f8",
+    "mcp-protocol-errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "capture.json": "f17cacda99adc38715f891025e2492dcaa84ee5cbfc8bf9415ec5be4d4edf7a1",
+    "report.json": "dc39d3d3dd50a4e1bcc5b609a4c3aa78c0e3c0abd77be2ad563f41c84ae929a8"
+  },
+  "runs": [
+    {
+      "status": "fail",
+      "session_id": "01a1e77d-1797-7fe1-850e-07886291fbc9",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-3/task.json",
+          "complete": false,
+          "sha256": null
+        }
+      ],
+      "native_calls": 128,
+      "mcp_calls": 125,
+      "policy_reads": 70,
+      "problems": [
+        {
+          "code": "missing-duplicate-or-malformed-native-result",
+          "detail": null
+        },
+        {
+          "code": "initial-read-missing-incomplete-or-truncated",
+          "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-3/task.json"
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 84
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 84
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 84
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 100
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 100
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 100
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 101
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 101
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 101
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 108
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 108
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 108
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 115
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 115
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 115
+        },
+        {
+          "code": "reported-policy-delivery-differs",
+          "detail": null
+        },
+        {
+          "code": "bridge-report-differs",
+          "detail": null
+        },
+        {
+          "code": "capture-operation-bijection-differs",
+          "detail": null
+        }
+      ]
+    }
+  ]
+}

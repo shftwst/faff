@@ -1,0 +1,72 @@
+{
+  "arm": "baseline",
+  "requested_model": "gpt-6.1-sol",
+  "effort": "medium",
+  "codex_cli": "0.169.0",
+  "harness_command": [
+    "/usr/local/bin/node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/graft-checkpoint-execution.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/graft-gates-evidence-v2-with-context-draft.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v1-draft.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-4"
+  ],
+  "runner_sha256": "08f0a8c3644e916a1ab317985423fb7f570d4b9f1ec979afc6c4758be1424053",
+  "server_sha256": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+  "server_tools": [
+    "read_policy",
+    "run_command",
+    "submit_result",
+    "answer_rule",
+    "finish",
+    "read_ledger",
+    "write_ledger",
+    "append_event"
+  ],
+  "prompt_sha256": "67af38b7bda5cd44fec01d589e3d5e02fdb3368919f2da8dafdd7059e2878da8",
+  "reads": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-4/task.json",
+      "sha256": "10c8d027b6e6d483e42fcecf19e052ab9fbeada19e202cd6c7723af4cf3984ef"
+    }
+  ],
+  "command": [
+    "codex",
+    "exec",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-c",
+    "approval_policy=\"never\"",
+    "-c",
+    "mcp_servers.measurement={command=\"/usr/local/bin/node\",args=[\"/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs\", \"/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-4\"],cwd=\"/tmp/faff-mcp-measure-zj8rra88/cwd\",enabled=true,default_tools_approval_mode=\"approve\",startup_timeout_sec=20,tool_timeout_sec=120,enabled_tools=[\"read_policy\", \"run_command\", \"submit_result\", \"answer_rule\", \"finish\", \"read_ledger\", \"write_ledger\", \"append_event\"]}",
+    "--sandbox",
+    "workspace-write",
+    "--cd",
+    "/tmp/faff-mcp-measure-zj8rra88/cwd",
+    "--add-dir",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-4",
+    "--json",
+    "--output-last-message",
+    "/tmp/faff-mcp-measure-zj8rra88/final.txt",
+    "-"
+  ],
+  "provider_usage": "unmetered",
+  "private_native_capture": "/tmp/faff-mcp-measure-zj8rra88",
+  "context_reset_requested": true,
+  "plan_sha256": "c161ded3286e67e009a68c0ba9c9e3326d5dc248331cbe4a5ebaee5ccffed185"
+}

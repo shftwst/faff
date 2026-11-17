@@ -90,3 +90,13 @@ Private PrepV2+GraftV3 lint/inventory passed, but seven of eleven source-wiring 
 Latest potential totals across three non-overlapping drafts: 36,999 bytes / 9,098 estimated tokens (gates 11,920/2,932; prep 10,431/2,572; merge 14,648/3,594). None is installed, counted or measured yet. Main accepted total remains 117,251 bytes / 28,868 tokens.
 
 V2 final prelaunch review passes, SHA `7f446f0b75d0101993a905ee45d70b5c46f38808ba6c0cb585a88953d4c6fb40`. Exact old/new plan differences and all 59 inputs verified; pinned runtime binds 578 plugin artifacts. Five original Sol-medium baseline samples are now running through V5, exec session 45974. Launch receipt: `graft-checkpoints-mcp-v2-baseline-launch-receipt.json`. Candidate remains unlaunched until all baseline gates/manual reviews pass. Do not edit frozen helpers/plans/policies/fixtures or stage active sample directories.
+
+## Graft baseline V2 hold
+
+All five originals finished, runner45974 exited1. Every native audit failed because the outer functions.exec result truncated the initial task JSON. The inner exec_command12000-size check did not test that outer serialized-result budget (about10000); its claimed completeness was correctly scoped to the inner call but insufficient for launch. This is a measurement defect. Preserve all five runs and source/plan bytes; candidate was never launched, source never installed, savings unchanged.
+
+`graft-checkpoints-mcp-v2-hold.json` SHA `efb54de2b27a10da50c4e4e040f40f440bd6045220532b09845c365cbe91adc0` binds all runs and the three independent manual records. Original raw counts: zero of40 execution cases,30 of30 decisions, zero of5native passes. Actual positive lane/dispatcher consumer paths succeeded, but incomplete task caused guessed absence IDs, missing execution/ledger fields and unsupported completion claims. Reviews also isolate exact-note/extra-field shape checks from supported facts; do not regrade or qualify this cohort. The hold records observed native token counters (mostly cached repeated context), not billing.
+
+Next transport work is NEW unregistered `graft-checkpoint-execution-v2.mjs`: a small initial task plus exact per-case input delivery through a captured read_case port. Sol implements mechanical delivery only, with no lossy fields/argv, policy or grade relaxation, or model launch. Verify full outer-wrapper delivery. A separate bounded review identifies accidental exact-match grader constraints for future experiments. V2 stays held; no retries, replacement samples, candidate launch or source acceptance.
+
+Private PrepV3/Graft-mergeV3 integration remains green and unmeasured. Current accepted total remains117251bytes/28868tokens; future draft potential remains36999bytes/9098tokens. No active model workers.

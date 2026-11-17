@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "scope": "Native structured transport and unchanged mailbox attribution. Semantic fidelity, case completion and production runtime binding require the separately recorded workflow grade and integration checks. No reasoning or tool content is exported.",
+  "auditor_sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+  "source_sha256": "bbcae9b6a9168495c6c1f5ff36bf170520137991b6fb5ade6daa3ebf9ff55aac",
+  "evidence_hashes": {
+    "task.json": "ed6b4dac9144204f1e1c12604ddb1230d5f729b15b3af54d2bd27c75ccfa4665",
+    "startup-binding.json": "744ea916b51d7c3bd3ae9af7ac0d39ee603cb7eacc850b12d5ee2319ce3b7fa0",
+    "worker-manifest.json": "bd004fabd25228a3732f05ccc8633730be63f834aeddaaa392dc0edcb599d928",
+    "worker-final-state.json": "5a30d95662be91cbb6104da7f5c94de50016e0a546b2704c281d2cec6c070738",
+    "mcp-server-manifest.json": "947e325e7a394c5eb51403f4a0f191d228415666682c35ad581aa81326d4e9d5",
+    "mcp-trace.jsonl": "406c653b09d5f221456575fb65c2f0d19275f8ce7aeeca56d62b334d85e58f44",
+    "mcp-protocol-errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "capture.json": "f0c1b6c2c7e70c49f1ecb6ace5ec7fd174109666a649070a41faaf9dbe80fda1",
+    "report.json": "4b5836b31fe757de88f74604bdca71afa75b192408cc26a4f3c6a00e3b57684e"
+  },
+  "runs": [
+    {
+      "status": "fail",
+      "session_id": "01a1e77d-17a4-7741-baa6-d3ccca393957",
+      "model_ids": [
+        "gpt-6.1-sol"
+      ],
+      "efforts": [
+        "medium"
+      ],
+      "versions": [
+        "0.169.0"
+      ],
+      "base_instruction_hashes": [
+        "d7f4e2a97f86048ae05e687ed20b0abed4a38442ac8aa2868b5a09bdb855e518"
+      ],
+      "initial_reads": [
+        {
+          "path": "/Users/shftwst/.agents/AGENTS.md",
+          "complete": true,
+          "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+          "complete": true,
+          "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+        },
+        {
+          "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-1/task.json",
+          "complete": false,
+          "sha256": null
+        }
+      ],
+      "native_calls": 127,
+      "mcp_calls": 124,
+      "policy_reads": 70,
+      "problems": [
+        {
+          "code": "missing-duplicate-or-malformed-native-result",
+          "detail": null
+        },
+        {
+          "code": "initial-read-missing-incomplete-or-truncated",
+          "detail": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/graft-checkpoints-mcp-v2-baseline-1/task.json"
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 83
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 83
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 83
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 99
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 99
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 99
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 100
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 100
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 100
+        },
+        {
+          "code": "trace-order-or-error",
+          "detail": 114
+        },
+        {
+          "code": "mailbox-response-differs",
+          "detail": 114
+        },
+        {
+          "code": "native-mcp-result-differs",
+          "detail": 114
+        },
+        {
+          "code": "reported-policy-delivery-differs",
+          "detail": null
+        },
+        {
+          "code": "bridge-report-differs",
+          "detail": null
+        },
+        {
+          "code": "capture-operation-bijection-differs",
+          "detail": null
+        }
+      ]
+    }
+  ]
+}

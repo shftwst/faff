@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"gate-failure","result":{"continued":false,"gate_contract":"{\"signal\":\"fail\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"fail\"}],\"conformant\":true,\"violations\":[]}\n","follow_up":"Fix the failing lint rung and rerun gates before AC verification or review; no repair is supplied."}}}

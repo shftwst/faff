@@ -1,0 +1,36 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc100",
+      "--root",
+      "/var/tmp/graft-checkpoint-lxB2ps/reconciliation/actual/mixed-ledger"
+    ],
+    "input": "{\"type\":\"ledger-write\",\"phase\":\"run\",\"data\":{}}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":4,\"ts\":\"2026-11-17T03:19:09.612Z\",\"prev\":\"30d29a4a3cabf829bc59838da30ca3d897b0925677df075cf2f2dff611e96f2a\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"591e9fbbbf89b54393b3babb092a27e74e7df6153557ff8b3b57fd92afa5142b\"}}\n",
+    "stderr": "faff events append: run-ledger.json schema: post_merge_verification_failures[0]: additional property \"verdict\" not allowed\n",
+    "error": null,
+    "ledger_before_sha256": "591e9fbbbf89b54393b3babb092a27e74e7df6153557ff8b3b57fd92afa5142b",
+    "ledger_after_sha256": "591e9fbbbf89b54393b3babb092a27e74e7df6153557ff8b3b57fd92afa5142b",
+    "prior_events_sha256": "d117fd8cd71c0b60a2ba0ca839a295229c261e0a4329b27d22e0729149483ec3",
+    "events_after_sha256": "8ed63aa456a7a8a99fec37427addf550a5c0b6f0c76f6b35d331ece32c33eeca",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 4,
+        "ts": "2026-11-17T03:19:09.612Z",
+        "prev": "30d29a4a3cabf829bc59838da30ca3d897b0925677df075cf2f2dff611e96f2a",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "591e9fbbbf89b54393b3babb092a27e74e7df6153557ff8b3b57fd92afa5142b"
+        }
+      }
+    ]
+  }
+}

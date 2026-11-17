@@ -1,0 +1,39 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc100",
+      "--root",
+      "/var/tmp/graft-checkpoint-fmldT1/reconciliation/actual/mixed-ledger"
+    ],
+    "input": "{\"type\":\"ledger-write\",\"phase\":\"run\",\"data\":{\"fields\":[\"admitted\",\"outcomes\",\"review_adversarial_skipped\",\"review_outage_pending\",\"landing_resumable\",\"post_merge_verification_failures\",\"post_merge_verification_unverified\",\"outcome_details\"]}}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":3,\"ts\":\"2026-11-17T03:18:44.965Z\",\"prev\":\"896348fbeb6db79894ef97ae63e90ab10be63ca82dc667e139798aaa4596ebf9\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"dropped_keys\":[\"fields\"],\"ledger_sha256\":\"855b4e0857b5ae9e84a13f1b0d582872c1017abf81a2714767129440e901ca81\"}}\n",
+    "stderr": "faff events append: dropped data key(s) {fields} not in the ledger-write schema\nfaff events append: run-ledger.json schema: post_merge_verification_failures[0]: expected type object, got string\n",
+    "error": null,
+    "ledger_before_sha256": "855b4e0857b5ae9e84a13f1b0d582872c1017abf81a2714767129440e901ca81",
+    "ledger_after_sha256": "855b4e0857b5ae9e84a13f1b0d582872c1017abf81a2714767129440e901ca81",
+    "prior_events_sha256": "1daf2d1c5f48ad5979adcc7b0e9c2807d15504db58596d89c7bda0c6b2f73045",
+    "events_after_sha256": "9ae0b8895e9bce476b891597a6b1e39337b25f0a6f6f558d9e42b0a002ef2df6",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 3,
+        "ts": "2026-11-17T03:18:44.965Z",
+        "prev": "896348fbeb6db79894ef97ae63e90ab10be63ca82dc667e139798aaa4596ebf9",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "dropped_keys": [
+            "fields"
+          ],
+          "ledger_sha256": "855b4e0857b5ae9e84a13f1b0d582872c1017abf81a2714767129440e901ca81"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "evidence",
+      "return",
+      "--run-dir",
+      "/var/tmp/graft-checkpoint-l2WWpH/evidence-refusal/.faff/runs/run-20260101-000000-beepboop-list-evidence-refusal",
+      "--issue",
+      "FAFF-9"
+    ],
+    "stdin": "",
+    "cwd": "/var/tmp/graft-checkpoint-l2WWpH/evidence-refusal",
+    "exit_code": 0,
+    "stdout": "{\"issue\":\"FAFF-9\",\"ac_checklist\":{\"present\":false,\"sha256\":null},\"review_verdict\":{\"present\":false,\"sha256\":null},\"human_only_acs\":{\"present\":false,\"sha256\":null}}\n",
+    "stderr": "",
+    "error": null
+  }
+}

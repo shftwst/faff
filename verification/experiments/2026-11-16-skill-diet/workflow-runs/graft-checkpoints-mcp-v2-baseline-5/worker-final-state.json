@@ -1,0 +1,9 @@
+{
+  "exit_code": 0,
+  "thread_ids": [
+    "01a1e77d-179a-7b82-8215-59e77f0cef4b"
+  ],
+  "elapsed_seconds": 490.6,
+  "stdout_sha256": "a922f8da5615bb417209e8eb094afb211d50969ce0ff93104b00b3546623530e",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

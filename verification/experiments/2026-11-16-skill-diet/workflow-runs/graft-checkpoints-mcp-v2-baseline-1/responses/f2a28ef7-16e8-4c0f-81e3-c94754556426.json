@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "evidence",
+      "write",
+      "review-verdict",
+      "--terminal-only",
+      "--run-dir",
+      "/var/tmp/graft-checkpoint-lxB2ps/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+      "--issue",
+      "FAFF-9"
+    ],
+    "stdin": "{\"signal\":\"pass\",\"findings\":[]}",
+    "cwd": "/var/tmp/graft-checkpoint-lxB2ps/dispatched-pass",
+    "exit_code": 0,
+    "stdout": "/var/tmp/graft-checkpoint-lxB2ps/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/review-verdict.json\n",
+    "stderr": "",
+    "error": null
+  }
+}

@@ -1,0 +1,1 @@
+{"name":"submit_result","args":{"case_id":"mixed-ledger","result":{"reconciled":true,"complete":true,"discovered_tickets":["NEW-1","NEW-2"],"prep_held":["PREP-OUT","PREP-SLOW"]}}}

@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "evidence",
+      "return",
+      "--run-dir",
+      "/var/tmp/graft-checkpoint-l2WWpH/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+      "--issue",
+      "FAFF-9"
+    ],
+    "stdin": "",
+    "cwd": "/var/tmp/graft-checkpoint-l2WWpH/dispatched-pass",
+    "exit_code": 0,
+    "stdout": "{\"issue\":\"FAFF-9\",\"ac_checklist\":{\"present\":true,\"sha256\":\"28d7e8e1be5468af8fd12e5b72bb91ee17d7f814c45e4273563932243abe267d\"},\"review_verdict\":{\"present\":true,\"sha256\":\"1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc\"},\"human_only_acs\":{\"present\":true,\"sha256\":\"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\"}}\n",
+    "stderr": "",
+    "error": null
+  }
+}

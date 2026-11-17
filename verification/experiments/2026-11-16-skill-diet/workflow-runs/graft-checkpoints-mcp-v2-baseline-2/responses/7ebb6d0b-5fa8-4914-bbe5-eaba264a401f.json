@@ -1,0 +1,23 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc100",
+      "--root",
+      "/var/tmp/graft-checkpoint-l2WWpH/reconciliation/actual/mixed-ledger"
+    ],
+    "input": "{\"type\":\"ledger-write\",\"data\":{\"outcomes\":{\"SKIP-1\":\"shipped\",\"HOLD-1\":\"parked\",\"LAND-1\":\"pr-open\",\"HUMAN-1\":\"pr-open\",\"POST-1\":\"shipped\",\"UNKNOWN-1\":\"shipped\",\"RESOLVE-1\":\"parked\",\"SUPER-1\":\"superseded\"}}}",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "- phase 'undefined' not in Phase {run, tidy, prep, build, plot}\n",
+    "error": null,
+    "ledger_before_sha256": "a6fcd7523d0dd00398e201c7bc2ba1192db0df701c39fbb102fe97b3e8181eed",
+    "ledger_after_sha256": "a6fcd7523d0dd00398e201c7bc2ba1192db0df701c39fbb102fe97b3e8181eed",
+    "prior_events_sha256": "83b01cf36be8b30fb1040943140f3e91f47f2347cab33c01d2f2090db70705ba",
+    "events_after_sha256": "83b01cf36be8b30fb1040943140f3e91f47f2347cab33c01d2f2090db70705ba",
+    "appended": []
+  }
+}

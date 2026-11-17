@@ -1,0 +1,36 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc100",
+      "--root",
+      "/var/tmp/graft-checkpoint-mOxjhv/reconciliation/actual/mixed-ledger"
+    ],
+    "input": "{\"phase\":\"run\",\"type\":\"ledger-write\"}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc100\",\"seq\":3,\"ts\":\"2026-11-17T03:58:25.168Z\",\"prev\":\"dbab2ea28f1246af2781f1ae95edfea2290f846424402f169f4cc525ca6eb9a9\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"29a7d695b35054924bb0cd48de719b4aca7ed89ba4d88eb4ea8fe2e4e5d3c754\"}}\n",
+    "stderr": "",
+    "error": null,
+    "ledger_before_sha256": "29a7d695b35054924bb0cd48de719b4aca7ed89ba4d88eb4ea8fe2e4e5d3c754",
+    "ledger_after_sha256": "29a7d695b35054924bb0cd48de719b4aca7ed89ba4d88eb4ea8fe2e4e5d3c754",
+    "prior_events_sha256": "10e35eb57f11e1e4a6d241146ed0caa9a48453dc6e235e09aa1ec5593b64dc5e",
+    "events_after_sha256": "d273b9eff7cc413488e59c5aaf08da30c308eb77d9357629d6e2e84c51349911",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc100",
+        "seq": 3,
+        "ts": "2026-11-17T03:58:25.168Z",
+        "prev": "dbab2ea28f1246af2781f1ae95edfea2290f846424402f169f4cc525ca6eb9a9",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "29a7d695b35054924bb0cd48de719b4aca7ed89ba4d88eb4ea8fe2e4e5d3c754"
+        }
+      }
+    ]
+  }
+}

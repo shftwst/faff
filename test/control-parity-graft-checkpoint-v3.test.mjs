@@ -1,0 +1,135 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync, writeFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { spawnSync } from 'node:child_process';
+import { createGraftCheckpointEnvironment, gradeGraftCheckpoints } from '../eval/control-parity/graft-checkpoint-execution-v3.mjs';
+const root = resolve(import.meta.dirname, '..'), E = join(root, 'verification/experiments/2026-11-16-skill-diet');
+const fixture = JSON.parse(readFileSync(join(E, 'workflow-fixtures/graft-checkpoints-v3-draft.json')));
+const plan = JSON.parse(readFileSync(join(E, 'graft-checkpoints-mcp-v2-baseline-plan.json')));
+
+function environment(t, id) {
+  const directory = mkdtempSync('/var/tmp/graft-v3-test-');
+  t.after(() => rmSync(directory, { recursive: true, force: true }));
+  const bounded = { ...fixture, cases: fixture.cases.filter(row => row.id === id), reconciliation: null, rule_cases: [] };
+  return { fixture: bounded, env: createGraftCheckpointEnvironment({ directory, runtimeRoot: plan.runtime_root, fixture: bounded }) };
+}
+
+test('controlled PR dependency owns human-only production from real captured spec, run and config facts', async t => {
+  const { fixture: bounded, env } = environment(t, 'dispatched-pass');
+  const row = await env.call('read_case', { case_id: 'dispatched-pass' });
+  assert.ok(!row.commands.some(command => command.id === 'write-human'));
+  const command = (command_id, input = '') => env.call('run_command', { case_id: row.id, command_id, input });
+  await command('heartbeat');
+  const gates = await command('gates');
+  await command('heartbeat');
+  await command('quality-contract', JSON.stringify(JSON.parse(gates.stdout).contract));
+  await command('spec-verify');
+  const classified = JSON.parse((await command('classify')).stdout).criteria;
+  const checked = await command('check-ac');
+  const locator = JSON.stringify(JSON.parse(row.source.check_locator)).replaceAll(',', ', ');
+  const criteria = classified.map((ac, index) => ({ ac: ac.text, ac_id: ac.ac_id, passed: index === 0, verified: index === 0 ? 'Arithmetic command passed: ' + checked.stdout.trim() : 'Needs human verification: published prices were not inspected', verifications: index === 0 ? [{ kind: 'command', locator }] : [{ kind: 'human' }] }));
+  assert.equal((await command('write-ac', JSON.stringify({ all_verified: true, criteria }))).exit_code, 1);
+  assert.equal((await command('write-ac', JSON.stringify({ all_verified: false, criteria }))).exit_code, 0);
+  await command('render-ac');
+  await command('review-handoff');
+  assert.ok(!Object.keys(env.capture().cases[0].lane.files).some(path => path.endsWith('/human-only-acs.json')));
+  const pr = await command('pr-handoff');
+  assert.equal(pr.exit_code, 0);
+  assert.deepEqual(JSON.parse(pr.stdout).warnings, []);
+  assert.equal(pr.prior_commands.length, 2);
+  assert.ok(pr.prior_commands.every(command => command.exit_code === 0));
+  const actualClassify = pr.prior_commands[0], actualWriter = pr.prior_commands[1];
+  assert.ok(actualClassify.argv.includes(join(row.root, '.faff/graft/FAFF-9/captured-spec.md')));
+  assert.equal(readFileSync(join(row.root, '.faff/graft/FAFF-9/captured-spec.md'), 'utf8'), row.source.spec);
+  const require = createRequire(import.meta.url), loadConfig = require(join(plan.runtime_root, 'plugin/skills/faff/bin/lib/config.js')).loadConfig;
+  const resolveUnattended = require(join(plan.runtime_root, 'plugin/skills/faff/bin/lib/merge-gate-floor.js')).resolveUnattended;
+  const ledger = JSON.parse(readFileSync(join(row.run_dir, 'run-ledger.json')));
+  const expected = { issue: 'FAFF-9', level: ledger.level, unattended: resolveUnattended(ledger.level, loadConfig(row.root)[0]), human_only: JSON.parse(actualClassify.stdout).criteria.filter(ac => ac.source === 'done' && ac.human_only).map(ac => ac.ac_id) };
+  assert.deepEqual(JSON.parse(actualWriter.stdin), expected);
+  const persisted = JSON.parse(readFileSync(join(row.run_dir, 'FAFF-9/human-only-acs.json')));
+  for (const [key, value] of Object.entries(expected)) assert.deepEqual(persisted[key], value);
+  const returned = await command('evidence-return');
+  await env.call('submit_result', { case_id: row.id, result: { issue: 'FAFF-9', pr: 11, token: 'pr-ready', evidence_return: returned.stdout, follow_up: 'Dispatcher receives the handoff; no lane merge was performed.' } });
+  await env.call('finish', {});
+  const capture = env.capture(), consumers = env.consume(), grade = gradeGraftCheckpoints(capture, consumers, bounded);
+  assert.equal(grade.status, 'pass', JSON.stringify({ grade, consumers }));
+  assert.equal(grade.manual_grounding_required, true);
+  assert.equal(consumers[0].status, 'refused');
+  assert.equal(consumers[0].merge_check.exit_code, 1);
+  const merge = JSON.parse(consumers[0].merge_check.stdout);
+  for (const [key, expected] of Object.entries(bounded.local_consumer_expected)) assert.deepEqual(merge[key], expected);
+  assert.equal(consumers[0].after.refs.main, capture.cases[0].initial_refs.main);
+  const unresolved = structuredClone(capture);
+  const writes = unresolved.cases[0].operations.filter(op => op.command_id === 'write-ac');
+  unresolved.cases[0].operations = unresolved.cases[0].operations.filter(op => op !== writes[1]);
+  const unresolvedGrade = gradeGraftCheckpoints(unresolved, consumers, bounded);
+  assert.ok(unresolvedGrade.cases[0].problems.includes('unresolved-ac-writer-refusal'));
+  assert.ok(unresolvedGrade.cases[0].problems.includes('unresolved-failed-prerequisite'));
+  const continued = structuredClone(capture);
+  const refusedIndex = continued.cases[0].operations.findIndex(op => op.command_id === 'write-ac');
+  continued.cases[0].operations.splice(refusedIndex + 1, 0, structuredClone(continued.cases[0].operations.find(op => op.command_id === 'render-ac')));
+  assert.ok(gradeGraftCheckpoints(continued, consumers, bounded).cases[0].problems.includes('unresolved-failed-prerequisite'));
+
+  assert.deepEqual(capture.cases[0].lane.counters, { lint: 1, test: 1 });
+  for (const field of ['issue', 'pr', 'token', 'evidence_return']) {
+    const omitted = structuredClone(capture); delete omitted.cases[0].result[field];
+    assert.equal(gradeGraftCheckpoints(omitted, consumers, bounded).status, 'fail', field + ' remains required');
+  }
+  const wrong = structuredClone(capture);
+  const acFile = Object.entries(wrong.cases[0].lane.files).find(([path]) => path.endsWith('/ac-checklist.json'))[1];
+  const content = JSON.parse(acFile.text); content.criteria[0].verifications[0].locator = JSON.stringify(['/wrong/node', '-e', '2+2']); acFile.text = JSON.stringify(content);
+  assert.ok(gradeGraftCheckpoints(wrong, consumers, bounded).cases[0].problems.includes('machine-method-provenance'));
+  const anchor = consumers[0].anchor.argv.at(-1);
+  const anchoredAc = join(anchor, 'ac-checklist.json');
+  rmSync(anchoredAc);
+  const processEnv = { PATH: process.env.PATH, GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: 'commit.gpgsign', GIT_CONFIG_VALUE_0: 'false' };
+  const run = (exe, args) => spawnSync(exe, args, { cwd: row.root, env: processEnv, encoding: 'utf8' });
+  assert.equal(run('git', ['add', '-u', '--', anchoredAc]).status, 0);
+  assert.equal(run('git', ['commit', '-qm', 'fixture remove anchored checklist']).status, 0);
+  const negative = run(consumers[0].merge_check.executable, consumers[0].merge_check.argv);
+  assert.equal(negative.status, 1);
+  const negativeResult = JSON.parse(negative.stdout);
+  assert.equal(negativeResult.merged, false);
+  assert.ok(negativeResult.blockers.includes(merge.blockers[0]));
+  assert.deepEqual(negativeResult.blockers, merge.blockers, 'AC body is consumed from run-dir, not the anchor copy');
+  assert.equal(run('git', ['restore', '--source=HEAD~1', '--staged', '--worktree', '--', anchoredAc]).status, 0);
+  assert.equal(run('git', ['commit', '-qm', 'fixture restore anchored checklist']).status, 0);
+  const liveAc = join(row.run_dir, 'FAFF-9/ac-checklist.json');
+  rmSync(liveAc);
+  const refsBeforeNegative = run('git', ['show-ref', '--heads']).stdout;
+  const actualNegative = run(consumers[0].merge_check.executable, consumers[0].merge_check.argv);
+  assert.equal(actualNegative.status, 1);
+  const actualNegativeResult = JSON.parse(actualNegative.stdout);
+  assert.equal(actualNegativeResult.merged, false);
+  assert.ok(actualNegativeResult.blockers.includes(merge.blockers[0]));
+  assert.ok(actualNegativeResult.blockers.some(blocker => !merge.blockers.includes(blocker) && /AC|checklist|acceptance/i.test(blocker)), JSON.stringify(actualNegativeResult));
+  assert.equal(run('git', ['show-ref', '--heads']).stdout, refsBeforeNegative);
+  t.diagnostic(JSON.stringify({ consumer_source_discovery: { removed_committed_anchor_path: anchoredAc, exit_code: negative.status, stdout: negative.stdout }, actual_consumer_negative: { argv: consumers[0].merge_check.argv, removed_live_input: liveAc, anchor_restored_before_probe: true, exit_code: actualNegative.status, stdout: actualNegative.stdout, stderr: actualNegative.stderr, refs_unchanged: true } }));
+  writeFileSync(join(row.root, '.faff/config.local.yaml'), 'autonomous:\n  unattended: false\n');
+  const attended = await command('pr-handoff');
+  assert.equal(JSON.parse(attended.prior_commands[1].stdin).unattended, false, 'handoff reads actual config rather than the first expected value');
+  const heartbeat = require(join(plan.runtime_root, 'plugin/skills/faff/bin/lib/heartbeat.js'));
+  assert.throws(() => heartbeat.mutateLedgerUnderLock(row.run_dir, current => ({ ...current, level: 'L4' })), /level is write-once/);
+  const afterRefusedLevelChange = await command('pr-handoff');
+  assert.equal(JSON.parse(afterRefusedLevelChange.prior_commands[1].stdin).level, 'L3');
+  assert.equal(JSON.parse(afterRefusedLevelChange.prior_commands[1].stdin).unattended, false, 'writer continues to use preserved actual L3 and attended config');
+});
+
+test('gate diagnostic optional grounded follow-up is allowed while exact contract remains required', async t => {
+  const { fixture: bounded, env } = environment(t, 'gate-none');
+  await env.call('read_case', { case_id: 'gate-none' });
+  const command = (command_id, input = '') => env.call('run_command', { case_id: 'gate-none', command_id, input });
+  const gates = await command('gates');
+  const contract = await command('quality-contract', JSON.stringify(JSON.parse(gates.stdout).contract));
+  await env.call('submit_result', { case_id: 'gate-none', result: { continued: false, gate_contract: contract.stdout, follow_up: 'No declared gates; the validator refused the empty-rung needs-human contract.' } });
+  await env.call('finish', {});
+  const capture = env.capture(), consumers = env.consume();
+  assert.equal(gradeGraftCheckpoints(capture, consumers, bounded).status, 'pass');
+  assert.equal(gradeGraftCheckpoints(capture, consumers, bounded).manual_grounding_required, true);
+  for (const field of ['continued', 'gate_contract']) {
+    const omitted = structuredClone(capture); delete omitted.cases[0].result[field];
+    assert.equal(gradeGraftCheckpoints(omitted, consumers, bounded).status, 'fail');
+  }
+});

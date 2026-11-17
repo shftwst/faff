@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "status": "held-real-consumer-refusal",
+  "scope": "First zero-model V3 development attempt, retained unchanged. Not a model result, historical regrade or source acceptance.",
+  "harness_sha256_as_executed": "c10a3ff8c46c3df5cdd814c98b33aca7feb9c7531c01c61d349321e0228f285f",
+  "fixture_sha256_as_executed": "1c0ffd6694104c53751e42a3ced9382d21b1a12cdffa75de0b15915f58d88f31",
+  "workflow_status": "fail",
+  "case_results": [
+    {
+      "id": "dispatched-pass",
+      "kind": "execution",
+      "pass": false,
+      "problems": [
+        "dispatcher-consumers"
+      ]
+    },
+    {
+      "id": "gate-failure",
+      "kind": "execution",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "gate-none",
+      "kind": "execution",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "evidence-absence",
+      "kind": "execution",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "evidence-refusal",
+      "kind": "execution",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "evidence-tamper",
+      "kind": "execution",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "mixed-ledger",
+      "kind": "execution",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "incomplete-ledger",
+      "kind": "execution",
+      "pass": true,
+      "problems": []
+    },
+    {
+      "id": "dispatched-merge-owner",
+      "kind": "decision",
+      "pass": true
+    },
+    {
+      "id": "human-only-checklist",
+      "kind": "decision",
+      "pass": true
+    },
+    {
+      "id": "incomplete-gates",
+      "kind": "decision",
+      "pass": true
+    },
+    {
+      "id": "raw-pr-ready",
+      "kind": "decision",
+      "pass": true
+    },
+    {
+      "id": "retry-return",
+      "kind": "decision",
+      "pass": true
+    },
+    {
+      "id": "evidence-return-scope",
+      "kind": "decision",
+      "pass": true
+    }
+  ],
+  "consumer_exit_code": 1,
+  "consumer_result": {
+    "verdict": "refuse",
+    "blockers": [
+      "corrective-artifact integrity unasserted at L3 (FAFF-325): no trusted attestation declaration \u2014 refused (defence-in-depth; the run-start preflight should already have caught this)"
+    ],
+    "merged": false,
+    "ci_state": "ci-green",
+    "head_sha": "6c4c866e341cf4b638bf00b31ffa0fce82e0a53c",
+    "integrity": "unasserted",
+    "ac_called_out": [
+      "faff-9#ac-2"
+    ],
+    "warnings": [],
+    "holdout_posture": "pass-through",
+    "holdout_missing": [
+      "no-born-verifiable-dod-or-standable-sut",
+      "no-proven-cage"
+    ],
+    "holdout_fault": []
+  },
+  "classification": "Actual configured unattended L3 floor refuses unasserted corrective-artifact integrity. Holdout remains pass-through. No trusted attestation fabricated; root owns workload resolution.",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-1/manifest.json",
+      "sha256": "33e27a4529373aeaf826ab9cd694b9748a1a021272e6aa1a9ba21d314f1c7eba"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-1/task.json",
+      "sha256": "0bdf579a454e0e7f382658ba3cfe8b3b4f805e302f2620ecb0e65ff4805f5ebe"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-1/capture.json",
+      "sha256": "cbe66c9a9226a111ae6339020f0ce8ed4722ff2d1bb5154b1c7197d7eda74c42"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-1/consumers.json",
+      "sha256": "64219cc2b99f846b0bbc7145e20d69813f7be0bb46d8c6da91bf9d5b5290bbf0"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-1/report.json",
+      "sha256": "f247587e5e3d97e283e83a4b5acf895910fb89e66e63e6d111e30f9700e90539"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-1/preflight.json",
+      "sha256": "592a5848a2a5eeacb6202f46a809f53600423e414bdd966a7b8e967cc4de6022"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-1/mcp-trace.jsonl",
+      "sha256": "9c77ae178a34c1ed2f2cf64f7bb66f0d9ccd60e5a43fe320764366c68ed77e42"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-1/mcp-server-manifest.json",
+      "sha256": "0529dcc88cd23b4ba7298df3b90d9db667e7ade41b9b9c08c25e09692e617e20"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-v3-development-20261117-1.txt",
+      "sha256": "ae01a9e0224174e53a555e775ab6e21380d1be05acff35413407771e13a0cae9"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-v3-development-20261117-2.txt",
+      "sha256": "9aa0324ccd78ef1f0ee559037285eecb275dea8fade4da2cf8c47896f16dcd82"
+    }
+  ]
+}

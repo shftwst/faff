@@ -1,0 +1,259 @@
+[
+  {
+    "id": "dispatched-pass",
+    "status": "refused",
+    "verify": {
+      "executable": "/usr/local/bin/node",
+      "argv": [
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "evidence",
+        "verify-return",
+        "--run-dir",
+        "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+        "--issue",
+        "FAFF-9"
+      ],
+      "stdin": "{\"issue\":\"FAFF-9\",\"ac_checklist\":{\"present\":true,\"sha256\":\"a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c\"},\"review_verdict\":{\"present\":true,\"sha256\":\"1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc\"},\"human_only_acs\":{\"present\":true,\"sha256\":\"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\"}}\n",
+      "cwd": "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass",
+      "exit_code": 0,
+      "stdout": "{\"verdict\":\"agree\",\"issue\":\"FAFF-9\",\"files\":[{\"file\":\"ac-checklist.json\",\"returned_present\":true,\"disk_present\":true,\"returned_sha256\":\"a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c\",\"disk_sha256\":\"a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c\",\"result\":\"match\"},{\"file\":\"review-verdict.json\",\"returned_present\":true,\"disk_present\":true,\"returned_sha256\":\"1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc\",\"disk_sha256\":\"1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc\",\"result\":\"match\"},{\"file\":\"human-only-acs.json\",\"returned_present\":true,\"disk_present\":true,\"returned_sha256\":\"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\",\"disk_sha256\":\"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\",\"result\":\"match\"}],\"evidence_persisted\":{\"issue\":\"FAFF-9\",\"ac_sha256\":\"a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c\",\"review_verdict_sha256\":\"1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc\",\"human_only_acs_sha256\":\"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\"},\"park_cause\":null,\"paths\":[],\"tampered_paths\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    "witness": {
+      "written": true,
+      "yielded": false,
+      "before_sha256": "2ad3d9cd4ee80a9daf3b5e040c5bdb4ce1544e6fa89a2821828019a2baad7598",
+      "after_sha256": "21c0403a26e8fd1a7757df7ab775b8fcd5ad932bc0c74f06367c1f6a83aaa73f"
+    },
+    "against_ledger": {
+      "executable": "/usr/local/bin/node",
+      "argv": [
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "evidence",
+        "verify-return",
+        "--against-ledger",
+        "--run-dir",
+        "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+        "--issue",
+        "FAFF-9"
+      ],
+      "stdin": "",
+      "cwd": "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass",
+      "exit_code": 0,
+      "stdout": "{\"verdict\":\"agree\",\"issue\":\"FAFF-9\",\"files\":[{\"file\":\"ac-checklist.json\",\"returned_present\":true,\"disk_present\":true,\"returned_sha256\":\"a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c\",\"disk_sha256\":\"a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c\",\"result\":\"match\"},{\"file\":\"review-verdict.json\",\"returned_present\":true,\"disk_present\":true,\"returned_sha256\":\"1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc\",\"disk_sha256\":\"1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc\",\"result\":\"match\"},{\"file\":\"human-only-acs.json\",\"returned_present\":true,\"disk_present\":true,\"returned_sha256\":\"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\",\"disk_sha256\":\"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\",\"result\":\"match\"}],\"evidence_persisted\":{\"issue\":\"FAFF-9\",\"ac_sha256\":\"a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c\",\"review_verdict_sha256\":\"1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc\",\"human_only_acs_sha256\":\"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\"},\"park_cause\":null,\"paths\":[],\"tampered_paths\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    "anchor": {
+      "executable": "/usr/local/bin/node",
+      "argv": [
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "events",
+        "anchor",
+        "--run-dir",
+        "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+        "--issue",
+        "FAFF-9",
+        "--dest",
+        "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass/.faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9"
+      ],
+      "stdin": "",
+      "cwd": "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass",
+      "exit_code": 0,
+      "stdout": "events anchor: /var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass → /var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass/.faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9 (head_seq 6, head_sha256 6ed9ec5fd924…, 7 lines, schema_floor 2) + ac-checklist.json, review-verdict.json, human-only-acs.json\n",
+      "stderr": "",
+      "error": null
+    },
+    "anchor_add": {
+      "executable": "git",
+      "argv": [
+        "add",
+        "-f",
+        "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass/.faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9"
+      ],
+      "stdin": "",
+      "cwd": "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    "anchor_commit": {
+      "executable": "git",
+      "argv": [
+        "commit",
+        "-qm",
+        "fixture dispatcher anchor"
+      ],
+      "stdin": "",
+      "cwd": "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass",
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "",
+      "error": null
+    },
+    "merge_check": {
+      "executable": "/usr/local/bin/node",
+      "argv": [
+        "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+        "merge-gate",
+        "--local",
+        "--issue",
+        "FAFF-9",
+        "--run-dir",
+        "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+        "--level",
+        "L3",
+        "--branch",
+        "feature",
+        "--base",
+        "main",
+        "--json",
+        "--check-only"
+      ],
+      "stdin": "",
+      "cwd": "/var/tmp/graft-checkpoint-Ms9NfH/dispatched-pass",
+      "exit_code": 1,
+      "stdout": "{\"verdict\":\"refuse\",\"blockers\":[\"corrective-artifact integrity unasserted at L3 (FAFF-325): no trusted attestation declaration — refused (defence-in-depth; the run-start preflight should already have caught this)\"],\"merged\":false,\"ci_state\":\"ci-green\",\"head_sha\":\"62f22e558a3903bb2ab82ea590d405d08c4bb5e0\",\"integrity\":\"unasserted\",\"ac_called_out\":[\"faff-9#ac-2\"],\"warnings\":[],\"holdout_posture\":\"pass-through\",\"holdout_missing\":[\"no-born-verifiable-dod-or-standable-sut\",\"no-proven-cage\"],\"holdout_fault\":[]}\n",
+      "stderr": "",
+      "error": null
+    },
+    "after": {
+      "files": {
+        ".faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/ac-checklist.json": {
+          "text": "{\n  \"schema_version\": 1,\n  \"faff_version\": \"0.45.0\",\n  \"all_verified\": false,\n  \"criteria\": [\n    {\n      \"ac\": \"the supplied arithmetic command MUST pass\",\n      \"verified\": \"Arithmetic command passed: 2+2=4\",\n      \"passed\": true,\n      \"ac_id\": \"faff-9#ac-1\",\n      \"verifications\": [\n        {\n          \"kind\": \"command\",\n          \"locator\": \"[\\\"/usr/local/bin/node\\\", \\\"-e\\\", \\\"if(2+2!==4)process.exit(1);console.log(\\\\\\\"2+2=4\\\\\\\")\\\"]\"\n        }\n      ]\n    },\n    {\n      \"ac\": \"Prices match the published pricing page\",\n      \"verified\": \"Needs human verification: published prices were not inspected\",\n      \"passed\": false,\n      \"ac_id\": \"faff-9#ac-2\",\n      \"verifications\": [\n        {\n          \"kind\": \"human\"\n        }\n      ]\n    }\n  ]\n}\n",
+          "sha256": "a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c"
+        },
+        ".faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/chain-head.json": {
+          "text": "{\n  \"run_id\": \"run-20260101-000000-beepboop-list-dispatched-pass\",\n  \"issue\": \"FAFF-9\",\n  \"head_seq\": 6,\n  \"head_sha256\": \"6ed9ec5fd924162b78103a7e18339a2a472f5c5c55d386251c6c9d6a9d032964\",\n  \"line_count\": 7,\n  \"schema_floor\": 2\n}\n",
+          "sha256": "181fca945cc9e941d5cfb73b166e7cf8c1d44290fb31b32db9892f0708056528"
+        },
+        ".faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/events.jsonl": {
+          "text": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":0,\"ts\":\"2026-11-17T04:00:58.979Z\",\"prev\":\"dd362334329407e4df228a05783c11607409c95db5996c3cdfb44df0319386f7\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"6d9004d1e531ae6ec6d8dc182372cdf997264c111767a88ba8f9461794bb2dd2\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":1,\"ts\":\"2026-11-17T04:00:58.979Z\",\"prev\":\"e15d4fa93892cebfa95779f4a3f8e2312174b15d4214ada49a6aab823834fa4f\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":2,\"ts\":\"2026-11-17T04:00:58.979Z\",\"prev\":\"49a85e15ea08bd8680a75b2aaa2860547963b4bec43d54daf62da5508c9617ca\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":3,\"ts\":\"2026-11-17T04:00:58.996Z\",\"prev\":\"9cc7c853808533ee0329db49cc960fb17a30fb12f62612cb63f405d5ccb0c04d\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"2ad3d9cd4ee80a9daf3b5e040c5bdb4ce1544e6fa89a2821828019a2baad7598\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":4,\"ts\":\"2026-11-17T04:01:05.848Z\",\"prev\":\"364547ff7dc0b36c727955459216212283c262d92ac27daed2aa99624755373b\",\"phase\":\"build\",\"type\":\"evidence-terminal-only\",\"issue\":\"FAFF-9\",\"data\":{\"issue\":\"FAFF-9\",\"writer\":\"faff evidence write review-verdict --terminal-only\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":5,\"ts\":\"2026-11-17T04:01:05.988Z\",\"prev\":\"07a79960d221f7b15ae727ed7c7ae02af4dd18b550f7819ff1bb3343764fd773\",\"phase\":\"build\",\"type\":\"human-only-acs-stamp\",\"issue\":\"FAFF-9\",\"data\":{\"issue\":\"FAFF-9\",\"sha256\":\"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":6,\"ts\":\"2026-11-17T04:01:08.464Z\",\"prev\":\"a986e1e5d63c347876c09f35d42d55f9b357977a2edb9142d992bce8a44aabe6\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"21c0403a26e8fd1a7757df7ab775b8fcd5ad932bc0c74f06367c1f6a83aaa73f\"}}\n",
+          "sha256": "d687177a29c9f53f86459aa55fcadab9a6ec4dc83c906c0543a81eb708498ee3"
+        },
+        ".faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/human-only-acs.json": {
+          "text": "{\n  \"schema_version\": 1,\n  \"faff_version\": \"0.45.0\",\n  \"issue\": \"FAFF-9\",\n  \"level\": \"L3\",\n  \"unattended\": true,\n  \"human_only\": [\n    \"faff-9#ac-2\"\n  ]\n}\n",
+          "sha256": "27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a"
+        },
+        ".faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/review-verdict.json": {
+          "text": "{\n  \"schema_version\": 1,\n  \"faff_version\": \"0.45.0\",\n  \"signal\": \"pass\",\n  \"rounds_total\": 1,\n  \"round_history\": \"terminal-only\",\n  \"findings\": []\n}\n",
+          "sha256": "1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc"
+        },
+        ".faff/anchors/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/run-ledger.json": {
+          "text": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-dispatched-pass\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"FAFF-9\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": \"b32477a598afd860f650a3a3490c91988c90371a\",\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-dispatched-pass\",\n    \"pid\": 1359413,\n    \"started_at\": \"2026-11-17T04:00:58.945Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T04:00:58.945Z\",\n    \"faff_version\": \"0.45.0\"\n  },\n  \"evidence_persisted\": [\n    {\n      \"issue\": \"FAFF-9\",\n      \"ac_sha256\": \"a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c\",\n      \"review_verdict_sha256\": \"1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc\",\n      \"human_only_acs_sha256\": \"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\"\n    }\n  ]\n}\n",
+          "sha256": "21c0403a26e8fd1a7757df7ab775b8fcd5ad932bc0c74f06367c1f6a83aaa73f"
+        },
+        ".faff/config.local.yaml": {
+          "text": "",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        ".faff/config.yaml": {
+          "text": "tracking:\n  tracker: none\nautonomous:\n  unattended: true\n",
+          "sha256": "ed41b55973a437ced0c9264ee5d3e0be9686a719fff4c4dc2b4c7d3be3ce51a5"
+        },
+        ".faff/controlled-pr.json": {
+          "text": "{\n  \"number\": 11,\n  \"state\": \"OPEN\",\n  \"draft\": false,\n  \"controlled\": true\n}\n",
+          "sha256": "b3d218aa49ca0ef0fc63a8c668dc3542136bccad14c43e58c8daf46ba7166d35"
+        },
+        ".faff/graft/FAFF-9/captured-spec.md": {
+          "text": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+          "sha256": "227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a"
+        },
+        ".faff/lint.count": {
+          "text": "2",
+          "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+        },
+        ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/ac-checklist.json": {
+          "text": "{\n  \"schema_version\": 1,\n  \"faff_version\": \"0.45.0\",\n  \"all_verified\": false,\n  \"criteria\": [\n    {\n      \"ac\": \"the supplied arithmetic command MUST pass\",\n      \"verified\": \"Arithmetic command passed: 2+2=4\",\n      \"passed\": true,\n      \"ac_id\": \"faff-9#ac-1\",\n      \"verifications\": [\n        {\n          \"kind\": \"command\",\n          \"locator\": \"[\\\"/usr/local/bin/node\\\", \\\"-e\\\", \\\"if(2+2!==4)process.exit(1);console.log(\\\\\\\"2+2=4\\\\\\\")\\\"]\"\n        }\n      ]\n    },\n    {\n      \"ac\": \"Prices match the published pricing page\",\n      \"verified\": \"Needs human verification: published prices were not inspected\",\n      \"passed\": false,\n      \"ac_id\": \"faff-9#ac-2\",\n      \"verifications\": [\n        {\n          \"kind\": \"human\"\n        }\n      ]\n    }\n  ]\n}\n",
+          "sha256": "a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c"
+        },
+        ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/human-only-acs.json": {
+          "text": "{\n  \"schema_version\": 1,\n  \"faff_version\": \"0.45.0\",\n  \"issue\": \"FAFF-9\",\n  \"level\": \"L3\",\n  \"unattended\": true,\n  \"human_only\": [\n    \"faff-9#ac-2\"\n  ]\n}\n",
+          "sha256": "27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a"
+        },
+        ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/review-verdict.json": {
+          "text": "{\n  \"schema_version\": 1,\n  \"faff_version\": \"0.45.0\",\n  \"signal\": \"pass\",\n  \"rounds_total\": 1,\n  \"round_history\": \"terminal-only\",\n  \"findings\": []\n}\n",
+          "sha256": "1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc"
+        },
+        ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/FAFF-9/spec-commit.json": {
+          "text": "{\n  \"issue\": \"FAFF-9\",\n  \"path\": \"docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md\",\n  \"commit\": \"7713a21eac89275c0f752ae0b7b55d5fd64aa047\",\n  \"committed_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"source_sha256\": \"227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a\",\n  \"holdouts_withheld\": 0,\n  \"source_check\": \"no-marker\",\n  \"faff_version\": \"0.45.0\",\n  \"warnings\": [],\n  \"commit_subject_scheme\": \"conventional\"\n}\n",
+          "sha256": "538aca76588869dd7f7447227966c43b054f9e154bbcdc22df65e8cefeaa28ee"
+        },
+        ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/events.jsonl": {
+          "text": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":0,\"ts\":\"2026-11-17T04:00:58.979Z\",\"prev\":\"dd362334329407e4df228a05783c11607409c95db5996c3cdfb44df0319386f7\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"6d9004d1e531ae6ec6d8dc182372cdf997264c111767a88ba8f9461794bb2dd2\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":1,\"ts\":\"2026-11-17T04:00:58.979Z\",\"prev\":\"e15d4fa93892cebfa95779f4a3f8e2312174b15d4214ada49a6aab823834fa4f\",\"phase\":\"run\",\"type\":\"run-start\",\"data\":{\"level\":\"L3\",\"faff_version\":\"0.45.0\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":2,\"ts\":\"2026-11-17T04:00:58.979Z\",\"prev\":\"49a85e15ea08bd8680a75b2aaa2860547963b4bec43d54daf62da5508c9617ca\",\"phase\":\"run\",\"type\":\"runner-identity\",\"data\":{\"github_login\":null,\"github_login_source\":\"unresolved\",\"credential_source\":\"ambient\",\"credential_unresolved\":false,\"verified\":false}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":3,\"ts\":\"2026-11-17T04:00:58.996Z\",\"prev\":\"9cc7c853808533ee0329db49cc960fb17a30fb12f62612cb63f405d5ccb0c04d\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"2ad3d9cd4ee80a9daf3b5e040c5bdb4ce1544e6fa89a2821828019a2baad7598\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":4,\"ts\":\"2026-11-17T04:01:05.848Z\",\"prev\":\"364547ff7dc0b36c727955459216212283c262d92ac27daed2aa99624755373b\",\"phase\":\"build\",\"type\":\"evidence-terminal-only\",\"issue\":\"FAFF-9\",\"data\":{\"issue\":\"FAFF-9\",\"writer\":\"faff evidence write review-verdict --terminal-only\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":5,\"ts\":\"2026-11-17T04:01:05.988Z\",\"prev\":\"07a79960d221f7b15ae727ed7c7ae02af4dd18b550f7819ff1bb3343764fd773\",\"phase\":\"build\",\"type\":\"human-only-acs-stamp\",\"issue\":\"FAFF-9\",\"data\":{\"issue\":\"FAFF-9\",\"sha256\":\"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\"}}\n{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-dispatched-pass\",\"seq\":6,\"ts\":\"2026-11-17T04:01:08.464Z\",\"prev\":\"a986e1e5d63c347876c09f35d42d55f9b357977a2edb9142d992bce8a44aabe6\",\"phase\":\"run\",\"type\":\"ledger-write\",\"data\":{\"ledger_sha256\":\"21c0403a26e8fd1a7757df7ab775b8fcd5ad932bc0c74f06367c1f6a83aaa73f\"}}\n",
+          "sha256": "d687177a29c9f53f86459aa55fcadab9a6ec4dc83c906c0543a81eb708498ee3"
+        },
+        ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/heartbeat": {
+          "text": "2026-11-17T04:01:05.238Z\n",
+          "sha256": "cd5c6a8d92a8e1745fdbbbcfe1e61f8a094c21edfbf6b16df93c0f46c6acf2e6"
+        },
+        ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/heartbeat.FAFF-9": {
+          "text": "2026-11-17T04:01:05.238Z\n",
+          "sha256": "cd5c6a8d92a8e1745fdbbbcfe1e61f8a094c21edfbf6b16df93c0f46c6acf2e6"
+        },
+        ".faff/runs/run-20260101-000000-beepboop-list-dispatched-pass/run-ledger.json": {
+          "text": "{\n  \"schema_version\": 1,\n  \"run_id\": \"run-20260101-000000-beepboop-list-dispatched-pass\",\n  \"level\": \"L3\",\n  \"admitted\": [\n    \"FAFF-9\"\n  ],\n  \"outcomes\": {},\n  \"base_sha\": \"b32477a598afd860f650a3a3490c91988c90371a\",\n  \"base_sha_required\": true,\n  \"owner\": {\n    \"status\": \"running\",\n    \"session_id\": \"run-20260101-000000-beepboop-list-dispatched-pass\",\n    \"pid\": 1359413,\n    \"started_at\": \"2026-11-17T04:00:58.945Z\",\n    \"utc_offset_min\": 0,\n    \"last_heartbeat\": \"2026-11-17T04:00:58.945Z\",\n    \"faff_version\": \"0.45.0\"\n  },\n  \"evidence_persisted\": [\n    {\n      \"issue\": \"FAFF-9\",\n      \"ac_sha256\": \"a388acddaacd6aa10a047aca6a073c3a62db5bb48f072e920a1e8ed2ec38aa7c\",\n      \"review_verdict_sha256\": \"1e81cb2032b2161103003fe2fe95e353c7e3e5fc16c4314db081583938454efc\",\n      \"human_only_acs_sha256\": \"27f9f744d1f43cf30fede5356f9f5e2b3ea6de2a70e7e3c823905fe1b508274a\"\n    }\n  ]\n}\n",
+          "sha256": "21c0403a26e8fd1a7757df7ab775b8fcd5ad932bc0c74f06367c1f6a83aaa73f"
+        },
+        ".faff/test.count": {
+          "text": "2",
+          "sha256": "d4735e3a265e16eee03f59718b9b5d03019c07d8b6c51f90da3a666eec13ab35"
+        },
+        ".faffrc.yaml": {
+          "text": "",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        ".gitignore": {
+          "text": ".faff/\n",
+          "sha256": "fd75b9c9fc4b3d74564e97af96250e803c0e5888eb57482081cee413aaa06f0a"
+        },
+        "docs/specs/2026-11-17-FAFF-9-checkpoint-fixture-design.md": {
+          "text": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+          "sha256": "227d350789e0e3bbdcfb9ac3ade61756d90d7b85d52fef9b8627b8f656b3832a"
+        },
+        "feature.txt": {
+          "text": "bounded fixture\n",
+          "sha256": "9babcbe17b61e0df0ca96b5553ca292af86cd465eafe5939a0f19de7029e7442"
+        },
+        "fixture-check.cjs": {
+          "text": "const fs=require('node:fs');const name=process.argv[2],p='.faff/'+name+'.count';fs.mkdirSync('.faff',{recursive:true});fs.writeFileSync(p,String((fs.existsSync(p)?Number(fs.readFileSync(p)):0)+1));console.log(name+' fixture executed');\n",
+          "sha256": "0d65d5624dcdca429f5c8eefdb6ed8ecc6fd49fdfdc4f3b0ec387d10063a3499"
+        },
+        "package.json": {
+          "text": "{\n  \"scripts\": {\n    \"lint\": \"node fixture-check.cjs lint\",\n    \"test\": \"node fixture-check.cjs test\"\n  }\n}\n",
+          "sha256": "220c56c178d3257c9ab4846643ecd3cd5cec713056a6cb5c87f7ce4c7134c824"
+        }
+      },
+      "refs": {
+        "main": "b32477a598afd860f650a3a3490c91988c90371a",
+        "feature": "62f22e558a3903bb2ab82ea590d405d08c4bb5e0"
+      },
+      "counters": {
+        "lint": 2,
+        "test": 2
+      }
+    }
+  },
+  {
+    "id": "gate-failure",
+    "status": "not-returned"
+  },
+  {
+    "id": "gate-none",
+    "status": "not-returned"
+  },
+  {
+    "id": "evidence-absence",
+    "status": "not-returned"
+  },
+  {
+    "id": "evidence-refusal",
+    "status": "not-returned"
+  },
+  {
+    "id": "evidence-tamper",
+    "status": "not-returned"
+  }
+]

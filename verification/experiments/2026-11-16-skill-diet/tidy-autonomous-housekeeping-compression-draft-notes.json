@@ -1,0 +1,185 @@
+{
+  "schema": 1,
+  "status": "bounded-read-only-draft-planning",
+  "source_commit": "4dc881e1585e154e2a8a5b32c40db4a275c887e2",
+  "batch": {
+    "name": "Autonomous housekeeping, hold cleanup and stale-claim authority",
+    "source": "plugin/skills/faff-tidy/SKILL.md",
+    "start_line": 256,
+    "end_before_line": 293,
+    "bytes": 12761,
+    "sha256": "8a072c7fcab22924417d5efc83bd5fe6e6d1ecd13d058cc58bf749190085026c",
+    "current_full_skill_bytes": 76028,
+    "whole_autonomous_section_bytes": 24628,
+    "why_coherent": "One bounded authority/condition/action/log policy for existing tracker housekeeping and park/claim predicates. Leave structural graph fixes, container release gating, prep queue, chain-gap ticket creation and final return shape unchanged in this first batch.",
+    "largest_spans": [
+      {
+        "name": "park-label cleanup",
+        "bytes": 4053
+      },
+      {
+        "name": "stale-claim reclaim",
+        "bytes": 4058
+      },
+      {
+        "name": "three stale hold/claim label clears",
+        "bytes": 1912
+      }
+    ]
+  },
+  "compression_opportunities": [
+    {
+      "span": "Not-eligible and curation preamble plus housekeeping explanations",
+      "existing_home": "autonomous.md Automation eligibility/Human curation/Control-label provisioning; build.md Issue claim & status monotonicity; tracker.md Spec discovery",
+      "action": "Retain compact local applicability exceptions and one condition/action/log table. Refer back to already mandatory sources for common authority and label descriptor/ensure rules. Remove history, examples and repeated explanations of why each predicate exists.",
+      "limit": "Do not replace Tidy action list with autonomous.md:59 table: that old row says only archive/reparent, inconsistent with current larger Tidy housekeeping envelope."
+    },
+    {
+      "span": "stale parked-label cleanup4053B",
+      "existing_home": "park-verdict pure CLI and tests, autonomous.md forbidden parks/spec-closed decisions, park.md Unpark protocol",
+      "action": "Use one row per state/verdict/reason class; preserve exact CLI args and actual consulted facts. Replace repetition of predicate cases with command+verdict routes. Keep what Tidy must read and write; code owns classification from those facts.",
+      "retain": [
+        "No In Progress stripping by status alone; draft PR, latest park-comment class and later human takeover feed actual park-verdict.",
+        "Reason-no-longer-applies allows only forbidden-pattern, live completed named blocker or same-topic spec now closed; subjective/vague/missing stays surface-only.",
+        "Tier1 decision-capture remains FAFF_RUN_DIR guarded, per issue, one decide then action after actual disposition, best-effort never a gate.",
+        "Every removal gets specific reason/rule log and tracker comment."
+      ]
+    },
+    {
+      "span": "stale claim reclaim4058B",
+      "existing_home": "build.md:26 canonical stale-claim monotonicity carve-out; actual claim-verdict and build-claim release-if-stale",
+      "action": "One concise source-of-facts paragraph, a live/stale+provenance table, exact TTL and release commands. Remove examples/history and multiple explanations of mutex/concurrency.",
+      "retain": [
+        "Most recent transition INTO In Progress supplies claimed_at; connector no-capability means surface, never fabricated age. Never use Linear issue-level startedAt.",
+        "Only stale+faff-claimed may move In Progress\u2192Todo, and only after rereading live status; absent breadcrumb is surface-only.",
+        "Ref release is lease-matched, machine-aware heartbeat guarded and best-effort. Tidy never acquires build claim.",
+        "Record comment/log counters including real ref_released, and matching decision-capture action."
+      ]
+    },
+    {
+      "span": "three hold/claim stale clears1912B",
+      "existing_home": "autonomous.md:160 machine-owned label definitions and166 descriptor write rules",
+      "action": "One table preserving distinct state sets, label verb, specific resume path and log. Avoid repeating descriptor/ensure rationale.",
+      "retain": [
+        "awaiting-review clear only In Review/Done/Cancelled; remove orphaned resume store.",
+        "awaiting-spec-review clear off Backlog with exact specified states; clear spec-review-hold only or whole empty sibling dir, never convergence scratch.",
+        "claimed breadcrumb clear only named resolved states and preserve live In Progress claim provenance."
+      ]
+    }
+  ],
+  "existing_infrastructure": [
+    {
+      "path": "test/faff-tidy.test.mjs:28",
+      "reuse": "loadFixture/mock tracker, seedRepo, runSkill/scriptedDriver and decision-assert already exercise REAL eligible/next commands and record bucket/mutation attempts in disposable repo. Scenarios include ready promotion and stale parks.",
+      "proof_limit": "Scripted driver mutations/buckets are plumbing proof, not model action judgement. Frozen tracker model records attempts and does not itself prove hosted writes."
+    },
+    {
+      "path": "test/park-verdict.test.mjs:1",
+      "reuse": "Complete deterministic pure predicate/realCLI boundary table; including in-progress protect/strip/surface. No reason to rebuild this decision table in a new adapter."
+    },
+    {
+      "path": "test/claim-verdict.test.mjs:1",
+      "reuse": "Real CLI/pure strict-TTL, negative clock and invalid-source cases. Fixed --now and explicit TTL avoid ambient clock."
+    },
+    {
+      "path": "test/faff-989-decision-capture-driver.test.mjs; test/faff-1009-decision-capture-tier-wiring.test.mjs",
+      "reuse": "Existing capture-driver and skill wiring assertions cover retained best-effort decide/action integration. Reuse relevant source guard checks only after a draft changes those lines, not broad unrelated suites."
+    },
+    {
+      "path": "test/faff-tidy-repeat-park.test.mjs",
+      "reuse": "Already demonstrates real park-history computation and safe recorded demote/tag action pattern; useful existing fixture technique if a later batch touches repeat-park. Not needed for this chosen earlier housekeeping range."
+    },
+    {
+      "path": "eval/live-driver.mjs:61",
+      "reuse": "Existing model-backed judgement driver and skill harness can measure backlog classification rubric.",
+      "proof_limit": "It is not a ready full autonomous housekeeping executor; it does not prove actual model obeys mutation authority for this chosen batch. Do not relabel existing classification or scripted-driver output as that proof."
+    }
+  ],
+  "irreducible_source_facts_and_judgement": [
+    "Tracker freshness and comments/spec discovery remain mandatory; canonicalise only a genuinely discovered spec, never a description.",
+    "Eligibility authority differs from mechanical housekeeping: not-eligible skips prep tagging/promotion but may receive bounded nonpipeline housekeeping while retaining eligibility.",
+    "Recognising human curation, classifying a park comment, matching same closed spec topic and determining later human takeover remain source-based judgement/observation. Pure verdict tests cannot establish that supplied facts are true.",
+    "Archive/cancel vocabulary and obvious-orphan exceptions must be preserved exactly; do not broaden permitted mutation through a generic safe-housekeeping label."
+  ],
+  "existing_ambiguities_to_preserve_and_disclose": [
+    "Current claim paragraph says git-only tracker writes no-op but ref release still runs; its trailing paragraph says git-only no reclaim path. A compression cannot silently pick one as a new policy. Preserve this as a separate source inconsistency for root adjudication if this exact branch enters the candidate.",
+    "The final Never in autonomous mode ban on label/grouping changes is broad while earlier bullets define bounded exceptions. Preserve those explicit exceptions; do not erase them by referring only to the broad ban.",
+    "Shared autonomous.md Tidy summary row is narrower/stale. Current explicit Tidy contract, not that row alone, supplies local action authority."
+  ],
+  "cost_effective_next_step": "Root may draft this12.8KB coherent batch with a small authority/action table and refer-backs, then perform bounded source review and only affected existing source-wiring/CLI tests. No new bespoke harness is required for that draft/deterministic integration. If accepted model fidelity is desired, existing generic tracker/CLI record seams are reusable, but a truthful new registered model action workload is still needed; no fully ready workflow proof was found and no framework should be built merely to justify every sentence.",
+  "limits": [
+    "Read selected Tidy autonomous/configuration text and named canonical/test excerpts only, not every skill paragraph or full test implementation.",
+    "No model calls, tests, source or frozen-input edits. This is opportunity research, not a candidate or savings qualification.",
+    "Byte spans are current gross text sizes, not guaranteed safe savings or billed compute estimates."
+  ],
+  "inputs": [
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "sha256": "9e2d98e3f7d1de13c74866115cd433ae62854f95e2bf2ae4617185d24123d757"
+    },
+    {
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "sha256": "b0e0ef32be783ffa5be27ab74db987ef347fedf1a75dd16bab5db030304d85d7"
+    },
+    {
+      "path": "plugin/skills/faff/references/build.md",
+      "sha256": "16760ea2fcff5f06ba910049e51736db01178e72b287f7e09a115946098630b9"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331"
+    },
+    {
+      "path": "plugin/skills/faff/references/tracker.md",
+      "sha256": "f98c08368032e6c4053800551a64b7927439a16f7f57c02925c4e0f37847289c"
+    },
+    {
+      "path": "plugin/skills/faff/references/park.md",
+      "sha256": "0a59cc9f746bc416dd693f249b7b3c844c85cb8ce660db0f7a907b3387c8ff43"
+    },
+    {
+      "path": "test/faff-tidy.test.mjs",
+      "sha256": "fdae9a473f63c0f5ace60e8fc879dfbb2033cbf1935e270f20faaf40102f0e5d"
+    },
+    {
+      "path": "test/faff-tidy-repeat-park.test.mjs",
+      "sha256": "fd7d57f37c41fd5b63893d6f34a6f0a746d980e4fb01b3de92e6a19aa95c3a18"
+    },
+    {
+      "path": "test/helpers/skill-harness.mjs",
+      "sha256": "6477d23f31d79e343290d90fdbb95a533db36dc899917864f8680d9b3289faca"
+    },
+    {
+      "path": "test/helpers/mock-tracker.mjs",
+      "sha256": "846cce88298774fc3f9fdf409c364f4525f4c8286b5095281805211a09e27bc3"
+    },
+    {
+      "path": "test/helpers/seed-repo.mjs",
+      "sha256": "d2c37fdf86479cdf9008651d6bab52260cd12eaa3812e7be0a5395b51467c0c1"
+    },
+    {
+      "path": "test/helpers/decision-assert.mjs",
+      "sha256": "44d377d9c2b3890f00e548d513a3aa4ac74e4a1b6743c7642a4290e2307f04db"
+    },
+    {
+      "path": "eval/live-driver.mjs",
+      "sha256": "219c0397323595c8ed11eb123de3344c4ba9b0ddb66d87cb9a6093ae39025783"
+    },
+    {
+      "path": "test/park-verdict.test.mjs",
+      "sha256": "6e5924baec81d19d9eddd96ea92bc552e6dd5bd65be93cd1afd7ec8b8c6674af"
+    },
+    {
+      "path": "test/claim-verdict.test.mjs",
+      "sha256": "0f3f9168ba4ab3fa548eb90729c7e6b6dbd263c86248bc42da08e72cf4dda15c"
+    },
+    {
+      "path": "test/faff-989-decision-capture-driver.test.mjs",
+      "sha256": "bbeec43e07cf2cbb6f5b70cf3ba5993d578663749ab9f94eb6fe71f1b0f23710"
+    },
+    {
+      "path": "test/faff-1009-decision-capture-tier-wiring.test.mjs",
+      "sha256": "8f708913f5d21610f7432272f85b2c29f7a7562c380e52e56afeddf695901633"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "evidence",
+      "render",
+      "ac-checklist",
+      "--run-dir",
+      "/var/tmp/graft-checkpoint-dZGICt/dispatched-pass/.faff/runs/run-20260101-000000-beepboop-list-dispatched-pass",
+      "--issue",
+      "FAFF-9"
+    ],
+    "stdin": "",
+    "cwd": "/var/tmp/graft-checkpoint-dZGICt/dispatched-pass",
+    "exit_code": 0,
+    "stdout": "## Acceptance Criteria\n- [x] `faff-9#ac-1` the supplied arithmetic command MUST pass\n  Verified: Arithmetic command passed: 2+2=4\n  Method: command `[\"/usr/local/bin/node\", \"-e\", \"if(2+2!==4)process.exit(1);console.log(\\\"2+2=4\\\")\"]`\n- [ ] `faff-9#ac-2` Prices match the published pricing page\n  Verified: Needs human verification: published prices were not inspected\n  Method: human\n",
+    "stderr": "",
+    "error": null
+  }
+}

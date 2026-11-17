@@ -1,0 +1,1 @@
+{"name":"run_command","args":{"case_id":"dispatched-pass","command_id":"quality-contract","input":"{\"signal\":\"pass\",\"rungs\":[{\"kind\":\"LINT\",\"status\":\"pass\"},{\"kind\":\"UNIT\",\"status\":\"pass\"}]}"}}

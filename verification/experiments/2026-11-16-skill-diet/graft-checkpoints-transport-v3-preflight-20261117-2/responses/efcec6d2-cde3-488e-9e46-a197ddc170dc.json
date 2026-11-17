@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "evidence",
+      "write",
+      "ac-checklist",
+      "--run-dir",
+      "/var/tmp/graft-checkpoint-mOxjhv/evidence-refusal/.faff/runs/run-20260101-000000-beepboop-list-evidence-refusal",
+      "--issue",
+      "FAFF-9"
+    ],
+    "stdin": "{\"all_verified\":true,\"criteria\":[{\"ac\":\"supplied unverified criterion\",\"verified\":\"not verified\",\"passed\":false,\"ac_id\":\"faff-9#ac-1\",\"verifications\":[{\"kind\":\"human\"}]}]}",
+    "cwd": "/var/tmp/graft-checkpoint-mOxjhv/evidence-refusal",
+    "exit_code": 1,
+    "stdout": "",
+    "stderr": "faff evidence write ac-checklist: refused: all_verified: must equal every criterion passed\n",
+    "error": null
+  }
+}

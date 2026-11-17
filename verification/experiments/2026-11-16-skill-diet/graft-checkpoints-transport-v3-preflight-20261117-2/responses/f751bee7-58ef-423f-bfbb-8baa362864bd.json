@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "value": {
+    "executable": "/usr/local/bin/node",
+    "argv": [
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+      "evidence",
+      "verify-return",
+      "--run-dir",
+      "/var/tmp/graft-checkpoint-mOxjhv/evidence-absence/.faff/runs/run-20260101-000000-beepboop-list-evidence-absence",
+      "--issue",
+      "FAFF-9"
+    ],
+    "stdin": "{\"issue\":\"FAFF-9\",\"ac_checklist\":{\"present\":false,\"sha256\":null},\"review_verdict\":{\"present\":false,\"sha256\":null},\"human_only_acs\":{\"present\":false,\"sha256\":null}}\n",
+    "cwd": "/var/tmp/graft-checkpoint-mOxjhv/evidence-absence",
+    "exit_code": 0,
+    "stdout": "{\"verdict\":\"agree\",\"issue\":\"FAFF-9\",\"files\":[{\"file\":\"ac-checklist.json\",\"returned_present\":false,\"disk_present\":false,\"returned_sha256\":null,\"disk_sha256\":null,\"result\":\"absent-both\"},{\"file\":\"review-verdict.json\",\"returned_present\":false,\"disk_present\":false,\"returned_sha256\":null,\"disk_sha256\":null,\"result\":\"absent-both\"},{\"file\":\"human-only-acs.json\",\"returned_present\":false,\"disk_present\":false,\"returned_sha256\":null,\"disk_sha256\":null,\"result\":\"absent-both\"}],\"evidence_persisted\":null,\"park_cause\":null,\"paths\":[],\"tampered_paths\":[]}\n",
+    "stderr": "",
+    "error": null
+  }
+}

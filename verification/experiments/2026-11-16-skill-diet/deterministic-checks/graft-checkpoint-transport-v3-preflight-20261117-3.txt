@@ -1,0 +1,1 @@
+{"status":"pass","cases":14,"problems":[],"failed":[],"output":"verification/experiments/2026-11-16-skill-diet/graft-checkpoints-transport-v3-preflight-20261117-3"}

@@ -102,40 +102,28 @@ The confidence gate checks internal well-formedness; this gate checks the approa
 
 A **human unpark** ends the old window and the cap count: before the next review round runs, call `"$faff" spec-review round --open-window --dir $scratch` (it refuses unless the loop last stopped on `park` or `judge`). A whole-chain outage (pin + all fallbacks down) is an ordinary all-backends-down `needs-human` via the occupant's transport floor — there is **no** pin-specific park cause. The default single-pass occupant is never governed: pass `--occupant single-pass` and no `--served`.
 
-**Ratified-scope assembly (per round, at the round-loop seam — the design lenses' deferral input).** Assemble the `## Ratified scope` block at the **start of every review round**, immediately **before** the `faff inflightcheck --open --key <ISSUE-XX> --describe spec-review` dispatch below — never once at loop entry (per-round re-reading supersedes the once-at-entry cadence). Re-reading per round is what makes a tradeoff a human ratifies after round one visible in round two of the **same** interactive run. The **call is unconditional** — it runs whether or not a container resolves; only the `--container` argument is conditional. `faff ratified-scope --assemble` reads `docs/decisions.md` directly for the settled-precedents + ratified-tradeoffs half, so a no-PRD interactive prep still assembles and honours the register's human-ratified tradeoffs; the container only gates the PRD-non-goals half. On exit 0, write the block to `$scratch/ratified-scope.md` — the file the occupant appends to all four lenses' `--context` — and fold each stderr warning into the round audit log:
+**Ratified-scope assembly (per round, the design lenses' deferral input).** At the **start of every review round**, immediately before `faff inflightcheck --open --key <ISSUE-XX> --describe spec-review`, gather the resolutions below and run `faff prep-context` once. Never prepare only at loop entry: a human ratification after round one must reach round two. Invoke even when no container resolves or the resolution set is empty.
 
-```bash
-# $scratch is the resolved spec-review scratch dir above; $FAFF_RUN_DIR is the L4 run dir.
-# Run this at the START of every round, before `faff inflightcheck --open`.
-container=""
-[ -n "$FAFF_RUN_DIR" ] && [ -f "$FAFF_RUN_DIR/run-ledger.json" ] && \
-  container=$(node -e 'const l=require(process.argv[1]);process.stdout.write((l&&l.prd_root_container)||"")' "$FAFF_RUN_DIR/run-ledger.json" 2>/dev/null)
-set -- ; [ -n "$container" ] && set -- --container "$container"   # --container is the ONLY conditional part
-"$faff" ratified-scope --assemble "$@" > "$scratch/ratified-scope.md" 2>"$scratch/ratified-scope.stderr"
-rc=$?
-case "$rc" in
-  0) : ;;                                # block written; append each stderr line to the round audit log
-  3) rm -f "$scratch/ratified-scope.md" ;;  # nothing honourable this round — a legitimate empty set, no deferral
-  2) rm -f "$scratch/ratified-scope.md"     # UNREADABLE SOURCE (a FAILED read): do NOT dispatch with a fabricated empty block
-     # -> route this round to needs-human (a corrupt register must never quietly re-enable settled objections)
-     ;;
-esac
-```
+The command rereads `docs/decisions.md` for settled precedents and ratified tradeoffs. The supplied run's ledger contributes the optional PRD container, which gates only PRD non-goals. Missing/unreadable ledger retains the no-container fallback; log any returned warning. The command uses the same `spec-review-dir` scratch path resolved above, assembles fresh context, then folds resolutions with the existing inert renderer. It writes `$scratch/ratified-scope.md` for the occupant to append to **all four lenses' `--context`**.
 
-- **Exit 0** → the block is written; **append each line of `$scratch/ratified-scope.stderr` (the per-honourable-entry no-expiry-enforcement warnings) to the prep round audit log** — a missing warning for a honoured entry is an audit defect even when no objection is ultimately demoted.
-- **Exit 3** (nothing honourable — no PRD non-goals, no scoped precedent, no honourable tradeoff) → no `$scratch/ratified-scope.md`; every lens behaves exactly as today (no deferral). A legitimate empty set.
-- **Exit 2** (source unreadable — a FAILED read, not an empty one) → **route this round to `needs-human`**; do **not** dispatch with a fabricated empty block. This is the one tightening over the prior silent "no file, no deferral" behaviour: a failed read must never be indistinguishable from an empty set.
-
-**Ratified tracker-resolution fold — human resolutions posted in the tracker thread.** At the **same per-round seam**, immediately **after** `--assemble`, gather human-settled Punt/Assumes resolutions posted as `## Decisions-register intent` comments and fold them as inert DATA into the lenses' deferral block. This is **prep-time visibility only**: never write `docs/decisions.md` here; `faff-graft` Step 4c materialises the durable register under human PR review.
+**Ratified tracker-resolution fold (prep-time visibility only).** Human-settled Punt/Assumes resolutions posted as `## Decisions-register intent` comments reach the lenses as inert DATA. `docs/decisions.md` remains the durable record that `faff-graft` Step 4c materialises under human PR review; prep never writes it.
 
 **Gather (path (a) only — marker-gated).** Reusing the enumerate-intent subroutine's fetch (a same-turn `list-comments` reuse, never a second round-trip), enumerate the issue's post-spec `## Decisions-register intent` comments, and for each: pipe its body to `faff decisions intent-status --file -` and **keep only `live`** (drop `superseded` / `not-intent`); **drop any whose author id equals the run automation identity** (the actor prep posts under — defence-in-depth beside the marker gate); take `topic` from the intent's heading topic and `resolved` from its `Chosen:` line. Build a `RatifiedTrackerResolution[]` — `{ topic, resolved, comment_id, author, ts, marker: "intent-live" }` — deduped by topic (latest `ts` wins) — as `$resolutions_json`. A free-form Resolution carrying **no** `## Decisions-register intent` marker is **not** gathered in v1 (the shared-token false-positive surface; see the security Punt in the spec). Git-only mode has no thread → the set is empty → the fold is a no-op.
 
-**Fold (deterministic, fail-closed).** The renderer neutralises every tracker value (newlines collapsed, secrets + directive sentences scrubbed) so folded text is non-instruction-bearing DATA; `--into` appends the subsection to `$scratch/ratified-scope.md`, synthesizing the `## Ratified scope` heading + exported provenance sentence when assemble left no file (exit 3). Skip on the exit-2 route (a corrupt register still parks the round) and on an empty set; a non-zero fold (malformed/oversize) writes nothing. The occupant already appends this file to every lens's `--context`:
+Pass the gathered array (or `[]`) as stdin; supply `--run-dir` only when `$FAFF_RUN_DIR` is set, with the same run directory used to resolve `$scratch`. Here `$issue` is the issue ID and `$repo_root` the repository root:
 
 ```bash
-[ "$rc" != "2" ] && [ -n "$resolutions_json" ] && [ "$resolutions_json" != "[]" ] && \
-  printf '%s' "$resolutions_json" | "$faff" ratified-scope --fold-resolutions --into "$scratch/ratified-scope.md" 2>>"$scratch/ratified-scope.stderr"
+set --
+[ -n "${FAFF_RUN_DIR:-}" ] && set -- --run-dir "$FAFF_RUN_DIR"
+printf '%s' "${resolutions_json:-[]}" | "$faff" prep-context --issue "$issue" --root "$repo_root" \
+  "$@" --resolutions-file -
 ```
+
+The command collapses newlines and scrubs secrets/directive sentences from tracker values. It synthesises the heading and provenance when only resolutions exist; an empty set adds no fold. Malformed/oversize fold input adds no fold and fails.
+
+- **Exit 0, `status: ready`**: use the freshly written `file`; append **every** returned `warnings` line to the prep round audit log. Missing a per-honourable-entry no-expiry warning is an audit defect even if no objection is demoted.
+- **Exit 3, `status: absent`**: legitimate empty assembly and resolution set; stale context was removed. Dispatch without the file, with no deferral.
+- **Exit 2, any other exit, or missing/malformed result**: route this round to `needs-human`; **do not dispatch or use an earlier file**. Log returned warnings and diagnostic, or stderr when no JSON is returned. Source-read failure removes stale context and skips the fold; a failed read is never an empty set.
 
 **Turn-survival (in-flight marker).** The `spec_review` dispatch is an Agent-tool Producer dispatch, the arm an unattended drain can strand by backgrounding it and ending the turn. Before invoking it, write a per-dispatch **in-flight marker** — `faff inflightcheck --open --key <ISSUE-XX> --describe spec-review` — and clear it the instant the producer's tool result is consumed — `faff inflightcheck --close --key <ISSUE-XX>`. Pass `run_in_background: false` where the harness supports foreground; a harness with no foreground option (interactive Claude Code) is safe because it tracks the child across turn-end and re-invokes the parent (gateway → **Producer dispatch**). Where the stranding premise holds (headless `claude -p` / a live run dir), **never end a turn** with the spec-review dispatch still in flight: a review that cannot finish this turn takes its held outcome and records it, rather than ending the turn on a progress report. The `faff inflightcheck` Stop hook refuses turn-end on a still-open own marker only where that premise holds, and emits a non-blocking note where the harness re-invokes the parent — the mechanical backstop for this arm. The spec-review fan-out is itself a subprocess spawn `inflightcheck`'s per-dispatch enumeration cannot see (especially on a retry), so the **`faff turncheck`** state-based Stop hook is the backstop that catches a non-terminal turn-end the marker misses — it refuses turn-end whenever the run is still `owner.status:"running"` with a clean queue and nothing in flight.
 

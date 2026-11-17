@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T02:14:16.369587+00:00",
+  "reviewer": {
+    "task": "/root/verify_wtf_scope",
+    "role": "Independent static source reviewer; no model measurement or native model identity claim"
+  },
+  "status": "static_review_clear_unmeasured_uninstalled",
+  "bindings": {
+    "verification/experiments/2026-11-16-skill-diet/baseline/graft-gates-evidence-v1.md": {
+      "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+      "bytes": 178777
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/graft-gates-evidence-v1.md": {
+      "sha256": "f0200a54531efd5b6013ff99bb5f3818e6a5ee73f3a8dc0bb656fe481d2bde41",
+      "bytes": 166796
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-gates-evidence-v1-source-draft.json": {
+      "sha256": "6aa0a0cbc438ba2d1b28323f6013d6d926d30650c5596a397c0c873ae4ec2922",
+      "bytes": 2317
+    },
+    "plugin/skills/faff/bin/lib/validate-adapters.js": {
+      "sha256": "7a26ee73bdb254c03bc97bf4cf67db0620602cad40998a55d7234fd4eb4ffcb0",
+      "bytes": 131208
+    }
+  },
+  "scope": [
+    "Steps 7.5 and 8",
+    "Matching autonomous 2b/3 recap",
+    "Return values, EvidenceReturn, bucket mapping and trace logging"
+  ],
+  "verified": {
+    "outside_three_regions_byte_identical": true,
+    "baseline_validator_lines": 804,
+    "candidate_validator_lines": 801,
+    "existing_line_cap": 804,
+    "all_required_posture_anchors_retained": true,
+    "mandatory_reads_added": false,
+    "potential_bytes_saved": 11981,
+    "estimated_tokens_saved_from_source_draft": 2948
+  },
+  "revision_history": [
+    {
+      "candidate_sha256": "2fc9e5b723da5d016a72a869aeededee1d3a40d9cc65f6cbaae7c224fbcdfb11",
+      "findings": [
+        "Exceeded existing line cap by nine lines",
+        "Holdout environment/human distinction omitted explicit park-message placement"
+      ]
+    },
+    {
+      "candidate_sha256": "f0200a54531efd5b6013ff99bb5f3818e6a5ee73f3a8dc0bb656fe481d2bde41",
+      "resolution": "Both findings corrected: 801 validator-counted lines; park-message placement restored. Three illustrative schema fences became inline shapes; AC bool and method placeholders retain the surrounding rules."
+    }
+  ],
+  "obligations_reviewed": [
+    "Resume/progress/discard and clear-progress conditions; fix starts a new attempt",
+    "Foreground blocking posture, lint anchors, terminal dispatch return and correct heartbeat run/issue identity",
+    "Contract-authoritative gate signals, level/fallback handling and no downstream spend before gate clear",
+    "One runner resolver and suite/lint reuse, including subsequent advisory-mode test changes",
+    "Committed-spec verification, ordered qualified AC IDs, trusted-command sourcing and worktree execution",
+    "Verification methods, secret-free locators, human-only treatment, zero-AC omission, writer refusal and unchanged rendering",
+    "Every token admission distinction, PR state, explicit ledger mapping and hold annotation",
+    "Dispatched merge boundary; sibling verbatim EvidenceReturn per member, legitimate absence and null/error handling",
+    "Discovered-scope record/report authority and outcome independence",
+    "Mandatory resume trace versus logging-gated standalone narrative"
+  ],
+  "conclusion": "No remaining substantive semantic regression identified within the bounded static review. Source pointers resolve to existing unchanged local or gateway rules; the explicit mapping table avoids relying on the incomplete generic l4 mapping recap.",
+  "remaining_requirements": [
+    "Freeze identical context and workload for both arms and bind full helper/runtime/input closure before measurement",
+    "Measure actual gate, AC evidence, return and ledger checkpoints using existing real consumers; retain baseline failures and require the frozen candidate gates",
+    "Freshly replay persisted evidence return/verify-return, ledger/runcheck/summary and relevant merge-floor consumers; manually review actual facts, methods, outputs and side effects",
+    "Run source integration checks including complete adapter lint and inventory against exact committed candidate bytes before installation/accepted savings"
+  ],
+  "limits": [
+    "No model calls, harness creation, source edits or integration execution in this review",
+    "Line cap and exact lint anchor checks are static checks, not a complete validate-adapters run",
+    "Review/judge loops, CI/landing, discovered-scope filing and post-merge execution remain unchanged and are not newly proved",
+    "This record is not parity qualification, source installation, acceptance or countable savings"
+  ]
+}

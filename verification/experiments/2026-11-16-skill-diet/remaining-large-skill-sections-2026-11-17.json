@@ -1,0 +1,5777 @@
+{
+  "schema": 1,
+  "kind": "mechanical-heading-inventory-not-semantic-review",
+  "source_commit": "994007374548a302c11685318dec5b413a4c0ee6",
+  "original_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "token_estimator": "ceil(UTF-16 code units /4), independently per file or section; section estimates are not additive to file estimates because of rounding",
+  "method": [
+    "Five disjoint source groups: nine faff shared reference files, then each of graft/beep-boop/prep/tidy SKILL.md. Shared gateway SKILL.md is outside the reference group. Declared entry loads overlap these groups and must not be summed as separate source.",
+    "ATX Markdown headings indexed outside fenced backtick/tilde code. Direct spans partition file bytes with preamble. Subtree spans extend to next heading at same/lower level and overlap descendants.",
+    "Original files reloaded from baseline commit and matched original snapshot SHA256. Existing ledger identifies accepted body slices versus catalogue description-only coverage. No paragraph-level semantic review or new compression/fidelity claim.",
+    "Current section labels are mapped mechanically to known accepted scopes. Reporting is explicitly partial; unchanged owner/heartbeat content nested under Run ledger is not treated as newly measured."
+  ],
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/sizes.json",
+      "sha256": "f2b8aa9eed90a7b9a0e0c59cd537b81532ac5bf80ca9df6347b58a86fd6dfacd"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/ledger.json",
+      "sha256": "343be2bca8d0d721f95996a9a45cabc9cd33214fe99347987edad7f5af0b143b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-final-qualification.json",
+      "sha256": "46f2b73ad6f530e60b1a38b2d971ca17b38968d161ff580e5341612ff4896cad"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-reporting-mcp-v1-final-qualification.json",
+      "sha256": "84817cb65c0946867ea087bc08f0818fc2a3b279267e9de5590976e1009f5b6e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/kernel-v1-source-review.json",
+      "sha256": "8061c399e3cf36f00f1ba584ef0a25d997b63fc45e5e4843ecaac9b2cbeb5a60"
+    }
+  ],
+  "bundles": [
+    {
+      "bundle": "faff shared references",
+      "current": {
+        "bytes": 249920,
+        "estimated_tokens": 61967
+      },
+      "original": {
+        "bytes": 261266,
+        "estimated_tokens": 64762
+      },
+      "savings": {
+        "bytes": 11346,
+        "estimated_tokens": 2795
+      },
+      "files": [
+        {
+          "path": "plugin/skills/faff/references/autonomous.md",
+          "sha256": "b0e0ef32be783ffa5be27ab74db987ef347fedf1a75dd16bab5db030304d85d7",
+          "original_sha256": "b0e0ef32be783ffa5be27ab74db987ef347fedf1a75dd16bab5db030304d85d7",
+          "current": {
+            "bytes": 39233,
+            "estimated_tokens": 9729
+          },
+          "original": {
+            "bytes": 39233,
+            "estimated_tokens": 9729
+          },
+          "savings": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": false,
+          "preamble_before_first_heading": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "sections": [
+            {
+              "heading": "Faff gateway reference \u2014 autonomous contract",
+              "level": 1,
+              "start_line": 1,
+              "start_byte": 0,
+              "direct_end_byte_exclusive": 270,
+              "subtree_end_byte_exclusive": 39233,
+              "direct": {
+                "bytes": 270,
+                "estimated_tokens": 67
+              },
+              "subtree": {
+                "bytes": 39233,
+                "estimated_tokens": 9729
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 39233,
+                  "estimated_tokens": 9729
+                },
+                "direct": {
+                  "bytes": 270,
+                  "estimated_tokens": 67
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Workable vs terminal states",
+              "level": 3,
+              "start_line": 5,
+              "start_byte": 270,
+              "direct_end_byte_exclusive": 2030,
+              "subtree_end_byte_exclusive": 2030,
+              "direct": {
+                "bytes": 1760,
+                "estimated_tokens": 438
+              },
+              "subtree": {
+                "bytes": 1760,
+                "estimated_tokens": 438
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1760,
+                  "estimated_tokens": 438
+                },
+                "direct": {
+                  "bytes": 1760,
+                  "estimated_tokens": 438
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Autonomous Mode Contract",
+              "level": 3,
+              "start_line": 20,
+              "start_byte": 2030,
+              "direct_end_byte_exclusive": 15647,
+              "subtree_end_byte_exclusive": 15647,
+              "direct": {
+                "bytes": 13617,
+                "estimated_tokens": 3379
+              },
+              "subtree": {
+                "bytes": 13617,
+                "estimated_tokens": 3379
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 13617,
+                  "estimated_tokens": 3379
+                },
+                "direct": {
+                  "bytes": 13617,
+                  "estimated_tokens": 3379
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Appetite for destruction",
+              "level": 3,
+              "start_line": 65,
+              "start_byte": 15647,
+              "direct_end_byte_exclusive": 17240,
+              "subtree_end_byte_exclusive": 28436,
+              "direct": {
+                "bytes": 1593,
+                "estimated_tokens": 396
+              },
+              "subtree": {
+                "bytes": 12789,
+                "estimated_tokens": 3166
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 12789,
+                  "estimated_tokens": 3166
+                },
+                "direct": {
+                  "bytes": 1593,
+                  "estimated_tokens": 396
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Build pipeline (modulation of the resolve-attempt + automation-routing contracts)",
+              "level": 4,
+              "start_line": 78,
+              "start_byte": 17240,
+              "direct_end_byte_exclusive": 19552,
+              "subtree_end_byte_exclusive": 19552,
+              "direct": {
+                "bytes": 2312,
+                "estimated_tokens": 572
+              },
+              "subtree": {
+                "bytes": 2312,
+                "estimated_tokens": 572
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2312,
+                  "estimated_tokens": 572
+                },
+                "direct": {
+                  "bytes": 2312,
+                  "estimated_tokens": 572
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Topology-write authority (modulation of the methodology's tracker-topology writes)",
+              "level": 4,
+              "start_line": 95,
+              "start_byte": 19552,
+              "direct_end_byte_exclusive": 22836,
+              "subtree_end_byte_exclusive": 22836,
+              "direct": {
+                "bytes": 3284,
+                "estimated_tokens": 813
+              },
+              "subtree": {
+                "bytes": 3284,
+                "estimated_tokens": 813
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3284,
+                  "estimated_tokens": 813
+                },
+                "direct": {
+                  "bytes": 3284,
+                  "estimated_tokens": 813
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "What appetite NEVER changes (hard floor \u2014 applies at ALL levels including `full`)",
+              "level": 4,
+              "start_line": 111,
+              "start_byte": 22836,
+              "direct_end_byte_exclusive": 28436,
+              "subtree_end_byte_exclusive": 28436,
+              "direct": {
+                "bytes": 5600,
+                "estimated_tokens": 1386
+              },
+              "subtree": {
+                "bytes": 5600,
+                "estimated_tokens": 1386
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 5600,
+                  "estimated_tokens": 1386
+                },
+                "direct": {
+                  "bytes": 5600,
+                  "estimated_tokens": 1386
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Resolve-attempt before park",
+              "level": 3,
+              "start_line": 128,
+              "start_byte": 28436,
+              "direct_end_byte_exclusive": 33033,
+              "subtree_end_byte_exclusive": 33033,
+              "direct": {
+                "bytes": 4597,
+                "estimated_tokens": 1142
+              },
+              "subtree": {
+                "bytes": 4597,
+                "estimated_tokens": 1142
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4597,
+                  "estimated_tokens": 1142
+                },
+                "direct": {
+                  "bytes": 4597,
+                  "estimated_tokens": 1142
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Control-label provisioning \u2014 `faff label` (the mechanical op)",
+              "level": 3,
+              "start_line": 154,
+              "start_byte": 33033,
+              "direct_end_byte_exclusive": 39233,
+              "subtree_end_byte_exclusive": 39233,
+              "direct": {
+                "bytes": 6200,
+                "estimated_tokens": 1539
+              },
+              "subtree": {
+                "bytes": 6200,
+                "estimated_tokens": 1539
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 6200,
+                  "estimated_tokens": 1539
+                },
+                "direct": {
+                  "bytes": 6200,
+                  "estimated_tokens": 1539
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        },
+        {
+          "path": "plugin/skills/faff/references/build.md",
+          "sha256": "16760ea2fcff5f06ba910049e51736db01178e72b287f7e09a115946098630b9",
+          "original_sha256": "16760ea2fcff5f06ba910049e51736db01178e72b287f7e09a115946098630b9",
+          "current": {
+            "bytes": 12080,
+            "estimated_tokens": 2993
+          },
+          "original": {
+            "bytes": 12080,
+            "estimated_tokens": 2993
+          },
+          "savings": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": false,
+          "preamble_before_first_heading": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "sections": [
+            {
+              "heading": "Faff gateway reference \u2014 build lane",
+              "level": 1,
+              "start_line": 1,
+              "start_byte": 0,
+              "direct_end_byte_exclusive": 261,
+              "subtree_end_byte_exclusive": 12080,
+              "direct": {
+                "bytes": 261,
+                "estimated_tokens": 65
+              },
+              "subtree": {
+                "bytes": 12080,
+                "estimated_tokens": 2993
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 12080,
+                  "estimated_tokens": 2993
+                },
+                "direct": {
+                  "bytes": 261,
+                  "estimated_tokens": 65
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Implementor (innermost lane)",
+              "level": 3,
+              "start_line": 5,
+              "start_byte": 261,
+              "direct_end_byte_exclusive": 2496,
+              "subtree_end_byte_exclusive": 2496,
+              "direct": {
+                "bytes": 2235,
+                "estimated_tokens": 555
+              },
+              "subtree": {
+                "bytes": 2235,
+                "estimated_tokens": 555
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2235,
+                  "estimated_tokens": 555
+                },
+                "direct": {
+                  "bytes": 2235,
+                  "estimated_tokens": 555
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Issue claim & status monotonicity (multi-orchestrator safety)",
+              "level": 3,
+              "start_line": 19,
+              "start_byte": 2496,
+              "direct_end_byte_exclusive": 7971,
+              "subtree_end_byte_exclusive": 7971,
+              "direct": {
+                "bytes": 5475,
+                "estimated_tokens": 1354
+              },
+              "subtree": {
+                "bytes": 5475,
+                "estimated_tokens": 1354
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 5475,
+                  "estimated_tokens": 1354
+                },
+                "direct": {
+                  "bytes": 5475,
+                  "estimated_tokens": 1354
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Worktree policy",
+              "level": 3,
+              "start_line": 30,
+              "start_byte": 7971,
+              "direct_end_byte_exclusive": 12080,
+              "subtree_end_byte_exclusive": 12080,
+              "direct": {
+                "bytes": 4109,
+                "estimated_tokens": 1020
+              },
+              "subtree": {
+                "bytes": 4109,
+                "estimated_tokens": 1020
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4109,
+                  "estimated_tokens": 1020
+                },
+                "direct": {
+                  "bytes": 4109,
+                  "estimated_tokens": 1020
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        },
+        {
+          "path": "plugin/skills/faff/references/create.md",
+          "sha256": "c65b76c6db60f6162986de266c7504390327c82e857c07bdb9e0deaa34197cdd",
+          "original_sha256": "c65b76c6db60f6162986de266c7504390327c82e857c07bdb9e0deaa34197cdd",
+          "current": {
+            "bytes": 9145,
+            "estimated_tokens": 2265
+          },
+          "original": {
+            "bytes": 9145,
+            "estimated_tokens": 2265
+          },
+          "savings": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": false,
+          "preamble_before_first_heading": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "sections": [
+            {
+              "heading": "Faff gateway reference \u2014 create lane",
+              "level": 1,
+              "start_line": 1,
+              "start_byte": 0,
+              "direct_end_byte_exclusive": 262,
+              "subtree_end_byte_exclusive": 9145,
+              "direct": {
+                "bytes": 262,
+                "estimated_tokens": 65
+              },
+              "subtree": {
+                "bytes": 9145,
+                "estimated_tokens": 2265
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 9145,
+                  "estimated_tokens": 2265
+                },
+                "direct": {
+                  "bytes": 262,
+                  "estimated_tokens": 65
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Ticket templates (born-structured create boundary)",
+              "level": 3,
+              "start_line": 5,
+              "start_byte": 262,
+              "direct_end_byte_exclusive": 9145,
+              "subtree_end_byte_exclusive": 9145,
+              "direct": {
+                "bytes": 8883,
+                "estimated_tokens": 2201
+              },
+              "subtree": {
+                "bytes": 8883,
+                "estimated_tokens": 2201
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 8883,
+                  "estimated_tokens": 2201
+                },
+                "direct": {
+                  "bytes": 8883,
+                  "estimated_tokens": 2201
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        },
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+          "original_sha256": "c96e4bfabbab1312565011ef3bad69bb918fbaa00e619c1bca0b1e00f1ce7086",
+          "current": {
+            "bytes": 84072,
+            "estimated_tokens": 20857
+          },
+          "original": {
+            "bytes": 95418,
+            "estimated_tokens": 23652
+          },
+          "savings": {
+            "bytes": 11346,
+            "estimated_tokens": 2795
+          },
+          "body_identical_to_original": false,
+          "accepted_body_slices": [
+            {
+              "slice": "shared kernel configuration",
+              "qualification": "kernel-config-v4-qualification.json",
+              "status": "draft-qualified-bounded-config-workflow",
+              "bytes_saved": 11346,
+              "estimated_tokens_saved": 2795
+            }
+          ],
+          "description_only_coverage": false,
+          "preamble_before_first_heading": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "sections": [
+            {
+              "heading": "Faff \u2014 shared kernel",
+              "level": 1,
+              "start_line": 1,
+              "start_byte": 0,
+              "direct_end_byte_exclusive": 307,
+              "subtree_end_byte_exclusive": 84072,
+              "direct": {
+                "bytes": 307,
+                "estimated_tokens": 77
+              },
+              "subtree": {
+                "bytes": 84072,
+                "estimated_tokens": 20857
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 95418,
+                  "estimated_tokens": 23652
+                },
+                "direct": {
+                  "bytes": 307,
+                  "estimated_tokens": 77
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Governing principles",
+              "level": 2,
+              "start_line": 5,
+              "start_byte": 307,
+              "direct_end_byte_exclusive": 2286,
+              "subtree_end_byte_exclusive": 2286,
+              "direct": {
+                "bytes": 1979,
+                "estimated_tokens": 490
+              },
+              "subtree": {
+                "bytes": 1979,
+                "estimated_tokens": 490
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1979,
+                  "estimated_tokens": 490
+                },
+                "direct": {
+                  "bytes": 1979,
+                  "estimated_tokens": 490
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Install health (doctor-at-entry)",
+              "level": 2,
+              "start_line": 17,
+              "start_byte": 2286,
+              "direct_end_byte_exclusive": 4737,
+              "subtree_end_byte_exclusive": 4737,
+              "direct": {
+                "bytes": 2451,
+                "estimated_tokens": 604
+              },
+              "subtree": {
+                "bytes": 2451,
+                "estimated_tokens": 604
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2451,
+                  "estimated_tokens": 604
+                },
+                "direct": {
+                  "bytes": 2451,
+                  "estimated_tokens": 604
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Configuration (shared across all sub-skills)",
+              "level": 2,
+              "start_line": 31,
+              "start_byte": 4737,
+              "direct_end_byte_exclusive": 11483,
+              "subtree_end_byte_exclusive": 20089,
+              "direct": {
+                "bytes": 6746,
+                "estimated_tokens": 1683
+              },
+              "subtree": {
+                "bytes": 15352,
+                "estimated_tokens": 3830
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 26698,
+                  "estimated_tokens": 6624
+                },
+                "direct": {
+                  "bytes": 10989,
+                  "estimated_tokens": 2721
+                }
+              },
+              "body_coverage": "accepted configuration scope"
+            },
+            {
+              "heading": "Slots (optional delegation)",
+              "level": 3,
+              "start_line": 84,
+              "start_byte": 11483,
+              "direct_end_byte_exclusive": 16874,
+              "subtree_end_byte_exclusive": 16874,
+              "direct": {
+                "bytes": 5391,
+                "estimated_tokens": 1348
+              },
+              "subtree": {
+                "bytes": 5391,
+                "estimated_tokens": 1348
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 10789,
+                  "estimated_tokens": 2684
+                },
+                "direct": {
+                  "bytes": 10789,
+                  "estimated_tokens": 2684
+                }
+              },
+              "body_coverage": "accepted configuration scope"
+            },
+            {
+              "heading": "Model & effort selection (`dispatch:` \u2014 per-lane)",
+              "level": 3,
+              "start_line": 113,
+              "start_byte": 16874,
+              "direct_end_byte_exclusive": 20089,
+              "subtree_end_byte_exclusive": 20089,
+              "direct": {
+                "bytes": 3215,
+                "estimated_tokens": 800
+              },
+              "subtree": {
+                "bytes": 3215,
+                "estimated_tokens": 800
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4920,
+                  "estimated_tokens": 1220
+                },
+                "direct": {
+                  "bytes": 4920,
+                  "estimated_tokens": 1220
+                }
+              },
+              "body_coverage": "accepted configuration scope"
+            },
+            {
+              "heading": "Agent Lanes",
+              "level": 2,
+              "start_line": 139,
+              "start_byte": 20089,
+              "direct_end_byte_exclusive": 20349,
+              "subtree_end_byte_exclusive": 21101,
+              "direct": {
+                "bytes": 260,
+                "estimated_tokens": 65
+              },
+              "subtree": {
+                "bytes": 1012,
+                "estimated_tokens": 250
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1012,
+                  "estimated_tokens": 250
+                },
+                "direct": {
+                  "bytes": 260,
+                  "estimated_tokens": 65
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Orchestrator (outermost lane)",
+              "level": 3,
+              "start_line": 143,
+              "start_byte": 20349,
+              "direct_end_byte_exclusive": 21101,
+              "subtree_end_byte_exclusive": 21101,
+              "direct": {
+                "bytes": 752,
+                "estimated_tokens": 186
+              },
+              "subtree": {
+                "bytes": 752,
+                "estimated_tokens": 186
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 752,
+                  "estimated_tokens": 186
+                },
+                "direct": {
+                  "bytes": 752,
+                  "estimated_tokens": 186
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Shared Rules",
+              "level": 2,
+              "start_line": 155,
+              "start_byte": 21101,
+              "direct_end_byte_exclusive": 21220,
+              "subtree_end_byte_exclusive": 50112,
+              "direct": {
+                "bytes": 119,
+                "estimated_tokens": 30
+              },
+              "subtree": {
+                "bytes": 29011,
+                "estimated_tokens": 7197
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 29011,
+                  "estimated_tokens": 7197
+                },
+                "direct": {
+                  "bytes": 119,
+                  "estimated_tokens": 30
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Ordering & judgement delegation (the orchestration layer holds no opinion)",
+              "level": 3,
+              "start_line": 160,
+              "start_byte": 21220,
+              "direct_end_byte_exclusive": 23838,
+              "subtree_end_byte_exclusive": 23838,
+              "direct": {
+                "bytes": 2618,
+                "estimated_tokens": 648
+              },
+              "subtree": {
+                "bytes": 2618,
+                "estimated_tokens": 648
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2618,
+                  "estimated_tokens": 648
+                },
+                "direct": {
+                  "bytes": 2618,
+                  "estimated_tokens": 648
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Always pull fresh (never act on stale tracker state)",
+              "level": 3,
+              "start_line": 176,
+              "start_byte": 23838,
+              "direct_end_byte_exclusive": 25434,
+              "subtree_end_byte_exclusive": 25434,
+              "direct": {
+                "bytes": 1596,
+                "estimated_tokens": 399
+              },
+              "subtree": {
+                "bytes": 1596,
+                "estimated_tokens": 399
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1596,
+                  "estimated_tokens": 399
+                },
+                "direct": {
+                  "bytes": 1596,
+                  "estimated_tokens": 399
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Untrusted input (no-execute floor)",
+              "level": 3,
+              "start_line": 185,
+              "start_byte": 25434,
+              "direct_end_byte_exclusive": 29314,
+              "subtree_end_byte_exclusive": 29314,
+              "direct": {
+                "bytes": 3880,
+                "estimated_tokens": 962
+              },
+              "subtree": {
+                "bytes": 3880,
+                "estimated_tokens": 962
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3880,
+                  "estimated_tokens": 962
+                },
+                "direct": {
+                  "bytes": 3880,
+                  "estimated_tokens": 962
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "`.faff/` logging directory",
+              "level": 3,
+              "start_line": 204,
+              "start_byte": 29314,
+              "direct_end_byte_exclusive": 36028,
+              "subtree_end_byte_exclusive": 36028,
+              "direct": {
+                "bytes": 6714,
+                "estimated_tokens": 1669
+              },
+              "subtree": {
+                "bytes": 6714,
+                "estimated_tokens": 1669
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 6714,
+                  "estimated_tokens": 1669
+                },
+                "direct": {
+                  "bytes": 6714,
+                  "estimated_tokens": 1669
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Blast-radius boundary \u2014 the container, not faff",
+              "level": 3,
+              "start_line": 260,
+              "start_byte": 36028,
+              "direct_end_byte_exclusive": 36919,
+              "subtree_end_byte_exclusive": 36919,
+              "direct": {
+                "bytes": 891,
+                "estimated_tokens": 221
+              },
+              "subtree": {
+                "bytes": 891,
+                "estimated_tokens": 221
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 891,
+                  "estimated_tokens": 221
+                },
+                "direct": {
+                  "bytes": 891,
+                  "estimated_tokens": 221
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Unpark protocol (shared)",
+              "level": 3,
+              "start_line": 267,
+              "start_byte": 36919,
+              "direct_end_byte_exclusive": 39902,
+              "subtree_end_byte_exclusive": 39902,
+              "direct": {
+                "bytes": 2983,
+                "estimated_tokens": 740
+              },
+              "subtree": {
+                "bytes": 2983,
+                "estimated_tokens": 740
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2983,
+                  "estimated_tokens": 740
+                },
+                "direct": {
+                  "bytes": 2983,
+                  "estimated_tokens": 740
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Sibling-skill invocation (install-mode portable)",
+              "level": 3,
+              "start_line": 279,
+              "start_byte": 39902,
+              "direct_end_byte_exclusive": 50112,
+              "subtree_end_byte_exclusive": 50112,
+              "direct": {
+                "bytes": 10210,
+                "estimated_tokens": 2530
+              },
+              "subtree": {
+                "bytes": 10210,
+                "estimated_tokens": 2530
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 10210,
+                  "estimated_tokens": 2530
+                },
+                "direct": {
+                  "bytes": 10210,
+                  "estimated_tokens": 2530
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Chaining pattern",
+              "level": 2,
+              "start_line": 320,
+              "start_byte": 50112,
+              "direct_end_byte_exclusive": 52551,
+              "subtree_end_byte_exclusive": 52551,
+              "direct": {
+                "bytes": 2439,
+                "estimated_tokens": 606
+              },
+              "subtree": {
+                "bytes": 2439,
+                "estimated_tokens": 606
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2439,
+                  "estimated_tokens": 606
+                },
+                "direct": {
+                  "bytes": 2439,
+                  "estimated_tokens": 606
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Interactive next-step offer (the forward-lean, in prose)",
+              "level": 2,
+              "start_line": 334,
+              "start_byte": 52551,
+              "direct_end_byte_exclusive": 55064,
+              "subtree_end_byte_exclusive": 55064,
+              "direct": {
+                "bytes": 2513,
+                "estimated_tokens": 621
+              },
+              "subtree": {
+                "bytes": 2513,
+                "estimated_tokens": 621
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2513,
+                  "estimated_tokens": 621
+                },
+                "direct": {
+                  "bytes": 2513,
+                  "estimated_tokens": 621
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Core contracts and adaptor slots",
+              "level": 2,
+              "start_line": 347,
+              "start_byte": 55064,
+              "direct_end_byte_exclusive": 55897,
+              "subtree_end_byte_exclusive": 84072,
+              "direct": {
+                "bytes": 833,
+                "estimated_tokens": 207
+              },
+              "subtree": {
+                "bytes": 29008,
+                "estimated_tokens": 7186
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 29008,
+                  "estimated_tokens": 7186
+                },
+                "direct": {
+                  "bytes": 833,
+                  "estimated_tokens": 207
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Contract loading & conformance (how a skill actually gets these definitions)",
+              "level": 3,
+              "start_line": 353,
+              "start_byte": 55897,
+              "direct_end_byte_exclusive": 58879,
+              "subtree_end_byte_exclusive": 63970,
+              "direct": {
+                "bytes": 2982,
+                "estimated_tokens": 740
+              },
+              "subtree": {
+                "bytes": 8073,
+                "estimated_tokens": 1999
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 8073,
+                  "estimated_tokens": 1999
+                },
+                "direct": {
+                  "bytes": 2982,
+                  "estimated_tokens": 740
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Slot conformance validation (always on)",
+              "level": 4,
+              "start_line": 363,
+              "start_byte": 58879,
+              "direct_end_byte_exclusive": 63970,
+              "subtree_end_byte_exclusive": 63970,
+              "direct": {
+                "bytes": 5091,
+                "estimated_tokens": 1260
+              },
+              "subtree": {
+                "bytes": 5091,
+                "estimated_tokens": 1260
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 5091,
+                  "estimated_tokens": 1260
+                },
+                "direct": {
+                  "bytes": 5091,
+                  "estimated_tokens": 1260
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Review verdict (fixed)",
+              "level": 3,
+              "start_line": 378,
+              "start_byte": 63970,
+              "direct_end_byte_exclusive": 65953,
+              "subtree_end_byte_exclusive": 65953,
+              "direct": {
+                "bytes": 1983,
+                "estimated_tokens": 493
+              },
+              "subtree": {
+                "bytes": 1983,
+                "estimated_tokens": 493
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1983,
+                  "estimated_tokens": 493
+                },
+                "direct": {
+                  "bytes": 1983,
+                  "estimated_tokens": 493
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Spec-review verdict (fixed)",
+              "level": 3,
+              "start_line": 386,
+              "start_byte": 65953,
+              "direct_end_byte_exclusive": 67244,
+              "subtree_end_byte_exclusive": 67244,
+              "direct": {
+                "bytes": 1291,
+                "estimated_tokens": 322
+              },
+              "subtree": {
+                "bytes": 1291,
+                "estimated_tokens": 322
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1291,
+                  "estimated_tokens": 322
+                },
+                "direct": {
+                  "bytes": 1291,
+                  "estimated_tokens": 322
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Delivery outcome (fixed)",
+              "level": 3,
+              "start_line": 392,
+              "start_byte": 67244,
+              "direct_end_byte_exclusive": 73040,
+              "subtree_end_byte_exclusive": 73040,
+              "direct": {
+                "bytes": 5796,
+                "estimated_tokens": 1434
+              },
+              "subtree": {
+                "bytes": 5796,
+                "estimated_tokens": 1434
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 5796,
+                  "estimated_tokens": 1434
+                },
+                "direct": {
+                  "bytes": 5796,
+                  "estimated_tokens": 1434
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Automation-routing verdict (fixed) \u2192 `routing_adaptor`",
+              "level": 3,
+              "start_line": 406,
+              "start_byte": 73040,
+              "direct_end_byte_exclusive": 75545,
+              "subtree_end_byte_exclusive": 75545,
+              "direct": {
+                "bytes": 2505,
+                "estimated_tokens": 622
+              },
+              "subtree": {
+                "bytes": 2505,
+                "estimated_tokens": 622
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2505,
+                  "estimated_tokens": 622
+                },
+                "direct": {
+                  "bytes": 2505,
+                  "estimated_tokens": 622
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Spec readiness (fixed)",
+              "level": 3,
+              "start_line": 414,
+              "start_byte": 75545,
+              "direct_end_byte_exclusive": 82357,
+              "subtree_end_byte_exclusive": 82357,
+              "direct": {
+                "bytes": 6812,
+                "estimated_tokens": 1685
+              },
+              "subtree": {
+                "bytes": 6812,
+                "estimated_tokens": 1685
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 6812,
+                  "estimated_tokens": 1685
+                },
+                "direct": {
+                  "bytes": 6812,
+                  "estimated_tokens": 1685
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Rendering \u2014 no internal contract \u2192 `rendering_adaptor`",
+              "level": 3,
+              "start_line": 429,
+              "start_byte": 82357,
+              "direct_end_byte_exclusive": 84072,
+              "subtree_end_byte_exclusive": 84072,
+              "direct": {
+                "bytes": 1715,
+                "estimated_tokens": 426
+              },
+              "subtree": {
+                "bytes": 1715,
+                "estimated_tokens": 426
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1715,
+                  "estimated_tokens": 426
+                },
+                "direct": {
+                  "bytes": 1715,
+                  "estimated_tokens": 426
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        },
+        {
+          "path": "plugin/skills/faff/references/l4.md",
+          "sha256": "7994061a8ca8e8f23210874c401cf78ed0c4ad4af95b07c852456b6b6bbe5344",
+          "original_sha256": "7994061a8ca8e8f23210874c401cf78ed0c4ad4af95b07c852456b6b6bbe5344",
+          "current": {
+            "bytes": 26377,
+            "estimated_tokens": 6538
+          },
+          "original": {
+            "bytes": 26377,
+            "estimated_tokens": 6538
+          },
+          "savings": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": false,
+          "preamble_before_first_heading": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "sections": [
+            {
+              "heading": "Faff gateway reference \u2014 L4 concurrency & evaluator",
+              "level": 1,
+              "start_line": 1,
+              "start_byte": 0,
+              "direct_end_byte_exclusive": 277,
+              "subtree_end_byte_exclusive": 26377,
+              "direct": {
+                "bytes": 277,
+                "estimated_tokens": 69
+              },
+              "subtree": {
+                "bytes": 26377,
+                "estimated_tokens": 6538
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 26377,
+                  "estimated_tokens": 6538
+                },
+                "direct": {
+                  "bytes": 277,
+                  "estimated_tokens": 69
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Evaluator (external lane)",
+              "level": 3,
+              "start_line": 5,
+              "start_byte": 277,
+              "direct_end_byte_exclusive": 1025,
+              "subtree_end_byte_exclusive": 1025,
+              "direct": {
+                "bytes": 748,
+                "estimated_tokens": 187
+              },
+              "subtree": {
+                "bytes": 748,
+                "estimated_tokens": 187
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 748,
+                  "estimated_tokens": 187
+                },
+                "direct": {
+                  "bytes": 748,
+                  "estimated_tokens": 187
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Lane isolation",
+              "level": 3,
+              "start_line": 18,
+              "start_byte": 1025,
+              "direct_end_byte_exclusive": 3600,
+              "subtree_end_byte_exclusive": 3600,
+              "direct": {
+                "bytes": 2575,
+                "estimated_tokens": 641
+              },
+              "subtree": {
+                "bytes": 2575,
+                "estimated_tokens": 641
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2575,
+                  "estimated_tokens": 641
+                },
+                "direct": {
+                  "bytes": 2575,
+                  "estimated_tokens": 641
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Mechanism slot (`concurrency`)",
+              "level": 2,
+              "start_line": 48,
+              "start_byte": 3600,
+              "direct_end_byte_exclusive": 4870,
+              "subtree_end_byte_exclusive": 26377,
+              "direct": {
+                "bytes": 1270,
+                "estimated_tokens": 316
+              },
+              "subtree": {
+                "bytes": 22777,
+                "estimated_tokens": 5642
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 22777,
+                  "estimated_tokens": 5642
+                },
+                "direct": {
+                  "bytes": 1270,
+                  "estimated_tokens": 316
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "The `concurrency` slot contract (fixed)",
+              "level": 3,
+              "start_line": 52,
+              "start_byte": 4870,
+              "direct_end_byte_exclusive": 26377,
+              "subtree_end_byte_exclusive": 26377,
+              "direct": {
+                "bytes": 21507,
+                "estimated_tokens": 5327
+              },
+              "subtree": {
+                "bytes": 21507,
+                "estimated_tokens": 5327
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 21507,
+                  "estimated_tokens": 5327
+                },
+                "direct": {
+                  "bytes": 21507,
+                  "estimated_tokens": 5327
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        },
+        {
+          "path": "plugin/skills/faff/references/methodology.md",
+          "sha256": "51188b58858080ab4a28801c946ff47dced68c25ad675453efde346113e97f8b",
+          "original_sha256": "51188b58858080ab4a28801c946ff47dced68c25ad675453efde346113e97f8b",
+          "current": {
+            "bytes": 35453,
+            "estimated_tokens": 8778
+          },
+          "original": {
+            "bytes": 35453,
+            "estimated_tokens": 8778
+          },
+          "savings": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": false,
+          "preamble_before_first_heading": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "sections": [
+            {
+              "heading": "Faff gateway reference \u2014 methodology",
+              "level": 1,
+              "start_line": 1,
+              "start_byte": 0,
+              "direct_end_byte_exclusive": 262,
+              "subtree_end_byte_exclusive": 35453,
+              "direct": {
+                "bytes": 262,
+                "estimated_tokens": 65
+              },
+              "subtree": {
+                "bytes": 35453,
+                "estimated_tokens": 8778
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 35453,
+                  "estimated_tokens": 8778
+                },
+                "direct": {
+                  "bytes": 262,
+                  "estimated_tokens": 65
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Automation eligibility",
+              "level": 3,
+              "start_line": 5,
+              "start_byte": 262,
+              "direct_end_byte_exclusive": 6769,
+              "subtree_end_byte_exclusive": 6769,
+              "direct": {
+                "bytes": 6507,
+                "estimated_tokens": 1613
+              },
+              "subtree": {
+                "bytes": 6507,
+                "estimated_tokens": 1613
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 6507,
+                  "estimated_tokens": 1613
+                },
+                "direct": {
+                  "bytes": 6507,
+                  "estimated_tokens": 1613
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Human curation is authoritative",
+              "level": 3,
+              "start_line": 45,
+              "start_byte": 6769,
+              "direct_end_byte_exclusive": 10848,
+              "subtree_end_byte_exclusive": 10848,
+              "direct": {
+                "bytes": 4079,
+                "estimated_tokens": 1013
+              },
+              "subtree": {
+                "bytes": 4079,
+                "estimated_tokens": 1013
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4079,
+                  "estimated_tokens": 1013
+                },
+                "direct": {
+                  "bytes": 4079,
+                  "estimated_tokens": 1013
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "The `methodology` slot",
+              "level": 2,
+              "start_line": 60,
+              "start_byte": 10848,
+              "direct_end_byte_exclusive": 29219,
+              "subtree_end_byte_exclusive": 35453,
+              "direct": {
+                "bytes": 18371,
+                "estimated_tokens": 4541
+              },
+              "subtree": {
+                "bytes": 24605,
+                "estimated_tokens": 6088
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 24605,
+                  "estimated_tokens": 6088
+                },
+                "direct": {
+                  "bytes": 18371,
+                  "estimated_tokens": 4541
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Transport (per-output dispatch grain)",
+              "level": 3,
+              "start_line": 102,
+              "start_byte": 29219,
+              "direct_end_byte_exclusive": 31902,
+              "subtree_end_byte_exclusive": 31902,
+              "direct": {
+                "bytes": 2683,
+                "estimated_tokens": 664
+              },
+              "subtree": {
+                "bytes": 2683,
+                "estimated_tokens": 664
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2683,
+                  "estimated_tokens": 664
+                },
+                "direct": {
+                  "bytes": 2683,
+                  "estimated_tokens": 664
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Calibration log",
+              "level": 3,
+              "start_line": 125,
+              "start_byte": 31902,
+              "direct_end_byte_exclusive": 35453,
+              "subtree_end_byte_exclusive": 35453,
+              "direct": {
+                "bytes": 3551,
+                "estimated_tokens": 884
+              },
+              "subtree": {
+                "bytes": 3551,
+                "estimated_tokens": 884
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3551,
+                  "estimated_tokens": 884
+                },
+                "direct": {
+                  "bytes": 3551,
+                  "estimated_tokens": 884
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        },
+        {
+          "path": "plugin/skills/faff/references/park.md",
+          "sha256": "0a59cc9f746bc416dd693f249b7b3c844c85cb8ce660db0f7a907b3387c8ff43",
+          "original_sha256": "0a59cc9f746bc416dd693f249b7b3c844c85cb8ce660db0f7a907b3387c8ff43",
+          "current": {
+            "bytes": 14619,
+            "estimated_tokens": 3627
+          },
+          "original": {
+            "bytes": 14619,
+            "estimated_tokens": 3627
+          },
+          "savings": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": false,
+          "preamble_before_first_heading": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "sections": [
+            {
+              "heading": "Faff gateway reference \u2014 park lane",
+              "level": 1,
+              "start_line": 1,
+              "start_byte": 0,
+              "direct_end_byte_exclusive": 260,
+              "subtree_end_byte_exclusive": 14619,
+              "direct": {
+                "bytes": 260,
+                "estimated_tokens": 64
+              },
+              "subtree": {
+                "bytes": 14619,
+                "estimated_tokens": 3627
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 14619,
+                  "estimated_tokens": 3627
+                },
+                "direct": {
+                  "bytes": 260,
+                  "estimated_tokens": 64
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Interactive park resolution (surface, don't settle)",
+              "level": 3,
+              "start_line": 5,
+              "start_byte": 260,
+              "direct_end_byte_exclusive": 2688,
+              "subtree_end_byte_exclusive": 2688,
+              "direct": {
+                "bytes": 2428,
+                "estimated_tokens": 604
+              },
+              "subtree": {
+                "bytes": 2428,
+                "estimated_tokens": 604
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2428,
+                  "estimated_tokens": 604
+                },
+                "direct": {
+                  "bytes": 2428,
+                  "estimated_tokens": 604
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Park protocol (shared)",
+              "level": 3,
+              "start_line": 15,
+              "start_byte": 2688,
+              "direct_end_byte_exclusive": 7295,
+              "subtree_end_byte_exclusive": 7295,
+              "direct": {
+                "bytes": 4607,
+                "estimated_tokens": 1139
+              },
+              "subtree": {
+                "bytes": 4607,
+                "estimated_tokens": 1139
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4607,
+                  "estimated_tokens": 1139
+                },
+                "direct": {
+                  "bytes": 4607,
+                  "estimated_tokens": 1139
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Reconsider classification and the park-versus-hold boundary (FAFF-992)",
+              "level": 3,
+              "start_line": 26,
+              "start_byte": 7295,
+              "direct_end_byte_exclusive": 10541,
+              "subtree_end_byte_exclusive": 10541,
+              "direct": {
+                "bytes": 3246,
+                "estimated_tokens": 807
+              },
+              "subtree": {
+                "bytes": 3246,
+                "estimated_tokens": 807
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3246,
+                  "estimated_tokens": 807
+                },
+                "direct": {
+                  "bytes": 3246,
+                  "estimated_tokens": 807
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "The git-only Unpark contract (FAFF-993)",
+              "level": 3,
+              "start_line": 55,
+              "start_byte": 10541,
+              "direct_end_byte_exclusive": 14619,
+              "subtree_end_byte_exclusive": 14619,
+              "direct": {
+                "bytes": 4078,
+                "estimated_tokens": 1014
+              },
+              "subtree": {
+                "bytes": 4078,
+                "estimated_tokens": 1014
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4078,
+                  "estimated_tokens": 1014
+                },
+                "direct": {
+                  "bytes": 4078,
+                  "estimated_tokens": 1014
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        },
+        {
+          "path": "plugin/skills/faff/references/review.md",
+          "sha256": "b2e82efe53cdbb303f173b0465eea4dc878037870eebe7a50896489e088e84b2",
+          "original_sha256": "b2e82efe53cdbb303f173b0465eea4dc878037870eebe7a50896489e088e84b2",
+          "current": {
+            "bytes": 4756,
+            "estimated_tokens": 1186
+          },
+          "original": {
+            "bytes": 4756,
+            "estimated_tokens": 1186
+          },
+          "savings": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": false,
+          "preamble_before_first_heading": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "sections": [
+            {
+              "heading": "Faff gateway reference \u2014 review & delivery",
+              "level": 1,
+              "start_line": 1,
+              "start_byte": 0,
+              "direct_end_byte_exclusive": 268,
+              "subtree_end_byte_exclusive": 4756,
+              "direct": {
+                "bytes": 268,
+                "estimated_tokens": 66
+              },
+              "subtree": {
+                "bytes": 4756,
+                "estimated_tokens": 1186
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4756,
+                  "estimated_tokens": 1186
+                },
+                "direct": {
+                  "bytes": 268,
+                  "estimated_tokens": 66
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Review-findings comment identity (the idempotency key)",
+              "level": 3,
+              "start_line": 5,
+              "start_byte": 268,
+              "direct_end_byte_exclusive": 1756,
+              "subtree_end_byte_exclusive": 1756,
+              "direct": {
+                "bytes": 1488,
+                "estimated_tokens": 372
+              },
+              "subtree": {
+                "bytes": 1488,
+                "estimated_tokens": 372
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1488,
+                  "estimated_tokens": 372
+                },
+                "direct": {
+                  "bytes": 1488,
+                  "estimated_tokens": 372
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Producer slots vs adaptor slots (what to swap, when)",
+              "level": 3,
+              "start_line": 15,
+              "start_byte": 1756,
+              "direct_end_byte_exclusive": 3859,
+              "subtree_end_byte_exclusive": 3859,
+              "direct": {
+                "bytes": 2103,
+                "estimated_tokens": 524
+              },
+              "subtree": {
+                "bytes": 2103,
+                "estimated_tokens": 524
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2103,
+                  "estimated_tokens": 524
+                },
+                "direct": {
+                  "bytes": 2103,
+                  "estimated_tokens": 524
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Fixture data in review",
+              "level": 3,
+              "start_line": 25,
+              "start_byte": 3859,
+              "direct_end_byte_exclusive": 4756,
+              "subtree_end_byte_exclusive": 4756,
+              "direct": {
+                "bytes": 897,
+                "estimated_tokens": 225
+              },
+              "subtree": {
+                "bytes": 897,
+                "estimated_tokens": 225
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 897,
+                  "estimated_tokens": 225
+                },
+                "direct": {
+                  "bytes": 897,
+                  "estimated_tokens": 225
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "sha256": "f98c08368032e6c4053800551a64b7927439a16f7f57c02925c4e0f37847289c",
+          "original_sha256": "f98c08368032e6c4053800551a64b7927439a16f7f57c02925c4e0f37847289c",
+          "current": {
+            "bytes": 24185,
+            "estimated_tokens": 5994
+          },
+          "original": {
+            "bytes": 24185,
+            "estimated_tokens": 5994
+          },
+          "savings": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": false,
+          "preamble_before_first_heading": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "sections": [
+            {
+              "heading": "Faff gateway reference \u2014 tracker",
+              "level": 1,
+              "start_line": 1,
+              "start_byte": 0,
+              "direct_end_byte_exclusive": 258,
+              "subtree_end_byte_exclusive": 24185,
+              "direct": {
+                "bytes": 258,
+                "estimated_tokens": 64
+              },
+              "subtree": {
+                "bytes": 24185,
+                "estimated_tokens": 5994
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 24185,
+                  "estimated_tokens": 5994
+                },
+                "direct": {
+                  "bytes": 258,
+                  "estimated_tokens": 64
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Tracker availability resolution",
+              "level": 3,
+              "start_line": 5,
+              "start_byte": 258,
+              "direct_end_byte_exclusive": 3823,
+              "subtree_end_byte_exclusive": 3823,
+              "direct": {
+                "bytes": 3565,
+                "estimated_tokens": 884
+              },
+              "subtree": {
+                "bytes": 3565,
+                "estimated_tokens": 884
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3565,
+                  "estimated_tokens": 884
+                },
+                "direct": {
+                  "bytes": 3565,
+                  "estimated_tokens": 884
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Spec docs location",
+              "level": 3,
+              "start_line": 19,
+              "start_byte": 3823,
+              "direct_end_byte_exclusive": 5832,
+              "subtree_end_byte_exclusive": 5832,
+              "direct": {
+                "bytes": 2009,
+                "estimated_tokens": 502
+              },
+              "subtree": {
+                "bytes": 2009,
+                "estimated_tokens": 502
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2009,
+                  "estimated_tokens": 502
+                },
+                "direct": {
+                  "bytes": 2009,
+                  "estimated_tokens": 502
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Ignore cancelled and archived",
+              "level": 3,
+              "start_line": 33,
+              "start_byte": 5832,
+              "direct_end_byte_exclusive": 7940,
+              "subtree_end_byte_exclusive": 7940,
+              "direct": {
+                "bytes": 2108,
+                "estimated_tokens": 523
+              },
+              "subtree": {
+                "bytes": 2108,
+                "estimated_tokens": 523
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2108,
+                  "estimated_tokens": 523
+                },
+                "direct": {
+                  "bytes": 2108,
+                  "estimated_tokens": 523
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Satisfied blockers \u2014 edges to terminal work",
+              "level": 3,
+              "start_line": 53,
+              "start_byte": 7940,
+              "direct_end_byte_exclusive": 9383,
+              "subtree_end_byte_exclusive": 9383,
+              "direct": {
+                "bytes": 1443,
+                "estimated_tokens": 358
+              },
+              "subtree": {
+                "bytes": 1443,
+                "estimated_tokens": 358
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1443,
+                  "estimated_tokens": 358
+                },
+                "direct": {
+                  "bytes": 1443,
+                  "estimated_tokens": 358
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Next-step transition \u2014 consult `faff next`",
+              "level": 3,
+              "start_line": 58,
+              "start_byte": 9383,
+              "direct_end_byte_exclusive": 13365,
+              "subtree_end_byte_exclusive": 13365,
+              "direct": {
+                "bytes": 3982,
+                "estimated_tokens": 986
+              },
+              "subtree": {
+                "bytes": 3982,
+                "estimated_tokens": 986
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3982,
+                  "estimated_tokens": 986
+                },
+                "direct": {
+                  "bytes": 3982,
+                  "estimated_tokens": 986
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Re-ground before gate (gating inputs must be live)",
+              "level": 3,
+              "start_line": 82,
+              "start_byte": 13365,
+              "direct_end_byte_exclusive": 14766,
+              "subtree_end_byte_exclusive": 14766,
+              "direct": {
+                "bytes": 1401,
+                "estimated_tokens": 348
+              },
+              "subtree": {
+                "bytes": 1401,
+                "estimated_tokens": 348
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1401,
+                  "estimated_tokens": 348
+                },
+                "direct": {
+                  "bytes": 1401,
+                  "estimated_tokens": 348
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Lean tracker reads (ask for only what the step consumes)",
+              "level": 3,
+              "start_line": 86,
+              "start_byte": 14766,
+              "direct_end_byte_exclusive": 16071,
+              "subtree_end_byte_exclusive": 16071,
+              "direct": {
+                "bytes": 1305,
+                "estimated_tokens": 323
+              },
+              "subtree": {
+                "bytes": 1305,
+                "estimated_tokens": 323
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1305,
+                  "estimated_tokens": 323
+                },
+                "direct": {
+                  "bytes": 1305,
+                  "estimated_tokens": 323
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Tracker as the lights-out control plane",
+              "level": 3,
+              "start_line": 94,
+              "start_byte": 16071,
+              "direct_end_byte_exclusive": 19905,
+              "subtree_end_byte_exclusive": 19905,
+              "direct": {
+                "bytes": 3834,
+                "estimated_tokens": 946
+              },
+              "subtree": {
+                "bytes": 3834,
+                "estimated_tokens": 946
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3834,
+                  "estimated_tokens": 946
+                },
+                "direct": {
+                  "bytes": 3834,
+                  "estimated_tokens": 946
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Spec discovery (where to look for an existing spec)",
+              "level": 3,
+              "start_line": 115,
+              "start_byte": 19905,
+              "direct_end_byte_exclusive": 24185,
+              "subtree_end_byte_exclusive": 24185,
+              "direct": {
+                "bytes": 4280,
+                "estimated_tokens": 1063
+              },
+              "subtree": {
+                "bytes": 4280,
+                "estimated_tokens": 1063
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4280,
+                  "estimated_tokens": 1063
+                },
+                "direct": {
+                  "bytes": 4280,
+                  "estimated_tokens": 1063
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle": "faff-graft",
+      "current": {
+        "bytes": 178777,
+        "estimated_tokens": 44329
+      },
+      "original": {
+        "bytes": 178859,
+        "estimated_tokens": 44349
+      },
+      "savings": {
+        "bytes": 82,
+        "estimated_tokens": 20
+      },
+      "files": [
+        {
+          "path": "plugin/skills/faff-graft/SKILL.md",
+          "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+          "original_sha256": "401252f1a2bce5d68e972b83eaaffc1d2f1ce1dc1d47dc53f15488eb12c591ca",
+          "current": {
+            "bytes": 178777,
+            "estimated_tokens": 44329
+          },
+          "original": {
+            "bytes": 178859,
+            "estimated_tokens": 44349
+          },
+          "savings": {
+            "bytes": 82,
+            "estimated_tokens": 20
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": true,
+          "preamble_before_first_heading": {
+            "bytes": 185,
+            "estimated_tokens": 47
+          },
+          "sections": [
+            {
+              "heading": "Faff \u2014 Graft",
+              "level": 1,
+              "start_line": 6,
+              "start_byte": 185,
+              "direct_end_byte_exclusive": 409,
+              "subtree_end_byte_exclusive": 178777,
+              "direct": {
+                "bytes": 224,
+                "estimated_tokens": 56
+              },
+              "subtree": {
+                "bytes": 178592,
+                "estimated_tokens": 44282
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 178592,
+                  "estimated_tokens": 44282
+                },
+                "direct": {
+                  "bytes": 224,
+                  "estimated_tokens": 56
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Configuration",
+              "level": 2,
+              "start_line": 12,
+              "start_byte": 409,
+              "direct_end_byte_exclusive": 1202,
+              "subtree_end_byte_exclusive": 1991,
+              "direct": {
+                "bytes": 793,
+                "estimated_tokens": 198
+              },
+              "subtree": {
+                "bytes": 1582,
+                "estimated_tokens": 394
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1582,
+                  "estimated_tokens": 394
+                },
+                "direct": {
+                  "bytes": 793,
+                  "estimated_tokens": 198
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Worktree provisioning",
+              "level": 3,
+              "start_line": 16,
+              "start_byte": 1202,
+              "direct_end_byte_exclusive": 1991,
+              "subtree_end_byte_exclusive": 1991,
+              "direct": {
+                "bytes": 789,
+                "estimated_tokens": 197
+              },
+              "subtree": {
+                "bytes": 789,
+                "estimated_tokens": 197
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 789,
+                  "estimated_tokens": 197
+                },
+                "direct": {
+                  "bytes": 789,
+                  "estimated_tokens": 197
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Rendering",
+              "level": 2,
+              "start_line": 22,
+              "start_byte": 1991,
+              "direct_end_byte_exclusive": 2534,
+              "subtree_end_byte_exclusive": 2534,
+              "direct": {
+                "bytes": 543,
+                "estimated_tokens": 134
+              },
+              "subtree": {
+                "bytes": 543,
+                "estimated_tokens": 134
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 543,
+                  "estimated_tokens": 134
+                },
+                "direct": {
+                  "bytes": 543,
+                  "estimated_tokens": 134
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Input",
+              "level": 2,
+              "start_line": 26,
+              "start_byte": 2534,
+              "direct_end_byte_exclusive": 2956,
+              "subtree_end_byte_exclusive": 2956,
+              "direct": {
+                "bytes": 422,
+                "estimated_tokens": 105
+              },
+              "subtree": {
+                "bytes": 422,
+                "estimated_tokens": 105
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 422,
+                  "estimated_tokens": 105
+                },
+                "direct": {
+                  "bytes": 422,
+                  "estimated_tokens": 105
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Process",
+              "level": 2,
+              "start_line": 36,
+              "start_byte": 2956,
+              "direct_end_byte_exclusive": 101341,
+              "subtree_end_byte_exclusive": 151639,
+              "direct": {
+                "bytes": 98385,
+                "estimated_tokens": 24402
+              },
+              "subtree": {
+                "bytes": 148683,
+                "estimated_tokens": 36872
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 148683,
+                  "estimated_tokens": 36872
+                },
+                "direct": {
+                  "bytes": 98385,
+                  "estimated_tokens": 24402
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Discovered scope (record, never file)",
+              "level": 3,
+              "start_line": 505,
+              "start_byte": 101341,
+              "direct_end_byte_exclusive": 136988,
+              "subtree_end_byte_exclusive": 136988,
+              "direct": {
+                "bytes": 35647,
+                "estimated_tokens": 8834
+              },
+              "subtree": {
+                "bytes": 35647,
+                "estimated_tokens": 8834
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 35647,
+                  "estimated_tokens": 8834
+                },
+                "direct": {
+                  "bytes": 35647,
+                  "estimated_tokens": 8834
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "The staged fix cycle (CONFLICTING and CI_RED_REGRESSION)",
+              "level": 3,
+              "start_line": 620,
+              "start_byte": 136988,
+              "direct_end_byte_exclusive": 147128,
+              "subtree_end_byte_exclusive": 147128,
+              "direct": {
+                "bytes": 10140,
+                "estimated_tokens": 2520
+              },
+              "subtree": {
+                "bytes": 10140,
+                "estimated_tokens": 2520
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 10140,
+                  "estimated_tokens": 2520
+                },
+                "direct": {
+                  "bytes": 10140,
+                  "estimated_tokens": 2520
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "How to actually wait for CI",
+              "level": 3,
+              "start_line": 690,
+              "start_byte": 147128,
+              "direct_end_byte_exclusive": 148986,
+              "subtree_end_byte_exclusive": 148986,
+              "direct": {
+                "bytes": 1858,
+                "estimated_tokens": 461
+              },
+              "subtree": {
+                "bytes": 1858,
+                "estimated_tokens": 461
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1858,
+                  "estimated_tokens": 461
+                },
+                "direct": {
+                  "bytes": 1858,
+                  "estimated_tokens": 461
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Classifying the CI result (the three-way evaluation)",
+              "level": 3,
+              "start_line": 700,
+              "start_byte": 148986,
+              "direct_end_byte_exclusive": 151639,
+              "subtree_end_byte_exclusive": 151639,
+              "direct": {
+                "bytes": 2653,
+                "estimated_tokens": 655
+              },
+              "subtree": {
+                "bytes": 2653,
+                "estimated_tokens": 655
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2653,
+                  "estimated_tokens": 655
+                },
+                "direct": {
+                  "bytes": 2653,
+                  "estimated_tokens": 655
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Autonomous Mode",
+              "level": 2,
+              "start_line": 711,
+              "start_byte": 151639,
+              "direct_end_byte_exclusive": 162691,
+              "subtree_end_byte_exclusive": 178261,
+              "direct": {
+                "bytes": 11052,
+                "estimated_tokens": 2739
+              },
+              "subtree": {
+                "bytes": 26622,
+                "estimated_tokens": 6595
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 26622,
+                  "estimated_tokens": 6595
+                },
+                "direct": {
+                  "bytes": 11052,
+                  "estimated_tokens": 2739
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Resolve-attempt before park",
+              "level": 3,
+              "start_line": 744,
+              "start_byte": 162691,
+              "direct_end_byte_exclusive": 178261,
+              "subtree_end_byte_exclusive": 178261,
+              "direct": {
+                "bytes": 15570,
+                "estimated_tokens": 3856
+              },
+              "subtree": {
+                "bytes": 15570,
+                "estimated_tokens": 3856
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 15570,
+                  "estimated_tokens": 3856
+                },
+                "direct": {
+                  "bytes": 15570,
+                  "estimated_tokens": 3856
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Notes",
+              "level": 2,
+              "start_line": 800,
+              "start_byte": 178261,
+              "direct_end_byte_exclusive": 178777,
+              "subtree_end_byte_exclusive": 178777,
+              "direct": {
+                "bytes": 516,
+                "estimated_tokens": 128
+              },
+              "subtree": {
+                "bytes": 516,
+                "estimated_tokens": 128
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 516,
+                  "estimated_tokens": 128
+                },
+                "direct": {
+                  "bytes": 516,
+                  "estimated_tokens": 128
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle": "faff-beep-boop",
+      "current": {
+        "bytes": 149485,
+        "estimated_tokens": 37063
+      },
+      "original": {
+        "bytes": 157720,
+        "estimated_tokens": 39083
+      },
+      "savings": {
+        "bytes": 8235,
+        "estimated_tokens": 2020
+      },
+      "files": [
+        {
+          "path": "plugin/skills/faff-beep-boop/SKILL.md",
+          "sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+          "original_sha256": "7340b6f3cc1dc51887fcfdb710785e59e287406f6c3f89f45510abade3e0f69d",
+          "current": {
+            "bytes": 149485,
+            "estimated_tokens": 37063
+          },
+          "original": {
+            "bytes": 157720,
+            "estimated_tokens": 39083
+          },
+          "savings": {
+            "bytes": 8235,
+            "estimated_tokens": 2020
+          },
+          "body_identical_to_original": false,
+          "accepted_body_slices": [
+            {
+              "slice": "Beep-boop reporting",
+              "qualification": "beep-reporting-mcp-v1-final-qualification.json",
+              "status": "qualified-bounded-reporting-producer-command-consumer",
+              "bytes_saved": 1454,
+              "estimated_tokens_saved": 356
+            },
+            {
+              "slice": "faff-beep-boop ledger/events",
+              "qualification": "beep-ledger-mcp-v3-final-qualification.json",
+              "status": "qualified-bounded-ledger-event-producer-consumer",
+              "bytes_saved": 6622,
+              "estimated_tokens_saved": 1625
+            }
+          ],
+          "description_only_coverage": true,
+          "preamble_before_first_heading": {
+            "bytes": 199,
+            "estimated_tokens": 50
+          },
+          "sections": [
+            {
+              "heading": "Faff \u2014 Beep-Boop",
+              "level": 1,
+              "start_line": 6,
+              "start_byte": 199,
+              "direct_end_byte_exclusive": 1694,
+              "subtree_end_byte_exclusive": 149485,
+              "direct": {
+                "bytes": 1495,
+                "estimated_tokens": 370
+              },
+              "subtree": {
+                "bytes": 149286,
+                "estimated_tokens": 37013
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 157362,
+                  "estimated_tokens": 38995
+                },
+                "direct": {
+                  "bytes": 1495,
+                  "estimated_tokens": 370
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Configuration",
+              "level": 2,
+              "start_line": 12,
+              "start_byte": 1694,
+              "direct_end_byte_exclusive": 3378,
+              "subtree_end_byte_exclusive": 3378,
+              "direct": {
+                "bytes": 1684,
+                "estimated_tokens": 418
+              },
+              "subtree": {
+                "bytes": 1684,
+                "estimated_tokens": 418
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1684,
+                  "estimated_tokens": 418
+                },
+                "direct": {
+                  "bytes": 1684,
+                  "estimated_tokens": 418
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Install-health preflight (doctor-at-entry surfacing)",
+              "level": 2,
+              "start_line": 23,
+              "start_byte": 3378,
+              "direct_end_byte_exclusive": 4595,
+              "subtree_end_byte_exclusive": 4595,
+              "direct": {
+                "bytes": 1217,
+                "estimated_tokens": 300
+              },
+              "subtree": {
+                "bytes": 1217,
+                "estimated_tokens": 300
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1217,
+                  "estimated_tokens": 300
+                },
+                "direct": {
+                  "bytes": 1217,
+                  "estimated_tokens": 300
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "GitHub-auth preflight (run-start, before the build queue is minted)",
+              "level": 2,
+              "start_line": 36,
+              "start_byte": 4595,
+              "direct_end_byte_exclusive": 6124,
+              "subtree_end_byte_exclusive": 6124,
+              "direct": {
+                "bytes": 1529,
+                "estimated_tokens": 378
+              },
+              "subtree": {
+                "bytes": 1529,
+                "estimated_tokens": 378
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1529,
+                  "estimated_tokens": 378
+                },
+                "direct": {
+                  "bytes": 1529,
+                  "estimated_tokens": 378
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Invocation",
+              "level": 2,
+              "start_line": 50,
+              "start_byte": 6124,
+              "direct_end_byte_exclusive": 6921,
+              "subtree_end_byte_exclusive": 6921,
+              "direct": {
+                "bytes": 797,
+                "estimated_tokens": 196
+              },
+              "subtree": {
+                "bytes": 797,
+                "estimated_tokens": 196
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 797,
+                  "estimated_tokens": 196
+                },
+                "direct": {
+                  "bytes": 797,
+                  "estimated_tokens": 196
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Budget flags",
+              "level": 2,
+              "start_line": 59,
+              "start_byte": 6921,
+              "direct_end_byte_exclusive": 10743,
+              "subtree_end_byte_exclusive": 17689,
+              "direct": {
+                "bytes": 3822,
+                "estimated_tokens": 950
+              },
+              "subtree": {
+                "bytes": 10768,
+                "estimated_tokens": 2675
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 10768,
+                  "estimated_tokens": 2675
+                },
+                "direct": {
+                  "bytes": 3822,
+                  "estimated_tokens": 950
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "The check \u2014 `faff run checkpoint`",
+              "level": 3,
+              "start_line": 83,
+              "start_byte": 10743,
+              "direct_end_byte_exclusive": 12252,
+              "subtree_end_byte_exclusive": 12252,
+              "direct": {
+                "bytes": 1509,
+                "estimated_tokens": 374
+              },
+              "subtree": {
+                "bytes": 1509,
+                "estimated_tokens": 374
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1509,
+                  "estimated_tokens": 374
+                },
+                "direct": {
+                  "bytes": 1509,
+                  "estimated_tokens": 374
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "When the check fires",
+              "level": 3,
+              "start_line": 89,
+              "start_byte": 12252,
+              "direct_end_byte_exclusive": 13222,
+              "subtree_end_byte_exclusive": 13222,
+              "direct": {
+                "bytes": 970,
+                "estimated_tokens": 242
+              },
+              "subtree": {
+                "bytes": 970,
+                "estimated_tokens": 242
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 970,
+                  "estimated_tokens": 242
+                },
+                "direct": {
+                  "bytes": 970,
+                  "estimated_tokens": 242
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "The interrupt \u2014 `faff run checkpoint`",
+              "level": 3,
+              "start_line": 95,
+              "start_byte": 13222,
+              "direct_end_byte_exclusive": 17689,
+              "subtree_end_byte_exclusive": 17689,
+              "direct": {
+                "bytes": 4467,
+                "estimated_tokens": 1110
+              },
+              "subtree": {
+                "bytes": 4467,
+                "estimated_tokens": 1110
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4467,
+                  "estimated_tokens": 1110
+                },
+                "direct": {
+                  "bytes": 4467,
+                  "estimated_tokens": 1110
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Phase selector (`--phases build | prep | all`)",
+              "level": 2,
+              "start_line": 123,
+              "start_byte": 17689,
+              "direct_end_byte_exclusive": 20683,
+              "subtree_end_byte_exclusive": 20683,
+              "direct": {
+                "bytes": 2994,
+                "estimated_tokens": 742
+              },
+              "subtree": {
+                "bytes": 2994,
+                "estimated_tokens": 742
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2994,
+                  "estimated_tokens": 742
+                },
+                "direct": {
+                  "bytes": 2994,
+                  "estimated_tokens": 742
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Full pipeline (default)",
+              "level": 2,
+              "start_line": 130,
+              "start_byte": 20683,
+              "direct_end_byte_exclusive": 21260,
+              "subtree_end_byte_exclusive": 95525,
+              "direct": {
+                "bytes": 577,
+                "estimated_tokens": 144
+              },
+              "subtree": {
+                "bytes": 74842,
+                "estimated_tokens": 18528
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 74842,
+                  "estimated_tokens": 18528
+                },
+                "direct": {
+                  "bytes": 577,
+                  "estimated_tokens": 144
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "0a. Run-start trigger \u2014 PLAN / drain / refuse (L4 lights-out only)",
+              "level": 3,
+              "start_line": 134,
+              "start_byte": 21260,
+              "direct_end_byte_exclusive": 24231,
+              "subtree_end_byte_exclusive": 24231,
+              "direct": {
+                "bytes": 2971,
+                "estimated_tokens": 741
+              },
+              "subtree": {
+                "bytes": 2971,
+                "estimated_tokens": 741
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2971,
+                  "estimated_tokens": 741
+                },
+                "direct": {
+                  "bytes": 2971,
+                  "estimated_tokens": 741
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "1. Tidy pass",
+              "level": 3,
+              "start_line": 154,
+              "start_byte": 24231,
+              "direct_end_byte_exclusive": 24657,
+              "subtree_end_byte_exclusive": 24657,
+              "direct": {
+                "bytes": 426,
+                "estimated_tokens": 106
+              },
+              "subtree": {
+                "bytes": 426,
+                "estimated_tokens": 106
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 426,
+                  "estimated_tokens": 106
+                },
+                "direct": {
+                  "bytes": 426,
+                  "estimated_tokens": 106
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "2. Prep queue build",
+              "level": 3,
+              "start_line": 158,
+              "start_byte": 24657,
+              "direct_end_byte_exclusive": 27128,
+              "subtree_end_byte_exclusive": 27128,
+              "direct": {
+                "bytes": 2471,
+                "estimated_tokens": 612
+              },
+              "subtree": {
+                "bytes": 2471,
+                "estimated_tokens": 612
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2471,
+                  "estimated_tokens": 612
+                },
+                "direct": {
+                  "bytes": 2471,
+                  "estimated_tokens": 612
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "3. Prep queue drain",
+              "level": 3,
+              "start_line": 172,
+              "start_byte": 27128,
+              "direct_end_byte_exclusive": 32427,
+              "subtree_end_byte_exclusive": 32427,
+              "direct": {
+                "bytes": 5299,
+                "estimated_tokens": 1310
+              },
+              "subtree": {
+                "bytes": 5299,
+                "estimated_tokens": 1310
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 5299,
+                  "estimated_tokens": 1310
+                },
+                "direct": {
+                  "bytes": 5299,
+                  "estimated_tokens": 1310
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "4. Build queue assembly",
+              "level": 3,
+              "start_line": 189,
+              "start_byte": 32427,
+              "direct_end_byte_exclusive": 47199,
+              "subtree_end_byte_exclusive": 47199,
+              "direct": {
+                "bytes": 14772,
+                "estimated_tokens": 3664
+              },
+              "subtree": {
+                "bytes": 14772,
+                "estimated_tokens": 3664
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 14772,
+                  "estimated_tokens": 3664
+                },
+                "direct": {
+                  "bytes": 14772,
+                  "estimated_tokens": 3664
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "5. Conflict analysis",
+              "level": 3,
+              "start_line": 230,
+              "start_byte": 47199,
+              "direct_end_byte_exclusive": 47288,
+              "subtree_end_byte_exclusive": 47288,
+              "direct": {
+                "bytes": 89,
+                "estimated_tokens": 23
+              },
+              "subtree": {
+                "bytes": 89,
+                "estimated_tokens": 23
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 89,
+                  "estimated_tokens": 23
+                },
+                "direct": {
+                  "bytes": 89,
+                  "estimated_tokens": 23
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "6. Build pass",
+              "level": 3,
+              "start_line": 234,
+              "start_byte": 47288,
+              "direct_end_byte_exclusive": 48261,
+              "subtree_end_byte_exclusive": 48261,
+              "direct": {
+                "bytes": 973,
+                "estimated_tokens": 241
+              },
+              "subtree": {
+                "bytes": 973,
+                "estimated_tokens": 241
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 973,
+                  "estimated_tokens": 241
+                },
+                "direct": {
+                  "bytes": 973,
+                  "estimated_tokens": 241
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "7. Wave drain",
+              "level": 3,
+              "start_line": 238,
+              "start_byte": 48261,
+              "direct_end_byte_exclusive": 49898,
+              "subtree_end_byte_exclusive": 49898,
+              "direct": {
+                "bytes": 1637,
+                "estimated_tokens": 402
+              },
+              "subtree": {
+                "bytes": 1637,
+                "estimated_tokens": 402
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1637,
+                  "estimated_tokens": 402
+                },
+                "direct": {
+                  "bytes": 1637,
+                  "estimated_tokens": 402
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "8. Wave re-entry",
+              "level": 3,
+              "start_line": 249,
+              "start_byte": 49898,
+              "direct_end_byte_exclusive": 65525,
+              "subtree_end_byte_exclusive": 65525,
+              "direct": {
+                "bytes": 15627,
+                "estimated_tokens": 3869
+              },
+              "subtree": {
+                "bytes": 15627,
+                "estimated_tokens": 3869
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 15627,
+                  "estimated_tokens": 3869
+                },
+                "direct": {
+                  "bytes": 15627,
+                  "estimated_tokens": 3869
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "9. Wave-1 empty short-circuit",
+              "level": 3,
+              "start_line": 281,
+              "start_byte": 65525,
+              "direct_end_byte_exclusive": 65791,
+              "subtree_end_byte_exclusive": 65791,
+              "direct": {
+                "bytes": 266,
+                "estimated_tokens": 66
+              },
+              "subtree": {
+                "bytes": 266,
+                "estimated_tokens": 66
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 266,
+                  "estimated_tokens": 66
+                },
+                "direct": {
+                  "bytes": 266,
+                  "estimated_tokens": 66
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "10. File discovered-scope tickets",
+              "level": 3,
+              "start_line": 285,
+              "start_byte": 65791,
+              "direct_end_byte_exclusive": 73215,
+              "subtree_end_byte_exclusive": 78923,
+              "direct": {
+                "bytes": 7424,
+                "estimated_tokens": 1835
+              },
+              "subtree": {
+                "bytes": 13132,
+                "estimated_tokens": 3249
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 13132,
+                  "estimated_tokens": 3249
+                },
+                "direct": {
+                  "bytes": 7424,
+                  "estimated_tokens": 1835
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Containment at the filing chokepoint",
+              "level": 4,
+              "start_line": 304,
+              "start_byte": 73215,
+              "direct_end_byte_exclusive": 76261,
+              "subtree_end_byte_exclusive": 76261,
+              "direct": {
+                "bytes": 3046,
+                "estimated_tokens": 754
+              },
+              "subtree": {
+                "bytes": 3046,
+                "estimated_tokens": 754
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3046,
+                  "estimated_tokens": 754
+                },
+                "direct": {
+                  "bytes": 3046,
+                  "estimated_tokens": 754
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Orchestrator-lane capture",
+              "level": 4,
+              "start_line": 325,
+              "start_byte": 76261,
+              "direct_end_byte_exclusive": 78923,
+              "subtree_end_byte_exclusive": 78923,
+              "direct": {
+                "bytes": 2662,
+                "estimated_tokens": 660
+              },
+              "subtree": {
+                "bytes": 2662,
+                "estimated_tokens": 660
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2662,
+                  "estimated_tokens": 660
+                },
+                "direct": {
+                  "bytes": 2662,
+                  "estimated_tokens": 660
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "10b. Per-run holdout phase (L4 lights-out signal only \u2014 the enforced holdout guardrail)",
+              "level": 3,
+              "start_line": 333,
+              "start_byte": 78923,
+              "direct_end_byte_exclusive": 86320,
+              "subtree_end_byte_exclusive": 86320,
+              "direct": {
+                "bytes": 7397,
+                "estimated_tokens": 1830
+              },
+              "subtree": {
+                "bytes": 7397,
+                "estimated_tokens": 1830
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 7397,
+                  "estimated_tokens": 1830
+                },
+                "direct": {
+                  "bytes": 7397,
+                  "estimated_tokens": 1830
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "11. Run completeness check (mechanical)",
+              "level": 3,
+              "start_line": 348,
+              "start_byte": 86320,
+              "direct_end_byte_exclusive": 87443,
+              "subtree_end_byte_exclusive": 87443,
+              "direct": {
+                "bytes": 1123,
+                "estimated_tokens": 278
+              },
+              "subtree": {
+                "bytes": 1123,
+                "estimated_tokens": 278
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1123,
+                  "estimated_tokens": 278
+                },
+                "direct": {
+                  "bytes": 1123,
+                  "estimated_tokens": 278
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "11.5. Run-end ground-truth reconcile (blocking at L4, warn at \u2264L3)",
+              "level": 3,
+              "start_line": 360,
+              "start_byte": 87443,
+              "direct_end_byte_exclusive": 93115,
+              "subtree_end_byte_exclusive": 93115,
+              "direct": {
+                "bytes": 5672,
+                "estimated_tokens": 1405
+              },
+              "subtree": {
+                "bytes": 5672,
+                "estimated_tokens": 1405
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 5672,
+                  "estimated_tokens": 1405
+                },
+                "direct": {
+                  "bytes": 5672,
+                  "estimated_tokens": 1405
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "11.6. Post-merge verification annotations (informational, never blocking)",
+              "level": 3,
+              "start_line": 375,
+              "start_byte": 93115,
+              "direct_end_byte_exclusive": 95525,
+              "subtree_end_byte_exclusive": 95525,
+              "direct": {
+                "bytes": 2410,
+                "estimated_tokens": 595
+              },
+              "subtree": {
+                "bytes": 2410,
+                "estimated_tokens": 595
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2410,
+                  "estimated_tokens": 595
+                },
+                "direct": {
+                  "bytes": 2410,
+                  "estimated_tokens": 595
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Run ledger (mechanical completeness)",
+              "level": 2,
+              "start_line": 381,
+              "start_byte": 95525,
+              "direct_end_byte_exclusive": 105175,
+              "subtree_end_byte_exclusive": 112202,
+              "direct": {
+                "bytes": 9650,
+                "estimated_tokens": 2405
+              },
+              "subtree": {
+                "bytes": 16677,
+                "estimated_tokens": 4153
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 22088,
+                  "estimated_tokens": 5483
+                },
+                "direct": {
+                  "bytes": 15061,
+                  "estimated_tokens": 3735
+                }
+              },
+              "body_coverage": "accepted ledger treatment; heading subtree also includes unchanged owner guidance"
+            },
+            {
+              "heading": "Owner stamp & heartbeat",
+              "level": 3,
+              "start_line": 415,
+              "start_byte": 105175,
+              "direct_end_byte_exclusive": 109911,
+              "subtree_end_byte_exclusive": 109911,
+              "direct": {
+                "bytes": 4736,
+                "estimated_tokens": 1179
+              },
+              "subtree": {
+                "bytes": 4736,
+                "estimated_tokens": 1179
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4736,
+                  "estimated_tokens": 1179
+                },
+                "direct": {
+                  "bytes": 4736,
+                  "estimated_tokens": 1179
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Stop hook (harness-enforced backstop)",
+              "level": 3,
+              "start_line": 442,
+              "start_byte": 109911,
+              "direct_end_byte_exclusive": 112202,
+              "subtree_end_byte_exclusive": 112202,
+              "direct": {
+                "bytes": 2291,
+                "estimated_tokens": 570
+              },
+              "subtree": {
+                "bytes": 2291,
+                "estimated_tokens": 570
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2291,
+                  "estimated_tokens": 570
+                },
+                "direct": {
+                  "bytes": 2291,
+                  "estimated_tokens": 570
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Run-event log (observability substrate)",
+              "level": 2,
+              "start_line": 448,
+              "start_byte": 112202,
+              "direct_end_byte_exclusive": 115718,
+              "subtree_end_byte_exclusive": 115718,
+              "direct": {
+                "bytes": 3516,
+                "estimated_tokens": 879
+              },
+              "subtree": {
+                "bytes": 3516,
+                "estimated_tokens": 879
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4727,
+                  "estimated_tokens": 1174
+                },
+                "direct": {
+                  "bytes": 4727,
+                  "estimated_tokens": 1174
+                }
+              },
+              "body_coverage": "accepted event scope"
+            },
+            {
+              "heading": "Explicit-list mode",
+              "level": 2,
+              "start_line": 474,
+              "start_byte": 115718,
+              "direct_end_byte_exclusive": 117510,
+              "subtree_end_byte_exclusive": 117510,
+              "direct": {
+                "bytes": 1792,
+                "estimated_tokens": 443
+              },
+              "subtree": {
+                "bytes": 1792,
+                "estimated_tokens": 443
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1792,
+                  "estimated_tokens": 443
+                },
+                "direct": {
+                  "bytes": 1792,
+                  "estimated_tokens": 443
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Conflict analysis",
+              "level": 2,
+              "start_line": 489,
+              "start_byte": 117510,
+              "direct_end_byte_exclusive": 121702,
+              "subtree_end_byte_exclusive": 125479,
+              "direct": {
+                "bytes": 4192,
+                "estimated_tokens": 1044
+              },
+              "subtree": {
+                "bytes": 7969,
+                "estimated_tokens": 1978
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 7969,
+                  "estimated_tokens": 1978
+                },
+                "direct": {
+                  "bytes": 4192,
+                  "estimated_tokens": 1044
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Inferred build-order dependencies (heuristic 6)",
+              "level": 3,
+              "start_line": 524,
+              "start_byte": 121702,
+              "direct_end_byte_exclusive": 125479,
+              "subtree_end_byte_exclusive": 125479,
+              "direct": {
+                "bytes": 3777,
+                "estimated_tokens": 935
+              },
+              "subtree": {
+                "bytes": 3777,
+                "estimated_tokens": 935
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3777,
+                  "estimated_tokens": 935
+                },
+                "direct": {
+                  "bytes": 3777,
+                  "estimated_tokens": 935
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Build-pass execution (the `concurrency` slot)",
+              "level": 2,
+              "start_line": 547,
+              "start_byte": 125479,
+              "direct_end_byte_exclusive": 130005,
+              "subtree_end_byte_exclusive": 130005,
+              "direct": {
+                "bytes": 4526,
+                "estimated_tokens": 1121
+              },
+              "subtree": {
+                "bytes": 4526,
+                "estimated_tokens": 1121
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4526,
+                  "estimated_tokens": 1121
+                },
+                "direct": {
+                  "bytes": 4526,
+                  "estimated_tokens": 1121
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Park protocol and tracker tagging",
+              "level": 2,
+              "start_line": 555,
+              "start_byte": 130005,
+              "direct_end_byte_exclusive": 131515,
+              "subtree_end_byte_exclusive": 131515,
+              "direct": {
+                "bytes": 1510,
+                "estimated_tokens": 374
+              },
+              "subtree": {
+                "bytes": 1510,
+                "estimated_tokens": 374
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1510,
+                  "estimated_tokens": 374
+                },
+                "direct": {
+                  "bytes": 1510,
+                  "estimated_tokens": 374
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Reporting",
+              "level": 2,
+              "start_line": 565,
+              "start_byte": 131515,
+              "direct_end_byte_exclusive": 132141,
+              "subtree_end_byte_exclusive": 138269,
+              "direct": {
+                "bytes": 626,
+                "estimated_tokens": 155
+              },
+              "subtree": {
+                "bytes": 6754,
+                "estimated_tokens": 1682
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 8208,
+                  "estimated_tokens": 2038
+                },
+                "direct": {
+                  "bytes": 626,
+                  "estimated_tokens": 155
+                }
+              },
+              "body_coverage": "partial accepted reporting prose treatment; whole section not separately qualified"
+            },
+            {
+              "heading": "1. `.faff/runs/<run-id>/summary.md`",
+              "level": 3,
+              "start_line": 571,
+              "start_byte": 132141,
+              "direct_end_byte_exclusive": 137459,
+              "subtree_end_byte_exclusive": 137459,
+              "direct": {
+                "bytes": 5318,
+                "estimated_tokens": 1328
+              },
+              "subtree": {
+                "bytes": 5318,
+                "estimated_tokens": 1328
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 6772,
+                  "estimated_tokens": 1684
+                },
+                "direct": {
+                  "bytes": 6772,
+                  "estimated_tokens": 1684
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "2. Tracker status update",
+              "level": 3,
+              "start_line": 611,
+              "start_byte": 137459,
+              "direct_end_byte_exclusive": 138173,
+              "subtree_end_byte_exclusive": 138173,
+              "direct": {
+                "bytes": 714,
+                "estimated_tokens": 176
+              },
+              "subtree": {
+                "bytes": 714,
+                "estimated_tokens": 176
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 714,
+                  "estimated_tokens": 176
+                },
+                "direct": {
+                  "bytes": 714,
+                  "estimated_tokens": 176
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "3. In-conversation output \u2014 print the summary in the conversation at the end of the run.",
+              "level": 3,
+              "start_line": 617,
+              "start_byte": 138173,
+              "direct_end_byte_exclusive": 138269,
+              "subtree_end_byte_exclusive": 138269,
+              "direct": {
+                "bytes": 96,
+                "estimated_tokens": 24
+              },
+              "subtree": {
+                "bytes": 96,
+                "estimated_tokens": 24
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 96,
+                  "estimated_tokens": 24
+                },
+                "direct": {
+                  "bytes": 96,
+                  "estimated_tokens": 24
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Stopping condition",
+              "level": 2,
+              "start_line": 619,
+              "start_byte": 138269,
+              "direct_end_byte_exclusive": 141213,
+              "subtree_end_byte_exclusive": 141213,
+              "direct": {
+                "bytes": 2944,
+                "estimated_tokens": 729
+              },
+              "subtree": {
+                "bytes": 2944,
+                "estimated_tokens": 729
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2944,
+                  "estimated_tokens": 729
+                },
+                "direct": {
+                  "bytes": 2944,
+                  "estimated_tokens": 729
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Autonomous-mode signal to sub-skills",
+              "level": 2,
+              "start_line": 631,
+              "start_byte": 141213,
+              "direct_end_byte_exclusive": 141730,
+              "subtree_end_byte_exclusive": 141730,
+              "direct": {
+                "bytes": 517,
+                "estimated_tokens": 129
+              },
+              "subtree": {
+                "bytes": 517,
+                "estimated_tokens": 129
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 517,
+                  "estimated_tokens": 129
+                },
+                "direct": {
+                  "bytes": 517,
+                  "estimated_tokens": 129
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Guarantees",
+              "level": 2,
+              "start_line": 639,
+              "start_byte": 141730,
+              "direct_end_byte_exclusive": 148774,
+              "subtree_end_byte_exclusive": 148774,
+              "direct": {
+                "bytes": 7044,
+                "estimated_tokens": 1749
+              },
+              "subtree": {
+                "bytes": 7044,
+                "estimated_tokens": 1749
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 7044,
+                  "estimated_tokens": 1749
+                },
+                "direct": {
+                  "bytes": 7044,
+                  "estimated_tokens": 1749
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Notes",
+              "level": 2,
+              "start_line": 659,
+              "start_byte": 148774,
+              "direct_end_byte_exclusive": 149485,
+              "subtree_end_byte_exclusive": 149485,
+              "direct": {
+                "bytes": 711,
+                "estimated_tokens": 177
+              },
+              "subtree": {
+                "bytes": 711,
+                "estimated_tokens": 177
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 711,
+                  "estimated_tokens": 177
+                },
+                "direct": {
+                  "bytes": 711,
+                  "estimated_tokens": 177
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle": "faff-prep",
+      "current": {
+        "bytes": 104335,
+        "estimated_tokens": 25883
+      },
+      "original": {
+        "bytes": 104335,
+        "estimated_tokens": 25883
+      },
+      "savings": {
+        "bytes": 0,
+        "estimated_tokens": 0
+      },
+      "files": [
+        {
+          "path": "plugin/skills/faff-prep/SKILL.md",
+          "sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+          "original_sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+          "current": {
+            "bytes": 104335,
+            "estimated_tokens": 25883
+          },
+          "original": {
+            "bytes": 104335,
+            "estimated_tokens": 25883
+          },
+          "savings": {
+            "bytes": 0,
+            "estimated_tokens": 0
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": false,
+          "preamble_before_first_heading": {
+            "bytes": 350,
+            "estimated_tokens": 87
+          },
+          "sections": [
+            {
+              "heading": "Faff \u2014 Prep",
+              "level": 1,
+              "start_line": 7,
+              "start_byte": 350,
+              "direct_end_byte_exclusive": 1063,
+              "subtree_end_byte_exclusive": 104335,
+              "direct": {
+                "bytes": 713,
+                "estimated_tokens": 177
+              },
+              "subtree": {
+                "bytes": 103985,
+                "estimated_tokens": 25796
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 103985,
+                  "estimated_tokens": 25796
+                },
+                "direct": {
+                  "bytes": 713,
+                  "estimated_tokens": 177
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Configuration",
+              "level": 2,
+              "start_line": 17,
+              "start_byte": 1063,
+              "direct_end_byte_exclusive": 1651,
+              "subtree_end_byte_exclusive": 3060,
+              "direct": {
+                "bytes": 588,
+                "estimated_tokens": 146
+              },
+              "subtree": {
+                "bytes": 1997,
+                "estimated_tokens": 496
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1997,
+                  "estimated_tokens": 496
+                },
+                "direct": {
+                  "bytes": 588,
+                  "estimated_tokens": 146
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Spec slot (always delegated)",
+              "level": 3,
+              "start_line": 21,
+              "start_byte": 1651,
+              "direct_end_byte_exclusive": 3060,
+              "subtree_end_byte_exclusive": 3060,
+              "direct": {
+                "bytes": 1409,
+                "estimated_tokens": 350
+              },
+              "subtree": {
+                "bytes": 1409,
+                "estimated_tokens": 350
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1409,
+                  "estimated_tokens": 350
+                },
+                "direct": {
+                  "bytes": 1409,
+                  "estimated_tokens": 350
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Rendering",
+              "level": 2,
+              "start_line": 34,
+              "start_byte": 3060,
+              "direct_end_byte_exclusive": 3599,
+              "subtree_end_byte_exclusive": 3599,
+              "direct": {
+                "bytes": 539,
+                "estimated_tokens": 133
+              },
+              "subtree": {
+                "bytes": 539,
+                "estimated_tokens": 133
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 539,
+                  "estimated_tokens": 133
+                },
+                "direct": {
+                  "bytes": 539,
+                  "estimated_tokens": 133
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "What Prep Produces",
+              "level": 2,
+              "start_line": 38,
+              "start_byte": 3599,
+              "direct_end_byte_exclusive": 5968,
+              "subtree_end_byte_exclusive": 5968,
+              "direct": {
+                "bytes": 2369,
+                "estimated_tokens": 586
+              },
+              "subtree": {
+                "bytes": 2369,
+                "estimated_tokens": 586
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2369,
+                  "estimated_tokens": 586
+                },
+                "direct": {
+                  "bytes": 2369,
+                  "estimated_tokens": 586
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Spec contract",
+              "level": 2,
+              "start_line": 55,
+              "start_byte": 5968,
+              "direct_end_byte_exclusive": 7370,
+              "subtree_end_byte_exclusive": 10901,
+              "direct": {
+                "bytes": 1402,
+                "estimated_tokens": 349
+              },
+              "subtree": {
+                "bytes": 4933,
+                "estimated_tokens": 1231
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4933,
+                  "estimated_tokens": 1231
+                },
+                "direct": {
+                  "bytes": 1402,
+                  "estimated_tokens": 349
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Stage and attach (`faff prep attach`)",
+              "level": 3,
+              "start_line": 61,
+              "start_byte": 7370,
+              "direct_end_byte_exclusive": 10901,
+              "subtree_end_byte_exclusive": 10901,
+              "direct": {
+                "bytes": 3531,
+                "estimated_tokens": 882
+              },
+              "subtree": {
+                "bytes": 3531,
+                "estimated_tokens": 882
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3531,
+                  "estimated_tokens": 882
+                },
+                "direct": {
+                  "bytes": 3531,
+                  "estimated_tokens": 882
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Spec-review gate (approach-critique consumer-fold)",
+              "level": 2,
+              "start_line": 88,
+              "start_byte": 10901,
+              "direct_end_byte_exclusive": 26188,
+              "subtree_end_byte_exclusive": 53297,
+              "direct": {
+                "bytes": 15287,
+                "estimated_tokens": 3796
+              },
+              "subtree": {
+                "bytes": 42396,
+                "estimated_tokens": 10530
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 42396,
+                  "estimated_tokens": 10530
+                },
+                "direct": {
+                  "bytes": 15287,
+                  "estimated_tokens": 3796
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Ratify a design-lens objection in place (interactive only)",
+              "level": 3,
+              "start_line": 161,
+              "start_byte": 26188,
+              "direct_end_byte_exclusive": 53297,
+              "subtree_end_byte_exclusive": 53297,
+              "direct": {
+                "bytes": 27109,
+                "estimated_tokens": 6734
+              },
+              "subtree": {
+                "bytes": 27109,
+                "estimated_tokens": 6734
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 27109,
+                  "estimated_tokens": 6734
+                },
+                "direct": {
+                  "bytes": 27109,
+                  "estimated_tokens": 6734
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Spec quality bar (owned by the producer)",
+              "level": 2,
+              "start_line": 275,
+              "start_byte": 53297,
+              "direct_end_byte_exclusive": 55658,
+              "subtree_end_byte_exclusive": 55658,
+              "direct": {
+                "bytes": 2361,
+                "estimated_tokens": 583
+              },
+              "subtree": {
+                "bytes": 2361,
+                "estimated_tokens": 583
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2361,
+                  "estimated_tokens": 583
+                },
+                "direct": {
+                  "bytes": 2361,
+                  "estimated_tokens": 583
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Architecture proposal step (shared subroutine \u2014 conditional)",
+              "level": 2,
+              "start_line": 287,
+              "start_byte": 55658,
+              "direct_end_byte_exclusive": 58634,
+              "subtree_end_byte_exclusive": 58634,
+              "direct": {
+                "bytes": 2976,
+                "estimated_tokens": 736
+              },
+              "subtree": {
+                "bytes": 2976,
+                "estimated_tokens": 736
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2976,
+                  "estimated_tokens": 736
+                },
+                "direct": {
+                  "bytes": 2976,
+                  "estimated_tokens": 736
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Decisions-register capture step (shared subroutine)",
+              "level": 2,
+              "start_line": 297,
+              "start_byte": 58634,
+              "direct_end_byte_exclusive": 61835,
+              "subtree_end_byte_exclusive": 61835,
+              "direct": {
+                "bytes": 3201,
+                "estimated_tokens": 796
+              },
+              "subtree": {
+                "bytes": 3201,
+                "estimated_tokens": 796
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3201,
+                  "estimated_tokens": 796
+                },
+                "direct": {
+                  "bytes": 3201,
+                  "estimated_tokens": 796
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Decisions-register reconcile step (shared subroutine)",
+              "level": 2,
+              "start_line": 322,
+              "start_byte": 61835,
+              "direct_end_byte_exclusive": 64445,
+              "subtree_end_byte_exclusive": 64445,
+              "direct": {
+                "bytes": 2610,
+                "estimated_tokens": 647
+              },
+              "subtree": {
+                "bytes": 2610,
+                "estimated_tokens": 647
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2610,
+                  "estimated_tokens": 647
+                },
+                "direct": {
+                  "bytes": 2610,
+                  "estimated_tokens": 647
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Prep Gate",
+              "level": 2,
+              "start_line": 334,
+              "start_byte": 64445,
+              "direct_end_byte_exclusive": 64584,
+              "subtree_end_byte_exclusive": 64584,
+              "direct": {
+                "bytes": 139,
+                "estimated_tokens": 35
+              },
+              "subtree": {
+                "bytes": 139,
+                "estimated_tokens": 35
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 139,
+                  "estimated_tokens": 35
+                },
+                "direct": {
+                  "bytes": 139,
+                  "estimated_tokens": 35
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Artifact Lifecycle",
+              "level": 2,
+              "start_line": 338,
+              "start_byte": 64584,
+              "direct_end_byte_exclusive": 64607,
+              "subtree_end_byte_exclusive": 65965,
+              "direct": {
+                "bytes": 23,
+                "estimated_tokens": 6
+              },
+              "subtree": {
+                "bytes": 1381,
+                "estimated_tokens": 344
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1381,
+                  "estimated_tokens": 344
+                },
+                "direct": {
+                  "bytes": 23,
+                  "estimated_tokens": 6
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Phase 1: Prep (issue tracker only)",
+              "level": 3,
+              "start_line": 340,
+              "start_byte": 64607,
+              "direct_end_byte_exclusive": 64980,
+              "subtree_end_byte_exclusive": 64980,
+              "direct": {
+                "bytes": 373,
+                "estimated_tokens": 94
+              },
+              "subtree": {
+                "bytes": 373,
+                "estimated_tokens": 94
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 373,
+                  "estimated_tokens": 94
+                },
+                "direct": {
+                  "bytes": 373,
+                  "estimated_tokens": 94
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Phase 2: Build (committed to repo)",
+              "level": 3,
+              "start_line": 348,
+              "start_byte": 64980,
+              "direct_end_byte_exclusive": 65401,
+              "subtree_end_byte_exclusive": 65401,
+              "direct": {
+                "bytes": 421,
+                "estimated_tokens": 105
+              },
+              "subtree": {
+                "bytes": 421,
+                "estimated_tokens": 105
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 421,
+                  "estimated_tokens": 105
+                },
+                "direct": {
+                  "bytes": 421,
+                  "estimated_tokens": 105
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Phase 3: Merged (living documentation)",
+              "level": 3,
+              "start_line": 355,
+              "start_byte": 65401,
+              "direct_end_byte_exclusive": 65533,
+              "subtree_end_byte_exclusive": 65533,
+              "direct": {
+                "bytes": 132,
+                "estimated_tokens": 33
+              },
+              "subtree": {
+                "bytes": 132,
+                "estimated_tokens": 33
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 132,
+                  "estimated_tokens": 33
+                },
+                "direct": {
+                  "bytes": 132,
+                  "estimated_tokens": 33
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Delegated skill output handling",
+              "level": 3,
+              "start_line": 359,
+              "start_byte": 65533,
+              "direct_end_byte_exclusive": 65965,
+              "subtree_end_byte_exclusive": 65965,
+              "direct": {
+                "bytes": 432,
+                "estimated_tokens": 108
+              },
+              "subtree": {
+                "bytes": 432,
+                "estimated_tokens": 108
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 432,
+                  "estimated_tokens": 108
+                },
+                "direct": {
+                  "bytes": 432,
+                  "estimated_tokens": 108
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Scenarios",
+              "level": 2,
+              "start_line": 369,
+              "start_byte": 65965,
+              "direct_end_byte_exclusive": 65979,
+              "subtree_end_byte_exclusive": 81637,
+              "direct": {
+                "bytes": 14,
+                "estimated_tokens": 4
+              },
+              "subtree": {
+                "bytes": 15672,
+                "estimated_tokens": 3880
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 15672,
+                  "estimated_tokens": 3880
+                },
+                "direct": {
+                  "bytes": 14,
+                  "estimated_tokens": 4
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Opening: state the issue outline (both scenarios)",
+              "level": 3,
+              "start_line": 371,
+              "start_byte": 65979,
+              "direct_end_byte_exclusive": 67155,
+              "subtree_end_byte_exclusive": 67155,
+              "direct": {
+                "bytes": 1176,
+                "estimated_tokens": 291
+              },
+              "subtree": {
+                "bytes": 1176,
+                "estimated_tokens": 291
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1176,
+                  "estimated_tokens": 291
+                },
+                "direct": {
+                  "bytes": 1176,
+                  "estimated_tokens": 291
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Scenario A: Fresh prep (no existing spec)",
+              "level": 3,
+              "start_line": 381,
+              "start_byte": 67155,
+              "direct_end_byte_exclusive": 76433,
+              "subtree_end_byte_exclusive": 76433,
+              "direct": {
+                "bytes": 9278,
+                "estimated_tokens": 2295
+              },
+              "subtree": {
+                "bytes": 9278,
+                "estimated_tokens": 2295
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 9278,
+                  "estimated_tokens": 2295
+                },
+                "direct": {
+                  "bytes": 9278,
+                  "estimated_tokens": 2295
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Scenario B: Resume (existing spec found)",
+              "level": 3,
+              "start_line": 441,
+              "start_byte": 76433,
+              "direct_end_byte_exclusive": 81389,
+              "subtree_end_byte_exclusive": 81389,
+              "direct": {
+                "bytes": 4956,
+                "estimated_tokens": 1228
+              },
+              "subtree": {
+                "bytes": 4956,
+                "estimated_tokens": 1228
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4956,
+                  "estimated_tokens": 1228
+                },
+                "direct": {
+                  "bytes": 4956,
+                  "estimated_tokens": 1228
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Scenario C: Starting an issue (deferred to graft)",
+              "level": 3,
+              "start_line": 475,
+              "start_byte": 81389,
+              "direct_end_byte_exclusive": 81637,
+              "subtree_end_byte_exclusive": 81637,
+              "direct": {
+                "bytes": 248,
+                "estimated_tokens": 62
+              },
+              "subtree": {
+                "bytes": 248,
+                "estimated_tokens": 62
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 248,
+                  "estimated_tokens": 62
+                },
+                "direct": {
+                  "bytes": 248,
+                  "estimated_tokens": 62
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Re-prepping",
+              "level": 2,
+              "start_line": 479,
+              "start_byte": 81637,
+              "direct_end_byte_exclusive": 83289,
+              "subtree_end_byte_exclusive": 83289,
+              "direct": {
+                "bytes": 1652,
+                "estimated_tokens": 408
+              },
+              "subtree": {
+                "bytes": 1652,
+                "estimated_tokens": 408
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1652,
+                  "estimated_tokens": 408
+                },
+                "direct": {
+                  "bytes": 1652,
+                  "estimated_tokens": 408
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Where Artifacts Live",
+              "level": 2,
+              "start_line": 489,
+              "start_byte": 83289,
+              "direct_end_byte_exclusive": 83869,
+              "subtree_end_byte_exclusive": 83869,
+              "direct": {
+                "bytes": 580,
+                "estimated_tokens": 145
+              },
+              "subtree": {
+                "bytes": 580,
+                "estimated_tokens": 145
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 580,
+                  "estimated_tokens": 145
+                },
+                "direct": {
+                  "bytes": 580,
+                  "estimated_tokens": 145
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Tracker-less (git-only) mode",
+              "level": 2,
+              "start_line": 499,
+              "start_byte": 83869,
+              "direct_end_byte_exclusive": 85544,
+              "subtree_end_byte_exclusive": 85544,
+              "direct": {
+                "bytes": 1675,
+                "estimated_tokens": 416
+              },
+              "subtree": {
+                "bytes": 1675,
+                "estimated_tokens": 416
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1675,
+                  "estimated_tokens": 416
+                },
+                "direct": {
+                  "bytes": 1675,
+                  "estimated_tokens": 416
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Autonomous Mode",
+              "level": 2,
+              "start_line": 505,
+              "start_byte": 85544,
+              "direct_end_byte_exclusive": 86866,
+              "subtree_end_byte_exclusive": 104071,
+              "direct": {
+                "bytes": 1322,
+                "estimated_tokens": 329
+              },
+              "subtree": {
+                "bytes": 18527,
+                "estimated_tokens": 4592
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 18527,
+                  "estimated_tokens": 4592
+                },
+                "direct": {
+                  "bytes": 1322,
+                  "estimated_tokens": 329
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Shared subroutine: already-shipped scan + premise-superseded gate",
+              "level": 3,
+              "start_line": 513,
+              "start_byte": 86866,
+              "direct_end_byte_exclusive": 91519,
+              "subtree_end_byte_exclusive": 91519,
+              "direct": {
+                "bytes": 4653,
+                "estimated_tokens": 1157
+              },
+              "subtree": {
+                "bytes": 4653,
+                "estimated_tokens": 1157
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4653,
+                  "estimated_tokens": 1157
+                },
+                "direct": {
+                  "bytes": 4653,
+                  "estimated_tokens": 1157
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Path 1 \u2014 Stale-refresh (existing spec on the ticket)",
+              "level": 3,
+              "start_line": 538,
+              "start_byte": 91519,
+              "direct_end_byte_exclusive": 95856,
+              "subtree_end_byte_exclusive": 95856,
+              "direct": {
+                "bytes": 4337,
+                "estimated_tokens": 1077
+              },
+              "subtree": {
+                "bytes": 4337,
+                "estimated_tokens": 1077
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4337,
+                  "estimated_tokens": 1077
+                },
+                "direct": {
+                  "bytes": 4337,
+                  "estimated_tokens": 1077
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Path 2 \u2014 Fresh-spec (no existing spec)",
+              "level": 3,
+              "start_line": 562,
+              "start_byte": 95856,
+              "direct_end_byte_exclusive": 100092,
+              "subtree_end_byte_exclusive": 100092,
+              "direct": {
+                "bytes": 4236,
+                "estimated_tokens": 1048
+              },
+              "subtree": {
+                "bytes": 4236,
+                "estimated_tokens": 1048
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 4236,
+                  "estimated_tokens": 1048
+                },
+                "direct": {
+                  "bytes": 4236,
+                  "estimated_tokens": 1048
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Park protocol",
+              "level": 3,
+              "start_line": 587,
+              "start_byte": 100092,
+              "direct_end_byte_exclusive": 100528,
+              "subtree_end_byte_exclusive": 100528,
+              "direct": {
+                "bytes": 436,
+                "estimated_tokens": 109
+              },
+              "subtree": {
+                "bytes": 436,
+                "estimated_tokens": 109
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 436,
+                  "estimated_tokens": 109
+                },
+                "direct": {
+                  "bytes": 436,
+                  "estimated_tokens": 109
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Return values",
+              "level": 3,
+              "start_line": 594,
+              "start_byte": 100528,
+              "direct_end_byte_exclusive": 104071,
+              "subtree_end_byte_exclusive": 104071,
+              "direct": {
+                "bytes": 3543,
+                "estimated_tokens": 875
+              },
+              "subtree": {
+                "bytes": 3543,
+                "estimated_tokens": 875
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3543,
+                  "estimated_tokens": 875
+                },
+                "direct": {
+                  "bytes": 3543,
+                  "estimated_tokens": 875
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Notes",
+              "level": 2,
+              "start_line": 609,
+              "start_byte": 104071,
+              "direct_end_byte_exclusive": 104335,
+              "subtree_end_byte_exclusive": 104335,
+              "direct": {
+                "bytes": 264,
+                "estimated_tokens": 66
+              },
+              "subtree": {
+                "bytes": 264,
+                "estimated_tokens": 66
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 264,
+                  "estimated_tokens": 66
+                },
+                "direct": {
+                  "bytes": 264,
+                  "estimated_tokens": 66
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "bundle": "faff-tidy",
+      "current": {
+        "bytes": 76028,
+        "estimated_tokens": 18828
+      },
+      "original": {
+        "bytes": 76181,
+        "estimated_tokens": 18866
+      },
+      "savings": {
+        "bytes": 153,
+        "estimated_tokens": 38
+      },
+      "files": [
+        {
+          "path": "plugin/skills/faff-tidy/SKILL.md",
+          "sha256": "9e2d98e3f7d1de13c74866115cd433ae62854f95e2bf2ae4617185d24123d757",
+          "original_sha256": "a8e8608fe6f9a43f36b9f523e54ae1b1c66dc5e6ba03dc3be255127fab2cf3a4",
+          "current": {
+            "bytes": 76028,
+            "estimated_tokens": 18828
+          },
+          "original": {
+            "bytes": 76181,
+            "estimated_tokens": 18866
+          },
+          "savings": {
+            "bytes": 153,
+            "estimated_tokens": 38
+          },
+          "body_identical_to_original": true,
+          "accepted_body_slices": [],
+          "description_only_coverage": true,
+          "preamble_before_first_heading": {
+            "bytes": 281,
+            "estimated_tokens": 71
+          },
+          "sections": [
+            {
+              "heading": "Faff \u2014 Tidy",
+              "level": 1,
+              "start_line": 7,
+              "start_byte": 281,
+              "direct_end_byte_exclusive": 720,
+              "subtree_end_byte_exclusive": 76028,
+              "direct": {
+                "bytes": 439,
+                "estimated_tokens": 109
+              },
+              "subtree": {
+                "bytes": 75747,
+                "estimated_tokens": 18758
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 75747,
+                  "estimated_tokens": 18758
+                },
+                "direct": {
+                  "bytes": 439,
+                  "estimated_tokens": 109
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Configuration",
+              "level": 2,
+              "start_line": 16,
+              "start_byte": 720,
+              "direct_end_byte_exclusive": 3992,
+              "subtree_end_byte_exclusive": 3992,
+              "direct": {
+                "bytes": 3272,
+                "estimated_tokens": 811
+              },
+              "subtree": {
+                "bytes": 3272,
+                "estimated_tokens": 811
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 3272,
+                  "estimated_tokens": 811
+                },
+                "direct": {
+                  "bytes": 3272,
+                  "estimated_tokens": 811
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Always pull fresh",
+              "level": 2,
+              "start_line": 34,
+              "start_byte": 3992,
+              "direct_end_byte_exclusive": 5270,
+              "subtree_end_byte_exclusive": 5270,
+              "direct": {
+                "bytes": 1278,
+                "estimated_tokens": 318
+              },
+              "subtree": {
+                "bytes": 1278,
+                "estimated_tokens": 318
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1278,
+                  "estimated_tokens": 318
+                },
+                "direct": {
+                  "bytes": 1278,
+                  "estimated_tokens": 318
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Process",
+              "level": 2,
+              "start_line": 38,
+              "start_byte": 5270,
+              "direct_end_byte_exclusive": 6252,
+              "subtree_end_byte_exclusive": 44255,
+              "direct": {
+                "bytes": 982,
+                "estimated_tokens": 244
+              },
+              "subtree": {
+                "bytes": 38985,
+                "estimated_tokens": 9644
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 38985,
+                  "estimated_tokens": 9644
+                },
+                "direct": {
+                  "bytes": 982,
+                  "estimated_tokens": 244
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "1. The mess (needs action)",
+              "level": 3,
+              "start_line": 44,
+              "start_byte": 6252,
+              "direct_end_byte_exclusive": 14594,
+              "subtree_end_byte_exclusive": 14594,
+              "direct": {
+                "bytes": 8342,
+                "estimated_tokens": 2072
+              },
+              "subtree": {
+                "bytes": 8342,
+                "estimated_tokens": 2072
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 8342,
+                  "estimated_tokens": 2072
+                },
+                "direct": {
+                  "bytes": 8342,
+                  "estimated_tokens": 2072
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "2. Ready to pick up (promote to Todo)",
+              "level": 3,
+              "start_line": 74,
+              "start_byte": 14594,
+              "direct_end_byte_exclusive": 17496,
+              "subtree_end_byte_exclusive": 17496,
+              "direct": {
+                "bytes": 2902,
+                "estimated_tokens": 714
+              },
+              "subtree": {
+                "bytes": 2902,
+                "estimated_tokens": 714
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 2902,
+                  "estimated_tokens": 714
+                },
+                "direct": {
+                  "bytes": 2902,
+                  "estimated_tokens": 714
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "3. Almost ready (flag)",
+              "level": 3,
+              "start_line": 91,
+              "start_byte": 17496,
+              "direct_end_byte_exclusive": 17825,
+              "subtree_end_byte_exclusive": 17825,
+              "direct": {
+                "bytes": 329,
+                "estimated_tokens": 82
+              },
+              "subtree": {
+                "bytes": 329,
+                "estimated_tokens": 82
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 329,
+                  "estimated_tokens": 82
+                },
+                "direct": {
+                  "bytes": 329,
+                  "estimated_tokens": 82
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "4. Stuck in prep \u2014 needs human decision",
+              "level": 3,
+              "start_line": 95,
+              "start_byte": 17825,
+              "direct_end_byte_exclusive": 19527,
+              "subtree_end_byte_exclusive": 19527,
+              "direct": {
+                "bytes": 1702,
+                "estimated_tokens": 421
+              },
+              "subtree": {
+                "bytes": 1702,
+                "estimated_tokens": 421
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1702,
+                  "estimated_tokens": 421
+                },
+                "direct": {
+                  "bytes": 1702,
+                  "estimated_tokens": 421
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "5. Structural diagnostics",
+              "level": 3,
+              "start_line": 103,
+              "start_byte": 19527,
+              "direct_end_byte_exclusive": 30225,
+              "subtree_end_byte_exclusive": 34087,
+              "direct": {
+                "bytes": 10698,
+                "estimated_tokens": 2647
+              },
+              "subtree": {
+                "bytes": 14560,
+                "estimated_tokens": 3601
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 14560,
+                  "estimated_tokens": 3601
+                },
+                "direct": {
+                  "bytes": 10698,
+                  "estimated_tokens": 2647
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Splittable specs",
+              "level": 4,
+              "start_line": 144,
+              "start_byte": 30225,
+              "direct_end_byte_exclusive": 30905,
+              "subtree_end_byte_exclusive": 30905,
+              "direct": {
+                "bytes": 680,
+                "estimated_tokens": 168
+              },
+              "subtree": {
+                "bytes": 680,
+                "estimated_tokens": 168
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 680,
+                  "estimated_tokens": 168
+                },
+                "direct": {
+                  "bytes": 680,
+                  "estimated_tokens": 168
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Chain gaps",
+              "level": 4,
+              "start_line": 152,
+              "start_byte": 30905,
+              "direct_end_byte_exclusive": 32625,
+              "subtree_end_byte_exclusive": 32625,
+              "direct": {
+                "bytes": 1720,
+                "estimated_tokens": 424
+              },
+              "subtree": {
+                "bytes": 1720,
+                "estimated_tokens": 424
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1720,
+                  "estimated_tokens": 424
+                },
+                "direct": {
+                  "bytes": 1720,
+                  "estimated_tokens": 424
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Resolved-elsewhere",
+              "level": 4,
+              "start_line": 166,
+              "start_byte": 32625,
+              "direct_end_byte_exclusive": 34087,
+              "subtree_end_byte_exclusive": 34087,
+              "direct": {
+                "bytes": 1462,
+                "estimated_tokens": 362
+              },
+              "subtree": {
+                "bytes": 1462,
+                "estimated_tokens": 362
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1462,
+                  "estimated_tokens": 362
+                },
+                "direct": {
+                  "bytes": 1462,
+                  "estimated_tokens": 362
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "6. Calibration signals",
+              "level": 3,
+              "start_line": 176,
+              "start_byte": 34087,
+              "direct_end_byte_exclusive": 35035,
+              "subtree_end_byte_exclusive": 35035,
+              "direct": {
+                "bytes": 948,
+                "estimated_tokens": 235
+              },
+              "subtree": {
+                "bytes": 948,
+                "estimated_tokens": 235
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 948,
+                  "estimated_tokens": 235
+                },
+                "direct": {
+                  "bytes": 948,
+                  "estimated_tokens": 235
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "7. Methodology findings (rendered only when a `methodology` skill is configured)",
+              "level": 3,
+              "start_line": 186,
+              "start_byte": 35035,
+              "direct_end_byte_exclusive": 35886,
+              "subtree_end_byte_exclusive": 35886,
+              "direct": {
+                "bytes": 851,
+                "estimated_tokens": 212
+              },
+              "subtree": {
+                "bytes": 851,
+                "estimated_tokens": 212
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 851,
+                  "estimated_tokens": 212
+                },
+                "direct": {
+                  "bytes": 851,
+                  "estimated_tokens": 212
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "8. State coherence (container status follows its children)",
+              "level": 3,
+              "start_line": 194,
+              "start_byte": 35886,
+              "direct_end_byte_exclusive": 44255,
+              "subtree_end_byte_exclusive": 44255,
+              "direct": {
+                "bytes": 8369,
+                "estimated_tokens": 2066
+              },
+              "subtree": {
+                "bytes": 8369,
+                "estimated_tokens": 2066
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 8369,
+                  "estimated_tokens": 2066
+                },
+                "direct": {
+                  "bytes": 8369,
+                  "estimated_tokens": 2066
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Output and chaining",
+              "level": 2,
+              "start_line": 220,
+              "start_byte": 44255,
+              "direct_end_byte_exclusive": 50102,
+              "subtree_end_byte_exclusive": 50102,
+              "direct": {
+                "bytes": 5847,
+                "estimated_tokens": 1450
+              },
+              "subtree": {
+                "bytes": 5847,
+                "estimated_tokens": 1450
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 5847,
+                  "estimated_tokens": 1450
+                },
+                "direct": {
+                  "bytes": 5847,
+                  "estimated_tokens": 1450
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Autonomous Mode",
+              "level": 2,
+              "start_line": 252,
+              "start_byte": 50102,
+              "direct_end_byte_exclusive": 74730,
+              "subtree_end_byte_exclusive": 74730,
+              "direct": {
+                "bytes": 24628,
+                "estimated_tokens": 6110
+              },
+              "subtree": {
+                "bytes": 24628,
+                "estimated_tokens": 6110
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 24628,
+                  "estimated_tokens": 6110
+                },
+                "direct": {
+                  "bytes": 24628,
+                  "estimated_tokens": 6110
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            },
+            {
+              "heading": "Notes",
+              "level": 2,
+              "start_line": 320,
+              "start_byte": 74730,
+              "direct_end_byte_exclusive": 76028,
+              "subtree_end_byte_exclusive": 76028,
+              "direct": {
+                "bytes": 1298,
+                "estimated_tokens": 318
+              },
+              "subtree": {
+                "bytes": 1298,
+                "estimated_tokens": 318
+              },
+              "original_matching_heading": {
+                "subtree": {
+                  "bytes": 1298,
+                  "estimated_tokens": 318
+                },
+                "direct": {
+                  "bytes": 1298,
+                  "estimated_tokens": 318
+                }
+              },
+              "body_coverage": "not an accepted body scope"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "top_h2_sections_by_subtree_bytes": [
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "heading": "Process",
+      "level": 2,
+      "line": 36,
+      "bytes": 148683,
+      "estimated_tokens": 36872,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "heading": "Full pipeline (default)",
+      "level": 2,
+      "line": 130,
+      "bytes": 74842,
+      "estimated_tokens": 18528,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "heading": "Spec-review gate (approach-critique consumer-fold)",
+      "level": 2,
+      "line": 88,
+      "bytes": 42396,
+      "estimated_tokens": 10530,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "heading": "Process",
+      "level": 2,
+      "line": 38,
+      "bytes": 38985,
+      "estimated_tokens": 9644,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "heading": "Shared Rules",
+      "level": 2,
+      "line": 155,
+      "bytes": 29011,
+      "estimated_tokens": 7197,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "heading": "Core contracts and adaptor slots",
+      "level": 2,
+      "line": 347,
+      "bytes": 29008,
+      "estimated_tokens": 7186,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "heading": "Autonomous Mode",
+      "level": 2,
+      "line": 711,
+      "bytes": 26622,
+      "estimated_tokens": 6595,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "heading": "Autonomous Mode",
+      "level": 2,
+      "line": 252,
+      "bytes": 24628,
+      "estimated_tokens": 6110,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff/references/methodology.md",
+      "heading": "The `methodology` slot",
+      "level": 2,
+      "line": 60,
+      "bytes": 24605,
+      "estimated_tokens": 6088,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "heading": "Mechanism slot (`concurrency`)",
+      "level": 2,
+      "line": 48,
+      "bytes": 22777,
+      "estimated_tokens": 5642,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "heading": "Autonomous Mode",
+      "level": 2,
+      "line": 505,
+      "bytes": 18527,
+      "estimated_tokens": 4592,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "heading": "Run ledger (mechanical completeness)",
+      "level": 2,
+      "line": 381,
+      "bytes": 16677,
+      "estimated_tokens": 4153,
+      "coverage": "accepted ledger treatment; heading subtree also includes unchanged owner guidance"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "heading": "Scenarios",
+      "level": 2,
+      "line": 369,
+      "bytes": 15672,
+      "estimated_tokens": 3880,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "heading": "Configuration (shared across all sub-skills)",
+      "level": 2,
+      "line": 31,
+      "bytes": 15352,
+      "estimated_tokens": 3830,
+      "coverage": "accepted configuration scope"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "heading": "Budget flags",
+      "level": 2,
+      "line": 59,
+      "bytes": 10768,
+      "estimated_tokens": 2675,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "heading": "Conflict analysis",
+      "level": 2,
+      "line": 489,
+      "bytes": 7969,
+      "estimated_tokens": 1978,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "heading": "Guarantees",
+      "level": 2,
+      "line": 639,
+      "bytes": 7044,
+      "estimated_tokens": 1749,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "heading": "Reporting",
+      "level": 2,
+      "line": 565,
+      "bytes": 6754,
+      "estimated_tokens": 1682,
+      "coverage": "partial accepted reporting prose treatment; whole section not separately qualified"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "heading": "Output and chaining",
+      "level": 2,
+      "line": 220,
+      "bytes": 5847,
+      "estimated_tokens": 1450,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "heading": "Spec contract",
+      "level": 2,
+      "line": 55,
+      "bytes": 4933,
+      "estimated_tokens": 1231,
+      "coverage": "not an accepted body scope"
+    }
+  ],
+  "top_remaining_unmeasured_direct_spans": [
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "heading": "Process",
+      "level": 2,
+      "line": 36,
+      "bytes": 98385,
+      "estimated_tokens": 24402,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "heading": "Discovered scope (record, never file)",
+      "level": 3,
+      "line": 505,
+      "bytes": 35647,
+      "estimated_tokens": 8834,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "heading": "Ratify a design-lens objection in place (interactive only)",
+      "level": 3,
+      "line": 161,
+      "bytes": 27109,
+      "estimated_tokens": 6734,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "heading": "Autonomous Mode",
+      "level": 2,
+      "line": 252,
+      "bytes": 24628,
+      "estimated_tokens": 6110,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "heading": "The `concurrency` slot contract (fixed)",
+      "level": 3,
+      "line": 52,
+      "bytes": 21507,
+      "estimated_tokens": 5327,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff/references/methodology.md",
+      "heading": "The `methodology` slot",
+      "level": 2,
+      "line": 60,
+      "bytes": 18371,
+      "estimated_tokens": 4541,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "heading": "8. Wave re-entry",
+      "level": 3,
+      "line": 249,
+      "bytes": 15627,
+      "estimated_tokens": 3869,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "heading": "Resolve-attempt before park",
+      "level": 3,
+      "line": 744,
+      "bytes": 15570,
+      "estimated_tokens": 3856,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "heading": "Spec-review gate (approach-critique consumer-fold)",
+      "level": 2,
+      "line": 88,
+      "bytes": 15287,
+      "estimated_tokens": 3796,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "heading": "4. Build queue assembly",
+      "level": 3,
+      "line": 189,
+      "bytes": 14772,
+      "estimated_tokens": 3664,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "heading": "Autonomous Mode Contract",
+      "level": 3,
+      "line": 20,
+      "bytes": 13617,
+      "estimated_tokens": 3379,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "heading": "Autonomous Mode",
+      "level": 2,
+      "line": 711,
+      "bytes": 11052,
+      "estimated_tokens": 2739,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "heading": "5. Structural diagnostics",
+      "level": 3,
+      "line": 103,
+      "bytes": 10698,
+      "estimated_tokens": 2647,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "heading": "Sibling-skill invocation (install-mode portable)",
+      "level": 3,
+      "line": 279,
+      "bytes": 10210,
+      "estimated_tokens": 2530,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "heading": "The staged fix cycle (CONFLICTING and CI_RED_REGRESSION)",
+      "level": 3,
+      "line": 620,
+      "bytes": 10140,
+      "estimated_tokens": 2520,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "heading": "Scenario A: Fresh prep (no existing spec)",
+      "level": 3,
+      "line": 381,
+      "bytes": 9278,
+      "estimated_tokens": 2295,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff/references/create.md",
+      "heading": "Ticket templates (born-structured create boundary)",
+      "level": 3,
+      "line": 5,
+      "bytes": 8883,
+      "estimated_tokens": 2201,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "heading": "8. State coherence (container status follows its children)",
+      "level": 3,
+      "line": 194,
+      "bytes": 8369,
+      "estimated_tokens": 2066,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "heading": "1. The mess (needs action)",
+      "level": 3,
+      "line": 44,
+      "bytes": 8342,
+      "estimated_tokens": 2072,
+      "coverage": "not an accepted body scope"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "heading": "10. File discovered-scope tickets",
+      "level": 3,
+      "line": 285,
+      "bytes": 7424,
+      "estimated_tokens": 1835,
+      "coverage": "not an accepted body scope"
+    }
+  ],
+  "totals": {
+    "current_bytes": 758545,
+    "original_bytes": 778361,
+    "current_estimated_tokens": 188070,
+    "file_count": 13,
+    "original_estimated_tokens": 192943,
+    "bytes_saved_since_original": 19816,
+    "estimated_tokens_saved_since_original": 4873,
+    "share_of_current_41_file_source_bytes": 0.6057775854027843,
+    "original_bytes_removed_fraction": 0.025458623954694545
+  },
+  "limits": [
+    "A size ranking identifies bulk, not safe savings or readiness for measurement. Existing holds and acceptance scope remain unchanged.",
+    "Description-only coverage does not establish skill-body fidelity. Graft, prep and tidy bodies remain byte-identical to the original baseline.",
+    "Subtree and direct-span rankings are alternative views and cannot be added. No compute-cost, provider billing or cost-benefit conclusion is inferred."
+  ]
+}

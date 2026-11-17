@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T02:30:31.516808+00:00",
+  "reviewer": {
+    "task": "/root/verify_wtf_scope",
+    "role": "Independent static source reviewer"
+  },
+  "status": "static_review_clear_unmeasured_uninstalled",
+  "bindings": {
+    "verification/experiments/2026-11-16-skill-diet/baseline/graft-gates-evidence-v1.md": {
+      "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+      "bytes": 178777
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/graft-gates-evidence-v1.md": {
+      "sha256": "f0200a54531efd5b6013ff99bb5f3818e6a5ee73f3a8dc0bb656fe481d2bde41",
+      "bytes": 166796
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/graft-gates-evidence-v2.md": {
+      "sha256": "c28c7fe2bdba534ab27639408e2baf1b3dcc6205aade1a75ba5c8656fdf9d9a2",
+      "bytes": 166857
+    },
+    "verification/experiments/2026-11-16-skill-diet/independent-graft-gates-evidence-v1-source-review.json": {
+      "sha256": "a7051ad8b489b8e7e8bee3af5dd57a173672abf8ba00d3c261151c07c1e6fec5",
+      "bytes": 4663
+    },
+    "plugin/skills/faff/contracts/delivery-outcome.schema.json": {
+      "sha256": "ea6ae5b448bb35a49fd870a79227b7acd0a69b893419fe28e4c56ba8537975d0",
+      "bytes": 848
+    }
+  },
+  "scope": "Exact single V1-to-V2 wording substitution in the pr-open-for-human row; unchanged obligation matrix inherits the hash-bound V1 source review.",
+  "exact_sole_replacement_verified": true,
+  "replacement": {
+    "before": "delivery `not-ready`/`failed` (including unmappable results coerced to failed)",
+    "after": "delivery deferral or failure (including unmappable results coerced to failure; fixed outcomes: `faff contract delivery-outcome --describe`)"
+  },
+  "assessment": "Semantically equivalent. Delivery deferral and failure still require the same post-PR human handoff, draft PR and pr-open ledger bucket. Unmappable results still coerce to failure. The fixed delivery-outcome schema retains shipped/not-ready/failed and explicitly identifies failed as the coercion target. The describe pointer refers to the existing canonical contract instead of restating its enum.",
+  "validator_lines": 801,
+  "required_posture_anchors_retained": true,
+  "potential_bytes_saved_from_baseline": 11920,
+  "revision_provenance": "V1 and its independent review remain unchanged; the reported private enum-restatement lint failure is retained as development evidence, not independently rerun here.",
+  "remaining_requirements": [
+    "Actual candidate adapter lint and integration against exact source bytes",
+    "Frozen bounded workflow measurement and fresh real-consumer replay as specified in V1 review",
+    "No source installation, parity qualification or accepted savings from static review alone"
+  ],
+  "limits": [
+    "No code/source edits, model calls or new tests",
+    "No full repeated semantic audit of unchanged regions; exact replacement equality establishes they are unchanged",
+    "Existing canonical contract reference does not add a new unconditional mandatory read"
+  ]
+}

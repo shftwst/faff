@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T02:29:51.189692+00:00",
+  "status": "fail",
+  "reviewer": {
+    "role": "delegated mechanical private integration; no skill rewriting",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "directory": "/var/tmp/faff-graft-gates-evidence-v1-integration",
+  "base_commit": "994007374548a302c11685318dec5b413a4c0ee6",
+  "isolated_commit": "7360483660c207f9e0b509507812567f96a6d39e",
+  "baseline_commit_for_inventory": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "source": "plugin/skills/faff-graft/SKILL.md",
+  "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/graft-gates-evidence-v1.md",
+  "candidate_sha256": "f0200a54531efd5b6013ff99bb5f3818e6a5ee73f3a8dc0bb656fe481d2bde41",
+  "source_sha256": "f0200a54531efd5b6013ff99bb5f3818e6a5ee73f3a8dc0bb656fe481d2bde41",
+  "before_source_sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+  "source_bytes": 166796,
+  "source_lines": 800,
+  "prose_baseline_changed_entries": [
+    "faff-graft/SKILL.md"
+  ],
+  "prose_baseline_graft_before": 178777,
+  "prose_baseline_graft_after": 166796,
+  "changed_files": [
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "sha256": "f0200a54531efd5b6013ff99bb5f3818e6a5ee73f3a8dc0bb656fe481d2bde41"
+    },
+    {
+      "path": "plugin/skills/faff/prose-baseline.json",
+      "sha256": "ad7507738dffcdf75d77d249cab14690afb07f8a1cc0829c728c2ea32295bfcd"
+    },
+    {
+      "path": "records/specs/2026-11-17-skill-diet-graft-gates-evidence-design.md",
+      "sha256": "dcfc2dbe47d65481c9f065065e224213f277a762e9ef46fcaa32b02123499773"
+    }
+  ],
+  "commit_signed": false,
+  "dco_identity": "Alec Hill <alec@shftwst.dev>",
+  "dco_present": true,
+  "worktree_clean": true,
+  "production_installed": false,
+  "savings_counted": false,
+  "environment_overrides": {
+    "TMPDIR": "/var/tmp/gg-nsixztzp",
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "commit.gpgsign",
+    "GIT_CONFIG_VALUE_0": "false"
+  },
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "/usr/local/bin/node",
+        "--test",
+        "--test-concurrency=4",
+        "test/gates-budget.test.mjs",
+        "test/gates-progress.test.mjs",
+        "test/build-progress.test.mjs",
+        "test/gates-local-shard.test.mjs",
+        "test/background-fence.test.mjs",
+        "test/evidence-write.test.mjs",
+        "test/evidence-enforcement.test.mjs",
+        "test/evidence-return.test.mjs",
+        "test/faff-1475-human-only-acs.test.mjs",
+        "test/faff-1475-ac-floor.test.mjs",
+        "test/merge-gate-local.test.mjs",
+        "test/run-ledger-record-outcome.test.mjs",
+        "test/runcheck-gate.test.mjs"
+      ],
+      "cwd": "/var/tmp/faff-graft-gates-evidence-v1-integration",
+      "exit_code": 0,
+      "path": "deterministic-checks/graft-gates-evidence-v1-private-tests-20261117T022740Z.txt",
+      "sha256": "3719d25bad0a90c933d9c58dd7b2823ebb3ae3d72ba80bced3773565b0788d74",
+      "started_utc": "2026-11-17T02:27:40.894059+00:00",
+      "finished_utc": "2026-11-17T02:29:51.016651+00:00",
+      "counts": {
+        "tests": 320,
+        "pass": 320,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "/usr/local/bin/node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "cwd": "/var/tmp/faff-graft-gates-evidence-v1-integration",
+      "exit_code": 1,
+      "path": "deterministic-checks/graft-gates-evidence-v1-private-adapter-lint-20261117T022740Z.txt",
+      "sha256": "ae48005130b11ac7fa423d8cc4b3b42239d2ef29f95f22c6bc4be31f13787326",
+      "started_utc": "2026-11-17T02:27:40.895266+00:00",
+      "finished_utc": "2026-11-17T02:27:41.807958+00:00"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "/usr/local/bin/node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "cwd": "/var/tmp/faff-graft-gates-evidence-v1-integration",
+      "exit_code": 0,
+      "path": "deterministic-checks/graft-gates-evidence-v1-private-rule-inventory-20261117T022740Z.txt",
+      "sha256": "16e30f3d7cc1d29f71ddfc2d8f9676c52ce0c8a4b280fc421967e8bc6639f8df",
+      "started_utc": "2026-11-17T02:27:40.895365+00:00",
+      "finished_utc": "2026-11-17T02:27:46.341382+00:00",
+      "result": "pass",
+      "uncovered": 0,
+      "row_errors": 0
+    }
+  ],
+  "limits": [
+    "Private detached deterministic integration only. No model calls, model parity or workflow qualification claim.",
+    "Exact root-authored source candidate copied without rewriting. Only its prose baseline entry and the deletion-anchor design inventory accompany it.",
+    "Existing consumer tests, adapter structure and inventory deletion coverage do not establish prompt semantic equivalence. No install or cherry-pick into the working branch and no accepted savings accounting."
+  ]
+}

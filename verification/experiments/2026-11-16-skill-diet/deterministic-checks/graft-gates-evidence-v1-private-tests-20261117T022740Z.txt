@@ -1,0 +1,2042 @@
+TAP version 13
+# Subtest: background-fence --selftest passes (the shipped matcher + event-decision table)
+ok 1 - background-fence --selftest passes (the shipped matcher + event-decision table)
+  ---
+  duration_ms: 31.505162
+  type: 'test'
+  ...
+# Subtest: denies a backgrounded node --test call: exit 2, stderr names the foreground remedy
+ok 2 - denies a backgrounded node --test call: exit 2, stderr names the foreground remedy
+  ---
+  duration_ms: 32.229911
+  type: 'test'
+  ...
+# Subtest: denies the ladder's quoted-variable form ('"$faff" gates run'), backgrounded
+ok 3 - denies the ladder's quoted-variable form ('"$faff" gates run'), backgrounded
+  ---
+  duration_ms: 28.8315
+  type: 'test'
+  ...
+# Subtest: denies npm test / npx vitest / pytest / cargo test / go test, backgrounded
+ok 4 - denies npm test / npx vitest / pytest / cargo test / go test, backgrounded
+  ---
+  duration_ms: 132.219722
+  type: 'test'
+  ...
+# Subtest: allows the same gate commands in the foreground (run_in_background false or absent)
+ok 5 - allows the same gate commands in the foreground (run_in_background false or absent)
+  ---
+  duration_ms: 56.473584
+  type: 'test'
+  ...
+# Subtest: allows a backgrounded non-gate command (e.g. a dev server)
+ok 6 - allows a backgrounded non-gate command (e.g. a dev server)
+  ---
+  duration_ms: 28.208041
+  type: 'test'
+  ...
+# Subtest: allows a non-Bash tool_name regardless of command content or run_in_background
+ok 7 - allows a non-Bash tool_name regardless of command content or run_in_background
+  ---
+  duration_ms: 28.511166
+  type: 'test'
+  ...
+# Subtest: allows a non-boolean run_in_background (e.g. the string "true") — strict boolean check
+ok 8 - allows a non-boolean run_in_background (e.g. the string "true") — strict boolean check
+  ---
+  duration_ms: 22.704259
+  type: 'test'
+  ...
+# Subtest: degrades to exit 0 on malformed JSON (never blocks on a parse failure)
+ok 9 - degrades to exit 0 on malformed JSON (never blocks on a parse failure)
+  ---
+  duration_ms: 18.749764
+  type: 'test'
+  ...
+# Subtest: degrades to exit 0 on empty stdin (never blocks on nothing to read)
+ok 10 - degrades to exit 0 on empty stdin (never blocks on nothing to read)
+  ---
+  duration_ms: 19.211013
+  type: 'test'
+  ...
+# Subtest: degrades to exit 0 on closed/absent stdin (no `input` option at all)
+ok 11 - degrades to exit 0 on closed/absent stdin (no `input` option at all)
+  ---
+  duration_ms: 25.233921
+  type: 'test'
+  ...
+# Subtest: tolerates an unrecognised --root DIR flag (probeServes always passes one)
+ok 12 - tolerates an unrecognised --root DIR flag (probeServes always passes one)
+  ---
+  duration_ms: 23.017966
+  type: 'test'
+  ...
+# Subtest: denies a gate/test command run under Monitor: exit 2, stderr names the foreground-Bash remedy
+ok 13 - denies a gate/test command run under Monitor: exit 2, stderr names the foreground-Bash remedy
+  ---
+  duration_ms: 21.611301
+  type: 'test'
+  ...
+# Subtest: denies pytest / the quoted-ladder form under Monitor (no run_in_background conjunct)
+ok 14 - denies pytest / the quoted-ladder form under Monitor (no run_in_background conjunct)
+  ---
+  duration_ms: 77.397094
+  type: 'test'
+  ...
+# Subtest: allows a Monitor await-all poll loop / log tail (non-gate commands) — the orchestrator posture is untouched
+ok 15 - allows a Monitor await-all poll loop / log tail (non-gate commands) — the orchestrator posture is untouched
+  ---
+  duration_ms: 42.475479
+  type: 'test'
+  ...
+# Subtest: allows a Monitor event with no/ws-mode command (fail-safe)
+ok 16 - allows a Monitor event with no/ws-mode command (fail-safe)
+  ---
+  duration_ms: 49.35922
+  type: 'test'
+  ...
+# Subtest: neither --hook nor --selftest is a usage error (exit 2, names the two legal forms)
+ok 17 - neither --hook nor --selftest is a usage error (exit 2, names the two legal forms)
+  ---
+  duration_ms: 16.155601
+  type: 'test'
+  ...
+# Subtest: build-progress --selftest passes (the pure fold table)
+ok 18 - build-progress --selftest passes (the pure fold table)
+  ---
+  duration_ms: 42.843521
+  type: 'test'
+  ...
+# Subtest: write --build-complete records status/diff_hash/branch/pushed_at; file at <run-dir>/<issue>/build-progress.json
+ok 19 - write --build-complete records status/diff_hash/branch/pushed_at; file at <run-dir>/<issue>/build-progress.json
+  ---
+  duration_ms: 58.452706
+  type: 'test'
+  ...
+# Subtest: read round-trips a written checkpoint (integration smoke)
+ok 20 - read round-trips a written checkpoint (integration smoke)
+  ---
+  duration_ms: 86.23029
+  type: 'test'
+  ...
+# Subtest: read on a missing checkpoint exits 3 (no checkpoint yet — not an error)
+ok 21 - read on a missing checkpoint exits 3 (no checkpoint yet — not an error)
+  ---
+  duration_ms: 33.8797
+  type: 'test'
+  ...
+# Subtest: write --build-complete without --diff-hash is rejected (exit 2 — the diff-identity guard needs it)
+ok 22 - write --build-complete without --diff-hash is rejected (exit 2 — the diff-identity guard needs it)
+  ---
+  duration_ms: 58.094289
+  type: 'test'
+  ...
+# Subtest: write --build-complete without --branch is rejected (exit 2 — a pruned-worktree resume checks it out)
+ok 23 - write --build-complete without --branch is rejected (exit 2 — a pruned-worktree resume checks it out)
+  ---
+  duration_ms: 49.440302
+  type: 'test'
+  ...
+# Subtest: write without --build-complete is rejected (exit 2)
+ok 24 - write without --build-complete is rejected (exit 2)
+  ---
+  duration_ms: 35.618156
+  type: 'test'
+  ...
+# Subtest: bad usage (missing sub / run-dir / issue) exits 2
+ok 25 - bad usage (missing sub / run-dir / issue) exits 2
+  ---
+  duration_ms: 93.665071
+  type: 'test'
+  ...
+# Subtest: a re-write with a new diff_hash replaces the record (a moved branch = a fresh build-complete)
+ok 26 - a re-write with a new diff_hash replaces the record (a moved branch = a fresh build-complete)
+  ---
+  duration_ms: 76.74372
+  type: 'test'
+  ...
+# Subtest: a review verdict without schema_version is refused: exit 3, schema-mismatch, no --dest and no parent created
+ok 27 - a review verdict without schema_version is refused: exit 3, schema-mismatch, no --dest and no parent created
+  ---
+  duration_ms: 79.350217
+  type: 'test'
+  ...
+# Subtest: a conforming mint exits 0, prints today's success line, and the landed anchor validates
+ok 28 - a conforming mint exits 0, prints today's success line, and the landed anchor validates
+  ---
+  duration_ms: 87.568455
+  type: 'test'
+  ...
+# Subtest: each refusal code exits 3 and creates neither --dest nor its parent
+ok 29 - each refusal code exits 3 and creates neither --dest nor its parent
+  ---
+  duration_ms: 260.566659
+  type: 'test'
+  ...
+# Subtest: a legacy staged anchor is refused with one schema-mismatch line per present evidence document
+ok 30 - a legacy staged anchor is refused with one schema-mismatch line per present evidence document
+  ---
+  duration_ms: 57.633416
+  type: 'test'
+  ...
+# Subtest: refusal lines are grouped in table order, sorted by path, at most five files in total, then a (+N more files) suffix
+ok 31 - refusal lines are grouped in table order, sorted by path, at most five files in total, then a (+N more files) suffix
+  ---
+  duration_ms: 85.218792
+  type: 'test'
+  ...
+# Subtest: no mint stderr line carries violation text or a field value; --check --json and evidence validate may
+ok 32 - no mint stderr line carries violation text or a field value; --check --json and evidence validate may
+  ---
+  duration_ms: 187.710474
+  type: 'test'
+  ...
+# Subtest: a torn final line in events.jsonl or declared-effects.jsonl is skipped: the mint passes
+ok 33 - a torn final line in events.jsonl or declared-effects.jsonl is skipped: the mint passes
+  ---
+  duration_ms: 153.964441
+  type: 'test'
+  ...
+# Subtest: a run dir holding review-rounds/ mints with exit 0 and the landed --dest has no review-rounds path
+ok 34 - a run dir holding review-rounds/ mints with exit 0 and the landed --dest has no review-rounds path
+  ---
+  duration_ms: 43.375687
+  type: 'test'
+  ...
+# Subtest: a --dest holding a non-anchor file, or a non-empty --dest with no chain-head.json, exits 2 dest-not-anchor and is untouched
+ok 35 - a --dest holding a non-anchor file, or a non-empty --dest with no chain-head.json, exits 2 dest-not-anchor and is untouched
+  ---
+  duration_ms: 121.35153
+  type: 'test'
+  ...
+# Subtest: an empty existing --dest is filled in place and not removed; the landed --dest passes checkAnchorDir
+ok 36 - an empty existing --dest is filled in place and not removed; the landed --dest passes checkAnchorDir
+  ---
+  duration_ms: 39.094485
+  type: 'test'
+  ...
+# Subtest: a --dest that is a symlink or a regular file exits 2 and nothing it points to is touched
+ok 37 - a --dest that is a symlink or a regular file exits 2 and nothing it points to is touched
+  ---
+  duration_ms: 109.616256
+  type: 'test'
+  ...
+# Subtest: a re-mint replaces --dest wholesale; a re-mint that would drop a file exits 3 anchor-shrink and --check agrees
+ok 38 - a re-mint replaces --dest wholesale; a re-mint that would drop a file exits 3 anchor-shrink and --check agrees
+  ---
+  duration_ms: 253.291003
+  type: 'test'
+  ...
+# Subtest: --check exits with the real mint's code on every case and leaves --dest byte-identical
+ok 39 - --check exits with the real mint's code on every case and leaves --dest byte-identical
+  ---
+  duration_ms: 388.05668
+  type: 'test'
+  ...
+# Subtest: --check --json prints the redacted validation report on a pass and on a refusal, and none when the validator produced none
+ok 40 - --check --json prints the redacted validation report on a pass and on a refusal, and none when the validator produced none
+  ---
+  duration_ms: 157.221102
+  type: 'test'
+  ...
+# Subtest: --check --json exits 2 and prints no report when the redaction config cannot be read
+ok 41 - --check --json exits 2 and prints no report when the redaction config cannot be read
+  ---
+  duration_ms: 34.304575
+  type: 'test'
+  ...
+# Subtest: --check returns before commitMint (commitMint stubbed to throw)
+ok 42 - --check returns before commitMint (commitMint stubbed to throw)
+  ---
+  duration_ms: 6.430866
+  type: 'test'
+  ...
+# Subtest: a holdout.json whose issue differs from chain-head.json is refused at mint and fails validate, naming neither id
+ok 43 - a holdout.json whose issue differs from chain-head.json is refused at mint and fails validate, naming neither id
+  ---
+  duration_ms: 143.723122
+  type: 'test'
+  ...
+# Subtest: a holdout.json with no chain-head.json fails evidence validate
+ok 44 - a holdout.json with no chain-head.json fails evidence validate
+  ---
+  duration_ms: 31.765704
+  type: 'test'
+  ...
+# Subtest: a holdout.json failing the writer-only constraints is refused at mint
+ok 45 - a holdout.json failing the writer-only constraints is refused at mint
+  ---
+  duration_ms: 38.628569
+  type: 'test'
+  ...
+# Subtest: holdoutRecordViolations is the schema check followed by holdoutConstraintViolations
+ok 46 - holdoutRecordViolations is the schema check followed by holdoutConstraintViolations
+  ---
+  duration_ms: 0.756582
+  type: 'test'
+  ...
+# Subtest: anchor validation applies the FAFF-1291 delegation rules to a holdout.json that carries delegated
+ok 47 - anchor validation applies the FAFF-1291 delegation rules to a holdout.json that carries delegated
+  ---
+  duration_ms: 33.323367
+  type: 'test'
+  ...
+# Subtest: a holdout.json committed before FAFF-1291 (no delegated key) is not held to the delegation rules
+ok 48 - a holdout.json committed before FAFF-1291 (no delegated key) is not held to the delegation rules
+  ---
+  duration_ms: 0.140875
+  type: 'test'
+  ...
+# Subtest: evidence capabilities lists holdout-binding
+ok 49 - evidence capabilities lists holdout-binding
+  ---
+  duration_ms: 29.532998
+  type: 'test'
+  ...
+# Subtest: the warn-only check is gone from events.js
+ok 50 - the warn-only check is gone from events.js
+  ---
+  duration_ms: 1.262249
+  type: 'test'
+  ...
+# Subtest: module wiring: events.js has no top-level evidence require, evidence.js requires no factory file
+ok 51 - module wiring: events.js has no top-level evidence require, evidence.js requires no factory file
+  ---
+  duration_ms: 58.219623
+  type: 'test'
+  ...
+# Subtest: ac-checklist writer: a criterion with no ac_id is refused with its index, no criterion text, and nothing written
+ok 52 - ac-checklist writer: a criterion with no ac_id is refused with its index, no criterion text, and nothing written
+  ---
+  duration_ms: 155.003689
+  type: 'test'
+  ...
+# Subtest: ac-checklist writer: a zero-AC input and criteria that all carry classify ids (including done:N) are written
+ok 53 - ac-checklist writer: a zero-AC input and criteria that all carry classify ids (including done:N) are written
+  ---
+  duration_ms: 77.706761
+  type: 'test'
+  ...
+# Subtest: a checklist whose criteria all carry ac_id: null still renders, validates, mints and passes --check
+ok 54 - a checklist whose criteria all carry ac_id: null still renders, validates, mints and passes --check
+  ---
+  duration_ms: 145.611536
+  type: 'test'
+  ...
+# Subtest: the committed FAFF-1300, FAFF-1301 and FAFF-1302 anchors (every ac_id null) still pass evidence validate --require-evidence-schema
+ok 55 - the committed FAFF-1300, FAFF-1301 and FAFF-1302 anchors (every ac_id null) still pass evidence validate --require-evidence-schema
+  ---
+  duration_ms: 124.145943
+  type: 'test'
+  ...
+# Subtest: a failing evidence document sets the leg to fail without changing pass, exit code or reasons
+ok 56 - a failing evidence document sets the leg to fail without changing pass, exit code or reasons
+  ---
+  duration_ms: 204.243659
+  type: 'test'
+  ...
+# Subtest: the legacy status reaches the leg and the text and markdown renderers show it as report-only
+ok 57 - the legacy status reaches the leg and the text and markdown renderers show it as report-only
+  ---
+  duration_ms: 202.991202
+  type: 'test'
+  ...
+# Subtest: file names with :: or | are neutralised in text, json and summary markdown
+ok 58 - file names with :: or | are neutralised in text, json and summary markdown
+  ---
+  duration_ms: 210.627857
+  type: 'test'
+  ...
+# Subtest: run-dir results carry a report-only evidence_schema leg that renders
+ok 59 - run-dir results carry a report-only evidence_schema leg that renders
+  ---
+  duration_ms: 165.48184
+  type: 'test'
+  ...
+# Subtest: integration smoke: mint passes and validates; a verdict without schema_version is refused, --check agrees; the writer refuses a missing ac_id
+ok 60 - integration smoke: mint passes and validates; a verdict without schema_version is refused, --check agrees; the writer refuses a missing ac_id
+  ---
+  duration_ms: 207.853486
+  type: 'test'
+  ...
+# Subtest: return prints one EvidenceReturn line with lowercase hex digests and exits 0
+ok 61 - return prints one EvidenceReturn line with lowercase hex digests and exits 0
+  ---
+  duration_ms: 47.796222
+  type: 'test'
+  ...
+# Subtest: return reports an absent file as present:false with a null sha256
+ok 62 - return reports an absent file as present:false with a null sha256
+  ---
+  duration_ms: 43.173103
+  type: 'test'
+  ...
+# Subtest: return exits 2 with nothing on stdout for a symlink, a bad run dir, a bad issue id and missing flags
+ok 63 - return exits 2 with nothing on stdout for a symlink, a bad run dir, a bad issue id and missing flags
+  ---
+  duration_ms: 271.58506
+  type: 'test'
+  ...
+# Subtest: verify-return agrees on an untouched return and the evidence_persisted entry validates
+ok 64 - verify-return agrees on an untouched return and the evidence_persisted entry validates
+  ---
+  duration_ms: 47.339514
+  type: 'test'
+  ...
+# Subtest: round trip: the printed line survives an HTML-entity escape of <, > and & and still agrees
+ok 65 - round trip: the printed line survives an HTML-entity escape of <, > and & and still agrees
+  ---
+  duration_ms: 86.477206
+  type: 'test'
+  ...
+# Subtest: evidence_persisted is null when no file is present and both are absent on disk
+ok 66 - evidence_persisted is null when no file is present and both are absent on disk
+  ---
+  duration_ms: 50.289593
+  type: 'test'
+  ...
+# Subtest: a one-byte change after the return is a hash-mismatch, tampered, with the verbatim cause
+ok 67 - a one-byte change after the return is a hash-mismatch, tampered, with the verbatim cause
+  ---
+  duration_ms: 47.50918
+  type: 'test'
+  ...
+# Subtest: presence disagreement in both directions is a tampered mismatch
+ok 68 - presence disagreement in both directions is a tampered mismatch
+  ---
+  duration_ms: 94.088403
+  type: 'test'
+  ...
+# Subtest: when both files fail the cause names the first and paths lists both
+ok 69 - when both files fail the cause names the first and paths lists both
+  ---
+  duration_ms: 44.203352
+  type: 'test'
+  ...
+# Subtest: a symlink at an evidence path is not-regular-file and tampered
+ok 70 - a symlink at an evidence path is not-regular-file and tampered
+  ---
+  duration_ms: 44.135977
+  type: 'test'
+  ...
+# Subtest: stdin null with both files absent agrees and persists nothing
+ok 71 - stdin null with both files absent agrees and persists nothing
+  ---
+  duration_ms: 40.243524
+  type: 'test'
+  ...
+# Subtest: stdin null with a file on disk is no-claim: a missing cause, no tampered path
+ok 72 - stdin null with a file on disk is no-claim: a missing cause, no tampered path
+  ---
+  duration_ms: 41.337106
+  type: 'test'
+  ...
+# Subtest: a mixed no-claim and hash-mismatch run lists only the changed file as tampered
+ok 73 - a mixed no-claim and hash-mismatch run lists only the changed file as tampered
+  ---
+  duration_ms: 73.387184
+  type: 'test'
+  ...
+# Subtest: the malformed family: bad JSON, legacy body, uppercase or short hex, null sha with present, extra key, other issue
+ok 74 - the malformed family: bad JSON, legacy body, uppercase or short hex, null sha with present, extra key, other issue
+  ---
+  duration_ms: 544.370867
+  type: 'test'
+  ...
+# Subtest: verify-return exits 2 with nothing on stdout for a rejected path, bad issue id and missing flags
+ok 75 - verify-return exits 2 with nothing on stdout for a rejected path, bad issue id and missing flags
+  ---
+  duration_ms: 100.776561
+  type: 'test'
+  ...
+# Subtest: --against-ledger agrees with the last evidence_persisted entry for the issue
+ok 76 - --against-ledger agrees with the last evidence_persisted entry for the issue
+  ---
+  duration_ms: 37.859819
+  type: 'test'
+  ...
+# Subtest: --against-ledger catches a change after the ledger entry as hash-mismatch
+ok 77 - --against-ledger catches a change after the ledger entry as hash-mismatch
+  ---
+  duration_ms: 36.195863
+  type: 'test'
+  ...
+# Subtest: --against-ledger with no entry and a file on disk is no-claim; with both absent it agrees
+ok 78 - --against-ledger with no entry and a file on disk is no-claim; with both absent it agrees
+  ---
+  duration_ms: 69.365148
+  type: 'test'
+  ...
+# Subtest: --against-ledger exits 2 for a missing or unparseable ledger and does not read stdin
+ok 79 - --against-ledger exits 2 for a missing or unparseable ledger and does not read stdin
+  ---
+  duration_ms: 100.459644
+  type: 'test'
+  ...
+# Subtest: neither verb creates, modifies or deletes any file
+ok 80 - neither verb creates, modifies or deletes any file
+  ---
+  duration_ms: 235.923404
+  type: 'test'
+  ...
+# Subtest: --against-ledger exits 2 on a malformed digest in the ledger entry, but an omitted digest is an absence claim
+ok 81 - --against-ledger exits 2 on a malformed digest in the ledger entry, but an omitted digest is an absence claim
+  ---
+  duration_ms: 63.52374
+  type: 'test'
+  ...
+# Subtest: return and verify-return refuse flags that belong to other evidence verbs
+ok 82 - return and verify-return refuse flags that belong to other evidence verbs
+  ---
+  duration_ms: 251.325382
+  type: 'test'
+  ...
+# Subtest: a change to human-only-acs.json after the return is a hash-mismatch naming that file as tampered
+ok 83 - a change to human-only-acs.json after the return is a hash-mismatch naming that file as tampered
+  ---
+  duration_ms: 33.091743
+  type: 'test'
+  ...
+# Subtest: --against-ledger catches a rewrite of human-only-acs.json after the ledger entry
+ok 84 - --against-ledger catches a rewrite of human-only-acs.json after the ledger entry
+  ---
+  duration_ms: 34.537658
+  type: 'test'
+  ...
+# Subtest: a file created after an entry written without it is a presence disagreement
+ok 85 - a file created after an entry written without it is a presence disagreement
+  ---
+  duration_ms: 39.255484
+  type: 'test'
+  ...
+# Subtest: the old two-file return shape is malformed with no tampered path and no persisted entry
+ok 86 - the old two-file return shape is malformed with no tampered path and no persisted entry
+  ---
+  duration_ms: 34.082616
+  type: 'test'
+  ...
+# Subtest: stdin null with only human-only-acs.json on disk is a missing cause and no tampered path
+ok 87 - stdin null with only human-only-acs.json on disk is a missing cause and no tampered path
+  ---
+  duration_ms: 32.557578
+  type: 'test'
+  ...
+# Subtest: a symlink at human-only-acs.json is exit 2 from return and a not-regular-file row from verify-return
+ok 88 - a symlink at human-only-acs.json is exit 2 from return and a not-regular-file row from verify-return
+  ---
+  duration_ms: 74.940057
+  type: 'test'
+  ...
+# Subtest: evidence_persisted validates with or without human_only_acs_sha256
+ok 89 - evidence_persisted validates with or without human_only_acs_sha256
+  ---
+  duration_ms: 0.430791
+  type: 'test'
+  ...
+# Subtest: smoke: return, verify-return, a ledger entry, --against-ledger, then a one-byte change
+ok 90 - smoke: return, verify-return, a ledger entry, --against-ledger, then a one-byte change
+  ---
+  duration_ms: 135.842093
+  type: 'test'
+  ...
+# Subtest: the concurrency executors restate neither the new key nor the digest shape
+ok 91 - the concurrency executors restate neither the new key nor the digest shape
+  ---
+  duration_ms: 0.231708
+  type: 'test'
+  ...
+# Subtest: verify-return: a file swapped for a symlink after the look is not-regular-file and tampered, never match
+ok 92 - verify-return: a file swapped for a symlink after the look is not-regular-file and tampered, never match
+  ---
+  duration_ms: 3.819744
+  type: 'test'
+  ...
+# Subtest: return: a file swapped for a symlink after the look is the not-a-regular-file fault, never the target's digest
+ok 93 - return: a file swapped for a symlink after the look is the not-a-regular-file fault, never the target's digest
+  ---
+  duration_ms: 4.478243
+  type: 'test'
+  ...
+# Subtest: a FIFO at an evidence path is a not-regular-file fault for return and a not-regular-file row for verify-return, without blocking
+ok 94 - a FIFO at an evidence path is a not-regular-file fault for return and a not-regular-file row for verify-return, without blocking
+  ---
+  duration_ms: 76.143721
+  type: 'test'
+  ...
+# Subtest: obligation 6: evidence return, the per-issue snapshot member and integrity-digest hash report one sha256
+ok 95 - obligation 6: evidence return, the per-issue snapshot member and integrity-digest hash report one sha256
+  ---
+  duration_ms: 85.767124
+  type: 'test'
+  ...
+# Subtest: ac-checklist: stamps schema_version, keeps criteria in order and drops unknown keys
+ok 96 - ac-checklist: stamps schema_version, keeps criteria in order and drops unknown keys
+  ---
+  duration_ms: 49.676844
+  type: 'test'
+  ...
+# Subtest: ac-checklist: a zero-AC input omits criteria and reads as complete
+ok 97 - ac-checklist: a zero-AC input omits criteria and reads as complete
+  ---
+  duration_ms: 55.647085
+  type: 'test'
+  ...
+# Subtest: ac-checklist: an unverified criterion is written as not verified
+ok 98 - ac-checklist: an unverified criterion is written as not verified
+  ---
+  duration_ms: 51.774716
+  type: 'test'
+  ...
+# Subtest: ac-checklist: exits 1 and writes nothing for each refused input
+ok 99 - ac-checklist: exits 1 and writes nothing for each refused input
+  ---
+  duration_ms: 337.094463
+  type: 'test'
+  ...
+# Subtest: review-verdict --terminal-only: null-fills every finding key and records one round
+ok 100 - review-verdict --terminal-only: null-fills every finding key and records one round
+  ---
+  duration_ms: 47.189222
+  type: 'test'
+  ...
+# Subtest: review-verdict --terminal-only: keeps adversarial_outcome, and the merge floor reads pass
+ok 101 - review-verdict --terminal-only: keeps adversarial_outcome, and the merge floor reads pass
+  ---
+  duration_ms: 41.723147
+  type: 'test'
+  ...
+# Subtest: review-verdict --terminal-only: appends exactly one evidence-terminal-only event before the file
+ok 102 - review-verdict --terminal-only: appends exactly one evidence-terminal-only event before the file
+  ---
+  duration_ms: 80.317049
+  type: 'test'
+  ...
+# Subtest: review-verdict --terminal-only: a failed event append exits 2 and writes no file
+ok 103 - review-verdict --terminal-only: a failed event append exits 2 and writes no file
+  ---
+  duration_ms: 116.278663
+  type: 'test'
+  ...
+# Subtest: review-verdict --terminal-only: exits 1 and writes nothing for each refused input
+ok 104 - review-verdict --terminal-only: exits 1 and writes nothing for each refused input
+  ---
+  duration_ms: 334.663884
+  type: 'test'
+  ...
+# Subtest: bare review-verdict collates recorded rounds, refusing none (FAFF-1268); --terminal-only elsewhere exits 2
+ok 105 - bare review-verdict collates recorded rounds, refusing none (FAFF-1268); --terminal-only elsewhere exits 2
+  ---
+  duration_ms: 99.760812
+  type: 'test'
+  ...
+# Subtest: both writers exit 2 and write nothing for a bad issue id or a run dir outside .faff/runs
+ok 106 - both writers exit 2 and write nothing for a bad issue id or a run dir outside .faff/runs
+  ---
+  duration_ms: 381.055107
+  type: 'test'
+  ...
+# Subtest: a known secret in a criterion or a finding rationale is written as [REDACTED]
+ok 107 - a known secret in a criterion or a finding rationale is written as [REDACTED]
+  ---
+  duration_ms: 79.496675
+  type: 'test'
+  ...
+# Subtest: computeReviewVerdict treats a null severity, disposition or source as absent
+ok 108 - computeReviewVerdict treats a null severity, disposition or source as absent
+  ---
+  duration_ms: 0.247083
+  type: 'test'
+  ...
+# Subtest: smoke: a graft run through the writers mints an anchor that validates as pass
+ok 109 - smoke: a graft run through the writers mints an anchor that validates as pass
+  ---
+  duration_ms: 350.78136
+  type: 'test'
+  ...
+# Subtest: readAcFloor
+    # Subtest: a complete checklist passes with nothing called out, with or without a human-only set
+    ok 1 - a complete checklist passes with nothing called out, with or without a human-only set
+      ---
+      duration_ms: 1.43879
+      type: 'test'
+      ...
+    # Subtest: an unattended pending human-only criterion with another passed criterion is skipped and listed
+    ok 2 - an unattended pending human-only criterion with another passed criterion is skipped and listed
+      ---
+      duration_ms: 0.399958
+      type: 'test'
+      ...
+    # Subtest: several pending human-only criteria are all listed, in checklist order
+    ok 3 - several pending human-only criteria are all listed, in checklist order
+      ---
+      duration_ms: 0.319083
+      type: 'test'
+      ...
+    # Subtest: no human-only set, an attended set, or an unreadable checklist blocks as today
+    ok 4 - no human-only set, an attended set, or an unreadable checklist blocks as today
+      ---
+      duration_ms: 0.557666
+      type: 'test'
+      ...
+    # Subtest: a pending criterion outside the human-only ids keeps the blocker
+    ok 5 - a pending criterion outside the human-only ids keeps the blocker
+      ---
+      duration_ms: 0.386457
+      type: 'test'
+      ...
+    # Subtest: a pending criterion without an ac_id keeps the blocker
+    ok 6 - a pending criterion without an ac_id keeps the blocker
+      ---
+      duration_ms: 0.299708
+      type: 'test'
+      ...
+    # Subtest: a pending criterion with a non-human or empty verification keeps the blocker
+    ok 7 - a pending criterion with a non-human or empty verification keeps the blocker
+      ---
+      duration_ms: 0.639374
+      type: 'test'
+      ...
+    # Subtest: an all_verified:false checklist whose every row passed has nothing to call out and stays blocked
+    ok 8 - an all_verified:false checklist whose every row passed has nothing to call out and stays blocked
+      ---
+      duration_ms: 0.300291
+      type: 'test'
+      ...
+    # Subtest: a checklist with no passed criterion keeps the blocker
+    ok 9 - a checklist with no passed criterion keeps the blocker
+      ---
+      duration_ms: 0.73154
+      type: 'test'
+      ...
+    # Subtest: an aggregate that disagrees with the rows is not skipped
+    ok 10 - an aggregate that disagrees with the rows is not skipped
+      ---
+      duration_ms: 0.768749
+      type: 'test'
+      ...
+    # Subtest: the checklist itself is never edited
+    ok 11 - the checklist itself is never edited
+      ---
+      duration_ms: 0.258708
+      type: 'test'
+      ...
+    1..11
+ok 110 - readAcFloor
+  ---
+  duration_ms: 6.872865
+  type: 'suite'
+  ...
+# Subtest: merge-gate --local
+    # Subtest: an anchored unattended file with a matching stamp lets the merge through and records the call-out
+    ok 1 - an anchored unattended file with a matching stamp lets the merge through and records the call-out
+      ---
+      duration_ms: 241.266813
+      type: 'test'
+      ...
+    # Subtest: a clean merge records no ac_called_out and reports an empty list
+    ok 2 - a clean merge records no ac_called_out and reports an empty list
+      ---
+      duration_ms: 189.804013
+      type: 'test'
+      ...
+    # Subtest: at L4 the AC blocker is absent and the call-out is listed
+    ok 3 - at L4 the AC blocker is absent and the call-out is listed
+      ---
+      duration_ms: 206.545572
+      type: 'test'
+      ...
+    # Subtest: a file that says attended (L2, unattended false) blocks with the AC blocker
+    ok 4 - a file that says attended (L2, unattended false) blocks with the AC blocker
+      ---
+      duration_ms: 189.147639
+      type: 'test'
+      ...
+    # Subtest: an L3 file minted without the unattended declaration blocks
+    ok 5 - an L3 file minted without the unattended declaration blocks
+      ---
+      duration_ms: 177.620864
+      type: 'test'
+      ...
+    # Subtest: the floor never reads the unattended fact from config: a declared repo with an attended file still blocks
+    ok 6 - the floor never reads the unattended fact from config: a declared repo with an attended file still blocks
+      ---
+      duration_ms: 172.449288
+      type: 'test'
+      ...
+    # Subtest: an anchored level that disagrees with the file blocks
+    ok 7 - an anchored level that disagrees with the file blocks
+      ---
+      duration_ms: 173.066413
+      type: 'test'
+      ...
+    # Subtest: a file edited after mint, so it no longer matches its stamp, blocks
+    ok 8 - a file edited after mint, so it no longer matches its stamp, blocks
+      ---
+      duration_ms: 174.551285
+      type: 'test'
+      ...
+    # Subtest: a file with no stamp event blocks
+    ok 9 - a file with no stamp event blocks
+      ---
+      duration_ms: 180.872943
+      type: 'test'
+      ...
+    # Subtest: no file in the anchor blocks as today
+    ok 10 - no file in the anchor blocks as today
+      ---
+      duration_ms: 172.105456
+      type: 'test'
+      ...
+    # Subtest: a pending machine-checkable criterion that is not human-only blocks
+    ok 11 - a pending machine-checkable criterion that is not human-only blocks
+      ---
+      duration_ms: 172.420622
+      type: 'test'
+      ...
+    # Subtest: a stamp whose digest covers a trailing-newline-less rewrite of the file does not match
+    ok 12 - a stamp whose digest covers a trailing-newline-less rewrite of the file does not match
+      ---
+      duration_ms: 188.081224
+      type: 'test'
+      ...
+    1..12
+ok 111 - merge-gate --local
+  ---
+  duration_ms: 2238.473631
+  type: 'suite'
+  ...
+# Subtest: already-merged reconcile
+    # Subtest: a skip is reported, and written to the merge record
+    ok 1 - a skip is reported, and written to the merge record
+      ---
+      duration_ms: 8.364988
+      type: 'test'
+      ...
+    # Subtest: without a human-only set it refuses with the AC blocker and writes nothing
+    ok 2 - without a human-only set it refuses with the AC blocker and writes nothing
+      ---
+      duration_ms: 0.291291
+      type: 'test'
+      ...
+    # Subtest: a file whose level disagrees with the anchored ledger is read as no skip
+    ok 3 - a file whose level disagrees with the anchored ledger is read as no skip
+      ---
+      duration_ms: 31.693953
+      type: 'test'
+      ...
+    # Subtest: a clean anchor reads back the set it was stamped with
+    ok 4 - a clean anchor reads back the set it was stamped with
+      ---
+      duration_ms: 27.39471
+      type: 'test'
+      ...
+    1..4
+ok 112 - already-merged reconcile
+  ---
+  duration_ms: 67.879484
+  type: 'suite'
+  ...
+# Subtest: merge-gate on a PR
+    # Subtest: an anchored unattended file at the PR head removes the AC blocker and lists the call-out
+    ok 1 - an anchored unattended file at the PR head removes the AC blocker and lists the call-out
+      ---
+      duration_ms: 101.150393
+      type: 'test'
+      ...
+    # Subtest: an unattended skip merges through the PR path and records the call-out
+    ok 2 - an unattended skip merges through the PR path and records the call-out
+      ---
+      duration_ms: 91.83899
+      type: 'test'
+      ...
+    # Subtest: an attended file at the PR head blocks with the AC blocker
+    ok 3 - an attended file at the PR head blocks with the AC blocker
+      ---
+      duration_ms: 78.702592
+      type: 'test'
+      ...
+    # Subtest: a file edited after its stamp blocks at the PR head
+    ok 4 - a file edited after its stamp blocks at the PR head
+      ---
+      duration_ms: 79.922174
+      type: 'test'
+      ...
+    1..4
+ok 113 - merge-gate on a PR
+  ---
+  duration_ms: 351.829775
+  type: 'suite'
+  ...
+# Subtest: governance-check
+    # Subtest: the anchor leg passes by skip, with no unattended flag, and lists the call-out
+    ok 1 - the anchor leg passes by skip, with no unattended flag, and lists the call-out
+      ---
+      duration_ms: 42.336896
+      type: 'test'
+      ...
+    # Subtest: the text output names the called-out ids
+    ok 2 - the text output names the called-out ids
+      ---
+      duration_ms: 97.843898
+      type: 'test'
+      ...
+    # Subtest: a file minted without the unattended fact fails the leg with the governance wording
+    ok 3 - a file minted without the unattended fact fails the leg with the governance wording
+      ---
+      duration_ms: 43.481311
+      type: 'test'
+      ...
+    # Subtest: with the file deleted from the anchor the leg fails with its own reason
+    ok 4 - with the file deleted from the anchor the leg fails with its own reason
+      ---
+      duration_ms: 44.143561
+      type: 'test'
+      ...
+    # Subtest: a file edited after its stamp fails the leg
+    ok 5 - a file edited after its stamp fails the leg
+      ---
+      duration_ms: 45.120434
+      type: 'test'
+      ...
+    # Subtest: the live run-dir leg passes no human-only set and blocks as today
+    ok 6 - the live run-dir leg passes no human-only set and blocks as today
+      ---
+      duration_ms: 40.829065
+      type: 'test'
+      ...
+    # Subtest: merge-gate and governance-check agree on an L3 run declared unattended at mint
+    ok 7 - merge-gate and governance-check agree on an L3 run declared unattended at mint
+      ---
+      duration_ms: 187.738933
+      type: 'test'
+      ...
+    # Subtest: merge-gate and governance-check agree on an L3 run not declared unattended at mint
+    ok 8 - merge-gate and governance-check agree on an L3 run not declared unattended at mint
+      ---
+      duration_ms: 199.465582
+      type: 'test'
+      ...
+    1..8
+ok 114 - governance-check
+  ---
+  duration_ms: 701.245095
+  type: 'suite'
+  ...
+# Subtest: marker
+    # Subtest: a needs-human: DONE item is human_only, delegated, and leaves other rows' ids unchanged
+    ok 1 - a needs-human: DONE item is human_only, delegated, and leaves other rows' ids unchanged
+      ---
+      duration_ms: 99.201521
+      type: 'test'
+      ...
+    # Subtest: positional ids are unchanged by a marker
+    ok 2 - positional ids are unchanged by a marker
+      ---
+      duration_ms: 50.695758
+      type: 'test'
+      ...
+    # Subtest: an empty reason is not a marker: literal text, human_only false, stderr advisory
+    ok 3 - an empty reason is not a marker: literal text, human_only false, stderr advisory
+      ---
+      duration_ms: 44.040019
+      type: 'test'
+      ...
+    # Subtest: a marker outside the DONE section is ignored
+    ok 4 - a marker outside the DONE section is ignored
+      ---
+      duration_ms: 49.026011
+      type: 'test'
+      ...
+    # Subtest: a human_only row naming a code surface stays delegated
+    ok 5 - a human_only row naming a code surface stays delegated
+      ---
+      duration_ms: 86.18679
+      type: 'test'
+      ...
+    1..5
+ok 115 - marker
+  ---
+  duration_ms: 329.813475
+  type: 'suite'
+  ...
+# Subtest: contract
+    # Subtest: the valid example passes and the invalid example fails the schema
+    ok 1 - the valid example passes and the invalid example fails the schema
+      ---
+      duration_ms: 0.663166
+      type: 'test'
+      ...
+    # Subtest: the schema is closed and requires every key but faff_version
+    ok 2 - the schema is closed and requires every key but faff_version
+      ---
+      duration_ms: 0.301458
+      type: 'test'
+      ...
+    # Subtest: the manifest lists the file as a field-versioned json document with thirteen entries in all
+    ok 3 - the manifest lists the file as a field-versioned json document with thirteen entries in all
+      ---
+      duration_ms: 0.258833
+      type: 'test'
+      ...
+    # Subtest: the stamp event type is in the delivery profile, issue-scoped, and has its example pair
+    ok 4 - the stamp event type is in the delivery profile, issue-scoped, and has its example pair
+      ---
+      duration_ms: 1.211623
+      type: 'test'
+      ...
+    1..4
+ok 116 - contract
+  ---
+  duration_ms: 2.714454
+  type: 'suite'
+  ...
+# Subtest: writer
+    # Subtest: writes the document with schema_version and faff_version, and appends one stamp holding the file's SHA-256
+    ok 1 - writes the document with schema_version and faff_version, and appends one stamp holding the file's SHA-256
+      ---
+      duration_ms: 53.930337
+      type: 'test'
+      ...
+    # Subtest: an empty human_only list is written, and an issue differing only in case is accepted
+    ok 2 - an empty human_only list is written, and an issue differing only in case is accepted
+      ---
+      duration_ms: 47.961096
+      type: 'test'
+      ...
+    # Subtest: drops unknown keys and the caller's schema_version
+    ok 3 - drops unknown keys and the caller's schema_version
+      ---
+      duration_ms: 40.186649
+      type: 'test'
+      ...
+    # Subtest: refuses an issue mismatch: exit 1, no file, no stamp
+    ok 4 - refuses an issue mismatch: exit 1, no file, no stamp
+      ---
+      duration_ms: 32.826952
+      type: 'test'
+      ...
+    # Subtest: refuses an L1 document with unattended true: exit 1, no file, no stamp
+    ok 5 - refuses an L1 document with unattended true: exit 1, no file, no stamp
+      ---
+      duration_ms: 33.526034
+      type: 'test'
+      ...
+    # Subtest: refuses an L2 document with unattended true: exit 1, no file, no stamp
+    ok 6 - refuses an L2 document with unattended true: exit 1, no file, no stamp
+      ---
+      duration_ms: 34.089283
+      type: 'test'
+      ...
+    # Subtest: refuses an L4 document with unattended false: exit 1, no file, no stamp
+    ok 7 - refuses an L4 document with unattended false: exit 1, no file, no stamp
+      ---
+      duration_ms: 34.393991
+      type: 'test'
+      ...
+    # Subtest: refuses a level outside L1..L4: exit 1, no file, no stamp
+    ok 8 - refuses a level outside L1..L4: exit 1, no file, no stamp
+      ---
+      duration_ms: 37.85832
+      type: 'test'
+      ...
+    # Subtest: refuses a duplicate id: exit 1, no file, no stamp
+    ok 9 - refuses a duplicate id: exit 1, no file, no stamp
+      ---
+      duration_ms: 36.517738
+      type: 'test'
+      ...
+    # Subtest: refuses an id naming another ticket: exit 1, no file, no stamp
+    ok 10 - refuses an id naming another ticket: exit 1, no file, no stamp
+      ---
+      duration_ms: 34.475908
+      type: 'test'
+      ...
+    # Subtest: refuses an id that does not parse: exit 1, no file, no stamp
+    ok 11 - refuses an id that does not parse: exit 1, no file, no stamp
+      ---
+      duration_ms: 35.354489
+      type: 'test'
+      ...
+    # Subtest: refuses a non-boolean unattended: exit 1, no file, no stamp
+    ok 12 - refuses a non-boolean unattended: exit 1, no file, no stamp
+      ---
+      duration_ms: 36.704905
+      type: 'test'
+      ...
+    # Subtest: refuses a missing human_only: exit 1, no file, no stamp
+    ok 13 - refuses a missing human_only: exit 1, no file, no stamp
+      ---
+      duration_ms: 38.078402
+      type: 'test'
+      ...
+    # Subtest: refuses a stdin that is not an object: exit 1, no file, no stamp
+    ok 14 - refuses a stdin that is not an object: exit 1, no file, no stamp
+      ---
+      duration_ms: 36.050031
+      type: 'test'
+      ...
+    # Subtest: a refusal does not echo the offending id
+    ok 15 - a refusal does not echo the offending id
+      ---
+      duration_ms: 32.086078
+      type: 'test'
+      ...
+    # Subtest: a failed stamp append removes the file, exits 2 and leaves events.jsonl untouched
+    ok 16 - a failed stamp append removes the file, exits 2 and leaves events.jsonl untouched
+      ---
+      duration_ms: 76.860929
+      type: 'test'
+      ...
+    # Subtest: a run dir with no events.jsonl exits 2 and leaves no file
+    ok 17 - a run dir with no events.jsonl exits 2 and leaves no file
+      ---
+      duration_ms: 38.604401
+      type: 'test'
+      ...
+    # Subtest: a rewrite replaces the file and the latest stamp matches the new bytes
+    ok 18 - a rewrite replaces the file and the latest stamp matches the new bytes
+      ---
+      duration_ms: 83.381919
+      type: 'test'
+      ...
+    # Subtest: an --issue that is not a bare token is a path-guard fault (exit 2)
+    ok 19 - an --issue that is not a bare token is a path-guard fault (exit 2)
+      ---
+      duration_ms: 26.222337
+      type: 'test'
+      ...
+    1..19
+ok 117 - writer
+  ---
+  duration_ms: 789.696591
+  type: 'suite'
+  ...
+# Subtest: anchor copy
+    # Subtest: an anchor minted from a run dir holding the file carries it byte-identical, and the stamp in events.jsonl
+    ok 1 - an anchor minted from a run dir holding the file carries it byte-identical, and the stamp in events.jsonl
+      ---
+      duration_ms: 70.018648
+      type: 'test'
+      ...
+    # Subtest: an anchor minted without the file carries none
+    ok 2 - an anchor minted without the file carries none
+      ---
+      duration_ms: 1.437081
+      type: 'test'
+      ...
+    1..2
+ok 118 - anchor copy
+  ---
+  duration_ms: 71.535645
+  type: 'suite'
+  ...
+# Subtest: faff pr open mint (real git)
+    # Subtest: scenario 2: mints from the main-checkout captured spec although the worktree spec and spec-commit.json were rewritten
+    ok 1 - scenario 2: mints from the main-checkout captured spec although the worktree spec and spec-commit.json were rewritten
+      ---
+      duration_ms: 552.034856
+      type: 'test'
+      ...
+    # Subtest: scenario 3: an unreadable captured spec still opens the PR, warns, and leaves no file in the anchor
+    ok 2 - scenario 3: an unreadable captured spec still opens the PR, warns, and leaves no file in the anchor
+      ---
+      duration_ms: 411.141105
+      type: 'test'
+      ...
+    # Subtest: scenario 4: a later fault after a committed mint deletes the file from the new anchor commit
+    ok 3 - scenario 4: a later fault after a committed mint deletes the file from the new anchor commit
+      ---
+      duration_ms: 807.103024
+      type: 'test'
+      ...
+    # Subtest: scenario 5: older untracked copies are replaced, and the committed file is the newly written one
+    ok 4 - scenario 5: older untracked copies are replaced, and the committed file is the newly written one
+      ---
+      duration_ms: 496.962562
+      type: 'test'
+      ...
+    # Subtest: an unchanged head with a tracked anchor returns already-open and runs no removal, mint or stamp
+    ok 5 - an unchanged head with a tracked anchor returns already-open and runs no removal, mint or stamp
+      ---
+      duration_ms: 622.435087
+      type: 'test'
+      ...
+    # Subtest: an empty human-only set still writes the file; L3 is unattended only when the main checkout config declares it
+    ok 6 - an empty human-only set still writes the file; L3 is unattended only when the main checkout config declares it
+      ---
+      duration_ms: 967.724329
+      type: 'test'
+      ...
+    # Subtest: a level outside L1..L4 warns and mints nothing
+    ok 7 - a level outside L1..L4 warns and mints nothing
+      ---
+      duration_ms: 463.151903
+      type: 'test'
+      ...
+    1..7
+ok 119 - faff pr open mint (real git)
+  ---
+  duration_ms: 4320.854866
+  type: 'suite'
+  ...
+# Subtest: faff pr open mint (fake dependencies)
+    # Subtest: the happy path removes first, mints once between pr-list and anchor, and pipes the derived document
+    ok 1 - the happy path removes first, mints once between pr-list and anchor, and pipes the derived document
+      ---
+      duration_ms: 1.826289
+      type: 'test'
+      ...
+    # Subtest: git rm runs with -f --ignore-unmatch --quiet on the destination copy
+    ok 2 - git rm runs with -f --ignore-unmatch --quiet on the destination copy
+      ---
+      duration_ms: 0.315749
+      type: 'test'
+      ...
+    # Subtest: an empty human-only set is still written
+    ok 3 - an empty human-only set is still written
+      ---
+      duration_ms: 0.132083
+      type: 'test'
+      ...
+    # Subtest: an unchanged head with a tracked anchor returns already-open before any removal, mint or stamp
+    ok 4 - an unchanged head with a tracked anchor returns already-open before any removal, mint or stamp
+      ---
+      duration_ms: 0.141583
+      type: 'test'
+      ...
+    # Subtest: a null main checkout warns, mints nothing, and the PR still opens
+    ok 5 - a null main checkout warns, mints nothing, and the PR still opens
+      ---
+      duration_ms: 0.120375
+      type: 'test'
+      ...
+    # Subtest: an unreadable captured spec warns, mints nothing, and the PR still opens
+    ok 6 - an unreadable captured spec warns, mints nothing, and the PR still opens
+      ---
+      duration_ms: 0.068
+      type: 'test'
+      ...
+    # Subtest: a classify non-zero exit warns, mints nothing, and the PR still opens
+    ok 7 - a classify non-zero exit warns, mints nothing, and the PR still opens
+      ---
+      duration_ms: 0.069083
+      type: 'test'
+      ...
+    # Subtest: unparseable classify output warns, mints nothing, and the PR still opens
+    ok 8 - unparseable classify output warns, mints nothing, and the PR still opens
+      ---
+      duration_ms: 0.352082
+      type: 'test'
+      ...
+    # Subtest: classify output with no criteria warns, mints nothing, and the PR still opens
+    ok 9 - classify output with no criteria warns, mints nothing, and the PR still opens
+      ---
+      duration_ms: 0.232292
+      type: 'test'
+      ...
+    # Subtest: an unreadable run ledger warns, mints nothing, and the PR still opens
+    ok 10 - an unreadable run ledger warns, mints nothing, and the PR still opens
+      ---
+      duration_ms: 0.146292
+      type: 'test'
+      ...
+    # Subtest: an unparseable run ledger warns, mints nothing, and the PR still opens
+    ok 11 - an unparseable run ledger warns, mints nothing, and the PR still opens
+      ---
+      duration_ms: 0.084583
+      type: 'test'
+      ...
+    # Subtest: a run ledger level outside L1..L4 warns, mints nothing, and the PR still opens
+    ok 12 - a run ledger level outside L1..L4 warns, mints nothing, and the PR still opens
+      ---
+      duration_ms: 0.050834
+      type: 'test'
+      ...
+    # Subtest: a failed git rm warns, mints nothing, and the PR still opens
+    ok 13 - a failed git rm warns, mints nothing, and the PR still opens
+      ---
+      duration_ms: 0.050417
+      type: 'test'
+      ...
+    # Subtest: a writer failure warns and removes the run-dir copy again
+    ok 14 - a writer failure warns and removes the run-dir copy again
+      ---
+      duration_ms: 0.125208
+      type: 'test'
+      ...
+    # Subtest: a dependency that throws is a warning that clears both copies
+    ok 15 - a dependency that throws is a warning that clears both copies
+      ---
+      duration_ms: 0.166791
+      type: 'test'
+      ...
+    # Subtest: a caller that supplies no mint dependencies skips the step entirely
+    ok 16 - a caller that supplies no mint dependencies skips the step entirely
+      ---
+      duration_ms: 0.061375
+      type: 'test'
+      ...
+    # Subtest: defaultDeps supplies the mint dependencies, and removeStale deletes a file
+    ok 17 - defaultDeps supplies the mint dependencies, and removeStale deletes a file
+      ---
+      duration_ms: 0.423416
+      type: 'test'
+      ...
+    1..17
+ok 120 - faff pr open mint (fake dependencies)
+  ---
+  duration_ms: 4.631952
+  type: 'suite'
+  ...
+# Subtest: resolveUnattended
+    # Subtest: L4 is unattended with or without config
+    ok 1 - L4 is unattended with or without config
+      ---
+      duration_ms: 0.079167
+      type: 'test'
+      ...
+    # Subtest: L3 is unattended only when the config declares it
+    ok 2 - L3 is unattended only when the config declares it
+      ---
+      duration_ms: 0.112583
+      type: 'test'
+      ...
+    # Subtest: L1 and L2 are never unattended, even in a repo that declares it
+    ok 3 - L1 and L2 are never unattended, even in a repo that declares it
+      ---
+      duration_ms: 0.03575
+      type: 'test'
+      ...
+    # Subtest: resolveIntegrity keeps its branch-6 outcome through the shared fact
+    ok 4 - resolveIntegrity keeps its branch-6 outcome through the shared fact
+      ---
+      duration_ms: 2.647246
+      type: 'test'
+      ...
+    1..4
+ok 121 - resolveUnattended
+  ---
+  duration_ms: 2.937204
+  type: 'suite'
+  ...
+# Subtest: readHumanOnlyAcs
+    # Subtest: a valid file with its stamp reads back unattended and ids
+    ok 1 - a valid file with its stamp reads back unattended and ids
+      ---
+      duration_ms: 0.332582
+      type: 'test'
+      ...
+    # Subtest: issue matching is case-insensitive
+    ok 2 - issue matching is case-insensitive
+      ---
+      duration_ms: 0.189333
+      type: 'test'
+      ...
+    # Subtest: returns null for each structural fault
+    ok 3 - returns null for each structural fault
+      ---
+      duration_ms: 0.330374
+      type: 'test'
+      ...
+    # Subtest: the level constraints hold for L1, L2 and L4
+    ok 4 - the level constraints hold for L1, L2 and L4
+      ---
+      duration_ms: 0.099833
+      type: 'test'
+      ...
+    # Subtest: a missing or mismatched stamp returns null
+    ok 5 - a missing or mismatched stamp returns null
+      ---
+      duration_ms: 0.077083
+      type: 'test'
+      ...
+    # Subtest: a stamp whose data.issue disagrees with its issue is a mismatch
+    ok 6 - a stamp whose data.issue disagrees with its issue is a mismatch
+      ---
+      duration_ms: 0.047291
+      type: 'test'
+      ...
+    # Subtest: a stamp for another issue is ignored, even when newer
+    ok 7 - a stamp for another issue is ignored, even when newer
+      ---
+      duration_ms: 0.092208
+      type: 'test'
+      ...
+    # Subtest: the last stamp for the issue wins
+    ok 8 - the last stamp for the issue wins
+      ---
+      duration_ms: 0.061375
+      type: 'test'
+      ...
+    # Subtest: the digest covers the exact bytes, so a trimmed or re-encoded file fails
+    ok 9 - the digest covers the exact bytes, so a trimmed or re-encoded file fails
+      ---
+      duration_ms: 0.064666
+      type: 'test'
+      ...
+    # Subtest: blank lines and a torn final line are tolerated; a mid-file bad line is not
+    ok 10 - blank lines and a torn final line are tolerated; a mid-file bad line is not
+      ---
+      duration_ms: 0.095833
+      type: 'test'
+      ...
+    # Subtest: it is total: odd inputs return null and never throw
+    ok 11 - it is total: odd inputs return null and never throw
+      ---
+      duration_ms: 0.123083
+      type: 'test'
+      ...
+    1..11
+ok 122 - readHumanOnlyAcs
+  ---
+  duration_ms: 1.639831
+  type: 'suite'
+  ...
+# Subtest: readAnchoredBytes
+    # Subtest: scenario 7: exact committed bytes for a newline-ended file and an events.jsonl over 1 MiB
+    ok 1 - scenario 7: exact committed bytes for a newline-ended file and an events.jsonl over 1 MiB
+      ---
+      duration_ms: 23.791382
+      type: 'test'
+      ...
+    # Subtest: regression: gitRun trims the newline and caps the buffer, so it would break the digest
+    ok 2 - regression: gitRun trims the newline and caps the buffer, so it would break the digest
+      ---
+      duration_ms: 23.432257
+      type: 'test'
+      ...
+    # Subtest: a missing object returns null with or without a repo slug when gh is absent
+    ok 3 - a missing object returns null with or without a repo slug when gh is absent
+      ---
+      duration_ms: 15.985977
+      type: 'test'
+      ...
+    # Subtest: Contents API fallback
+        # Subtest: decodes the base64 content without trimming
+        ok 1 - decodes the base64 content without trimming
+          ---
+          duration_ms: 6.819323
+          type: 'test'
+          ...
+        # Subtest: returns null when the API gives no inline content
+        ok 2 - returns null when the API gives no inline content
+          ---
+          duration_ms: 3.63187
+          type: 'test'
+          ...
+        # Subtest: returns null for a directory listing
+        ok 3 - returns null for a directory listing
+          ---
+          duration_ms: 1.846539
+          type: 'test'
+          ...
+        # Subtest: does not call the API when repo is null
+        ok 4 - does not call the API when repo is null
+          ---
+          duration_ms: 1.128748
+          type: 'test'
+          ...
+        1..4
+    ok 4 - Contents API fallback
+      ---
+      duration_ms: 14.217312
+      type: 'suite'
+      ...
+    1..4
+ok 123 - readAnchoredBytes
+  ---
+  duration_ms: 77.632011
+  type: 'suite'
+  ...
+# Subtest: only the shared floor entry points reach the reader and helper
+    # Subtest: merge-gate.js goes through readAnchoredHumanOnly, never the reader or helper directly
+    ok 1 - merge-gate.js goes through readAnchoredHumanOnly, never the reader or helper directly
+      ---
+      duration_ms: 0.219583
+      type: 'test'
+      ...
+    # Subtest: merge-gate-local.js goes through readAnchoredHumanOnly, never the reader or helper directly
+    ok 2 - merge-gate-local.js goes through readAnchoredHumanOnly, never the reader or helper directly
+      ---
+      duration_ms: 0.0915
+      type: 'test'
+      ...
+    # Subtest: merge-gate-floor.js and governance-check.js are the two files that require the reader
+    ok 3 - merge-gate-floor.js and governance-check.js are the two files that require the reader
+      ---
+      duration_ms: 1.325873
+      type: 'test'
+      ...
+    # Subtest: the reader is a governance module that requires no factory module
+    ok 4 - the reader is a governance module that requires no factory module
+      ---
+      duration_ms: 0.104625
+      type: 'test'
+      ...
+    1..4
+ok 124 - only the shared floor entry points reach the reader and helper
+  ---
+  duration_ms: 1.803581
+  type: 'suite'
+  ...
+# Subtest: an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract
+ok 125 - an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract
+  ---
+  duration_ms: 29696.030782
+  type: 'test'
+  ...
+# Subtest: the non-JSON exit-3 output is the single incomplete line, preceded by the discard line when set
+ok 126 - the non-JSON exit-3 output is the single incomplete line, preceded by the discard line when set
+  ---
+  duration_ms: 6204.269726
+  type: 'test'
+  ...
+# Subtest: a tree change, a plan change and stale progress each discard the progress
+ok 127 - a tree change, a plan change and stale progress each discard the progress
+  ---
+  duration_ms: 12365.374556
+  type: 'test'
+  ...
+# Subtest: changing gates.run_budget_secs does not change the plan
+ok 128 - changing gates.run_budget_secs does not change the plan
+  ---
+  duration_ms: 9262.148736
+  type: 'test'
+  ...
+# Subtest: a unit that cannot finish by the ceiling is recorded errored, the run ends needs-human, and a higher ceiling retries it
+ok 129 - a unit that cannot finish by the ceiling is recorded errored, the run ends needs-human, and a higher ceiling retries it
+  ---
+  duration_ms: 8483.536588
+  type: 'test'
+  ...
+# Subtest: a call whose first unit outlasts the budget still runs it to the ceiling, and units_done rises every exit-3 call
+ok 130 - a call whose first unit outlasts the budget still runs it to the ceiling, and units_done rises every exit-3 call
+  ---
+  duration_ms: 6381.259174
+  type: 'test'
+  ...
+# Subtest: a malformed or symlinked progress file is reported unreadable and never used
+ok 131 - a malformed or symlinked progress file is reported unreadable and never used
+  ---
+  duration_ms: 9284.335371
+  type: 'test'
+  ...
+# Subtest: a symlinked .faff/gates exits 2 progress-dir-unsafe and writes nothing through it
+ok 132 - a symlinked .faff/gates exits 2 progress-dir-unsafe and writes nothing through it
+  ---
+  duration_ms: 77.101804
+  type: 'test'
+  ...
+# Subtest: a tracked .faff/gates/.gitignore that does not ignore progress exits 2 and is left untouched
+ok 133 - a tracked .faff/gates/.gitignore that does not ignore progress exits 2 and is left untouched
+  ---
+  duration_ms: 52.848547
+  type: 'test'
+  ...
+# Subtest: progress redacts configured and secret-shaped values from a failing unit, stores no pass detail, and is ignored by git
+ok 134 - progress redacts configured and secret-shaped values from a failing unit, stores no pass detail, and is ignored by git
+  ---
+  duration_ms: 3098.120077
+  type: 'test'
+  ...
+# Subtest: --clear-progress deletes the progress, runs nothing, and refuses other flags
+ok 135 - --clear-progress deletes the progress, runs nothing, and refuses other flags
+  ---
+  duration_ms: 3202.854048
+  type: 'test'
+  ...
+# Subtest: --budget-secs accepts only an integer from 1 to 480, and an oversized config budget is clamped
+ok 136 - --budget-secs accepts only an integer from 1 to 480, and an oversized config budget is clamped
+  ---
+  duration_ms: 325.430023
+  type: 'test'
+  ...
+# Subtest: gates.run_budget_secs defaults to 420
+ok 137 - gates.run_budget_secs defaults to 420
+  ---
+  duration_ms: 34.804866
+  type: 'test'
+  ...
+# Subtest: either flag outside a git work tree exits 2
+ok 138 - either flag outside a git work tree exits 2
+  ---
+  duration_ms: 76.663679
+  type: 'test'
+  ...
+# Subtest: with neither flag, a run neither reads, writes nor deletes a progress file
+ok 139 - with neither flag, a run neither reads, writes nor deletes a progress file
+  ---
+  duration_ms: 97.046732
+  type: 'test'
+  ...
+# Subtest: a finished run that discarded progress reports resumed.discarded and one call
+ok 140 - a finished run that discarded progress reports resumed.discarded and one call
+  ---
+  duration_ms: 10285.059818
+  type: 'test'
+  ...
+# Subtest: units recorded in matching progress are not run again
+ok 141 - units recorded in matching progress are not run again
+  ---
+  duration_ms: 9256.824869
+  type: 'test'
+  ...
+# Subtest: a required rung that fails after a resume ends the ladder with exit 1 and deletes the progress
+ok 142 - a required rung that fails after a resume ends the ladder with exit 1 and deletes the progress
+  ---
+  duration_ms: 6251.84095
+  type: 'test'
+  ...
+# Subtest: editing an ignored pool test file between calls reports plan-changed
+ok 143 - editing an ignored pool test file between calls reports plan-changed
+  ---
+  duration_ms: 6201.018415
+  type: 'test'
+  ...
+# Subtest: progress is rewritten after each recorded unit, so a killed call keeps what it finished
+ok 144 - progress is rewritten after each recorded unit, so a killed call keeps what it finished
+  ---
+  duration_ms: 224.831011
+  type: 'test'
+  ...
+# Subtest: setup time before the first unit does not shorten that unit's ceiling
+ok 145 - setup time before the first unit does not shorten that unit's ceiling
+  ---
+  duration_ms: 6158.199695
+  type: 'test'
+  ...
+# Subtest: a shard killed by the per-rung timeout surfaces as an errored aggregate with reason timed-out — never pass, never fail
+ok 146 - a shard killed by the per-rung timeout surfaces as an errored aggregate with reason timed-out — never pass, never fail
+  ---
+  duration_ms: 870.937889
+  type: 'test'
+  ...
+# Subtest: a shard whose stdout exceeds the 64 MiB ceiling is killed (ENOBUFS) and the aggregate classifies errored with reason stdout-overflow
+ok 147 - a shard whose stdout exceeds the 64 MiB ceiling is killed (ENOBUFS) and the aggregate classifies errored with reason stdout-overflow
+  ---
+  duration_ms: 379.76465
+  type: 'test'
+  ...
+# Subtest: MAX_RUNG_STDOUT_BYTES stays the same finite ceiling used per-shard (never Infinity)
+ok 148 - MAX_RUNG_STDOUT_BYTES stays the same finite ceiling used per-shard (never Infinity)
+  ---
+  duration_ms: 0.118167
+  type: 'test'
+  ...
+# Subtest: gates.local_shards=1 (forced single-core simulation) runs the byte-identical single-process path — no --test-shard token reaches the child
+ok 149 - gates.local_shards=1 (forced single-core simulation) runs the byte-identical single-process path — no --test-shard token reaches the child
+  ---
+  duration_ms: 152.136027
+  type: 'test'
+  ...
+# Subtest: a command already carrying --test-shard is not re-sharded (defensive predicate) — runs the single path
+ok 150 - a command already carrying --test-shard is not re-sharded (defensive predicate) — runs the single path
+  ---
+  duration_ms: 26.736211
+  type: 'test'
+  ...
+# Subtest: a non-shard-capable rung (lint) is completely unaffected by gates.local_shards
+ok 151 - a non-shard-capable rung (lint) is completely unaffected by gates.local_shards
+  ---
+  duration_ms: 2.245372
+  type: 'test'
+  ...
+# Subtest: the tree fingerprint sees edits, new files, deletions and modes, but not .faff/
+ok 152 - the tree fingerprint sees edits, new files, deletions and modes, but not .faff/
+  ---
+  duration_ms: 30.090706
+  type: 'test'
+  ...
+# Subtest: computing the tree fingerprint writes neither the index nor any object
+ok 153 - computing the tree fingerprint writes neither the index nor any object
+  ---
+  duration_ms: 13.58798
+  type: 'test'
+  ...
+# Subtest: the plan fingerprint ignores the budget but sees rungs, units and other config
+ok 154 - the plan fingerprint ignores the budget but sees rungs, units and other config
+  ---
+  duration_ms: 0.250416
+  type: 'test'
+  ...
+# Subtest: progress round-trips, judges tree, plan and age, and is written 0600 by rename
+ok 155 - progress round-trips, judges tree, plan and age, and is written 0600 by rename
+  ---
+  duration_ms: 11.11715
+  type: 'test'
+  ...
+# Subtest: a detail that starts part-way through its output drops the leading fragment before redaction
+ok 156 - a detail that starts part-way through its output drops the leading fragment before redaction
+  ---
+  duration_ms: 0.240083
+  type: 'test'
+  ...
+# Subtest: the grace is the smaller of 60 seconds and the budget
+ok 157 - the grace is the smaller of 60 seconds and the budget
+  ---
+  duration_ms: 0.064125
+  type: 'test'
+  ...
+# Subtest: clearing progress in a directory it cannot list is a progress-clear-failed error, not a silent success
+ok 158 - clearing progress in a directory it cannot list is a progress-clear-failed error, not a silent success
+  ---
+  duration_ms: 6.899281
+  type: 'test'
+  ...
+# Subtest: CLI: --local on a clean no-remote repo → exit 0, merge-ok, base ref advances, merge-record.json on disk
+ok 159 - CLI: --local on a clean no-remote repo → exit 0, merge-ok, base ref advances, merge-record.json on disk
+  ---
+  duration_ms: 151.083111
+  type: 'test'
+  ...
+# Subtest: CLI: --local via --check-only never lands the merge (base ref unchanged)
+ok 160 - CLI: --local via --check-only never lands the merge (base ref unchanged)
+  ---
+  duration_ms: 137.964547
+  type: 'test'
+  ...
+# Subtest: CLI: --local on a repo WITH a remote → exit 2 (bypass-guard), base ref unchanged, no merge-record.json
+ok 161 - CLI: --local on a repo WITH a remote → exit 2 (bypass-guard), base ref unchanged, no merge-record.json
+  ---
+  duration_ms: 65.075154
+  type: 'test'
+  ...
+# Subtest: CLI: --local with a failing declared gate → exit 1 refuse, ci_state ci-red, nothing merged
+ok 162 - CLI: --local with a failing declared gate → exit 1 refuse, ci_state ci-red, nothing merged
+  ---
+  duration_ms: 148.420824
+  type: 'test'
+  ...
+# Subtest: CLI: --local with no declared gates (discovery:none) → exit 1 refuse, ci_state no-ci-coverage (fail-closed default)
+ok 163 - CLI: --local with no declared gates (discovery:none) → exit 1 refuse, ci_state no-ci-coverage (fail-closed default)
+  ---
+  duration_ms: 77.033928
+  type: 'test'
+  ...
+# Subtest: CLI: --local with AC not verified → exit 1 refuse, base ref unchanged
+ok 164 - CLI: --local with AC not verified → exit 1 refuse, base ref unchanged
+  ---
+  duration_ms: 138.292922
+  type: 'test'
+  ...
+# Subtest: CLI: --local with a non-pass review verdict → exit 1 refuse
+ok 165 - CLI: --local with a non-pass review verdict → exit 1 refuse
+  ---
+  duration_ms: 172.280206
+  type: 'test'
+  ...
+# Subtest: CLI: --local twice on an already-merged branch is idempotent (second call exit 0, no double-merge)
+ok 166 - CLI: --local twice on an already-merged branch is idempotent (second call exit 0, no double-merge)
+  ---
+  duration_ms: 241.69702
+  type: 'test'
+  ...
+# Subtest: FAFF-690: --local with NO committed anchor on the branch → exit 2 anchor-missing, base ref unchanged (git-show local-only, no fallback)
+ok 167 - FAFF-690: --local with NO committed anchor on the branch → exit 2 anchor-missing, base ref unchanged (git-show local-only, no fallback)
+  ---
+  duration_ms: 69.028399
+  type: 'test'
+  ...
+# Subtest: FAFF-690: --local with a committed anchor carrying no usable level → exit 2 anchor-malformed
+ok 168 - FAFF-690: --local with a committed anchor carrying no usable level → exit 2 anchor-malformed
+  ---
+  duration_ms: 72.484268
+  type: 'test'
+  ...
+# Subtest: CLI: --local requires --issue and --run-dir (usage exit 2)
+ok 169 - CLI: --local requires --issue and --run-dir (usage exit 2)
+  ---
+  duration_ms: 57.087708
+  type: 'test'
+  ...
+# Subtest: FAFF-1013: --local with neither --execute nor --check-only → exit 2 naming the fix (the guard precedes the --local dispatch)
+ok 170 - FAFF-1013: --local with neither --execute nor --check-only → exit 2 naming the fix (the guard precedes the --local dispatch)
+  ---
+  duration_ms: 73.254517
+  type: 'test'
+  ...
+# Subtest: CLI: --local ignores/does not require --pr (no PR flag passed, still dispatches to the local branch)
+ok 171 - CLI: --local ignores/does not require --pr (no PR flag passed, still dispatches to the local branch)
+  ---
+  duration_ms: 145.06562
+  type: 'test'
+  ...
+# Subtest: baseCheckedOutWorktree: base checked out nowhere → null (Case A)
+ok 172 - baseCheckedOutWorktree: base checked out nowhere → null (Case A)
+  ---
+  duration_ms: 0.087458
+  type: 'test'
+  ...
+# Subtest: baseCheckedOutWorktree: base checked out in exactly one peer → returns that entry (Case B)
+ok 173 - baseCheckedOutWorktree: base checked out in exactly one peer → returns that entry (Case B)
+  ---
+  duration_ms: 0.225791
+  type: 'test'
+  ...
+# Subtest: baseCheckedOutWorktree: base checked out in >1 worktree → { anomaly: true }
+ok 174 - baseCheckedOutWorktree: base checked out in >1 worktree → { anomaly: true }
+  ---
+  duration_ms: 0.230416
+  type: 'test'
+  ...
+# Subtest: CLI: --local invoked FROM the base worktree itself (via --branch override) → the invoking cwd is never treated as its own peer
+ok 175 - CLI: --local invoked FROM the base worktree itself (via --branch override) → the invoking cwd is never treated as its own peer
+  ---
+  duration_ms: 145.825911
+  type: 'test'
+  ...
+# Subtest: CLI: --local when base is checked out in a CLEAN peer worktree → lands via merge --ff-only, peer index stays clean
+ok 176 - CLI: --local when base is checked out in a CLEAN peer worktree → lands via merge --ff-only, peer index stays clean
+  ---
+  duration_ms: 159.502974
+  type: 'test'
+  ...
+# Subtest: CLI: --local single-worktree regression — base checked out nowhere else still lands via update-ref (byte-for-byte unchanged)
+ok 177 - CLI: --local single-worktree regression — base checked out nowhere else still lands via update-ref (byte-for-byte unchanged)
+  ---
+  duration_ms: 168.407544
+  type: 'test'
+  ...
+# Subtest: CLI: --local when base is checked out in MORE THAN ONE peer worktree → refuses (exit 1) with a naming blocker
+ok 178 - CLI: --local when base is checked out in MORE THAN ONE peer worktree → refuses (exit 1) with a naming blocker
+  ---
+  duration_ms: 159.500682
+  type: 'test'
+  ...
+# Subtest: CLI: --local when base is checked out in a DIRTY peer worktree → refuses (exit 1), neither base ref nor peer worktree modified
+ok 179 - CLI: --local when base is checked out in a DIRTY peer worktree → refuses (exit 1), neither base ref nor peer worktree modified
+  ---
+  duration_ms: 142.851832
+  type: 'test'
+  ...
+# Subtest: CLI: merge-fence --hook denies a raw `git merge <feature>` while sitting on the base branch of a no-remote repo
+ok 180 - CLI: merge-fence --hook denies a raw `git merge <feature>` while sitting on the base branch of a no-remote repo
+  ---
+  duration_ms: 65.388862
+  type: 'test'
+  ...
+# Subtest: CLI: merge-fence --hook ALLOWS `git merge <base>` run from a feature branch (base-branch consumption)
+ok 181 - CLI: merge-fence --hook ALLOWS `git merge <base>` run from a feature branch (base-branch consumption)
+  ---
+  duration_ms: 66.029778
+  type: 'test'
+  ...
+# Subtest: CLI: merge-fence --hook is a no-op on a repo WITH a remote (matcher dormant)
+ok 182 - CLI: merge-fence --hook is a no-op on a repo WITH a remote (matcher dormant)
+  ---
+  duration_ms: 66.279944
+  type: 'test'
+  ...
+# Subtest: CLI: --local, dispatched (lane-boundary.json under the run-dir) + custody OMITTED → exit 1 refuse, base ref unchanged, no merge-record.json
+ok 183 - CLI: --local, dispatched (lane-boundary.json under the run-dir) + custody OMITTED → exit 1 refuse, base ref unchanged, no merge-record.json
+  ---
+  duration_ms: 69.91198
+  type: 'test'
+  ...
+# Subtest: CLI: --local, dispatched + a VALID exact clean custody verdict → custody passes, lands exactly as the non-dispatched case
+ok 184 - CLI: --local, dispatched + a VALID exact clean custody verdict → custody passes, lands exactly as the non-dispatched case
+  ---
+  duration_ms: 139.596503
+  type: 'test'
+  ...
+# Subtest: CLI: --local, dispatched + retained digest MISMATCH (verdict replaced after recording) → exit 1 refuse, base ref unchanged
+ok 185 - CLI: --local, dispatched + retained digest MISMATCH (verdict replaced after recording) → exit 1 refuse, base ref unchanged
+  ---
+  duration_ms: 71.591645
+  type: 'test'
+  ...
+# Subtest: CLI: --local, an INDETERMINATE (malformed) lane-boundary.json refuses unconditionally, even with a valid custody verdict passed
+ok 186 - CLI: --local, an INDETERMINATE (malformed) lane-boundary.json refuses unconditionally, even with a valid custody verdict passed
+  ---
+  duration_ms: 70.106564
+  type: 'test'
+  ...
+# Subtest: CLI: --local, NO lane-boundary.json (interactive / no-dispatch-cut) → existing behaviour unchanged, custody never consulted
+ok 187 - CLI: --local, NO lane-boundary.json (interactive / no-dispatch-cut) → existing behaviour unchanged, custody never consulted
+  ---
+  duration_ms: 142.316458
+  type: 'test'
+  ...
+# Subtest: CLI: --local, an already-merged branch + custody OMITTED on a dispatched run → merged:true, refuse (never an unqualified merge-ok)
+ok 188 - CLI: --local, an already-merged branch + custody OMITTED on a dispatched run → merged:true, refuse (never an unqualified merge-ok)
+  ---
+  duration_ms: 190.56972
+  type: 'test'
+  ...
+# Subtest: FAFF-784: raw `git merge` is still denied by merge-fence on a repo carrying a dispatched (lane-boundary.json) run whose custody has not been recorded
+ok 189 - FAFF-784: raw `git merge` is still denied by merge-fence on a repo carrying a dispatched (lane-boundary.json) run whose custody has not been recorded
+  ---
+  duration_ms: 62.539867
+  type: 'test'
+  ...
+# Subtest: FAFF-892: L4 --local, honest-absence + clean per-issue custody verdict → integrity GRANTS (custody-trusted), merge-ok
+ok 190 - FAFF-892: L4 --local, honest-absence + clean per-issue custody verdict → integrity GRANTS (custody-trusted), merge-ok
+  ---
+  duration_ms: 142.411624
+  type: 'test'
+  ...
+# Subtest: FAFF-892: L4 --local, honest-absence + NO custody verdict → integrity refuses (unasserted-refuse), unchanged
+ok 191 - FAFF-892: L4 --local, honest-absence + NO custody verdict → integrity refuses (unasserted-refuse), unchanged
+  ---
+  duration_ms: 146.59966
+  type: 'test'
+  ...
+# Subtest: FAFF-892: L4 --local, custody verdict bytes altered after recording (sha mismatch) → integrity refuses, never grants
+ok 192 - FAFF-892: L4 --local, custody verdict bytes altered after recording (sha mismatch) → integrity refuses, never grants
+  ---
+  duration_ms: 134.062928
+  type: 'test'
+  ...
+# Subtest: record-outcome --run-dir targets the NAMED (older) run, leaving a newer run dir untouched
+ok 193 - record-outcome --run-dir targets the NAMED (older) run, leaving a newer run dir untouched
+  ---
+  duration_ms: 36.643696
+  type: 'test'
+  ...
+# Subtest: record-outcome refuses an outcome for an issue not in the resolved ledger's admitted[] (byte-unchanged)
+ok 194 - record-outcome refuses an outcome for an issue not in the resolved ledger's admitted[] (byte-unchanged)
+  ---
+  duration_ms: 28.416459
+  type: 'test'
+  ...
+# Subtest: runcheck --selftest passes (the shipped gate table)
+ok 195 - runcheck --selftest passes (the shipped gate table)
+  ---
+  duration_ms: 23.291716
+  type: 'test'
+  ...
+# Subtest: --hook stays SILENT for a foreign run a live owner is holding (the fix)
+ok 196 - --hook stays SILENT for a foreign run a live owner is holding (the fix)
+  ---
+  duration_ms: 20.346095
+  type: 'test'
+  ...
+# Subtest: FAFF-235: --hook WARNS (never blocks) an unrelated session about a foreign abandoned run
+ok 197 - FAFF-235: --hook WARNS (never blocks) an unrelated session about a foreign abandoned run
+  ---
+  duration_ms: 21.815177
+  type: 'test'
+  ...
+# Subtest: FAFF-235: --hook --recover hard-blocks the foreign abandoned run (deliberate human recovery)
+ok 198 - FAFF-235: --hook --recover hard-blocks the foreign abandoned run (deliberate human recovery)
+  ---
+  duration_ms: 20.606803
+  type: 'test'
+  ...
+# Subtest: --hook BLOCKS the OWNING session's own in-flight run (backstop preserved)
+ok 199 - --hook BLOCKS the OWNING session's own in-flight run (backstop preserved)
+  ---
+  duration_ms: 20.52047
+  type: 'test'
+  ...
+# Subtest: FAFF-1045: --hook BLOCKS the owning session on an admitted id colliding with Object.prototype (own-key test, not `in`)
+ok 200 - FAFF-1045: --hook BLOCKS the owning session on an admitted id colliding with Object.prototype (own-key test, not `in`)
+  ---
+  duration_ms: 19.640929
+  type: 'test'
+  ...
+# Subtest: --hook BLOCKS the owning session via the session_id fallback (env-pointer absent)
+ok 201 - --hook BLOCKS the owning session via the session_id fallback (env-pointer absent)
+  ---
+  duration_ms: 20.748052
+  type: 'test'
+  ...
+# Subtest: FAFF-235: --hook WARNS (never blocks) a legacy ledger (no owner) in a foreign session
+ok 202 - FAFF-235: --hook WARNS (never blocks) a legacy ledger (no owner) in a foreign session
+  ---
+  duration_ms: 18.877181
+  type: 'test'
+  ...
+# Subtest: --hook BLOCKS a legacy ledger under --recover (owner-less run is still recoverable)
+ok 203 - --hook BLOCKS a legacy ledger under --recover (owner-less run is still recoverable)
+  ---
+  duration_ms: 21.37026
+  type: 'test'
+  ...
+# Subtest: --hook is SILENT for a held foreign run with a clean (fully-dispatched) queue
+ok 204 - --hook is SILENT for a held foreign run with a clean (fully-dispatched) queue
+  ---
+  duration_ms: 20.566845
+  type: 'test'
+  ...
+# Subtest: FAFF_RUN_HEARTBEAT_STALE_SECS shrinks the held window → a once-held foreign run WARNS (FAFF-235)
+ok 205 - FAFF_RUN_HEARTBEAT_STALE_SECS shrinks the held window → a once-held foreign run WARNS (FAFF-235)
+  ---
+  duration_ms: 22.184842
+  type: 'test'
+  ...
+# Subtest: FAFF-233: --hook stays SILENT for a foreign run with a fresh heartbeat but a DEAD recorded pid (pid not consulted)
+ok 206 - FAFF-233: --hook stays SILENT for a foreign run with a fresh heartbeat but a DEAD recorded pid (pid not consulted)
+  ---
+  duration_ms: 18.410098
+  type: 'test'
+  ...
+# Subtest: FAFF-690: --hook BLOCKS the OWNING session on an UNPARSEABLE owned ledger (env-pointer match, fail-closed)
+ok 207 - FAFF-690: --hook BLOCKS the OWNING session on an UNPARSEABLE owned ledger (env-pointer match, fail-closed)
+  ---
+  duration_ms: 19.805096
+  type: 'test'
+  ...
+# Subtest: FAFF-690: --hook stays SILENT on an UNPARSEABLE FOREIGN ledger (no env-pointer → foreign safety untouched)
+ok 208 - FAFF-690: --hook stays SILENT on an UNPARSEABLE FOREIGN ledger (no env-pointer → foreign safety untouched)
+  ---
+  duration_ms: 18.984097
+  type: 'test'
+  ...
+# Subtest: the non-hook human report is unchanged by the gate (still exits 3, names the issue)
+ok 209 - the non-hook human report is unchanged by the gate (still exits 3, names the issue)
+  ---
+  duration_ms: 19.564429
+  type: 'test'
+  ...
+# Subtest: FAFF-554: an object-valued outcome is INVALID, names outcome_details (not [object Object]), and exits 2
+ok 210 - FAFF-554: an object-valued outcome is INVALID, names outcome_details (not [object Object]), and exits 2
+  ---
+  duration_ms: 20.023804
+  type: 'test'
+  ...
+# Subtest: FAFF-554: an unknown-vocabulary STRING outcome stays byte-unchanged — invalid `<issue>=<value>`, exit 2
+ok 211 - FAFF-554: an unknown-vocabulary STRING outcome stays byte-unchanged — invalid `<issue>=<value>`, exit 2
+  ---
+  duration_ms: 20.627303
+  type: 'test'
+  ...
+# Subtest: FAFF-554: valid string outcomes + a populated outcome_details sidecar is clean (exit 0) — sidecar is inert
+ok 212 - FAFF-554: valid string outcomes + a populated outcome_details sidecar is clean (exit 0) — sidecar is inert
+  ---
+  duration_ms: 19.959638
+  type: 'test'
+  ...
+# Subtest: FAFF-578: a dangling symlink among the run dirs is skipped — the valid dir still resolves, nothing throws
+ok 213 - FAFF-578: a dangling symlink among the run dirs is skipped — the valid dir still resolves, nothing throws
+  ---
+  duration_ms: 18.91368
+  type: 'test'
+  ...
+# Subtest: FAFF-578: a runs dir whose ONLY entry is a dangling symlink → hook exits 0, fully silent
+ok 214 - FAFF-578: a runs dir whose ONLY entry is a dangling symlink → hook exits 0, fully silent
+  ---
+  duration_ms: 20.318387
+  type: 'test'
+  ...
+# Subtest: FAFF-578: .faff/runs is a FILE (readdirSync ENOTDIR) → hook exits 0, fully silent
+ok 215 - FAFF-578: .faff/runs is a FILE (readdirSync ENOTDIR) → hook exits 0, fully silent
+  ---
+  duration_ms: 20.199554
+  type: 'test'
+  ...
+# Subtest: FAFF-578: a forced resolution throw → hook exits 0 silent; non-hook exits 2 naming the failure
+ok 216 - FAFF-578: a forced resolution throw → hook exits 0 silent; non-hook exits 2 naming the failure
+  ---
+  duration_ms: 37.448945
+  type: 'test'
+  ...
+1..216
+# tests 320
+# suites 16
+# pass 320
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 130086.844514

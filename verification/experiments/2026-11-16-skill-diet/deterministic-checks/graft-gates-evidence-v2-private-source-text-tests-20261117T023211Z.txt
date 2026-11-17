@@ -1,0 +1,52 @@
+TAP version 13
+# Subtest: regression fixture: restating all five spec-review verdicts in one sentence fires the lint
+ok 1 - regression fixture: restating all five spec-review verdicts in one sentence fires the lint
+  ---
+  duration_ms: 150.203326
+  type: 'test'
+  ...
+# Subtest: a four-of-five partial restatement (missing `unavailable`) never fires (not the full current set)
+ok 2 - a four-of-five partial restatement (missing `unavailable`) never fires (not the full current set)
+  ---
+  duration_ms: 142.692161
+  type: 'test'
+  ...
+# Subtest: a single verdict mention never fires (no full-set restatement)
+ok 3 - a single verdict mention never fires (no full-set restatement)
+  ---
+  duration_ms: 131.745248
+  type: 'test'
+  ...
+# Subtest: a two-value set below the >=3 floor never fires
+ok 4 - a two-value set below the >=3 floor never fires
+  ---
+  duration_ms: 121.966585
+  type: 'test'
+  ...
+# Subtest: the spec-readiness marker dialect is exempt (lintable:false — producers legitimately restate it)
+ok 5 - the spec-readiness marker dialect is exempt (lintable:false — producers legitimately restate it)
+  ---
+  duration_ms: 119.927419
+  type: 'test'
+  ...
+# Subtest: identical enum sets shared across contracts dedupe to one reported owner
+ok 6 - identical enum sets shared across contracts dedupe to one reported owner
+  ---
+  duration_ms: 111.438797
+  type: 'test'
+  ...
+# Subtest: the shipped tree stays clean (no reintroduced restatement)
+ok 7 - the shipped tree stays clean (no reintroduced restatement)
+  ---
+  duration_ms: 631.854125
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1447.444563

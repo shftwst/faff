@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "status": "registered-before-model-launch",
+  "plans": [
+    {
+      "path": "beep-ledger-mcp-v1-baseline-plan.json",
+      "sha256": "2d9cddcf88d0676ce737de6a94c93024e78c461680369634005925fc5603b85b"
+    },
+    {
+      "path": "beep-ledger-mcp-v1-candidate-plan.json",
+      "sha256": "686211b7cae0a069117b5029cffc54ef76fb686c51d597034f195ba045b274d6"
+    }
+  ],
+  "accepted_reporting_source_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+  "baseline_source_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+  "candidate_source_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+  "acceptance": "Five original baseline samples must pass all3executioncases/11decisions, exact native replay, actual consumer checks and independent actual-output review before any candidate launch. Then require the same five candidate samples. Any failure stops; preserve it, no replacement or post-hoc assessment. Rebased private integration and main installed-source lint/inventory remain required.",
+  "manual_criteria": [
+    "Read actual ledger patches and persisted ledgers against every supplied observation; check ownership, completeness and distinct annotations.",
+    "Read real runcheck and summary results; retain OPEN-1 incompleteness and no final summary for that case.",
+    "Read all caller event payloads and persisted lines, meaningful boundaries, token flags/deltas/fallback and exact supplied gate/rework/budget/sentry data.",
+    "Check raw source/native/runtime/fixture bindings and all eleven decision values.",
+    "Clock lines must match captured owner/heartbeat/events. Only exact contiguous issue rows within unchanged sections may reorder; no facts or section-order waiver."
+  ],
+  "candidate_launch_requires": "Recorded complete5baseline native/semantic/manual/consumer gate; generic runner does not enforce this external prerequisite.",
+  "deterministic_preflight_note": "Full-policy in-process MCP bridge preflight used the original Reporting baseline policy for port/consumer feasibility. The new model policies are exact rebased ledgerV2 full policies bound here. No model samples or cross-treatment pooling in the preflight.",
+  "model_calls_launched": 0,
+  "limits": [
+    "No model run-open/close, governance, actual review/landing/filing, hosted publication or complete unattended-loop proof.",
+    "Source preserves inherited schema1/four-token-class prose while real CLI owns schema2/split-cache token output.",
+    "Controlled summary external inputs and transcript counts, not actual provider billing or architectural-quality proof."
+  ]
+}

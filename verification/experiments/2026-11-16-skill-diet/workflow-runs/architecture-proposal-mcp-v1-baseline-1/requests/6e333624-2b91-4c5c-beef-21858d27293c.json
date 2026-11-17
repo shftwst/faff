@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"profile-read","value":{"command":"faff profile show --json"}}}

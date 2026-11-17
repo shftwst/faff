@@ -1,0 +1,989 @@
+TAP version 13
+# Subtest: structured bridge joins repeated calls to distinct mailbox files and preserves domain exit2
+ok 1 - structured bridge joins repeated calls to distinct mailbox files and preserves domain exit2
+  ---
+  duration_ms: 177.590576
+  type: 'test'
+  ...
+# Subtest: structured bridge preserves rejected calls and rejects duplicate IDs and unknown tools
+ok 2 - structured bridge preserves rejected calls and rejects duplicate IDs and unknown tools
+  ---
+  duration_ms: 108.704477
+  type: 'test'
+  ...
+# Subtest: structured bridge records a real mailbox timeout and refuses restart over trace
+ok 3 - structured bridge records a real mailbox timeout and refuses restart over trace
+  ---
+  duration_ms: 53.363948
+  type: 'test'
+  ...
+# Subtest: MCP stdio framing exposes exactly the task ports and returns the mailbox result
+ok 4 - MCP stdio framing exposes exactly the task ports and returns the mailbox result
+  ---
+  duration_ms: 53.161073
+  type: 'test'
+  ...
+# Subtest: structured hashes retain fractional values and ignore only object key order
+ok 5 - structured hashes retain fractional values and ignore only object key order
+  ---
+  duration_ms: 0.518999
+  type: 'test'
+  ...
+# Subtest: concurrent bridge calls are serialized and retain their own mailbox attribution
+ok 6 - concurrent bridge calls are serialized and retain their own mailbox attribution
+  ---
+  duration_ms: 156.571513
+  type: 'test'
+  ...
+# Subtest: invalid RPC ids and arguments are recorded without creating mailbox requests
+ok 7 - invalid RPC ids and arguments are recorded without creating mailbox requests
+  ---
+  duration_ms: 2.069873
+  type: 'test'
+  ...
+# Subtest: request mutation during handling cannot be attributed as an unchanged call
+ok 8 - request mutation during handling cannot be attributed as an unchanged call
+  ---
+  duration_ms: 102.640275
+  type: 'test'
+  ...
+# Subtest: an injected additional mailbox request fails unique attribution
+ok 9 - an injected additional mailbox request fails unique attribution
+  ---
+  duration_ms: 104.232314
+  type: 'test'
+  ...
+# Subtest: protocol rejects malformed frames, pre-init calls, invalid ids and duplicate ids with evidence
+ok 10 - protocol rejects malformed frames, pre-init calls, invalid ids and duplicate ids with evidence
+  ---
+  duration_ms: 2.497914
+  type: 'test'
+  ...
+# Subtest: explicit null arguments are rejected while omitted finish arguments retain the empty object default
+ok 11 - explicit null arguments are rejected while omitted finish arguments retain the empty object default
+  ---
+  duration_ms: 52.490157
+  type: 'test'
+  ...
+# Subtest: mailbox directory loss is retained as a failed call and restart preserves original evidence
+ok 12 - mailbox directory loss is retained as a failed call and restart preserves original evidence
+  ---
+  duration_ms: 1.072707
+  type: 'test'
+  ...
+# Subtest: native MCP audit preserves repeated identical calls, exact Unicode policy and fractional domain failure
+ok 13 - native MCP audit preserves repeated identical calls, exact Unicode policy and fractional domain failure
+  ---
+  duration_ms: 9.723824
+  type: 'test'
+  ...
+# Subtest: MCP wrapper parser permits a single literal call and rejects added JavaScript or dynamic values
+ok 14 - MCP wrapper parser permits a single literal call and rejects added JavaScript or dynamic values
+  ---
+  duration_ms: 0.262333
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects changed tool declaration
+ok 15 - native MCP audit rejects changed tool declaration
+  ---
+  duration_ms: 3.287246
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects late tool declaration
+ok 16 - native MCP audit rejects late tool declaration
+  ---
+  duration_ms: 2.208831
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing tool declaration
+ok 17 - native MCP audit rejects missing tool declaration
+  ---
+  duration_ms: 1.721665
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects empty native call id
+ok 18 - native MCP audit rejects empty native call id
+  ---
+  duration_ms: 0.972499
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects startup instruction injection
+ok 19 - native MCP audit rejects startup instruction injection
+  ---
+  duration_ms: 0.900957
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing explicit capture errors
+ok 20 - native MCP audit rejects missing explicit capture errors
+  ---
+  duration_ms: 0.820166
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects extra task instructions
+ok 21 - native MCP audit rejects extra task instructions
+  ---
+  duration_ms: 4.299329
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects extra steering user message
+ok 22 - native MCP audit rejects extra steering user message
+  ---
+  duration_ms: 1.211874
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects premature worker completion
+ok 23 - native MCP audit rejects premature worker completion
+  ---
+  duration_ms: 1.57954
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects unrecognised native tool variant
+ok 24 - native MCP audit rejects unrecognised native tool variant
+  ---
+  duration_ms: 0.865083
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing model metadata
+ok 25 - native MCP audit rejects missing model metadata
+  ---
+  duration_ms: 0.837458
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects omitted native call
+ok 26 - native MCP audit rejects omitted native call
+  ---
+  duration_ms: 0.87104
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects duplicate native id
+ok 27 - native MCP audit rejects duplicate native id
+  ---
+  duration_ms: 0.893333
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects omitted native result
+ok 28 - native MCP audit rejects omitted native result
+  ---
+  duration_ms: 0.824041
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects duplicate native result
+ok 29 - native MCP audit rejects duplicate native result
+  ---
+  duration_ms: 4.986536
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects swapped native results
+ok 30 - native MCP audit rejects swapped native results
+  ---
+  duration_ms: 3.50808
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects collapsed identical calls
+ok 31 - native MCP audit rejects collapsed identical calls
+  ---
+  duration_ms: 1.789082
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing mailbox request
+ok 32 - native MCP audit rejects missing mailbox request
+  ---
+  duration_ms: 1.878665
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing mailbox response
+ok 33 - native MCP audit rejects missing mailbox response
+  ---
+  duration_ms: 0.762999
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects tampered request
+ok 34 - native MCP audit rejects tampered request
+  ---
+  duration_ms: 0.917125
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects tampered response
+ok 35 - native MCP audit rejects tampered response
+  ---
+  duration_ms: 0.872874
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects orphan mailbox file
+ok 36 - native MCP audit rejects orphan mailbox file
+  ---
+  duration_ms: 0.870874
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects trace result tamper
+ok 37 - native MCP audit rejects trace result tamper
+  ---
+  duration_ms: 0.880833
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects trace tool tamper
+ok 38 - native MCP audit rejects trace tool tamper
+  ---
+  duration_ms: 0.877874
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects duplicate mailbox id
+ok 39 - native MCP audit rejects duplicate mailbox id
+  ---
+  duration_ms: 3.031539
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects duplicate RPC id
+ok 40 - native MCP audit rejects duplicate RPC id
+  ---
+  duration_ms: 0.822832
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects trace failure
+ok 41 - native MCP audit rejects trace failure
+  ---
+  duration_ms: 0.817624
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects protocol error
+ok 42 - native MCP audit rejects protocol error
+  ---
+  duration_ms: 0.828416
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects extra shell call
+ok 43 - native MCP audit rejects extra shell call
+  ---
+  duration_ms: 3.644996
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects truncated initial read
+ok 44 - native MCP audit rejects truncated initial read
+  ---
+  duration_ms: 5.46237
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects changed model
+ok 45 - native MCP audit rejects changed model
+  ---
+  duration_ms: 1.943165
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects changed effort
+ok 46 - native MCP audit rejects changed effort
+  ---
+  duration_ms: 2.648039
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects changed CLI
+ok 47 - native MCP audit rejects changed CLI
+  ---
+  duration_ms: 0.830582
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects wrong worker session
+ok 48 - native MCP audit rejects wrong worker session
+  ---
+  duration_ms: 2.096081
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects worker failure
+ok 49 - native MCP audit rejects worker failure
+  ---
+  duration_ms: 1.286915
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects missing completion
+ok 50 - native MCP audit rejects missing completion
+  ---
+  duration_ms: 0.874624
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects changed policy bytes
+ok 51 - native MCP audit rejects changed policy bytes
+  ---
+  duration_ms: 0.791791
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects wrong policy cursor
+ok 52 - native MCP audit rejects wrong policy cursor
+  ---
+  duration_ms: 0.794999
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects forged delivery complete
+ok 53 - native MCP audit rejects forged delivery complete
+  ---
+  duration_ms: 0.726707
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects capture omission
+ok 54 - native MCP audit rejects capture omission
+  ---
+  duration_ms: 0.742083
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects capture value tamper
+ok 55 - native MCP audit rejects capture value tamper
+  ---
+  duration_ms: 1.139999
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects server code differs
+ok 56 - native MCP audit rejects server code differs
+  ---
+  duration_ms: 0.748416
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects task tools differ
+ok 57 - native MCP audit rejects task tools differ
+  ---
+  duration_ms: 3.935788
+  type: 'test'
+  ...
+# Subtest: native MCP audit rejects reported rejection
+ok 58 - native MCP audit rejects reported rejection
+  ---
+  duration_ms: 0.770666
+  type: 'test'
+  ...
+# Subtest: draft assessment preserves all six canonical execution cases and raw grade
+ok 59 - draft assessment preserves all six canonical execution cases and raw grade
+  ---
+  duration_ms: 6.063828
+  type: 'test'
+  ...
+# Subtest: unpublished corrected draft is allowed on tracker, retaining its raw failure and overhead
+ok 60 - unpublished corrected draft is allowed on tracker, retaining its raw failure and overhead
+  ---
+  duration_ms: 1.831623
+  type: 'test'
+  ...
+# Subtest: unpublished corrected draft is allowed on conversation, retaining its raw failure and overhead
+ok 61 - unpublished corrected draft is allowed on conversation, retaining its raw failure and overhead
+  ---
+  duration_ms: 1.587082
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects unknown operation
+ok 62 - draft assessment rejects unknown operation
+  ---
+  duration_ms: 2.134373
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publish typo draft
+ok 63 - draft assessment rejects publish typo draft
+  ---
+  duration_ms: 1.559456
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publish both bad and corrected drafts
+ok 64 - draft assessment rejects publish both bad and corrected drafts
+  ---
+  duration_ms: 0.946291
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects cross-channel normalisation reference
+ok 65 - draft assessment rejects cross-channel normalisation reference
+  ---
+  duration_ms: 0.881541
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects cross-case normalisation reference
+ok 66 - draft assessment rejects cross-case normalisation reference
+  ---
+  duration_ms: 1.372832
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects nonexistent normalisation reference
+ok 67 - draft assessment rejects nonexistent normalisation reference
+  ---
+  duration_ms: 2.764289
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publication before normalisation
+ok 68 - draft assessment rejects publication before normalisation
+  ---
+  duration_ms: 2.783039
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects altered publication bytes
+ok 69 - draft assessment rejects altered publication bytes
+  ---
+  duration_ms: 2.433706
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects post-publication correction
+ok 70 - draft assessment rejects post-publication correction
+  ---
+  duration_ms: 2.400456
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects summary file changed
+ok 71 - draft assessment rejects summary file changed
+  ---
+  duration_ms: 2.773122
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects authority changed
+ok 72 - draft assessment rejects authority changed
+  ---
+  duration_ms: 2.587706
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects missing case
+ok 73 - draft assessment rejects missing case
+  ---
+  duration_ms: 1.294832
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects tool error
+ok 74 - draft assessment rejects tool error
+  ---
+  duration_ms: 0.858207
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects duplicate normalisation id
+ok 75 - draft assessment rejects duplicate normalisation id
+  ---
+  duration_ms: 1.124457
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects normalisation result differs from input
+ok 76 - draft assessment rejects normalisation result differs from input
+  ---
+  duration_ms: 1.082124
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publication not acknowledged
+ok 77 - draft assessment rejects publication not acknowledged
+  ---
+  duration_ms: 0.81075
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publication result channel differs
+ok 78 - draft assessment rejects publication result channel differs
+  ---
+  duration_ms: 1.317666
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects publication target differs
+ok 79 - draft assessment rejects publication target differs
+  ---
+  duration_ms: 1.132957
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects duplicate summary command
+ok 80 - draft assessment rejects duplicate summary command
+  ---
+  duration_ms: 0.811708
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects missing tracker economics
+ok 81 - draft assessment rejects missing tracker economics
+  ---
+  duration_ms: 0.814707
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects normalisation before canonical command
+ok 82 - draft assessment rejects normalisation before canonical command
+  ---
+  duration_ms: 2.270707
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects normalisation on continuation
+ok 83 - draft assessment rejects normalisation on continuation
+  ---
+  duration_ms: 2.161206
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects normalisation on unreadable ledger
+ok 84 - draft assessment rejects normalisation on unreadable ledger
+  ---
+  duration_ms: 0.824208
+  type: 'test'
+  ...
+# Subtest: draft assessment rejects unknown normalisation channel
+ok 85 - draft assessment rejects unknown normalisation channel
+  ---
+  duration_ms: 1.63929
+  type: 'test'
+  ...
+# Subtest: genuine recorded reporting provenance matches its frozen bindings
+ok 86 - genuine recorded reporting provenance matches its frozen bindings
+  ---
+  duration_ms: 1.504915
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects native evidence omission
+ok 87 - reporting gate rejects native evidence omission
+  ---
+  duration_ms: 2.221581
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects empty native evidence map
+ok 88 - reporting gate rejects empty native evidence map
+  ---
+  duration_ms: 0.908208
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects foreign native evidence entry
+ok 89 - reporting gate rejects foreign native evidence entry
+  ---
+  duration_ms: 0.664832
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects changed native auditor
+ok 90 - reporting gate rejects changed native auditor
+  ---
+  duration_ms: 1.212458
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects changed raw native capture
+ok 91 - reporting gate rejects changed raw native capture
+  ---
+  duration_ms: 1.248249
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects alternate runtime root
+ok 92 - reporting gate rejects alternate runtime root
+  ---
+  duration_ms: 1.527748
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects alternate runtime commit
+ok 93 - reporting gate rejects alternate runtime commit
+  ---
+  duration_ms: 2.155331
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects assessment evidence omission
+ok 94 - reporting gate rejects assessment evidence omission
+  ---
+  duration_ms: 0.730583
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects empty assessment evidence map
+ok 95 - reporting gate rejects empty assessment evidence map
+  ---
+  duration_ms: 1.033374
+  type: 'test'
+  ...
+# Subtest: reporting gate rejects changed assessment fixture
+ok 96 - reporting gate rejects changed assessment fixture
+  ---
+  duration_ms: 0.514083
+  type: 'test'
+  ...
+# Subtest: reporting boundary executes real persistence and rejects altered authority, publication and continuation
+    # Subtest: changed ledger state
+    ok 1 - changed ledger state
+      ---
+      duration_ms: 1.312416
+      type: 'test'
+      ...
+    # Subtest: fabricated facts economics
+    ok 2 - fabricated facts economics
+      ---
+      duration_ms: 0.358708
+      type: 'test'
+      ...
+    # Subtest: dropped follow-up
+    ok 3 - dropped follow-up
+      ---
+      duration_ms: 0.289625
+      type: 'test'
+      ...
+    # Subtest: rewritten persisted summary
+    ok 4 - rewritten persisted summary
+      ---
+      duration_ms: 0.321375
+      type: 'test'
+      ...
+    # Subtest: duplicate summary invocation
+    ok 5 - duplicate summary invocation
+      ---
+      duration_ms: 0.283833
+      type: 'test'
+      ...
+    # Subtest: wrong target
+    ok 6 - wrong target
+      ---
+      duration_ms: 0.270542
+      type: 'test'
+      ...
+    # Subtest: lost economics
+    ok 7 - lost economics
+      ---
+      duration_ms: 0.421875
+      type: 'test'
+      ...
+    # Subtest: lost health banner
+    ok 8 - lost health banner
+      ---
+      duration_ms: 1.139707
+      type: 'test'
+      ...
+    # Subtest: publish without normalisation
+    ok 9 - publish without normalisation
+      ---
+      duration_ms: 0.481917
+      type: 'test'
+      ...
+    # Subtest: capacity deferral
+    ok 10 - capacity deferral
+      ---
+      duration_ms: 0.388875
+      type: 'test'
+      ...
+    # Subtest: omitted ready issue
+    ok 11 - omitted ready issue
+      ---
+      duration_ms: 0.279958
+      type: 'test'
+      ...
+    # Subtest: publication after ledger fault
+    ok 12 - publication after ledger fault
+      ---
+      duration_ms: 0.585583
+      type: 'test'
+      ...
+    # Subtest: failed command missing result
+    ok 13 - failed command missing result
+      ---
+      duration_ms: 0.286708
+      type: 'test'
+      ...
+    1..13
+ok 97 - reporting boundary executes real persistence and rejects altered authority, publication and continuation
+  ---
+  duration_ms: 2835.430932
+  type: 'test'
+  ...
+# Subtest: optional empty facts do not hide unknown or command-owned data
+ok 98 - optional empty facts do not hide unknown or command-owned data
+  ---
+  duration_ms: 0.161125
+  type: 'test'
+  ...
+# Subtest: economics accepts equivalent numbers and preserves cost, token provenance and denominators
+ok 99 - economics accepts equivalent numbers and preserves cost, token provenance and denominators
+  ---
+  duration_ms: 0.247125
+  type: 'test'
+  ...
+# Subtest: Scenario 1 — terminal render present: default emits returns undefined
+ok 100 - Scenario 1 — terminal render present: default emits returns undefined
+  ---
+  duration_ms: 25.7741
+  type: 'test'
+  ...
+# Subtest: Scenario 2 — comment write preceded by a routing render returns undefined
+ok 101 - Scenario 2 — comment write preceded by a routing render returns undefined
+  ---
+  duration_ms: 23.930393
+  type: 'test'
+  ...
+# Subtest: Scenario 3 — un-normalised write (no render of the surface) throws
+ok 102 - Scenario 3 — un-normalised write (no render of the surface) throws
+  ---
+  duration_ms: 15.152152
+  type: 'test'
+  ...
+# Subtest: Scenario 4 — render exists but emits AFTER the write throws (ordering)
+ok 103 - Scenario 4 — render exists but emits AFTER the write throws (ordering)
+  ---
+  duration_ms: 17.837732
+  type: 'test'
+  ...
+# Subtest: Default emits with no terminal render throws (the missing-render guard)
+ok 104 - Default emits with no terminal render throws (the missing-render guard)
+  ---
+  duration_ms: 20.312813
+  type: 'test'
+  ...
+# Subtest: Strict binding — a render that routes a DIFFERENT op does not bind
+ok 105 - Strict binding — a render that routes a DIFFERENT op does not bind
+  ---
+  duration_ms: 12.837613
+  type: 'test'
+  ...
+# Subtest: Lenient binding — an untagged render (routes undefined) binds any same-surface emit
+ok 106 - Lenient binding — an untagged render (routes undefined) binds any same-surface emit
+  ---
+  duration_ms: 14.280944
+  type: 'test'
+  ...
+# Subtest: Issue selector — the emit is matched on op AND issue when issue is given
+ok 107 - Issue selector — the emit is matched on op AND issue when issue is given
+  ---
+  duration_ms: 15.831735
+  type: 'test'
+  ...
+# Subtest: Non-functional — reads the frozen record without mutating it
+ok 108 - Non-functional — reads the frozen record without mutating it
+  ---
+  duration_ms: 16.008401
+  type: 'test'
+  ...
+# Subtest: A non-empty surface is required (guards a malformed call)
+ok 109 - A non-empty surface is required (guards a malformed call)
+  ---
+  duration_ms: 14.056403
+  type: 'test'
+  ...
+# Subtest: scenario: no facts file — first line is the facts warning; awaiting landing renders, spec-review holds do not
+ok 110 - scenario: no facts file — first line is the facts warning; awaiting landing renders, spec-review holds do not
+  ---
+  duration_ms: 291.516089
+  type: 'test'
+  ...
+# Subtest: scenario: a shipped id flagged by both annotations renders only under post-merge flagged (the A9 tie-break)
+ok 111 - scenario: a shipped id flagged by both annotations renders only under post-merge flagged (the A9 tie-break)
+  ---
+  duration_ms: 151.421727
+  type: 'test'
+  ...
+# Subtest: scenario: superseded cites the delivering ids
+ok 112 - scenario: superseded cites the delivering ids
+  ---
+  duration_ms: 154.957765
+  type: 'test'
+  ...
+# Subtest: scenario: an L4 phantom merge escalates
+ok 113 - scenario: an L4 phantom merge escalates
+  ---
+  duration_ms: 134.24791
+  type: 'test'
+  ...
+# Subtest: scenario: hostile title and park record create no banned heading
+ok 114 - scenario: hostile title and park record create no banned heading
+  ---
+  duration_ms: 130.79883
+  type: 'test'
+  ...
+# Subtest: A1: install-health warning first when doctor reports unclean; absent when clean; a throwing doctor renders its could-not-read line
+ok 115 - A1: install-health warning first when doctor reports unclean; absent when clean; a throwing doctor renders its could-not-read line
+  ---
+  duration_ms: 104.98923
+  type: 'test'
+  ...
+# Subtest: A2/A5: methodology line and findings only when configured
+ok 116 - A2/A5: methodology line and findings only when configured
+  ---
+  duration_ms: 99.831986
+  type: 'test'
+  ...
+# Subtest: A3: header — mode, duration, sentry count and max, waves, stop reason; unreadable events marked
+ok 117 - A3: header — mode, duration, sentry count and max, waves, stop reason; unreadable events marked
+  ---
+  duration_ms: 137.026158
+  type: 'test'
+  ...
+# Subtest: A4: economics renders its figures, ZERO-SHIP and warnings; a throwing function renders unavailable
+ok 118 - A4: economics renders its figures, ZERO-SHIP and warnings; a throwing function renders unavailable
+  ---
+  duration_ms: 130.206872
+  type: 'test'
+  ...
+# Subtest: A6/A7: verdict counts and routed-out classes
+ok 119 - A6/A7: verdict counts and routed-out classes
+  ---
+  duration_ms: 240.945222
+  type: 'test'
+  ...
+# Subtest: A8: resolve-attempts only when reported
+ok 120 - A8: resolve-attempts only when reported
+  ---
+  duration_ms: 103.088566
+  type: 'test'
+  ...
+# Subtest: A9/A10: adversarial-skipped and post-merge sections only when their arrays say so
+ok 121 - A9/A10: adversarial-skipped and post-merge sections only when their arrays say so
+  ---
+  duration_ms: 401.037691
+  type: 'test'
+  ...
+# Subtest: A11: superseded absent without a superseded outcome; a missing record is named
+ok 122 - A11: superseded absent without a superseded outcome; a missing record is named
+  ---
+  duration_ms: 236.857102
+  type: 'test'
+  ...
+# Subtest: A12: PR-open vs awaiting landing
+ok 123 - A12: PR-open vs awaiting landing
+  ---
+  duration_ms: 296.490835
+  type: 'test'
+  ...
+# Subtest: A13: the parks block is `[]` for zero parks and carries the records
+ok 124 - A13: the parks block is `[]` for zero parks and carries the records
+  ---
+  duration_ms: 229.039984
+  type: 'test'
+  ...
+# Subtest: A13: a park record holding a backtick run still round-trips through park-history
+ok 125 - A13: a park record holding a backtick run still round-trips through park-history
+  ---
+  duration_ms: 128.319208
+  type: 'test'
+  ...
+# Subtest: A14/A15: the outage and slow-fan-out holds render only when their arrays are non-empty
+ok 126 - A14/A15: the outage and slow-fan-out holds render only when their arrays are non-empty
+  ---
+  duration_ms: 219.227577
+  type: 'test'
+  ...
+# Subtest: A16: errored with its reported reason
+ok 127 - A16: errored with its reported reason
+  ---
+  duration_ms: 125.628752
+  type: 'test'
+  ...
+# Subtest: A17: unreached only on an unreached-budget outcome; tokens_source on a tokens breach; a throwing budget degrades
+ok 128 - A17: unreached only on an unreached-budget outcome; tokens_source on a tokens breach; a throwing budget degrades
+  ---
+  duration_ms: 222.526908
+  type: 'test'
+  ...
+# Subtest: A18: product-incomplete only when the holdout record exists; environment gaps apart from human-only; unknown codes named
+ok 129 - A18: product-incomplete only when the holdout record exists; environment gaps apart from human-only; unknown codes named
+  ---
+  duration_ms: 188.878774
+  type: 'test'
+  ...
+# Subtest: A19: ground-truth divergences render only when reconcile found one (or a read failed); warn at L3
+ok 130 - A19: ground-truth divergences render only when reconcile found one (or a read failed); warn at L3
+  ---
+  duration_ms: 121.176882
+  type: 'test'
+  ...
+# Subtest: A20/A21/A22: inferred deps, discovered scope and follow-ups only when present
+ok 131 - A20/A21/A22: inferred deps, discovered scope and follow-ups only when present
+  ---
+  duration_ms: 178.803366
+  type: 'test'
+  ...
+# Subtest: A23: prep summary and tidy only in full mode
+ok 132 - A23: prep summary and tidy only in full mode
+  ---
+  duration_ms: 178.474033
+  type: 'test'
+  ...
+# Subtest: A24: no banned heading appears for any fixture in this file's shapes
+ok 133 - A24: no banned heading appears for any fixture in this file's shapes
+  ---
+  duration_ms: 149.522853
+  type: 'test'
+  ...
+# Subtest: facts problems: absent, invalid JSON, format missing, an unknown key — each exits 0 with its ⚠ line
+ok 134 - facts problems: absent, invalid JSON, format missing, an unknown key — each exits 0 with its ⚠ line
+  ---
+  duration_ms: 140.531946
+  type: 'test'
+  ...
+# Subtest: facts problems: a malformed facts file whose bytes include a heading yields one ⚠ line and no heading
+ok 135 - facts problems: a malformed facts file whose bytes include a heading yields one ⚠ line and no heading
+  ---
+  duration_ms: 90.072578
+  type: 'test'
+  ...
+# Subtest: ledger faults: missing admitted exits 2; a mistyped annotation array renders its could-not-read line
+ok 136 - ledger faults: missing admitted exits 2; a mistyped annotation array renders its could-not-read line
+  ---
+  duration_ms: 133.358619
+  type: 'test'
+  ...
+# Subtest: neutralisation: x\\n\#\# Deferred in every facts string field creates no heading
+ok 137 - neutralisation: x\\n\#\# Deferred in every facts string field creates no heading
+  ---
+  duration_ms: 210.025461
+  type: 'test'
+  ...
+# Subtest: labelling: facts-sourced lines end _(reported)_, the ⚠ facts diagnostics do not, disk-only lines do not
+ok 138 - labelling: facts-sourced lines end _(reported)_, the ⚠ facts diagnostics do not, disk-only lines do not
+  ---
+  duration_ms: 148.420938
+  type: 'test'
+  ...
+# Subtest: determinism: two renders at different clocks and ambient session ids, same forge responses, are byte-identical
+ok 139 - determinism: two renders at different clocks and ambient session ids, same forge responses, are byte-identical
+  ---
+  duration_ms: 178.48095
+  type: 'test'
+  ...
+# Subtest: reconcile in-process: a phantom merge, and the result deep-equals `faff reconcile --json` on the same input
+ok 140 - reconcile in-process: a phantom merge, and the result deep-equals `faff reconcile --json` on the same input
+  ---
+  duration_ms: 133.841119
+  type: 'test'
+  ...
+# Subtest: forge failure: a failing gh renders could-not-read-forge lines and the render still exits 0
+ok 141 - forge failure: a failing gh renders could-not-read-forge lines and the render still exits 0
+  ---
+  duration_ms: 146.071232
+  type: 'test'
+  ...
+# Subtest: no tracker facts: superseded and siblings with a readable baseline fabricate no divergence and say the checks did not run
+ok 142 - no tracker facts: superseded and siblings with a readable baseline fabricate no divergence and say the checks did not run
+  ---
+  duration_ms: 117.035552
+  type: 'test'
+  ...
+# Subtest: missing baseline: no sibling-baseline.json renders exactly one sibling-check-unproven line
+ok 143 - missing baseline: no sibling-baseline.json renders exactly one sibling-check-unproven line
+  ---
+  duration_ms: 123.004088
+  type: 'test'
+  ...
+# Subtest: PR lookup order: merge-record wins over landing-loop, which wins over the forge; a forge hit on another branch is ignored
+ok 144 - PR lookup order: merge-record wins over landing-loop, which wins over the forge; a forge hit on another branch is ignored
+  ---
+  duration_ms: 183.829987
+  type: 'test'
+  ...
+# Subtest: doctor in-process: the real install-health path renders doctor's own RESULT text when unclean
+ok 145 - doctor in-process: the real install-health path renders doctor's own RESULT text when unclean
+  ---
+  duration_ms: 93.684075
+  type: 'test'
+  ...
+# Subtest: no faff subprocess: with every child_process spawn but gh made to throw, the CLI still renders economics and install health
+ok 146 - no faff subprocess: with every child_process spawn but gh made to throw, the CLI still renders economics and install health
+  ---
+  duration_ms: 166.364712
+  type: 'test'
+  ...
+# Subtest: an unwritable --out exits 2 with a cannot-write line
+ok 147 - an unwritable --out exits 2 with a cannot-write line
+  ---
+  duration_ms: 187.586941
+  type: 'test'
+  ...
+# Subtest: `faff run bogus` exits 2 with a usage line naming summary
+ok 148 - `faff run bogus` exits 2 with a usage line naming summary
+  ---
+  duration_ms: 44.034582
+  type: 'test'
+  ...
+# Subtest: synthetic reference fixture renders the committed golden (in-process, stubbed forge, clean doctor)
+ok 149 - synthetic reference fixture renders the committed golden (in-process, stubbed forge, clean doctor)
+  ---
+  duration_ms: 179.846408
+  type: 'test'
+  ...
+# Subtest: integration smoke: the CLI on the reference fixture equals the golden outside install health and ground truth
+ok 150 - integration smoke: the CLI on the reference fixture equals the golden outside install health and ground truth
+  ---
+  duration_ms: 258.247414
+  type: 'test'
+  ...
+1..150
+# tests 163
+# suites 0
+# pass 163
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7204.600529

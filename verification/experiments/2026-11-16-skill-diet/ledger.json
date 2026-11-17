@@ -1659,17 +1659,45 @@
       "effort": "medium",
       "source_commit": "c650c72bc5c4b602a187d619249277325c7d2ce7",
       "before_commit": "3cbd784148e35408bacb271da5821c392c988a69"
+    },
+    {
+      "skill": "Beep-boop reporting",
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "status": "qualified-bounded-reporting-producer-command-consumer",
+      "before": {
+        "path": "plugin/skills/faff-beep-boop/SKILL.md",
+        "bytes": 157561,
+        "characters": 156176,
+        "estimated_tokens": 39044,
+        "sha256": "f1efefcfc1d1eccdfa0c32a0a06cb989ffc35753766289646eb439525c875d28"
+      },
+      "after": {
+        "path": "plugin/skills/faff-beep-boop/SKILL.md",
+        "bytes": 156107,
+        "characters": 154752,
+        "estimated_tokens": 38688,
+        "sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16"
+      },
+      "bytes_saved": 1454,
+      "estimated_tokens_saved": 356,
+      "mandatory_dependencies_added": [],
+      "qualification": "beep-reporting-mcp-v1-final-qualification.json",
+      "source_review": "beep-reporting-v1-source-review.json",
+      "model": "gpt-6.1-sol",
+      "effort": "medium",
+      "source_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+      "before_commit": "3e285c199e7866a0a837e5067c90560f2c299810"
     }
   ],
   "source_total": {
     "before_bytes": 1369435,
-    "after_bytes": 1260260,
+    "after_bytes": 1258806,
     "before_estimated_tokens": 339279,
-    "after_estimated_tokens": 312392
+    "after_estimated_tokens": 312036
   },
   "load_manifest": "load-manifest.json",
   "baseline_loads": "baseline/loads.json",
-  "latest_loads": "intake-astra-medium-v1-after-loads.json",
+  "latest_loads": "beep-reporting-mcp-v1-after-loads.json",
   "pending_slices": [
     {
       "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
@@ -1697,5 +1725,5 @@
       "status": "Held: Astra baseline passes functional checks but fails the literal native-path rule. Candidate unmeasured; source unchanged and savings excluded."
     }
   ],
-  "latest_source": "intake-astra-medium-v1-after-source.json"
+  "latest_source": "beep-reporting-mcp-v1-after-source.json"
 }

@@ -1,0 +1,168 @@
+{
+  "instructions": "Read the complete rendering policy through read_policy. For each independent artifact case, transform the supplied draft or source into the requested output and persist it through write_output. These are isolated human-facing outputs; preserve their facts and use the supplied source material. Do not query a tracker or read additional files. Separately answer every bounded rule question. Global operator guidance applies. Finish after every case is recorded.",
+  "policy": {
+    "bytes": 100274,
+    "utf16_characters": 99439,
+    "sha256": "97038604a7eff768d3b5baad782f0103bca9ebefd074de68c08f7cbb1446fa02",
+    "chunk_limit": 6000
+  },
+  "tools": [
+    {
+      "name": "read_policy",
+      "description": "Read the unchanged policy in bounded chunks. Start at offset 0, then use each returned next_offset until it is null. Complete policy delivery is required before workflow operations. No scratch file is needed.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "offset"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "write_output",
+      "description": "Persist the completed rendering for one artifact case. Write once per case; provide the actual normalised text or violation report requested.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "text": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "text"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "answer_rule",
+      "description": "Answer one separate bounded policy question in its stated value shape. Do not perform hypothetical actions.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "case_id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "case_id",
+          "value"
+        ],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "finish",
+      "description": "Finish after all artifacts and rule answers are recorded.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  ],
+  "cases": [
+    {
+      "id": "relational",
+      "task": "Produce one architecture proposal and matching ADR promotion intent from this brief and the supplied completed profile-show result. The controlled caller already executed the real shipped profile read. Do not acquire a profile, write ADRs, procure a service or judge your own proposal as approved. State assumptions explicitly; the result is a proposal for later review.",
+      "source": {
+        "brief": "A small internal timesheet tool for a handful of users. Relational users/projects/entries must survive restarts and concurrent edits need transactional integrity. Use the existing team runtime and deployment. No streaming or high-throughput ingestion requirement.",
+        "profile_show": {
+          "exit_code": 0,
+          "stdout": "{\n  \"schema\": 1,\n  \"acquired_at\": \"2026-11-16T00:00:00Z\",\n  \"acquired_by\": \"fixture-acquirer\",\n  \"runtimes\": [\n    {\n      \"name\": \"node\",\n      \"version\": \"22\",\n      \"evidence\": \"package.json\"\n    }\n  ],\n  \"ci\": [\n    {\n      \"name\": \"github-actions\",\n      \"evidence\": \".github/workflows/ci.yml\"\n    }\n  ],\n  \"deploy_targets\": [\n    {\n      \"kind\": \"docker-compose\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"datastores\": [\n    {\n      \"kind\": \"postgres\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"paas_available\": [],\n  \"notes\": [\n    \"Local-first preference. No managed service entitlement recorded.\"\n  ]\n}\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": "nightly-batch",
+      "task": "Produce one architecture proposal and matching ADR promotion intent from this brief and the supplied completed profile-show result. The controlled caller already executed the real shipped profile read. Do not acquire a profile, write ADRs, procure a service or judge your own proposal as approved. State assumptions explicitly; the result is a proposal for later review.",
+      "source": {
+        "brief": "A nightly batch job reads the existing timesheet table and writes weekly summary rows. A few thousand reads and a few dozen writes per run. No real-time fan-out or cross-partition ordering. Use existing infrastructure.",
+        "profile_show": {
+          "exit_code": 0,
+          "stdout": "{\n  \"schema\": 1,\n  \"acquired_at\": \"2026-11-16T00:00:00Z\",\n  \"acquired_by\": \"fixture-acquirer\",\n  \"runtimes\": [\n    {\n      \"name\": \"node\",\n      \"version\": \"22\",\n      \"evidence\": \"package.json\"\n    }\n  ],\n  \"ci\": [\n    {\n      \"name\": \"github-actions\",\n      \"evidence\": \".github/workflows/ci.yml\"\n    }\n  ],\n  \"deploy_targets\": [\n    {\n      \"kind\": \"docker-compose\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"datastores\": [\n    {\n      \"kind\": \"postgres\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"paas_available\": [],\n  \"notes\": [\n    \"Local-first preference. No managed service entitlement recorded.\"\n  ]\n}\n",
+          "stderr": ""
+        }
+      }
+    },
+    {
+      "id": "no-profile",
+      "task": "Produce one architecture proposal and matching ADR promotion intent from this brief and the supplied completed profile-show result. The controlled caller already executed the real shipped profile read. Do not acquire a profile, write ADRs, procure a service or judge your own proposal as approved. State assumptions explicitly; the result is a proposal for later review.",
+      "source": {
+        "brief": "A local command-line tool records equipment checkouts on one laptop. Records must survive restart. No shared-server or cloud requirement; the implementation language is open.",
+        "profile_show": {
+          "exit_code": 3,
+          "stdout": "",
+          "stderr": "faff profile show: no infra profile; run acquisition\n"
+        }
+      }
+    },
+    {
+      "id": "external-only",
+      "task": "Produce one architecture proposal and matching ADR promotion intent from this brief and the supplied completed profile-show result. The controlled caller already executed the real shipped profile read. Do not acquire a profile, write ADRs, procure a service or judge your own proposal as approved. State assumptions explicitly; the result is a proposal for later review.",
+      "source": {
+        "brief": "This fixture requires the certified FixtureSign service for document signatures. Certification is mandatory and the team cannot build a certified substitute in this release. The task is only to propose the signing component; no licence purchase or service call is authorised.",
+        "profile_show": {
+          "exit_code": 0,
+          "stdout": "{\n  \"schema\": 1,\n  \"acquired_at\": \"2026-11-16T00:00:00Z\",\n  \"acquired_by\": \"fixture-acquirer\",\n  \"runtimes\": [\n    {\n      \"name\": \"node\",\n      \"version\": \"22\",\n      \"evidence\": \"package.json\"\n    }\n  ],\n  \"ci\": [\n    {\n      \"name\": \"github-actions\",\n      \"evidence\": \".github/workflows/ci.yml\"\n    }\n  ],\n  \"deploy_targets\": [\n    {\n      \"kind\": \"docker-compose\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"datastores\": [\n    {\n      \"kind\": \"postgres\",\n      \"evidence\": \"compose.yaml\"\n    }\n  ],\n  \"paas_available\": [],\n  \"notes\": [\n    \"The required FixtureSign certification cannot be obtained by this team in this release. No FixtureSign licence or service access exists.\"\n  ]\n}\n",
+          "stderr": ""
+        }
+      }
+    }
+  ],
+  "rule_questions": [
+    {
+      "id": "profile-read",
+      "question": "Which read command is allowed? Return {\"command\": string}, choosing exactly \"faff profile show --json\" or \"faff profile mine\"."
+    },
+    {
+      "id": "missing-profile",
+      "question": "Profile show exits 3. Return {\"stop\": boolean, \"state_no_profile_assumption\": boolean, \"use_brief\": boolean}."
+    },
+    {
+      "id": "default",
+      "question": "What is the default recommendation? Return {\"recommendation\": string}, choosing build, buy or hybrid."
+    },
+    {
+      "id": "non-build",
+      "question": "May the producer purchase or subscribe after a non-build proposal? Return {\"act\": boolean, \"surface_for_human\": boolean}."
+    },
+    {
+      "id": "materialise",
+      "question": "Does this producer call faff adr new? Return {\"call\": boolean}."
+    },
+    {
+      "id": "critic",
+      "question": "Does this producer issue the downstream spec-review quality verdict? Return {\"issue_verdict\": boolean}."
+    },
+    {
+      "id": "needs",
+      "question": "Must each stated brief requirement have a named matching design decision? Return {\"required\": boolean}."
+    },
+    {
+      "id": "alternatives",
+      "question": "Should rationale argue against unchosen architectures? Return {\"argue_against_unchosen\": boolean}."
+    },
+    {
+      "id": "intent",
+      "question": "Must ADR promotion intent echo each candidate? Return {\"echo_each\": boolean}."
+    },
+    {
+      "id": "confidence",
+      "question": "Is confidence a quality gate? Return {\"advisory\": boolean, \"gates_quality\": boolean}."
+    }
+  ]
+}

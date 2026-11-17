@@ -1,0 +1,76 @@
+{
+  "schema": 1,
+  "status": "diagnosed-original-native-failure-retained",
+  "scope": "Read-only native metadata inspection and exact hashes only. No reasoning or full raw capture exported, native waiver, rescore, model retry, candidate launch or source acceptance.",
+  "sample": "architecture-proposal-mcp-v1-baseline-5",
+  "functional_status": "pass",
+  "manual_status": "pass",
+  "original_native_status": "fail",
+  "original_native_problems": [
+    {
+      "code": "user-context-order-or-type",
+      "detail": null
+    },
+    {
+      "code": "worker-incomplete-or-prompt-differs",
+      "detail": null
+    }
+  ],
+  "session_id": "01a1e6cd-39e1-7493-95f7-a2e79035d8e0",
+  "native_source_sha256": "81204b85baf122491e262978bd8f605d1e6ba9d497b7f53240ed16d137022bfa",
+  "native_summary": {
+    "native_calls": 35,
+    "mcp_calls": 32,
+    "policy_reads": 17,
+    "all_three_initial_reads_complete": true,
+    "user_messages": 3,
+    "frozen_allowed_user_messages": 2
+  },
+  "metadata_update": {
+    "native_line": 51,
+    "timestamp": "2026-11-17T00:00:01.507Z",
+    "role": "user",
+    "content_types": [
+      "input_text"
+    ],
+    "part_bytes": 2135,
+    "part_sha256": "f64fc4ed1bb086e1763f5423ca8e86971f954d06f40f0863e9f5b63f08f4a9a0",
+    "fields": [
+      "current_date",
+      "timezone",
+      "filesystem"
+    ],
+    "initial_date": "2026-11-16",
+    "updated_date": "2026-11-17",
+    "timezone_unchanged": true,
+    "filesystem_subtree_unchanged": true,
+    "filesystem_xml_serialisation_sha256": "56246c940bf1e1052a6cc43fd82c620a31fd72360a3bbffdc5d78b0b306828f8",
+    "extra_task_instruction_text_present": false,
+    "classification": "Environment metadata only, consistent with a runtime UTC-midnight update. The capture does not permit this review to independently certify the runtime injector implementation.",
+    "why_original_audit_failed": "Frozen auditor permits exactly startup context then exact task user message. A third user message after tool execution violates both its order and total-message checks.",
+    "disposition": "Keep original native failure and held arm. Correct semantic artifacts and metadata-only classification do not override registered acceptance."
+  },
+  "manual_record_summary": {
+    "proposals_fully_read": 20,
+    "decisions_read": 50,
+    "manual_failures": 0,
+    "native_samples_passed": 4,
+    "native_samples_failed": 1,
+    "arm_qualified": false
+  },
+  "artifacts": {
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/native-audit.json": "513ac5614d5c4bb9925cb62516b4b30ba89c195a54777c9085c1bdd9c2d99057",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/runner-failure.json": "ce758a5fb290dd6581bda641c5669a968773644e1c460d246cae071690d4b8a9",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/report.json": "5853bf4624aa38c1d5df7e12c6f4f337936292b5ef05ce90411676fb5697be78",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/capture.json": "45f4a4a9b05946f4d735fddfda4dc69129b6fa778f62fbfe64c3392eca0cae8a",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/startup-binding.json": "d3ee63bd9780a8fcaf42e726f37c975af26cd318ff6558e6571328f927a60d70",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/worker-manifest.json": "915af1dcd8eb42134aca95083fdfe959413dcf269918b4e4c43d36dbef00b2fd",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/worker-final-state.json": "83b8c99dca13bf095bf5d2ef1f1f064cd5f30da0012e723e9cd9d049ab84286a",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/worker-prompt.txt": "718e6ca2868dc3a44d964a5d5bed5279c9cc50eef115dc08ac2742bff74228b8",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/mcp-trace.jsonl": "9764fb5048a8800bcd25dd733361eb5d3f491883df6484f123c69d0b44e75a74",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-5/mcp-protocol-errors.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/architecture-proposal-mcp-v1-baseline-independent.json": "e94523690510ea364223ecb61e00b4e248d9945ec4d128e1061b32b54781f567",
+    "eval/control-parity/codex-mcp-native-audit.mjs": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+    "verification/experiments/2026-11-16-skill-diet/architecture-proposal-mcp-v1-registration.json": "7c16f09ccac313b28c9b6f128d3e61acf6f4d14a51b6b7c1e646b0e85bc35bad"
+  }
+}

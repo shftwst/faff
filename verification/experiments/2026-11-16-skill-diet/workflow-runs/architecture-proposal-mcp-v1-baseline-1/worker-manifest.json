@@ -1,0 +1,68 @@
+{
+  "arm": "baseline",
+  "requested_model": "gpt-6.1-sol",
+  "effort": "medium",
+  "codex_cli": "0.169.0",
+  "harness_command": [
+    "/usr/local/bin/node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/rendering-artifact.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/baseline/architecture-proposal-with-context.md",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/architecture-proposal.json",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1"
+  ],
+  "runner_sha256": "6a621e5b735676d1dae51c786dd6eeca6be183951857b0afbaef6b3898cec4ec",
+  "server_sha256": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a",
+  "server_tools": [
+    "read_policy",
+    "write_output",
+    "answer_rule",
+    "finish"
+  ],
+  "prompt_sha256": "6664bd3f6b259596636aaffcf18548d871759dbeddfef76f86695bdfabfe6a43",
+  "reads": [
+    {
+      "path": "/Users/shftwst/.agents/AGENTS.md",
+      "sha256": "471f175d5d22033687eaf8b53b7b410458ba53c5673a8ed39a0dee58f4cc5fb0"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/AGENTS.md",
+      "sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1/task.json",
+      "sha256": "702ab54806e7ea6cd47034fca4ead53051c423c75c9f3c9e555c9abad78738bb"
+    }
+  ],
+  "command": [
+    "codex",
+    "exec",
+    "--ignore-user-config",
+    "--skip-git-repo-check",
+    "--model",
+    "gpt-6.1-sol",
+    "-c",
+    "model_reasoning_effort=\"medium\"",
+    "-c",
+    "project_doc_max_bytes=0",
+    "-c",
+    "approval_policy=\"never\"",
+    "-c",
+    "mcp_servers.measurement={command=\"/usr/local/bin/node\",args=[\"/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-mcp.mjs\", \"/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1\"],cwd=\"/tmp/faff-mcp-measure-5tmgc5qj/cwd\",enabled=true,default_tools_approval_mode=\"approve\",startup_timeout_sec=20,tool_timeout_sec=120,enabled_tools=[\"read_policy\", \"write_output\", \"answer_rule\", \"finish\"]}",
+    "--sandbox",
+    "workspace-write",
+    "--cd",
+    "/tmp/faff-mcp-measure-5tmgc5qj/cwd",
+    "--add-dir",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/architecture-proposal-mcp-v1-baseline-1",
+    "--json",
+    "--output-last-message",
+    "/tmp/faff-mcp-measure-5tmgc5qj/final.txt",
+    "-"
+  ],
+  "provider_usage": "unmetered",
+  "private_native_capture": "/tmp/faff-mcp-measure-5tmgc5qj",
+  "context_reset_requested": true,
+  "plan_sha256": "1f395fa4edee39569ab444de43104c22258b733fd6e3aac77feeef182e6cec7d"
+}

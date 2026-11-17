@@ -1,0 +1,55 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "directory": "/var/tmp/faff-beep-ledger-v2-integration",
+  "base_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+  "isolated_commit": "1a00415927e9c356d42eba08d71fe940e994e3f8",
+  "source_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+  "production_installed": false,
+  "checks": [
+    {
+      "check": "tests",
+      "command": [
+        "node",
+        "--test",
+        "--test-concurrency=4",
+        "test/control-parity-ledger.test.mjs",
+        "test/run-summary.test.mjs",
+        "test/run-ledger-serialiser.test.mjs",
+        "test/events.test.mjs"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-ledger-v2-integration-tests.txt",
+      "sha256": "eadc8ea290d59ac272a8a2f2463a7101e2709822e1aec7df89d2b48be692ca91"
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-ledger-v2-integration-adapter-lint.txt",
+      "sha256": "fe64e7c7e129f03531e7a640d40ec41fe5b9434e6d7caf7c54e3d980fac79994"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "exit_code": 0,
+      "path": "deterministic-checks/beep-ledger-v2-integration-rule-inventory.txt",
+      "sha256": "7b9af22f72b98f92170bfa8358000c34b1db0e6595d7208730fb603a99ca090e"
+    }
+  ],
+  "limits": [
+    "Deterministic integration only. Full frozen model pair/native/manual qualification required before source acceptance."
+  ]
+}

@@ -6,9 +6,7 @@ judgement_seam: decomposition
 
 # faff-plot
 
-The top-down planner. Where `/faff-jot` captures new work and shapes it one level deep, `/faff-plot` takes an **application-scale** discovery brief and recurses it into a roadmap *skeleton*: outcome → initiatives → projects → first-slice epics, with the dependency links between them. It is the **planning session** `/faff-map` points at when it finds the chain doesn't join up — and `/faff-map` is what audits the skeleton plot writes.
-
-plot is jot's recursion applied to jot's discovery. They share the same `ticket-shaping` machinery; the difference is depth. jot does one breadth-first pass and chains to prep. plot descends level by level, writing containers as it goes, and stops at first-slice epics — never the leaves.
+The top-down planner: recurse an **application-scale** discovery brief into a roadmap *skeleton*, outcome → initiatives → projects → first-slice epics + dependencies. `/faff-jot` shapes one level; plot uses the same `ticket-shaping` machinery level by level, writes containers and stops before leaves. It is the **planning session** `/faff-map` requests when the chain does not join up; map audits the written skeleton.
 
 ## Configuration
 
@@ -18,13 +16,13 @@ plot is jot's recursion applied to jot's discovery. They share the same `ticket-
 
 ## Rendering
 
-All human-facing output this skill emits — roadmap container and epic **descriptions**, plus any terminal summaries — passes through the configured `rendering_adaptor` normalise pass **before it is printed or written** (gateway → **Rendering**, Universal-routing rule). In particular, enumerable sets render as lists, never `·`/comma run-on paragraphs (the prose-skimmability rule), so descriptions and comments are as skimmable as terminal output. Carve-outs (skill source files, `.faff/` logs) are exempt.
+Pass all human-facing roadmap container/epic **descriptions** and terminal summaries through configured `rendering_adaptor` normalise **before it is printed or written** (gateway → **Rendering**, Universal-routing rule). Render enumerable sets as lists, never `·`/comma run-on paragraphs, including descriptions/comments. Skill source files and `.faff/` logs are exempt.
 
 ## Lane
 
-`/faff-plot` runs in the **orchestrator lane** (see gateway → Agent Lanes): it talks to the human, reads the tracker, drives the `methodology` slot, and **writes containers and tickets**. It does **not** write code and does **not** produce specs — speccing is `/faff-prep`'s job, per ticket, later. Like `/faff-jot`, it is **human-gated**: new structure entering the system is a human-confirmed event, not an autonomous one (see Autonomous mode).
+`/faff-plot` is the **orchestrator lane** (gateway → Agent Lanes): talk to the human, read the tracker, drive `methodology`, and **write containers and tickets**. Do **not** write code or specs; `/faff-prep` specs each ticket later. Like `/faff-jot`, new structure is **human-gated**, except under Autonomous mode.
 
-`/faff-map` is plot's **read-only twin** at the same altitude — it audits whether a roadmap joins up but never writes. plot writes; map audits. Keep them distinct: never fold plot's write power into map.
+`/faff-map` is the **read-only twin**: map audits join-up, plot writes. Never give map plot's write authority.
 
 ## What it does (the flow)
 
@@ -48,14 +46,14 @@ If the brief is too thin to plan a coherent roadmap (one vague capability, no st
 
 ### 2. Recurse top-down
 
-Descend the altitudes **outcome → initiatives → projects → first-slice epics**, **one level at a time**. At each level, collect every confirmed node at that altitude and invoke the configured `methodology` skill's **`ticket-shaping`** output (default `faffter-noon-methodology-thematic`) **once for the whole level** (the batch-per-altitude grain — **Methodology transport** above; a level's confirmed children feed the next level's sub-briefs, so levels are sequential but nodes within one level shape independently) with:
+Descend **outcome → initiatives → projects → first-slice epics**, **one level at a time**. Batch every confirmed node at the current altitude into **one** configured `methodology` **`ticket-shaping`** dispatch (default `faffter-noon-methodology-thematic`; **Methodology transport** above). Shape nodes independently; confirmed children supply the next sequential level's sub-briefs. Pass:
 
 - `shape-level` = the current altitude (`initiative` / `project` / `epic`), and
 - each confirmed node's **node-scoped sub-brief** — the slice of the parent brief relevant to that node (the capability or project being decomposed), plus the live tracker graph.
 
-The methodology returns each node's children *at that altitude*, shaped through its lens (the recursion logic lives in `ticket-shaping`, not here — plot drives the descent; the methodology shapes each level). plot gates the returned shapes **node by node** (Step 4); an `edit` re-shapes that node via a **follow-up node-scoped dispatch**. plot owns the loop, the stop rule, the gating, and the writes.
+`ticket-shaping` owns each node's children at the requested altitude. Plot owns descent, stop rule, node-by-node gates (Step 4) and writes. An `edit` uses a **follow-up node-scoped dispatch** before continuing.
 
-**Between altitude batches (inside a live run only — `$FAFF_RUN_DIR` set, the `faff-beep-boop`-nested / lights-out `plan` case).** Each level's `ticket-shaping` dispatch is a long producer call (a whole-brief decompose can run many minutes) — before dispatching the **next** level, run `faff run checkpoint --run-dir "$FAFF_RUN_DIR" --phase prep` (`faff-beep-boop` → **The interrupt** — referenced, never restated here). This is what lets a detached Sentry intervention be observed before more of the descent is dispatched, closing the exact gap `run-20260818-192940` hit (ticked once at run start, then a ~16-minute decompose ran to a clean terminal with the checkpoint never re-consulted). Halt and surface on any non-zero exit (3 or 2), and also on a `faults` entry `sentry-consult-failed` or `budget-check-failed`, rather than proceeding to the next level unaware (never the fail-open "log and continue" a standalone-attended run's advisory posture allows — a producer that can't confirm the run is still alive must not dispatch more of it). Standalone/interactive plot (no live `$FAFF_RUN_DIR`) has nothing to check and skips this — the same no-op the checkpoint already is outside any run. **Each dispatched `ticket-shaping` batch itself follows the bounded milestone-tick contract** (gateway → **Sibling-skill invocation → Producer dispatch**) — the load-bearing per-dispatch defence; this between-level checkpoint is the backstop that observes a detached abort between dispatches, not a substitute for it.
+**Between altitude batches (inside a live run only — `$FAFF_RUN_DIR` set, the `faff-beep-boop`-nested / lights-out `plan` case).** Before dispatching the **next** level, run `faff run checkpoint --run-dir "$FAFF_RUN_DIR" --phase prep` (`faff-beep-boop` → **The interrupt**, referenced rather than restated). Halt and surface on non-zero exit (3 or 2) or `faults` entry `sentry-consult-failed` / `budget-check-failed`; If run liveness is unconfirmed, the producer must not dispatch more; never fail-open "log and continue". With no live `$FAFF_RUN_DIR`, standalone/interactive plot skips this check. **Each dispatched `ticket-shaping` batch itself follows the bounded milestone-tick contract** (gateway → **Sibling-skill invocation → Producer dispatch**). This between-level checkpoint observes detached Sentry aborts between dispatches; it never replaces per-dispatch ticks.
 
 ### 3. The stop rule (critical — this is what stops a fantasy tree)
 
@@ -63,8 +61,6 @@ plot owns the skeleton **down to first-slice epics + their dependency links** �
 
 - Emit a node only when it has a **nameable deliverable**.
 - **Stop a branch** when the next level down is not concretely derivable from the brief — surface "this branch needs more discovery" rather than manufacturing speculative children.
-
-Drawing this line crisply is the whole game: it is what keeps plot from inventing 200 phantom tickets nobody asked for.
 
 ### 4. Per-level gating
 
@@ -102,9 +98,9 @@ After the skeleton is written, offer two gates in order:
 
 ## Rehoming pass (`/faff-plot rehome`)
 
-The **write half** of backlog convergence. Under the agile lens new work lands project-less in Backlog by design (its Default-landing rule); this pass drains the accumulated loose set into outcome-led projects. The `methodology` slot's `rehome-set` output supplies the grouping *judgement*; plot owns the loop, the human gate, and the writes — the same division as `ticket-shaping`. **Rehoming, never deleting.**
+The **write half** of backlog convergence: drain agile's project-less Backlog work (Default-landing rule) into outcome-led projects. `methodology` supplies `rehome-set` grouping *judgement*; plot owns loop, human gate and writes, as for `ticket-shaping`. **Rehoming, never deleting.**
 
-**Entry.** The explicit `rehome` argument selects this mode; bare `/faff-plot` is unchanged. Deterministic entry — no loose-count trigger, no cadence config. When bare `/faff-plot` is invoked with no brief and the human's intent is clearly rehoming ("sort out the loose backlog"), plot may offer this mode conversationally. The pass needs a tracker (it reads and writes tracker projects); in git-only mode there is no project-less-Backlog concept, so the mode is a no-op.
+**Entry.** Only explicit `rehome` selects this mode; bare `/faff-plot` stays unchanged, with no loose-count/cadence trigger. If bare plot has no brief and clear rehoming intent ("sort out the loose backlog"), plot may offer the mode conversationally. It requires tracker projects; git-only is a no-op.
 
 **The flow:**
 
@@ -142,7 +138,7 @@ Gate **per proposed project** — plot's yes/edit/no shape (Step 4) extended wit
 
 The prompt states the manual-undo path explicitly: *un-homing is manual — Linear UI/API only; the MCP's `save_issue.project` is reassign-only and cannot null a project* — so approval is high-consequence.
 
-**Composition with the topology-write dial.** This pass inherits plot's **Containers always confirm** floor: every approved rehome creates a container, and no appetite level auto-creates a container outside the L4 accepted-root envelope, so the whole apply sits behind this gate at every appetite. The gateway topology-write-authority dial's rehome authority (gateway → **Appetite for destruction → Topology-write authority**) still governs the methodology's *other, narrower* call sites (gating-chain rehome, MVP scope-cut, thematic conversion) — the dial adds the topology axis to the hard floor, it never relaxes it.
+**Composition with the topology-write dial.** Every approved rehome creates a container. No appetite level auto-creates one outside the L4 accepted-root envelope; plot's **Containers always confirm** floor gates the whole apply at every appetite. The gateway dial (gateway → **Appetite for destruction → Topology-write authority**) still governs other, narrower methodology calls: gating-chain rehome, MVP scope-cut and thematic conversion. Its topology axis never relaxes the hard floor.
 
 ### R5. Apply approved projects
 
@@ -153,7 +149,7 @@ Per approved project, **finish-forward — never roll back** (rollback would del
 3. **Draw the approved blocker edges** among the approved tickets (blocker / blocked-by links, tracker-agnostic). Append-only — an edge that already exists is skipped. On an edge failure: log, continue.
 4. **Step 5b — `prdr-author`** for the new project, inputs adapted for reparented members: `outcome` = the proposal's outcome statement; `child_specs` = the approved members' titles + descriptions (+ attached specs where present); `target` resolves `explicit > inherited > methodology-default`. Same approve/edit/skip gate and manual-authoritative rule as **Step 5b** — a `skip` leaves the PRDR `Proposed`. A DoD-less outcome project is the "bare bucket" the agile lens itself refuses.
 
-Report each project's landed state exactly — container id, members moved / skipped / failed, edges drawn / missing — with manual completion steps for anything missing. No per-member tracker comment: the new membership is already legible, and the gateway forbids duplicating legible state; the apply log is the write record.
+Report landed state exactly: container id, members moved / skipped / failed, edges drawn / missing, and manual completion steps for gaps. No per-member tracker comments duplicating legible membership; the apply log records writes.
 
 **Idempotence.** Re-running converges: already-homed members drop out of the input set, and existing projects are part of `rehome-set`'s input, so re-runs propose existing containers for remaining tickets without duplication.
 
@@ -187,7 +183,7 @@ When no tracker MCP is available (gateway → Configuration), there are no conta
 
 `/faff-plot` is **primarily interactive**, for the same reason `/faff-jot` is: deciding the shape of a whole application is direction-setting. `/faff-beep-boop` does **not** invoke `/faff-plot` (unchanged) — beep-boop drains the backlog; it does not plan new applications.
 
-The **`--autonomous` argument** adds the one exception: a *manually-ignited* pass that answers its own per-level gates within the L4 topology-write envelope, recursing top-down to first-slice epics with no interactive prompt. It is purely **additive** — bare `/faff-plot` and `/faff-plot rehome` are byte-unchanged, and an accidental autonomous invocation **without** `--autonomous` still uses the surface-only fallback (writes the skeleton to `.faff/intake/…` and surfaces it, creating nothing). The whole ticket is the **gate→verdict seam** below; everything else is the driver, the logging, and the parking around it.
+The **`--autonomous` argument** is the sole exception: a *manually-ignited* pass answers its per-level gates within the L4 topology-write envelope, down to first-slice epics without prompts. Bare `/faff-plot` and `/faff-plot rehome` stay unchanged. An accidental autonomous invocation **without** `--autonomous` still writes only `.faff/intake/…`, surfaces the skeleton and creates nothing. The **gate→verdict seam** below supplies this exception's authority; other sections drive, log and park it.
 
 ### Ignition (`/faff-plot --autonomous`) + the outward-only guard
 
@@ -205,7 +201,7 @@ Replaces the former stub guard (a minted-ledger-only assert) with the real run-s
 
 ### The gate→verdict seam (the core seam)
 
-For each per-level gate the interactive flow presents to a human, build an **op** `{kind, level:"L4", provenance, parent_confirmed, contained_under_accepted_prd}`, pipe `{op, verdict}` to **`faff contract l4-topology-envelope`**, and act on the **CLI-validated disposition** — never a harness-computed one. The contract re-derives the expected disposition from `op` via `l4TopologyDecision` and rejects a non-conforming claim (Pattern-B validator); the harness re-implements **none** of that table. Write only on a validated `admit`.
+For each interactive per-level gate, build **op** `{kind, level:"L4", provenance, parent_confirmed, contained_under_accepted_prd}` and pipe `{op, verdict}` to **`faff contract l4-topology-envelope`**. Act only on its **CLI-validated disposition**, never a harness-computed one. This Pattern-B validator re-derives expected disposition through `l4TopologyDecision` from `op`; the harness re-implements **none** of the table. Write only on validated `admit`.
 
 | Interactive gate | Op (`kind` / key fields) | Disposition | Autonomous action |
 |---|---|---|---|
@@ -229,7 +225,7 @@ The three admit-gating booleans are **derived from live reads at construction ti
 - **`parent_confirmed`** is `true` **only** for a parent created/confirmed earlier in *this* pass (the pass's created-set) or the admitted root itself — never inferred for a pre-existing node.
 - **`provenance`** is `faff-authored` **only** for a node this pass created (or a prior loop node carrying `initiated: autonomous`); anything else is `human-curated`. **When in doubt → `human-curated`** (fail-safe to propose-only).
 
-**Write-time containment gate.** Every autonomous container/epic create is **immediately preceded by its recorded `faff contain --record … --phase plot` containment-check**. A create with no matching recorded `contained` verdict is an integrity violation `faff audit` flags (recompute-and-compare over the recorded ancestry — the detective control) — turning the backstop from advisory into a mechanical, born-verifiable gate. (Residual, out of scope: a *falsified* live ancestry read is the custody/write-authority axis — not this harness.)
+**Write-time containment gate.** Immediately precede every autonomous container/epic create with its recorded `faff contain --record … --phase plot` containment-check. Without a matching recorded `contained` verdict, `faff audit` flags an integrity violation by recomputing/comparing recorded ancestry: a detective, mechanically verifiable check. Falsified live ancestry remains the separate custody/write-authority residual, out of scope here.
 
 ### Decompose-only HALT
 
@@ -250,7 +246,7 @@ For each created project: request the methodology's `prdr-author` DoD, then `faf
 
 ### Step 5c — admit or park the loop-PRDR
 
-The `--autonomous` harness always ends up against an L4 run-ledger (Ignition, above — self-minted when standalone, reused when nested inside an inherited handoff), so it **is** an L4 runner either way — and the gateway already documents what an L4 runner does with a `Proposed` loop-PRDR (gateway → **Authored-PRDR level-scaling**, the L4 bullet, + **Upper-gate (YAGNI) two-phase arbitration**). 5c **composes that existing gateway contract** for each Step-5b PRDR — it introduces **no parallel admission path** and changes only the *actor*; every gate CLI (`faff prdr yagni` / `admit` / `accept`) is invoked byte-unchanged. **5c is unconditional:** it runs for every Step-5b `Proposed` loop-PRDR regardless of whether the arbitration sits on this SUT's scored path, and a coverage floor already reading satisfied is not licence to skip it (gateway → **Autonomous Mode Contract**, the no-unscored-skip rule) — no `deferred` disposition exists for a loop-PRDR. Per project's `Proposed` loop-PRDR `authored`:
+The `--autonomous` harness uses an L4 run-ledger, self-minted standalone or inherited when nested (Ignition). For every Step-5b `Proposed` loop-PRDR, 5c **composes that existing gateway contract** (gateway → **Authored-PRDR level-scaling**, L4 bullet, + **Upper-gate (YAGNI) two-phase arbitration**): **no parallel admission path**, only a different actor; gate CLIs (`faff prdr yagni` / `admit` / `accept`) stay byte-unchanged. **5c is unconditional:** run it even if arbitration is unscored or coverage already satisfied (gateway → **Autonomous Mode Contract**, no-unscored-skip rule). No `deferred` disposition exists. Per project's `Proposed` loop-PRDR `authored`:
 
 1. **Upper-gate two-phase arbitration** (gateway → **Upper-gate (YAGNI) two-phase arbitration**): (1) deterministic **trace-to-goal** — `authored.prd_goals` must all be real PRD goals (`faff prdr yagni --prd-goal <g1,g2,…> --prd-goals <PRD goals JSON>`), else reject at the door before any model spend; (2) **Phase 1** — the `methodology` slot's `yagni-judge` proposes `{serves_goal, within_scope, verdict, reason}`; (3) **Phase 2** — invoke the `review` slot as a subagent (a different model, the Phase-2 pattern — see adversarial-review → **PRDR YAGNI Phase-2 challenge**; never the diff-shaped `refutation-code` transport) with `{ AuthoredPrdr, PRD goals, Phase-1 proposal }` → `survived` | `overturned` + `ground`, classifying its overturn ground (an inconclusive Phase 2 — provider down after its fallback chain — is **not** a survival: omit `--challenge` → park `phase2-inconclusive`). Then `faff prdr yagni --proposal <admit|reject> [--serves-goal] [--within-scope] [--challenge survived|overturned] [--challenge-ground over-scope|unserved|other] --prd-goal … --prd-goals … --dod-covers <goals the DoD covers, JSON>` arbitrates → the `{admit, reason}` upper verdict. Passing `--dod-covers` (V) and `--challenge-ground` lets the arbitration distinguish under-citation (`V⊆D`) from genuine over-scope (`V⊄D`) — a narrowly-cited functional MVP admits instead of dead-ending, gold-plating still rejects.
 2. **Admit** (content authority): feed the upper verdict (and the `--lower` coverage verdict, when in scope) to `faff prdr admit --actor loop --upper '<json>' [--lower '<json>'] --supersedes-provenance none` → the closed disposition (`faff contract prdr-admission --describe`). This composes **with**, not through, the L4 topology envelope — the container's create was already admitted at Step 4 (`container-create`); this is the DoD-content gate, no double-gate.
@@ -263,7 +259,7 @@ The `--autonomous` harness always ends up against an L4 run-ledger (Ignition, ab
    - any gate fail-loud (malformed verdict / contract mismatch) → park, never an implicit admit
    The `Proposed` PRDR is left in place (not superseded, not deleted) so the parked scope is recoverable; the pass finishes forward and surfaces the park set for `/faff-wtf`.
 
-**Every 5c PRDR terminates in exactly one of: admit-and-land, or a labelled park — no PRDR is silently dropped.** `deferred` / `deferred-recoverable` is not a terminal state — it does not exist for a loop-PRDR. Leaving a `Proposed` loop-PRDR in place because the arbitration was unscored, or because a coverage floor already read satisfied, is a silent drop under an invented label, forbidden exactly as the two states above. A "labelled park" is one of the five reasons in step 4 above, reached by actually running the arbitration and getting refused — a park whose label merely repackages "unscored" or "coverage already satisfied" as a refusal the arbitration never gave is the same silent drop wearing a different name.
+**Every 5c PRDR terminates in exactly one of: admit-and-land, or a labelled park — no PRDR is silently dropped.** `deferred` / `deferred-recoverable` are nonexistent terminal states. Unscored arbitration or already-satisfied coverage never justifies leaving a `Proposed` PRDR unadjudicated. A labelled park must be one of step 4's five reasons, produced by actually running and being refused by arbitration; never relabel either excuse as a refusal the arbitration did not give.
 
 ### Integration smoke (acceptance)
 

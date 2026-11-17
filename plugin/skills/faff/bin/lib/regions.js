@@ -621,6 +621,7 @@ const REGION_MAP = {
   // resolvers the faffter-dark-spec-review occupant + faff-prep shell out to. factory→factory is
   // a legal require edge (ADR-0042).
   "spec-review-pin": "factory",
+  "prep-context": "factory",
   "spec-review-dir": "factory",
   // FAFF-888: spec-review-reputation is the recompute-on-read per-backend reputation ledger
   // that strikes a candidate-degenerate spec_review reviewer at slot selection. Pure arithmetic
@@ -834,6 +835,7 @@ const REGION_SELFTEST_ARGV = {
   "spec-review": ["spec-review", "--selftest"],
   "spec-review-convergence": ["spec-review-convergence", "--selftest"],
   "spec-review-pin": ["spec-review-pin", "--selftest"],
+  "prep-context": null,
   "spec-review-dir": ["spec-review-dir", "--selftest"],
   "spec-review-reputation": ["spec-review-reputation", "--selftest"],
   "spec-review-window": ["spec-review-window", "--selftest"],

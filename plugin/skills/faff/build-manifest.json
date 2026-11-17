@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "086ed495d1d5ac2e1447e6f6ec1abd1eab29ccc8eab33135477671d3d8b54614"
+    "tsconfig.json": "cafdf2d16311d817f028ef61018e991a32a5341a71d64c93c0f28b8492e09d01"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -31,6 +31,7 @@
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/pr-open.ts": "6ff01c874dabfa945febff26d629dd9b0af6b284e4d594f82bee71f2475baf76",
     "bin/lib/prep-attach.ts": "6e20c0f14e9065a91e72fd417d42da5c0bc1863e0bf9fc3d1dff950ed329bef0",
+    "bin/lib/prep-context.ts": "829a8af89302bf0907e6f5fb102c4a8f4b24a140e0f36125a11215e17b49fcb4",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3",
@@ -65,6 +66,7 @@
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/pr-open.js": "a8613b32ef23683d063ddd9e57e99718c4a8ca24ecba9bf6a4db50a63d42feb1",
     "bin/lib/prep-attach.js": "9d297fe069b19c8084ed9049a788daee75cbf33d1a383242d762e507586a9120",
+    "bin/lib/prep-context.js": "0f08e75365b7bd86d34148ba7577937b9ef5cc32b6906cb4a34e2e70d9911ec4",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/prose-size.js": "df29582b5c00b007ad6dd3f135859edae851c540c2f254b5e7cf869981d5c5a7",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e",
@@ -80,5 +82,5 @@
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "a4d7154206e6d3dd6511248e3d0bcbadbc90079907146bc81430cf157433e44a"
   },
-  "output_digest": "54f5c1180facc3a26a5271f13bb7e5ebe30e3d2436675bfa330872e6833b9d64"
+  "output_digest": "418b6016d4c8c123bc6002f8e9ecda22b02443ff8a729165f28620c032c497a7"
 }

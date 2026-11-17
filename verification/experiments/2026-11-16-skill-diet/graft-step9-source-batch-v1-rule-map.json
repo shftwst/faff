@@ -1,0 +1,80 @@
+{
+  "schema": 1,
+  "status": "draft-source-compression-unreviewed",
+  "source": "plugin/skills/faff-graft/SKILL.md",
+  "baseline": "verification/experiments/2026-11-16-skill-diet/baseline/graft-step9-source-batch-v1.md",
+  "baseline_sha256": "c8cc255d92761d3c714caa2c9185054ea86eb2eaf61f5e94157c150ca50a8402",
+  "candidate_region_sha256": "d0b46699880a7eb059adc8d85c9e1521391a67b199d97b6374ab08202da812eb",
+  "baseline_bytes": 30761,
+  "candidate_bytes": 20084,
+  "saving_bytes": 10677,
+  "outside_region_unchanged_vs_HEAD": true,
+  "rule_map": [
+    {
+      "domain": "Entry and invocation",
+      "preserved": "Mandatory pre-PR both modes; gates; slot resolution, exact captured diff/spec/tests/AC inputs; orthogonal autonomous/lights_out, ledger-derived mandatory outage; prior directory and nonzero handling",
+      "candidate_location": "Entry through Prior findings"
+    },
+    {
+      "domain": "Attended verification",
+      "preserved": "CLI-only resolver, unattended short circuit, posture/one-build OR, four lenses, advisory outage/floor, holdout timing, no ledger/authority escalation",
+      "candidate_location": "Interactive verification opt-in and Acting invariant"
+    },
+    {
+      "domain": "Diff and heartbeat",
+      "preserved": "Single fetched remote default capture/hash, git-only local, fail loud, directory provenance; issue-scoped explicit run heartbeat timing and longest-call bound",
+      "candidate_location": "Remote-backed review diff and Heartbeat ticks"
+    },
+    {
+      "domain": "Checkpoint",
+      "preserved": "Exit3/partial fresh; matching phase1 skip, phase2 complete/pending/in_flight branches; changed hash invalidates; forwarded run/issue/base and exact writes; interactive bypass",
+      "candidate_location": "Resume from a review-progress checkpoint"
+    },
+    {
+      "domain": "Verdict authority",
+      "preserved": "CLI block/prose fallback, malformed failclosed, Phase2 disposition unalterable; four signals/revert test",
+      "candidate_location": "Consume the fixed review contract"
+    },
+    {
+      "domain": "Dialogue",
+      "preserved": "Default on autonomous-only; private dir; record schema/IDs/carried metadata; churn then convergence then rebuttal cap; fix/rebuttal limits/redaction/independence; turn hold and judge stops",
+      "candidate_location": "The build-review dialogue loop"
+    },
+    {
+      "domain": "Judge",
+      "preserved": "Blinded per-finding evidence, null defence/order swap,0600, two phases/retry; all findings admission, checked floor writer; chunk timeout/budget/exit3/strictly decreasing attempts",
+      "candidate_location": "The would-be-park judge and Chunked judge calls"
+    },
+    {
+      "domain": "Outage hold",
+      "preserved": "Interactive park; checkpoint/retries default/bound; terminal writer/label/comment/cleanup; hold no floor, stash counters/error handling, single-select labels/claim release/Todo, exact return/bucket/annotation",
+      "candidate_location": "The unavailable disposition"
+    },
+    {
+      "domain": "Terminal cleanup",
+      "preserved": "Resumed terminal labels/store, repeated counter carry; every build claimed label and lease release, best-effort no-op cases/backstops",
+      "candidate_location": "Clearing a hold"
+    },
+    {
+      "domain": "Dialogue hold",
+      "preserved": "Read exits0/3/2/4 and resumed-store safeguard; count default/bound; no floor, stash increments/counters/retry, role-key transition/claim/status/comment, exact return/bucket/annotation",
+      "candidate_location": "The built-but-not-admitted hold"
+    },
+    {
+      "domain": "Persistence",
+      "preserved": "Tracker only; every-pass hard-floor log and round schema, no invented rationale, unavailable excluded; writer exits1/2; terminal sole writer/round history/default vs judge/park; missing file failclosed and audit anchor",
+      "candidate_location": "Where findings go and Record the review result"
+    },
+    {
+      "domain": "Terminal handoff",
+      "preserved": "One comment with summary/log and shared identity procedure; same-turn interactive pass and fallback offer; prePR fail/human/outage branches and discovered scope",
+      "candidate_location": "Review-stage terminal states"
+    }
+  ],
+  "inherited_inconsistency": "The needs-human signal table says flip PR to draft; later terminal table requires no PR opened. Both retained; this draft does not resolve the conflict.",
+  "limits": [
+    "No semantic equivalence acceptance, model calls, fixture work, tests, allowance edits, design edits or commits.",
+    "Inline-code literal comparison found no lost executable command or flag; some explanatory literals became plain text.",
+    "Source-only draft needs root independent review and integration checks."
+  ]
+}

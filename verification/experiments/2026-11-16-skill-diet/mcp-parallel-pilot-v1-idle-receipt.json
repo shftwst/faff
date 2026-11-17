@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "observed_utc": "2026-11-17T01:07:45.343560+00:00",
+  "completed_source_phase": "beep-ledger-mcp-v3-baseline",
+  "runner_session_id": 60424,
+  "observed_runner_exit_code": 0,
+  "samples": [
+    {
+      "name": "beep-ledger-mcp-v3-baseline-1",
+      "worker_final_state_sha256": "7f1e35fab02c59b75a4e3a384b418ce4fb7f339fb0448227be7ef41de2a3e905",
+      "native_audit_sha256": "f626eedcf91320f469e08a74c2ac40f8dac6ff364aa3fdc4ded7f26447940c66",
+      "report_sha256": "6228ffbbc91de1a25c5612ac4b5917d5895bb552d84e0c2b7b05ecca2482c803"
+    },
+    {
+      "name": "beep-ledger-mcp-v3-baseline-2",
+      "worker_final_state_sha256": "95c8eb90d10ba05b265a20f5b6c437a8ef55c70576343f337f4efb92025328c8",
+      "native_audit_sha256": "ec5cfc18a2d5e9424059ab19c3439a1f5747bb121cf4dda7699ff046eabc2f89",
+      "report_sha256": "6228ffbbc91de1a25c5612ac4b5917d5895bb552d84e0c2b7b05ecca2482c803"
+    },
+    {
+      "name": "beep-ledger-mcp-v3-baseline-3",
+      "worker_final_state_sha256": "53340de44404eda89fa8f1a39c2f8d7041e1269cb381be205c09e6d3e1a61d84",
+      "native_audit_sha256": "76644279117e59903528dcc38cd5e027e09ad7cc141107cf8a5b2f36669f9cf2",
+      "report_sha256": "6228ffbbc91de1a25c5612ac4b5917d5895bb552d84e0c2b7b05ecca2482c803"
+    },
+    {
+      "name": "beep-ledger-mcp-v3-baseline-4",
+      "worker_final_state_sha256": "cfb992078374f67010b41d235f561c67f0a711559f246edc998f88538cd6ee91",
+      "native_audit_sha256": "21cdc193f0099f608286ac8e599a7a01a715382f03e79b34af7a5c05867178b8",
+      "report_sha256": "6228ffbbc91de1a25c5612ac4b5917d5895bb552d84e0c2b7b05ecca2482c803"
+    },
+    {
+      "name": "beep-ledger-mcp-v3-baseline-5",
+      "worker_final_state_sha256": "14804cb9d54e652d0bf2d008bb0789f48a7f401bd8dcbcf112dc5e2224744895",
+      "native_audit_sha256": "66e41ef46ae602c5442a6218091953c68ad9c6d027db21a8cf1f24116b6a32bb",
+      "report_sha256": "6228ffbbc91de1a25c5612ac4b5917d5895bb552d84e0c2b7b05ecca2482c803"
+    }
+  ],
+  "candidate_phase_launched": false,
+  "next": "Launch registered parallel transport pilot while source model phases are idle; finish it before starting any candidate phase."
+}

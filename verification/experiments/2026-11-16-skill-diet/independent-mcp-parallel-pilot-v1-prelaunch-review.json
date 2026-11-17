@@ -1,0 +1,103 @@
+{
+  "schema": 1,
+  "status": "prelaunch-review-pass-with-external-idle-launch-condition",
+  "scope": "Read-only prelaunch review of five short original Sol-medium native sessions. No model launched and no pilot result qualified.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/mcp-parallel-pilot-v1-plan.json",
+      "sha256": "7e8e5c800ec3973fa2da472d9666e1c79a05e9388c5575b72276ccbd87f71bec"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v5.py",
+      "sha256": "08f0a8c3644e916a1ab317985423fb7f570d4b9f1ec979afc6c4758be1424053"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-parallel-phase-v1-review.json",
+      "sha256": "62a0e74361ee1dd83af513c1063978b7a4ee09ad207db7dbda92681fe251c986"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/parallel-phase-v2-preflight.json",
+      "sha256": "70b4da581703e1f29a06e64bcaef06a194dab9bf7a75d63950ff4b25ce3b6653"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/mcp-transport-v4-qualification.json",
+      "sha256": "909bb9bff077b2d993b16e36e09fe9ab78b20dffd2a7310fbb2ce60c81fb7018"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-mcp-transport-v4-review.json",
+      "sha256": "529b6e4d966753bfbb86f58da6978e7e03293ebfcdaeaacd4c5e528455fc0eca"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v2/fixture.json",
+      "sha256": "91377b4c5f5685ce702ec1a5fc9e92916e7f4f01c6c26d2b6244c285f71120dc"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/transport-pilots/mcp-v2/policy.md",
+      "sha256": "2cfe6dc0746cfaa3d493d8c656ab0501c03e72b1331c1ca8e7ff76b0fd116e66"
+    },
+    {
+      "path": "eval/control-parity/rendering-artifact.mjs",
+      "sha256": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36"
+    },
+    {
+      "path": "eval/control-parity/codex-mcp-native-audit.mjs",
+      "sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0"
+    },
+    {
+      "path": "eval/control-parity/mailbox-mcp.mjs",
+      "sha256": "f660be0c380c4be28eab6a19837dfda8a4dae84138bd0754e7d05b38eb9ef64a"
+    },
+    {
+      "path": "test/control-parity-parallel-phase.test.mjs",
+      "sha256": "e1c5ebb4224196892390a0f3518ffd8b77ac056d33a787deeb6518422a22af20"
+    }
+  ],
+  "checks": [
+    {
+      "check": "All 1194 frozen file byte hashes match at review completion; tracked eval/plugin JS/MJS/CJS/TS/JSON plus tracked package.json coverage is complete",
+      "pass": true,
+      "tracked_set_count": 1180
+    },
+    {
+      "check": "Conservative closure contains all 17 recursively identified static ESM modules, 40 observed loaded current-worktree CJS modules and eval/seam-registry.json; this covers previously omitted grader/contract/holdout/native/handoff code separately from pinned runtime",
+      "pass": true
+    },
+    {
+      "check": "Pinned runtime HEAD matches a8509086ad28fa0e55cf3d1d818f2055294e663b; existing transport qualification and parallel zero-model review are frozen inputs",
+      "pass": true
+    },
+    {
+      "check": "Exactly five unique baseline samples, same literal fixture/policy, Sol medium, 300-second timeout, complete-original-phase execution and all sample output directories absent",
+      "pass": true
+    },
+    {
+      "check": "Four zero-model phase tests rerun independently with exit 0: concurrent barrier/exactly-once, retained Exception failure/no retry, zero launches for invalid phase, retained SystemExit failure",
+      "pass": true
+    },
+    {
+      "check": "Acceptance explicitly requires fresh raw grade/native replay, exact literal output bytes and cost 1.25, precisely five policy/workflow/finish calls with no extra actions, full hash/identity/exit binding",
+      "pass": true
+    },
+    {
+      "check": "Identity acceptance distinguishes globally unique mailbox UUIDs from session-scoped RPC IDs; overlap requires a common intersection across all five native session tool windows",
+      "pass": true
+    }
+  ],
+  "launch_conditions": [
+    "Launcher must retain evidence that the current Astra baseline phase has fully exited and no other source-measurement model phase is active before starting this pilot. This review does not certify that live condition.",
+    "Launch before candidate source measurement resumes or any source installation/prose-baseline changes; preserve plan bytes and rerun all frozen hash checks.",
+    "Retain launcher stdout and every original sample, including failures. No replacement or pooling with earlier transport pilots."
+  ],
+  "postlaunch_external_checks": [
+    "Runner raw/native pass is necessary but does not implement the complete pilot acceptance. Independently replay rendering grade and native audit, compare artifact bytes exactly, inspect exact rule cost, call count/order and every native/mailbox/capture join.",
+    "Require five unique native sessions/private directories and global mailbox UUIDs, successful expected CLI/model/effort/exits, no protocol errors and common five-window native timestamp overlap.",
+    "Any original failure or unmet overlap/identity/literal condition holds readiness without retry."
+  ],
+  "limits": [
+    "Raw rendering must_include scoring alone can accept extra text; the separately registered exact byte comparison is mandatory.",
+    "Native timestamps demonstrate overlapping short session windows only. They cannot establish simultaneous provider execution, performance, long-context reliability or general service limits.",
+    "The conservative freeze verifies current file bytes and observed/static imported closure. It is not an audit of every frozen source file or of untracked dependency trees. No new untracked code or source edits are authorised between freeze and execution.",
+    "No source-fidelity, source-savings or production-loop qualification follows from this pilot. Prior failed records and held cohorts remain unchanged."
+  ],
+  "blockers": []
+}

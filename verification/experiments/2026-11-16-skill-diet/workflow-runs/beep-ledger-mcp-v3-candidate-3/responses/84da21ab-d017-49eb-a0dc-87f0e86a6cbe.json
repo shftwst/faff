@@ -1,0 +1,69 @@
+{
+  "ok": true,
+  "value": {
+    "args": [
+      "events",
+      "append",
+      "--run",
+      "run-20260101-000000-beepboop-list-abc102",
+      "--root",
+      "/var/tmp/faff-ledger-measure-8g19Gh/actual/phase-events",
+      "--tokens",
+      "--session-id",
+      "ledger-measurement-session"
+    ],
+    "input": "{\"phase\":\"run\",\"type\":\"budget-checkpoint\",\"data\":{\"spent\":{\"elapsed_ms\":1000,\"attempts\":1,\"tokens\":120,\"cost\":0.25},\"tokens_source\":\"transcript\",\"breached\":[],\"outcome\":\"continue\",\"warnings\":[]}}",
+    "exit_code": 0,
+    "stdout": "{\"schema\":2,\"run_id\":\"run-20260101-000000-beepboop-list-abc102\",\"seq\":18,\"ts\":\"2026-11-17T01:25:27.778Z\",\"prev\":\"fe2df9f32403eb05226088ae672767a66c14d9f5e3300a054e2e219d3b033092\",\"phase\":\"run\",\"type\":\"budget-checkpoint\",\"data\":{\"spent\":{\"elapsed_ms\":1000,\"attempts\":1,\"tokens\":120,\"cost\":0.25},\"tokens_source\":\"transcript\",\"breached\":[],\"outcome\":\"continue\",\"warnings\":[],\"tokens\":{\"input\":330,\"output\":60,\"cache_write_5m\":6,\"cache_write_1h\":3,\"cache_read\":12},\"ledger_sha256_before\":\"84dc1f2600dfb3ab27fd2796f7eb246e5bae6e48438ff62f0ce88acc63aee721\",\"ledger_sha256_after\":\"6fa33cc722b2240ed2d57edb7230fd0d2f6c00fedfe7509c0445163e5ae1d478\"}}\n",
+    "stderr": "",
+    "error": null,
+    "ledger_before_sha256": "84dc1f2600dfb3ab27fd2796f7eb246e5bae6e48438ff62f0ce88acc63aee721",
+    "ledger_after_sha256": "6fa33cc722b2240ed2d57edb7230fd0d2f6c00fedfe7509c0445163e5ae1d478",
+    "prior_events_sha256": "d6ef3c5f2e0c17164b72d94a63df0540f434e83c8f91643660c0d271d185bf06",
+    "events_after_sha256": "b5681457561ed9b8eb6de4001ff7bbb07e578b73248661adce771f5d87358fc6",
+    "appended": [
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 17,
+        "ts": "2026-11-17T01:25:27.778Z",
+        "prev": "4eaa64d546f16f6009928b9925c14eb7a1941070283e8f50d99b10961b818e41",
+        "phase": "run",
+        "type": "ledger-write",
+        "data": {
+          "ledger_sha256": "6fa33cc722b2240ed2d57edb7230fd0d2f6c00fedfe7509c0445163e5ae1d478"
+        }
+      },
+      {
+        "schema": 2,
+        "run_id": "run-20260101-000000-beepboop-list-abc102",
+        "seq": 18,
+        "ts": "2026-11-17T01:25:27.778Z",
+        "prev": "fe2df9f32403eb05226088ae672767a66c14d9f5e3300a054e2e219d3b033092",
+        "phase": "run",
+        "type": "budget-checkpoint",
+        "data": {
+          "spent": {
+            "elapsed_ms": 1000,
+            "attempts": 1,
+            "tokens": 120,
+            "cost": 0.25
+          },
+          "tokens_source": "transcript",
+          "breached": [],
+          "outcome": "continue",
+          "warnings": [],
+          "tokens": {
+            "input": 330,
+            "output": 60,
+            "cache_write_5m": 6,
+            "cache_write_1h": 3,
+            "cache_read": 12
+          },
+          "ledger_sha256_before": "84dc1f2600dfb3ab27fd2796f7eb246e5bae6e48438ff62f0ce88acc63aee721",
+          "ledger_sha256_after": "6fa33cc722b2240ed2d57edb7230fd0d2f6c00fedfe7509c0445163e5ae1d478"
+        }
+      }
+    ]
+  }
+}

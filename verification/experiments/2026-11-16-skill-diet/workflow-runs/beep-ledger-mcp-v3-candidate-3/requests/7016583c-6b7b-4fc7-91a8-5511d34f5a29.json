@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"id":"stop-reason-ownership","value":{"normal_writer":"run close","checkpoint_fail_closed_token":"sentry-abort","affects_completeness":false,"legacy_absence_allowed":true}}}

@@ -1,0 +1,181 @@
+{
+  "status": "pass",
+  "recorded_grade_matches": true,
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "mixed-ledger",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "incomplete-ledger",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "phase-events",
+        "kind": "execution",
+        "pass": true,
+        "problems": []
+      },
+      {
+        "id": "failed-resolution",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "superseded",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "review-hold",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "slow-prep",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "outage-prep",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "landing-human",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "post-merge-writer",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "new-ticket",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "rich-detail",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "event-ownership",
+        "kind": "decision",
+        "pass": true
+      },
+      {
+        "id": "stop-reason-ownership",
+        "kind": "decision",
+        "pass": true
+      }
+    ],
+    "errors": [],
+    "problems": [],
+    "detail_reviews": [
+      {
+        "case_id": "mixed-ledger",
+        "problems": [],
+        "details_sha256": "bcc711bf8b990cd6b77fb4496fbf01b28a779052e38f219dcdeb6ace40b96640",
+        "source_sha256": "116a996b3d903b769927a2dc71bdf2ad6ab691ac3fee1c362da707d5e06e5780",
+        "extra_claims": []
+      },
+      {
+        "case_id": "incomplete-ledger",
+        "problems": [],
+        "details_sha256": "bcc711bf8b990cd6b77fb4496fbf01b28a779052e38f219dcdeb6ace40b96640",
+        "source_sha256": "e1d104ad58da01bdd2b4938abd4f065893e1b91be1566afbd9baa9e89dcdad06",
+        "extra_claims": []
+      }
+    ],
+    "manual_grounding_required": false,
+    "legacy_exact_projection": {
+      "status": "pass",
+      "cases": [
+        {
+          "id": "mixed-ledger",
+          "kind": "execution",
+          "pass": true,
+          "problems": []
+        },
+        {
+          "id": "incomplete-ledger",
+          "kind": "execution",
+          "pass": true,
+          "problems": []
+        },
+        {
+          "id": "phase-events",
+          "kind": "execution",
+          "pass": true,
+          "problems": []
+        },
+        {
+          "id": "failed-resolution",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "superseded",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "review-hold",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "slow-prep",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "outage-prep",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "landing-human",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "post-merge-writer",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "new-ticket",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "rich-detail",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "event-ownership",
+          "kind": "decision",
+          "pass": true
+        },
+        {
+          "id": "stop-reason-ownership",
+          "kind": "decision",
+          "pass": true
+        }
+      ],
+      "errors": [],
+      "problems": []
+    }
+  }
+}

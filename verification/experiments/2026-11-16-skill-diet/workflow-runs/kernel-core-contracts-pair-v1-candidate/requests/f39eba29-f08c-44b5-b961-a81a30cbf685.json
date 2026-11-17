@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"thread-invalidation","value":{"old_cache_valid":false,"refresh_via_narrow_prep_before_verdict":true,"contradictory_challenge_supersedes_rating":true,"inline_consumer_must_reconcile":true}}}

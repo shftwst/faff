@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"delivery-precondition","text":"```faff-contract:delivery-outcome\n{\"outcome\":\"not-ready\",\"reason\":\"precondition:token-scope - workflow scope is missing; remedy: operator supplies a token with workflow scope\",\"corroborated\":false}\n```\n"}}

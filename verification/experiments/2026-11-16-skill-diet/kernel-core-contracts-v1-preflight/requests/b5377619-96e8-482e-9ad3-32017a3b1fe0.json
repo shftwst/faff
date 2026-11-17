@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"delivery-confirmed","text":"```faff-contract:delivery-outcome\n{\"outcome\":\"shipped\",\"corroborated\":true}\n```\n"}}

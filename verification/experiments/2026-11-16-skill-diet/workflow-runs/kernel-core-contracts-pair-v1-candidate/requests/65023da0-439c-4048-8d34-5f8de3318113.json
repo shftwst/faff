@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"spec-durable-authority","value":{"medium_attempts_resolution_before_failed_attempt_park":true,"ratification_durable_path":"docs/decisions.md","ratification_durable_tag":"Ratified-by: human","confidence_line_at_spec_end":true,"confidence_line_authoritative":true}}}

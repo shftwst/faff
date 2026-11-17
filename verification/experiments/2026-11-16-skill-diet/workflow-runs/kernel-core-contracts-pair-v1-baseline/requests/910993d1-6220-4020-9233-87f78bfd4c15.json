@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"ci-and-holdout","value":{"ci_green_requires_nonempty_set":true,"ci_green_requires_all_passing_terminal":true,"pending_check_satisfies_floor":false,"failed_check_satisfies_floor":false,"below_l4_provisions_holdout_env":false,"l4_holdout_required_verdict":"meets-spec"}}}

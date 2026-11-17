@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: authored and supplied exact skills pass real configured consumers without writes
+ok 1 - authored and supplied exact skills pass real configured consumers without writes
+  ---
+  duration_ms: 169.718673
+  type: 'test'
+  ...
+# Subtest: real pre-check rejects a routing occupant without the refer-back
+ok 2 - real pre-check rejects a routing occupant without the refer-back
+  ---
+  duration_ms: 78.87289
+  type: 'test'
+  ...
+# Subtest: structural success does not provide a semantic pass
+ok 3 - structural success does not provide a semantic pass
+  ---
+  duration_ms: 158.705653
+  type: 'test'
+  ...
+# Subtest: qualification rejects missing inspection
+ok 4 - qualification rejects missing inspection
+  ---
+  duration_ms: 162.837519
+  type: 'test'
+  ...
+# Subtest: qualification rejects duplicate inspection
+ok 5 - qualification rejects duplicate inspection
+  ---
+  duration_ms: 155.802283
+  type: 'test'
+  ...
+# Subtest: qualification rejects unexpected inspection
+ok 6 - qualification rejects unexpected inspection
+  ---
+  duration_ms: 158.080196
+  type: 'test'
+  ...
+# Subtest: qualification rejects different inspected bytes
+ok 7 - qualification rejects different inspected bytes
+  ---
+  duration_ms: 157.777446
+  type: 'test'
+  ...
+# Subtest: qualification rejects inspection after Validate report
+ok 8 - qualification rejects inspection after Validate report
+  ---
+  duration_ms: 158.054945
+  type: 'test'
+  ...
+# Subtest: qualification rejects changed fixture config
+ok 9 - qualification rejects changed fixture config
+  ---
+  duration_ms: 155.120493
+  type: 'test'
+  ...
+# Subtest: qualification rejects command failure disguised as a lint exit
+ok 10 - qualification rejects command failure disguised as a lint exit
+  ---
+  duration_ms: 157.453406
+  type: 'test'
+  ...
+# Subtest: qualification rejects CLI crash disguised as a lint exit
+ok 11 - qualification rejects CLI crash disguised as a lint exit
+  ---
+  duration_ms: 158.031904
+  type: 'test'
+  ...
+# Subtest: qualification rejects zero inspected occupants
+ok 12 - qualification rejects zero inspected occupants
+  ---
+  duration_ms: 158.894902
+  type: 'test'
+  ...
+# Subtest: inspection cannot precede an authored output or repeat
+ok 13 - inspection cannot precede an authored output or repeat
+  ---
+  duration_ms: 81.69901
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2011.04792

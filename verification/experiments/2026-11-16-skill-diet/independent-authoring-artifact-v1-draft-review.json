@@ -1,0 +1,208 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T01:44:11.784905+00:00",
+  "reviewer": {
+    "task": "/root/verify_wtf_scope",
+    "role": "Independent read-only source and deterministic-test reviewer",
+    "requested_verification_role": "Sol medium stand-in",
+    "native_model_identity_attested": false
+  },
+  "status": "draft_design_review_clear_with_mandatory_qualification_requirements",
+  "measurement_status": {
+    "registered": false,
+    "fixture_reviewed": false,
+    "model_measurement_run": false,
+    "installed": false,
+    "accepted": false,
+    "countable_savings": false
+  },
+  "bindings": {
+    "eval/control-parity/authoring-artifact.mjs": {
+      "sha256": "15f57261ac17a1fa53fa43d860dfb55760a9bf08eb2220ada6374951fcd7b664",
+      "bytes": 10408
+    },
+    "test/control-parity-authoring.test.mjs": {
+      "sha256": "683b34073e8333005239c6645721d4d392666b31593305f05a31b47c9ed77c46",
+      "bytes": 4984
+    },
+    "eval/control-parity/rendering-artifact.mjs": {
+      "sha256": "88b5bbff037cd5d9daff8d1094df3b885c01a34ce7902af47cc1354283cddc36",
+      "bytes": 8289
+    },
+    "eval/control-parity/candidate-command.mjs": {
+      "sha256": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50",
+      "bytes": 7740
+    },
+    "eval/control-parity/policy-reader.mjs": {
+      "sha256": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+      "bytes": 2228
+    },
+    "eval/control-parity/interactive-handoff.mjs": {
+      "sha256": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+      "bytes": 8344
+    },
+    "eval/control-parity/schema.mjs": {
+      "sha256": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+      "bytes": 15363
+    },
+    "plugin/skills/faff/bin/lib/validate-adapters.js": {
+      "sha256": "7a26ee73bdb254c03bc97bf4cf67db0620602cad40998a55d7234fd4eb4ffcb0",
+      "bytes": 131208
+    },
+    "verification/experiments/2026-11-16-skill-diet/baseline/authoring-adaptors-v1.md": {
+      "sha256": "74251c96bb33e9b5f15f370f994256a0ed25a588cd7a186ecca80d13eed98ae0",
+      "bytes": 12321
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/authoring-adaptors-v1-draft.md": {
+      "sha256": "617f0aab22190f136c44782942a954fea7be659e33c03238200253a7a31c1a88",
+      "bytes": 8945
+    },
+    "verification/experiments/2026-11-16-skill-diet/independent-authoring-adaptors-v1-draft-review.json": {
+      "sha256": "0a8210ce67a07c32fd30e2a0b1f1c42fade9dd66191f84326d195c2921443b3c",
+      "bytes": 7908
+    }
+  },
+  "verification": {
+    "command": "node --test test/control-parity-authoring.test.mjs",
+    "cwd": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h",
+    "exit_code": 0,
+    "tests": 13,
+    "pass": 13,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "duration_ms": 2010.323881,
+    "execution": "Independently rerun by this reviewer; ordinary real CLI test execution, no model calls.",
+    "source_hashes_rechecked_after_tests": true
+  },
+  "findings": [
+    "No immediate blocker found in the draft source and its bounded structural-inspection design.",
+    "Author inspection consumes exact persisted output text after write_output; Validate inspection consumes supplied source.skill before the report. Duplicate, missing, unexpected, byte-mismatched and incorrectly ordered inspections fail.",
+    "The isolated foreign occupant uses canonical .faff/config.yaml and an explicit empty .faff/config.local.yaml overlay. The subprocess uses an empty environment, read-only Node file permissions and no child-process permission.",
+    "The grader requires foreign membership exit 1, expected configured lint exit, exactly one configured occupant in RESULT, no signal/error/stderr and unchanged input bytes. This avoids missing-occupant and command-failure false passes.",
+    "The public task projects only case identity, mode, slot, task and source; private oracle fields are not projected. Full policy delivery is guarded before operations.",
+    "Current tests establish structural port and capture checks only; the semantic distinction test is a rubric rejection, not a completed semantic authoring fixture."
+  ],
+  "mandatory_before_qualification": [
+    "Freeze and bind the exact fixture, both complete policy/context arms, runtime commit/source and full imported helper closure. The wrapper manifest alone binds only its own source and is insufficient as import-closure qualification.",
+    "Freshly rerun real inspections from actual persisted Author artifacts and exact Validate source skills under the pinned runtime. Bind artifact/capture hashes and compare semantic consumer results; temporary-directory relocation must not hide other changes. Do not rely solely on captured stdout or a recomputed grade over captured inspection results.",
+    "Independently manually review every actual artifact against all applicable semantic checklist obligations, supplied facts and seeded violations, rejecting invented violations and invented requirements. Structural lint success is not semantic conformance.",
+    "For the native review wrapper Author case, consume its explicit native-result conversion example with the real pinned review-verdict contract consumer, including a meaningful invalid mutation. Claim example admission only, not execution of the generated wrapper.",
+    "Review and freeze the final fixture and public task for oracle leakage, inherited ambiguities, mandatory reference delivery and bounded scope before any model measurement.",
+    "Retain separate native policy-delivery/identity gates, actual artifact bindings and completed-case checks; no candidate or source acceptance follows from this draft review."
+  ],
+  "recommended_fixture": {
+    "author_cases": [
+      {
+        "id": "routing-adaptor",
+        "checks": [
+          "correct slot and dialect",
+          "ambient and standalone reference",
+          "gateway authority and non-normative recap",
+          "Define and Validate",
+          "no sequencing or tracker ownership"
+        ]
+      },
+      {
+        "id": "native-review-wrapper",
+        "checks": [
+          "fused wrapper for supplied native tool",
+          "fixed review-verdict emission and vocabulary",
+          "explicit supplied native-result conversion example",
+          "real contract consumption of that example"
+        ]
+      },
+      {
+        "id": "methodology",
+        "checks": [
+          "all four mandatory named outputs",
+          "optional degradation described as optional",
+          "suite appetite",
+          "explicit supplied seam or deterministic none"
+        ]
+      }
+    ],
+    "validate_cases": [
+      {
+        "id": "valid-rendering",
+        "expected": "pass",
+        "checks": [
+          "explicit rendering refer-back and no-internal-contract exemption"
+        ]
+      },
+      {
+        "id": "faulty-routing",
+        "expected": "fail",
+        "seeded_faults": [
+          "missing reference",
+          "authoritative recap",
+          "added fixed routing state"
+        ]
+      },
+      {
+        "id": "faulty-review-producer",
+        "expected": "fail",
+        "seeded_faults": [
+          "missing emitted contract",
+          "custom appetite",
+          "backlog ownership",
+          "absent seam declaration"
+        ]
+      },
+      {
+        "id": "faulty-concurrency",
+        "expected": "fail",
+        "seeded_faults": [
+          "shared concurrent worktree",
+          "incomplete serialisation",
+          "omitted terminal ledger recording"
+        ]
+      }
+    ],
+    "rule_decisions": [
+      "runtime foreign validation",
+      "correctly typed bundled exemption",
+      "native-wrapper requirement",
+      "optional methodology degradation",
+      "structural versus semantic conformance",
+      "human calibration baseline not required by lint"
+    ],
+    "output_checks": [
+      "complete actual SKILL.md for each Author",
+      "correct semantic report signal for each Validate",
+      "every seeded violation with grounded location and viable fix",
+      "no invented violations",
+      "equivalent wording and violation ordering allowed"
+    ],
+    "real_consumer_checks": [
+      "configured profile inspection of every actual skill with exactly one occupant actually linted",
+      "separate isolated charter scan where applicable",
+      "review-example fixed-contract consumption",
+      "is-bundled correct default, bundled alternative, foreign name and wrong-slot bundled name",
+      "structurally passing but unmistakably semantically invalid fixture"
+    ],
+    "additional_negative_preflight": [
+      "omitted artifact",
+      "missing inspection",
+      "changed inspected bytes",
+      "missing seeded violation",
+      "invented violation",
+      "invalid emitted review contract",
+      "missing methodology output",
+      "warning-only or skipped consumer false pass"
+    ]
+  },
+  "known_inherited_ambiguities_and_limits": [
+    "Rendering has an explicit refer-back exemption despite generic statements elsewhere; do not turn generic wording into a hidden rendering failure.",
+    "Intake lacks a fixed contract despite generic producer-emission wording.",
+    "The unchanged scaffold does not mandate one exact heading arrangement.",
+    "The fixed slot table predates some current slots; gateway authority governs without silently expanding this cut.",
+    "Current configured lint skips registered occupants without verifying slot compatibility, whereas is-bundled checks compatibility. Preserve this consumer limitation; do not require a configured failure that the consumer does not implement.",
+    "Configured profile checks are not complete charter or seam-registry checks. Where structural requirements rely on referenced material, deliver that reference context identically to both arms.",
+    "SKILL.md source is not ordinary human-facing rendered prose; do not apply unrelated rendering density or visual-form requirements to authored source.",
+    "This review does not prove live installation, runtime adoption, generated-skill execution, full authoring-policy equivalence or model parity.",
+    "No final fixture exists in this review scope; the proposed matrix is a recommendation and requires its own review and zero-model preflight."
+  ],
+  "writes": "Only this independent review record; no source, helper, fixture or active-run edits."
+}

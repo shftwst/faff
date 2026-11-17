@@ -1,0 +1,233 @@
+{
+  "schema": 1,
+  "status": "prepared-main-based-prose-only-uncommitted-unqualified",
+  "cohort": "consumers",
+  "main_base": "63e71d1f6bfa5ea8ba6590861ab2fd76b7042f2d",
+  "sweep_base": "3c148dc6f07032e5112989651e210217af7ef13b",
+  "branch": "feat/skill-diet-prose-consumers-main",
+  "worktree": "/var/tmp/faff-prose-consumers-main",
+  "source_patch": {
+    "command": "git diff --binary 3c148dc6f07032e5112989651e210217af7ef13b -- <only cohort files>",
+    "sha256": "601fa1ead5811f5b45f874baab43dfd32fe70c0f8afb0c7115703967d988ad80",
+    "bytes": 57757,
+    "path": "/var/tmp/faff-prose-consumers-new-sweep.patch"
+  },
+  "actual_main_source_patch_sha256": "502ef27fc78e5add457b5668f3745a5caf7968fe3f38466df654585d6e4edbc4",
+  "files": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "main_before_bytes": 157720,
+      "main_after_bytes": 157576,
+      "saved_bytes": 144,
+      "sweep_delta_bytes": 144,
+      "main_before_tokens": 39083,
+      "main_after_tokens": 39048,
+      "saved_estimated_tokens": 35,
+      "sweep_delta_tokens": 35,
+      "main_before_sha256": "7340b6f3cc1dc51887fcfdb710785e59e287406f6c3f89f45510abade3e0f69d",
+      "main_after_sha256": "6ea68fdab91425ccf686415c8b273c0bcc0788c6cffc022ddbe9b38e9ae83559",
+      "headings_identical": true,
+      "fences_identical": true,
+      "frontmatter_identical_or_not_applicable": true,
+      "lost_command_spans": []
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "main_before_bytes": 179464,
+      "main_after_bytes": 179185,
+      "saved_bytes": 279,
+      "sweep_delta_bytes": 279,
+      "main_before_tokens": 44495,
+      "main_after_tokens": 44426,
+      "saved_estimated_tokens": 69,
+      "sweep_delta_tokens": 69,
+      "main_before_sha256": "ae2543710e35c4f53eabd59fae6bc5f47d3e3e1d2e9c8569aeaea7c47542f4ef",
+      "main_after_sha256": "67949b420e063a193fccbe001a5f0befd894a52f37e22432e4e811edb7fd1a99",
+      "headings_identical": true,
+      "fences_identical": true,
+      "frontmatter_identical_or_not_applicable": true,
+      "lost_command_spans": []
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "main_before_bytes": 23456,
+      "main_after_bytes": 23298,
+      "saved_bytes": 158,
+      "sweep_delta_bytes": 158,
+      "main_before_tokens": 5804,
+      "main_after_tokens": 5766,
+      "saved_estimated_tokens": 38,
+      "sweep_delta_tokens": 38,
+      "main_before_sha256": "3258c873a3ddae74a97d17f34812748a564655b34cbbae36a3753d52d329ce78",
+      "main_after_sha256": "f0d8aa30e61b12624b3e29abb95bf1c678f675a17d6cc58f3eab1234bbe47d97",
+      "headings_identical": true,
+      "fences_identical": true,
+      "frontmatter_identical_or_not_applicable": true,
+      "lost_command_spans": []
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "main_before_bytes": 24782,
+      "main_after_bytes": 24684,
+      "saved_bytes": 98,
+      "sweep_delta_bytes": 98,
+      "main_before_tokens": 6049,
+      "main_after_tokens": 6026,
+      "saved_estimated_tokens": 23,
+      "sweep_delta_tokens": 24,
+      "main_before_sha256": "ad434e473fefdebb9e38b4ec003269875e31471cda65d542d920478ecc4a588c",
+      "main_after_sha256": "02018c31a741c261116735fac209647648133b18ef118f52dbfaafa1d0fe156b",
+      "headings_identical": true,
+      "fences_identical": true,
+      "frontmatter_identical_or_not_applicable": true,
+      "lost_command_spans": []
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "main_before_bytes": 23185,
+      "main_after_bytes": 23024,
+      "saved_bytes": 161,
+      "sweep_delta_bytes": 161,
+      "main_before_tokens": 5733,
+      "main_after_tokens": 5693,
+      "saved_estimated_tokens": 40,
+      "sweep_delta_tokens": 40,
+      "main_before_sha256": "093c997b1c26f1d98f68e11e23e01cae9cd7f4cfa9616a1280303a30d835a810",
+      "main_after_sha256": "bee1f065f9487a723f4a55cb7a80d1156d2f861e6a482205e532f76fd51ab6cf",
+      "headings_identical": true,
+      "fences_identical": true,
+      "frontmatter_identical_or_not_applicable": true,
+      "lost_command_spans": []
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "main_before_bytes": 45906,
+      "main_after_bytes": 45820,
+      "saved_bytes": 86,
+      "sweep_delta_bytes": 86,
+      "main_before_tokens": 11342,
+      "main_after_tokens": 11321,
+      "saved_estimated_tokens": 21,
+      "sweep_delta_tokens": 21,
+      "main_before_sha256": "1739242fe22980f02a0697bb958f9845739117e85a6708664d68f1d761db578e",
+      "main_after_sha256": "3f115b17e9d4017332eea3bdbdb747735796435e2d57852b588d70c8222c5d31",
+      "headings_identical": true,
+      "fences_identical": true,
+      "frontmatter_identical_or_not_applicable": true,
+      "lost_command_spans": []
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "main_before_bytes": 104335,
+      "main_after_bytes": 104236,
+      "saved_bytes": 99,
+      "sweep_delta_bytes": 129,
+      "main_before_tokens": 25883,
+      "main_after_tokens": 25858,
+      "saved_estimated_tokens": 25,
+      "sweep_delta_tokens": 32,
+      "main_before_sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+      "main_after_sha256": "6a05f5f815795dee300c5a248cb570411c89fa824e4f5a98fdb097df4e609a48",
+      "headings_identical": true,
+      "fences_identical": true,
+      "frontmatter_identical_or_not_applicable": true,
+      "lost_command_spans": []
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "main_before_bytes": 76181,
+      "main_after_bytes": 75989,
+      "saved_bytes": 192,
+      "sweep_delta_bytes": 192,
+      "main_before_tokens": 18866,
+      "main_after_tokens": 18818,
+      "saved_estimated_tokens": 48,
+      "sweep_delta_tokens": 47,
+      "main_before_sha256": "a8e8608fe6f9a43f36b9f523e54ae1b1c66dc5e6ba03dc3be255127fab2cf3a4",
+      "main_after_sha256": "5459e9aac89b2f7aee8234b7f9f535ee8e159a28a7c220670782c7a387fa2399",
+      "headings_identical": true,
+      "fences_identical": true,
+      "frontmatter_identical_or_not_applicable": true,
+      "lost_command_spans": []
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "main_before_bytes": 31551,
+      "main_after_bytes": 31496,
+      "saved_bytes": 55,
+      "sweep_delta_bytes": 55,
+      "main_before_tokens": 7806,
+      "main_after_tokens": 7794,
+      "saved_estimated_tokens": 12,
+      "sweep_delta_tokens": 12,
+      "main_before_sha256": "92583ba51c7ed42b9729c23b7c2e3367ab830ca023e68103845094e127478b54",
+      "main_after_sha256": "4235fb0c6e0ddbce7a79ad234faae1aa0b414778d37155c83637feee48aef04d",
+      "headings_identical": true,
+      "fences_identical": true,
+      "frontmatter_identical_or_not_applicable": true,
+      "lost_command_spans": []
+    }
+  ],
+  "saved_bytes": 1272,
+  "saved_estimated_tokens": 311,
+  "token_method": "ceil(UTF-16 code units /4) per whole main file, summed. Rounding can differ from the sweep baseline token delta.",
+  "checks": {
+    "bytes_equal_sweep_delta_except_explicit_deferred_prep": true,
+    "protected_structure_unchanged": true
+  },
+  "prose_baseline": {
+    "path": "plugin/skills/faff/prose-baseline.json",
+    "before_sha256": "5193d3f235160e00644f66e33abac04bfc6a5d6d60ea41996d141b62ba426f5a",
+    "after_sha256": "6bffa365a0b704182abcbd3c70c84a31a269dcf4f4066d3ba327b22999511d7b",
+    "lowered_keys": [
+      "faff-beep-boop/SKILL.md",
+      "faff-graft/SKILL.md",
+      "faff-jot/SKILL.md",
+      "faff-map/SKILL.md",
+      "faff-onboard/SKILL.md",
+      "faff-plot/SKILL.md",
+      "faff-prep/SKILL.md",
+      "faff-tidy/SKILL.md",
+      "faff-wtf/SKILL.md"
+    ],
+    "canonical_serialiseBaseline": true,
+    "only_matching_entries_lowered": true
+  },
+  "rule_inventory": {
+    "path": "records/specs/2026-11-17-prose-sweep-consumers-design.md",
+    "sha256": "c6edace278743b345faa332c97248b191c2dc36fbea469e96ab5a3bc5466f262",
+    "rows": 28,
+    "anchor_source": "Actual deleted main blocks via exported deletedLines/deletedBlocks; no kept/model-proof claim."
+  },
+  "prep_conflict": {
+    "path": "/var/tmp/faff-prose-consumers-prep-conflict.diff",
+    "sha256": "8af97f6bb9755d7167430b16b10822b5f70e5aaa1374f4fb6626d734fdb662aa",
+    "conflicted_file_sha256": "ac4eeb74ea8c4e7038fa5508a73e8195783d26ea73db824013f613a38116b8fa",
+    "resolution": "Root authorised restore owned prep path from cohort HEAD, then exact unique substitutions only."
+  },
+  "prep_substitutions": [
+    {
+      "old": "(the producer is responsible for its own quality bar) ",
+      "new": "",
+      "old_occurrences_in_main": 1,
+      "status": "applied"
+    },
+    {
+      "old": "This turns the same-turn-attach rule into a self-checked precondition of the *return value* itself, not just of the turn ending.",
+      "new": "The attach check is a precondition of the *return value*, not only turn completion.",
+      "old_occurrences_in_main": 1,
+      "status": "applied"
+    },
+    {
+      "old": "This is bounded LLM judgement, not a closed-vocabulary parser like heading-slug validation.",
+      "new": "This uses bounded LLM judgement, unlike heading-slug parsing.",
+      "old_occurrences_in_main": 0,
+      "status": "deferred-no-unique-exact-match"
+    }
+  ],
+  "scope_limits": [
+    "Only new sweep prose substitutions are applied; no whole source replacement.",
+    "No tests, models, commits, pushes or PRs; no old experiment/planner changes.",
+    "Root owns review, integration checks and landing."
+  ]
+}

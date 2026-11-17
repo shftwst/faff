@@ -596,6 +596,22 @@ test("refutation-code criteria append the shared fixture-data section and a samp
   assert.ok(prose.includes(section), "the lens is followed by the shared section verbatim");
   assert.ok(prose.endsWith(`Fixture paths: ${SAMPLE_FIXTURE_PATHS.join(", ")}`));
   assert.ok(prose.indexOf("## Review lens") < prose.indexOf(section) && prose.indexOf(section) < prose.indexOf("Fixture paths:"));
+  assert.doesNotMatch(prose, /## (Output|How findings are handled|Folding both passes|LLM provider integration)/);
+  assert.doesNotMatch(prose, /Fix actionable defects|Record every disposition|Fold both passes/);
+});
+
+test("refutation-code loads only the reviewer section in either skill layout", (t) => {
+  const pluginDir = mkdtempSync(join(tmpdir(), "faff-review-lens-"));
+  t.after(() => rmSync(pluginDir, { recursive: true, force: true }));
+  const skillDir = join(pluginDir, "skills", "faffter-dark-adversarial-review");
+  const referenceDir = join(pluginDir, "skills", "faff", "references");
+  mkdirSync(skillDir, { recursive: true });
+  mkdirSync(referenceDir, { recursive: true });
+  writeFileSync(join(referenceDir, "review.md"), "\n### Fixture data in review\nFixture rule.\n### Next\nUnrelated rule.\n");
+  for (const nextHeading of ["Output", "LLM provider integration"]) {
+    writeFileSync(join(skillDir, "SKILL.md"), `# Skill\n\n## Review lens\nFind defects.\n### Detail\nPreserve evidence.\n\n## ${nextHeading}\nCaller duties.\n`);
+    assert.equal(loadRefutationCodeProse(pluginDir), `## Review lens\nFind defects.\n### Detail\nPreserve evidence.\n\n### Fixture data in review\nFixture rule.\n\nFixture paths: ${SAMPLE_FIXTURE_PATHS.join(", ")}`);
+  }
 });
 
 test("refutation-code-006 and -007: the fixture-only diff stays clean, the diff with real-code injection is flagged", () => {

@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"ci-absence","value":{"ci_state":"no-ci-coverage","floor_satisfied":false,"autonomous_park":"needs-human","interactive_explicit_confirm":true}}}

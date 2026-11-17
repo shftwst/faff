@@ -1,0 +1,515 @@
+{
+  "status": "pass",
+  "fixture_sha256": "b8af47373da31ac4a57ceaa3ff713676f95ade0fc80928c4cb329bd66397a971",
+  "scope": "Zero-model actual pinned contract consumption of reference inputs and invalid controls; not model or source acceptance.",
+  "cases": [
+    {
+      "case_id": "review-clean",
+      "pass": true,
+      "positive": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "review-verdict"
+        ],
+        "input": {
+          "signal": "pass",
+          "findings": []
+        },
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"pass\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "signal": "pass",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "negative": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "review-verdict"
+        ],
+        "input": {
+          "verdict": "pass"
+        },
+        "exit_code": 1,
+        "stdout": "{\"signal\":\"needs-human\",\"findings\":[],\"conformant\":false,\"violations\":[\"signal undefined not in {pass,fail,needs-human,unavailable} \u2014 coerced to needs-human\",\"needs-human carries no findings\"]}\n",
+        "stderr": "",
+        "value": {
+          "signal": "needs-human",
+          "findings": [],
+          "conformant": false,
+          "violations": [
+            "signal undefined not in {pass,fail,needs-human,unavailable} \u2014 coerced to needs-human",
+            "needs-human carries no findings"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "review-provider-outage",
+      "pass": true,
+      "positive": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "review-verdict"
+        ],
+        "input": {
+          "signal": "unavailable",
+          "findings": []
+        },
+        "exit_code": 0,
+        "stdout": "{\"signal\":\"unavailable\",\"findings\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "signal": "unavailable",
+          "findings": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "negative": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "review-verdict"
+        ],
+        "input": {
+          "signal": "unavailable",
+          "findings": [
+            {
+              "location_present": false,
+              "action_present": false
+            }
+          ]
+        },
+        "exit_code": 1,
+        "stdout": "{\"signal\":\"unavailable\",\"findings\":[{\"location_present\":false,\"action_present\":false}],\"conformant\":false,\"violations\":[\"finding[0] has no location\",\"finding[0] has no action\"]}\n",
+        "stderr": "",
+        "value": {
+          "signal": "unavailable",
+          "findings": [
+            {
+              "location_present": false,
+              "action_present": false
+            }
+          ],
+          "conformant": false,
+          "violations": [
+            "finding[0] has no location",
+            "finding[0] has no action"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "spec-review-clean",
+      "pass": true,
+      "positive": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "spec-review-verdict"
+        ],
+        "input": {
+          "verdict": "approve",
+          "objections": []
+        },
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"approve\",\"objections\":[],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "approve",
+          "objections": [],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "negative": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "spec-review-verdict"
+        ],
+        "input": {
+          "verdict": "revise",
+          "objections": []
+        },
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"revise\",\"objections\":[],\"conformant\":false,\"violations\":[\"revise carries no objections\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "revise",
+          "objections": [],
+          "conformant": false,
+          "violations": [
+            "revise carries no objections"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "spec-review-founded",
+      "pass": true,
+      "positive": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "spec-review-verdict"
+        ],
+        "input": {
+          "verdict": "revise",
+          "objections": [
+            {
+              "lens": "QA",
+              "severity": "major",
+              "claim": "Expected receipt content is unspecified",
+              "evidence": "The DONE section says only that the receipt works",
+              "predicted_consequence": "A verifier cannot decide whether a displayed receipt satisfies the criterion"
+            }
+          ]
+        },
+        "exit_code": 0,
+        "stdout": "{\"verdict\":\"revise\",\"objections\":[{\"lens\":\"QA\",\"severity\":\"major\",\"claim\":\"Expected receipt content is unspecified\",\"evidence\":\"The DONE section says only that the receipt works\",\"predicted_consequence\":\"A verifier cannot decide whether a displayed receipt satisfies the criterion\"}],\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "revise",
+          "objections": [
+            {
+              "lens": "QA",
+              "severity": "major",
+              "claim": "Expected receipt content is unspecified",
+              "evidence": "The DONE section says only that the receipt works",
+              "predicted_consequence": "A verifier cannot decide whether a displayed receipt satisfies the criterion"
+            }
+          ],
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "negative": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "spec-review-verdict"
+        ],
+        "input": {
+          "verdict": "approve",
+          "objections": [
+            {
+              "lens": "QA",
+              "severity": "major",
+              "claim": "Expected receipt content is unspecified",
+              "evidence": "The DONE section says only that the receipt works",
+              "predicted_consequence": "A verifier cannot decide whether a displayed receipt satisfies the criterion"
+            }
+          ]
+        },
+        "exit_code": 1,
+        "stdout": "{\"verdict\":\"approve\",\"objections\":[{\"lens\":\"QA\",\"severity\":\"major\",\"claim\":\"Expected receipt content is unspecified\",\"evidence\":\"The DONE section says only that the receipt works\",\"predicted_consequence\":\"A verifier cannot decide whether a displayed receipt satisfies the criterion\"}],\"conformant\":false,\"violations\":[\"approve carries objections \u2014 approve must carry none\"]}\n",
+        "stderr": "",
+        "value": {
+          "verdict": "approve",
+          "objections": [
+            {
+              "lens": "QA",
+              "severity": "major",
+              "claim": "Expected receipt content is unspecified",
+              "evidence": "The DONE section says only that the receipt works",
+              "predicted_consequence": "A verifier cannot decide whether a displayed receipt satisfies the criterion"
+            }
+          ],
+          "conformant": false,
+          "violations": [
+            "approve carries objections \u2014 approve must carry none"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "delivery-confirmed",
+      "pass": true,
+      "positive": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "delivery-outcome"
+        ],
+        "input": {
+          "outcome": "shipped",
+          "corroborated": true
+        },
+        "exit_code": 0,
+        "stdout": "{\"outcome\":\"shipped\",\"reason\":\"\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "outcome": "shipped",
+          "reason": "",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "negative": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "delivery-outcome"
+        ],
+        "input": {
+          "outcome": "shipped",
+          "corroborated": false
+        },
+        "exit_code": 1,
+        "stdout": "{\"outcome\":\"failed\",\"reason\":\"unconfirmed merge/deploy\",\"conformant\":false,\"violations\":[\"shipped is not corroborated by the producer's result \u2014 coerced to failed\"]}\n",
+        "stderr": "",
+        "value": {
+          "outcome": "failed",
+          "reason": "unconfirmed merge/deploy",
+          "conformant": false,
+          "violations": [
+            "shipped is not corroborated by the producer's result \u2014 coerced to failed"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "delivery-precondition",
+      "pass": true,
+      "positive": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "delivery-outcome"
+        ],
+        "input": {
+          "outcome": "not-ready",
+          "reason": "precondition:token-scope - workflow scope is missing; remedy: operator supplies a token with workflow scope",
+          "corroborated": false
+        },
+        "exit_code": 0,
+        "stdout": "{\"outcome\":\"not-ready\",\"reason\":\"precondition:token-scope - workflow scope is missing; remedy: operator supplies a token with workflow scope\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "outcome": "not-ready",
+          "reason": "precondition:token-scope - workflow scope is missing; remedy: operator supplies a token with workflow scope",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "negative": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "delivery-outcome"
+        ],
+        "input": {
+          "outcome": "not-ready",
+          "reason": ""
+        },
+        "exit_code": 1,
+        "stdout": "{\"outcome\":\"not-ready\",\"reason\":\"\",\"conformant\":false,\"violations\":[\"not-ready carries no reason\"]}\n",
+        "stderr": "",
+        "value": {
+          "outcome": "not-ready",
+          "reason": "",
+          "conformant": false,
+          "violations": [
+            "not-ready carries no reason"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "delivery-unconfirmed",
+      "pass": true,
+      "positive": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "delivery-outcome"
+        ],
+        "input": {
+          "outcome": "failed",
+          "reason": "Native result does not confirm a merge or deployment",
+          "corroborated": false
+        },
+        "exit_code": 0,
+        "stdout": "{\"outcome\":\"failed\",\"reason\":\"Native result does not confirm a merge or deployment\",\"conformant\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "outcome": "failed",
+          "reason": "Native result does not confirm a merge or deployment",
+          "conformant": true,
+          "violations": []
+        }
+      },
+      "negative": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "delivery-outcome"
+        ],
+        "input": {
+          "outcome": "shipped",
+          "corroborated": false
+        },
+        "exit_code": 1,
+        "stdout": "{\"outcome\":\"failed\",\"reason\":\"unconfirmed merge/deploy\",\"conformant\":false,\"violations\":[\"shipped is not corroborated by the producer's result \u2014 coerced to failed\"]}\n",
+        "stderr": "",
+        "value": {
+          "outcome": "failed",
+          "reason": "unconfirmed merge/deploy",
+          "conformant": false,
+          "violations": [
+            "shipped is not corroborated by the producer's result \u2014 coerced to failed"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "readiness-marked",
+      "pass": true,
+      "positive": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "spec-readiness"
+        ],
+        "input": {
+          "confidence": "medium",
+          "decisions": [
+            {
+              "marker": "chosen"
+            },
+            {
+              "marker": "punt"
+            },
+            {
+              "marker": "assumes"
+            }
+          ],
+          "provenance_present": true
+        },
+        "exit_code": 0,
+        "stdout": "{\"confidence\":\"medium\",\"decisions\":[{\"classification\":\"closed\"},{\"classification\":\"open\"},{\"classification\":\"external\"}],\"markers_valid\":true,\"violations\":[]}\n",
+        "stderr": "",
+        "value": {
+          "confidence": "medium",
+          "decisions": [
+            {
+              "classification": "closed"
+            },
+            {
+              "classification": "open"
+            },
+            {
+              "classification": "external"
+            }
+          ],
+          "markers_valid": true,
+          "violations": []
+        }
+      },
+      "negative": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "spec-readiness"
+        ],
+        "input": {
+          "confidence": "medium",
+          "decisions": [
+            {
+              "marker": "none"
+            }
+          ],
+          "provenance_present": true
+        },
+        "exit_code": 1,
+        "stdout": "{\"confidence\":\"medium\",\"decisions\":[],\"markers_valid\":false,\"violations\":[\"decision[0] has no canonical marker (got \\\"none\\\")\"]}\n",
+        "stderr": "",
+        "value": {
+          "confidence": "medium",
+          "decisions": [],
+          "markers_valid": false,
+          "violations": [
+            "decision[0] has no canonical marker (got \"none\")"
+          ]
+        }
+      }
+    },
+    {
+      "case_id": "readiness-missing-marker",
+      "pass": true,
+      "positive": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "spec-readiness"
+        ],
+        "input": {
+          "confidence": "high",
+          "decisions": [
+            {
+              "marker": "none"
+            }
+          ],
+          "provenance_present": true
+        },
+        "exit_code": 1,
+        "stdout": "{\"confidence\":\"high\",\"decisions\":[],\"markers_valid\":false,\"violations\":[\"decision[0] has no canonical marker (got \\\"none\\\")\"]}\n",
+        "stderr": "",
+        "value": {
+          "confidence": "high",
+          "decisions": [],
+          "markers_valid": false,
+          "violations": [
+            "decision[0] has no canonical marker (got \"none\")"
+          ]
+        }
+      },
+      "negative": {
+        "argv": [
+          "node",
+          "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive/plugin/skills/faff/bin/faff",
+          "contract",
+          "spec-readiness"
+        ],
+        "input": {
+          "confidence": "unknown",
+          "decisions": [
+            {
+              "marker": "chosen"
+            }
+          ],
+          "provenance_present": true
+        },
+        "exit_code": 2,
+        "stdout": "",
+        "stderr": "faff contract spec-readiness: fail-loud: confidence \"unknown\" not in {high,medium,low}\n",
+        "value": null
+      }
+    }
+  ]
+}

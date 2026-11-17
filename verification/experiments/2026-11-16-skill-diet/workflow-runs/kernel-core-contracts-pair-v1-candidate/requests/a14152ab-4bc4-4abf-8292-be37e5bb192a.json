@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"slot-scope","value":{"validate_correct_bundled":false,"validate_wrong_slot":true,"validate_on_error":true,"infer_from_name":false}}}

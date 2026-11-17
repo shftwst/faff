@@ -1,0 +1,39 @@
+{
+  "schema": 1,
+  "status": "registered-before-model-launch",
+  "created_at": "2026-11-17T13:03:23.507951+00:00",
+  "plans": [
+    {
+      "path": "kernel-core-contracts-pair-v1-baseline-plan.json",
+      "sha256": "6dffc30609eb89777f3c3046b960d384fa2fd8618b35fbd14c1c4db47a824187"
+    },
+    {
+      "path": "kernel-core-contracts-pair-v1-candidate-plan.json",
+      "sha256": "258f716432e2614cf56607e2886d4e8fb6d0ab652849f8635022c60b40f5d92d"
+    }
+  ],
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "samples_per_arm": 1,
+  "artifacts_per_sample": 9,
+  "decisions_per_sample": 32,
+  "frozen_inputs": 160,
+  "acceptance": "One original baseline and one original candidate; full41-case set. Each needs raw grade pass, complete native audit, actual9-artifact pinned CLI replay plus9 invalid controls and independent semantic/authority review. No retries, replacement or regrading. Candidate launch waits for baseline checks. This is focused paired smoke evidence plus source equivalence and existing integration tests, not five-run reliability or statistical equivalence. User reprioritised source delivery and subscription conservation before registration.",
+  "limits": [
+    "Nine contract artifacts and32policy decisions. Decisions are not executed caching, parking, publishing or deployment workflows.",
+    "Source review and existing tests supplement this focused pair; no fullcaller/Opus/statistical equivalence claim.",
+    "Earlier held graft/routing cohorts are unchanged and excluded.",
+    "Source batch is implemented on a separate branch, with per-cut model evidence tracked independently."
+  ],
+  "source_batch_commit": "b447bccfd3384d91d9d19a1b01ecaf7041a2f2c5",
+  "candidate_source_sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9",
+  "zero_model_preflight": {
+    "status": "pass",
+    "cases": 41,
+    "policy_reads": 18,
+    "task_bytes": 17831,
+    "task_outer_size_estimate_tokens": 4840,
+    "actual_contract_references": 9,
+    "invalid_controls": 9
+  }
+}

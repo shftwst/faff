@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"confidence-routing","value":{"high_build_eligible":true,"medium_auto_admitted":false,"medium_moved_to_todo":true,"low_parked":true,"rating_retained_on_attachment":true,"tidy_checks_codebase_drift":true}}}

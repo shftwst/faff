@@ -1,0 +1,661 @@
+{
+  "status": "pass",
+  "bridge": {
+    "stop": null,
+    "requests": 58,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 91732,
+    "utf16_characters": 91052,
+    "sha256": "1d2ff8fef9b633e101e8d71e1b82e0c246d3f22fda544ed9058e95242feed694",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6090,
+        "sha256": "f797548b6d1bc49cc93adbd8f9477a61dc76b69221b8cbe7bc192a9e227add02"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6096,
+        "sha256": "896619aa22bf89fa67975155bea9941f233a5080f98d69baf2f644ccde165791"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6058,
+        "sha256": "9bcfe16ba18392c34256bb68eaccda149f6ed029d576ab70386502fe1b10cbcf"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6080,
+        "sha256": "7d5cb0ab649a5b7be621ac680e20c83e26c353b2679f3704b91913c9d90b7a05"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6028,
+        "sha256": "af7cb649e9b07e35ecd71db1e07dde2f6435343844760a9d9d7874988cd722da"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6008,
+        "sha256": "eb5fd9790a47213a3e9beb8a881ba5e0ea371178c4b9d2427ffe1153fa87ae75"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6030,
+        "sha256": "c4e9c3485770b97d4ebcd8e7a8ef76c696002099f6ec5127fb7498ffd3460813"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6040,
+        "sha256": "1f3234b77a02f460b75f39866c866a54cb51e07932702c3cf38b1cd33d8a306d"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6040,
+        "sha256": "a9b8133e4428dc5924b421134b82821f2dec58cb7141a7c072a7cc0aae0067fb"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6051,
+        "sha256": "85c45bd52ff5cca8362691cdb74c83a23923f260e87bc80642334ac7a52c181c"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "069752b1b104a280f85da4b2b5b41ca0c253ad9162ead4695219f9bd5a55bbcb"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6060,
+        "sha256": "16181a65dbafc9447c7f1a01304f1897bbfbda086450441441d532624c2eed09"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "68f2981a8d815b344ba53e2313b322980ff06fa168564906ccc58afe228bc801"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6004,
+        "sha256": "336a0064115101fcb45dd791351779c03d57f58d11c63136e5c7e329af4c306a"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6009,
+        "sha256": "fb5a5127134c1af5699e9d415fd82b1fe9a8b14a033385aa9ef75b350ba4b4b2"
+      },
+      {
+        "offset": 90000,
+        "end": 91052,
+        "characters": 1052,
+        "bytes": 1056,
+        "sha256": "baea52e880bc6af7fd7bd5b56aeb77030d390d2c0b300237daf77aaafe908792"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "pass",
+    "cases": [
+      {
+        "id": "review-clean",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "review-provider-outage",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "spec-review-clean",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "spec-review-founded",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "delivery-confirmed",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "delivery-precondition",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "delivery-unconfirmed",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "readiness-marked",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "readiness-missing-marker",
+        "kind": "artifact",
+        "pass": true,
+        "problems": [],
+        "rubric": {
+          "score": 1,
+          "checks": 1,
+          "passed": 1,
+          "vector": [
+            true
+          ]
+        }
+      },
+      {
+        "id": "fixed-authority",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "may_extend_verdicts": false,
+          "recap_overrides_kernel": false,
+          "dialect_swappable": true
+        }
+      },
+      {
+        "id": "standalone-loading",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "read_before_contract": true,
+          "gateway_absolute_path": "/opt/plugin/skills/faff/SKILL.md",
+          "project_cwd_base": false
+        }
+      },
+      {
+        "id": "consumer-loading",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "consumer_loads_on_entry": true,
+          "delegated_definitions_inherited": true,
+          "newly_authored_adaptor_needs_refer_back": true
+        }
+      },
+      {
+        "id": "slot-scope",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "validate_correct_bundled": false,
+          "validate_wrong_slot": true,
+          "validate_on_error": true,
+          "infer_from_name": false
+        }
+      },
+      {
+        "id": "slot-cache",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "validations_first_run": 1,
+          "validations_new_run": 1,
+          "record_path_pattern": ".faff/runs/<run-id>/slot-validation.md",
+          "config_can_disable_validation": false
+        }
+      },
+      {
+        "id": "slot-failure",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "park_unit_a": true,
+          "park_unit_b": false,
+          "abort_run": false,
+          "interactive_uses_failed_occupant": false,
+          "cite_violations_in_comment_and_log": true
+        }
+      },
+      {
+        "id": "slot-structural-only",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "semantic_validation_still_required": true,
+          "preflight_checks_nonshipped": true,
+          "preflight_is_optional": true
+        }
+      },
+      {
+        "id": "consumer-fold",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "parse_block_json": true,
+          "pipe_to_real_contract": true,
+          "contract_is_data_authority": true,
+          "producer_may_replace_contract_vocabulary": false
+        }
+      },
+      {
+        "id": "review-fallback",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "absent_block_prose_extraction_allowed": true,
+          "fused_wrapper_allowed": true,
+          "malformed_may_pass": false,
+          "outage_is_malformed_coercion_target": false
+        }
+      },
+      {
+        "id": "review-revert",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "revert_distinguishes_fixable_from_persistent": true,
+          "provider_outage_means_review_judged_code": false
+        }
+      },
+      {
+        "id": "spec-review-refusal",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "approve": false,
+          "park_needs_human": true,
+          "approval_allows_objections": false,
+          "nonapproval_requires_objections": true
+        }
+      },
+      {
+        "id": "delivery-preflight",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "graft_checks_before_build": true,
+          "ship_rechecks_at_delivery": true,
+          "return_outcome": "not-ready",
+          "retry_later": true,
+          "burn_code_fix_attempt": false,
+          "change_judgement_needs_human": false
+        }
+      },
+      {
+        "id": "delivery-precondition-kinds",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": [
+          "actions-policy",
+          "merge-method",
+          "push",
+          "token-scope"
+        ]
+      },
+      {
+        "id": "nondelegable-floor",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "ship_may_clear_floor_refusal": false,
+          "floor_asserted_before_ship": true,
+          "ship_may_add_refusal": true,
+          "conditions_may_be_removed": false
+        }
+      },
+      {
+        "id": "ci-absence",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "ci_state": "no-ci-coverage",
+          "floor_satisfied": false,
+          "autonomous_park": "needs-human",
+          "interactive_explicit_confirm": true
+        }
+      },
+      {
+        "id": "l4-floor-order",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "holdout_required": true,
+          "holdout_asserted_after_ac_ci_review": true,
+          "holdout_delegable": false,
+          "ship_default_readiness_passes": true
+        }
+      },
+      {
+        "id": "delivery-cleanup",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "ship_cleans_own_temp": true,
+          "ship_tears_down_worktree": false,
+          "graft_owns_worktree_lifecycle": true,
+          "uncorroborated_shipped_trusted": false
+        }
+      },
+      {
+        "id": "routing-admission",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "vocabulary_changes": false,
+          "only_two_build_ready_verdicts_admitted": true,
+          "other_verdicts_surface_reason": true,
+          "recompute_across_passes": true
+        }
+      },
+      {
+        "id": "thread-invalidation",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "old_cache_valid": false,
+          "refresh_via_narrow_prep_before_verdict": true,
+          "contradictory_challenge_supersedes_rating": true,
+          "inline_consumer_must_reconcile": true
+        }
+      },
+      {
+        "id": "confidence-routing",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "high_build_eligible": true,
+          "medium_auto_admitted": false,
+          "medium_moved_to_todo": true,
+          "low_parked": true,
+          "rating_retained_on_attachment": true,
+          "tidy_checks_codebase_drift": true
+        }
+      },
+      {
+        "id": "failed-resolve",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "park": true,
+          "root_cause": "punt-not-closed",
+          "wtf_surfaces_park": true,
+          "later_human_resolution_uses_unpark": true
+        }
+      },
+      {
+        "id": "marker-effects",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "chosen_reopened_by_reader": false,
+          "punt_blocks_build_past_decision": true,
+          "assumes_presence_checked_before_build": true,
+          "missing_assumption_parks": true,
+          "unmarked_tradeoff_valid": false,
+          "collect_punts_and_assumptions_at_top_level": true
+        }
+      },
+      {
+        "id": "punt-owner",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "any_owner": "(unowned)",
+          "wrong_case_owner": "(unowned)",
+          "free_form_allowed": true,
+          "owner_changes_gate": false,
+          "owner_in_contract_json": false,
+          "parse_across_lines": false
+        }
+      },
+      {
+        "id": "ratifier-authority",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "carry_inherited_tag": true,
+          "add_tag_to_untagged_choice": false,
+          "absence_means_agent_chosen": true,
+          "tag_changes_design_objection_gate": true,
+          "tag_in_contract_json": false,
+          "new_tag_requires_human_live_say_so": true
+        }
+      },
+      {
+        "id": "provenance",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "model_text": "unknown",
+          "version_text": "unknown",
+          "omit_harness_model_segment": false,
+          "include_full_spec_tracker_sentence": false,
+          "stamp_directly_under_h1": true,
+          "prep_adds_provenance_present": true,
+          "harness_model_and_version_are_gate_inputs": false
+        }
+      },
+      {
+        "id": "rendering-authority",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "terminal_normalised": true,
+          "tracker_description_normalised": true,
+          "tracker_comment_normalised": true,
+          "skill_source_exempt": true,
+          "internal_faff_log_exempt": true,
+          "central_emit_exists": false,
+          "inline_catalogue_extension_allowed": false,
+          "pipeline_branches_on_rendering_contract": false
+        }
+      },
+      {
+        "id": "rendering-and-writing",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "issue_gloss_includes_plain_description_and_unlock_consequence": true,
+          "invented_labels_allowed": false,
+          "cross_reference_restates_subject": true,
+          "descriptive_table_lead_column": true,
+          "redundant_ticket_restatement_required": false
+        }
+      },
+      {
+        "id": "slot-validation-procedure",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "invoke_authoring_validate_face": true,
+          "pass_occupant_and_slot": true,
+          "cache_fail_verdict_this_run": true
+        }
+      },
+      {
+        "id": "producer-fallbacks",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "spec_prose_extraction_allowed": true,
+          "spec_fused_wrapper_allowed": true,
+          "delivery_fused_wrapper_allowed": true
+        }
+      },
+      {
+        "id": "ci-and-holdout",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "ci_green_requires_nonempty_set": true,
+          "ci_green_requires_all_passing_terminal": true,
+          "pending_check_satisfies_floor": false,
+          "failed_check_satisfies_floor": false,
+          "below_l4_provisions_holdout_env": false,
+          "l4_holdout_required_verdict": "meets-spec"
+        }
+      },
+      {
+        "id": "spec-durable-authority",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "medium_attempts_resolution_before_failed_attempt_park": true,
+          "ratification_durable_path": "docs/decisions.md",
+          "ratification_durable_tag": "Ratified-by: human",
+          "confidence_line_at_spec_end": true,
+          "confidence_line_authoritative": true
+        }
+      },
+      {
+        "id": "provenance-ownership",
+        "kind": "decision",
+        "pass": true,
+        "problems": [],
+        "value": {
+          "prep_detects_stamp_with_deterministic_regex": true,
+          "spec_producer_supplies_provenance_present": false,
+          "missing_stamp_can_invalidate_readiness": true
+        }
+      }
+    ],
+    "errors": []
+  },
+  "scope": "Whole kernel core-contracts compression: actual producer-input artifacts consumed by pinned real contracts, plus separate bounded policy decisions covering changed obligations. No observed caching, parking, tracker publication, deployment or complete caller workflow claim.",
+  "accounting": "unmetered"
+}

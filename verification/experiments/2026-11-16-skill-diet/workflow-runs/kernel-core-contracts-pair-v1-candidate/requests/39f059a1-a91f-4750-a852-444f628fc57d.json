@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"ratifier-authority","value":{"carry_inherited_tag":true,"add_tag_to_untagged_choice":false,"absence_means_agent_chosen":true,"tag_changes_design_objection_gate":true,"tag_in_contract_json":false,"new_tag_requires_human_live_say_so":true}}}

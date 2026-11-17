@@ -1,0 +1,1 @@
+{"name":"answer_rule","args":{"case_id":"routing-admission","value":{"vocabulary_changes":false,"only_two_build_ready_verdicts_admitted":true,"other_verdicts_surface_reason":true,"recompute_across_passes":true}}}

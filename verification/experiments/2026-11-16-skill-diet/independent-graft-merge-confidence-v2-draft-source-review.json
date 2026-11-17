@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "status": "static-source-review-clear-unmeasured-uninstalled",
+  "accepted": false,
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/graft-merge-confidence-v1-draft.md",
+      "sha256": "3e586c78f8f04f96dffe52cc6bb4b76c06bce35edfd8e5966f000af2637676ed"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/graft-merge-confidence-v2-draft.md",
+      "sha256": "678c12fe5e0e9ac2924dd79c800da6dabf6997cb2e4a3999bb913684fc7e9a9f"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-merge-confidence-v2-source-draft.json",
+      "sha256": "93337ed9e12a13cd6b96e41913a8a278d8b94b9195a0906e19f9cdcb4743544f"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-graft-merge-confidence-v1-draft-source-review.json",
+      "sha256": "86c385e411630e3b115327f41653e95443c6928eadd777fd3f371ae18b46ef77"
+    }
+  ],
+  "checks": {
+    "exact_single_replacement": true,
+    "authority_sources_corrected": true,
+    "freshness_wording_preserved": true,
+    "all_other_v1_bytes_unchanged": true,
+    "inherited_v1_semantic_checks_remain_applicable": true,
+    "potential_bytes_saved": 14633,
+    "potential_estimated_tokens_saved": 3591
+  },
+  "scope": "Exact V1-to-V2 correction only. Prior bounded semantic review inherited through exact byte equality elsewhere. No repeated whole review or test suite.",
+  "limits": [
+    "Unmeasured draft only, not installed or accepted.",
+    "Separate gates/evidence adapter receives no coverage credit for merge-confidence behaviours."
+  ]
+}

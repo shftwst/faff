@@ -1,0 +1,6 @@
+{
+  "scope": "No-model task-size check using exact existing harness, complete policy reads and immediate finish. Expected workflow grade fails because cases were deliberately not executed.",
+  "task_bytes": 60532,
+  "estimated_tokens_bytes_div4": 15133,
+  "workflow_status": "fail"
+}

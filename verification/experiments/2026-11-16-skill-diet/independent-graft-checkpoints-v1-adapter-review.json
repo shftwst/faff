@@ -1,0 +1,184 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T03:01:25.115236+00:00",
+  "reviewer": {
+    "task": "/root/verify_wtf_scope",
+    "role": "Independent source, fixture, actual-capture and deterministic reviewer; no native model identity attestation"
+  },
+  "status": "bounded_adapter_review_clear_registration_and_measurement_not_yet_qualified",
+  "bindings": {
+    "eval/control-parity/graft-checkpoint-execution.mjs": {
+      "sha256": "210024d4b0455a4c9f4427539c619168af8ae9a5ddaaa15f70a304f732471264",
+      "bytes": 26592
+    },
+    "test/control-parity-graft-checkpoint.test.mjs": {
+      "sha256": "596ab429a3255a21fa9c9a1feb1bf8164354eb3fef54063439f154d95e06ee84",
+      "bytes": 11354
+    },
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v1-draft.json": {
+      "sha256": "aeea37201a2f485f31a39f9e3d94ce2d58498d50ebf40d17d6109fd25132afcb",
+      "bytes": 10075
+    },
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json": {
+      "sha256": "a3984df712bb350d84c5b367752fe4624582d4ae923648dff1ce42ae8e54298c",
+      "bytes": 24173
+    },
+    "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json": {
+      "sha256": "86ac286239e0ca1df92722b8256459b21f675241e58f0fe925e50a005ecb9ba5",
+      "bytes": 3370
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-evidence-consumer-reuse-notes.json": {
+      "sha256": "17fda0f8cfdf2f7358b3c046558e7c0989e448f4a2aae86e6831124a452af7a3",
+      "bytes": 15387
+    },
+    "eval/control-parity/ledger-execution.mjs": {
+      "sha256": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31",
+      "bytes": 26721
+    },
+    "eval/control-parity/ledger-execution-v2.mjs": {
+      "sha256": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180",
+      "bytes": 8948
+    },
+    "eval/control-parity/candidate-command.mjs": {
+      "sha256": "21aee374ee29d1ce293d175a902b935230b42d3233c94dae407be1dca6541a50",
+      "bytes": 7740
+    },
+    "eval/control-parity/policy-reader.mjs": {
+      "sha256": "2055d85ac37834bd83483602249d29c5b4d0f21664f59c12c01f22e34d23ae1a",
+      "bytes": 2228
+    },
+    "eval/control-parity/interactive-handoff.mjs": {
+      "sha256": "340573bb016b4fc19dc3859cba2e3bd808c8c95c22306e83bcecf1abf57eb5d0",
+      "bytes": 8344
+    },
+    "eval/control-parity/schema.mjs": {
+      "sha256": "0164ccec86e98253e013dea2db3a00db35ef2ee9707de0a7360146b489715234",
+      "bytes": 15363
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-preflight-controller-20261117.mjs": {
+      "sha256": "b2405e213e6a0f79284618b3ee895413d1caa8e922e02bf4900780e5f46e89af",
+      "bytes": 6198
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/public-cases.json": {
+      "sha256": "afa086c6b18bd7494bbe908e8f0901ea33b778852ec48225fbd8439bff8b5c05",
+      "bytes": 51884
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/capture.json": {
+      "sha256": "a5361dadb651eef1a518faad3fefe3aa7f4ea7a0c33997bc7f10d7d820b96e4e",
+      "bytes": 347796
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/consumers.json": {
+      "sha256": "0a225855a316c608098f25e04148abe6948dcadc3750e7911cc08aacd0422f04",
+      "bytes": 23523
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/grade.json": {
+      "sha256": "d3b1d8be602313aea65ef1224feec10879710ea103d09ef6f625516ef7059c19",
+      "bytes": 2919
+    },
+    "verification/experiments/2026-11-16-skill-diet/graft-checkpoints-v1-preflight-20261117-closed/preflight.json": {
+      "sha256": "01f1591ac69ad22bcdf07e2ae0bfdb7fd7cbc440b21cc3fb52f8a1b98658aa05",
+      "bytes": 4525
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-development-20261117-10.txt": {
+      "sha256": "3634c106ac7eca8824bc3712f20a1d7c28827e0b46aabd2d20c1646836077ab5",
+      "bytes": 1152
+    },
+    "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v5.py": {
+      "sha256": "08f0a8c3644e916a1ab317985423fb7f570d4b9f1ec979afc6c4758be1424053",
+      "bytes": 14958
+    },
+    "eval/control-parity/codex-mcp-native-audit.mjs": {
+      "sha256": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+      "bytes": 14244
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-development-red-20261117-1.txt": {
+      "sha256": "56daeb8f0e5c4a4c1458a63ba92a73df5f19f02797d07059ddd354ae6ae14275",
+      "bytes": 1106
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-development-red-20261117-3.txt": {
+      "sha256": "0b483bad18c453aacd6866e99ff0c93c9c4f0420c4e22f422fee113437a7a623",
+      "bytes": 1851
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-development-red-20261117-5.txt": {
+      "sha256": "77e70dc51974d1b84237a94b5a9eb1d252c88328df832b5f9e32b9bfa1063f20",
+      "bytes": 973
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-development-red-20261117-8.txt": {
+      "sha256": "f4a73def50a3eba4438ab61a2af0cd25e3d19e6bb1d385826eaf916c580fdbb3",
+      "bytes": 1072
+    }
+  },
+  "initial_review": {
+    "adapter_sha256": "f23a3dc3265f1d4822600e21340b74a6c618124c8693bbdcd45f191742bfc606",
+    "tests_sha256": "f9e8c9b69e9c2754db51a068a02524fc72b03521ab0ca70e6d4805e43fcfdea4",
+    "fixture_sha256": "3ce5f9edb76ca49e4f42146aaffd64c043203aeed97f72a523f234e0747999a4",
+    "findings_resolved": [
+      "Heartbeat lacked issue unit and required post-gates bracket",
+      "AC ordered text and exact machine method not bound to real classify/check output",
+      "Absence/tamper stdin not bound to actual return; refusal could omit return; reported classification unchecked",
+      "Missing committed-spec verification then classify/check ordering",
+      "Weak terminal issue/PR/sibling shape and final-command ordering",
+      "Public tasks supplied no-merge/continued-false routing answers",
+      "Original exact optional-detail ledger grade risk; corrected V2 subset/manual boundary now reused"
+    ],
+    "red_evidence_preserved": [
+      "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-development-red-20261117-1.txt",
+      "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-development-red-20261117-3.txt",
+      "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-development-red-20261117-5.txt",
+      "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-checkpoint-development-red-20261117-8.txt"
+    ]
+  },
+  "independent_verification": {
+    "tests_command": "node --test test/control-parity-graft-checkpoint.test.mjs",
+    "tests_exit_code": 0,
+    "tests": 4,
+    "pass": 4,
+    "fail": 0,
+    "duration_ms": 2954.391433,
+    "closed_preflight_status": "pass",
+    "graded_cases": 14,
+    "case_composition": "Six graft CLI checkpoints + two reused ledger executions + six rule decisions; not 14 real graft workflows.",
+    "all_recorded_input_output_hashes_match_current": true,
+    "fresh_in_memory_grade_replay_matches_recorded_exactly": true,
+    "fresh_grade_status": "pass",
+    "independent_capture_mutations_rejected": [
+      "missing post-gates heartbeat",
+      "invented machine locator",
+      "absence verify stdin replaced by null",
+      "tamper verify stdin replaced by null",
+      "refusal EvidenceReturn omitted",
+      "wrong sibling return issue",
+      "command after evidence return",
+      "wrong evidence classification"
+    ],
+    "mutation_count": 8,
+    "mutation_scope": "In-memory capture/grade adversarial checks, not new persistent tests or real consumer reruns."
+  },
+  "proof_supported": [
+    "Actual disposable git repositories and declared scripts; lint/test counters prove one lane suite run before dispatcher checks. Fixed CLI operations capture executable, argv, stdin, exit and outputs; caller cannot supply arbitrary shell/argv.",
+    "Issue-scoped heartbeat before/after gates; actual spec commit/verify and classification from committed path; required gate-contract then verify/classify/check/write order.",
+    "Checklist IDs/text/order derive from actual classification; machine note/method derives from actual arithmetic output and exact executable/argv locator; human-only criterion remains unpassed and consumed floor calls it out.",
+    "Successful lane return is flat, exact issue/PR/token/evidence stdout; EvidenceReturn is final lane command; forbidden lane-merge and premature PR requests execute observably in isolated state and fail grade.",
+    "Trusted consumer actually verifies return, persists witness, verifies against ledger, mints/commits anchor and runs local check-only merge floor; captured consumer exits are all zero and main remains unchanged.",
+    "Real absence, writer refusal and one-newline tamper have distinct observed outcomes and bound returned/verification bytes.",
+    "Ledger producer composition reuses corrected V2 grade, real runcheck/event/summary consumers and optional detail inventory. Preflight has zero extra detail claims.",
+    "Private expected/oracle fields do not appear in public-case projection. Corrected tasks request applying policy rather than specifying routing answers; common result transport vocabulary is disclosed globally and is not claimed as product contract vocabulary."
+  ],
+  "inherited_consumer_mismatch": "Actual no-gates command emits needs-human/rungs:[]; actual quality-gates contract refuses this shape. Capture truthfully reports exit 1/conformant false without invented rungs. This is not a transport error or permission to fabricate a conformant result.",
+  "mandatory_registration_and_qualification_requirements": [
+    "Bind exact baseline/candidate policies, full shared mandatory context, fixture/dependencies, pinned runtime and complete helper import closure; current controller preflight records current-tree HEAD, not a full independent pinned-runtime qualification.",
+    "Reuse V5 runner and native auditor unchanged. Their generic task/capture/MCP shape is compatible by source inspection, but this preflight did not execute policy delivery or MCP/native transport. Run/bind the appropriate zero-model transport check before model measurement.",
+    "V5 has no automatic graft grade-replay branch. Require an externally frozen fresh graft grade/capture equality replay plus actual persisted-artifact consumer replay; do not interpret unchanged runner success as this gate.",
+    "Require independent manual review of every actual sample source fact, AC method/note, human-only treatment, exact return/output and side-effect trace. Optional ledger detail extras require the accepted V2 hash-bound source-grounding review for every path/value, not merely a passing grade.",
+    "Preserve original findings and development failures; require complete frozen baseline gate before candidates and final paired gates/integration before source acceptance."
+  ],
+  "bounded_limits": [
+    "No full graft build, hosted forge/CI acquisition, review judgement, live PR creation, ship/merge execution or post-merge lifecycle proof.",
+    "Local merge-floor check is real but does not arm dispatched lane-boundary custody or prove obligation-5 run-grain custody. These remain excluded.",
+    "PR handoff records metadata only; it does not prove unchanged insertion of rendered AC output into PR body or citation hygiene. Keep publication edge covered by unchanged-source parity/existing PR tests, not this workflow claim.",
+    "Long gate resume/progress/timeout, custom gates slot and distinct errored-rung paths are not model-executed cases here; existing command tests are separate evidence, not a new model fidelity claim.",
+    "The fixed command ports supply command construction and disposable setup. This measures applying policy at those bounded checkpoints, not unaided CLI discovery, worktree provisioning or general environment/tool selection.",
+    "All14 preflight answers are deterministic controller outputs using private expected values, never model evidence. No source cut accepted and no paid model call made in this review."
+  ],
+  "writes": "Only this independent record; no source/helper/fixture/active-run edits."
+}

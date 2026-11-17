@@ -1,0 +1,28 @@
+TAP version 13
+# Subtest: real dispatched checklist return reaches the dispatcher floor without a lane merge or duplicate suite
+ok 1 - real dispatched checklist return reaches the dispatcher floor without a lane merge or duplicate suite
+  ---
+  duration_ms: 1735.255433
+  type: 'test'
+  ...
+# Subtest: gate failure is a normal CLI result and premature downstream requests remain observable
+ok 2 - gate failure is a normal CLI result and premature downstream requests remain observable
+  ---
+  duration_ms: 257.468948
+  type: 'test'
+  ...
+# Subtest: evidence absence, writer refusal and changed bytes produce different real consumer outcomes
+ok 3 - evidence absence, writer refusal and changed bytes produce different real consumer outcomes
+  ---
+  duration_ms: 582.458558
+  type: 'test'
+  ...
+1..3
+# tests 3
+# suites 0
+# pass 3
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 2609.270624

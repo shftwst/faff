@@ -1,0 +1,123 @@
+{
+  "schema": 1,
+  "status": "held-draft-private-lint-failure",
+  "accepted": false,
+  "production_installed": false,
+  "directory": "/var/tmp/faff-prep-graft-drafts-v2-integration",
+  "base_commit": "f9f93a7771793954c82fd9a5a541df419767c558",
+  "isolated_commit": "905dc9e2403c88865d9c9d6632801d154e9e602d",
+  "commits": [
+    "3f4ce962cc605f7d85f9bb11fb326db38ff31b91",
+    "905dc9e2403c88865d9c9d6632801d154e9e602d"
+  ],
+  "bindings": [
+    {
+      "path": "/var/tmp/faff-prep-graft-drafts-v2-integration/plugin/skills/faff-prep/SKILL.md",
+      "sha256": "4f2643a23b17efbce1787ab3ec30de61feb56767542a708c2261a39205b2bea6"
+    },
+    {
+      "path": "/var/tmp/faff-prep-graft-drafts-v2-integration/plugin/skills/faff-graft/SKILL.md",
+      "sha256": "678c12fe5e0e9ac2924dd79c800da6dabf6997cb2e4a3999bb913684fc7e9a9f"
+    },
+    {
+      "path": "/var/tmp/faff-prep-graft-drafts-v2-integration/plugin/skills/faff/prose-baseline.json",
+      "sha256": "b1e89e0593c8be8bcff5b6094bb44c42e0f337274df75a2fa2ec3fe10561e7e5"
+    },
+    {
+      "path": "/var/tmp/faff-prep-graft-drafts-v2-integration/records/specs/2026-11-17-skill-diet-prep-graft-drafts-v2-design.md",
+      "sha256": "3a3afb856dde5a81dc77006ace2830e69b0e6e3cef5f353b5c56fd213920ca33"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/prep-review-orchestration-v2-draft.md",
+      "sha256": "4f2643a23b17efbce1787ab3ec30de61feb56767542a708c2261a39205b2bea6"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/graft-merge-confidence-v2-draft.md",
+      "sha256": "678c12fe5e0e9ac2924dd79c800da6dabf6997cb2e4a3999bb913684fc7e9a9f"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-prep-review-orchestration-v2-source-review.json",
+      "sha256": "b6d12c252c6a65590775a961840bba7fd5c059a34fbba6bbc0958403e17d7c5b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-graft-merge-confidence-v2-draft-source-review.json",
+      "sha256": "b7789e353d531c5c94494c6a7161286dcfdabb27a6f7c445575d481c9fed00bc"
+    }
+  ],
+  "checks": [
+    {
+      "check": "adapter-lint",
+      "exit_code": 1,
+      "path": "deterministic-checks/prep-graft-drafts-v2-private-adapter-lint.txt",
+      "sha256": "45abcf0520ff080edf64e6b4919e7808bc1c325299375a56c39bc71d68fe2e39"
+    },
+    {
+      "check": "rule-inventory",
+      "exit_code": 0,
+      "path": "deterministic-checks/prep-graft-drafts-v2-private-rule-inventory.json",
+      "sha256": "fc14f8a0a03da93c672871aa9af7d4258de00d19a0ec22dc50a4fa5c88eb8668"
+    }
+  ],
+  "blocker": {
+    "check": "adapter-lint",
+    "file": "plugin/skills/faff-graft/SKILL.md",
+    "actual_lines": 824,
+    "unchanged_line_cap": 804,
+    "required": "Root formatting-only next draft; do not raise cap or modify V2 candidate.",
+    "other_adapter_failures": 0
+  },
+  "inventory": {
+    "base": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "result": "pass",
+    "deleted_blocks": 715,
+    "moved": 32,
+    "row_covered": 683,
+    "uncovered": [],
+    "row_errors": [],
+    "new_draft_rows": 86,
+    "scope": "Mechanical cumulative coverage only. Initial four malformed/short inventory anchors were corrected in a second isolated documentation commit; no candidate text changed."
+  },
+  "prose_allowances": {
+    "faff-prep/SKILL.md": 93826,
+    "faff-graft/SKILL.md": 164144,
+    "all_other_allowances_unchanged": true
+  },
+  "potential_combined_savings": {
+    "bytes": 25142,
+    "estimated_tokens": 6182,
+    "accepted": false
+  },
+  "no_test_suites_run": true,
+  "smallest_future_source_dependent_checks": {
+    "prep": {
+      "command": [
+        "node",
+        "--test",
+        "--test-name-pattern",
+        "prep SKILL|faff-prep|drift guard",
+        "test/spec-review-pin.test.mjs",
+        "test/spec-review-window.test.mjs",
+        "test/spec-review-convergence.test.mjs",
+        "test/spec-review-churn.test.mjs",
+        "test/spec-review-iteration-cap.test.mjs"
+      ],
+      "purpose": "Only existing source-wiring/drift assertions directly read the changed Prep orchestration, rather than rerunning their entire unchanged production implementations."
+    },
+    "graft": {
+      "command": [
+        "node",
+        "--test",
+        "--test-name-pattern",
+        "graft Step 10",
+        "test/merge-gate.test.mjs"
+      ],
+      "purpose": "Existing source guard rejects runnable raw merge commands. Skip if already proved at the identical combined source hash for gates V2."
+    },
+    "not_needed_now": "No rerun of land/ci-triage/ADR/custody/evidence suites solely because unchanged production implementations are mentioned by shortened prose. Source review plus existing actual consumer proof remain separate from any future model fidelity."
+  },
+  "limits": [
+    "This is exact isolated draft substitution and mechanical lint/inventory only. It does not qualify Prep or Graft model behaviour, savings or new workflow scopes.",
+    "Current worktree source/caps/accounting unchanged; isolated commits are draft checkpoints, not approved cherry-picks.",
+    "The separate gates/evidence V2 adapter receives no coverage credit for Step10 scope."
+  ]
+}

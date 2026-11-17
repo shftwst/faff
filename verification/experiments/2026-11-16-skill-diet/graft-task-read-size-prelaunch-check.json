@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "status": "pass",
+  "scope": "No-model prelaunch task serialization and exact 12000-token initial-read check only. Neither deliberate immediate-finish raw workflow failure is qualification evidence. Prior closed preflight preserved.",
+  "source_change": "Only task.json serialization changed from pretty JSON to compact JSON plus newline. Parsed fields retained.",
+  "comparison": "All parsed task values equal after normalising independently minted disposable root paths.",
+  "normalised_task_difference_paths": [],
+  "pretty_read": {
+    "command": "cat -- verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/task.json",
+    "max_output_tokens": 12000,
+    "yield_time_ms": 10000,
+    "exit_code": 0,
+    "original_token_count": 15133,
+    "returned_characters": 48105,
+    "truncation_marker_present": true,
+    "scope": "Exact initial read executed without model; full task output omitted from this bounded evidence report."
+  },
+  "compact_read": {
+    "command": "cat -- verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/task.json",
+    "max_output_tokens": 12000,
+    "yield_time_ms": 10000,
+    "exit_code": 0,
+    "original_token_count": 10561,
+    "returned_characters": 42244,
+    "truncation_marker_present": false,
+    "returned_json_parseable": true,
+    "scope": "Exact initial read without model. No workflow qualification; deliberate immediate finish retains expected raw failure."
+  },
+  "bindings": [
+    {
+      "path": "eval/control-parity/graft-checkpoint-execution.mjs",
+      "sha256": "da743a47820a6b94695151a1e9ca56a6355271493141c4566a9185c72c190663"
+    },
+    {
+      "path": "test/control-parity-graft-checkpoint.test.mjs",
+      "sha256": "596ab429a3255a21fa9c9a1feb1bf8164354eb3fef54063439f154d95e06ee84"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/graft-checkpoints-v1-draft.json",
+      "sha256": "aeea37201a2f485f31a39f9e3d94ce2d58498d50ebf40d17d6109fd25132afcb"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/task.json",
+      "sha256": "346436583087e17b4e9cf0c3f89ff5e06a50ace0acfe969616d0dd397915f448"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/manifest.json",
+      "sha256": "111258640a0d682fef57fc6ca53e9d74c8de7fc22d88735f4bc62e009bbc04c3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/read-scope.json",
+      "sha256": "7ac1929d2c6e19e3a10c87da41a111d37551484b9006689198384a9ac70c097c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/initial-read-result.json",
+      "sha256": "50aa30cde3c6f3aa84ed37e70ae57444825ca33f43c2c5499f541377f7e91076"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-pretty-20261117/report.json",
+      "sha256": "4cb3a61d013ae1c35d5c474530daa1734ba7e4e0f84ed7363e69f52b8be55ae3"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/task.json",
+      "sha256": "e4cec05ba773bba4229ce1999f202da6829ab7b51d1813394e2f45ad2cd36a23"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/manifest.json",
+      "sha256": "041152326708ed51c5886df785e8b7a7192c6e8f85548e89bc7a7b62189dba69"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/read-scope.json",
+      "sha256": "7ba874ae0771509270fb058a2d68a0bc23daac03aa67b4408613752fc10ba530"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/initial-read-result.json",
+      "sha256": "eac66def6ff140ef4fa40c7ee1b097e1c7fa1df074f0227ca7c641513f1df929"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-task-read-preflight-compact-20261117/report.json",
+      "sha256": "4cb3a61d013ae1c35d5c474530daa1734ba7e4e0f84ed7363e69f52b8be55ae3"
+    }
+  ],
+  "native_limits_changed": false,
+  "models_launched": false,
+  "registration_status": "unregistered development version"
+}

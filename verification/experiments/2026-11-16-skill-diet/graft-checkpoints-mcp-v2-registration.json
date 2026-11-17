@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "created_utc": "2026-11-17T03:09:41.026576+00:00",
+  "status": "registered-awaiting-independent-prelaunch-review",
+  "plans": [
+    {
+      "path": "graft-checkpoints-mcp-v2-baseline-plan.json",
+      "sha256": "c161ded3286e67e009a68c0ba9c9e3326d5dc248331cbe4a5ebaee5ccffed185"
+    },
+    {
+      "path": "graft-checkpoints-mcp-v2-candidate-plan.json",
+      "sha256": "219c9faf1bc71600efca5dc139a027822c7b980d7ed380323ceec28ed8d1a997"
+    }
+  ],
+  "policy_composition": {
+    "order": [
+      "plugin/skills/faff/references/kernel.md",
+      "plugin/skills/faff/references/build.md",
+      "plugin/skills/faff/references/tracker.md",
+      "plugin/skills/faff/references/autonomous.md",
+      "plugin/skills/faff/references/review.md",
+      "plugin/skills/faff/references/methodology.md",
+      "plugin/skills/faff/references/l4.md",
+      "plugin/skills/faff/references/park.md"
+    ],
+    "reference_hashes": {
+      "plugin/skills/faff/references/kernel.md": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+      "plugin/skills/faff/references/build.md": "16760ea2fcff5f06ba910049e51736db01178e72b287f7e09a115946098630b9",
+      "plugin/skills/faff/references/tracker.md": "f98c08368032e6c4053800551a64b7927439a16f7f57c02925c4e0f37847289c",
+      "plugin/skills/faff/references/autonomous.md": "b0e0ef32be783ffa5be27ab74db987ef347fedf1a75dd16bab5db030304d85d7",
+      "plugin/skills/faff/references/review.md": "b2e82efe53cdbb303f173b0465eea4dc878037870eebe7a50896489e088e84b2",
+      "plugin/skills/faff/references/methodology.md": "51188b58858080ab4a28801c946ff47dced68c25ad675453efde346113e97f8b",
+      "plugin/skills/faff/references/l4.md": "7994061a8ca8e8f23210874c401cf78ed0c4ad4af95b07c852456b6b6bbe5344",
+      "plugin/skills/faff/references/park.md": "0a59cc9f746bc416dd693f249b7b3c844c85cb8ce660db0f7a907b3387c8ff43"
+    },
+    "sources": {
+      "baseline": {
+        "path": "baseline/graft-gates-evidence-v1.md",
+        "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+        "policy": "baseline/graft-gates-evidence-v2-with-context-draft.md",
+        "policy_sha256": "e72278d29fccb2ec13ace576bb997f7110d79879347c70535de25cb581921c90"
+      },
+      "candidate": {
+        "path": "candidates/graft-gates-evidence-v2.md",
+        "sha256": "c28c7fe2bdba534ab27639408e2baf1b3dcc6205aade1a75ba5c8656fdf9d9a2",
+        "policy": "candidates/graft-gates-evidence-v2-with-context-draft.md",
+        "policy_sha256": "6323c3f1d846370450e005c8b138101614b81e5d64aef15048b20f1988787499"
+      }
+    }
+  },
+  "helper_closure_files": 59,
+  "phase_gate": "Baseline arm gate plus independent manual pass before any candidate launch. Exactly five original samples each; no sample replacement or pooling.",
+  "checker": "verify-graft-checkpoint-arm-v2.mjs",
+  "accepted_savings": false,
+  "limits": [
+    "Eight bounded execution cases and six decisions; not proof of every route or full skill workflow.",
+    "Review verdict and PR creation are controlled handoffs. No hosted actions, review quality, run lifecycle or dispatched custody proof; PR body placement is not inspected.",
+    "Long gate-resume/timeout and separate errored-rung cases use existing deterministic tests, not these model executions.",
+    "Actual consumers run on the produced artifacts in each sample. Fresh grading and native replay are required; no independently restored graft consumer replay is claimed.",
+    "No-rung gates returns needs-human/rungs:[] while the real quality contract refuses that inherited shape; never fabricate conformity.",
+    "GPT Sol medium stand-in only; no Claude/Opus confirmation or provider-wide equivalence."
+  ],
+  "supersedes": {
+    "registration": "graft-checkpoints-mcp-v1-registration.json",
+    "sha256": "f0622251a5154ebbc321847861cb5e77f1e26a980ebaf99ffda6526768cde750",
+    "reason": "Add missing spawned reporting consumer to frozen closure; V1 held before any model call."
+  }
+}

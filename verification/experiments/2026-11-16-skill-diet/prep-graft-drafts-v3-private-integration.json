@@ -1,0 +1,131 @@
+{
+  "schema": 1,
+  "status": "closed-draft-checkpoint-held-source-wiring-failures",
+  "accepted": false,
+  "production_installed": false,
+  "directory": "/var/tmp/faff-prep-graft-drafts-v2-integration",
+  "parent_v2_isolated_commit": "905dc9e2403c88865d9c9d6632801d154e9e602d",
+  "isolated_commit": "692aa26be0343b0219ae867e025898741e219fb7",
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/prep-graft-drafts-v2-private-integration.json",
+      "sha256": "350d3b2c3da2b73c266a78f50cf1ea51fce39a92fee6c3d5ede140d05dbf17cd"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/prep-review-orchestration-v2-draft.md",
+      "sha256": "4f2643a23b17efbce1787ab3ec30de61feb56767542a708c2261a39205b2bea6"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/candidates/graft-merge-confidence-v3-draft.md",
+      "sha256": "24718864aa951816ff7e916917f78a271be52c0f46ba58cd17a20b481733b989"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-merge-confidence-v3-source-draft.json",
+      "sha256": "fa828c58090de72738cc37633ead5aa6e2727e9394b18d68b6f954bdb42a7e32"
+    },
+    {
+      "path": "/var/tmp/faff-prep-graft-drafts-v2-integration/plugin/skills/faff-prep/SKILL.md",
+      "sha256": "4f2643a23b17efbce1787ab3ec30de61feb56767542a708c2261a39205b2bea6"
+    },
+    {
+      "path": "/var/tmp/faff-prep-graft-drafts-v2-integration/plugin/skills/faff-graft/SKILL.md",
+      "sha256": "24718864aa951816ff7e916917f78a271be52c0f46ba58cd17a20b481733b989"
+    },
+    {
+      "path": "/var/tmp/faff-prep-graft-drafts-v2-integration/plugin/skills/faff/prose-baseline.json",
+      "sha256": "82417df3169b07f98903c95ddf9ad7f3b441b871a2ae80fcd152dc83260a5f53"
+    },
+    {
+      "path": "/var/tmp/faff-prep-graft-drafts-v2-integration/records/specs/2026-11-17-skill-diet-prep-graft-drafts-v2-design.md",
+      "sha256": "3a3afb856dde5a81dc77006ace2830e69b0e6e3cef5f353b5c56fd213920ca33"
+    }
+  ],
+  "checks": [
+    {
+      "check": "adapter-lint",
+      "exit_code": 0,
+      "path": "deterministic-checks/prep-graft-drafts-v3-private-adapter-lint.txt",
+      "sha256": "b97066fa83f029f8f7f42e24f600fd2ac225f35abfbfd8b577b4d651395c1df8"
+    },
+    {
+      "check": "rule-inventory",
+      "exit_code": 0,
+      "path": "deterministic-checks/prep-graft-drafts-v3-private-rule-inventory.json",
+      "sha256": "c89880e3753c6fe4ee1971b396124d2276894bd4affee11e2c031298afe2c273"
+    },
+    {
+      "check": "source-wiring",
+      "exit_code": 1,
+      "path": "deterministic-checks/prep-graft-drafts-v3-private-source-wiring.txt",
+      "sha256": "2748148319b0ee32f42ad712dc656f62341454d3b8efa6fc3d5b58fdf3b121a1"
+    }
+  ],
+  "lint": {
+    "exit_code": 0,
+    "graft_validator_lines": 804,
+    "graft_cap": 804,
+    "no_cap_increase": true
+  },
+  "inventory": {
+    "result": "pass",
+    "blocks_deleted": 716,
+    "moved": 33,
+    "row_covered": 683,
+    "uncovered": [],
+    "row_errors": [],
+    "new_inventory_required": false,
+    "note": "Whitespace-only V3 remains covered by existing normalised V2 draft inventory."
+  },
+  "allowances": {
+    "prep_bytes": 93826,
+    "graft_bytes": 164129,
+    "graft_allowance_lowered_from_v2_by": 15,
+    "all_other_allowances_unchanged": true
+  },
+  "selected_source_wiring": {
+    "command": [
+      "node",
+      "--test",
+      "--test-name-pattern",
+      "prep SKILL|faff-prep|drift guard|graft Step 10",
+      "test/spec-review-pin.test.mjs",
+      "test/spec-review-window.test.mjs",
+      "test/spec-review-convergence.test.mjs",
+      "test/spec-review-churn.test.mjs",
+      "test/spec-review-iteration-cap.test.mjs",
+      "test/merge-gate.test.mjs"
+    ],
+    "total": 11,
+    "pass": 4,
+    "fail": 7,
+    "failures": [
+      "faff-prep/SKILL.md: the round call checks churn and prep parks on its action",
+      "faff-prep/SKILL.md: the count-cap and convergence yield run inside `spec-review round`",
+      "faff-prep/SKILL.md: the convergence yield runs inside `spec-review round` and prep routes on its action",
+      "drift guard: faff-prep/SKILL.md's gate counts the cap through `spec-review round`, never a bare integer",
+      "prep SKILL asserts the governance step ran: the round call fails safe on a missing governance-<n>.json",
+      "prep SKILL bounds churn to the window: the round call compares against the previous round in the window",
+      "faff-prep/SKILL.md: the loop resolves the window + round number through `spec-review round`"
+    ],
+    "classification": "All failures are exact existing Prep source-wiring regex assertions. Graft Step10 sole-sanctioned-merge-path guard passes. No production command suites were run. These failures are retained pending source/test-contract adjudication, not silently waived as style.",
+    "missing_literal_families": [
+      "checks churn against the previous round in the window",
+      "counts the appetite cap from disk and applies the convergence yield",
+      "applies the convergence yield",
+      "counts the appetite cap from disk",
+      "governance-<n>.json",
+      "spec-review round --open-window --dir $scratch (draft uses a quoted/split command)"
+    ],
+    "scope_limit": "Some literal assertions may be coupled to old wording; root must compare exact assertions and preserved semantics before choosing a new draft or approved test change. This checkpoint makes neither decision."
+  },
+  "potential_combined_source_savings": {
+    "bytes": 25157,
+    "estimated_tokens": 6185,
+    "accepted": false
+  },
+  "limits": [
+    "V2 failure record, V2 candidate and both V2 isolated commits remain preserved.",
+    "No shared source, accepted records, line caps or ledger changed. No model calls or unchanged command-suite reruns.",
+    "Lint/inventory passing is mechanical only. Seven selected source checks remain failed, so this is not a passing private integration or measured qualification."
+  ]
+}

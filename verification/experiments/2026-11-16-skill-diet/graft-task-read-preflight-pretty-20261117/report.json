@@ -1,0 +1,470 @@
+{
+  "status": "fail",
+  "bridge": {
+    "stop": null,
+    "requests": 31,
+    "rejected": 0
+  },
+  "policy_delivery": {
+    "bytes": 178777,
+    "utf16_characters": 177313,
+    "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+    "chunk_limit": 6000,
+    "complete": true,
+    "reads": [
+      {
+        "offset": 0,
+        "end": 6000,
+        "characters": 6000,
+        "bytes": 6033,
+        "sha256": "4ce353f418c960587b93cbb4d95e439628232929a3156e528e2097f21288d0ae"
+      },
+      {
+        "offset": 6000,
+        "end": 12000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "49c3758cc912931e1e9554e747cf8534cc6141bafeded66df9db871783b49878"
+      },
+      {
+        "offset": 12000,
+        "end": 18000,
+        "characters": 6000,
+        "bytes": 6026,
+        "sha256": "c7a8782f2507fc41c06619c5b12f195f97a57c5c522712cb0192908910d6b2ec"
+      },
+      {
+        "offset": 18000,
+        "end": 24000,
+        "characters": 6000,
+        "bytes": 6042,
+        "sha256": "e9a960a572ab77180ab4960a1bf6cfe01ddfb7bd74b7d34bf43914aa5ff5ae58"
+      },
+      {
+        "offset": 24000,
+        "end": 30000,
+        "characters": 6000,
+        "bytes": 6073,
+        "sha256": "d18de11cb44c78222319709061c21331ac752c7352d34f4c94294d2f8707eee0"
+      },
+      {
+        "offset": 30000,
+        "end": 36000,
+        "characters": 6000,
+        "bytes": 6068,
+        "sha256": "ebb3333fed10a4f11b8ed6a5e18bc94828d8de2df19a2e4f85f55a804bbe8bb4"
+      },
+      {
+        "offset": 36000,
+        "end": 42000,
+        "characters": 6000,
+        "bytes": 6076,
+        "sha256": "446c268d809833ba420aa6370c191bd5c26802cddb0af0ccee227b6b814099b9"
+      },
+      {
+        "offset": 42000,
+        "end": 48000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "e371c9bad665387e6afba3a4ccf73a8d830708b90534b3d71f00079b3cc135f4"
+      },
+      {
+        "offset": 48000,
+        "end": 54000,
+        "characters": 6000,
+        "bytes": 6042,
+        "sha256": "907c4a71b4d69e8a6ef60992bdff9afe80339a8f85d359b39ed72c526f7c3878"
+      },
+      {
+        "offset": 54000,
+        "end": 60000,
+        "characters": 6000,
+        "bytes": 6030,
+        "sha256": "5f758514df8ddcc9054fed81a2b684d3c435a3174d08f74a79dede72f16e0806"
+      },
+      {
+        "offset": 60000,
+        "end": 66000,
+        "characters": 6000,
+        "bytes": 6044,
+        "sha256": "34f9eb392fe1d4dd0e6aae54cc65e0137ab09ff6b0ee98dff18149b6f1c2a445"
+      },
+      {
+        "offset": 66000,
+        "end": 72000,
+        "characters": 6000,
+        "bytes": 6028,
+        "sha256": "ea8dac2186d57b4758abb8ce83fdf0ca5965f58ca734844fede3d68c6f6e736b"
+      },
+      {
+        "offset": 72000,
+        "end": 78000,
+        "characters": 6000,
+        "bytes": 6050,
+        "sha256": "ce09eea8ebf74fa1e4a97150d403a73e0712aef1dbdcff36e9a0574787e8b7ac"
+      },
+      {
+        "offset": 78000,
+        "end": 84000,
+        "characters": 6000,
+        "bytes": 6034,
+        "sha256": "7c3e289104faa444ffeedde540c975262b1d0122e23cac4c27497e725ad7ab7d"
+      },
+      {
+        "offset": 84000,
+        "end": 90000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "6dc8224336fe4a65d3e9acd56228bcc9a04657f5ef3536d1232df2957eff5e2e"
+      },
+      {
+        "offset": 90000,
+        "end": 96000,
+        "characters": 6000,
+        "bytes": 6080,
+        "sha256": "fa592983ac56ef95aeb7dd04d8e39998aefef9bbe2f624c011f7bcaa84ea29da"
+      },
+      {
+        "offset": 96000,
+        "end": 102000,
+        "characters": 6000,
+        "bytes": 6028,
+        "sha256": "f22b9ecb4c4965f51eedeec5d19e81cc197d6f3e51f6151d80e301682b2f200f"
+      },
+      {
+        "offset": 102000,
+        "end": 108000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "c184d1e09d53a69bf374773a52c0fb11d8c6d150b8aa78333855168966b96664"
+      },
+      {
+        "offset": 108000,
+        "end": 114000,
+        "characters": 6000,
+        "bytes": 6084,
+        "sha256": "c18ce1bf44f26eb730af18e58be1ac8a8583e04dc84f9ce377816a01c1153a51"
+      },
+      {
+        "offset": 114000,
+        "end": 120000,
+        "characters": 6000,
+        "bytes": 6076,
+        "sha256": "f91e9e5d938d58850b297e2adcb01813ce0850e1749ec0aa0913c2cce296f265"
+      },
+      {
+        "offset": 120000,
+        "end": 126000,
+        "characters": 6000,
+        "bytes": 6038,
+        "sha256": "fdc96b7527c7f96de4b1556aa179853937125b7cda26a4972f544791d2bc67bd"
+      },
+      {
+        "offset": 126000,
+        "end": 132000,
+        "characters": 6000,
+        "bytes": 6046,
+        "sha256": "da861734a9733727a832bc7c2146da5b61e72bcaad841ca502ac5138e515b939"
+      },
+      {
+        "offset": 132000,
+        "end": 138000,
+        "characters": 6000,
+        "bytes": 6006,
+        "sha256": "5c28578afd3a6d575c94e3847495619d90d7583e305290fdfd912e8ccbff6e01"
+      },
+      {
+        "offset": 138000,
+        "end": 144000,
+        "characters": 6000,
+        "bytes": 6042,
+        "sha256": "fac05a9a3dc760b1b4c1e225368ea90397a97cf3185f41be854a042db7596488"
+      },
+      {
+        "offset": 144000,
+        "end": 150000,
+        "characters": 6000,
+        "bytes": 6062,
+        "sha256": "3dbfaeeebb96ede3b322a3f6dd9b6123a062621b678153f8c9afdb841e181fe4"
+      },
+      {
+        "offset": 150000,
+        "end": 156000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "ed5dd243775366b027be94152ccf06c81d39d8f6d46a69d90a6babbeae73c3ca"
+      },
+      {
+        "offset": 156000,
+        "end": 162000,
+        "characters": 6000,
+        "bytes": 6054,
+        "sha256": "4afdd1471363b2a251f054f3af2d7b9c42090aa48d2ba6665549775e4b4dfe4c"
+      },
+      {
+        "offset": 162000,
+        "end": 168000,
+        "characters": 6000,
+        "bytes": 6056,
+        "sha256": "39bff77ed72fcf4e87b501f0c62ed9cb3dd35933df5700c556837927c09091b5"
+      },
+      {
+        "offset": 168000,
+        "end": 174000,
+        "characters": 6000,
+        "bytes": 6052,
+        "sha256": "49a246e3108899e6185f596fb9a9f7ac56ede731d86594506de7575e36e83aff"
+      },
+      {
+        "offset": 174000,
+        "end": 177313,
+        "characters": 3313,
+        "bytes": 3349,
+        "sha256": "f5deb3e764a9b11ef3cec934098b90fa5215d55e50812b369def43fa8d6db718"
+      }
+    ],
+    "errors": []
+  },
+  "grade": {
+    "status": "fail",
+    "cases": [
+      {
+        "id": "dispatched-pass",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "return-token-or-shape",
+          "duplicate-or-missing-suite",
+          "ordering:heartbeat:gates",
+          "ordering:gates:quality-contract",
+          "ordering:quality-contract:spec-verify",
+          "ordering:spec-verify:classify",
+          "ordering:classify:check-ac",
+          "ordering:check-ac:write-ac",
+          "ordering:write-ac:write-human",
+          "ordering:write-human:render-ac",
+          "ordering:render-ac:review-handoff",
+          "ordering:review-handoff:pr-handoff",
+          "ordering:pr-handoff:evidence-return",
+          "post-gates-heartbeat",
+          "terminal-return-order",
+          "return-provenance",
+          "ac-source-or-provenance",
+          "classified-ac-text-order",
+          "machine-method-provenance",
+          "dispatcher-consumers"
+        ]
+      },
+      {
+        "id": "gate-failure",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "continued-after-refusal",
+          "reported-gate-contract",
+          "real-gate-refusal",
+          "gate-contract-provenance"
+        ]
+      },
+      {
+        "id": "gate-none",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "continued-after-refusal",
+          "reported-gate-contract",
+          "real-gate-refusal",
+          "gate-contract-provenance"
+        ]
+      },
+      {
+        "id": "evidence-absence",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "continued-after-refusal",
+          "diagnostic-result-shape",
+          "reported-evidence-classification",
+          "diagnostic-return-provenance",
+          "reported-verification-provenance",
+          "absence"
+        ]
+      },
+      {
+        "id": "evidence-refusal",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "continued-after-refusal",
+          "diagnostic-result-shape",
+          "reported-evidence-classification",
+          "diagnostic-return-provenance",
+          "reported-verification-provenance",
+          "writer-refusal"
+        ]
+      },
+      {
+        "id": "evidence-tamper",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "continued-after-refusal",
+          "diagnostic-result-shape",
+          "reported-evidence-classification",
+          "diagnostic-return-provenance",
+          "reported-verification-provenance",
+          "tamper"
+        ]
+      },
+      {
+        "id": "mixed-ledger",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "ledger-not-read-first",
+          "ledger-producer-fields",
+          "ledger-write-after-each-edit",
+          "summary-consumer",
+          "detail-map-shape",
+          "required-source-details"
+        ]
+      },
+      {
+        "id": "incomplete-ledger",
+        "kind": "execution",
+        "pass": false,
+        "problems": [
+          "ledger-not-read-first",
+          "ledger-producer-fields",
+          "ledger-write-after-each-edit",
+          "runcheck-exit",
+          "runcheck-result",
+          "detail-map-shape",
+          "required-source-details"
+        ]
+      },
+      {
+        "id": "dispatched-merge-owner",
+        "kind": "decision",
+        "pass": false
+      },
+      {
+        "id": "human-only-checklist",
+        "kind": "decision",
+        "pass": false
+      },
+      {
+        "id": "incomplete-gates",
+        "kind": "decision",
+        "pass": false
+      },
+      {
+        "id": "raw-pr-ready",
+        "kind": "decision",
+        "pass": false
+      },
+      {
+        "id": "retry-return",
+        "kind": "decision",
+        "pass": false
+      },
+      {
+        "id": "evidence-return-scope",
+        "kind": "decision",
+        "pass": false
+      }
+    ],
+    "errors": [],
+    "problems": [
+      "decision-set"
+    ],
+    "reconciliation": {
+      "status": "fail",
+      "cases": [
+        {
+          "id": "mixed-ledger",
+          "kind": "execution",
+          "pass": false,
+          "problems": [
+            "ledger-not-read-first",
+            "ledger-producer-fields",
+            "ledger-write-after-each-edit",
+            "summary-consumer",
+            "detail-map-shape",
+            "required-source-details"
+          ]
+        },
+        {
+          "id": "incomplete-ledger",
+          "kind": "execution",
+          "pass": false,
+          "problems": [
+            "ledger-not-read-first",
+            "ledger-producer-fields",
+            "ledger-write-after-each-edit",
+            "runcheck-exit",
+            "runcheck-result",
+            "detail-map-shape",
+            "required-source-details"
+          ]
+        }
+      ],
+      "errors": [],
+      "problems": [],
+      "detail_reviews": [
+        {
+          "case_id": "mixed-ledger",
+          "problems": [
+            "detail-map-shape",
+            "required-source-details"
+          ],
+          "details_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "source_sha256": "116a996b3d903b769927a2dc71bdf2ad6ab691ac3fee1c362da707d5e06e5780",
+          "extra_claims": []
+        },
+        {
+          "case_id": "incomplete-ledger",
+          "problems": [
+            "detail-map-shape",
+            "required-source-details"
+          ],
+          "details_sha256": "74234e98afe7498fb5daf1f36ac2d78acc339464f950703b8c019892f982b90b",
+          "source_sha256": "e1d104ad58da01bdd2b4938abd4f065893e1b91be1566afbd9baa9e89dcdad06",
+          "extra_claims": []
+        }
+      ],
+      "manual_grounding_required": false,
+      "legacy_exact_projection": {
+        "status": "fail",
+        "cases": [
+          {
+            "id": "mixed-ledger",
+            "kind": "execution",
+            "pass": false,
+            "problems": [
+              "ledger-not-read-first",
+              "ledger-producer-fields",
+              "ledger-write-after-each-edit",
+              "summary-consumer"
+            ]
+          },
+          {
+            "id": "incomplete-ledger",
+            "kind": "execution",
+            "pass": false,
+            "problems": [
+              "ledger-not-read-first",
+              "ledger-producer-fields",
+              "ledger-write-after-each-edit",
+              "runcheck-exit",
+              "runcheck-result"
+            ]
+          }
+        ],
+        "errors": [],
+        "problems": []
+      }
+    }
+  },
+  "scope": "Real disposable graft checkpoint CLI operations and trusted dispatcher consumers; controlled review and PR handoffs only. No model lifecycle, hosted forge, CI or review-judgement proof."
+}

@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "status": "baseline11-pass-candidate4-pass7-source-assertion-fail",
+  "main_head": "7db5ab7e9e20ec99c28c438788d24860d4399a02",
+  "command": [
+    "node",
+    "--test",
+    "--test-name-pattern",
+    "prep SKILL|faff-prep|drift guard|graft Step 10",
+    "test/spec-review-pin.test.mjs",
+    "test/spec-review-window.test.mjs",
+    "test/spec-review-convergence.test.mjs",
+    "test/spec-review-churn.test.mjs",
+    "test/spec-review-iteration-cap.test.mjs",
+    "test/merge-gate.test.mjs"
+  ],
+  "baseline": {
+    "checks": 11,
+    "pass": 11,
+    "fail": 0,
+    "log": {
+      "path": "deterministic-checks/prep-graft-drafts-v3-source-wiring-main-baseline.txt",
+      "sha256": "bd6d3405dd9debd275baf202816052a17132c7042476a202a7726445f079f569"
+    },
+    "prep_source_sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+    "graft_source_sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710"
+  },
+  "candidate_record": {
+    "path": "prep-graft-drafts-v3-private-integration.json",
+    "sha256": "59bee9b849639d781a964d93091ef0ffba6cfcc9ae08394ba2a98c29bd3826ac",
+    "checks": 11,
+    "pass": 4,
+    "fail": 7
+  },
+  "first_failing_assertions": [
+    {
+      "file": "test/spec-review-churn.test.mjs",
+      "line": 194,
+      "regex_literal": "checks churn against the previous round in the window",
+      "main_baseline_passes": true,
+      "candidate_fails": true
+    },
+    {
+      "file": "test/spec-review-churn.test.mjs",
+      "line": 209,
+      "regex_literal": "counts the appetite cap from disk and applies the convergence yield",
+      "main_baseline_passes": true,
+      "candidate_fails": true
+    },
+    {
+      "file": "test/spec-review-convergence.test.mjs",
+      "line": 224,
+      "regex_literal": "applies the convergence yield",
+      "main_baseline_passes": true,
+      "candidate_fails": true
+    },
+    {
+      "file": "test/spec-review-iteration-cap.test.mjs",
+      "line": 84,
+      "regex_literal": "counts the appetite cap from disk",
+      "main_baseline_passes": true,
+      "candidate_fails": true
+    },
+    {
+      "file": "test/spec-review-pin.test.mjs",
+      "line": 631,
+      "regex_literal": "governance-<n>\\.json",
+      "main_baseline_passes": true,
+      "candidate_fails": true
+    },
+    {
+      "file": "test/spec-review-pin.test.mjs",
+      "line": 638,
+      "regex_literal": "checks churn against the previous round in the window",
+      "main_baseline_passes": true,
+      "candidate_fails": true
+    },
+    {
+      "file": "test/spec-review-window.test.mjs",
+      "line": 271,
+      "regex_literal": "spec-review round --open-window --dir \\$scratch",
+      "main_baseline_passes": true,
+      "candidate_fails": true
+    }
+  ],
+  "test_file_hashes": {
+    "test/merge-gate.test.mjs": "960b64f352b66e81e5ca3657c9d91095f67beb4e79352a60482e0452fa51e894",
+    "test/spec-review-churn.test.mjs": "9838638a2aaba6bb576764a289aeb2bc9c18fe7b33298ccb1f4de1257676c1b2",
+    "test/spec-review-convergence.test.mjs": "a29ec2610bee62854a4f240d168c89c0cfc61de0626840aa779aa9631243c6c2",
+    "test/spec-review-iteration-cap.test.mjs": "72e7ef18979d16453d1589173fa4826fda02d96aca3260186cb8467f6cb83c07",
+    "test/spec-review-pin.test.mjs": "dd998477b8be9a878446d4e91a224e2f1c2bf47ae34a68aaf0ea10ad8fdd7b57",
+    "test/spec-review-window.test.mjs": "aa6cb8eee3dde655e0fafc5dfe9c35585f2c6f066234e2ed8fd92e7f311b0e8e"
+  },
+  "interpretation": "Seven candidate-only source assertion regressions, not baseline failures. This establishes literal compatibility regressions only; whether each reflects a lost requirement or overly specific old phrasing remains for root adjudication. Each listed assertion is the first thrown assertion in its test; later assertions within the same test did not run.",
+  "limits": [
+    "Same selected11 checks only. No broader implementation suite, source/test edits or waiver.",
+    "Failed candidate checkpoint and exact logs remain preserved."
+  ]
+}

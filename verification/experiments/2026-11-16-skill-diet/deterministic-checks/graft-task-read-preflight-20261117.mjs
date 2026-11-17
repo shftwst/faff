@@ -1,0 +1,17 @@
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { setTimeout as delay } from 'node:timers/promises';
+const root = process.cwd(), E = 'verification/experiments/2026-11-16-skill-diet';
+const { runGraftCheckpoints } = await import(join(root, 'eval/control-parity/graft-checkpoint-execution.mjs'));
+const { callMailbox } = await import(join(root, 'eval/control-parity/interactive-handoff.mjs'));
+const output = resolve(E, process.argv[2]);
+const pending = runGraftCheckpoints({ root, commit: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(), policyPath: resolve(E, 'baseline/graft-gates-evidence-v1.md'), fixturePath: resolve(E, 'workflow-fixtures/graft-checkpoints-v1-draft.json'), output });
+while (!existsSync(join(output, 'requests'))) await delay(20);
+let offset = 0;
+do { const read = await callMailbox(output, 'read_policy', { offset }); offset = read.next_offset; } while (offset !== null);
+await callMailbox(output, 'finish', {});
+const report = await pending;
+const bytes = readFileSync(join(output, 'task.json'));
+writeFileSync(join(output, 'read-scope.json'), JSON.stringify({ scope: 'No-model task-size check using exact existing harness, complete policy reads and immediate finish. Expected workflow grade fails because cases were deliberately not executed.', task_bytes: bytes.length, estimated_tokens_bytes_div4: Math.ceil(bytes.length / 4), workflow_status: report.status }, null, 2) + '\n');
+console.log(JSON.stringify({ output, task_bytes: bytes.length, estimated_tokens_bytes_div4: Math.ceil(bytes.length / 4), workflow_status: report.status }));

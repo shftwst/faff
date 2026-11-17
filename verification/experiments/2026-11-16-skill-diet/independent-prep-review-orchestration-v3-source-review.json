@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "reviewed_at_utc": "2026-11-17T03:09:08.851614+00:00",
+  "reviewer": "/root/verify_wtf_scope; independent narrow source/test-patch reviewer",
+  "status": "static_review_clear_unmeasured_uninstalled",
+  "bindings": {
+    "verification/experiments/2026-11-16-skill-diet/candidates/prep-review-orchestration-v2-draft.md": {
+      "sha256": "4f2643a23b17efbce1787ab3ec30de61feb56767542a708c2261a39205b2bea6",
+      "bytes": 93826
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/prep-review-orchestration-v3-draft.md": {
+      "sha256": "8d886cfeeeea3042a47e583001b07b34739bfbbefd81c391e8b36b8e22b8f95d",
+      "bytes": 93904
+    },
+    "verification/experiments/2026-11-16-skill-diet/prep-review-source-wiring-quoted-scratch-v1.patch": {
+      "sha256": "64cd256d1ebd971c12cb711853a7e61a57ed44f03764ccd1e65c09c2ca5b92b9",
+      "bytes": 1552
+    },
+    "verification/experiments/2026-11-16-skill-diet/independent-prep-review-orchestration-v2-source-review.json": {
+      "sha256": "b6d12c252c6a65590775a961840bba7fd5c059a34fbba6bbc0958403e17d7c5b",
+      "bytes": 3377
+    },
+    "verification/experiments/2026-11-16-skill-diet/prep-review-orchestration-v3-source-draft.json": {
+      "sha256": "d269728edf04f74083f2bf8ed35726810664545b9753ddfdf3c4369c2acb1458",
+      "bytes": 2039
+    }
+  },
+  "scope": "Three changed source lines restoring four literal policy/wiring themes; two existing test regexes now accept quoted or unquoted scratch. No full semantic matrix redo.",
+  "source_changes": [
+    {
+      "line": 107,
+      "before": "**Govern the window inside the round call.** For an adversarial occupant pass `--served any` when at least one lens exited 0, otherwise `--served none`. `round` reads served records/pin, copies anomalies/faults to warnings and resets `window_start` to the current round on fault or missing governance record. Never reconstruct served identity. Single-pass uses `--occupant single-pass` without `--served`, with no window governance. A whole-chain outage uses the ordinary all-backends-down `needs-human` transport floor, not a pin-specific cause. After human unpark, before the next review, run `spec-review round --open-window --dir \"$scratch\"` to reset window/cap; it requires a prior `park` or `judge` stop.",
+      "after": "**Govern the window inside the round call.** For an adversarial occupant pass `--served any` when at least one lens exited 0, otherwise `--served none`. `round` reads served records/pin, copies anomalies/faults to warnings and sets `window_start := n` on fault or missing `governance-<n>.json`. Never reconstruct served identity. Single-pass uses `--occupant single-pass` without `--served`, with no window governance. A whole-chain outage uses the ordinary all-backends-down `needs-human` transport floor, not a pin-specific cause. After human unpark, before the next review, run `spec-review round --open-window --dir \"$scratch\"` to reset window/cap; it requires a prior `park` or `judge` stop."
+    },
+    {
+      "line": 143,
+      "before": "Use the selected mode as occupant. The command governs the window, extracts the single contract, records the round before validation, routes rejection, checks within-window churn, reads the appetite cap from disk and applies convergence, in that order. Use its persisted `decision-<n>.json` action; copy every warning to `prep.md`. Never run/act on parallel `spec-review route`, `spec-review-churn` or `spec-review-convergence` calls.",
+      "after": "Use the selected mode as occupant. The command governs the window, extracts the single contract, records the round before validation, routes rejection, checks churn against the previous round in the window, counts the appetite cap from disk and applies the convergence yield, in that order. Use its persisted `decision-<n>.json` action; Copy every `warnings` line into `prep.md`. **Anti-pattern:** running `spec-review route`, `spec-review-churn` or `spec-review-convergence` beside the round call and acting on them."
+    },
+    {
+      "line": 149,
+      "before": "| `park` | Park with `cause` and any carried design objections | Surface cause, summary and cap for human decision |",
+      "after": "| `park` | Park protocol with `cause` and any carried design objections | Surface cause, summary and cap for human decision |"
+    }
+  ],
+  "assessment": [
+    "Governance now names governance-<n>.json and window_start := n exactly as the original; no change to fault direction or window ownership.",
+    "Round narrative restores comparison against previous round in window, disk appetite cap and convergence yield; ordered command authority remains unchanged.",
+    "Every warnings line still enters prep.md; Park protocol is now named explicitly. No mode, cause, judgement or transport rule is weakened.",
+    "The test patch retains the same round --open-window --dir command and scratch variable, changing only optional quote matching. These are substring source-wiring checks, not shell-syntax validation; the actual draft has paired quotes.",
+    "Exact original causes, protected ratification/carry/re-slice/judge region and all outside regions remain unchanged from V2."
+  ],
+  "validator_lines": 609,
+  "mandatory_reads_added": false,
+  "measurement_status": "No model/behaviour acceptance. Same bounded measurement and exact-source integration requirements from V2 remain.",
+  "activity": "Only private exact integration and requested selected checks performed; no current/shared skill edits."
+}

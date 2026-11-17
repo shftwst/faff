@@ -1,0 +1,207 @@
+{
+  "schema": 1,
+  "status": "draft-unregistered",
+  "scope": "Real disposable graft checkpoint CLI operations and trusted dispatcher consumers; controlled review and PR handoffs only. No model lifecycle, hosted forge, CI or review-judgement proof.",
+  "cases": [
+    {
+      "id": "dispatched-pass",
+      "kind": "dispatched",
+      "task": "Continue a dispatched autonomous L3 graft at the gates/AC checkpoint using the supplied policy. The builder spec is already committed by setup. Review and PR creation are controlled dependencies available when requested through review-handoff and pr-handoff. Return the caller result with actual captured output.",
+      "source": {
+        "spec": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+        "review": {
+          "signal": "pass",
+          "findings": []
+        },
+        "pr": {
+          "number": 11,
+          "state": "OPEN",
+          "draft": false,
+          "controlled": true
+        },
+        "check_command": "check-ac prints the arithmetic result and exits nonzero if 2+2 differs from 4; the published pricing page has not been inspected",
+        "gate_scripts": "Declared lint and test scripts increment counters under .faff and pass. Gate counters are outside gate fingerprints. Trusted dispatcher local check may run its own safe tests after the lane return."
+      }
+    },
+    {
+      "id": "gate-failure",
+      "kind": "gate-failure",
+      "task": "Continue the graft gates checkpoint using the supplied policy. The declared repo-owned scripts exit 1 and no repair is supplied. Run gates and inspect the returned contract with quality-contract. Report the actual result and choose the follow-up.",
+      "source": {
+        "spec": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+        "review": {
+          "signal": "pass",
+          "findings": []
+        },
+        "pr": {
+          "number": 11,
+          "state": "OPEN",
+          "draft": false,
+          "controlled": true
+        },
+        "check_command": "check-ac prints the arithmetic result and exits nonzero if 2+2 differs from 4; the published pricing page has not been inspected",
+        "gate_scripts": "Both declared scripts increment their .faff counter and exit 1; no fix is supplied."
+      }
+    },
+    {
+      "id": "gate-none",
+      "kind": "gate-none",
+      "task": "Continue the graft gates checkpoint using the supplied policy. No gate script is declared. Run discovery/execution and inspect the returned contract with quality-contract. Report the actual result and choose the follow-up.",
+      "source": {
+        "spec": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+        "review": {
+          "signal": "pass",
+          "findings": []
+        },
+        "pr": {
+          "number": 11,
+          "state": "OPEN",
+          "draft": false,
+          "controlled": true
+        },
+        "check_command": "check-ac prints the arithmetic result and exits nonzero if 2+2 differs from 4; the published pricing page has not been inspected",
+        "gate_scripts": "package.json contains no scripts."
+      }
+    },
+    {
+      "id": "evidence-absence",
+      "kind": "evidence-absence",
+      "task": "No checklist, review or human-only evidence exists yet. Obtain the actual EvidenceReturn and verify that exact line. Apply the supplied policy to classify the real result and choose the follow-up.",
+      "source": {
+        "spec": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+        "review": {
+          "signal": "pass",
+          "findings": []
+        },
+        "pr": {
+          "number": 11,
+          "state": "OPEN",
+          "draft": false,
+          "controlled": true
+        },
+        "check_command": "check-ac prints the arithmetic result and exits nonzero if 2+2 differs from 4; the published pricing page has not been inspected",
+        "gate_scripts": "Declared lint and test scripts increment counters under .faff and pass. Gate counters are outside gate fingerprints. Trusted dispatcher local check may run its own safe tests after the lane return."
+      }
+    },
+    {
+      "id": "evidence-refusal",
+      "kind": "evidence-refusal",
+      "task": "Invoke the AC writer once with supplied_input exactly, then obtain the actual EvidenceReturn. Apply the supplied policy to classify the real results and choose the follow-up.",
+      "source": {
+        "spec": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+        "review": {
+          "signal": "pass",
+          "findings": []
+        },
+        "pr": {
+          "number": 11,
+          "state": "OPEN",
+          "draft": false,
+          "controlled": true
+        },
+        "check_command": "check-ac prints the arithmetic result and exits nonzero if 2+2 differs from 4; the published pricing page has not been inspected",
+        "gate_scripts": "Declared lint and test scripts increment counters under .faff and pass. Gate counters are outside gate fingerprints. Trusted dispatcher local check may run its own safe tests after the lane return.",
+        "supplied_input": {
+          "all_verified": true,
+          "criteria": [
+            {
+              "ac": "supplied unverified criterion",
+              "verified": "not verified",
+              "passed": false,
+              "ac_id": "faff-9#ac-1",
+              "verifications": [
+                {
+                  "kind": "human"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "evidence-tamper",
+      "kind": "evidence-tamper",
+      "task": "Setup wrote a schema-valid zero-AC checklist through the real writer and captured its actual EvidenceReturn, then appended one newline to that file. Verify supplied returned_before_change exactly. Apply the supplied policy to classify the real result and choose the follow-up.",
+      "source": {
+        "spec": "# Checkpoint fixture\n\n## DONE\n\n- [ ] [ac-1] the supplied arithmetic command MUST pass\n- [ ] [ac-2] needs-human: Prices match the published pricing page\n",
+        "review": {
+          "signal": "pass",
+          "findings": []
+        },
+        "pr": {
+          "number": 11,
+          "state": "OPEN",
+          "draft": false,
+          "controlled": true
+        },
+        "check_command": "check-ac prints the arithmetic result and exits nonzero if 2+2 differs from 4; the published pricing page has not been inspected",
+        "gate_scripts": "Declared lint and test scripts increment counters under .faff and pass. Gate counters are outside gate fingerprints. Trusted dispatcher local check may run its own safe tests after the lane return."
+      }
+    }
+  ],
+  "rule_cases": [
+    {
+      "id": "dispatched-merge-owner",
+      "question": "A dispatched graft has green gates and complete returned evidence. Return {\"lane_merges\":boolean,\"token\":string}.",
+      "expected": {
+        "lane_merges": false,
+        "token": "pr-ready"
+      }
+    },
+    {
+      "id": "human-only-checklist",
+      "question": "One automatically checked criterion passes; another is explicitly needs-human and has not been verified. Return {\"all_verified\":boolean,\"mark_human_passed\":boolean}.",
+      "expected": {
+        "all_verified": false,
+        "mark_human_passed": false
+      }
+    },
+    {
+      "id": "incomplete-gates",
+      "question": "The real gate call is incomplete with exit3. Return {\"emit_quality_contract\":boolean,\"resume\":boolean,\"repeat_completed_units\":boolean}.",
+      "expected": {
+        "emit_quality_contract": false,
+        "resume": true,
+        "repeat_completed_units": false
+      }
+    },
+    {
+      "id": "raw-pr-ready",
+      "question": "May a dispatcher record raw pr-ready as a terminal ledger outcome? Return {\"terminal\":boolean}.",
+      "expected": {
+        "terminal": false
+      }
+    },
+    {
+      "id": "retry-return",
+      "question": "Graft returns retry-later after mandatory review outage. Return {\"bucket\":string,\"annotation\":string}.",
+      "expected": {
+        "bucket": "parked",
+        "annotation": "review_outage_pending"
+      }
+    },
+    {
+      "id": "evidence-return-scope",
+      "question": "An actual digest return matches on-disk bytes. Does that alone prove schema conformance or factual verification? Return {\"schema_proven\":boolean,\"facts_proven\":boolean}.",
+      "expected": {
+        "schema_proven": false,
+        "facts_proven": false
+      }
+    }
+  ],
+  "limits": [
+    "Six new checkpoint cases plus two unmodified reused ledger cases. Long gate budget/resume/timeout variants remain covered by existing tests and are not model-executed here.",
+    "Source assertions and actual output provenance need independent manual review. Deterministic grader remains draft.",
+    "No separate errored-rung producer case; existing gates-budget tests cover real timeout/errored results. Failed and missing gates are actual bounded cases.",
+    "Inherited consumer mismatch: discovery:none yields needs-human/rungs:[] from real gates; the actual quality-gates contract validator refuses that shape. The missing-gates case requires reporting this real refusal, never fabricating rungs or a conformant contract."
+  ],
+  "reconciliation": {
+    "fixture": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-v3.json",
+    "dependencies": "verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-ledger-summary-dependencies-v2.json",
+    "case_ids": [
+      "mixed-ledger",
+      "incomplete-ledger"
+    ]
+  }
+}

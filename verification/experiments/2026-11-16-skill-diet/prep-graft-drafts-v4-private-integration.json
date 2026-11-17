@@ -1,0 +1,164 @@
+{
+  "schema": 1,
+  "status": "closed-private-draft-selected-checks-pass",
+  "accepted": false,
+  "production_installed": false,
+  "directory": "/var/tmp/faff-prep-graft-drafts-v2-integration",
+  "parent_held_checkpoint": "692aa26be0343b0219ae867e025898741e219fb7",
+  "isolated_commit": "7cde2fc6100887b29d62cc07ce899199d5bdbf4a",
+  "clean_checkout_after_checks": true,
+  "commit_signed_off": true,
+  "bindings": {
+    "verification/experiments/2026-11-16-skill-diet/independent-prep-review-orchestration-v3-source-review.json": {
+      "sha256": "efc7b75066c56dc2f3805c2a71eb5e70c84b855b635b490abc889cee08a2c20e",
+      "bytes": 5519
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/prep-review-orchestration-v3-draft.md": {
+      "sha256": "8d886cfeeeea3042a47e583001b07b34739bfbbefd81c391e8b36b8e22b8f95d",
+      "bytes": 93904
+    },
+    "verification/experiments/2026-11-16-skill-diet/prep-review-source-wiring-quoted-scratch-v1.patch": {
+      "sha256": "64cd256d1ebd971c12cb711853a7e61a57ed44f03764ccd1e65c09c2ca5b92b9",
+      "bytes": 1552
+    },
+    "verification/experiments/2026-11-16-skill-diet/prep-graft-drafts-v3-private-integration.json": {
+      "sha256": "59bee9b849639d781a964d93091ef0ffba6cfcc9ae08394ba2a98c29bd3826ac",
+      "bytes": 5934
+    },
+    "verification/experiments/2026-11-16-skill-diet/prep-graft-drafts-v2-private-integration.json": {
+      "sha256": "350d3b2c3da2b73c266a78f50cf1ea51fce39a92fee6c3d5ede140d05dbf17cd",
+      "bytes": 5200
+    },
+    "verification/experiments/2026-11-16-skill-diet/prep-graft-drafts-v3-source-wiring-baseline-comparison.json": {
+      "sha256": "b9f28c80ad16af15d81f37be05120a7e062a3cab8706ed76eef70fad3cfcf7b3",
+      "bytes": 3986
+    },
+    "verification/experiments/2026-11-16-skill-diet/candidates/graft-merge-confidence-v3-draft.md": {
+      "sha256": "24718864aa951816ff7e916917f78a271be52c0f46ba58cd17a20b481733b989",
+      "bytes": 164129
+    },
+    "/var/tmp/faff-prep-graft-drafts-v2-integration/plugin/skills/faff-prep/SKILL.md": {
+      "sha256": "8d886cfeeeea3042a47e583001b07b34739bfbbefd81c391e8b36b8e22b8f95d",
+      "bytes": 93904
+    },
+    "/var/tmp/faff-prep-graft-drafts-v2-integration/plugin/skills/faff-graft/SKILL.md": {
+      "sha256": "24718864aa951816ff7e916917f78a271be52c0f46ba58cd17a20b481733b989",
+      "bytes": 164129
+    },
+    "/var/tmp/faff-prep-graft-drafts-v2-integration/plugin/skills/faff/prose-baseline.json": {
+      "sha256": "88bc9c85713cdb0f04d6bf4730ea387ffd42379e6609231fd5bfcd0cf2987bf1",
+      "bytes": 1838
+    },
+    "/var/tmp/faff-prep-graft-drafts-v2-integration/test/spec-review-pin.test.mjs": {
+      "sha256": "06b954a58441a8069bd413b751a840077676ec75a21adcd286182ff30cb097df",
+      "bytes": 36694
+    },
+    "/var/tmp/faff-prep-graft-drafts-v2-integration/test/spec-review-window.test.mjs": {
+      "sha256": "8f718d4b8dd37a1f6b53c1c3e1eacc6078f90870792ee366c200d59cc660bf6f",
+      "bytes": 30589
+    },
+    "/var/tmp/faff-prep-graft-drafts-v2-integration/records/specs/2026-11-17-skill-diet-prep-graft-drafts-v2-design.md": {
+      "sha256": "3a3afb856dde5a81dc77006ace2830e69b0e6e3cef5f353b5c56fd213920ca33",
+      "bytes": 28925
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/prep-graft-drafts-v4-private-source-wiring.txt": {
+      "sha256": "73cea67aaeeb3684269dc582043489483c8bee09103b67b5866f3f60ca7e2571",
+      "bytes": 2967
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/prep-graft-drafts-v4-private-adapter-lint.txt": {
+      "sha256": "b97066fa83f029f8f7f42e24f600fd2ac225f35abfbfd8b577b4d651395c1df8",
+      "bytes": 23810
+    },
+    "verification/experiments/2026-11-16-skill-diet/deterministic-checks/prep-graft-drafts-v4-private-rule-inventory.json": {
+      "sha256": "c89880e3753c6fe4ee1971b396124d2276894bd4affee11e2c031298afe2c273",
+      "bytes": 175400
+    }
+  },
+  "checks": [
+    {
+      "check": "source-wiring",
+      "command": [
+        "node",
+        "--test",
+        "--test-name-pattern",
+        "prep SKILL|faff-prep|drift guard|graft Step 10",
+        "test/spec-review-pin.test.mjs",
+        "test/spec-review-window.test.mjs",
+        "test/spec-review-convergence.test.mjs",
+        "test/spec-review-churn.test.mjs",
+        "test/spec-review-iteration-cap.test.mjs",
+        "test/merge-gate.test.mjs"
+      ],
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/prep-graft-drafts-v4-private-source-wiring.txt",
+      "sha256": "73cea67aaeeb3684269dc582043489483c8bee09103b67b5866f3f60ca7e2571"
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/prep-graft-drafts-v4-private-adapter-lint.txt",
+      "sha256": "b97066fa83f029f8f7f42e24f600fd2ac225f35abfbfd8b577b4d651395c1df8"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/prep-graft-drafts-v4-private-rule-inventory.json",
+      "sha256": "c89880e3753c6fe4ee1971b396124d2276894bd4affee11e2c031298afe2c273"
+    }
+  ],
+  "selected_source_wiring": {
+    "tests": 11,
+    "pass": 11,
+    "fail": 0,
+    "previous_candidate_pass": 4,
+    "previous_candidate_fail": 7,
+    "original_baseline_pass": 11,
+    "same_selection": true
+  },
+  "inventory": {
+    "result": "pass",
+    "blocks_deleted": 716,
+    "moved": 33,
+    "row_covered": 683,
+    "uncovered": [],
+    "row_errors": [],
+    "new_rows_added": 0
+  },
+  "allowances": {
+    "only_private_provisional_change": {
+      "faff-prep/SKILL.md": [
+        93826,
+        93904
+      ]
+    },
+    "original_prep_ceiling": 104335,
+    "prep_below_original_by": 10431,
+    "main_accepted_allowances_unchanged": true,
+    "line_caps_unchanged": true
+  },
+  "exact_scope": "Exact PrepV3 plus supplied two-regex test patch and its exact provisional private byte allowance; GraftV3 and all other source unchanged. Existing design inventory still covers normalised deleted blocks.",
+  "preserved_failures": [
+    "prep-graft-drafts-v2-private-integration.json",
+    "prep-graft-drafts-v3-private-integration.json",
+    "prep-graft-drafts-v3-source-wiring-baseline-comparison.json"
+  ],
+  "limits": [
+    "Only same11 selected source checks, adapter lint and rule inventory ran. No full production command suites or model calls.",
+    "Source-wiring passage is not proof of model judgement, complete prep/graft workflows, parity or accepted savings.",
+    "Private commit is a draft checkpoint, not an approved cherry-pick. Shared source, accepted accounting and first-graft registered inputs untouched."
+  ]
+}

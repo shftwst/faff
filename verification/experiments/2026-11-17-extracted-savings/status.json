@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "831d5dff883595820fef57bb2446574a2d42a8aa",
+  "base": "42b02efc67b2d08162dc10237bc7f5fc2e6f0bc6",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -9,14 +9,126 @@
   },
   "current_main": {
     "files": 41,
-    "bytes": 1330031,
-    "estimated_tokens": 329603
+    "bytes": 1270849,
+    "estimated_tokens": 314980
   },
   "landed_savings": {
-    "bytes": 42050,
-    "estimated_tokens": 10326
+    "bytes": 101232,
+    "estimated_tokens": 24949
   },
   "pending_extractions": [
+    {
+      "skill": "kernel configuration",
+      "pr": "https://github.com/shftwst/faff/pull/1209",
+      "head": "ec3ef82a02ab928995b9e3443050301e30b0a9f9",
+      "path": "plugin/skills/faff/references/kernel.md",
+      "before": {
+        "bytes": 94998,
+        "estimated_tokens": 23548,
+        "sha256": "d8cd2bd9cf7e0d78534ae3a56bd46fdff148bfaf1ed168f9592fe3d1f26f908b"
+      },
+      "after": {
+        "bytes": 83652,
+        "estimated_tokens": 20753,
+        "sha256": "aa76c16a0d51ee966c3e77cf5df8564834966173f08dd2100da174b82c97ac89"
+      },
+      "saved": {
+        "bytes": 11346,
+        "estimated_tokens": 2795
+      },
+      "source_binding": {
+        "configuration_section_matches_measured_candidate": true,
+        "all_other_bytes_match_main": true,
+        "qualified_candidate_sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+        "preserved_main_change": "Interactive next-step offer introductory paragraph simplification,420bytes"
+      },
+      "historical_fidelity": {
+        "model": "claude-opus-5-5",
+        "runs_per_arm": 5,
+        "before": {
+          "configuration_executions_passed": 45,
+          "configuration_executions_total": 45,
+          "decisions_passed": 120,
+          "decisions_total": 120
+        },
+        "after": {
+          "configuration_executions_passed": 45,
+          "configuration_executions_total": 45,
+          "decisions_passed": 120,
+          "decisions_total": 120
+        },
+        "native_audit": "pass",
+        "qualification_commit": "d4c11473f64f93da4287af48282393eb21c126d5",
+        "scope": "Bounded real config/dispatch CLI and separate policy decisions; downstream stubs, no complete caller workflow/statistical equivalence claim"
+      },
+      "local_checks": {
+        "tests_passed": 151,
+        "adapter_lint": "pass",
+        "rule_inventory": "pass"
+      },
+      "ci": {
+        "status": "awaiting-macos-runner",
+        "all_four_unit_shards": "pass",
+        "node24_source_lane": "pass",
+        "validate": "pass",
+        "failed_checks": [],
+        "remaining": [
+          {
+            "name": "validate-macos",
+            "status": "queued"
+          }
+        ]
+      },
+      "new_model_samples": 0,
+      "status": "open-pr-not-landed",
+      "ci_followup": {
+        "cause": "The kernel line baseline was left at465 while the file shrank to435lines. Existing zero-headroom test failed.",
+        "fix": "Lower KERNEL_LINE_BASELINE to435; preserve the merged gateway baseline62.",
+        "prompt_bytes_unchanged": true,
+        "tests_passed": 151,
+        "integration_checks_passed": 14,
+        "commit": "ec3ef82a02ab928995b9e3443050301e30b0a9f9",
+        "ci": "The previously failing shard and Node24 source-lane job pass; macOS remains queued."
+      }
+    }
+  ],
+  "pending_savings": {
+    "bytes": 11346,
+    "estimated_tokens": 2795
+  },
+  "limits": [
+    "Kernel PR1209 has not merged; the gateway and adversarial PRs have merged. Historical measured source and its recorded limitations remain unchanged.",
+    "No raw runs, harness or bulk evidence imported into implementation branches.",
+    "Optional documentation, tests and rule inventories are not runtime prompt savings.",
+    "#1203 remains draft; other implemented or held cuts are not promoted by these extractions."
+  ],
+  "next_candidates_not_counted": [
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "qualified_candidate": "rendering-v2.md",
+      "qualified_sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4",
+      "main_bytes": 21133,
+      "historical_candidate_bytes": 11288,
+      "nominal_saving_bytes": 9845,
+      "integration_note": "Overlaps recent paragraph edits. Reconcile rather than replacing blindly; remeasure final source.",
+      "qualification_commit": "dfbf747ee28f399d569b0299dd10b999b8dafcb4"
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "qualified_candidate": "thematic-v1.md",
+      "qualified_sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f",
+      "main_bytes": 32157,
+      "historical_candidate_bytes": 29418,
+      "nominal_saving_bytes": 2739,
+      "integration_note": "Overlaps recent paragraph edits. Preserve precise unmet-unpark and nearest-met-DoD wording; remeasure final source.",
+      "qualification_commit": "3ff076dffacd0dae430dde4364d13a8714939da7"
+    }
+  ],
+  "projected_after_all_prs": {
+    "bytes": 1259503,
+    "estimated_tokens": 312185
+  },
+  "landed_extractions": [
     {
       "skill": "adversarial-review",
       "pr": "https://github.com/shftwst/faff/pull/1207",
@@ -66,14 +178,15 @@
         "rule_inventory": "pass"
       },
       "new_model_samples": 0,
-      "status": "open-pr-not-landed",
+      "status": "merged",
       "ci": {
         "status": "pass",
         "successful_checks": 13,
         "skipped_checks": [
           "deploy"
         ]
-      }
+      },
+      "merge_commit": "813fdc70cd930310a78e38a688987b1a2b7fdfb8"
     },
     {
       "skill": "gateway",
@@ -117,105 +230,15 @@
         "rule_inventory": "pass"
       },
       "new_model_samples": 0,
-      "status": "open-pr-not-landed",
+      "status": "merged",
       "ci": {
         "status": "pass",
         "successful_checks": 13,
         "skipped_checks": [
           "deploy"
         ]
-      }
-    },
-    {
-      "skill": "kernel configuration",
-      "pr": "https://github.com/shftwst/faff/pull/1209",
-      "head": "8f28a85a7511654c2ad58001a17b8d5115f05914",
-      "path": "plugin/skills/faff/references/kernel.md",
-      "before": {
-        "bytes": 94998,
-        "estimated_tokens": 23548,
-        "sha256": "d8cd2bd9cf7e0d78534ae3a56bd46fdff148bfaf1ed168f9592fe3d1f26f908b"
       },
-      "after": {
-        "bytes": 83652,
-        "estimated_tokens": 20753,
-        "sha256": "aa76c16a0d51ee966c3e77cf5df8564834966173f08dd2100da174b82c97ac89"
-      },
-      "saved": {
-        "bytes": 11346,
-        "estimated_tokens": 2795
-      },
-      "source_binding": {
-        "configuration_section_matches_measured_candidate": true,
-        "all_other_bytes_match_main": true,
-        "qualified_candidate_sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
-        "preserved_main_change": "Interactive next-step offer introductory paragraph simplification,420bytes"
-      },
-      "historical_fidelity": {
-        "model": "claude-opus-5-5",
-        "runs_per_arm": 5,
-        "before": {
-          "configuration_executions_passed": 45,
-          "configuration_executions_total": 45,
-          "decisions_passed": 120,
-          "decisions_total": 120
-        },
-        "after": {
-          "configuration_executions_passed": 45,
-          "configuration_executions_total": 45,
-          "decisions_passed": 120,
-          "decisions_total": 120
-        },
-        "native_audit": "pass",
-        "qualification_commit": "d4c11473f64f93da4287af48282393eb21c126d5",
-        "scope": "Bounded real config/dispatch CLI and separate policy decisions; downstream stubs, no complete caller workflow/statistical equivalence claim"
-      },
-      "local_checks": {
-        "tests_passed": 35,
-        "adapter_lint": "pass",
-        "rule_inventory": "pass"
-      },
-      "ci": {
-        "status": "running"
-      },
-      "new_model_samples": 0,
-      "status": "open-pr-not-landed"
+      "merge_commit": "42b02efc67b2d08162dc10237bc7f5fc2e6f0bc6"
     }
-  ],
-  "pending_savings": {
-    "bytes": 70528,
-    "estimated_tokens": 17418
-  },
-  "limits": [
-    "These PRs have not merged. Historical measured source is exact; existing current-main helper checks supplement historical evidence.",
-    "No raw runs, harness or bulk evidence imported into implementation branches.",
-    "Optional documentation, tests and rule inventories are not runtime prompt savings.",
-    "#1203 remains draft; other implemented or held cuts are not promoted by these extractions."
-  ],
-  "next_candidates_not_counted": [
-    {
-      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
-      "qualified_candidate": "rendering-v2.md",
-      "qualified_sha256": "74545fd22fc8451da92bf1ea2f0686940faaa1183453c2402c617131882176e4",
-      "main_bytes": 21133,
-      "historical_candidate_bytes": 11288,
-      "nominal_saving_bytes": 9845,
-      "integration_note": "Overlaps recent paragraph edits. Reconcile rather than replacing blindly; remeasure final source.",
-      "qualification_commit": "dfbf747ee28f399d569b0299dd10b999b8dafcb4"
-    },
-    {
-      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
-      "qualified_candidate": "thematic-v1.md",
-      "qualified_sha256": "07dc585871f8f70c523e164be3bfa28855f303289a0488af7b00f7c734d58f3f",
-      "main_bytes": 32157,
-      "historical_candidate_bytes": 29418,
-      "nominal_saving_bytes": 2739,
-      "integration_note": "Overlaps recent paragraph edits. Preserve precise unmet-unpark and nearest-met-DoD wording; remeasure final source.",
-      "qualification_commit": "3ff076dffacd0dae430dde4364d13a8714939da7"
-    }
-  ],
-  "projected_after_all_prs": {
-    "bytes": 1259503,
-    "estimated_tokens": 312185
-  }
+  ]
 }

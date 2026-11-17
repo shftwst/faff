@@ -596,6 +596,22 @@ test("refutation-code criteria append the shared fixture-data section and a samp
   assert.ok(prose.includes(section), "the lens is followed by the shared section verbatim");
   assert.ok(prose.endsWith(`Fixture paths: ${SAMPLE_FIXTURE_PATHS.join(", ")}`));
   assert.ok(prose.indexOf("## Review lens") < prose.indexOf(section) && prose.indexOf(section) < prose.indexOf("Fixture paths:"));
+  assert.doesNotMatch(prose, /## (Output|How findings are handled|Folding both passes|LLM provider integration)/);
+  assert.doesNotMatch(prose, /Fix actionable defects|Record every disposition|Fold both passes/);
+});
+
+test("refutation-code loads only the reviewer section in either skill layout", (t) => {
+  const pluginDir = mkdtempSync(join(tmpdir(), "faff-review-lens-"));
+  t.after(() => rmSync(pluginDir, { recursive: true, force: true }));
+  const skillDir = join(pluginDir, "skills", "faffter-dark-adversarial-review");
+  const referenceDir = join(pluginDir, "skills", "faff", "references");
+  mkdirSync(skillDir, { recursive: true });
+  mkdirSync(referenceDir, { recursive: true });
+  writeFileSync(join(referenceDir, "review.md"), "\n### Fixture data in review\nFixture rule.\n### Next\nUnrelated rule.\n");
+  for (const nextHeading of ["Output", "LLM provider integration"]) {
+    writeFileSync(join(skillDir, "SKILL.md"), `# Skill\n\n## Review lens\nFind defects.\n### Detail\nPreserve evidence.\n\n## ${nextHeading}\nCaller duties.\n`);
+    assert.equal(loadRefutationCodeProse(pluginDir), `## Review lens\nFind defects.\n### Detail\nPreserve evidence.\n\n### Fixture data in review\nFixture rule.\n\nFixture paths: ${SAMPLE_FIXTURE_PATHS.join(", ")}`);
+  }
 });
 
 test("refutation-code-006 and -007: the fixture-only diff stays clean, the diff with real-code injection is flagged", () => {
@@ -916,7 +932,7 @@ const ANCHOR_REGISTRY = {
   ROADMAP_PROSE_START: { skill: "faff-map", end: "ROADMAP_PROSE_END" },
   ADR_GLOSS_PROSE_START: { skill: "faffter-noon-adr", end: "ADR_GLOSS_PROSE_END" },
   SPEC_VERDICT_PROSE_START: { skill: "faffter-noon-spec-review", end: "SPEC_VERDICT_PROSE_END" },
-  REFUTATION_CODE_PROSE_START: { skill: "faffter-dark-adversarial-review", end: "REFUTATION_CODE_PROSE_END" },
+  REFUTATION_CODE_PROSE_START: { skill: "faffter-dark-adversarial-review", end: "REFUTATION_CODE_PROSE_END", nextHeading: "Output" },
   // FAFF-669
   PREP_ARCH_TRIGGER_PROSE_START: { skill: "faff-prep", end: "PREP_ARCH_TRIGGER_PROSE_END" },
   GROUPING_PROSE_START: { skill: "faffter-dark-methodology-agile-delivery", end: "GROUPING_PROSE_END" },
@@ -972,7 +988,7 @@ test("FAFF-669 the anchor registry covers every start-anchor constant declared i
 // mirror of the start check counting occurrences in [0, EOF] against 1. Within [start, firstEnd] the
 // end anchor always appears exactly once by construction, so THAT narrower window could never reveal
 // an inserted duplicate — only the after-start-to-EOF window can.
-test("FAFF-687 every registered end anchor occurs exactly endCount times (default 1) in the after-start window", () => {
+test("FAFF-687 every registered end anchor matches its declared boundary", () => {
   for (const [name, row] of Object.entries(ANCHOR_REGISTRY)) {
     if (row.end === null) continue; // extractSectionToEnd — no end anchor to guard
     const md = readFileSync(rowPath(row), "utf8");
@@ -980,6 +996,14 @@ test("FAFF-687 every registered end anchor occurs exactly endCount times (defaul
     const startPos = md.indexOf(startVal);
     assert.ok(startPos >= 0, `${name} not found in ${row.skill}/${rowFile(row)}`);
     const window = md.slice(startPos + startVal.length);
+    if (row.nextHeading) {
+      const boundary = anchorValue(row.end);
+      assert.equal(boundary, "\n## ");
+      const next = window.indexOf(boundary);
+      assert.ok(next >= 0, `${name}: next peer heading is missing`);
+      assert.equal(window.slice(next + boundary.length).split("\n", 1)[0], row.nextHeading);
+      continue;
+    }
     const expected = row.endCount ?? 1;
     assert.equal(occurrences(window, anchorValue(row.end)), expected,
       `${row.end} does not occur ${expected}x after ${name} in ${row.skill}/${rowFile(row)} — extractSection would silently truncate`);

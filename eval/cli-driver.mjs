@@ -1101,7 +1101,7 @@ export function loadSpecVerdictProse(pluginDir = DEFAULT_PLUGIN_DIR) {
 // FAFF-731 — refutation-spec loads no criteria prose: each of its four independent passes carries the
 // full real refute-<lens>.md brief (see fanRefutationSpec). No loadRefutationSpecProse / prose anchors.
 const REFUTATION_CODE_PROSE_START = "\n## Review lens\n";
-const REFUTATION_CODE_PROSE_END = "## LLM provider integration";
+const REFUTATION_CODE_PROSE_END = "\n## ";
 // The live --system file is the lens, the shared "Fixture data in review" section, then a prefix line
 // (adversarial SKILL.md, Backend call). The eval appends the same two with a fixed sample list so its
 // criteria match what goes on the wire.

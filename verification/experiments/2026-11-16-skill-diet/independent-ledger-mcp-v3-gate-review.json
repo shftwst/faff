@@ -1,0 +1,66 @@
+{
+  "schema": 1,
+  "status": "gate-code-review-pass-prelaunch-binding-pending",
+  "scope": "Read-only exact-diff, unchanged-import and runner/auditor model-binding review. No V3 plan audit, model call, full cohort verification, rescore or source acceptance.",
+  "verifier_sha256": "a58912d0020415548d3f8120127db37c9f9daeccd1e668b6bfe12ef370682d15",
+  "syntax_check": {
+    "command": "node --check verification/experiments/2026-11-16-skill-diet/verify-ledger-mcp-arm-v3.mjs",
+    "exit_code": 0
+  },
+  "exact_diff": {
+    "normalised_byte_equality": true,
+    "permitted_changes": [
+      "beep-ledger-mcp-v2 -> beep-ledger-mcp-v3 cohort/registration/plan/sample names",
+      "verify-ledger-mcp-arm-v2 -> verify-ledger-mcp-arm-v3 required frozen helper filename",
+      "Scope identifies fresh Astra V3 and excludes all held Sol cohorts."
+    ],
+    "acceptance_logic_changed": false
+  },
+  "model_support": {
+    "runner": "run-mcp-workflow-samples-v4.py",
+    "allows_gpt_6_astra_medium": true,
+    "actual_model_passed_through_cli_flag": true,
+    "worker_manifest_records_requested_model_and_effort": true,
+    "native_auditor_matches_actual_model_effort_to_worker_manifest": true,
+    "arm_gate_matches_worker_and_audit_to_frozen_plan": true,
+    "limit": "Code support does not establish successful Astra execution or cross-model equivalence. Any actual protocol/semantic failure remains blocking."
+  },
+  "prior_review_reuse": {
+    "path": "independent-ledger-mcp-v2-gate-review.json",
+    "sha256": "6baa1daaa84316bb633e1e89dfb86aeedc0a97b6a04237340e45565a386117c6",
+    "substantive_imports_unchanged": true,
+    "supporting_tests_previously_passed": 38,
+    "tests_rerun_this_turn": false,
+    "reason": "V3 alters only names/scope; substantive graded consumer/manual/native code remains byte-identical."
+  },
+  "held_sol_v2": {
+    "sample": "beep-ledger-mcp-v2-baseline-1",
+    "raw_status": "fail",
+    "native_status": "fail",
+    "failure_record_retained": true,
+    "qualified_by_this_review": false
+  },
+  "remaining_code_blockers": [],
+  "prelaunch_requirements": [
+    "Independently audit final V3 registration plus both five-sample plans and all frozen hashes.",
+    "Use fresh Astra-medium V3 directories with no old Sol sample pooling or replacement.",
+    "Keep identical workload/policies/runtime and strict native/raw/manual/detail/consumer bars.",
+    "Record all five passing baseline samples and independent gate before candidate launch.",
+    "Stop on any failure and retain it; no further automatic cohort retry."
+  ],
+  "artifacts": {
+    "verification/experiments/2026-11-16-skill-diet/verify-ledger-mcp-arm-v3.mjs": "a58912d0020415548d3f8120127db37c9f9daeccd1e668b6bfe12ef370682d15",
+    "verification/experiments/2026-11-16-skill-diet/verify-ledger-mcp-arm-v2.mjs": "9485254f9e6330abe47ba42d3e6a2fb8af6787f8e9ef2ef3ff6f5cc648aaf895",
+    "verification/experiments/2026-11-16-skill-diet/independent-ledger-mcp-v2-gate-review.json": "6baa1daaa84316bb633e1e89dfb86aeedc0a97b6a04237340e45565a386117c6",
+    "verification/experiments/2026-11-16-skill-diet/run-mcp-workflow-samples-v4.py": "85840dcfc17bedb3a9760eb344e28187ecd45d3ed5c8e2b761050f8575fd7c75",
+    "eval/control-parity/codex-mcp-native-audit.mjs": "f33617ae48ad5bcbdeb993a7c1533b39ca43fdc2890160c8f458a81a3dfdb5f0",
+    "eval/control-parity/ledger-execution-v2.mjs": "8fd57ec53d834a7d0f9a382b839b64fe724d1e95081b5dadf9bed04191552180",
+    "eval/control-parity/ledger-execution.mjs": "91c5674d197cf7a79f037300ab2eb5523f49c2af3a990a8bef2da44a1126ac31",
+    "verification/experiments/2026-11-16-skill-diet/replay-ledger-consumers-v1.mjs": "76a997257b184955688a121bb8b812f917b8a2ae5d4f2aa7eba3c50cefd15c23",
+    "eval/control-parity/reporting-execution.mjs": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v2-baseline-1/report.json": "78db2c24ec04651ee4e5507a32789f1434a1063ae90bdd96653fb67a24efaef8",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v2-baseline-1/native-audit.json": "a6e01745eb04ce5fb972d5f56a598796b1507ea5194a93561f09edec29ae9f2b",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v2-baseline-1/runner-failure.json": "8ed2f0d7579cae90b818ed79b98f115e067b8c92c6650334dab34dfe6f93a910",
+    "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v2-baseline-1/capture.json": "a2aaf76409ef17d269a4df4f0ff32b9db36921c33c069057a66f017ee82bbd83"
+  }
+}

@@ -1,0 +1,37 @@
+{
+  "schema": 1,
+  "status": "registered-before-model-launch",
+  "plans": [
+    {
+      "path": "beep-ledger-mcp-v3-baseline-plan.json",
+      "sha256": "327f78ed794ccdad62b8f4f2c1d20ae85d107c58389ad12728c40acd9ef8186c"
+    },
+    {
+      "path": "beep-ledger-mcp-v3-candidate-plan.json",
+      "sha256": "0678f6f9450366c71a6cf137cf01f01a3c571642382fc57bca923e700b2eadb4"
+    }
+  ],
+  "accepted_reporting_source_commit": "c742d56b4b1ba1902889be4b9131a04d2d5613ae",
+  "baseline_source_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+  "candidate_source_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+  "acceptance": "Five fresh Astra V3 baseline samples must pass all three execution cases and eleven decisions, exact native replay, restored real consumer replay, unchanged registered inputs and independent review of actual output and every extra detail claim before any candidate launch. Then require the same five fresh candidate samples. Any failure stops and is preserved; no replacement, post-hoc qualification or pooling with held Sol V1/V2. Exact legacy-projection scores remain diagnostic. Current-source integration/lint/inventory are required before acceptance. If this Astra cohort fails, hold the cut without another model retry.",
+  "manual_criteria": [
+    "Read all actual ledger patches and persisted bytes against the supplied observations, authority and completeness rules.",
+    "Read every supplied event payload, persisted event, real consumer output and all eleven policy decisions.",
+    "Required issue_detail is an explicit V3 workload obligation; all other fields and authority checks remain exact. Additional detail keys may name only supplied admitted_build_ids.",
+    "Read every extra detail claim, including arrays and empty containers. Ground path, value and implied meaning for the same issue in exact source pointers and rationale; mere occurrence of a value elsewhere is insufficient. Reject invented tests, merges, side effects or contradictory claims.",
+    "Use the manual schema enforced by verify-ledger-mcp-arm-v3.mjs and verifyLedgerDetailReview: exact sample/case/decision coverage, source/ledger/events/consumer and detail/path/value hashes, true pass fields and no unsupported assertions. Automatic grade pass never substitutes for manual grounding.",
+    "Restore exact final ledger/event bytes and heartbeat into isolated roots, preserving run IDs and timestamps. Reproduce real runcheck/event consumers and summary exactly; only parsed runcheck.run_dir relocates."
+  ],
+  "candidate_launch_requires": "Complete five-baseline verify-ledger-mcp-arm-v3 pass and independent actual-output review; generic runner does not enforce this external prerequisite.",
+  "prior_cohort": "Both Sol V1/V2 holds remain failed, immutable and unpooled. V3 changes provider model only from the corrected V2 experiment; no replacement of its failed sample.",
+  "model_calls_launched": 0,
+  "limits": [
+    "No model run-open/close, governance, actual review/landing/filing, hosted publication or complete unattended-loop proof.",
+    "Source preserves inherited schema1/four-token-class prose while real CLI owns schema2/split-cache token output.",
+    "Controlled summary external inputs and transcript counts, not actual provider billing or architectural-quality proof."
+  ],
+  "model": "gpt-6-astra",
+  "effort": "medium",
+  "retry_limit": "If Astra V3 fails, hold this cut without further model retries."
+}

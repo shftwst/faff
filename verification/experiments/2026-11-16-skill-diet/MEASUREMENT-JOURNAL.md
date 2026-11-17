@@ -529,3 +529,9 @@ Ledger V2 private integration passes143tests, lint and inventory. Independent pr
 - Added exact ledger/event snapshot restoration with real runcheck, event consumers and summary. Only runcheck's directory path relocates. Missing cases and altered bytes, events, dependencies, summary or incomplete-work result fail.
 - Current deterministic suite passes 81 tests. Final in-process MCP preflight passes 71 calls, 3 producer cases, 11 decisions and 14 omission negatives; fresh exact consumer replay passes all three cases.
 - Accepted source totals remain 110,629 bytes / 27,243 estimated tokens saved. Ledger's 6,622 bytes / 1,625 tokens remain pending.
+
+## 2026-11-17: Sol ledger V2 held; one Astra comparison prepared
+
+Sol V2 baseline1 called `skip_transition` twice for the same micro observation. The first succeeded and the second was rejected. Both ledger cases and all eleven decisions pass; phase-event execution history and native audit fail. The independent manual review passes 702 binding/consistency checks and reproduces the failure. Exact final-state consumer replay passes all three cases, which does not waive the call-history failure. No later baseline or candidate launched; original missing workflow replay remains missing because the runner stopped at native audit.
+
+Prepared one separate Astra-medium V3 comparison with unchanged source, corrected workload, runtime, transport, effort and acceptance checks. Only provider model and cohort identifiers change. It requires five complete baselines before candidates and five candidates before integration/acceptance. Any failure remains held, with no further model retry for this cut. No pooling with the failed Sol cohorts; no Opus comparison or provider-wide conclusion follows from this failure. Accepted source totals are unchanged.

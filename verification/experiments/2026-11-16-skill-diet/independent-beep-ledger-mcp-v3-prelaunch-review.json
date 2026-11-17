@@ -1,0 +1,133 @@
+{
+  "schema": 1,
+  "reviewer": {
+    "role": "Independent read-only fresh-cohort prelaunch verifier",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "status": "clear-for-exact-registered-five-astra-baselines-only",
+  "model_calls_by_review": 0,
+  "source_installed_or_accepted_by_review": false,
+  "candidate_launch_cleared": false,
+  "bindings": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-registration.json",
+      "sha256": "a5203180236b372c043a5df4f7fa9b77bb30c5a6a46b2b53b9a2f910732b76b8"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-baseline-plan.json",
+      "sha256": "327f78ed794ccdad62b8f4f2c1d20ae85d107c58389ad12728c40acd9ef8186c"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v3-candidate-plan.json",
+      "sha256": "0678f6f9450366c71a6cf137cf01f01a3c571642382fc57bca923e700b2eadb4"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/verify-ledger-mcp-arm-v3.mjs",
+      "sha256": "a58912d0020415548d3f8120127db37c9f9daeccd1e668b6bfe12ef370682d15"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-ledger-mcp-v3-gate-review.json",
+      "sha256": "3f9bcae61cad8fb72cd25a7146ccfea494589e9b785906c15828935255289e38"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-mcp-v2-prelaunch-review.json",
+      "sha256": "95eeabf64428e859f05d7c3dc7d4422b273771d59fcac55c52c5352987697cad"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v1-hold.json",
+      "sha256": "d94e96d28716c20de3cf54c0fa878223ddbb64a30e08e80230e87b66d9985d67"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/beep-ledger-mcp-v2-hold.json",
+      "sha256": "eebc2badb42025b72386ae5bb580c150ff81307eba317c8ecbb989892c99f74e"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/manual-artifact-reviews/beep-ledger-mcp-v2-baseline-independent.json",
+      "sha256": "05431a0c6019e3d93f9ad3da291e2d0a79b25195ab64bc503450f2abdca65a5d"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/mcp-transport-v4-qualification.json",
+      "sha256": "909bb9bff077b2d993b16e36e09fe9ab78b20dffd2a7310fbb2ce60c81fb7018"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-beep-ledger-v2-evaluator-review.json",
+      "sha256": "afb927ed99b19c957dea1ef17248510e895b431a2251c9eb433d01ee39fdcd56"
+    }
+  ],
+  "frozen_inputs": {
+    "unique_per_arm": 49,
+    "plan_plus_input_hash_comparisons": 100,
+    "mismatches": 0,
+    "arm_input_maps_identical": true,
+    "all46_original_v2_input_hashes_retained_unchanged": true,
+    "three_added_inputs": [
+      "verify-ledger-mcp-arm-v3.mjs",
+      "beep-ledger-mcp-v2-hold.json",
+      "manual-artifact-reviews/beep-ledger-mcp-v2-baseline-independent.json"
+    ]
+  },
+  "treatment_delta": {
+    "model_before": "gpt-6.1-sol",
+    "model_after": "gpt-6-astra",
+    "effort": "medium",
+    "other_changes": "Fresh V3 cohort/sample/registration/gate identities and stronger explicit final-model stop rule only.",
+    "unchanged": [
+      "V2 corrected evaluator",
+      "V3 explicit workload",
+      "All source facts/oracles",
+      "Required detail subset and manual optional-claim grounding",
+      "Bare and contextual policy pair",
+      "Shared context",
+      "Runtime root/commit",
+      "MCP transport and runnerV4",
+      "Five samples per arm",
+      "Three execution cases plus11 decisions",
+      "Native/real-consumer/independent-manual gates",
+      "Failure preservation and no post-hoc acceptance"
+    ],
+    "fresh_sample_names": true,
+    "five_baseline_and_five_candidate": true,
+    "v3_run_directories_present_at_review": 0
+  },
+  "gate_binding": {
+    "independent_review_status": "gate-code-review-pass-prelaunch-binding-pending",
+    "independent_review_sha256": "3f9bcae61cad8fb72cd25a7146ccfea494589e9b785906c15828935255289e38",
+    "verifier_sha256": "a58912d0020415548d3f8120127db37c9f9daeccd1e668b6bfe12ef370682d15",
+    "normalised_gate_source_equals_v2_except_cohort_names_and_scope": true,
+    "acceptance_logic_loosened": false,
+    "registration_candidate_launch_reference_corrected_to_v3": true,
+    "gate_executed": false
+  },
+  "preserved_prerequisites": {
+    "accepted_reporting_baseline_sha256": "61719793bbcb7be55fcf17ea0bc592d962d3338382cde2dd77463df84fc8fb16",
+    "installed_source_matches": true,
+    "ledger_candidate_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+    "private_integration_and_final81_tests_bound_unchanged": true,
+    "pinned_runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "actual_runtime_head_matches": true,
+    "final71_call_preflight_and_exact_consumer_replay_preserved": true,
+    "v4_transport_qualification_bound_externally": true,
+    "runner_supports_astra_medium_and_records_actual_requested_identity": true
+  },
+  "prior_cohorts": {
+    "sol_v1": "Held, unchanged, unpooled; never counted as V3 evidence.",
+    "sol_v2": "Held actual duplicate transition failure; not reinterpreted as evaluator error or replaced.",
+    "final_v2_manual_record_sha256": "05431a0c6019e3d93f9ad3da291e2d0a79b25195ab64bc503450f2abdca65a5d"
+  },
+  "mandatory_progression": [
+    "Launch exactly the registered fresh Astra baseline plan.",
+    "Any Astra protocol, semantic, manual or consumer failure stops this cohort and holds the cut without another model retry.",
+    "Require complete five-baseline verify-ledger-mcp-arm-v3 gate, including every optional detail judgement and independent restored real-consumer replay, before candidate launch.",
+    "Then require five fresh candidates with identical bars and final installed-source integration/lint/inventory before acceptance or savings."
+  ],
+  "limits": [
+    "This review establishes frozen design and implementation support, not successful Astra execution or equivalence to Sol/Opus.",
+    "No V3 model outputs were available or reviewed and no arm gate executed.",
+    "Model change is a new complete cohort, not replacement or pooling of failed Sol samples.",
+    "Runner does not enforce the external baseline-to-candidate prerequisite; root must require the recorded passing V3 gate.",
+    "Controlled producer checkpoints do not prove full unattended loop, lifecycle/governance, actual review/landing/filing or hosted publication.",
+    "Controlled transcripts and summary dependencies are not provider billing.",
+    "No skill source or source totals changed by this review."
+  ]
+}

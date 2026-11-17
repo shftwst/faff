@@ -1,0 +1,29 @@
+{
+  "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+  "baseline_commit": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+  "verdict": "pass after default-landing condition correction",
+  "method": "Compared each changed paragraph against the original source, read surrounding branch procedures, output table, seven principles, appetite lists and final rules. Independent reviewer separately checked the condition correction.",
+  "findings": [
+    {
+      "section": "Default landing",
+      "original": "no container unless a coherent actionable outcome, in which case an outcome-named project is proposed",
+      "candidate": "propose only when the outcome qualifies",
+      "issue": "Only when preserves the restriction but leaves the positive proposal obligation implicit.",
+      "resolution": "Positive if branch now requires the proposal; otherwise explicitly propose no container.",
+      "status": "resolved"
+    }
+  ],
+  "preserved": [
+    "All twelve named outputs and standard envelope authority",
+    "Target-scaled PRDR, covered PRD goal set, author-never-admit and human DoD priority",
+    "DoD-marker fallback, blockedBy inward transitive walk, cycles/dead ends, earliest stream ownership and deepest-first ordering",
+    "Disjoint outward noncritical scope cuts, real-home/DoD gates, per-appetite consent and anti-thrash",
+    "Thematic conversion detection and all-live-tickets-before-retirement ordering",
+    "Read-only rehome-set proposal and empty answer; appetite changes breadth, not write authority",
+    "All seven principles, numeric thresholds, PRD-distance composition, examples, appetite action lists and final rules unchanged"
+  ],
+  "limits": [
+    "Source comparison and independent correction review only, not model behavioural parity.",
+    "Inherited contradictory appetite paragraphs and prior held agile model results remain unresolved; this pass makes no claim to qualify them."
+  ]
+}

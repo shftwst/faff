@@ -1,0 +1,55 @@
+{
+  "source_commit": "3754eb4ab5a1e70766329fe7fa7af8ac341b9d58",
+  "baseline_commit": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+  "tests": {
+    "command": [
+      "node",
+      "--test",
+      "test/onboard-local.test.mjs",
+      "test/prdr-loop-admit.test.mjs",
+      "test/run-start-wiring.test.mjs",
+      "test/prose-size.test.mjs",
+      "test/eval-cli-driver.test.mjs"
+    ],
+    "environment": {
+      "GIT_CONFIG_COUNT": "1",
+      "GIT_CONFIG_KEY_0": "commit.gpgsign",
+      "GIT_CONFIG_VALUE_0": "false",
+      "TMPDIR": "/var/tmp"
+    },
+    "exit_code": 0,
+    "tests": 143,
+    "pass": 143,
+    "fail": 0,
+    "skipped": 0
+  },
+  "adapter_lint": {
+    "command": [
+      "node",
+      "plugin/skills/faff/bin/faff",
+      "validate-adapters"
+    ],
+    "exit_code": 0,
+    "result": "pass"
+  },
+  "rule_inventory": {
+    "command": [
+      "node",
+      "plugin/skills/faff/bin/faff",
+      "rule-inventory",
+      "check",
+      "--base",
+      "bf839cfcc13194df284296ababd8966bd9f2ab62",
+      "--json"
+    ],
+    "exit_code": 0,
+    "result": "pass",
+    "blocks_deleted": 92,
+    "uncovered": 0,
+    "row_errors": 0
+  },
+  "review_findings": 6,
+  "review_findings_resolved": 6,
+  "model_runs": 0,
+  "fidelity_limit": "Source review and existing deterministic tests; no full model behavioural parity claim."
+}

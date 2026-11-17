@@ -1,0 +1,229 @@
+{
+  "schema": 1,
+  "status": "paragraph-source-candidate-unqualified-awaiting-root-review-and-checks",
+  "accepted": false,
+  "baseline_commit": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+  "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+  "before_bytes": 44542,
+  "after_bytes": 40611,
+  "saved_bytes": 3931,
+  "before_estimated_tokens": 11037,
+  "after_estimated_tokens": 10077,
+  "saved_estimated_tokens": 960,
+  "token_method": "ceil(UTF-16 code units/4), source estimate, not billing",
+  "before_sha256": "89b43b786f2ef8b5cce223813966cc8547456ac62961141a3c985252b2358251",
+  "after_sha256": "3f8e1bc786d771a008e7b5e22451e19278cf1dc0a97b880d84340340f4092383",
+  "paragraphs_consolidated": 24,
+  "rule_preservation_map": [
+    {
+      "source_lead": "This skill fills the `methodology` slot,",
+      "before_paragraph_sha256": "270c512a7c8aaa09189d2ed8f0ede84a9e55ad6792c30b33c470e976628044ad",
+      "after_paragraph_sha256": "a188cfcd85b3f9ae76bee952b345a9cd9b72727f9d00916118adc0e0f14415e9",
+      "bytes_saved": 197,
+      "preservation": "All twelve named outputs, optionality, caller mapping, principle findings and gateway envelope authority remain explicit."
+    },
+    {
+      "source_lead": "Inputs it expects with any request:",
+      "before_paragraph_sha256": "91dce960d7166d859c60e12b3f12934d4041bdaeb68de0c5f63a1fd73b1d4bb7",
+      "after_paragraph_sha256": "fa13030b8d7246d133fac6ffaf988f946a4c2f7384dc895ace1925adb34d65ff",
+      "bytes_saved": 80,
+      "preservation": "All five input classes, three finding fields and exact banner remain."
+    },
+    {
+      "source_lead": "**Target-scaled `prdr-author`.**",
+      "before_paragraph_sha256": "6e2bcbb9f1364429608b51a7b8b4b866b371b4f358bed8650267eedd0db365fc",
+      "after_paragraph_sha256": "ef3991b0adf02bd725e1aebbc7f6740399e32800075f01a640ab7a2037abbe87",
+      "bytes_saved": 138,
+      "preservation": "Composition, target alternatives, plural PRD goals, admission ownership, manual authority and low-confidence nonvacuity preserved."
+    },
+    {
+      "source_lead": "A **value stream** is a container",
+      "before_paragraph_sha256": "b7804527e98612287d2725317450a713351318d3e6fb428248569f3a86f603a8",
+      "after_paragraph_sha256": "7ecde508e68d834d5ee95ba9454c84a593a5edbea18dd551149a22452264d128",
+      "bytes_saved": 217,
+      "preservation": "DoD presence versus unavailable-marker fallback remains distinct; every finding still names fallback container."
+    },
+    {
+      "source_lead": "The agile lens sequences a *set*",
+      "before_paragraph_sha256": "f6534b67c0502f224afeef56c994eafeeabaf92935949e0f8d1aa7f7555b655a",
+      "after_paragraph_sha256": "7b1bd45cee41d5ea91d1bf584db470b6d3394fb63e0462197fae08fe8b9c2917",
+      "bytes_saved": 198,
+      "preservation": "Gating chain still requires genuine external blockers, real inward ownership, and both named sequencing outputs."
+    },
+    {
+      "source_lead": "**Why transitive, not direct-only.**",
+      "before_paragraph_sha256": "9ff15a63b395d4e179c60d439e1f67d9e2b97c3c5139ab7814bba35d2e832932",
+      "after_paragraph_sha256": "680d93f62a5d34cbe84d7be23bf2dfdb55a51af235f7cb85d8b7ab06fd77324e",
+      "bytes_saved": 10,
+      "preservation": "Transitive versus direct dependency distinction retained."
+    },
+    {
+      "source_lead": "**A blocker that gates two streams**",
+      "before_paragraph_sha256": "931adb9b3de013fc5eb4d3eb72cfa189e93867e5ac2454b7cd758a1b22b0ea4a",
+      "after_paragraph_sha256": "0cfb4ce3f6f09689e536b342779a8aea53c915a76b9b7835ff14f1b3e171865b",
+      "bytes_saved": 44,
+      "preservation": "One home, earliest-needed stream and no double-counting retained."
+    },
+    {
+      "source_lead": "**Re-homing reparents \u2014 governed by the gateway dial.**",
+      "before_paragraph_sha256": "829a9b14b309ecf088a668c12a3216079dde4b867fc55fe30ebb2b21837b37fd",
+      "after_paragraph_sha256": "9a06272fe7ffadcd163224b9d1e4163b7fdcc4222bca3df6ee8aede5958e403b",
+      "bytes_saved": 463,
+      "preservation": "Real move, preserved edges, named appetite levels, both floors, fresh reads, no bounce and conflict-analysis authority preserved."
+    },
+    {
+      "source_lead": "**Complementary outward direction.**",
+      "before_paragraph_sha256": "c5c8fcff3b821572992941ae652e8a239cb6c82bff9f91d727e15b211eeab830",
+      "after_paragraph_sha256": "985325277fb4eda91828c8fffc90dedc53fa881c2288bb0c282f080238fdda6f",
+      "bytes_saved": 125,
+      "preservation": "Inward dependencies versus outward noncritical scope remain explicit and disjoint."
+    },
+    {
+      "source_lead": "The lens champions converging value early",
+      "before_paragraph_sha256": "334a4fc2dc28b852112a0f1b5d8b37f38c291a8a49957c3bea6da28a6e22011b",
+      "after_paragraph_sha256": "2496cff87670fb74f6e30440a593b0b6764d6eb56e7571375d73baeaba8d762f",
+      "bytes_saved": 179,
+      "preservation": "Outward action still reparenting to a deliverable, not deletion; shared primitive and safety floors retained."
+    },
+    {
+      "source_lead": "**Reversibility floor (reused, not a new invariant).**",
+      "before_paragraph_sha256": "70bf20f0e03d4bd9061e09e83970d50344ab4d0bc4c59c9a9fe0104375c0f9be",
+      "after_paragraph_sha256": "72b1949da339f0872b782b1a0feef09a0df2fb5a1a17c53d09e089c93a78b5b3",
+      "bytes_saved": 101,
+      "preservation": "Absolute cancel/delete prohibition and human-owned DoD ceiling retained."
+    },
+    {
+      "source_lead": "**Idempotent / disjoint from the inward walk.**",
+      "before_paragraph_sha256": "bfa4d7652c04ca8f3c539fa14537fd10310312911a6bceeaaf506258ea78a4a5",
+      "after_paragraph_sha256": "094c8a2c7559326dbea3f331ce405d702e59fd8bdcfcf6880c0210bbcc985d4a",
+      "bytes_saved": 190,
+      "preservation": "Fresh reads, no re-cut and no reverse pull of noncritical issues retained."
+    },
+    {
+      "source_lead": "This lens owns where newly captured",
+      "before_paragraph_sha256": "bd5d02d0cc4b5f60a7a5c8b63711e76d24b9991773d0306665c959c77614ba92",
+      "after_paragraph_sha256": "43ded6d1aadd0899f2ede986c82cdb6586033cc1bf31b2e2c4e53e40f2d4cf2e",
+      "bytes_saved": 219,
+      "preservation": "Default, actionable-outcome exception, later sequencing, explicit/greenfield exceptions and two other ticket sources retained."
+    },
+    {
+      "source_lead": "**Why.** New work auto-filed at capture time",
+      "before_paragraph_sha256": "2b3f05ac67ec3dcd6bd4915c29ee9bdbfc1e959c7cf4ee8b60ddb8b6ca551f1c",
+      "after_paragraph_sha256": "d4156d25822133ec838b2e673a79f5fb5cac8b437d950baba32607a06c22be4f",
+      "bytes_saved": 206,
+      "preservation": "Backlog legibility rationale and existing topology dial link retained."
+    },
+    {
+      "source_lead": "Under the agile lens an **outcome-led project",
+      "before_paragraph_sha256": "65884d766d2d09af7feb1d6fb32993a48edc049db10808fefca9c01fe68b4794",
+      "after_paragraph_sha256": "e0ecf322aedaf88d4a628239cb2cc22f21a5ddd25fefde9fc3dd20d8b78ffccd",
+      "bytes_saved": 232,
+      "preservation": "All thematic classification axes and distinct diagnostic/output taxonomy retained."
+    },
+    {
+      "source_lead": "**Sharper than Principle 1.**",
+      "before_paragraph_sha256": "7c5eb7a558bc82b5fa670b80b67d9c976f558410cb9aac00defc828d4215bdb5",
+      "after_paragraph_sha256": "13f8983b13768d1b99832bbaa8e18a97c9527b9bbc9eeab312c75a12cdc677ac",
+      "bytes_saved": 152,
+      "preservation": "Naming-versus-grouping distinction and Verifiable delivery behavioural example retained."
+    },
+    {
+      "source_lead": "**Detection.** Flag a project thematic",
+      "before_paragraph_sha256": "cbbdb9ec66aad37ccc9540c44499a1c184071349f2b97ae85dcb07bae114ce2d",
+      "after_paragraph_sha256": "61bf82e04bf47496e0b0073bfc6077f3ce6872c6dc2f4af14ddd35aa9ba37792",
+      "bytes_saved": 415,
+      "preservation": "Grouping evidence, name-test distinction, DoD exemption/fallback and immutable structural floor retained."
+    },
+    {
+      "source_lead": "**No scope is ever lost.**",
+      "before_paragraph_sha256": "f5aacb8d68353d037d4e78ab51a65bfa89352200d799e385872f47f3c87d7c30",
+      "after_paragraph_sha256": "a88e57b339fa9401ed723b182517e5151f857b43df95c399ca7b41e36dd9268f",
+      "bytes_saved": 87,
+      "preservation": "All live tickets housed first and no premature shell retirement retained."
+    },
+    {
+      "source_lead": "The **Default landing** rule sends",
+      "before_paragraph_sha256": "5c8e3b761c58853af67c7008e08ca70494999ab3832ac38e4d255b1121accabe",
+      "after_paragraph_sha256": "0874a5e6f1acf11bd43de53c7cfff847f5187d835e1fcf62db890b776768c265",
+      "bytes_saved": 124,
+      "preservation": "All grouping inputs, read-only authority and human-gated application retained."
+    },
+    {
+      "source_lead": "**Conservative bias.**",
+      "before_paragraph_sha256": "c24c36416482aefdd5730cc96f7721d7ebb6b4c3fd35badc05471a84ec63633a",
+      "after_paragraph_sha256": "1606564be0f795bedf40e73aac508ff5dd618f8ebb74b6e37eae34c7a632182f",
+      "bytes_saved": 72,
+      "preservation": "Assignment limitation, independent-ticket validity, high-confidence-only and explicit explanation retained."
+    },
+    {
+      "source_lead": "**Appetite** tunes proposal **breadth",
+      "before_paragraph_sha256": "4a2f41e8d54375cbfc8611111ff124d96c61154e3138677a0d3979213c25cb39",
+      "after_paragraph_sha256": "ea2b855263f595c2c2af617dd8d8a1411010aa8a7587490157735516b829420e",
+      "bytes_saved": 132,
+      "preservation": "Low/full thresholds, every-level zero writes and complete empty-answer semantics retained."
+    },
+    {
+      "source_lead": "Each principle has: the rule",
+      "before_paragraph_sha256": "69c14e4538cc771c3300f401ad0ec8bbf65972aa20642c4dc7184bdeb523b152",
+      "after_paragraph_sha256": "793705c173660fae3ed9f2096bcadff762bb435c96adcc506f53addbbb2972e0",
+      "bytes_saved": 73,
+      "preservation": "All four principle parts and placeholder owner retained."
+    },
+    {
+      "source_lead": "Diagnoses are **educational, not preachy**.",
+      "before_paragraph_sha256": "0b9c2a1743b5aff1c287dfe8f54d483a6f2d7481cf0f825de5273d0f8442590f",
+      "after_paragraph_sha256": "97049fd19a80c7c004a82271d07325c2dc78a86276f4303967b2f70950d23d84",
+      "bytes_saved": 39,
+      "preservation": "Educational intent and mandatory three-part shape retained."
+    },
+    {
+      "source_lead": "**Authority over tracker topology is the gateway's dial",
+      "before_paragraph_sha256": "e559c56c2350642b66e8559ee719451b07c2c2c31cec6e05e468e3fdca2445e9",
+      "after_paragraph_sha256": "ae7f90340f6c6ea7b8947d7ae2eff0854cb68b58802ff53a551bf6e24822087e",
+      "bytes_saved": 238,
+      "preservation": "All topology operations and six named guardrails/floors retained under canonical dial."
+    }
+  ],
+  "unchanged_protection_checks": {
+    "frontmatter": true,
+    "all_headings_and_rubric_anchors": true,
+    "fenced_blocks": true,
+    "all_list_table_and_blockquote_lines": true,
+    "all_original_command_spans_retained": true,
+    "seven_principle_subsections_complete": true,
+    "appetite_action_lists_and_rules_complete": true,
+    "inward_blockedBy_dependency_definitions_and_walk": true,
+    "both_distinct_per_level_paragraphs": true
+  },
+  "guards_inspected": [
+    "test/eval-cli-driver.test.mjs grouping loader/criteria/fixture must_include reachability",
+    "eval/cli-driver.mjs GROUPING_PROSE_START and GROUPING_PROSE_END",
+    "test/is-bundled.test.mjs",
+    "test/scaffolder-lights-out-dials.test.mjs",
+    "eval/baselines/gateway-usage.json",
+    "eval/baselines/prompt-size.json",
+    "eval/seam-registry.json"
+  ],
+  "prior_dependency_hold": {
+    "record": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/agile-principles-astra-v3-hold.json",
+    "finding": "Earlier baseline invented UI-to-BANK dependency from sequencing/risk evidence.",
+    "treatment": "No prior measured artifact reused or hold changed. Existing explicit blockedBy/load-bearing dependency definitions, transitive walk, cycle/dead-end handling, Principle6 and all diagnosis examples retained; ordering/risk alone is not substituted for those source predicates."
+  },
+  "deferred": [
+    "Outputs mapping table, full procedures and conditions, operational examples and diagnosis templates.",
+    "Seven principles, including human-only WIP, dependency graph versus value/risk ordering and PRD-distance floor.",
+    "All appetite action lists and original inconsistent medium/read-only/auto-create wording; no policy correction.",
+    "Rehome versus delete, plain-backlog conversion exception, human authority and scope-cut admission gates.",
+    "No extraction into CLI or external interpretation/read; no mandatory read added."
+  ],
+  "limits": [
+    "Whole skill read; conservative whole-paragraph replacements only, not a policy simplification.",
+    "Only this owned SKILL.md and this record were written. No allowances, tests, inventory, commits, models or new harness.",
+    "Mechanical preservation assertions are source checks only; semantic preservation remains review judgement and root verification is outstanding."
+  ],
+  "author_self_review_notes": [
+    "Kept the caller-agnostic statement explicit, including neither knows nor describes callers.",
+    "Distinguished a genuinely independent ticket with no outcome home from merely graph-independent tickets; only the former is automatically correct in leave-loose. No new dependency inference rule added."
+  ],
+  "mechanical_whitespace_review": "git diff --check over the single owned skill, exit0; no test execution"
+}

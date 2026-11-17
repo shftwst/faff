@@ -1,0 +1,59 @@
+{
+  "source": "plugin/skills/faff-jot/SKILL.md",
+  "baseline_commit": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+  "baseline_sha256": "f0d8aa30e61b12624b3e29abb95bf1c678f675a17d6cc58f3eab1234bbe47d97",
+  "candidate_sha256": "a11d1aea2dc1749d21ba225f515d45cec2b0da440f83c9b5c077dd892ea91e19",
+  "verdict": "changes_requested",
+  "method": "Read complete original and candidate skill and inspect source diff directly; candidate map was not used as evidence.",
+  "findings": [
+    {
+      "id": "JOT-1",
+      "severity": "medium",
+      "section": "4. Confirm and create / application-scale fork",
+      "original": "If so, offer the top-down route instead of creating flat",
+      "candidate": "Offer the top-down route:",
+      "issue": "The explicit positive-condition guard was dropped. After checking for multiple decomposing capabilities, the candidate unconditionally says to offer the plot route. The following small-brief flat-create branch does not clearly prevent an unnecessary roadmap consent prompt.",
+      "fix": "Change to: If so, offer the top-down route: (or Only for such a brief, offer...)."
+    },
+    {
+      "id": "JOT-2",
+      "severity": "medium",
+      "section": "4. Confirm and create / project DoD",
+      "original": "ask ... for a target-scaled project DoD ... Present the proposed ## Definition of done + decision and gate",
+      "candidate": "Dispatch ... with {outcome, child_specs, target} ... Surface ## Definition of done and gate",
+      "issue": "Passing target and preserving its precedence does not explicitly preserve the instruction to request a target-scaled DoD. More concretely, the decision is no longer required in the human approval presentation; only the DoD section and gate remain.",
+      "fix": "Request a target-scaled project DoD and surface both the proposed Definition of done and decision before the approval gate."
+    }
+  ],
+  "preserved": [
+    "Issue-id dispatch, existing-ticket inspection-only refusal branches and no mutations",
+    "Producer dispatch transport, engine failures, methodology per-pass/per-project dispatch and nested fallback",
+    "Ticket template type precedence, unknown placeholder, no fabrication or under-filled blocking, native-template miss fallback, and ordering before rendering/writing",
+    "Create-team routing/default/legacy branches; container-ticket-link write ordering",
+    "Human yes/edit/no create gate; appetite exceptions and accepted-root envelope; autonomous proposal-only fallback",
+    "Idempotent retry query, dedup API exception, re-slice search, edge provenance and markdown/structured-link distinction",
+    "Interactive intake provenance and no containment check; human-only PRDR ratification, accepted-status writer, branch/PR workflow, edits/skips/non-clobber/unanswered/no-prdr branches",
+    "Chaining, git-only checklist paths and stable keys, logging fields and essential-mode exception"
+  ],
+  "static_comparison": {
+    "frontmatter_identical": true,
+    "headings_identical": true,
+    "code_fences_identical": true
+  },
+  "limits": [
+    "Source-only semantic review, no runtime execution, tests, model evaluations or harness runs.",
+    "Referenced slot contracts and implementation were not separately audited; review compares obligations stated in this skill.",
+    "Inherited contradictions (producer versus inline intake, autonomous prohibition versus full appetite/container envelope) were not resolved or validated.",
+    "The introduction now reflects the already-explicit inspection-only v1 rule; no lost current execution permission inferred from the original broader introductory phrasing.",
+    "No claim of complete downstream workflow equivalence or model behavioural preservation."
+  ],
+  "resolution": {
+    "verdict": "resolved",
+    "current_sha256": "6ccd48d0bd390b80909f42f7a178afdfd1b97f33c739d0e495266741aeec8516",
+    "findings": {
+      "JOT-1": "Resolved: If so explicitly gates the plot offer on the positive application-scale condition.",
+      "JOT-2": "Resolved: target-scaled project DoD request and presentation of Definition of done plus decision are explicit again."
+    },
+    "scope": "Only the recorded corrections and actual current affected text checked. Original findings retained; no broader rereview, tests or model calls."
+  }
+}

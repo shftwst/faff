@@ -1,0 +1,99 @@
+{
+  "schema": 1,
+  "status": "clear-after-exact-correction-recheck",
+  "baseline_commit": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+  "source": "plugin/skills/faff-onboard/SKILL.md",
+  "baseline_sha256": "bee1f065f9487a723f4a55cb7a80d1156d2f861e6a482205e532f76fd51ab6cf",
+  "candidate_sha256": "0cfe4a7944e2a3873b448549c4a784580289b31d23d99565608c775984b46823",
+  "before_bytes": 23024,
+  "after_bytes": 18024,
+  "saved_bytes": 5000,
+  "before_estimated_tokens": 5693,
+  "after_estimated_tokens": 4461,
+  "method": "Read actual complete skill and baseline-to-working-source diff, compare every changed section against command/flag, path/default, consent/authority, exception/error and decision-example obligations. Candidate mapping not used as evidence.",
+  "findings": [
+    {
+      "id": "decline-stub-proceed",
+      "severity": "required-condition-weakened",
+      "candidate_line": 57,
+      "baseline_line": 59,
+      "baseline": "A deliberate /faff-onboard invocation proceeds to detection(step2) from an exact decline-stub.",
+      "candidate": "Explicit /faff-onboard may proceed to step2 from that stub.",
+      "effect": "May changes the required continuation into discretion to stop despite requested setup.",
+      "requested_correction": "Replace may proceed with proceeds (or equivalent mandatory continuation). No source edit made by reviewer."
+    }
+  ],
+  "section_checks": [
+    {
+      "domain": "Config/runtime authority",
+      "assessment": "MVP tracking-only, CLI-only writer/no handformat/no clobber, static kernel/tracker loading and resolver command unchanged; config-get inconsistency already exists and not fixed."
+    },
+    {
+      "domain": "Modes and consent",
+      "assessment": "Interactive-only/no autonomous offers/defaults retained. One local boolean/explicit flag/default-No prompt/scripted noflag standard/no autonomous admission retained."
+    },
+    {
+      "domain": "Bail and local override",
+      "assessment": "Exit2 verbatim rename/no secondconfig/deprecated root not recommended; exit3 detect; realconfig report-stop; local exit0 override/tracked-base warning/no baseread/write and exit2stop retained. Decline-stub exact fields preserved but proceed obligation weakened as finding1."
+    },
+    {
+      "domain": "Detection/defaults",
+      "assessment": "Tracker tokens, git-only skip, origin preference/SSH/https/ssh URL/.git removal, supported github-only token/other-host human confirm and no-origin omission unchanged."
+    },
+    {
+      "domain": "Record locations and labels",
+      "assessment": "Six record keys, deterministic conventions command/source classes/synonym confirm/no creation-relocation/cache note retained. Standard default-prefix confirmation and local team-derived validated prefix with retry/abort retained."
+    },
+    {
+      "domain": "Team decisions",
+      "assessment": "One-team confirm/key-name example,multiple picklist,no-team-concept free text,no tracker skip,MCP tool autodiscovery/untrusted data retained."
+    },
+    {
+      "domain": "Native template discovery",
+      "assessment": "Resolved-team read-only/no create-save, absent MCP/tool/templates skip, every match/unmapped example, human collision winner<=1 pertype, identity-only/no bodies and no persisted unmapped retained."
+    },
+    {
+      "domain": "Standard write and keys",
+      "assessment": "Same eleven allowed trackingkeys, no project_id/exit2, omit unknown values, dryrun exacttext/oneconfirm/re-runwithoutdryrun/surgical writer and example retained."
+    },
+    {
+      "domain": "Local writes",
+      "assessment": "Derived-prefix flag, top-level bundle_store outsideallowlist, exact configset command/bothlocal overlaytargets, dryrunboth/oneconfirm/initbeforeset, local preview/standard-only basecommit retained."
+    },
+    {
+      "domain": "Native map persistence",
+      "assessment": "Same CLI-only stdinJSON/namecolon-newline safety,taxonomy/YAML/roundtrip/filedefault/configuredpath,dryrunownconfirm,zero mapsno file/unmappedreport,committed/no local overlay retained."
+    },
+    {
+      "domain": "Ensurers and re-run",
+      "assessment": "Exact gitignore/hooks commands/flags andpaths,appendonly warnings/basecommittable/operatoronlycommit,missinghookskip/remedy,localexclude/settings targets and baseuntouched retained. differing-value exit2/no force retained."
+    },
+    {
+      "domain": "Report and rules",
+      "assessment": "Report/log content and local alternatives/pinnedvalues/warning/boolean retained; consolidated Rules references full step4 key list and native procedural guarantees; no unique decision example removed."
+    }
+  ],
+  "protected_structure": {
+    "frontmatter_identical": true,
+    "headings_identical": true,
+    "fenced_blocks_identical": true,
+    "commands_flags_paths": "No executable command/flag/default path loss found; omitted standalone config set label remains in full command, key list remains at step4."
+  },
+  "inherited_ambiguities": [
+    "Configuration says only path/init calls but later explicitly uses get and set; both baseline and candidate retain this.",
+    "Standard-mode prefix confirmation coexists with later never-sets-prefix wording; inherited, not resolved.",
+    "One-write rule and local two-writer exception remain as before; local native map explicitly stays non-overlaid."
+  ],
+  "limits": [
+    "Source-only semantic review, not model/workflow or hosted-effect qualification.",
+    "No tests/model calls/harness work/source edits/commits; only this independent review record written.",
+    "Wording/fidelity finding does not establish a measured model failure."
+  ],
+  "resolution": {
+    "finding_id": "decline-stub-proceed",
+    "status": "resolved",
+    "exact_corrected_text": "Explicit `/faff-onboard` proceeds to detection (step 2) from that stub.",
+    "current_source_sha256": "7a461d10c65a0098c219b65cb67a0d34065fa2ef28268bb89e592009830be786",
+    "scope": "Rechecked only exact mandatory-continuation correction; original finding retained. No source edits/tests/models."
+  }
+}

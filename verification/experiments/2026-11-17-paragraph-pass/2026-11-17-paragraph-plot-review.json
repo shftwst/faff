@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "status": "independent-bounded-source-review-clear-after-two-corrections",
+  "accepted": false,
+  "reviewer": "verify_wtf_scope",
+  "baseline_commit": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+  "path": "plugin/skills/faff-plot/SKILL.md",
+  "baseline_sha256": "3f115b17e9d4017332eea3bdbdb747735796435e2d57852b588d70c8222c5d31",
+  "candidate_sha256": "dc46da8d8d64c5df0f0418e011baa2fca54a0e4e3406f766155a0eb6b435a12a",
+  "baseline_bytes": 45820,
+  "candidate_bytes": 42564,
+  "saved_bytes": 3256,
+  "method": "Read full candidate source and actual git diff with surrounding context, then compare baseline changed paragraphs directly. Author mapping not used as proof.",
+  "findings": [
+    {
+      "severity": "consent-boundary",
+      "line": 141,
+      "section": "R4 Confirm gate / Composition with the topology-write dial",
+      "baseline": "No appetite level auto-creates a container outside the L4 accepted-root envelope; therefore the whole rehome apply sits behind this gate at every appetite.",
+      "candidate": "Confirmation floor gates the whole apply at every appetite outside the L4 accepted-root envelope.",
+      "issue": "Moves the L4 qualification from the container auto-create rule onto the rehome confirmation gate itself. It introduces a possible ungated L4 rehome reading, conflicting with the unchanged unconditional R4 heading and autonomous zero-write fallback.",
+      "required_correction": "Keep the whole rehome apply gated at every appetite, and describe the existing container/L4 exception separately as the baseline did."
+    },
+    {
+      "severity": "new-mandatory-behaviour",
+      "line": 103,
+      "section": "Rehoming pass Entry",
+      "baseline": "Bare plot without a brief and clear rehoming intent may offer this mode conversationally.",
+      "candidate": "With that same condition, offer the mode conversationally.",
+      "issue": "Changes optional conversational offer into an imperative.",
+      "required_correction": "Restore may offer while retaining explicit rehome argument as the deterministic mode selector."
+    }
+  ],
+  "preserved_obligations": {
+    "entry_prd_selection_survivor_filters_path_failure_intake_fallback": "preserved",
+    "batch_per_altitude_node_scoping_sequential_descent_edit_dispatch": "preserved",
+    "checkpoint_order_nonzero_fault_halt_per_dispatch_ticks": "preserved",
+    "first_slice_no_leaf_and_concrete_derivation_stop": "preserved",
+    "container_epic_consent_appetite_topdown_creation_and_idempotent_links": "preserved_except_rehome_gate_wording_finding",
+    "l3_project_dod_manual_ratification_target_priority_no_clobber": "preserved",
+    "ordered_map_then_prep_handoffs": "preserved",
+    "rehome_fresh_input_exactly_once_strikeout_only_manual_undo_finish_forward": "preserved",
+    "rehome_per_member_freshness_skip_failure_edges_report_and_no_delete": "preserved",
+    "git_only_stable_keys_skeleton_and_handoff": "preserved",
+    "autonomous_ignition_live_target_selfref_inherited_fault_nonrefuse_before_mint": "preserved",
+    "cli_only_envelope_disposition_live_op_construction_containment_refusal": "preserved",
+    "halt_siblings_forward_no_rollback_logging_and_parking": "preserved",
+    "unconditional_prdr_5c_trace_phase1_phase2_admit_accept_or_actual_refusal_park_no_drop": "preserved",
+    "all_five_refusal_reasons_original_conditions_and_recoverable_proposed_record": "preserved"
+  },
+  "mechanical_preservation": {
+    "frontmatter_verbatim": true,
+    "all_headings_and_anchors_verbatim": true,
+    "all_numbered_bullet_table_blockquote_lines_verbatim": true,
+    "fenced_examples_verbatim": true,
+    "original_command_spans_retained_verbatim": true
+  },
+  "inherited_ambiguities_not_changed": [
+    "Primarily interactive plot versus nested beep-boop plan handoff wording.",
+    "Step5c final park-description shorthand versus its explicit five refusal branches."
+  ],
+  "rendering_scope_note": "Normalisation remains bound to gateway Universal-routing rule. The local opening sentence lists descriptions/summaries more narrowly than baseline all human-facing output; root should avoid construing that list as an exception for other human-facing surfaces. No global carve-out is introduced because the universal rule remains explicit.",
+  "limits": [
+    "Static source review only, no tests, models, harness execution, allowances or commits.",
+    "No source edits by reviewer.",
+    "Findings bind only the exact reviewed candidate hash; corrected source requires a narrow recheck."
+  ],
+  "resolution": {
+    "current_source_sha256": "2104007c47b11d711bcbcc9db14e2e442c23718f759494418faa5cd5fa820b96",
+    "current_source_bytes": 42606,
+    "exact_only_changes_since_reviewed_hash": true,
+    "proof": "Reverting exactly the two corrected phrases reconstructs the original reviewed candidate SHA256.",
+    "findings_resolved": [
+      {
+        "finding": "consent-boundary",
+        "assessment": "L4 qualifier once again describes auto-creation; whole rehome apply explicitly remains gated at every appetite."
+      },
+      {
+        "finding": "new-mandatory-behaviour",
+        "assessment": "plot may offer restores discretionary conversational offer."
+      }
+    ],
+    "assessment": "Both original material findings resolved; unchanged obligations inherit the full-source review. Original findings and input hash remain recorded.",
+    "limits": "Narrow correction recheck only; no tests, models or source edits. Rendering scope note from original review remains a qualification about the explicit universal gateway rule."
+  }
+}

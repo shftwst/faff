@@ -1,0 +1,1 @@
+faff merge-gate: no trusted committed anchor level for run faff-prose-sweep-landing issue PR-1204 at head bf839cfcc13194df284296ababd8966bd9f2ab62 (anchor-missing) — re-anchor (graft Step 9b) so the PR carries .faff/anchors/…/run-ledger.json, or merge at the forge

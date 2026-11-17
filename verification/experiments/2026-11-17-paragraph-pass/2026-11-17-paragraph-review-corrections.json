@@ -1,0 +1,62 @@
+{
+  "baseline": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+  "corrections": [
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "reviewed_candidate_sha256": "a11d1aea2dc1749d21ba225f515d45cec2b0da440f83c9b5c077dd892ea91e19",
+      "corrected_sha256": "6ccd48d0bd390b80909f42f7a178afdfd1b97f33c739d0e495266741aeec8516",
+      "corrections": [
+        {
+          "before": "container. Offer the top-down route:",
+          "after": "container. If so, offer the top-down route:"
+        },
+        {
+          "before": "Dispatch the configured methodology's `prdr-author` with `{outcome, child_specs, target}`",
+          "after": "Ask the configured methodology's `prdr-author` for a target-scaled project DoD with `{outcome, child_specs, target}`"
+        },
+        {
+          "before": "Surface `## Definition of done` and gate:",
+          "after": "Surface the proposed `## Definition of done` + decision and gate:"
+        }
+      ]
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "reviewed_candidate_sha256": "0cfe4a7944e2a3873b448549c4a784580289b31d23d99565608c775984b46823",
+      "corrected_sha256": "7a461d10c65a0098c219b65cb67a0d34065fa2ef28268bb89e592009830be786",
+      "corrections": [
+        {
+          "before": "Explicit `/faff-onboard` may proceed to step 2 from that stub.",
+          "after": "Explicit `/faff-onboard` proceeds to detection (step 2) from that stub."
+        }
+      ]
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "reviewed_candidate_sha256": "dc46da8d8d64c5df0f0418e011baa2fca54a0e4e3406f766155a0eb6b435a12a",
+      "corrected_sha256": "2104007c47b11d711bcbcc9db14e2e442c23718f759494418faa5cd5fa820b96",
+      "corrections": [
+        {
+          "before": "(\"sort out the loose backlog\"), offer the mode conversationally.",
+          "after": "(\"sort out the loose backlog\"), plot may offer the mode conversationally."
+        },
+        {
+          "before": "Every approved rehome creates a container, so plot's **Containers always confirm** floor gates the whole apply at every appetite outside the L4 accepted-root envelope.",
+          "after": "Every approved rehome creates a container. No appetite level auto-creates one outside the L4 accepted-root envelope; plot's **Containers always confirm** floor gates the whole apply at every appetite."
+        }
+      ]
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "reviewed_candidate_sha256": "3f8e1bc786d771a008e7b5e22451e19278cf1dc0a97b880d84340340f4092383",
+      "corrected_sha256": "b8013fc4b6de88c0cf9766af1a2ad0348ef70db28051f1a14276f5c307a94469",
+      "corrections": [
+        {
+          "before": "Propose an outcome-named project only when the brief names one coherent, currently-actionable outcome sequencable now (principle 1). Otherwise sequencing into a project is a later tidy / plot / methodology step.",
+          "after": "If the brief names one coherent, currently-actionable outcome that can be sequenced now, propose an outcome-named project (principle 1). Otherwise propose no container; sequencing into a project is a later tidy / plot / methodology step."
+        }
+      ]
+    }
+  ],
+  "status": "all six semantic findings corrected and resolution reviewed; seven exact substitutions"
+}

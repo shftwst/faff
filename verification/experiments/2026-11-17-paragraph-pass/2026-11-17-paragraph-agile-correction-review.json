@@ -1,0 +1,19 @@
+{
+  "source": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+  "baseline_commit": "bf839cfcc13194df284296ababd8966bd9f2ab62",
+  "current_sha256": "b8013fc4b6de88c0cf9766af1a2ad0348ef70db28051f1a14276f5c307a94469",
+  "verdict": "pass",
+  "scope": "Narrow default-landing correction only, inspected original Git paragraph, recorded before/after and current actual paragraph.",
+  "finding": "The former only-when condition constrained eligibility but omitted the positive proposal obligation. Current If ... propose ... Otherwise propose no container restores both positive and negative branches of the original rule.",
+  "preserved_in_affected_paragraph": [
+    "coherent currently-actionable outcome sequencable now",
+    "outcome-named project requirement",
+    "project-less Backlog default",
+    "explicit human/plot new-project choice and greenfield exemption",
+    "execution-discovered and methodology-fill default"
+  ],
+  "limits": [
+    "No broader agile skill review.",
+    "No tests, models, harness, execution or source edits."
+  ]
+}

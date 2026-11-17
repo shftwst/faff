@@ -137,13 +137,28 @@ export async function runModelEval({ model, tier = "quick", lanes = ["blackbox",
   return { result, dir };
 }
 
+// Per-kind results from several capture dirs. A later dir replaces an earlier one for the same case, not
+// the same kind, so a rerun of some cases of a kind (a run killed part-way) completes it instead of
+// discarding the cases the earlier run finished.
+export function perKindFromCaptureDirs(captureDirs, ignoreKindsByDir = {}) {
+  const latest = new Map();
+  captureDirs.forEach((dir, index) => {
+    const ignore = ignoreKindsByDir[dir] ?? [];
+    for (const line of readFileSync(join(dir, "judgements.jsonl"), "utf8").trim().split("\n")) {
+      if (!line) continue;
+      const r = JSON.parse(line);
+      if (ignore.includes(r.kind)) continue;
+      const key = `${r.kind}\u0000${r.case_id}`;
+      if (!latest.has(key) || latest.get(key).index < index) latest.set(key, { index, records: [] });
+      if (latest.get(key).index === index) latest.get(key).records.push(r);
+    }
+  });
+  return perKindFromRecords([...latest.values()].flatMap((v) => v.records));
+}
+
 // Build a stored result from raw judgement captures a sweep already wrote (a killed sweep has no summary).
 export function resultFromCaptures({ captureDirs, ignoreKindsByDir = {}, model, tier = "captured", lanes = ["blackbox"], notes = null, plan = loadPlan(), now = new Date(), resultsRoot = join(HERE, "results"), format = null, extraPerKind = {}, skipped = [] }) {
-  const parts = captureDirs.map((dir) => {
-    const records = readFileSync(join(dir, "judgements.jsonl"), "utf8").trim().split("\n").filter(Boolean).map((l) => JSON.parse(l));
-    return perKindFromRecords(records, { ignoreKinds: ignoreKindsByDir[dir] ?? [] });
-  });
-  const perKind = mergePerKind(...parts, extraPerKind);
+  const perKind = mergePerKind(perKindFromCaptureDirs(captureDirs, ignoreKindsByDir), extraPerKind);
   const reference = referenceInfo(plan, REPO);
   const meta = {
     model_id: model.id, driver: model.driver, effort: model.effort ?? null, tier,

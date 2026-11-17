@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { kindEntry, loadPlan, repsForKind, resultFromCaptures, runModelEval } from "../eval/run-model-eval.mjs";
+import { kindEntry, loadPlan, perKindFromCaptureDirs, repsForKind, resultFromCaptures, runModelEval } from "../eval/run-model-eval.mjs";
 
 const plan = loadPlan();
 const MODEL = { id: "Org/Test-Model", driver: "local", effort: null };
@@ -109,5 +109,23 @@ test("resultFromCaptures rebuilds a stored result from raw judgement files and h
     assert.equal(result.meta.notes, "rebuilt");
     assert.deepEqual(result.meta.captures, ["runA", "runB"]);
     assert.ok(existsSync(join(dir, "result.json")));
+  } finally { t.cleanup(); }
+});
+
+test("perKindFromCaptureDirs: a later capture replaces an earlier one per case, so a rerun of some cases completes a kind", () => {
+  const t = setup();
+  try {
+    mkdirSync(t.workDir, { recursive: true });
+    const a = join(t.workDir, "runA"); const b = join(t.workDir, "runB");
+    mkdirSync(a); mkdirSync(b);
+    const line = (id, score) => JSON.stringify({ kind: "refutation-spec", case_id: id, score, signature: "s", graded: score ? "PASS" : "FAIL", envelope: { format: "compliant" } });
+    // run A finished case 1 and was killed during case 2; run B reran cases 2 and 3.
+    writeFileSync(join(a, "judgements.jsonl"), [line("c1", 1), line("c1", 1), line("c2", 0)].join("\n") + "\n");
+    writeFileSync(join(b, "judgements.jsonl"), [line("c2", 1), line("c2", 1), line("c3", 1), line("c3", 0)].join("\n") + "\n");
+    const pk = perKindFromCaptureDirs([a, b]);
+    assert.equal(pk["refutation-spec"].cases, 3);
+    assert.equal(pk["refutation-spec"].reps, 6, "case c1 from A (2), c2 and c3 from B (2 each); A's partial c2 is dropped");
+    assert.ok(Math.abs(pk["refutation-spec"].accuracy - (1 + 1 + 0.5) / 3) < 1e-9);
+    assert.equal(pk["refutation-spec"].min_reps_per_case, 2);
   } finally { t.cleanup(); }
 });

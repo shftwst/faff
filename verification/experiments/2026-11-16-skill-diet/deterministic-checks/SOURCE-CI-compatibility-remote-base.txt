@@ -1,0 +1,52 @@
+TAP version 13
+# Subtest: the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)
+ok 1 - the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)
+  ---
+  duration_ms: 926.147741
+  type: 'test'
+  ...
+# Subtest: remote-diff-base.sh prints the fetched remote default (incl. non-`main`), and fails loud when origin is unreachable (FAFF-708)
+ok 2 - remote-diff-base.sh prints the fetched remote default (incl. non-`main`), and fails loud when origin is unreachable (FAFF-708)
+  ---
+  duration_ms: 30.590986
+  type: 'test'
+  ...
+# Subtest: remote-diff-base.sh falls back to the locally-resolved default in a no-origin (git-only) repo (FAFF-708)
+ok 3 - remote-diff-base.sh falls back to the locally-resolved default in a no-origin (git-only) repo (FAFF-708)
+  ---
+  duration_ms: 8.682484
+  type: 'test'
+  ...
+# Subtest: remote-diff-base.sh fails loud in a no-origin repo whose default branch is neither main nor master (FAFF-708)
+ok 4 - remote-diff-base.sh fails loud in a no-origin repo whose default branch is neither main nor master (FAFF-708)
+  ---
+  duration_ms: 9.153317
+  type: 'test'
+  ...
+# Subtest: SSH origin, no timeout/gtimeout binary: net_git's ssh carries BatchMode=yes + ConnectTimeout=<NET_TIMEOUT>, resolver fails loud within a bounded wall-clock, prints no base (FAFF-744)
+ok 5 - SSH origin, no timeout/gtimeout binary: net_git's ssh carries BatchMode=yes + ConnectTimeout=<NET_TIMEOUT>, resolver fails loud within a bounded wall-clock, prints no base (FAFF-744)
+  ---
+  duration_ms: 11.020438
+  type: 'test'
+  ...
+# Subtest: operator-set GIT_SSH_COMMAND is passed through verbatim — never clobbered, never appended to (FAFF-744)
+ok 6 - operator-set GIT_SSH_COMMAND is passed through verbatim — never clobbered, never appended to (FAFF-744)
+  ---
+  duration_ms: 11.196563
+  type: 'test'
+  ...
+# Subtest: no coupled graft diff block hardcodes a `main...HEAD` or `origin/main` base (FAFF-708 prompt-regression guard)
+ok 7 - no coupled graft diff block hardcodes a `main...HEAD` or `origin/main` base (FAFF-708 prompt-regression guard)
+  ---
+  duration_ms: 0.171667
+  type: 'test'
+  ...
+1..7
+# tests 7
+# suites 0
+# pass 7
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1047.763396

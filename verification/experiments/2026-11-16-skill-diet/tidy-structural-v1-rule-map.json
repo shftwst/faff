@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "status": "draft-source-not-applied",
+  "scope": "Structural diagnostics orchestration before Splittable specs; all three judgement rubric subsections and outside bytes unchanged.",
+  "baseline": "verification/experiments/2026-11-16-skill-diet/baseline/tidy-structural-v1.md",
+  "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/tidy-structural-v1.md",
+  "baseline_sha256": "544f06c985f75aee6012371b7faf9142714826e35a5bf4a0d8e12544d6ef8d16",
+  "candidate_sha256": "541f8b4793865e26fc60466d2208f67312bcb5ac2c82146a975f0ef934914e5c",
+  "before_bytes": 71015,
+  "after_bytes": 67326,
+  "saved_bytes": 3689,
+  "saved_estimated_tokens": 899,
+  "region_before_bytes": 10698,
+  "region_after_bytes": 7009,
+  "rule_groups": [
+    "Single methodology dispatch shared with surface pass, fixed taxonomy",
+    "Seven diagnostic categories and independent every-pass chain reachability with all conservative skips",
+    "Actual findings-reconcile corpus, exit2 refusal, deterministic versus weak semantic authority",
+    "Fixed routing verdict persistence and same-pass reuse",
+    "Three Level2 fixes, transition descriptor, park reason/log",
+    "Surface-only and human cancellation boundaries, both Done comment-trail cases",
+    "Appetite matrix, ambiguity downgrade and mode-specific offers",
+    "Autonomous containment mandate/parent/fresh ancestry, recording/no-run path, outward floor and self-intake carve-out",
+    "Four Backlog ticket/link kinds, provenance/log",
+    "Exact priority CLI, chain-gap no gate-defect, levels/failure/attribution",
+    "Output heading and verbatim rubric tail"
+  ],
+  "outside_bytes_identical": true,
+  "model_calls": 0
+}

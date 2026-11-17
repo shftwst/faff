@@ -1,0 +1,81 @@
+{
+  "schema": 1,
+  "implementation_commit": "21d419c9975dd0f0391195fc1ca9df06d4850ac6",
+  "environment_overrides": {
+    "TMPDIR": "/var/tmp/sb-i_62n7dx",
+    "GIT_CONFIG_COUNT": "1",
+    "GIT_CONFIG_KEY_0": "commit.gpgsign",
+    "GIT_CONFIG_VALUE_0": "false"
+  },
+  "checks": [
+    {
+      "check": "source-wiring",
+      "command": [
+        "/usr/local/bin/node",
+        "--test",
+        "--test-name-pattern",
+        "prep SKILL|faff-prep|drift guard|graft Step 10",
+        "test/spec-review-pin.test.mjs",
+        "test/spec-review-window.test.mjs",
+        "test/spec-review-convergence.test.mjs",
+        "test/spec-review-churn.test.mjs",
+        "test/spec-review-iteration-cap.test.mjs",
+        "test/merge-gate.test.mjs"
+      ],
+      "cwd": "/var/tmp/faff-skill-diet-source-batch",
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/source-batch-source-wiring-20261117T125959Z.txt",
+      "sha256": "750eb0390469675d87fd2f5f26f4d5e991573e3cb19af1726d63a57ef5892f22",
+      "started_utc": "2026-11-17T12:59:59.165170+00:00",
+      "finished_utc": "2026-11-17T12:59:59.303807+00:00",
+      "counts": {
+        "tests": 11,
+        "pass": 11,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    },
+    {
+      "check": "adapter-lint",
+      "command": [
+        "/usr/local/bin/node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "cwd": "/var/tmp/faff-skill-diet-source-batch",
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/source-batch-adapter-lint-20261117T125959Z.txt",
+      "sha256": "4cdfa00851d3999f0f44dcfd0bec40a8761f574b06a5cf65a732f2aa234183f1",
+      "started_utc": "2026-11-17T12:59:59.165532+00:00",
+      "finished_utc": "2026-11-17T12:59:59.834163+00:00"
+    },
+    {
+      "check": "rule-inventory",
+      "command": [
+        "/usr/local/bin/node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+        "--json"
+      ],
+      "cwd": "/var/tmp/faff-skill-diet-source-batch",
+      "exit_code": 0,
+      "path": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/source-batch-rule-inventory-20261117T125959Z.txt",
+      "sha256": "07be3a6640c19971a58eeba66b90913169d6466807873784bfc6812c2641dda9",
+      "started_utc": "2026-11-17T12:59:59.165800+00:00",
+      "finished_utc": "2026-11-17T13:00:03.363054+00:00",
+      "inventory": {
+        "result": "pass",
+        "blocks_deleted": 817,
+        "moved": null,
+        "row_covered": 781,
+        "uncovered": 0,
+        "row_errors": 0
+      }
+    }
+  ]
+}

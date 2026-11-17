@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)
+ok 1 - the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)
+  ---
+  duration_ms: 881.292837
+  type: 'test'
+  ...
+# Subtest: remote-diff-base.sh prints the fetched remote default (incl. non-`main`), and fails loud when origin is unreachable (FAFF-708)
+ok 2 - remote-diff-base.sh prints the fetched remote default (incl. non-`main`), and fails loud when origin is unreachable (FAFF-708)
+  ---
+  duration_ms: 32.103175
+  type: 'test'
+  ...
+# Subtest: remote-diff-base.sh falls back to the locally-resolved default in a no-origin (git-only) repo (FAFF-708)
+ok 3 - remote-diff-base.sh falls back to the locally-resolved default in a no-origin (git-only) repo (FAFF-708)
+  ---
+  duration_ms: 9.548699
+  type: 'test'
+  ...
+# Subtest: remote-diff-base.sh fails loud in a no-origin repo whose default branch is neither main nor master (FAFF-708)
+ok 4 - remote-diff-base.sh fails loud in a no-origin repo whose default branch is neither main nor master (FAFF-708)
+  ---
+  duration_ms: 9.669865
+  type: 'test'
+  ...
+# Subtest: SSH origin, no timeout/gtimeout binary: net_git's ssh carries BatchMode=yes + ConnectTimeout=<NET_TIMEOUT>, resolver fails loud within a bounded wall-clock, prints no base (FAFF-744)
+ok 5 - SSH origin, no timeout/gtimeout binary: net_git's ssh carries BatchMode=yes + ConnectTimeout=<NET_TIMEOUT>, resolver fails loud within a bounded wall-clock, prints no base (FAFF-744)
+  ---
+  duration_ms: 11.695821
+  type: 'test'
+  ...
+# Subtest: operator-set GIT_SSH_COMMAND is passed through verbatim — never clobbered, never appended to (FAFF-744)
+ok 6 - operator-set GIT_SSH_COMMAND is passed through verbatim — never clobbered, never appended to (FAFF-744)
+  ---
+  duration_ms: 11.718113
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 992.617389

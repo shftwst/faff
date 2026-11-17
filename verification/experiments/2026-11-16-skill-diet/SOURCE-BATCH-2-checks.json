@@ -1,0 +1,141 @@
+{
+  "schema": 1,
+  "status": "source-checks-complete-inventory-and-lint-pass-inherited-test-failure-retained",
+  "accepted": false,
+  "workspace": "/var/tmp/faff-skill-diet-source-batch",
+  "base_for_inventory": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "edits": {
+    "inventory": "records/specs/2026-11-17-skill-diet-source-batch-2-design.md",
+    "inventory_rows": 104,
+    "inventory_sha256": "661db261997e7ec6d321f04a78fe0bdb3694fe5aee7ca0e7113eb666bfd3e6de",
+    "prose_baseline": "plugin/skills/faff/prose-baseline.json",
+    "only_changed_prose_allowance_keys": [
+      "faff-beep-boop/SKILL.md",
+      "faff-graft/SKILL.md",
+      "faff-tidy/SKILL.md"
+    ],
+    "line_caps_changed": false,
+    "prose_baseline_sha256": "fb7da4acf9965dc9844825438a29ef9209e73e9ec00573ba0dbfd64d39bd7eb2"
+  },
+  "size_metrics": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "previous_allowance_bytes": 149485,
+      "new_allowance_bytes": 142948,
+      "bytes_saved": 6537,
+      "sha256": "c90a34bacc7f3a1becdd118f7c3471e8b43c20f9bf872a92398bb933cab21d83"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "previous_allowance_bytes": 152209,
+      "new_allowance_bytes": 141511,
+      "bytes_saved": 10698,
+      "sha256": "2fd7bd3f2ba0d8b00d6b9b7749460a7872e3380daf6f79525e2b8f876d592407"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "previous_allowance_bytes": 76028,
+      "new_allowance_bytes": 71015,
+      "bytes_saved": 5013,
+      "sha256": "544f06c985f75aee6012371b7faf9142714826e35a5bf4a0d8e12544d6ef8d16"
+    }
+  ],
+  "total_bytes_saved": 22248,
+  "commands": [
+    {
+      "command": "node plugin/skills/faff/bin/faff validate-adapters",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-2-adapter-lint.txt",
+      "exit_code": 1,
+      "outcome": "FAIL: graft bundled default dispatch reference at line357; graft821lines exceeds804 cap.",
+      "log_sha256": "d28e7fafb1d4203c25ef6e3d4a57b6b967102fc1d4ddd56ac2fb8914edb41b45"
+    },
+    {
+      "command": "node --test test/graft-remote-base.test.mjs test/review-iteration-cap.test.mjs test/faff-403-outage-retry.test.mjs test/faff-tidy.test.mjs test/faff-tidy-repeat-park.test.mjs test/queue-state.test.mjs test/run-done.test.mjs test/faff-1399-discovered-scope-priority.test.mjs",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-2-source-consumer-tests.txt",
+      "exit_code": 1,
+      "tests": 65,
+      "pass": 58,
+      "fail": 7,
+      "outcome": "Six fixture commits blocked by inherited SSH signing; one inherited legacy config fixture failure.",
+      "log_sha256": "aa715437fea49e073b16df5e7634fc90ff3d54c7e95a0e3a83f9cc42f869820b"
+    },
+    {
+      "command": "GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=commit.gpgsign GIT_CONFIG_VALUE_0=false TMPDIR=/var/tmp node --test --test-name-pattern 'remote-based diff identity|prints the fetched remote default|falls back to the locally-resolved default|fails loud in a no-origin repo|SSH origin|operator-set GIT_SSH_COMMAND' test/graft-remote-base.test.mjs",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-2-graft-environment-correction.txt",
+      "exit_code": 0,
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "outcome": "Root-authorised correction of fixture environment only; no source/test changes.",
+      "log_sha256": "75c54588401c1a818254037b78bf78bfa8ea6a7bd4a56a1ade3ffd9c04e6af17"
+    },
+    {
+      "command": "node plugin/skills/faff/bin/faff validate-adapters",
+      "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-2-adapter-lint-corrected.txt",
+      "log_sha256": "6d131536d32fa512e34315ad843830f2f64ce6a8e3440c31cf8ba3eecb51abcb",
+      "exit_code": 0,
+      "outcome": "PASS after root source-only lint correction; original failing lint retained."
+    }
+  ],
+  "distinct_test_summary": {
+    "tests": 65,
+    "passed_after_environment_correction": 64,
+    "inherited_fixture_failure": 1
+  },
+  "inherited_failure": {
+    "test": "test/faff-403-outage-retry.test.mjs",
+    "line": 89,
+    "assertion": "loweredLimit expected2, actual3",
+    "evidence": "Test bytes identical to b447bccf; git diff b447bccf -- plugin/skills/faff/bin has no changes. Test writes legacy .faffrc.yaml; shared-infra.js:492 selects .faff/config.yaml. Test never reads edited skill prose.",
+    "assertions_modified": false
+  },
+  "inventory_check": {
+    "status": "pass",
+    "commit": "850c7e4df44587cc3b9f2f973c632177e1c31d4d",
+    "command": "node plugin/skills/faff/bin/faff rule-inventory check --base a8509086ad28fa0e55cf3d1d818f2055294e663b --json",
+    "exit_code": 0,
+    "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-BATCH-2-rule-inventory.json",
+    "log_sha256": "9b0372e050c48491a59dc1b6b7662c684d4b33887d9771992d91a6efd9a991d3",
+    "blocks_deleted": 919,
+    "covered_moved": 37,
+    "covered_by_row": 882
+  },
+  "limits": [
+    "Source and deterministic/source-wiring checks only; no model calls or behavioural qualification.",
+    "Original failed logs retained. No source/test edits or commits performed by this verifier.",
+    "Root corrected source lint through paragraph joins and relocation of the unchanged default name; adapter lint rerun passed. Earlier failures remain historical; no passing test repeats."
+  ],
+  "initial_size_metrics": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "previous_allowance_bytes": 149485,
+      "new_allowance_bytes": 142948,
+      "bytes_saved": 6537,
+      "sha256": "c90a34bacc7f3a1becdd118f7c3471e8b43c20f9bf872a92398bb933cab21d83"
+    },
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "previous_allowance_bytes": 152209,
+      "new_allowance_bytes": 141532,
+      "bytes_saved": 10677,
+      "sha256": "6ca25a7895f9ebae9cc9a2747c0ee81b2b0ec1c988465271e422bcb1a8fd7941"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "previous_allowance_bytes": 76028,
+      "new_allowance_bytes": 71015,
+      "bytes_saved": 5013,
+      "sha256": "544f06c985f75aee6012371b7faf9142714826e35a5bf4a0d8e12544d6ef8d16"
+    }
+  ],
+  "initial_total_bytes_saved": 22227,
+  "source_lint_correction": {
+    "record": "verification/experiments/2026-11-16-skill-diet/graft-step9-source-batch-v1-lint-correction.json",
+    "sha256": "251575a71d631e66283bf174df2265abdb38cd2e5ad18075fa9eac4cc105eaa9",
+    "source_sha256": "2fd7bd3f2ba0d8b00d6b9b7749460a7872e3380daf6f79525e2b8f876d592407",
+    "bytes": 141511,
+    "lines": 799,
+    "allowance_lowered": true,
+    "tests_repeated": false
+  }
+}

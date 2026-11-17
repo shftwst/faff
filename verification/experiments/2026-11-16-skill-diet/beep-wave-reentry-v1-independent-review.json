@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "status": "bounded-source-review-clear",
+  "accepted": false,
+  "reviewer": {
+    "agent": "verify_wtf_scope",
+    "role": "independent source equivalence review"
+  },
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/beep-wave-reentry-v1.md",
+      "sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe"
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "sha256": "c90a34bacc7f3a1becdd118f7c3471e8b43c20f9bf872a92398bb933cab21d83"
+    }
+  ],
+  "region": {
+    "start": "### 8. Wave re-entry",
+    "end_exclusive": "### 9. Wave-1 empty short-circuit",
+    "baseline_bytes": 15627,
+    "candidate_bytes": 9090,
+    "bytes_saved": 6537,
+    "baseline_sha256": "d5dcbe9fde98e4a136ba3879024a8eb1973fbb1e46a41607941bc853e1ded03e",
+    "candidate_sha256": "c0ff4edf38fe5d518efa4d15303036b81fa792c0fc4e1ff550c76e21097b88d9"
+  },
+  "findings": [],
+  "obligation_checks": {
+    "next_routing_narrow_prep_single_state_move_authority": "preserved",
+    "scope_before_budget_l4_reconciliation_eager_counter_and_no_eligibility_bypass": "preserved",
+    "budget_sentry_checkpoint_stop_and_unreached_reporting": "preserved",
+    "query_constrained_categories_archived_exclusion_prior_wave_bucket_stability": "preserved",
+    "blocker_and_eligibility_filters_three_prep_cases_error_parking_no_tidy_build_only_surface": "preserved",
+    "live_admission_reads_and_per_wave_prd_distance": "preserved",
+    "flag_conflict_precedence_forced_l4_optout_tracker_and_git_only_consult": "preserved",
+    "run_done_signal_sources_continuation_completion_escalation": "preserved",
+    "admission_based_counter_default_six_and_reported_nonconvergence": "preserved",
+    "structural_git_only_queue_fault_defaults_no_hard_stop": "preserved",
+    "prd_signal_failure_fallback_exclusive_flags_single_argv_security": "preserved",
+    "guarded_best_effort_decision_capture_exact_join_wave_and_queue_no_action": "preserved",
+    "wave_log_fields_sentry_authority_exit_reason_vocabulary": "preserved"
+  },
+  "literal_checks": {
+    "checked_present": [
+      "faff-automate",
+      "--phase wave",
+      "includeArchived: false",
+      "state = open",
+      "--phases build",
+      "Surfaced (prep deferred to primary)",
+      "faff graft admit",
+      "faff prdr distance",
+      "--converge",
+      "--no-converge",
+      "convergence.enabled",
+      "faff run-done --json",
+      "faff runcheck",
+      "convergence.max_waves",
+      "no_progress_waves",
+      "faff queue-state derive",
+      "faff prd-checklist <prd-path>",
+      "--prd-coverage",
+      "--no-prd",
+      "FAFF_RUN_DIR",
+      "__run__",
+      "--kernel run-done --wave <w> --export",
+      "--kernel queue-state --export",
+      "sentry_acting",
+      "Stop reason: converged/both-dry"
+    ],
+    "classification": "Commands, named flags, counters, labels and exit vocabulary retain their original operational meaning. Placeholder prose was shortened without changing argv discipline."
+  },
+  "inherited_ambiguities_not_corrected": [
+    "Opening next-based routing versus unconditional-looking narrow-prep step 8.3 remains.",
+    "Original faff run-done --json spelling remains; no CLI compatibility assertion.",
+    "Git-only always consults run-done while counter applicability still says every run except opted-out L3."
+  ],
+  "limits": [
+    "Source-only review of this bounded region; no model, consumer execution, tests, integration or acceptance claim.",
+    "No edits to skill prose, tests, helpers or commits. Outside-region baseline equality is recorded as an observation, not a review of other edits."
+  ],
+  "outside_region_observation": {
+    "prefix_equal_to_baseline": true,
+    "suffix_equal_to_baseline": true
+  }
+}

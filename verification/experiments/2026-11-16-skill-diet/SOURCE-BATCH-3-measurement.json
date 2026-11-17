@@ -1,0 +1,91 @@
+{
+  "status": "implemented-source-static-reviewed-model-qualification-outstanding",
+  "files": [
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "baseline": "verification/experiments/2026-11-16-skill-diet/baseline/beep-discovered-scope-v1.md",
+      "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/beep-discovered-scope-v1.md",
+      "review": "verification/experiments/2026-11-16-skill-diet/beep-discovered-scope-v1-independent-review.json",
+      "before_bytes": 142948,
+      "after_bytes": 138518,
+      "saved_bytes": 4430,
+      "saved_estimated_tokens": 1084,
+      "sha256": "f4bdf4edd751b6f5783abdcfa2bbd454e502203e850d4e4ce152ab0da96de06a",
+      "lines": 667,
+      "correction_record": "verification/experiments/2026-11-16-skill-diet/SOURCE-BATCH-3-lint-wiring-correction.json"
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "baseline": "verification/experiments/2026-11-16-skill-diet/baseline/prep-ratification-v1.md",
+      "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/prep-ratification-v1.md",
+      "review": "verification/experiments/2026-11-16-skill-diet/prep-ratification-v1-independent-review.json",
+      "before_bytes": 93904,
+      "after_bytes": 87112,
+      "saved_bytes": 6792,
+      "saved_estimated_tokens": 1673,
+      "sha256": "3c7cfc586a19e92af472480086dbcc56a8aba1c8d7052ee327f12cfacce97886",
+      "lines": 591,
+      "correction_record": "verification/experiments/2026-11-16-skill-diet/SOURCE-BATCH-3-lint-wiring-correction.json"
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "baseline": "verification/experiments/2026-11-16-skill-diet/baseline/tidy-structural-v1.md",
+      "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/tidy-structural-v1.md",
+      "review": "verification/experiments/2026-11-16-skill-diet/tidy-structural-v1-independent-review.json",
+      "before_bytes": 71015,
+      "after_bytes": 67340,
+      "saved_bytes": 3675,
+      "saved_estimated_tokens": 896,
+      "sha256": "5a52e93398564ddf4400a4492275dd30728012a515ac6f88d72ec605a5b7529c",
+      "lines": 355,
+      "correction_record": "verification/experiments/2026-11-16-skill-diet/SOURCE-BATCH-3-lint-wiring-correction.json"
+    }
+  ],
+  "saved_bytes": 14897,
+  "saved_estimated_tokens": 3653,
+  "token_method": "ceil(UTF-16 code units/4) per full file, summed; source estimate, not billing",
+  "new_mandatory_reads": 0,
+  "initial_measurement_before_lint_wiring_correction": {
+    "status": "implemented-source-static-reviewed-model-qualification-outstanding",
+    "files": [
+      {
+        "path": "plugin/skills/faff-beep-boop/SKILL.md",
+        "baseline": "verification/experiments/2026-11-16-skill-diet/baseline/beep-discovered-scope-v1.md",
+        "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/beep-discovered-scope-v1.md",
+        "review": "verification/experiments/2026-11-16-skill-diet/beep-discovered-scope-v1-independent-review.json",
+        "before_bytes": 142948,
+        "after_bytes": 138519,
+        "saved_bytes": 4429,
+        "saved_estimated_tokens": 1084,
+        "sha256": "f3f26569dcf0652fbe5f55768b34adc3b9e3bfd54ff91dca92c41bce9279c522"
+      },
+      {
+        "path": "plugin/skills/faff-prep/SKILL.md",
+        "baseline": "verification/experiments/2026-11-16-skill-diet/baseline/prep-ratification-v1.md",
+        "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/prep-ratification-v1.md",
+        "review": "verification/experiments/2026-11-16-skill-diet/prep-ratification-v1-independent-review.json",
+        "before_bytes": 93904,
+        "after_bytes": 87112,
+        "saved_bytes": 6792,
+        "saved_estimated_tokens": 1673,
+        "sha256": "8e47355a05d5c9fa73dc249bc24b2f9e911b0c9ac199b1791938fbc492c4d9eb"
+      },
+      {
+        "path": "plugin/skills/faff-tidy/SKILL.md",
+        "baseline": "verification/experiments/2026-11-16-skill-diet/baseline/tidy-structural-v1.md",
+        "candidate": "verification/experiments/2026-11-16-skill-diet/candidates/tidy-structural-v1.md",
+        "review": "verification/experiments/2026-11-16-skill-diet/tidy-structural-v1-independent-review.json",
+        "before_bytes": 71015,
+        "after_bytes": 67326,
+        "saved_bytes": 3689,
+        "saved_estimated_tokens": 899,
+        "sha256": "541f8b4793865e26fc60466d2208f67312bcb5ac2c82146a975f0ef934914e5c"
+      }
+    ],
+    "saved_bytes": 14910,
+    "saved_estimated_tokens": 3656,
+    "token_method": "ceil(UTF-16 code units/4) per full file, summed; source estimate, not billing",
+    "new_mandatory_reads": 0
+  },
+  "correction_record_sha256": "90936128db3f85e312b7ec06f6f1f0ec1aa6bca1f03af8ee80e7bbc4c84a9aab"
+}

@@ -1,0 +1,53 @@
+{
+  "schema": 1,
+  "status": "implemented-source-model-qualification-outstanding",
+  "base_commit": "a523734da3865a10e24239a606663b050a90cbc9",
+  "files": [
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "before_bytes": 178777,
+      "after_bytes": 152209,
+      "saved_bytes": 26568,
+      "before_estimated_tokens": 44329,
+      "after_estimated_tokens": 37803,
+      "saved_estimated_tokens": 6526,
+      "before_sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+      "after_sha256": "e9fe81f2280379cc2a918ce287a1ac8e27773e10573fa967e1d12f7c843b3369",
+      "lines_including_trailing_empty": 801
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "before_bytes": 104335,
+      "after_bytes": 93904,
+      "saved_bytes": 10431,
+      "before_estimated_tokens": 25883,
+      "after_estimated_tokens": 23311,
+      "saved_estimated_tokens": 2572,
+      "before_sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+      "after_sha256": "8d886cfeeeea3042a47e583001b07b34739bfbbefd81c391e8b36b8e22b8f95d",
+      "lines_including_trailing_empty": 609
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "before_bytes": 84072,
+      "after_bytes": 70812,
+      "saved_bytes": 13260,
+      "before_estimated_tokens": 20857,
+      "after_estimated_tokens": 17604,
+      "saved_estimated_tokens": 3253,
+      "before_sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+      "after_sha256": "d2dca7702a6d68745133d80f3ddcf32ed6230a8f54f04007d1fbdb2746f8e6e9",
+      "lines_including_trailing_empty": 435
+    }
+  ],
+  "source_totals": {
+    "before_bytes": 367184,
+    "after_bytes": 316925,
+    "saved_bytes": 50259,
+    "before_estimated_tokens": 91069,
+    "after_estimated_tokens": 78718,
+    "saved_estimated_tokens": 12351
+  },
+  "token_estimator": "ceil(UTF-16 character count / 4) per source file, summed; estimate, not provider usage or billing.",
+  "accepted_ledger_updated": false
+}

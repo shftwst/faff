@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "original_worktree": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h",
+  "original_head_unchanged": "a523734da3865a10e24239a606663b050a90cbc9",
+  "source_files": [
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff-graft/SKILL.md",
+      "sha256": "8de4f024324483f9fd506eb14d06424910762d95243a43072976782ebd1c7710",
+      "matches_original_base": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff-prep/SKILL.md",
+      "sha256": "af41560116bca66bd79662e1ee7ed5d4bb14197cdb4236b850028e5be632155c",
+      "matches_original_base": true
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/plugin/skills/faff/references/kernel.md",
+      "sha256": "edb4d21e3b7382f519be945fa8b8a465e8c6d83f27ba1beb5c0d3798300b5331",
+      "matches_original_base": true
+    }
+  ],
+  "runtime_code_unchanged": true,
+  "historical_measurement_files_edited": false,
+  "accepted_ledger_updated": false
+}

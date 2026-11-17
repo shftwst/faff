@@ -1,0 +1,94 @@
+{
+  "schema": 1,
+  "status": "draft-source-compression-ready-for-independent-review-not-installed",
+  "source": "plugin/skills/faff-beep-boop/SKILL.md",
+  "base_commit": "b447bccfd3384d91d9d19a1b01ecaf7041a2f2c5",
+  "baseline": {
+    "path": "verification/experiments/2026-11-16-skill-diet/baseline/beep-discovered-scope-v1.md",
+    "sha256": "c90a34bacc7f3a1becdd118f7c3471e8b43c20f9bf872a92398bb933cab21d83",
+    "bytes": 142948,
+    "estimated_tokens": 35462
+  },
+  "candidate": {
+    "path": "verification/experiments/2026-11-16-skill-diet/candidates/beep-discovered-scope-v1.md",
+    "sha256": "f3f26569dcf0652fbe5f55768b34adc3b9e3bfd54ff91dca92c41bce9279c522",
+    "bytes": 138519,
+    "estimated_tokens": 34378
+  },
+  "region": {
+    "heading": "### 10. File discovered-scope tickets",
+    "old_start_line": 283,
+    "old_end_before_line": 331,
+    "baseline_sha256": "df43464884a982522639f2f834be1ef6ac85c569532725875e41d86a68c4b4f9",
+    "candidate_sha256": "29ad8970b49164f285960759e59d22cb70ffc75c0d51ca13c8a45d7a6ec31ca9",
+    "baseline_bytes": 13132,
+    "candidate_bytes": 8703
+  },
+  "savings": {
+    "bytes": 4429,
+    "estimated_tokens": 1084,
+    "token_method": "ceil(UTF-16 code units / 4), per full skill estimate, not billed tokens"
+  },
+  "outside_region": {
+    "prefix_byte_identical": true,
+    "suffix_byte_identical": true,
+    "prefix_sha256": "93594b166ed918195fa9031f070d682c9c7f1bc3bab173f3c5d258140871ceac",
+    "suffix_sha256": "4f17341bdef95eae58143622716e8a1060a698db4c73a0abfa499f8b78964479"
+  },
+  "rule_map": [
+    {
+      "domain": "Entry and timing",
+      "preserved": "Direct orchestrator/full tracker-write authority for execution-discovered bottom-up work; graft records only. Builds-only end-pass/wave1 short-circuit. L4 per-return eager + wave reconcile + residual, L3 convergence wave-only + residual, opted-out L3 whole end-pass; no dropped scope at optout/budget cap and bounded next/same-run admission retained."
+    },
+    {
+      "domain": "Collection and mandate",
+      "preserved": "Every built issue regardless shipped/pr-open/parked, absent-file meaning, exact issue glob and orchestrator path. Human-admitted source issue mandate versus dispatch-container orchestrator mandate; summary/wtf-only orchestrator surface retained."
+    },
+    {
+      "domain": "Containment gate ordering",
+      "preserved": "Concrete items require autonomous_file_check/fresh ancestry/recorded run-phase before appetite; contained proceeds; outward/already-tagged skip create unless mechanically outward-self-intake; vague skip check and never file."
+    },
+    {
+      "domain": "Appetite and dedup",
+      "preserved": "Exact low/medium opinionated/high default/full behavior, vague summary/brief, outward-new-root hard floor even full; title/surface + relationship target open-ticket match including self-intake, duplicate count retained."
+    },
+    {
+      "domain": "Create payload and priority",
+      "preserved": "Existing tidy Chain gaps reference, Backlog/relationship/build provenance and exact autonomous jot marker command. Captured priority never recomputed; present sets priority/fixed-shape attributed comment in same create call, absent no priority/comment. Self-intake defect Backlog/no automate/optional named relationship/entry-only classification plus same marker/priority behavior retained."
+    },
+    {
+      "domain": "Surface and informational accounting",
+      "preserved": "Outward-new-root entry retained, no create/no park, run-summary discovered section/wtf4 and mandate comment except no-issue orchestrator; human interactive jot supplies approval. Exact filed count field and per-item log fields/path, unadmitted tickets outside runcheck until admitted then terminal outcome retained."
+    },
+    {
+      "domain": "Structural authority and primitive",
+      "preserved": "Two autonomous create paths, mandatory precreate check, source mandate/subtree/coarser dispatch and sibling-project outward example, structural mode versus interactive jot/plot retained. Exact contain argv/flags/exits, sanctioned-parent/root branch, fresh chain, root/cycle/unknown-parent outward and mandate-parent contained base retained."
+    },
+    {
+      "domain": "Self-intake exception",
+      "preserved": "Check before outward floor, exact self-intake argv/target/record/phase, config-derived self side/rechecked dial, local origin slug SSH/https normalization, fresh destination team binding, null underivable and optional team fetch only dial not true. Exit0 plus concrete alone rejoins appetite; other exits/vague surface. Default-off same-repo core-defect sole carve-out retained; never human-only fast-track conversion."
+    },
+    {
+      "domain": "Error and detective boundary",
+      "preserved": "Usage2 malformed ancestry/missing recorded run dir logs/surfaces no create/no crash; agent-sourced ancestry not truth assertion, exact recorded payload recomputable via audit, detective never preventive/no tracker fetch retained."
+    },
+    {
+      "domain": "Orchestrator capture and recovery",
+      "preserved": "Full-pipeline tidy/prep and beep tooling defects; exact capture signature/entry fields/concrete naming criterion/path; continue interrupted step without park/retry/fix. Append dedup(title,source_ref), no-run dated fallback, malformed move-aside evidence/start-fresh/surface, never drop/fail bookkeeping and step10.1 collection retained."
+    },
+    {
+      "domain": "Orchestrator priority",
+      "preserved": "Relationship none/gate_defect false; exact priority command, actual result stored, CLI failure or vague absent retained."
+    }
+  ],
+  "commands_check": "All original executable command text and flags remain; some original inline spans now occur inside the unchanged-purpose procedure fence. No added mandatory read.",
+  "inherited_issues_not_fixed": [
+    "Priority reason comment remains required in the same create call as status/relationship/provenance; no new tracker mechanism invented.",
+    "Original coarser dispatch-container mandate and sibling-project outward example retained without reinterpreting structural containment."
+  ],
+  "scope_limits": [
+    "Only full baseline, full candidate and this map written. Live source hash verified unchanged after candidate creation.",
+    "No tests, models, framework, allowance/design edits, commits or qualification. No historical ledger savings counted.",
+    "This section has bookkeeping recovery but no separate ticket receipt mechanism; none invented."
+  ]
+}

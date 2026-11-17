@@ -636,5 +636,5 @@ test("prep SKILL asserts the governance step ran: the round call fails safe on a
 test("prep SKILL bounds churn to the window: the round call compares against the previous round in the window", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
   assert.match(body, /checks churn against the previous round in the window/);
-  assert.match(body, /spec-review round --open-window --dir \$scratch/, "a human unpark opens a new window through the round call");
+  assert.match(body, /spec-review round --open-window --dir "?\$scratch"?/, "a human unpark opens a new window through the round call");
 });

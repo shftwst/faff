@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "node",
+    "plugin/skills/faff/bin/faff",
+    "rule-inventory",
+    "check",
+    "--base",
+    "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+    "--json"
+  ],
+  "head": "576a053a2f3546b2a19083845e9c65d86bd29a86",
+  "exit_code": 0,
+  "log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/SOURCE-CI-compatibility-rule-inventory.json",
+  "sha256": "dc811b244e78d0e01be51280e73c814f85738d142b299d563e0b5cf05793222b"
+}

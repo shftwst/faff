@@ -1,0 +1,537 @@
+TAP version 13
+# Subtest: FAFF-1399: gate_defect == true is High, even over relationship: none and a low-tier source
+ok 1 - FAFF-1399: gate_defect == true is High, even over relationship: none and a low-tier source
+  ---
+  duration_ms: 63.323518
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: gate_defect short-circuits over every other row, including ones that would otherwise be lower
+ok 2 - FAFF-1399: gate_defect short-circuits over every other row, including ones that would otherwise be lower
+  ---
+  duration_ms: 94.959984
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: relationship == blocker is High
+ok 3 - FAFF-1399: relationship == blocker is High
+  ---
+  duration_ms: 88.018992
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: source in {post-merge, ci-triage} is High (a regression on main), matched on source not relationship
+ok 4 - FAFF-1399: source in {post-merge, ci-triage} is High (a regression on main), matched on source not relationship
+  ---
+  duration_ms: 126.317911
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: relationship in {blocked-by, parent} is Medium
+ok 5 - FAFF-1399: relationship in {blocked-by, parent} is Medium
+  ---
+  duration_ms: 69.937053
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: source == review is Medium (when relationship doesn't already route elsewhere)
+ok 6 - FAFF-1399: source == review is Medium (when relationship doesn't already route elsewhere)
+  ---
+  duration_ms: 36.188171
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: review-sourced items with a HIGHER-priority relationship stay at that higher tier (first match wins)
+ok 7 - FAFF-1399: review-sourced items with a HIGHER-priority relationship stay at that higher tier (first match wins)
+  ---
+  duration_ms: 17.319815
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: the default row — relationship in {peer, none} and source in {build, orchestrator, chain-gap} — is Low
+ok 8 - FAFF-1399: the default row — relationship in {peer, none} and source in {build, orchestrator, chain-gap} — is Low
+  ---
+  duration_ms: 102.770144
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: orchestrator-lane default (relationship: none, source: orchestrator, no gate_defect) is Low
+ok 9 - FAFF-1399: orchestrator-lane default (relationship: none, source: orchestrator, no gate_defect) is Low
+  ---
+  duration_ms: 21.507936
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: chain-gap sub-type mapping — upstream (blocker) High, downstream (blocked-by) Medium, sub-ticket (parent) Medium, peer Low
+ok 10 - FAFF-1399: chain-gap sub-type mapping — upstream (blocker) High, downstream (blocked-by) Medium, sub-ticket (parent) Medium, peer Low
+  ---
+  duration_ms: 68.930346
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: prints exactly one of high/medium/low to stdout and nothing else
+ok 11 - FAFF-1399: prints exactly one of high/medium/low to stdout and nothing else
+  ---
+  duration_ms: 17.494149
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: an invalid --relationship or --source fails loud (exit non-zero), never a silent 'unknown' default
+ok 12 - FAFF-1399: an invalid --relationship or --source fails loud (exit non-zero), never a silent 'unknown' default
+  ---
+  duration_ms: 30.717176
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: missing --relationship or --source fails loud rather than guessing
+ok 13 - FAFF-1399: missing --relationship or --source fails loud rather than guessing
+  ---
+  duration_ms: 29.295928
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: --selftest exercises the full table and reports PASS
+ok 14 - FAFF-1399: --selftest exercises the full table and reports PASS
+  ---
+  duration_ms: 15.137568
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: an absent `priority` (vague, or a legacy pre-feature entry) files with no tracker priority and no comment — documented at every filing call site that reads a stored priority
+ok 15 - FAFF-1399: an absent `priority` (vague, or a legacy pre-feature entry) files with no tracker priority and no comment — documented at every filing call site that reads a stored priority
+  ---
+  duration_ms: 110.774677
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: tidy's chain-gap filing documents the --source chain-gap wiring and its own CLI-failure fallback (it computes priority fresh, so it never reads a stored `absent`)
+ok 16 - FAFF-1399: tidy's chain-gap filing documents the --source chain-gap wiring and its own CLI-failure fallback (it computes priority fresh, so it never reads a stored `absent`)
+  ---
+  duration_ms: 0.307583
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: the priority-reason comment is documented as write-once — never edited or re-posted
+ok 17 - FAFF-1399: the priority-reason comment is documented as write-once — never edited or re-posted
+  ---
+  duration_ms: 0.331625
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: DiscoveredScopeEntry's schema block documents both new fields
+ok 18 - FAFF-1399: DiscoveredScopeEntry's schema block documents both new fields
+  ---
+  duration_ms: 0.441625
+  type: 'test'
+  ...
+# Subtest: FAFF-1399: every filing call site references the same shared priority-reason comment shape rather than restating it
+ok 19 - FAFF-1399: every filing call site references the same shared priority-reason comment shape rather than restating it
+  ---
+  duration_ms: 0.778874
+  type: 'test'
+  ...
+# Subtest: FAFF-403 integration smoke: hold → cross-drain resume-store carry-forward → escalation arithmetic
+not ok 20 - FAFF-403 integration smoke: hold → cross-drain resume-store carry-forward → escalation arithmetic
+  ---
+  duration_ms: 420.95123
+  type: 'test'
+  location: '/var/tmp/faff-skill-diet-source-batch/test/faff-403-outage-retry.test.mjs:36:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    3 !== 2
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 2
+  actual: 3
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///var/tmp/faff-skill-diet-source-batch/test/faff-403-outage-retry.test.mjs:89:12)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: FAFF-403: a fresh (never-held) issue is unaffected — no outage_retries field at all
+ok 21 - FAFF-403: a fresh (never-held) issue is unaffected — no outage_retries field at all
+  ---
+  duration_ms: 61.493644
+  type: 'test'
+  ...
+# Subtest: FLAG — 3 same-class parks in 21d: the real seam flags repeat_parked, demote+tag follow
+ok 22 - FLAG — 3 same-class parks in 21d: the real seam flags repeat_parked, demote+tag follow
+  ---
+  duration_ms: 72.522758
+  type: 'test'
+  ...
+# Subtest: UNDER — only 2 same-class parks: the real seam does NOT flag, no demote/tag
+ok 23 - UNDER — only 2 same-class parks: the real seam does NOT flag, no demote/tag
+  ---
+  duration_ms: 61.184103
+  type: 'test'
+  ...
+# Subtest: UNDER (window) — a 3rd same-class park dated >21d before --now is out of window
+ok 24 - UNDER (window) — a 3rd same-class park dated >21d before --now is out of window
+  ---
+  duration_ms: 58.749523
+  type: 'test'
+  ...
+# Subtest: MIXED — 3 parks across 3 different classes: the real seam does NOT flag (per-class)
+ok 25 - MIXED — 3 parks across 3 different classes: the real seam does NOT flag (per-class)
+  ---
+  duration_ms: 63.06731
+  type: 'test'
+  ...
+# Subtest: SHARED WRITER — 3 shared-protocol `gap` records built via addParkRecord/renderParksBlock flag repeat_parked, not Punt-special-cased
+ok 26 - SHARED WRITER — 3 shared-protocol `gap` records built via addParkRecord/renderParksBlock flag repeat_parked, not Punt-special-cased
+  ---
+  duration_ms: 45.685661
+  type: 'test'
+  ...
+# Subtest: Scenario A — ready-promotion is a real `graft` verdict, captured end-to-end
+ok 27 - Scenario A — ready-promotion is a real `graft` verdict, captured end-to-end
+  ---
+  duration_ms: 200.19546
+  type: 'test'
+  ...
+# Subtest: Scenario B — stale-park routing is real; the mechanical clear is captured as an attempt
+ok 28 - Scenario B — stale-park routing is real; the mechanical clear is captured as an attempt
+  ---
+  duration_ms: 103.36356
+  type: 'test'
+  ...
+# Subtest: Scenario C — an ineligible issue is skipped by a real `skip-ineligible` verdict
+ok 29 - Scenario C — an ineligible issue is skipped by a real `skip-ineligible` verdict
+  ---
+  duration_ms: 147.670264
+  type: 'test'
+  ...
+# Subtest: Scenario D — In-Progress + faff-parked + open draft PR → park-verdict `protect`, NO strip
+ok 30 - Scenario D — In-Progress + faff-parked + open draft PR → park-verdict `protect`, NO strip
+  ---
+  duration_ms: 66.139098
+  type: 'test'
+  ...
+# Subtest: Scenario E — In-Progress + faff-parked + nonbuild park + human takeover → park-verdict `strip-ok`, clear captured
+ok 31 - Scenario E — In-Progress + faff-parked + nonbuild park + human takeover → park-verdict `strip-ok`, clear captured
+  ---
+  duration_ms: 50.976572
+  type: 'test'
+  ...
+# Subtest: Scenario F — In-Progress + faff-parked + build park + no PR + no human → park-verdict `protect`, NO strip
+ok 32 - Scenario F — In-Progress + faff-parked + build park + no PR + no human → park-verdict `protect`, NO strip
+  ---
+  duration_ms: 43.939079
+  type: 'test'
+  ...
+# Subtest: the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)
+not ok 33 - the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)
+  ---
+  duration_ms: 47.301493
+  type: 'test'
+  location: '/var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:150:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q -m commit A (base) failed (cwd=/tmp/faff708-graft-FTY0u2/seed): error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:39:29)
+    commitFile (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:46:3)
+    setupFixture (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:109:3)
+    TestContext.<anonymous> (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:153:14)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: remote-diff-base.sh prints the fetched remote default (incl. non-`main`), and fails loud when origin is unreachable (FAFF-708)
+not ok 34 - remote-diff-base.sh prints the fetched remote default (incl. non-`main`), and fails loud when origin is unreachable (FAFF-708)
+  ---
+  duration_ms: 36.342963
+  type: 'test'
+  location: '/var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:202:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q -m A failed (cwd=/tmp/faff708-helper-jgX7h9/seed): error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:39:29)
+    commitFile (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:46:3)
+    TestContext.<anonymous> (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:211:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: remote-diff-base.sh falls back to the locally-resolved default in a no-origin (git-only) repo (FAFF-708)
+not ok 35 - remote-diff-base.sh falls back to the locally-resolved default in a no-origin (git-only) repo (FAFF-708)
+  ---
+  duration_ms: 20.368645
+  type: 'test'
+  location: '/var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:230:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q -m A failed (cwd=/tmp/faff708-helper-local-2XMYHo/repo): error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:39:29)
+    commitFile (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:46:3)
+    TestContext.<anonymous> (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:238:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: remote-diff-base.sh fails loud in a no-origin repo whose default branch is neither main nor master (FAFF-708)
+not ok 36 - remote-diff-base.sh fails loud in a no-origin repo whose default branch is neither main nor master (FAFF-708)
+  ---
+  duration_ms: 27.952929
+  type: 'test'
+  location: '/var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:247:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q -m A failed (cwd=/tmp/faff708-helper-neither-EMXlih/repo): error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:39:29)
+    commitFile (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:46:3)
+    TestContext.<anonymous> (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:256:5)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: SSH origin, no timeout/gtimeout binary: net_git's ssh carries BatchMode=yes + ConnectTimeout=<NET_TIMEOUT>, resolver fails loud within a bounded wall-clock, prints no base (FAFF-744)
+not ok 37 - SSH origin, no timeout/gtimeout binary: net_git's ssh carries BatchMode=yes + ConnectTimeout=<NET_TIMEOUT>, resolver fails loud within a bounded wall-clock, prints no base (FAFF-744)
+  ---
+  duration_ms: 18.487647
+  type: 'test'
+  location: '/var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:299:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q -m A failed (cwd=/tmp/faff744-repo-x4bPDk): error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:39:29)
+    commitFile (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:46:3)
+    makeSshOriginRepo (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:294:3)
+    TestContext.<anonymous> (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:301:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: operator-set GIT_SSH_COMMAND is passed through verbatim — never clobbered, never appended to (FAFF-744)
+not ok 38 - operator-set GIT_SSH_COMMAND is passed through verbatim — never clobbered, never appended to (FAFF-744)
+  ---
+  duration_ms: 10.620822
+  type: 'test'
+  location: '/var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:337:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    git commit -q -m A failed (cwd=/tmp/faff744-repo-rOSvPQ): error: Enter passphrase: Load key "/Users/shftwst/.ssh/id_provisioned_shftwsts-Air": incorrect passphrase supplied to decrypt private key?
+    
+    fatal: failed to write commit object
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    git (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:39:29)
+    commitFile (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:46:3)
+    makeSshOriginRepo (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:294:3)
+    TestContext.<anonymous> (file:///var/tmp/faff-skill-diet-source-batch/test/graft-remote-base.test.mjs:339:16)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:744:18)
+    Test.postRun (node:internal/test_runner/test:1173:19)
+    Test.run (node:internal/test_runner/test:1101:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: no coupled graft diff block hardcodes a `main...HEAD` or `origin/main` base (FAFF-708 prompt-regression guard)
+ok 39 - no coupled graft diff block hardcodes a `main...HEAD` or `origin/main` base (FAFF-708 prompt-regression guard)
+  ---
+  duration_ms: 0.216249
+  type: 'test'
+  ...
+# Subtest: queue-state --selftest passes (the pure classifier + mint table)
+ok 40 - queue-state --selftest passes (the pure classifier + mint table)
+  ---
+  duration_ms: 58.995439
+  type: 'test'
+  ...
+# Subtest: new-key: emits a gk-<YYYYMMDD>-<6xbase36> key, two calls differ
+ok 41 - new-key: emits a gk-<YYYYMMDD>-<6xbase36> key, two calls differ
+  ---
+  duration_ms: 105.277974
+  type: 'test'
+  ...
+# Subtest: derive: intake marker + spec filename, all shipped -> queue_empty true (AC 1)
+ok 42 - derive: intake marker + spec filename, all shipped -> queue_empty true (AC 1)
+  ---
+  duration_ms: 54.519027
+  type: 'test'
+  ...
+# Subtest: derive: a roadmap file with THREE epic lines collects all three gitkeys, not just the first
+ok 43 - derive: a roadmap file with THREE epic lines collects all three gitkeys, not just the first
+  ---
+  duration_ms: 76.008754
+  type: 'test'
+  ...
+# Subtest: derive: a key absent from outcomes -> queue_empty false, fail-safe (AC 2)
+ok 44 - derive: a key absent from outcomes -> queue_empty false, fail-safe (AC 2)
+  ---
+  duration_ms: 60.458395
+  type: 'test'
+  ...
+# Subtest: derive: every item parked -> all_parked true, queue_empty false (AC 3)
+ok 45 - derive: every item parked -> all_parked true, queue_empty false (AC 3)
+  ---
+  duration_ms: 62.912602
+  type: 'test'
+  ...
+# Subtest: derive: empty item set -> queue_empty false, reason no-item-keys (AC 4)
+ok 46 - derive: empty item set -> queue_empty false, reason no-item-keys (AC 4)
+  ---
+  duration_ms: 42.426748
+  type: 'test'
+  ...
+# Subtest: derive: no run-ledger.json at all -> exit 0, queue_empty false (valid state, not an error) (AC 5)
+ok 47 - derive: no run-ledger.json at all -> exit 0, queue_empty false (valid state, not an error) (AC 5)
+  ---
+  duration_ms: 47.486826
+  type: 'test'
+  ...
+# Subtest: derive: a present-but-unparseable ledger -> exit 2, loud (AC 5)
+ok 48 - derive: a present-but-unparseable ledger -> exit 2, loud (AC 5)
+  ---
+  duration_ms: 32.133675
+  type: 'test'
+  ...
+# Subtest: derive + new-key: a minted key round-trips through a spec-store filename (AC 6/7)
+ok 49 - derive + new-key: a minted key round-trips through a spec-store filename (AC 6/7)
+  ---
+  duration_ms: 119.384626
+  type: 'test'
+  ...
+# Subtest: derive: a non-gitkey-shaped file/marker is never trusted as an item-key
+ok 50 - derive: a non-gitkey-shaped file/marker is never trusted as an item-key
+  ---
+  duration_ms: 38.157086
+  type: 'test'
+  ...
+# Subtest: unknown subverb -> exit 2 usage error
+ok 51 - unknown subverb -> exit 2 usage error
+  ---
+  duration_ms: 30.466385
+  type: 'test'
+  ...
+# ok   appetite=low → cap 1
+# ok   appetite=medium → cap 3
+# ok   appetite=high → cap 5
+# ok   appetite=full → cap 10
+# ok   appetite=HIGH → cap 5
+# ok   unrecognised appetite fails loud
+# ok   unrecognised appetite names the legal set
+# ok   absent appetite fails loud
+# ok   absent appetite names the legal set
+# RESULT: PASS (review-iteration-cap resolver, 0 failed)
+# Subtest: resolveReviewIterationCap: the canonical 1/3/5/10 table, case-insensitive
+ok 52 - resolveReviewIterationCap: the canonical 1/3/5/10 table, case-insensitive
+  ---
+  duration_ms: 0.527666
+  type: 'test'
+  ...
+# Subtest: resolveReviewIterationCap: unrecognised/absent appetite fails loud, names the legal set
+ok 53 - resolveReviewIterationCap: unrecognised/absent appetite fails loud, names the legal set
+  ---
+  duration_ms: 0.257708
+  type: 'test'
+  ...
+# Subtest: in-process selftest passes
+ok 54 - in-process selftest passes
+  ---
+  duration_ms: 1.155623
+  type: 'test'
+  ...
+# Subtest: faff review-iteration-cap --appetite <x> prints the cap on stdout, exit 0
+ok 55 - faff review-iteration-cap --appetite <x> prints the cap on stdout, exit 0
+  ---
+  duration_ms: 211.227198
+  type: 'test'
+  ...
+# Subtest: faff review-iteration-cap --appetite high → 5 (the shipped default; NOT the old hardcoded 3)
+ok 56 - faff review-iteration-cap --appetite high → 5 (the shipped default; NOT the old hardcoded 3)
+  ---
+  duration_ms: 49.06299
+  type: 'test'
+  ...
+# Subtest: faff review-iteration-cap: unrecognised appetite exits 2, names the legal set, nothing on stdout
+ok 57 - faff review-iteration-cap: unrecognised appetite exits 2, names the legal set, nothing on stdout
+  ---
+  duration_ms: 42.668747
+  type: 'test'
+  ...
+# Subtest: faff review-iteration-cap: absent --appetite exits 2, names the legal set, nothing on stdout
+ok 58 - faff review-iteration-cap: absent --appetite exits 2, names the legal set, nothing on stdout
+  ---
+  duration_ms: 41.457498
+  type: 'test'
+  ...
+# Subtest: faff review-iteration-cap --selftest exits 0 and reports PASS
+ok 59 - faff review-iteration-cap --selftest exits 0 and reports PASS
+  ---
+  duration_ms: 44.953787
+  type: 'test'
+  ...
+# Subtest: drift guard: faff-graft/SKILL.md carries no bare per-appetite review-loop integer
+ok 60 - drift guard: faff-graft/SKILL.md carries no bare per-appetite review-loop integer
+  ---
+  duration_ms: 1.607456
+  type: 'test'
+  ...
+# Subtest: drift guard: the reviewer's Appetite integration table (1/3/5/10) agrees with the resolver's own map
+ok 61 - drift guard: the reviewer's Appetite integration table (1/3/5/10) agrees with the resolver's own map
+  ---
+  duration_ms: 1.004082
+  type: 'test'
+  ...
+# Subtest: integration: live budget + prdr coverage → run-done drained/run-complete
+ok 62 - integration: live budget + prdr coverage → run-done drained/run-complete
+  ---
+  duration_ms: 200.954958
+  type: 'test'
+  ...
+# Subtest: integration: --no-ledger-clean at drain → continue/undispatched-ledger (the floor, never silent complete)
+ok 63 - integration: --no-ledger-clean at drain → continue/undispatched-ledger (the floor, never silent complete)
+  ---
+  duration_ms: 90.23974
+  type: 'test'
+  ...
+# Subtest: integration: the produced verdict round-trips through `faff contract run-termination`
+ok 64 - integration: the produced verdict round-trips through `faff contract run-termination`
+  ---
+  duration_ms: 90.194573
+  type: 'test'
+  ...
+# Subtest: integration: malformed --budget JSON → exit 2 (usage error)
+ok 65 - integration: malformed --budget JSON → exit 2 (usage error)
+  ---
+  duration_ms: 31.130634
+  type: 'test'
+  ...
+1..65
+# tests 65
+# suites 0
+# pass 58
+# fail 7
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 938.224278

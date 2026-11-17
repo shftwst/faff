@@ -1,0 +1,138 @@
+{
+  "schema": 1,
+  "status": "unchanged-command-test-results-reused",
+  "fresh_tests_in_this_record": 0,
+  "reused_tests": 412,
+  "checks": [
+    {
+      "check": "graft-runtime",
+      "source_record": "verification/experiments/2026-11-16-skill-diet/graft-gates-evidence-v1-private-integration.json",
+      "source_record_sha256": "a2f572c75d70b3f5459e46ad420d89544a0cf64b24864565a5bc5dd338e37ba5",
+      "source_private_commit": "7360483660c207f9e0b509507812567f96a6d39e",
+      "reused_tests": 320,
+      "reused_pass": 320,
+      "reused_fail": 0,
+      "original_command": [
+        "/usr/local/bin/node",
+        "--test",
+        "--test-concurrency=4",
+        "test/gates-budget.test.mjs",
+        "test/gates-progress.test.mjs",
+        "test/build-progress.test.mjs",
+        "test/gates-local-shard.test.mjs",
+        "test/background-fence.test.mjs",
+        "test/evidence-write.test.mjs",
+        "test/evidence-enforcement.test.mjs",
+        "test/evidence-return.test.mjs",
+        "test/faff-1475-human-only-acs.test.mjs",
+        "test/faff-1475-ac-floor.test.mjs",
+        "test/merge-gate-local.test.mjs",
+        "test/run-ledger-record-outcome.test.mjs",
+        "test/runcheck-gate.test.mjs"
+      ],
+      "original_log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/graft-gates-evidence-v1-private-tests-20261117T022740Z.txt",
+      "original_log_sha256": "3719d25bad0a90c933d9c58dd7b2823ebb3ae3d72ba80bced3773565b0788d74",
+      "selected_test_bindings": [
+        {
+          "path": "test/gates-budget.test.mjs",
+          "sha256": "b6a4b0fe0e673b3f3048c754cace15b3e6c80fb8691a289e78741413a58a8398"
+        },
+        {
+          "path": "test/gates-progress.test.mjs",
+          "sha256": "deb74b3aff5e69ce0b69397b3a4a8c536d808ae7cba12453083e7b9ab3b0611e"
+        },
+        {
+          "path": "test/build-progress.test.mjs",
+          "sha256": "eb7ad3c9792a6ddd8fddb39bf89efe1d18f1e48ad64b382b15604c52544b8d06"
+        },
+        {
+          "path": "test/gates-local-shard.test.mjs",
+          "sha256": "77dd235ec70d71a3104e764db1ad19142c9203c7e75d16c50bb495251939e3f4"
+        },
+        {
+          "path": "test/background-fence.test.mjs",
+          "sha256": "f8b7e0a267a9bcdd4e9e833b12baee0a72f02cf55e6f240de2ba0c1260d7d3bd"
+        },
+        {
+          "path": "test/evidence-write.test.mjs",
+          "sha256": "85e0f313c356c5950c3dbf36d073b02dea2ac873beeed82bdb2416102e95dd62"
+        },
+        {
+          "path": "test/evidence-enforcement.test.mjs",
+          "sha256": "0ceeb71b193040a95e4e5ff3f7aff40de94ef1aa4b9a25a0478008d683cfddae"
+        },
+        {
+          "path": "test/evidence-return.test.mjs",
+          "sha256": "3470d87be79ed58865c0d93a435646e6eb300b4f779ba7445ed882294fd2d735"
+        },
+        {
+          "path": "test/faff-1475-human-only-acs.test.mjs",
+          "sha256": "218ca6edb40c9799de15d008d6e4cb66b87573ad1406d3ff95f2a2c9c1b06575"
+        },
+        {
+          "path": "test/faff-1475-ac-floor.test.mjs",
+          "sha256": "39d04aeab6e83b961f5841b33a499dd52da5d0fab28ef2466f2f41622e87af2c"
+        },
+        {
+          "path": "test/merge-gate-local.test.mjs",
+          "sha256": "05ddca9cfb0ad0a1e1904f689253f23554d9349d177a01c11b4a5bf367b26962"
+        },
+        {
+          "path": "test/run-ledger-record-outcome.test.mjs",
+          "sha256": "02822660dda93ef45791b9157bd4d9934feee2d1d305d861b0bc6161c0391f0f"
+        },
+        {
+          "path": "test/runcheck-gate.test.mjs",
+          "sha256": "e6687f332488dae189cbb36a811c430c770ff167883c2e4d2f79e2a7a00704af"
+        }
+      ],
+      "runtime_scope": [
+        "plugin/skills/faff/bin",
+        "plugin/skills/faff/build-manifest.json"
+      ],
+      "unchanged_runtime_files": 253,
+      "prior_runtime_tree_listing_sha256": "477a67f850b4763a30e1536fa7f9784cad123ab193c33aef190171eb45345765",
+      "current_runtime_tree_listing_sha256": "477a67f850b4763a30e1536fa7f9784cad123ab193c33aef190171eb45345765",
+      "reuse_basis": "Unchanged command implementations, selected test files and contract fixtures. Reused results were not re-executed after combined prompt installation; source compatibility is separately checked by the fresh11 source-wiring assertions and full lint."
+    },
+    {
+      "check": "contract-golden-and-describe",
+      "source_record": "verification/experiments/2026-11-16-skill-diet/kernel-core-contracts-v3-private-integration.json",
+      "source_record_sha256": "ee02069bb7fe45df15d46893eb2ffd74d17cbec575e3d9b4ca93b596b5957155",
+      "source_private_commit": "83bc83d257bf4f704e84280e389ca5f1b74b699d",
+      "reused_tests": 92,
+      "reused_pass": 92,
+      "reused_fail": 0,
+      "original_command": [
+        "/usr/local/bin/node",
+        "--test",
+        "test/contract-golden.test.mjs",
+        "test/contract-describe.test.mjs"
+      ],
+      "original_log": "verification/experiments/2026-11-16-skill-diet/deterministic-checks/kernel-core-contracts-v3-private-contracts-20261117T041552Z.txt",
+      "original_log_sha256": "43db2d3cd7cc63f2940ad72691a9d27689b3c74d6cb49e80eedda15ff0991ba8",
+      "selected_test_bindings": [
+        {
+          "path": "test/contract-golden.test.mjs",
+          "sha256": "425b826fc24a2cc451e94659d56aa974a6621f61536c60608ba215b36db91827"
+        },
+        {
+          "path": "test/contract-describe.test.mjs",
+          "sha256": "e043e4f8f7506519e184c8c2c6d720fdc08df88571e33c9a1e5e459265e16b98"
+        },
+        {
+          "path": "test/golden/contracts/cases.json",
+          "sha256": "8b3436cb2596178002d03791ad62fc1a7a4adf24747bb90dce5f8c96e4879d2c"
+        }
+      ],
+      "runtime_scope": [
+        "plugin/skills/faff/bin",
+        "plugin/skills/faff/build-manifest.json"
+      ],
+      "unchanged_runtime_files": 253,
+      "prior_runtime_tree_listing_sha256": "477a67f850b4763a30e1536fa7f9784cad123ab193c33aef190171eb45345765",
+      "current_runtime_tree_listing_sha256": "477a67f850b4763a30e1536fa7f9784cad123ab193c33aef190171eb45345765",
+      "reuse_basis": "Unchanged command implementations, selected test files and contract fixtures. Reused results were not re-executed after combined prompt installation; source compatibility is separately checked by the fresh11 source-wiring assertions and full lint."
+    }
+  ]
+}

@@ -1,9 +1,9 @@
 {
   "schema": 1,
   "files": {
-    "faff-beep-boop/SKILL.md": 149485,
+    "faff-beep-boop/SKILL.md": 138533,
 
-    "faff-graft/SKILL.md": 178777,
+    "faff-graft/SKILL.md": 141650,
 
     "faff-jot/SKILL.md": 23456,
 
@@ -13,9 +13,9 @@
 
     "faff-plot/SKILL.md": 45580,
 
-    "faff-prep/SKILL.md": 104335,
+    "faff-prep/SKILL.md": 87112,
 
-    "faff-tidy/SKILL.md": 76028,
+    "faff-tidy/SKILL.md": 67340,
 
     "faff-wtf/SKILL.md": 27152,
 
@@ -27,7 +27,7 @@
 
     "faff/references/create.md": 9145,
 
-    "faff/references/kernel.md": 84072,
+    "faff/references/kernel.md": 70857,
 
     "faff/references/l4.md": 26377,
 

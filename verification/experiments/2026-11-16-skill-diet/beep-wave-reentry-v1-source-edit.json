@@ -1,0 +1,33 @@
+{
+  "schema": 1,
+  "status": "source-edit-awaiting-review",
+  "source": "plugin/skills/faff-beep-boop/SKILL.md",
+  "baseline": "baseline/beep-wave-reentry-v1.md",
+  "before_sha256": "3b23939b67eb3472b4e826e990ce7ed9f396455c4ff65430af4cecb7a8bdcbfe",
+  "after_sha256": "c90a34bacc7f3a1becdd118f7c3471e8b43c20f9bf872a92398bb933cab21d83",
+  "saved_bytes": 6537,
+  "saved_estimated_tokens": 1601,
+  "region_before_bytes": 15627,
+  "region_after_bytes": 9090,
+  "before_region_lines": 32,
+  "after_region_lines": 30,
+  "outside_unchanged": true,
+  "inherited_ambiguities": [
+    "Intro routes by faff next while step8.3 generally says invoke narrow prep; both retained.",
+    "run-done --json wording retained although previous command audit noted unsupported flag; no CLI repair bundled.",
+    "Git-only opt-out consult and convergence-only stall counter remain separately scoped."
+  ],
+  "rule_map": [
+    "Everywave only filing, L4eager backstop, filecountdiagnostic notprogress, noeligibilitygrant",
+    "Budget/Sentry before re-entry, finalbudgetgate andunreachedsection",
+    "Query constrained Backlog+Todo, archive/terminal excludes, touchedissues no re-entry",
+    "Allclosedblockers, earlyeligibility andprepbackstop, threeprep states andterminalskips, buildphase surface-only",
+    "Live admissionfacts andfreshperwave PRDdistance",
+    "Flag precedence/conflict, L4forcedloop, L3optout, git-only alwaysconsult",
+    "RunSignals CLIflags/contractauthority and threeverdict branches",
+    "Admission-based no-progress count/cap/logging",
+    "Fail-safe gitqueueflags and PRDcoverage exactly-one/single-argv",
+    "Best-effortdecisioncapture waveIDjoin andqueue-statemint-only",
+    "Everywave logs, advisory-versus-acting Sentry, exactexitcauses"
+  ]
+}

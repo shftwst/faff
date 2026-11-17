@@ -1,0 +1,9 @@
+{
+  "scope": "Post-review lint correction only. Joined twelve adjacent plain-prose paragraphs, each under185 words; moved unchanged canonical default name out of dispatch line. No commands or behavioural rules changed.",
+  "before_sha256": "6ca25a7895f9ebae9cc9a2747c0ee81b2b0ec1c988465271e422bcb1a8fd7941",
+  "after_sha256": "2fd7bd3f2ba0d8b00d6b9b7749460a7872e3380daf6f79525e2b8f876d592407",
+  "before_lines": 821,
+  "after_lines": 799,
+  "before_bytes": 141532,
+  "after_bytes": 141511
+}

@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "status": "bounded-source-review-clear-no-concrete-misses",
+  "reviewer": {
+    "role": "Independent source obligation reviewer",
+    "model": "gpt-6.1-sol",
+    "effort": "medium"
+  },
+  "inputs": [
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "sha256": "6ca25a7895f9ebae9cc9a2747c0ee81b2b0ec1c988465271e422bcb1a8fd7941"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/graft-step9-source-batch-v1.md",
+      "sha256": "c8cc255d92761d3c714caa2c9185054ea86eb2eaf61f5e94157c150ca50a8402"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/graft-step9-source-batch-v1-rule-map.json",
+      "sha256": "dff8447645b00b33032b4ebd04c997ce86707b7be24f6b310a39a37b78a3433b"
+    }
+  ],
+  "bindings": {
+    "baseline_region_matches_rule_map": true,
+    "candidate_region_matches_rule_map": true,
+    "baseline_region_bytes": 30761,
+    "candidate_region_bytes": 20084,
+    "saved_bytes": 10677,
+    "prefix_identical_to_HEAD": true,
+    "suffix_identical_to_HEAD": true,
+    "HEAD": "b447bccfd3384d91d9d19a1b01ecaf7041a2f2c5"
+  },
+  "method": "Read all baseline Step9 text and actual candidate Step9 through immediately before Step9b, compare commands/flags and each authority, condition, budget, failure, persistence and terminal branch; compare inline literal set as supplemental check. No runtime or model execution.",
+  "checks": [
+    {
+      "domain": "Entry, invocation and review authority",
+      "locations": "Baseline 1-11; candidate 353-364",
+      "result": "preserved",
+      "finding": "Mandatory pre-PR in both modes; test/manual-review excuses forbidden; slot resolution, exact diff/spec/tests/AC inputs; autonomous invocation context/fail-safe false and lights_out once-resolved context remain orthogonal prose inputs. Ledger owns mandatory outage flag; prior findings directory/system append and nonzero handling retained."
+    },
+    {
+      "domain": "Attended verification",
+      "locations": "Baseline 13-27; candidate 366-380",
+      "result": "preserved",
+      "finding": "CLI resolver and unattended all-off short circuit, posture OR one-build flags, four-lens spec review, advisory code-review outage and holdout OFFER/RUN/decideFloor timing remain. No autonomous authority, ledger mint/escalation, appetite or eligibility change."
+    },
+    {
+      "domain": "Remote diff provenance and heartbeat",
+      "locations": "Baseline 29-37; candidate 382-390",
+      "result": "preserved",
+      "finding": "Bash diff capture block byte-identical; fetched origin default/no local main fallback, git-only local default, fresh file and same-byte hash retained. Heartbeat exact issue-scoped explicit run command, entry/between/after review and before/after holdout timing, no latest run, soft no-op and single-call age bound retained."
+    },
+    {
+      "domain": "Checkpoint reconciliation",
+      "locations": "Baseline 39-47; candidate 392-400",
+      "result": "preserved",
+      "finding": "Exact read command, exit3/missing Phase1 fresh, matching hash Phase1 skip and complete/pending/in_flight routes, changed hash invalidation, git/PR/worktree truth, slot run/issue/base forwarding and exact phase-write flags retained. Interactive bypass retained."
+    },
+    {
+      "domain": "Fixed verdict consumer",
+      "locations": "Baseline 49-54; candidate 402-411",
+      "result": "preserved",
+      "finding": "Block JSON parse/CLI sole authority; native-prose fallback only absent block; malformed/unknown needs-human; Phase2 CLI disposition cannot be hand-adjusted. Four signals and canonical revert test remain."
+    },
+    {
+      "domain": "Dialogue bounded independence",
+      "locations": "Baseline 55-61; candidate 413-419",
+      "result": "preserved",
+      "finding": "Autonomous critical/default-on gate, interactive zero rounds, private directory; round schema and CLI-derived identity/carry metadata; malformed author-clear fail-safe; churn then convergence then rebuttal cap(default1); appetite-scaled fix cap and max-char secret-scrubbed untrusted rebuttal; independent withdrawal/judge overturn authority; turn hold and would-be-park stop remain."
+    },
+    {
+      "domain": "Judge and chunk budget",
+      "locations": "Baseline 63-65; candidate 421-425",
+      "result": "preserved",
+      "finding": "Exact assemble/admit/judge-admitted commands and flags; latest captured diff, blinded scrubbed per-finding/null-defence/coin-swapped evidence,0600, two phases, retry_limit and canonical verdict block retained. Admission requires all findings; unresolved park. Foreground timeout600000/call budget540, first exit3 reinvokes then strictly falling attempts with heartbeat/same args, otherwise admit remain."
+    },
+    {
+      "domain": "Availability hold",
+      "locations": "Baseline 67-73; candidate 427-438",
+      "result": "preserved",
+      "finding": "Interactive unavailable writer/park; autonomous checkpoint/retry default0 and bound3; terminal park writer/label/reason/store cleanup; retry hold does not write floor, increments counter, stashes carried rounds, exit4 retry once/nonzero park, single-select labels clears breadcrumb, lease release/status backward move, exact notice/return/bucket/annotation/no PR retained. Work critical never receives outage hold."
+    },
+    {
+      "domain": "Terminal housekeeping",
+      "locations": "Baseline 75; candidate 440",
+      "result": "preserved",
+      "finding": "Resumed shipped/fail/needs-human cleanup, extra parked label, repeated carried outage count; every claimed build terminal breadcrumb and lease release, all three named no-op logs/non-halting and tidy/reclaim backstops retained."
+    },
+    {
+      "domain": "Dialogue hold",
+      "locations": "Baseline 77-80; candidate 442-453",
+      "result": "preserved",
+      "finding": "Actual read command exits0/3/2/4 and resumed-store safeguard; hold default0/bound2; terminal park/store cleanup; no-floor nonterminal stash with counter increment and carried round counters/one exit4 retry; role-key label transition, no parked, breadcrumb clear, release/status/notice/exact return/bucket/annotation remain."
+    },
+    {
+      "domain": "Persistence and sole writer",
+      "locations": "Baseline 82-90; candidate 455-461",
+      "result": "preserved",
+      "finding": "Tracker issue only; every-pass hard-floor log and all Phase1/Phase2 dispositions/source/severity/model, no invented rationale, unavailable excluded from round records; exact writer/prior-dir and exit1/2 causes remain. Terminal sole writer/all-round history/fixed only on pass, judge/park routes, no handwriting/manual-recovery-only flag, missing artifact fail-closed/audit anchor retained. One terminal comment and gateway identity/live read/planner/result handling remain."
+    },
+    {
+      "domain": "Terminal handoff and discovered scope",
+      "locations": "Baseline 92-101; candidate 463-472",
+      "result": "preserved",
+      "finding": "Pass to9b then merge confidence; interactive same-turn no confirmation and exact fallback offer; fail pre-PR loop, needs-human no-PR handoff distinct from already-open PR causes, unavailable resumable bound/no floor return; separable follow-ups discovered scope rather than fail-loop retained."
+    }
+  ],
+  "concrete_misses": [],
+  "inherited_conflicts": [
+    {
+      "issue": "needs-human signal table says flip PR to draft while entry/terminal branches require pre-PR and no PR opened.",
+      "assessment": "Present in baseline and candidate; deliberately preserved, not newly resolved or introduced."
+    }
+  ],
+  "inline_literals_not_preserved_as_separate_inline_spans": {
+    "values": [
+      ".faff/config.yaml",
+      ".faff/logs",
+      "Todo",
+      "autonomous:true",
+      "checkpoint",
+      "false",
+      "git diff",
+      "git diff <remote-base>...HEAD",
+      "sha",
+      "true"
+    ],
+    "assessment": "Formatting/explanatory spans only: config no-hand-read instruction becomes CLI-only resolver; Todo/true/false/autonomous:true/sha/checkpoint retain prose or containing command meanings; standalone logs/diff snippets retain actual paths and identical executable diff block. No lost executable command/flag found."
+  },
+  "limits": [
+    "Source-only comparison, not model fidelity or workflow qualification.",
+    "No tests, source, allowance, frozen record or commit edits; only this review record written.",
+    "Shared gateway/slot implementation not re-reviewed; this audit compares the supplied bounded Step9 baseline with actual changed source."
+  ]
+}

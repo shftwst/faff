@@ -1,0 +1,112 @@
+{
+  "schema": 1,
+  "status": "implemented-source-draft-uncommitted-unqualified",
+  "base_commit": "b447bccfd3384d91d9d19a1b01ecaf7041a2f2c5",
+  "scope": "Mapped housekeeping region only; no allowance/design/test/model/accepted-ledger/commit action.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/baseline/tidy-autonomous-housekeeping-v1.md",
+      "sha256": "9e2d98e3f7d1de13c74866115cd433ae62854f95e2bf2ae4617185d24123d757"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/tidy-autonomous-housekeeping-compression-draft-notes.json",
+      "sha256": "d04ce156e64e7a3c8ce35eea947b86304b26a6598df24b07013c741949233a48"
+    }
+  ],
+  "source": {
+    "path": "plugin/skills/faff-tidy/SKILL.md",
+    "before_sha256": "9e2d98e3f7d1de13c74866115cd433ae62854f95e2bf2ae4617185d24123d757",
+    "after_sha256": "544f06c985f75aee6012371b7faf9142714826e35a5bf4a0d8e12544d6ef8d16",
+    "before_bytes": 76028,
+    "after_bytes": 71015,
+    "saved_bytes": 5013,
+    "before_estimated_tokens": 18828,
+    "after_estimated_tokens": 17592,
+    "saved_estimated_tokens": 1236,
+    "token_method": "ceil(UTF-16 code units / 4) per full source; estimate, not billed tokens"
+  },
+  "region": {
+    "old_lines": [
+      256,
+      292
+    ],
+    "before_bytes": 12761,
+    "after_bytes": 7748,
+    "before_sha256": "8a072c7fcab22924417d5efc83bd5fe6e6d1ecd13d058cc58bf749190085026c",
+    "after_sha256": "c786e608ee6794213fefef0a2732e44892e5f2f60d7ea698ae056574b4ed868f"
+  },
+  "outside_region_checks": {
+    "prefix_byte_identical": true,
+    "suffix_byte_identical": true,
+    "prefix_sha256": "20044ec3106216bb127fdfcfc26c40594d79c0e4f86256b840fbd588748151e5",
+    "suffix_sha256": "2c8058bf267f5c0ba52dfc0983dc5de6c18b79775a21716aca1cc3278c6e9d64",
+    "prefix_bytes": 50321,
+    "suffix_bytes": 12946
+  },
+  "changed_rule_map": [
+    {
+      "old_lines": "256-258",
+      "rule_group": "Eligibility and human authority",
+      "preserved_obligations": "No faff-automate exempts pipeline actions/tagging/promotion; tracker owns eligibility. Nonpipeline housekeeping preserves eligibility. Human reprioritise/resequence/regroup/reparent and cancel/delete prohibitions, explicit bounded exceptions, propose-and-confirm remain."
+    },
+    {
+      "old_lines": "260-264",
+      "rule_group": "Basic housekeeping",
+      "preserved_obligations": "All six dead-link kinds on every active issue, one cascade comment and per-link logs; discovered noncanonical spec copy destinations/branch condition, Todo without any discovered spec demotion/exact log, no tidy prep invocation/default beep pipeline ownership; merged/cancelled archive and grandparent-or-unlink orphans remain."
+    },
+    {
+      "old_lines": "265-270",
+      "rule_group": "Park state",
+      "preserved_obligations": "Exact removal/park-verdict commands and descriptor write; unconditional four strip states/lower-state n/a; linked open draft PR, most-recent comment classes and later human takeover observations; CLI owns predicate, exact protect/surface logs, no In Progress-only strip and parked eligibility guard remain."
+    },
+    {
+      "old_lines": "272",
+      "rule_group": "Park capture",
+      "preserved_obligations": "Exact combined decide/consult and action commands; Tier-1 FAFF_RUN_DIR/per-issue guard, actual post-disposition branch, never verdict echo, best-effort/non-gating/no standalone mint remain."
+    },
+    {
+      "old_lines": "273-279",
+      "rule_group": "Park reason and record",
+      "preserved_obligations": "Tracker/run reason sources, exactly-one verified basis, all forbidden patterns and file examples, live completed named blocker and same-topic punt/closed markers remain. Subjective/vague/missing retain with exact surface log. Each removal records issue/reason/specific rule at exact dated path and tracker comment."
+    },
+    {
+      "old_lines": "280-282",
+      "rule_group": "State-only cleanup",
+      "preserved_obligations": "Exact three label remove commands, each distinct named state set, no reason parsing, whole awaiting-review resume cleanup, hold-only/otherwise-empty sibling cleanup and protected convergence scratch, terminal/retry-later breadcrumb backstop and live In Progress provenance remain."
+    },
+    {
+      "old_lines": "283-285",
+      "rule_group": "Claim facts/verdict",
+      "preserved_obligations": "Each active In Progress issue; latest transition timestamp per Linear/GitHub/Jira, forbidden Linear top-level startedAt/retry bounce, no-capability surface/exact log/continue/no guessed age, exact TTL CLI and live no-op remain."
+    },
+    {
+      "old_lines": "287",
+      "rule_group": "Claim capture",
+      "preserved_obligations": "Exact combined decide/consult and action commands with original live-left/stale-reclaimed meanings after actual disposition; refer to same explicit park capture guards/best-effort/no-mint rules."
+    },
+    {
+      "old_lines": "288-289",
+      "rule_group": "Reclaim/refusal",
+      "preserved_obligations": "Only stale plus faff-claimed, reread live status before In Progress-to-Todo write, exact label/ref commands; lease-matched machine-aware heartbeat-only release, live heartbeat retention, never acquire, ref mutex/Step-5 refusal and nondestructive next-pass requeue remain. Exact single comment, structured actual-release log and stale absent-breadcrumb surface/status untouched/exact log remain."
+    },
+    {
+      "old_lines": "291-292",
+      "rule_group": "Authority boundaries",
+      "preserved_obligations": "Second sanctioned backward move/state-verdict-breadcrumb fence/never In Review or Done, both conflicting git-only clauses and separate merge-time governance anchor check remain."
+    }
+  ],
+  "inherited_ambiguities_not_resolved": [
+    "Git-only step: tracker/label writes no-op but ref release still runs. Closing clause: git-only no reclaim path. Both remain.",
+    "Human-curation/global label-grouping bans coexist with explicit bounded housekeeping exceptions. No broader authority inferred.",
+    "Capture live means left claim and stale means reclaimed, while stale without breadcrumb is surface-only. No new action mapping invented."
+  ],
+  "removed_material": "Repeated rationale/history and illustrative cascade issue IDs; two small condition/action tables replace repeated prose. No new mandatory read or changed command.",
+  "development_failure": "First write attempt stopped on a blank-line terminator assertion before any repository writes; source hash verified unchanged. Corrected region separator to preserve Markdown boundary.",
+  "checks": {
+    "outside_bytes_identical": true,
+    "saved_at_least_5000_bytes": true,
+    "tests_or_models_run": false,
+    "allowance_or_cap_edits": false
+  },
+  "qualification_limit": "Source compression only; root owns review/integration/qualification. Frozen prior measurements unchanged."
+}

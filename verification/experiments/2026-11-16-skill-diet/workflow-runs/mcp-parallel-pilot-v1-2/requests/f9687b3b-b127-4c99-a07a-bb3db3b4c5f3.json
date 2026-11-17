@@ -1,0 +1,1 @@
+{"name":"write_output","args":{"case_id":"literal","text":"Line one: $1.25, \"quoted\", and apostrophe's.\nLine two."}}

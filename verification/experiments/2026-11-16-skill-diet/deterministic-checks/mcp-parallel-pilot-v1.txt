@@ -1,0 +1,11 @@
+{"status":"pass","calls":5,"problems":[]}
+{"run": "mcp-parallel-pilot-v1-2", "status": "pass", "raw_status": "pass", "native": "pass", "cases": [{"id": "literal", "pass": true}, {"id": "cost", "pass": true}], "elapsed_seconds": 31.0}
+{"status":"pass","calls":5,"problems":[]}
+{"run": "mcp-parallel-pilot-v1-3", "status": "pass", "raw_status": "pass", "native": "pass", "cases": [{"id": "literal", "pass": true}, {"id": "cost", "pass": true}], "elapsed_seconds": 35.2}
+{"status":"pass","calls":5,"problems":[]}
+{"run": "mcp-parallel-pilot-v1-4", "status": "pass", "raw_status": "pass", "native": "pass", "cases": [{"id": "literal", "pass": true}, {"id": "cost", "pass": true}], "elapsed_seconds": 37.8}
+{"status":"pass","calls":5,"problems":[]}
+{"run": "mcp-parallel-pilot-v1-5", "status": "pass", "raw_status": "pass", "native": "pass", "cases": [{"id": "literal", "pass": true}, {"id": "cost", "pass": true}], "elapsed_seconds": 42.9}
+{"status":"pass","calls":5,"problems":[]}
+{"run": "mcp-parallel-pilot-v1-1", "status": "pass", "raw_status": "pass", "native": "pass", "cases": [{"id": "literal", "pass": true}, {"id": "cost", "pass": true}], "elapsed_seconds": 46.3}
+{"phase": {"status": "pass", "samples": {"mcp-parallel-pilot-v1-1": {"status": "pass"}, "mcp-parallel-pilot-v1-2": {"status": "pass"}, "mcp-parallel-pilot-v1-3": {"status": "pass"}, "mcp-parallel-pilot-v1-4": {"status": "pass"}, "mcp-parallel-pilot-v1-5": {"status": "pass"}}}}

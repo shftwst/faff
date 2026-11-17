@@ -1,0 +1,13 @@
+{
+  "kind": "codex-cli-final",
+  "text": "All cases finished successfully. The text was persisted exactly, the rule answer was recorded, and finish succeeded. No departures from the restrictions.",
+  "state": {
+    "exit_code": 0,
+    "thread_ids": [
+      "01a1e70b-b49b-76b0-bfb9-dfbe7e552782"
+    ],
+    "elapsed_seconds": 42.9,
+    "stdout_sha256": "62f0d4b21782ff3b1b8ab03fec202a9ba08f25b6ed35111b71da2e0c009d3382",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "schema": 1,
+  "status": "ready-for-fresh-registered-parallel-phases",
+  "scope": "Five short native Sol-medium sessions and isolated deterministic CLI preflights. Future skill cohorts still need complete native/semantic/manual/consumer gates.",
+  "runner": "run-mcp-workflow-samples-v5.py",
+  "runner_sha256": "08f0a8c3644e916a1ab317985423fb7f570d4b9f1ec979afc6c4758be1424053",
+  "model": "gpt-6.1-sol",
+  "effort": "medium",
+  "counts": {
+    "sessions": 5,
+    "private_clients": 5,
+    "globally_unique_mailbox_ids": 25,
+    "unique_session_rpc_pairs": 25,
+    "raw_cases_passed": 10,
+    "total_raw_cases": 10,
+    "native_audits_passed": 5,
+    "total_native_audits": 5
+  },
+  "common_native_window": {
+    "latest_first_call": "2026-11-17T01:07:53.004Z",
+    "earliest_final_result": "2026-11-17T01:08:12.948Z",
+    "seconds": 19.944
+  },
+  "bindings": [
+    {
+      "path": "mcp-parallel-pilot-v1-plan.json",
+      "sha256": "7e8e5c800ec3973fa2da472d9666e1c79a05e9388c5575b72276ccbd87f71bec"
+    },
+    {
+      "path": "mcp-parallel-pilot-v1-idle-receipt.json",
+      "sha256": "48909c6a901ad4d9be5b2de3ef1ae73885f16e21acf93742288bddcf15d1d55b"
+    },
+    {
+      "path": "independent-mcp-parallel-pilot-v1-prelaunch-review.json",
+      "sha256": "425ee6c1ade7c778a8725daad85124e5a55b2d5e4aade8197b1a6749b31e3fbb"
+    },
+    {
+      "path": "independent-mcp-parallel-pilot-v1-results.json",
+      "sha256": "bcd3b1d942fe99aab05f3454cf374aca12048dbb5c569c7594cd4f66340a976b"
+    },
+    {
+      "path": "independent-parallel-phase-v1-review.json",
+      "sha256": "62a0e74361ee1dd83af513c1063978b7a4ee09ad207db7dbda92681fe251c986"
+    },
+    {
+      "path": "parallel-phase-v2-preflight.json",
+      "sha256": "70b4da581703e1f29a06e64bcaef06a194dab9bf7a75d63950ff4b25ce3b6653"
+    },
+    {
+      "path": "deterministic-checks/mcp-parallel-pilot-v1.txt",
+      "sha256": "75fef4a689e241c9caa63bbe6c3621a6237796426ea9c4dcce16a800107db502"
+    }
+  ],
+  "source_savings_claimed": false,
+  "limits": [
+    "This check establishes overlapping short native session tool windows, not simultaneous provider execution, throughput, general service limits, long-context reliability or skill fidelity.",
+    "Runtime manifest binding is checked byte-for-byte against the pinned clean plugin checkout; this rendering transport pilot invokes no production workflow consumer.",
+    "Idle-phase runner exit is supported by the committed launcher observation and five hash-bound completed successful samples; no retrospective operating-system process audit is claimed.",
+    "Fresh audit parsed native tool execution and metadata without exporting reasoning or full raw capture contents. Prior failed development records and held measurement cohorts remain unchanged."
+  ]
+}

@@ -1,0 +1,1071 @@
+{
+  "schema": 1,
+  "status": "pass-short-native-parallel-transport-only",
+  "scope": "All five original short native Sol-medium sessions checked after completion. No source-fidelity or source-savings qualification.",
+  "inputs": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/mcp-parallel-pilot-v1-plan.json",
+      "sha256": "7e8e5c800ec3973fa2da472d9666e1c79a05e9388c5575b72276ccbd87f71bec"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/mcp-parallel-pilot-v1-idle-receipt.json",
+      "sha256": "48909c6a901ad4d9be5b2de3ef1ae73885f16e21acf93742288bddcf15d1d55b"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/independent-mcp-parallel-pilot-v1-prelaunch-review.json",
+      "sha256": "425ee6c1ade7c778a8725daad85124e5a55b2d5e4aade8197b1a6749b31e3fbb"
+    },
+    {
+      "path": "/tmp/faff-mcp-parallel-pilot-v1.log",
+      "sha256": "75fef4a689e241c9caa63bbe6c3621a6237796426ea9c4dcce16a800107db502"
+    }
+  ],
+  "idle_receipt_backing": [
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-1/worker-final-state.json",
+      "sha256": "7f1e35fab02c59b75a4e3a384b418ce4fb7f339fb0448227be7ef41de2a3e905"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-1/native-audit.json",
+      "sha256": "f626eedcf91320f469e08a74c2ac40f8dac6ff364aa3fdc4ded7f26447940c66"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-1/report.json",
+      "sha256": "6228ffbbc91de1a25c5612ac4b5917d5895bb552d84e0c2b7b05ecca2482c803"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-2/worker-final-state.json",
+      "sha256": "95c8eb90d10ba05b265a20f5b6c437a8ef55c70576343f337f4efb92025328c8"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-2/native-audit.json",
+      "sha256": "ec5cfc18a2d5e9424059ab19c3439a1f5747bb121cf4dda7699ff046eabc2f89"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-2/report.json",
+      "sha256": "6228ffbbc91de1a25c5612ac4b5917d5895bb552d84e0c2b7b05ecca2482c803"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-3/worker-final-state.json",
+      "sha256": "53340de44404eda89fa8f1a39c2f8d7041e1269cb381be205c09e6d3e1a61d84"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-3/native-audit.json",
+      "sha256": "76644279117e59903528dcc38cd5e027e09ad7cc141107cf8a5b2f36669f9cf2"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-3/report.json",
+      "sha256": "6228ffbbc91de1a25c5612ac4b5917d5895bb552d84e0c2b7b05ecca2482c803"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-4/worker-final-state.json",
+      "sha256": "cfb992078374f67010b41d235f561c67f0a711559f246edc998f88538cd6ee91"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-4/native-audit.json",
+      "sha256": "21cdc193f0099f608286ac8e599a7a01a715382f03e79b34af7a5c05867178b8"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-4/report.json",
+      "sha256": "6228ffbbc91de1a25c5612ac4b5917d5895bb552d84e0c2b7b05ecca2482c803"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-5/worker-final-state.json",
+      "sha256": "14804cb9d54e652d0bf2d008bb0789f48a7f401bd8dcbcf112dc5e2224744895"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-5/native-audit.json",
+      "sha256": "66e41ef46ae602c5442a6218091953c68ad9c6d027db21a8cf1f24116b6a32bb"
+    },
+    {
+      "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-ledger-mcp-v3-baseline-5/report.json",
+      "sha256": "6228ffbbc91de1a25c5612ac4b5917d5895bb552d84e0c2b7b05ecca2482c803"
+    }
+  ],
+  "frozen_hash_checks": {
+    "count": 1194,
+    "all_match_before_and_after": true
+  },
+  "runtime_binding_exact": true,
+  "samples": [
+    {
+      "sample": "mcp-parallel-pilot-v1-1",
+      "status": "pass",
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/capture.json",
+          "sha256": "815e42b5408d1ca8d6dd0f00af830e4fcf731017d21232f0cca060b0bef4b4ba"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/report.json",
+          "sha256": "035236fbc40e277027bdd7ac8847fd281918dd67595a2e33936ecf6e758b43ce"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/native-audit.json",
+          "sha256": "f371b3ad6886bf8ef26122f5e1a004b7b942f19cc9cf6f774a74756dc10b77e9"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/manifest.json",
+          "sha256": "e5ccadc1ef65dc6ec9885f521e31bd43aa018c8fb742eeed85e814c6bc46b553"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/worker-manifest.json",
+          "sha256": "8e1d25110f30836b30bd296d489a220829cb5a4e11d197dccb11efe9fa1dc47b"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/worker-final-state.json",
+          "sha256": "0d855ec22628ed6a9f89b29b9b77a9593916e127cc5fae62a7da89a8d4bb5132"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/startup-binding.json",
+          "sha256": "b5cef90f9a5448d0e1377dc85214a581073445d979cdd292c96a46b1e6f07820"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/mcp-server-manifest.json",
+          "sha256": "078e2c4726225eeade0787bb27df37fc28c92a6ac4e3fbf9cfc7ad402982a227"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/task.json",
+          "sha256": "07e944cc0d0f98a0aa74593e85f7fdbda0e4a14fa621aa6cea351d8c05319969"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/mcp-trace.jsonl",
+          "sha256": "add6913429422d83e82194de762dbb74134d8988b82e5e39b299652158b1b1ba"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/mcp-protocol-errors.jsonl",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/artifacts/literal.md",
+          "sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/worker-prompt.txt",
+          "sha256": "c81535e2a560533ee7e55616cd4bd67b80b1b66533ffc44ad3c5d044e295f5ea"
+        }
+      ],
+      "native_capture": {
+        "path": "/Users/shftwst/.codex/sessions/2026/11/17/rollout-2026-11-17T01-07-46-01a1e70b-b491-76e0-a168-d15b38bca582.jsonl",
+        "sha256": "24adb3a7e82d95f289d813af60f6e987625a9dbf0ec0fcd3957aba215bc2c4da"
+      },
+      "private_capture_hashes": [
+        {
+          "path": "/tmp/faff-mcp-measure-vrnf219c/stdout.jsonl",
+          "sha256": "f8d7e1280fc1664d1cc109eb2792823414199a60fca5f6cb460d12f1aeb76b7d"
+        },
+        {
+          "path": "/tmp/faff-mcp-measure-vrnf219c/stderr.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "session_id": "01a1e70b-b491-76e0-a168-d15b38bca582",
+      "private_client_directory": "/tmp/faff-mcp-measure-vrnf219c",
+      "window": {
+        "first_native_tool_call": "2026-11-17T01:07:53.004Z",
+        "final_native_tool_result": "2026-11-17T01:08:27.194Z"
+      },
+      "literal_bytes": 54,
+      "literal_sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97",
+      "cost": 1.25,
+      "fresh_grade": {
+        "status": "pass",
+        "cases": [
+          {
+            "id": "literal",
+            "kind": "artifact",
+            "pass": true,
+            "problems": [],
+            "rubric": {
+              "score": 1,
+              "checks": 1,
+              "passed": 1,
+              "vector": [
+                true
+              ]
+            }
+          },
+          {
+            "id": "cost",
+            "kind": "decision",
+            "pass": true,
+            "problems": [],
+            "value": {
+              "cost": 1.25
+            }
+          }
+        ],
+        "errors": []
+      },
+      "native_replay_exact": true,
+      "native_calls": 8,
+      "mcp_calls": 5,
+      "policy_reads": 2,
+      "joins": [
+        {
+          "seq": 1,
+          "rpc_id": 2,
+          "mailbox_id": "9d814141-c40f-4796-86ce-0124285432d1",
+          "tool": "read_policy",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/requests/9d814141-c40f-4796-86ce-0124285432d1.json",
+            "sha256": "77b321e2419cfa258a36a151395dc221d97e39da24c0e4adaeebb38ee128bee6"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/responses/9d814141-c40f-4796-86ce-0124285432d1.json",
+            "sha256": "6029a0940b8830394891bed106ade117f1a4ff2e5de06a1df84f874bc9ea9ff8"
+          }
+        },
+        {
+          "seq": 2,
+          "rpc_id": 3,
+          "mailbox_id": "9de7d3ff-5cf1-435c-b926-720c6bbcbff0",
+          "tool": "read_policy",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/requests/9de7d3ff-5cf1-435c-b926-720c6bbcbff0.json",
+            "sha256": "c56652631c09d05c773898fc1dae3a145b42a38435945822d44e733c43e427ac"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/responses/9de7d3ff-5cf1-435c-b926-720c6bbcbff0.json",
+            "sha256": "86a5940d789299dd7dc30a3a46c1e3716ea3098cf690e91ec202fac30bf4ec31"
+          }
+        },
+        {
+          "seq": 3,
+          "rpc_id": 4,
+          "mailbox_id": "29a96391-a99e-46d5-88d2-628c82cf58b8",
+          "tool": "write_output",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/requests/29a96391-a99e-46d5-88d2-628c82cf58b8.json",
+            "sha256": "dd8ea92f812cd2ac4826a138b9be38c6faf6b4235140f23ae96da9be68cd5986"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/responses/29a96391-a99e-46d5-88d2-628c82cf58b8.json",
+            "sha256": "de98743be9e4cc982e7a55f80f0c94e9e1309ec67d8d508358a75ab3c009cd61"
+          }
+        },
+        {
+          "seq": 4,
+          "rpc_id": 5,
+          "mailbox_id": "e03e9ddf-f2b8-40fa-967e-99af3633a818",
+          "tool": "answer_rule",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/requests/e03e9ddf-f2b8-40fa-967e-99af3633a818.json",
+            "sha256": "93d0500254d4ff0c2478c6ec079e13eef62e3980aaaa35e4fa8423bbc2a5422b"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/responses/e03e9ddf-f2b8-40fa-967e-99af3633a818.json",
+            "sha256": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17"
+          }
+        },
+        {
+          "seq": 5,
+          "rpc_id": 6,
+          "mailbox_id": "d76d754e-7427-46a1-95f2-f5ab980b3b13",
+          "tool": "finish",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/requests/d76d754e-7427-46a1-95f2-f5ab980b3b13.json",
+            "sha256": "57c16669cf7318f34d73d124a306944170f59dd154c2293f605b849a4cb064de"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-1/responses/d76d754e-7427-46a1-95f2-f5ab980b3b13.json",
+            "sha256": "7460c4fb8db4c4b308fca59b0e41f9311ade7c14a14b9c8743e157ac58e4861c"
+          }
+        }
+      ]
+    },
+    {
+      "sample": "mcp-parallel-pilot-v1-2",
+      "status": "pass",
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/capture.json",
+          "sha256": "815e42b5408d1ca8d6dd0f00af830e4fcf731017d21232f0cca060b0bef4b4ba"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/report.json",
+          "sha256": "035236fbc40e277027bdd7ac8847fd281918dd67595a2e33936ecf6e758b43ce"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/native-audit.json",
+          "sha256": "b414a5cacbd56f6a95ad732f67464a424280c23449ca89c0182856a86d4cd6dc"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/manifest.json",
+          "sha256": "e5ccadc1ef65dc6ec9885f521e31bd43aa018c8fb742eeed85e814c6bc46b553"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/worker-manifest.json",
+          "sha256": "8b1b0017f3186e03208075b4d36ac442b2a4a5ff04a08e35b8114d784bb7aa2d"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/worker-final-state.json",
+          "sha256": "d64e4e660f6945e256e6506e2c91a57a964bec41ef97f45a3f7b0b08d6c33783"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/startup-binding.json",
+          "sha256": "7b3b300d45547d3210364e295ae8173d5b09586850b335b28857b604e1b0001a"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/mcp-server-manifest.json",
+          "sha256": "078e2c4726225eeade0787bb27df37fc28c92a6ac4e3fbf9cfc7ad402982a227"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/task.json",
+          "sha256": "07e944cc0d0f98a0aa74593e85f7fdbda0e4a14fa621aa6cea351d8c05319969"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/mcp-trace.jsonl",
+          "sha256": "1a3b62d214e2aa9037008e61cfda79cd5fb257b181ff0efbacbe985408cd1e44"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/mcp-protocol-errors.jsonl",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/artifacts/literal.md",
+          "sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/worker-prompt.txt",
+          "sha256": "5c109f1a99faf0ab696558de3acdbb2d06b4c55be31ac118231aab6e63fa0881"
+        }
+      ],
+      "native_capture": {
+        "path": "/Users/shftwst/.codex/sessions/2026/11/17/rollout-2026-11-17T01-07-46-01a1e70b-b4aa-7cd3-8784-2f8a6050205f.jsonl",
+        "sha256": "65bcb105137ae1b860c669772d14809a07a018137a27e12e09f239e6ab265a83"
+      },
+      "private_capture_hashes": [
+        {
+          "path": "/tmp/faff-mcp-measure-tu85mgny/stdout.jsonl",
+          "sha256": "416cbddf01332ebad605f98e58740c5fdeb1f58acd36dd32376bcea15420a634"
+        },
+        {
+          "path": "/tmp/faff-mcp-measure-tu85mgny/stderr.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "session_id": "01a1e70b-b4aa-7cd3-8784-2f8a6050205f",
+      "private_client_directory": "/tmp/faff-mcp-measure-tu85mgny",
+      "window": {
+        "first_native_tool_call": "2026-11-17T01:07:52.047Z",
+        "final_native_tool_result": "2026-11-17T01:08:12.948Z"
+      },
+      "literal_bytes": 54,
+      "literal_sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97",
+      "cost": 1.25,
+      "fresh_grade": {
+        "status": "pass",
+        "cases": [
+          {
+            "id": "literal",
+            "kind": "artifact",
+            "pass": true,
+            "problems": [],
+            "rubric": {
+              "score": 1,
+              "checks": 1,
+              "passed": 1,
+              "vector": [
+                true
+              ]
+            }
+          },
+          {
+            "id": "cost",
+            "kind": "decision",
+            "pass": true,
+            "problems": [],
+            "value": {
+              "cost": 1.25
+            }
+          }
+        ],
+        "errors": []
+      },
+      "native_replay_exact": true,
+      "native_calls": 8,
+      "mcp_calls": 5,
+      "policy_reads": 2,
+      "joins": [
+        {
+          "seq": 1,
+          "rpc_id": 2,
+          "mailbox_id": "af836117-e21c-4f35-a979-64bd0835f631",
+          "tool": "read_policy",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/requests/af836117-e21c-4f35-a979-64bd0835f631.json",
+            "sha256": "77b321e2419cfa258a36a151395dc221d97e39da24c0e4adaeebb38ee128bee6"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/responses/af836117-e21c-4f35-a979-64bd0835f631.json",
+            "sha256": "6029a0940b8830394891bed106ade117f1a4ff2e5de06a1df84f874bc9ea9ff8"
+          }
+        },
+        {
+          "seq": 2,
+          "rpc_id": 3,
+          "mailbox_id": "d60f4101-beb2-4c06-9147-d45982a98305",
+          "tool": "read_policy",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/requests/d60f4101-beb2-4c06-9147-d45982a98305.json",
+            "sha256": "c56652631c09d05c773898fc1dae3a145b42a38435945822d44e733c43e427ac"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/responses/d60f4101-beb2-4c06-9147-d45982a98305.json",
+            "sha256": "86a5940d789299dd7dc30a3a46c1e3716ea3098cf690e91ec202fac30bf4ec31"
+          }
+        },
+        {
+          "seq": 3,
+          "rpc_id": 4,
+          "mailbox_id": "f9687b3b-b127-4c99-a07a-bb3db3b4c5f3",
+          "tool": "write_output",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/requests/f9687b3b-b127-4c99-a07a-bb3db3b4c5f3.json",
+            "sha256": "dd8ea92f812cd2ac4826a138b9be38c6faf6b4235140f23ae96da9be68cd5986"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/responses/f9687b3b-b127-4c99-a07a-bb3db3b4c5f3.json",
+            "sha256": "de98743be9e4cc982e7a55f80f0c94e9e1309ec67d8d508358a75ab3c009cd61"
+          }
+        },
+        {
+          "seq": 4,
+          "rpc_id": 5,
+          "mailbox_id": "23a83e00-4636-4263-a775-a81eebe0eb89",
+          "tool": "answer_rule",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/requests/23a83e00-4636-4263-a775-a81eebe0eb89.json",
+            "sha256": "93d0500254d4ff0c2478c6ec079e13eef62e3980aaaa35e4fa8423bbc2a5422b"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/responses/23a83e00-4636-4263-a775-a81eebe0eb89.json",
+            "sha256": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17"
+          }
+        },
+        {
+          "seq": 5,
+          "rpc_id": 6,
+          "mailbox_id": "d5f80689-ed83-4a48-ad14-c0a6d5bd55fd",
+          "tool": "finish",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/requests/d5f80689-ed83-4a48-ad14-c0a6d5bd55fd.json",
+            "sha256": "57c16669cf7318f34d73d124a306944170f59dd154c2293f605b849a4cb064de"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-2/responses/d5f80689-ed83-4a48-ad14-c0a6d5bd55fd.json",
+            "sha256": "7460c4fb8db4c4b308fca59b0e41f9311ade7c14a14b9c8743e157ac58e4861c"
+          }
+        }
+      ]
+    },
+    {
+      "sample": "mcp-parallel-pilot-v1-3",
+      "status": "pass",
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/capture.json",
+          "sha256": "815e42b5408d1ca8d6dd0f00af830e4fcf731017d21232f0cca060b0bef4b4ba"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/report.json",
+          "sha256": "035236fbc40e277027bdd7ac8847fd281918dd67595a2e33936ecf6e758b43ce"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/native-audit.json",
+          "sha256": "d488f51fc8fec50464bf556af68a4005a64c001f96156082c02de46413869aed"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/manifest.json",
+          "sha256": "e5ccadc1ef65dc6ec9885f521e31bd43aa018c8fb742eeed85e814c6bc46b553"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/worker-manifest.json",
+          "sha256": "5010b848d4d53a9a44956ea829b37cf66c09859fda07c17162eee557e922bbec"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/worker-final-state.json",
+          "sha256": "1f84905a1824eefb30ea6c49cf2290cce1f2881932b6e202a18855765175c1da"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/startup-binding.json",
+          "sha256": "bcf88d5d269fa9b5e950daaa86070c5c4074274e3ed7d08509463d2eae08ab36"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/mcp-server-manifest.json",
+          "sha256": "078e2c4726225eeade0787bb27df37fc28c92a6ac4e3fbf9cfc7ad402982a227"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/task.json",
+          "sha256": "07e944cc0d0f98a0aa74593e85f7fdbda0e4a14fa621aa6cea351d8c05319969"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/mcp-trace.jsonl",
+          "sha256": "4050a8a9831b55785d564e7725fde9a560be9f111762b3f7b2b41a4c3ea9dae7"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/mcp-protocol-errors.jsonl",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/artifacts/literal.md",
+          "sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/worker-prompt.txt",
+          "sha256": "3977ec944e01d2590c08aba83f574c872f0c8ff17c9492b9fdf297b030d583df"
+        }
+      ],
+      "native_capture": {
+        "path": "/Users/shftwst/.codex/sessions/2026/11/17/rollout-2026-11-17T01-07-46-01a1e70b-b4a0-7791-aeeb-19081d9afbbd.jsonl",
+        "sha256": "a6cb52096f7f076843d6c2d77a4715c3d05de36987167080cef393186b7b85b6"
+      },
+      "private_capture_hashes": [
+        {
+          "path": "/tmp/faff-mcp-measure-m4g94_eo/stdout.jsonl",
+          "sha256": "ff414290317e1fefe85bf5e5faebe40e068fd91d3ed1ed51098266cf5dc7d18e"
+        },
+        {
+          "path": "/tmp/faff-mcp-measure-m4g94_eo/stderr.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "session_id": "01a1e70b-b4a0-7791-aeeb-19081d9afbbd",
+      "private_client_directory": "/tmp/faff-mcp-measure-m4g94_eo",
+      "window": {
+        "first_native_tool_call": "2026-11-17T01:07:52.817Z",
+        "final_native_tool_result": "2026-11-17T01:08:18.440Z"
+      },
+      "literal_bytes": 54,
+      "literal_sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97",
+      "cost": 1.25,
+      "fresh_grade": {
+        "status": "pass",
+        "cases": [
+          {
+            "id": "literal",
+            "kind": "artifact",
+            "pass": true,
+            "problems": [],
+            "rubric": {
+              "score": 1,
+              "checks": 1,
+              "passed": 1,
+              "vector": [
+                true
+              ]
+            }
+          },
+          {
+            "id": "cost",
+            "kind": "decision",
+            "pass": true,
+            "problems": [],
+            "value": {
+              "cost": 1.25
+            }
+          }
+        ],
+        "errors": []
+      },
+      "native_replay_exact": true,
+      "native_calls": 8,
+      "mcp_calls": 5,
+      "policy_reads": 2,
+      "joins": [
+        {
+          "seq": 1,
+          "rpc_id": 2,
+          "mailbox_id": "c43ee94d-4342-49f5-ab66-ea73f2a06177",
+          "tool": "read_policy",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/requests/c43ee94d-4342-49f5-ab66-ea73f2a06177.json",
+            "sha256": "77b321e2419cfa258a36a151395dc221d97e39da24c0e4adaeebb38ee128bee6"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/responses/c43ee94d-4342-49f5-ab66-ea73f2a06177.json",
+            "sha256": "6029a0940b8830394891bed106ade117f1a4ff2e5de06a1df84f874bc9ea9ff8"
+          }
+        },
+        {
+          "seq": 2,
+          "rpc_id": 3,
+          "mailbox_id": "45d1aeb8-0ea2-4b07-b789-52d0cca9ad8d",
+          "tool": "read_policy",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/requests/45d1aeb8-0ea2-4b07-b789-52d0cca9ad8d.json",
+            "sha256": "c56652631c09d05c773898fc1dae3a145b42a38435945822d44e733c43e427ac"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/responses/45d1aeb8-0ea2-4b07-b789-52d0cca9ad8d.json",
+            "sha256": "86a5940d789299dd7dc30a3a46c1e3716ea3098cf690e91ec202fac30bf4ec31"
+          }
+        },
+        {
+          "seq": 3,
+          "rpc_id": 4,
+          "mailbox_id": "eac1656e-3b3e-4a2b-8b92-7413a56fea0e",
+          "tool": "write_output",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/requests/eac1656e-3b3e-4a2b-8b92-7413a56fea0e.json",
+            "sha256": "dd8ea92f812cd2ac4826a138b9be38c6faf6b4235140f23ae96da9be68cd5986"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/responses/eac1656e-3b3e-4a2b-8b92-7413a56fea0e.json",
+            "sha256": "de98743be9e4cc982e7a55f80f0c94e9e1309ec67d8d508358a75ab3c009cd61"
+          }
+        },
+        {
+          "seq": 4,
+          "rpc_id": 5,
+          "mailbox_id": "bd81bfdb-a3af-450e-a339-36765941c672",
+          "tool": "answer_rule",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/requests/bd81bfdb-a3af-450e-a339-36765941c672.json",
+            "sha256": "93d0500254d4ff0c2478c6ec079e13eef62e3980aaaa35e4fa8423bbc2a5422b"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/responses/bd81bfdb-a3af-450e-a339-36765941c672.json",
+            "sha256": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17"
+          }
+        },
+        {
+          "seq": 5,
+          "rpc_id": 6,
+          "mailbox_id": "9f6561f4-ecab-4c4e-83fd-412afa2f5fc7",
+          "tool": "finish",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/requests/9f6561f4-ecab-4c4e-83fd-412afa2f5fc7.json",
+            "sha256": "57c16669cf7318f34d73d124a306944170f59dd154c2293f605b849a4cb064de"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-3/responses/9f6561f4-ecab-4c4e-83fd-412afa2f5fc7.json",
+            "sha256": "7460c4fb8db4c4b308fca59b0e41f9311ade7c14a14b9c8743e157ac58e4861c"
+          }
+        }
+      ]
+    },
+    {
+      "sample": "mcp-parallel-pilot-v1-4",
+      "status": "pass",
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/capture.json",
+          "sha256": "815e42b5408d1ca8d6dd0f00af830e4fcf731017d21232f0cca060b0bef4b4ba"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/report.json",
+          "sha256": "035236fbc40e277027bdd7ac8847fd281918dd67595a2e33936ecf6e758b43ce"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/native-audit.json",
+          "sha256": "a124091af7a7f1eea97a613e2da658f7aa3bac20ea01283f58341baef2e47022"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/manifest.json",
+          "sha256": "e5ccadc1ef65dc6ec9885f521e31bd43aa018c8fb742eeed85e814c6bc46b553"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/worker-manifest.json",
+          "sha256": "8870c0a52c77fb696a478cdb91f80b4fe7ea13a2d76f38e64936740940254f85"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/worker-final-state.json",
+          "sha256": "fc3c16bfe6520211536a10576c83e7c41e63f53d3cc6a715397724b038c7cf45"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/startup-binding.json",
+          "sha256": "10cb3900a366d9734166b9788758b38ab1853857891de5b1b4ba6bbebccd9c99"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/mcp-server-manifest.json",
+          "sha256": "078e2c4726225eeade0787bb27df37fc28c92a6ac4e3fbf9cfc7ad402982a227"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/task.json",
+          "sha256": "07e944cc0d0f98a0aa74593e85f7fdbda0e4a14fa621aa6cea351d8c05319969"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/mcp-trace.jsonl",
+          "sha256": "7c35e6a14bbc9127805e86f8009c110aaee55d3c491ef6b25068f6652f0d2926"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/mcp-protocol-errors.jsonl",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/artifacts/literal.md",
+          "sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/worker-prompt.txt",
+          "sha256": "033ec29b1a1deae1fce589c5b33faf9fa73bab096d95fb1f844f9d78bc2e52e1"
+        }
+      ],
+      "native_capture": {
+        "path": "/Users/shftwst/.codex/sessions/2026/11/17/rollout-2026-11-17T01-07-46-01a1e70b-b4ca-7452-b690-588c6fe96e77.jsonl",
+        "sha256": "caffc2f6b25c03c5eec7577aeee3b2a832063a9b7f4d03732e987dfe9f70d3d6"
+      },
+      "private_capture_hashes": [
+        {
+          "path": "/tmp/faff-mcp-measure-rehz9a73/stdout.jsonl",
+          "sha256": "630dc86ae76eb9b510e5f1866c5d962463e7e3acb9ac70ec3937e64e85e38659"
+        },
+        {
+          "path": "/tmp/faff-mcp-measure-rehz9a73/stderr.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "session_id": "01a1e70b-b4ca-7452-b690-588c6fe96e77",
+      "private_client_directory": "/tmp/faff-mcp-measure-rehz9a73",
+      "window": {
+        "first_native_tool_call": "2026-11-17T01:07:52.524Z",
+        "final_native_tool_result": "2026-11-17T01:08:18.897Z"
+      },
+      "literal_bytes": 54,
+      "literal_sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97",
+      "cost": 1.25,
+      "fresh_grade": {
+        "status": "pass",
+        "cases": [
+          {
+            "id": "literal",
+            "kind": "artifact",
+            "pass": true,
+            "problems": [],
+            "rubric": {
+              "score": 1,
+              "checks": 1,
+              "passed": 1,
+              "vector": [
+                true
+              ]
+            }
+          },
+          {
+            "id": "cost",
+            "kind": "decision",
+            "pass": true,
+            "problems": [],
+            "value": {
+              "cost": 1.25
+            }
+          }
+        ],
+        "errors": []
+      },
+      "native_replay_exact": true,
+      "native_calls": 8,
+      "mcp_calls": 5,
+      "policy_reads": 2,
+      "joins": [
+        {
+          "seq": 1,
+          "rpc_id": 2,
+          "mailbox_id": "c37d7a7c-ebde-4667-9a54-a7c3dbfbea67",
+          "tool": "read_policy",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/requests/c37d7a7c-ebde-4667-9a54-a7c3dbfbea67.json",
+            "sha256": "77b321e2419cfa258a36a151395dc221d97e39da24c0e4adaeebb38ee128bee6"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/responses/c37d7a7c-ebde-4667-9a54-a7c3dbfbea67.json",
+            "sha256": "6029a0940b8830394891bed106ade117f1a4ff2e5de06a1df84f874bc9ea9ff8"
+          }
+        },
+        {
+          "seq": 2,
+          "rpc_id": 3,
+          "mailbox_id": "b31f74f7-e473-484a-ab96-0f9fbfc64260",
+          "tool": "read_policy",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/requests/b31f74f7-e473-484a-ab96-0f9fbfc64260.json",
+            "sha256": "c56652631c09d05c773898fc1dae3a145b42a38435945822d44e733c43e427ac"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/responses/b31f74f7-e473-484a-ab96-0f9fbfc64260.json",
+            "sha256": "86a5940d789299dd7dc30a3a46c1e3716ea3098cf690e91ec202fac30bf4ec31"
+          }
+        },
+        {
+          "seq": 3,
+          "rpc_id": 4,
+          "mailbox_id": "5f5f703c-8fe9-4b6d-af5f-ae479992a4dc",
+          "tool": "write_output",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/requests/5f5f703c-8fe9-4b6d-af5f-ae479992a4dc.json",
+            "sha256": "dd8ea92f812cd2ac4826a138b9be38c6faf6b4235140f23ae96da9be68cd5986"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/responses/5f5f703c-8fe9-4b6d-af5f-ae479992a4dc.json",
+            "sha256": "de98743be9e4cc982e7a55f80f0c94e9e1309ec67d8d508358a75ab3c009cd61"
+          }
+        },
+        {
+          "seq": 4,
+          "rpc_id": 5,
+          "mailbox_id": "11453918-52a1-4c13-87fd-1c714908220f",
+          "tool": "answer_rule",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/requests/11453918-52a1-4c13-87fd-1c714908220f.json",
+            "sha256": "93d0500254d4ff0c2478c6ec079e13eef62e3980aaaa35e4fa8423bbc2a5422b"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/responses/11453918-52a1-4c13-87fd-1c714908220f.json",
+            "sha256": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17"
+          }
+        },
+        {
+          "seq": 5,
+          "rpc_id": 6,
+          "mailbox_id": "194a7399-1e36-4baf-9424-33066449322e",
+          "tool": "finish",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/requests/194a7399-1e36-4baf-9424-33066449322e.json",
+            "sha256": "57c16669cf7318f34d73d124a306944170f59dd154c2293f605b849a4cb064de"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-4/responses/194a7399-1e36-4baf-9424-33066449322e.json",
+            "sha256": "7460c4fb8db4c4b308fca59b0e41f9311ade7c14a14b9c8743e157ac58e4861c"
+          }
+        }
+      ]
+    },
+    {
+      "sample": "mcp-parallel-pilot-v1-5",
+      "status": "pass",
+      "bindings": [
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/capture.json",
+          "sha256": "815e42b5408d1ca8d6dd0f00af830e4fcf731017d21232f0cca060b0bef4b4ba"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/report.json",
+          "sha256": "035236fbc40e277027bdd7ac8847fd281918dd67595a2e33936ecf6e758b43ce"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/native-audit.json",
+          "sha256": "0b5ad465017ba612fa9a7d51cd27e3f1cfbe8823667e34202c00c7cf0390ad65"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/manifest.json",
+          "sha256": "e5ccadc1ef65dc6ec9885f521e31bd43aa018c8fb742eeed85e814c6bc46b553"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/worker-manifest.json",
+          "sha256": "5926e6427f76eb050c9521d7de15ae518f694eb39e5bcb54fe42581f3580287c"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/worker-final-state.json",
+          "sha256": "d15aebdab4ba957a56aba54645268989e986146f0bdd07f2bdbad07e40b71303"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/startup-binding.json",
+          "sha256": "a300051410f4d2583623833a816037101a93e0c44f5699d857f23ff20c1f160b"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/mcp-server-manifest.json",
+          "sha256": "078e2c4726225eeade0787bb27df37fc28c92a6ac4e3fbf9cfc7ad402982a227"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/task.json",
+          "sha256": "07e944cc0d0f98a0aa74593e85f7fdbda0e4a14fa621aa6cea351d8c05319969"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/mcp-trace.jsonl",
+          "sha256": "3abe9ba591308f4d04b9ed24c5be900b5966ef93b4e018e4024df90d1f78779b"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/mcp-protocol-errors.jsonl",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/artifacts/literal.md",
+          "sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97"
+        },
+        {
+          "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/worker-prompt.txt",
+          "sha256": "a2011e2e8348aa80c528d465ec178b9982b35c228101865631dfc2f5876ee4a6"
+        }
+      ],
+      "native_capture": {
+        "path": "/Users/shftwst/.codex/sessions/2026/11/17/rollout-2026-11-17T01-07-46-01a1e70b-b49b-76b0-bfb9-dfbe7e552782.jsonl",
+        "sha256": "f8a39cfa95e7f99be256a2cd87c90a9185fe5310bc639a3fba307617023e2019"
+      },
+      "private_capture_hashes": [
+        {
+          "path": "/tmp/faff-mcp-measure-3nhtyf9d/stdout.jsonl",
+          "sha256": "62f0d4b21782ff3b1b8ab03fec202a9ba08f25b6ed35111b71da2e0c009d3382"
+        },
+        {
+          "path": "/tmp/faff-mcp-measure-3nhtyf9d/stderr.txt",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ],
+      "session_id": "01a1e70b-b49b-76b0-bfb9-dfbe7e552782",
+      "private_client_directory": "/tmp/faff-mcp-measure-3nhtyf9d",
+      "window": {
+        "first_native_tool_call": "2026-11-17T01:07:52.372Z",
+        "final_native_tool_result": "2026-11-17T01:08:24.903Z"
+      },
+      "literal_bytes": 54,
+      "literal_sha256": "36c0c9e7eb64e7ba96eaa86e43df4ce38b92edae3bca07d0348a7d055e213f97",
+      "cost": 1.25,
+      "fresh_grade": {
+        "status": "pass",
+        "cases": [
+          {
+            "id": "literal",
+            "kind": "artifact",
+            "pass": true,
+            "problems": [],
+            "rubric": {
+              "score": 1,
+              "checks": 1,
+              "passed": 1,
+              "vector": [
+                true
+              ]
+            }
+          },
+          {
+            "id": "cost",
+            "kind": "decision",
+            "pass": true,
+            "problems": [],
+            "value": {
+              "cost": 1.25
+            }
+          }
+        ],
+        "errors": []
+      },
+      "native_replay_exact": true,
+      "native_calls": 8,
+      "mcp_calls": 5,
+      "policy_reads": 2,
+      "joins": [
+        {
+          "seq": 1,
+          "rpc_id": 2,
+          "mailbox_id": "e800441e-94ee-4ebe-a158-5c8a0396cecc",
+          "tool": "read_policy",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/requests/e800441e-94ee-4ebe-a158-5c8a0396cecc.json",
+            "sha256": "77b321e2419cfa258a36a151395dc221d97e39da24c0e4adaeebb38ee128bee6"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/responses/e800441e-94ee-4ebe-a158-5c8a0396cecc.json",
+            "sha256": "6029a0940b8830394891bed106ade117f1a4ff2e5de06a1df84f874bc9ea9ff8"
+          }
+        },
+        {
+          "seq": 2,
+          "rpc_id": 3,
+          "mailbox_id": "a4356ce0-180e-42f9-a2ed-506b39da712a",
+          "tool": "read_policy",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/requests/a4356ce0-180e-42f9-a2ed-506b39da712a.json",
+            "sha256": "c56652631c09d05c773898fc1dae3a145b42a38435945822d44e733c43e427ac"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/responses/a4356ce0-180e-42f9-a2ed-506b39da712a.json",
+            "sha256": "86a5940d789299dd7dc30a3a46c1e3716ea3098cf690e91ec202fac30bf4ec31"
+          }
+        },
+        {
+          "seq": 3,
+          "rpc_id": 4,
+          "mailbox_id": "a1badab1-dd3f-4cc6-88a1-1c2381d9dc9f",
+          "tool": "write_output",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/requests/a1badab1-dd3f-4cc6-88a1-1c2381d9dc9f.json",
+            "sha256": "dd8ea92f812cd2ac4826a138b9be38c6faf6b4235140f23ae96da9be68cd5986"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/responses/a1badab1-dd3f-4cc6-88a1-1c2381d9dc9f.json",
+            "sha256": "de98743be9e4cc982e7a55f80f0c94e9e1309ec67d8d508358a75ab3c009cd61"
+          }
+        },
+        {
+          "seq": 4,
+          "rpc_id": 5,
+          "mailbox_id": "b608dd77-f669-4e39-8dba-5525a03ad802",
+          "tool": "answer_rule",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/requests/b608dd77-f669-4e39-8dba-5525a03ad802.json",
+            "sha256": "93d0500254d4ff0c2478c6ec079e13eef62e3980aaaa35e4fa8423bbc2a5422b"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/responses/b608dd77-f669-4e39-8dba-5525a03ad802.json",
+            "sha256": "4d861e0ba8933157b8dd595df094463f5ee20a84ec012397ae90c0e40a251d17"
+          }
+        },
+        {
+          "seq": 5,
+          "rpc_id": 6,
+          "mailbox_id": "75713243-40ab-4a0b-b608-3f1075136707",
+          "tool": "finish",
+          "request": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/requests/75713243-40ab-4a0b-b608-3f1075136707.json",
+            "sha256": "57c16669cf7318f34d73d124a306944170f59dd154c2293f605b849a4cb064de"
+          },
+          "response": {
+            "path": "verification/experiments/2026-11-16-skill-diet/workflow-runs/mcp-parallel-pilot-v1-5/responses/75713243-40ab-4a0b-b608-3f1075136707.json",
+            "sha256": "7460c4fb8db4c4b308fca59b0e41f9311ade7c14a14b9c8743e157ac58e4861c"
+          }
+        }
+      ]
+    }
+  ],
+  "phase_summary": {
+    "status": "pass",
+    "samples": {
+      "mcp-parallel-pilot-v1-1": {
+        "status": "pass"
+      },
+      "mcp-parallel-pilot-v1-2": {
+        "status": "pass"
+      },
+      "mcp-parallel-pilot-v1-3": {
+        "status": "pass"
+      },
+      "mcp-parallel-pilot-v1-4": {
+        "status": "pass"
+      },
+      "mcp-parallel-pilot-v1-5": {
+        "status": "pass"
+      }
+    }
+  },
+  "counts": {
+    "sessions": 5,
+    "private_clients": 5,
+    "globally_unique_mailbox_ids": 25,
+    "unique_session_rpc_pairs": 25,
+    "raw_cases_passed": 10,
+    "total_raw_cases": 10,
+    "native_audits_passed": 5,
+    "total_native_audits": 5
+  },
+  "common_native_window": {
+    "latest_first_call": "2026-11-17T01:07:53.004Z",
+    "earliest_final_result": "2026-11-17T01:08:12.948Z",
+    "seconds": 19.944
+  },
+  "acceptance_findings": [
+    "All original samples completed with raw grades and unchanged native audits passing; exact fresh grades and native audit objects match recorded results.",
+    "Each actual artifact is exactly the 54 supplied literal bytes, including punctuation and newline, with no trailing newline. Each rule answer is exactly cost 1.25.",
+    "Every sample has exactly two complete ordered policy reads, write_output and answer_rule in either order, then finish. Eight native calls comprise exactly three initial reads and five MCP wrappers; no errors or extra actions pass the unchanged native auditor.",
+    "All five sessions and private client directories are distinct; all 25 mailbox UUIDs are globally distinct and all 25 session-scoped RPC pairs join exact request/response/native/capture evidence.",
+    "Five native tool windows share the reported common intersection. Idle receipt hashes bind five successful preceding Astra samples and its recorded runner exit; all pilot first native calls occur after that receipt."
+  ],
+  "limits": [
+    "This check establishes overlapping short native session tool windows, not simultaneous provider execution, throughput, general service limits, long-context reliability or skill fidelity.",
+    "Runtime manifest binding is checked byte-for-byte against the pinned clean plugin checkout; this rendering transport pilot invokes no production workflow consumer.",
+    "Idle-phase runner exit is supported by the committed launcher observation and five hash-bound completed successful samples; no retrospective operating-system process audit is claimed.",
+    "Fresh audit parsed native tool execution and metadata without exporting reasoning or full raw capture contents. Prior failed development records and held measurement cohorts remain unchanged."
+  ],
+  "failures": []
+}

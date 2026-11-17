@@ -1,0 +1,1 @@
+{"status":"pass","cases":[{"id":"literal","kind":"artifact","pass":true,"problems":[],"rubric":{"score":1,"checks":1,"passed":1,"vector":[true]}},{"id":"cost","kind":"decision","pass":true,"problems":[],"value":{"cost":1.25}}]}

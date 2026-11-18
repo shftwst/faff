@@ -52,11 +52,14 @@
       "verification": "One native candidate used the actual classifier on a supplied wave. Independent replay reproduced its ordered components. No paired native baseline or live workers. A 12-issue fixture used 1,641 input bytes and 703 output bytes, median 40.8 ms. A subsequent caller clarification restricted merge inputs to declared dependencies.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/build-queue-partition.test.mjs"
+      ],
       "head": "ca085c47e6dce34a09d224a2f693df53034aac79",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -94,11 +97,18 @@
       "verification": "Paired native callers preserved backend bytes and normalized configured and pinned requests. Unset config stopped both without fan-out, and the candidate supplied an explicit round. Seven interleaved timings. One prior skip. After the initial qualification, the four-lens request contract checks the real nonempty input paths in CI.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/adversarial-call.test.mjs",
+        "test/spec-review-dispatch-resolution.test.mjs",
+        "test/spec-review-pin.test.mjs",
+        "test/spec-review-prepare-requests.test.mjs",
+        "test/spec-review-reputation.test.mjs"
+      ],
       "head": "2000e00606e0497356dd8669c1fc91f7c385faf9",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -149,11 +159,14 @@
       "verification": "Original and extracted disposition tables were checked through the real CLI and replay, including all nine native outcomes, annotations, merge handoff and pre-admission paths. No native caller pair. A representative result used 77 stdout bytes and median 40.6 ms.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/run-return-map.test.mjs"
+      ],
       "head": "52b3594ba68da1a8d79eeb358b726f417ae39ec3",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -191,11 +204,14 @@
       "verification": "The pure gate, new assembler, existing summary, land and merge gate tests passed. Compact 1/20 issue fixtures use a stub forge. The 20-issue case avoids a 5,342-byte intermediate. Missing sibling or delivery observations stay unproven. No live tracker or forge trial.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/run-reconcile-input.test.mjs"
+      ],
       "head": "0359ba6897d326dbfb438f30bb4e1bc847316666",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -233,11 +249,18 @@
       "verification": "One existing skip. Native exploratory verdicts matched on the initial, retry and unset fixture. A distinguishing partial retry can approve or revise depending on a retained prior vote. The final recorder refuses direct partial publication. Through the real prep round consumer the guarded receipts plus retained caller vote reproduced fix-and-rerun. Raw transcript headings can differ. No live provider calls.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "2000e00606e0497356dd8669c1fc91f7c385faf9",
+      "cli_test_files": [
+        "test/adversarial-call.test.mjs",
+        "test/spec-review-dispatch-resolution.test.mjs",
+        "test/spec-review-occupant-served-dispatch.test.mjs",
+        "test/spec-review-pin.test.mjs",
+        "test/spec-review-record-results.test.mjs"
+      ],
       "head": "055599f7d24c87ce9bd2b23b149baa9dc0eb6896",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -327,11 +350,14 @@
       "verification": "The actual issue classifier and routing contract consumed a cycle fixture. Thirty-two build queues matched the preceding partition command byte-for-byte. A 120-issue case with 20 roots used 4,893 input and 415 output bytes, median 39 ms over 25 fresh invocations. No native caller trial.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "ca085c47e6dce34a09d224a2f693df53034aac79",
+      "cli_test_files": [
+        "test/planning-graph.test.mjs"
+      ],
       "head": "bd7ea05f508c6f8eca5a24a59ae43e57751ca7b5",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -382,11 +408,14 @@
       "verification": "Executable cases bind the diff, issue and readable findings. The old writer lost its outage counter after a phase rewrite. The new writer preserves it, refuses stale callbacks and serializes increments. Guarded corrections are intentional departures. Native Claude Code matched the three normal routes. On a rewrite the baseline lost the outage counter; the candidate retained it. A late stale callback changed the baseline to complete, whereas the candidate returned 3 and restored control to graft. Nine real calls per arm, no external effects.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/review-progress-resume.test.mjs"
+      ],
       "head": "6f384edfd2580082fc983b5b1805b4572d846011",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -450,11 +479,15 @@
       "verification": "Sixteen legacy forced-gate invocations retained stdout, stderr and exit status. The new author-only view shares the same scanners and emits 77 versus 1,534 bytes on a 262-byte draft. Confidence and authored text remain caller decisions. Median 36.1 versus 36.9 ms over 25 fresh calls.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/admissible.test.mjs",
+        "test/spec-producer-scenario-format.test.mjs"
+      ],
       "head": "ce732b4542b30f84ed6a8d622fd11f182df3ec51",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -492,11 +525,15 @@
       "verification": "The real remote-base fixture resumes from the checkpoint produced in the original worktree. Exact diff bytes stream via private scratch with bounded reads. A >65 MiB fixture and forced partial failure tested cleanup and prior receipt preservation. Separate local bare-origin and git-only timings; no production latency claim.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/graft-remote-base.test.mjs",
+        "test/worktree-ensure.test.mjs"
+      ],
       "head": "b42130f4f181f1cc5e47def87eba700c7d1ad57c",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -560,11 +597,14 @@
       "verification": "Real local CLI traced prepare, comment, label and record using 638 input and 331 stdout bytes across four calls. A distinct transition after manual unpark can park again. Unknown or unacknowledged tracker writes require live reconciliation; effects were simulated. The original local full suite had 96 failures, all reproduced by name on the base.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/park-finalize.test.mjs"
+      ],
       "head": "9d31c51fa16ae8dd6240008550482ba1bd81a477",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -615,11 +655,14 @@
       "verification": "Real CLI tests cover all six built-ins, overrides, mapped identity, supplied native markdown, stale/opaque bodies, duplicate headings and fenced examples. The old native-map remains usable. No live tracker, rendering or authored descriptions. A native hit can add a local process; a local fallback saves one.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/ticket-template-fields.test.mjs"
+      ],
       "head": "10a8d18a7781711e2f75b162d83a5cfdd5bdf5a3",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -657,11 +700,14 @@
       "verification": "Existing eligible and next decisions matched the batch plus downstream graft needs-prep handoff. For eight issues the measured tool path used 304 to 279 estimated I/O tokens and 499.9 to 40.6 ms; at 20 issues, 728 to 681 and 1299.1 to 41.8 ms. The separate WTF projection and cache parser remain held.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/next-prep-queue.test.mjs"
+      ],
       "head": "548be0d3b98807f5dd9ec083d0366702c2316e62",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -712,11 +758,14 @@
       "verification": "Same four underlying GitHub reads verified using a stub forge. Three local probes now compose in one CLI call with the existing warning and refusal policies. Sample stdout 499 to 37 bytes, median 105.1 to 46.0 ms across 25 fresh iterations. No provider latency or live network measurement.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/run-entry-preflight.test.mjs"
+      ],
       "head": "d490585ed1b869ab040648e822b562629e15e248",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -754,11 +803,14 @@
       "verification": "Actual standalone plot reads the existing selector. One survivor used 106 vs 581 stdout bytes and one instead of two local calls. Ties still require the human choice. Checked inherited-ledger bytes and directory unchanged. No live stakeholder or ticket operations.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/run-trigger.test.mjs"
+      ],
       "head": "79108af8056f7532bc193dfde61adc3f508cb551",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -822,11 +874,15 @@
       "verification": "Same caged and inline paths, full spec and original spawner evidence writer. With four judged and six delegated criteria, evaluator criteria output went from 2,557 to 495 bytes, counts to 61 bytes, and receipt output from 1,285 to 52 bytes. Corroborated real spawner-hook identity and scrubbing with local fixtures. Restored explicit mixed gaps rubric example after hosted scorer test.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/holdout-handoff.test.mjs",
+        "test/holdout-record.test.mjs"
+      ],
       "head": "d9afb9a30836e7ac880bc9b04619360fbf5edca4",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -890,11 +946,14 @@
       "verification": "Existing audited containment/self-intake kernels exercised on file-native supplied facts. One contained case increased stdout 89 to 248 bytes and median time 20.7 to 37.3 ms. The self-intake plan decreased stdout 334 to 298 bytes and median time 49.2 to 39.9 ms while removing one process. No tracker writes or acknowledgements by CLI. Interactive rehome excluded.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/discovered-scope-plan.test.mjs"
+      ],
       "head": "6344fca6f9de292607e1e204188c2239405396e5",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -932,11 +991,14 @@
       "verification": "Supplied fresh tracker status and exact PR-open result rendered the descriptor consumed by the actual local effects declare/check/observe writer. Positive input 212 bytes and output 257 bytes; already advanced returned 18 bytes. Connector calls and acknowledgement simulated, no claim or merge changes.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/graft-in-review-bracket.test.mjs"
+      ],
       "head": "424306376e3d2f11a5406f7fbebfce6b850ebacf",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -974,11 +1036,16 @@
       "verification": "Consumes the existing merge-gate receipt with matching exit. A confirmed open PR can be deferred and inconclusive observations stay unknown. No extra Git or forge reads. Representative output adds about 56 to 65 native result tokens, around 45 ms locally. No new merge operation.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/merge-delivery-receipt.test.mjs",
+        "test/merge-gate-controlflow.test.mjs",
+        "test/merge-gate-local.test.mjs"
+      ],
       "head": "dd543dc8b6d119c39bb0fa853772042bf14c9af4",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -1016,11 +1083,14 @@
       "verification": "Four original config preview/apply subprocesses reduce to two. Final local overlay matches old bytes; conflicting pin/changed preview refuses before write. Local interleaved samples 341 to 202 stdout bytes, median 110.8 to 56.7 ms, 25 trials. Prefix, first-run branching and tracker work left with existing callers.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/onboard-local.test.mjs"
+      ],
       "head": "975e139318b2e7b385a9046ec310346bffbca1a5",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -1058,11 +1128,14 @@
       "verification": "Explicit run ledger and real run-done kernel. Nine matrix cases plus corrupt/missing/ambient/contradictory input; documented --json spelling corrected and a drained queue with incomplete product remained escalated. One 30-byte output per run, observed 41.4 ms median locally. No write to the historical unkeyed stalled-wave counter.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/run-wave-mode.test.mjs"
+      ],
       "head": "dda111dc10b8fdf45c50b4050f36a68c9a7182eb",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -1100,11 +1173,15 @@
       "verification": "Existing ADR/extract-intent, spec and adapter suites passed. A separate 41-test run exercises discovery and rejects the selector on legacy verbs. Median local spec fallback 104.1 to 41.7 ms, three processes to one. Supplied tracker intent takes priority. No tracker or ADR write; idempotent creation by title or issue remains unproven.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/adr-extract-intent.test.mjs",
+        "test/adr-promotion-source.test.mjs"
+      ],
       "head": "47c222b668050bebaafd2982563924ed2d263ba6",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     },
     {
@@ -1142,11 +1219,14 @@
       "verification": "Real CLI checks for every supported slot, installed name and no-clobber handling. Four measured profiles returned 70–92 bytes on scaffold and 123–145 on check. Including rereading the entire scaffold, the maximum added input was 1,190 bytes. Separate o200k counts give 930 prompt tokens and at least 655 net in these four cases. Semantic review remains with the skill.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/validate-adapters-authoring.test.mjs"
+      ],
       "head": "f4dbcf0c5262d757c1833561e3c3138a354d45a6",
       "status": "open",
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       }
     }
   ],
@@ -2173,7 +2253,7 @@
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       },
       "merge_commit": "f70d085143a65353849e0a3471b3decaa66d6636"
     },
@@ -2202,7 +2282,7 @@
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       },
       "qualification_path": "graft-assess-fix.json",
       "original_isolated_measurement": {
@@ -2302,7 +2382,7 @@
       "verification": "Both executors matched across 12 cases per arm. Worker launches and corrective effects simulated. Candidate inspected the fixture wrapper. Published CLI replayed all ten actual calls exactly.",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       },
       "remote_rebase_measured_source_unchanged": true,
       "merge_commit": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea"
@@ -2355,11 +2435,14 @@
       "verification": "Native Claude Code callers reproduced all eleven downstream next calls across supplied GitHub and Linear batches and both refusal paths. Two compact classifier inputs totalled 1,740 bytes. No live tracker operation.",
       "qualification_path": "ranked-cli-results.json",
       "measured_base": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea",
+      "cli_test_files": [
+        "test/issue-facts.test.mjs"
+      ],
       "head": "a671940641c2731a1b0667877af83dfda1de3eaf",
       "status": "merged",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       },
       "merge_commit": "626f6a3caf5f216975323cfdb9007e0b06a522a0"
     }
@@ -2434,7 +2517,7 @@
       "status": "held. Source corrections for transient-only CI continuation, no-op before effects, and custody wording. 270 focused tests pass. Combined unattended handoff through collision, authorisation, custody, ship and post-merge has no paired caller qualification. No broad model run."
     }
   ],
-  "recorded_at_utc": "2026-11-18T14:27:59.854457+00:00",
+  "recorded_at_utc": "2026-11-18T15:16:52.842288+00:00",
   "new_cli_tests": {
     "prep_context": {
       "implementation_pr": 1219,
@@ -2509,8 +2592,8 @@
   },
   "ranked_cli_rehearsal": {
     "main": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
-    "combined_tree": "0b7d792b84b4e408e9454f1ad07fe783e66fb4c1",
-    "local_rehearsal_commit": "b0dbd88dde4b4f7235018c0e5e4bc15a8d40a873",
+    "combined_tree": "44cd235b346ab34340933151ffb119dfe1821d4a",
+    "local_rehearsal_commit": "ffd92f91774320a6c5e162677679299b58090d75",
     "prompt_tree_matches_all_41_files": true,
     "open_prs": {
       "1234": {
@@ -2680,6 +2763,16 @@
         "records/specs/2026-11-18-l4-spec-review-record-results-design.md:14: anchor matches no deleted prose"
       ]
     },
-    "limits": "Local integration tree only. Rebuilding the generated registries and merging the TypeScript source list required conflict resolutions. Rebased PR tips retained the exact tested combined tree. Native Claude pairing was scoped to the slices explicitly marked in ranked-cli-results.json. Live provider caching, tracker publication and merge writes were outside this trial."
+    "limits": "Local integration tree only. Rebuilding the generated registries and merging the TypeScript source list required conflict resolutions. Rebased PR tips retained the exact tested combined tree. Native Claude pairing was scoped to the slices explicitly marked in ranked-cli-results.json. Live provider caching, tracker publication and merge writes were outside this trial.",
+    "single_pr_files_matching_exact_head_bytes": 125,
+    "files_changed_by_more_than_one_open_pr": 26,
+    "hosted_ci": {
+      "checked_at_utc": "2026-11-18T15:16:52.842288+00:00",
+      "open_pull_requests_with_clean_hosted_ci": 22,
+      "macos_queue_retries": [
+        1238,
+        1248
+      ]
+    }
   }
 }

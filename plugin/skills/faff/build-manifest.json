@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "e573cce084aec7c8dfd6dfe931211abb8a03ade1ffdb422db5afb66c46787ce1"
+    "tsconfig.json": "f41403f981f0964d0558e2313adeb4d2538205563a1141260f4b49f48aef98a4"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -18,6 +18,7 @@
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
     "bin/lib/commissaire.ts": "27772e4ee5c55615e62a001e86c4f58a918a2c28d8d03c71b982db5c48260af3",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
+    "bin/lib/dispatch-prepare.ts": "bbdcd2d5a8b085c6119dcdc878d61bee29b6542141142fee46e00d23e1d943a0",
     "bin/lib/gates-progress.ts": "1b6a6a24ee5c19de679f18d85defef0871e8dcaef0a140f854e19a2001fc8394",
     "bin/lib/governor-admin.ts": "e8acab0a5166c8138265c9cd514f86269ca932a80be746e963588e863946bc02",
     "bin/lib/governor-install.ts": "964bcf08fbe828afbe96da644db691aebfaa8c31c9b2d4ccde36ecce1be7e7d7",
@@ -54,6 +55,7 @@
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
     "bin/lib/commissaire.js": "f07665f5da14ddcb7f18e1223dceb50407854a662f1558f0b62ff5128dc96279",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
+    "bin/lib/dispatch-prepare.js": "b698c1bdb0b55e0a894e054d08097271d6bdc49facd6303474bd94659717a121",
     "bin/lib/gates-progress.js": "403f7af8db98e136131c60f71d9321156ab240e08556e1961d51bd52d34a3ba9",
     "bin/lib/governor-admin.js": "fc92a97038713648e89fba10f9a33545c218c85353cc571905bc472c346160ee",
     "bin/lib/governor-install.js": "3798f447ba92c5660b89a7e90c2cfff0043257159b2a5023bb5b002328a8a12c",
@@ -84,5 +86,5 @@
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "a4d7154206e6d3dd6511248e3d0bcbadbc90079907146bc81430cf157433e44a"
   },
-  "output_digest": "d90b8d4f59fa07063837c4ae794e4f14fa7712bf80abccf8e3b72653fc1ce5fe"
+  "output_digest": "6ebde1660e9274a4a2fc2ad49863a2ead3321c07221224635cd07d0f30ef0f0f"
 }

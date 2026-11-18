@@ -4,6 +4,7 @@ import * as fs from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const { prepareContext } = require('../plugin/skills/faff/bin/lib/prep-context.js');
@@ -17,7 +18,60 @@ function fixture(t) {
   fs.mkdirSync(join(root, 'docs'));
   return { root, issue: 'ISSUE-1', runDir: null, resolutionsText: '[]' };
 }
-function call(input) { return spawnSync(process.execPath, [bin, 'prep-context', '--root', input.root, '--issue', input.issue, '--resolutions-file', '-', ...(input.runDir ? ['--run-dir', input.runDir] : [])], { input: input.resolutionsText, encoding: 'utf8' }); }
+function call(input, source = '-') {
+  const args = [bin, 'prep-context', '--root', input.root, '--issue', input.issue, '--resolutions-file', source];
+  if (input.runDir) args.push('--run-dir', input.runDir);
+  return spawnSync(process.execPath, args, { input: input.resolutionsText, encoding: 'utf8' });
+}
+
+for (const mode of ['file', 'stdin']) {
+  test(`CLI accepts one MiB of UTF-8 via ${mode} and rejects one extra byte before writing scratch`, t => {
+    const input = fixture(t);
+    const json = JSON.stringify([{ ...resolution, resolved: 'café' }]);
+    const atLimit = json + ' '.repeat(1024 * 1024 - Buffer.byteLength(json));
+    const source = mode === 'file' ? join(input.root, 'resolutions.json') : '-';
+    const run = (payload) => {
+      if (mode === 'file') fs.writeFileSync(source, payload);
+      else input.resolutionsText = payload;
+      return call(input, source);
+    };
+
+    const oversized = run(atLimit + ' ');
+    assert.equal(oversized.status, 2);
+    assert.equal(oversized.stdout, '');
+    assert.match(oversized.stderr, /exceed one MiB/);
+    assert.equal(fs.existsSync(join(input.root, '.faff')), false);
+
+    const accepted = run(atLimit);
+    assert.equal(accepted.status, 0, accepted.stderr);
+    const result = JSON.parse(accepted.stdout);
+    assert.equal(result.status, 'ready');
+    assert.equal(result.file, join(input.root, '.faff/spec-review', input.issue, 'ratified-scope.md'));
+    const scratch = fs.readFileSync(result.file);
+    assert.match(scratch.toString('utf8'), /café/);
+    assert.equal(result.sha256, createHash('sha256').update(scratch).digest('hex'));
+  });
+}
+
+test('a missing resolutions file reports to stderr, malformed JSON returns a failed result', t => {
+  const input = fixture(t);
+  const source = join(input.root, 'resolutions.json');
+  const missing = call(input, source);
+  assert.equal(missing.status, 2);
+  assert.equal(missing.stdout, '');
+  assert.match(missing.stderr, /ENOENT/);
+  assert.equal(fs.existsSync(join(input.root, '.faff')), false);
+
+  fs.writeFileSync(source, '{');
+  const malformed = call(input, source);
+  assert.equal(malformed.status, 2);
+  assert.equal(malformed.stderr, '');
+  const result = JSON.parse(malformed.stdout);
+  assert.equal(result.status, 'failed');
+  assert.equal(result.file, null);
+  assert.equal(result.sha256, null);
+  assert.ok(result.diagnostic);
+});
 test('real CLI assembles without a container every round and removes stale context on legitimate absence', t => {
   const input = fixture(t), register = join(input.root, 'docs/decisions.md');
   fs.writeFileSync(register, tradeoff);
@@ -94,10 +148,28 @@ test('invalid or oversized fold adds no tracker text and does not claim ready', 
     assert.equal(fs.readFileSync(file, 'utf8'), assemble(input.root, null).block);
   }
 });
-test('path traversal and unsupported CLI arguments fail before scratch writes', t => {
-  const input = fixture(t); input.issue = '../decisions'; assert.equal(prepareContext(input).status, 'failed');
+test('path traversal fails before scratch writes', t => {
+  const input = fixture(t); input.issue = '../decisions';
+  const run = call(input);
+  assert.equal(run.status, 2);
+  assert.equal(JSON.parse(run.stdout).status, 'failed');
   assert.equal(fs.existsSync(join(input.root, '.faff')), false);
-  const run = spawnSync(process.execPath, [bin, 'prep-context', '--unknown', 'x']); assert.equal(run.status, 2);
+});
+test('CLI rejects missing, duplicate, unknown and valueless options before scratch writes', t => {
+  const input = fixture(t);
+  const required = ['--root', input.root, '--issue', input.issue, '--resolutions-file', '-'];
+  for (const args of [
+    required.slice(0, -2),
+    [...required, '--issue', 'ISSUE-2'],
+    [...required, '--unknown', 'x'],
+    [...required, '--run-dir'],
+  ]) {
+    const run = spawnSync(process.execPath, [bin, 'prep-context', ...args], { input: '[]', encoding: 'utf8' });
+    assert.equal(run.status, 2, JSON.stringify(args));
+    assert.equal(run.stdout, '');
+    assert.match(run.stderr, /prep-context --issue/);
+    assert.equal(fs.existsSync(join(input.root, '.faff')), false);
+  }
 });
 test('scratch symlinks cannot redirect writes into a source file', t => {
   const input = fixture(t), source = join(input.root, 'docs/decisions.md');

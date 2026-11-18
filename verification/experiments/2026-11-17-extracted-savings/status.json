@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "c16aeafe34f7bbf3c16e3cec784feb0ae0406dee",
+  "base": "399084de2fe335f63b8c252d6fbfb4071f71e691",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -8,49 +8,19 @@
     "estimated_tokens": 339929
   },
   "current_main": {
-    "bytes": 1210623,
-    "estimated_tokens": 300197,
+    "bytes": 1208944,
+    "estimated_tokens": 299784,
     "files": 41
   },
   "landed_savings": {
-    "bytes": 161458,
-    "estimated_tokens": 39732
+    "bytes": 163137,
+    "estimated_tokens": 40145
   },
   "pending_extractions": [
     {
-      "skill": "prep review context",
-      "pr": "https://github.com/shftwst/faff/pull/1219",
-      "head": "a6c6fe38c3034c5fe5483d0ea1fde87db05f9e08",
-      "path": "plugin/skills/faff-prep/SKILL.md",
-      "before": {
-        "bytes": 99459,
-        "estimated_tokens": 24682,
-        "sha256": "1b698f6eac7954a6d6f8901e85b35199ed34df2e91c143a251019d77e7fed154"
-      },
-      "after": {
-        "bytes": 97780,
-        "estimated_tokens": 24269,
-        "sha256": "48161f87db967d13309cbe603241689e960335a31a715573fb91f7e798397717"
-      },
-      "saved": {
-        "bytes": 1679,
-        "estimated_tokens": 413
-      },
-      "tests_passed": 327,
-      "verification": "Actual Claude callers passed 3/3 per arm on local context preparation; real outputs and routing decisions checked. Tracker input supplied, final dispatch simulated.",
-      "status": "open",
-      "added_shipped_module_bytes": 6161,
-      "new_mcp_tool_definitions": 0,
-      "qualification_path": "prep-context-driver/assessment.json",
-      "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
-      }
-    },
-    {
       "skill": "onboard tracker reference on detection",
       "pr": "https://github.com/shftwst/faff/pull/1220",
-      "head": "4e4b2e043899d68fdd13479b28cca2973e3a6db4",
+      "head": "fd1dea63b7335823e446571b09d6dc6e4fee13f9",
       "path": "plugin/skills/faff-onboard/SKILL.md",
       "before": {
         "bytes": 18033,
@@ -76,8 +46,9 @@
       },
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
-      }
+        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true
     },
     {
       "skill": "shared autonomous guidance",
@@ -103,7 +74,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
       }
     },
     {
@@ -131,7 +102,7 @@
       "qualification_path": "tidy-park-driver/assessment.json",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
       }
     },
     {
@@ -158,7 +129,7 @@
       "verification": "Independent source comparison inspected both lens callers and structure. All nine changed blocks accounted for. No paired model run. Nine fixture failures under signed-commit defaults resolved on a full 554-test rerun with unsigned fixture commits.",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
       }
     },
     {
@@ -185,7 +156,7 @@
       "verification": "Source comparison of interactive entry, skeleton and PRDR rules; 11 changed blocks accounted for. All 33 focused tests, adapter and reference lints pass. No fresh model trial.",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
       }
     },
     {
@@ -213,7 +184,7 @@
       "qualification_path": "beep-reporting-only/manual-audit.json",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
       }
     },
     {
@@ -246,7 +217,7 @@
       "qualification_path": "jot-inspection-independent-review.json",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
       }
     },
     {
@@ -271,11 +242,15 @@
       "status": "open",
       "tests_passed": 76,
       "verification": "Independent source review traced four recaps to mandatory existing instructions. All 76 local tests passed. No new model trial on this follow-up.",
-      "base_pr": 1225
+      "base_pr": 1225,
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
+      }
     },
     {
       "pr": "https://github.com/shftwst/faff/pull/1228",
-      "head": "2c6cd206adf347debdb0a52783b9ea18e92ae969",
+      "head": "12a20107458ddecf22c40e4016439bb8c980f88c",
       "skill": "graft delivery and no-CI routing",
       "path": "plugin/skills/faff-graft/SKILL.md",
       "before": {
@@ -295,12 +270,17 @@
       "status": "open",
       "tests_passed": 169,
       "verification": "Before and candidate matched 6/6 registered decisions, using the real contract parser three times per arm. Final source restored the original not-ready paragraph. No externally executed merges. 169 local tests passed.",
-      "qualification_path": "graft-delivery-ci-routes/assessment.json"
+      "qualification_path": "graft-delivery-ci-routes/assessment.json",
+      "remote_rebase_measured_source_unchanged": true,
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
+      }
     }
   ],
   "pending_savings": {
-    "bytes": 18660,
-    "estimated_tokens": 4586
+    "bytes": 16981,
+    "estimated_tokens": 4173
   },
   "limits": [
     "Merged figures use the current main tree. Fresh diagnostics and historical cohorts remain separate.",
@@ -988,6 +968,37 @@
       "status": "merged",
       "remote_rebase_measured_source_unchanged": true,
       "merge_commit": "c16aeafe34f7bbf3c16e3cec784feb0ae0406dee"
+    },
+    {
+      "skill": "prep review context",
+      "pr": "https://github.com/shftwst/faff/pull/1219",
+      "head": "a6c6fe38c3034c5fe5483d0ea1fde87db05f9e08",
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "before": {
+        "bytes": 99459,
+        "estimated_tokens": 24682,
+        "sha256": "1b698f6eac7954a6d6f8901e85b35199ed34df2e91c143a251019d77e7fed154"
+      },
+      "after": {
+        "bytes": 97780,
+        "estimated_tokens": 24269,
+        "sha256": "48161f87db967d13309cbe603241689e960335a31a715573fb91f7e798397717"
+      },
+      "saved": {
+        "bytes": 1679,
+        "estimated_tokens": 413
+      },
+      "tests_passed": 327,
+      "verification": "Actual Claude callers passed 3/3 per arm on local context preparation; real outputs and routing decisions checked. Tracker input supplied, final dispatch simulated.",
+      "status": "merged",
+      "added_shipped_module_bytes": 6161,
+      "new_mcp_tool_definitions": 0,
+      "qualification_path": "prep-context-driver/assessment.json",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T01:31:52.891316+00:00"
+      },
+      "merge_commit": "399084de2fe335f63b8c252d6fbfb4071f71e691"
     }
   ],
   "local_not_counted": [
@@ -1071,5 +1082,32 @@
       "status": "held. Source corrections for transient-only CI continuation, no-op before effects, and custody wording. 270 focused tests pass. Combined unattended handoff through collision, authorisation, custody, ship and post-merge has no paired caller qualification. No broad model run."
     }
   ],
-  "recorded_at_utc": "2026-11-18T01:20:44.512746+00:00"
+  "recorded_at_utc": "2026-11-18T01:36:08.720728+00:00",
+  "new_cli_tests": {
+    "prep_context": {
+      "implementation_pr": 1219,
+      "files": [
+        "test/prep-context.test.mjs"
+      ],
+      "original_passed": 11,
+      "follow_up_pr": 1229,
+      "follow_up_local_passed": 15,
+      "follow_up_head": "8375380d83785b5158fc5781e1b1da0cf7763a40",
+      "follow_up_ci": "success",
+      "follow_up_status": "open",
+      "original_limit": "Named-file input and the byte limit in the CLI input readers lacked direct coverage.",
+      "follow_up": "Exercises both input modes at and above the limit, confirms SHA-256 from scratch bytes, distinguishes unreadable file from malformed data and checks invalid arguments."
+    },
+    "review_comment_draft": {
+      "pr": 1216,
+      "head": "8b29b9dd3e44787a3aa13a38ea9df3b296c00932",
+      "passed": 111,
+      "files": [
+        "test/review-comment.test.mjs",
+        "test/review-comment-session.test.mjs",
+        "test/review-comment-mcp.test.mjs"
+      ],
+      "scope": "Local planner, session and connector tests with a fixture tracker."
+    }
+  }
 }

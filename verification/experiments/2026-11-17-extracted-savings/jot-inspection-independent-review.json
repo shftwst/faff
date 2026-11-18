@@ -1,0 +1,149 @@
+{
+  "status": "pass-bounded-source-review",
+  "worktree": "/var/tmp/faff-jot-inspection-references",
+  "base": "c16aeafe34f7bbf3c16e3cec784feb0ae0406dee",
+  "candidate_commit": "e8b9b667f01b41af525e2dad0751580ae9731adb",
+  "reviewer": "verify_intake_outputs, independent source reviewer",
+  "files": [
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "before": {
+        "bytes": 19678,
+        "estimated_tokens": 4877,
+        "sha256": "6ccd48d0bd390b80909f42f7a178afdfd1b97f33c739d0e495266741aeec8516"
+      },
+      "after": {
+        "bytes": 18798,
+        "estimated_tokens": 4661,
+        "sha256": "092c601c552ca569476922ec8059ba1fa722bfc7477ab1f709096b8cbf956433"
+      }
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "before": {
+        "bytes": 70478,
+        "estimated_tokens": 17522,
+        "sha256": "4505afeeec9f75b9d2d388564f5f61ce9b7daeac7bbf21bd546d04de41f4e1f5"
+      },
+      "after": {
+        "bytes": 70478,
+        "estimated_tokens": 17522,
+        "sha256": "4505afeeec9f75b9d2d388564f5f61ce9b7daeac7bbf21bd546d04de41f4e1f5"
+      }
+    },
+    {
+      "path": "plugin/skills/faff/references/tracker.md",
+      "before": {
+        "bytes": 22649,
+        "estimated_tokens": 5615,
+        "sha256": "f3f01623ec743a633a4b68a6b7162809393db7ee70efa7f2cd14fcca1c17a13d"
+      },
+      "after": {
+        "bytes": 22649,
+        "estimated_tokens": 5615,
+        "sha256": "f3f01623ec743a633a4b68a6b7162809393db7ee70efa7f2cd14fcca1c17a13d"
+      }
+    },
+    {
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "before": {
+        "bytes": 38758,
+        "estimated_tokens": 9613,
+        "sha256": "bdce7d30ce7977774fe212752229437c9361f1e19671647d3de5e254174ed77f"
+      },
+      "after": {
+        "bytes": 38758,
+        "estimated_tokens": 9613,
+        "sha256": "bdce7d30ce7977774fe212752229437c9361f1e19671647d3de5e254174ed77f"
+      }
+    },
+    {
+      "path": "plugin/skills/faff/references/methodology.md",
+      "before": {
+        "bytes": 34325,
+        "estimated_tokens": 8501,
+        "sha256": "f3deac00756d6d8e64fd000390182651c2f3b4f51abafb754485faccd3785586"
+      },
+      "after": {
+        "bytes": 34325,
+        "estimated_tokens": 8501,
+        "sha256": "f3deac00756d6d8e64fd000390182651c2f3b4f51abafb754485faccd3785586"
+      }
+    },
+    {
+      "path": "plugin/skills/faff/references/create.md",
+      "before": {
+        "bytes": 7429,
+        "estimated_tokens": 1840,
+        "sha256": "fbcfb8b614d7cbedfb7d6a363bec38aed88467792687aa7d4c19cf4b98ce4396"
+      },
+      "after": {
+        "bytes": 7429,
+        "estimated_tokens": 1840,
+        "sha256": "fbcfb8b614d7cbedfb7d6a363bec38aed88467792687aa7d4c19cf4b98ce4396"
+      }
+    }
+  ],
+  "whole_prompt_saving": {
+    "bytes": 880,
+    "estimated_tokens": 216
+  },
+  "path_specific_totals": {
+    "resolved_tracker_interactive_inspection": {
+      "before": {
+        "bytes": 193317,
+        "estimated_tokens": 47968
+      },
+      "after": {
+        "bytes": 185008,
+        "estimated_tokens": 45912
+      },
+      "saved": {
+        "bytes": 8309,
+        "estimated_tokens": 2056
+      }
+    },
+    "new_work_or_git_only_fallback": {
+      "before": {
+        "bytes": 193317,
+        "estimated_tokens": 47968
+      },
+      "after": {
+        "bytes": 192437,
+        "estimated_tokens": 47752
+      },
+      "saved": {
+        "bytes": 880,
+        "estimated_tokens": 216
+      }
+    }
+  },
+  "findings": [
+    {
+      "area": "narrow create reference deferral",
+      "result": "pass",
+      "evidence": "Configuration keeps kernel first unless already in context, skips routing gateway and eagerly reads tracker/autonomous/methodology. Only interactive existing-ticket inspection through a resolved tracker omits create.md; all new-work and git-only fallback paths explicitly load it before proceeding. create.md contains only ticket-template creation behavior, with no inspection rule."
+    },
+    {
+      "area": "removed duplicate inspection sentences",
+      "result": "pass",
+      "evidence": "Step0 still skips discovery/shaping/creation for issue-id entry. Frontmatter and entry list retain inspection-only scope/no mutation/no specs-grooming-builds; remit routes prep/tidy/graft. Out of scope retains deferred re-scope/re-home/split-merge, in-place edit prohibition and interactive-only gate. Flow retains no prompt/mutation; these govern logging too. No removed prohibition loses its remaining explicit home."
+    },
+    {
+      "area": "inspection facts and failures",
+      "result": "pass",
+      "evidence": "Same title/description/labels/status/spec-comments load; missing ticket error-stop; cancelled/archived refusal; no human re-interview; title/status/spec-attached summary and logging remain explicit."
+    },
+    {
+      "area": "other skill behavior",
+      "result": "unchanged",
+      "evidence": "Diff outside Configuration and Existing-ticket interactor plus its Rules reference is empty in runtime source. New-work creation, slots, config/discovery, git-only output and appetite remain unchanged."
+    }
+  ],
+  "limits": [
+    "Read actual whole candidate jot, before/after diff and complete create reference. This is source review only, no model or test execution.",
+    "Totals sum ceil(UTF16 code units / 4) per full listed file. They describe a cold mandatory entry load including the full kernel. They exclude operator guidance, resolved slot occupants, rendering skill, tracker data and other runtime reads.",
+    "Kernel is skipped if already present this turn; subtract its 70478 bytes /17522 estimated tokens from both totals in that case.",
+    "No claim that deferral improves measured actual model usage or preserves intended-driver behavior across trials."
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "operator_sha256": "5b5607b922afdd94d8fbf0d5d43c5d37c1bbbec487a474b6f02b06e98307da5c",
+  "repo_sha256": "adb253fbc81825baf5bb305f3c4c0804ab359a69347eac9916d7fd64ade9122d",
+  "claude_version": "2.1.325 (Claude Code)",
+  "model": "claude-opus-5-5",
+  "plan_visible": true
+}

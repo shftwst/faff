@@ -140,11 +140,58 @@
       "status": "open",
       "tests_passed": 554,
       "verification": "Independent source comparison inspected both lens callers and structure. All nine changed blocks accounted for. No paired model run. Nine fixture failures under signed-commit defaults resolved on a full 554-test rerun with unsigned fixture commits."
+    },
+    {
+      "skill": "plot interactive planning",
+      "pr": "https://github.com/shftwst/faff/pull/1224",
+      "head": "ce975bfe831c249882bdc5e9c8c64ca4c61336a8",
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "before": {
+        "bytes": 42606,
+        "estimated_tokens": 10532,
+        "sha256": "2104007c47b11d711bcbcc9db14e2e442c23718f759494418faa5cd5fa820b96"
+      },
+      "after": {
+        "bytes": 41576,
+        "estimated_tokens": 10284,
+        "sha256": "be1ba68a7e735108b79e409d2341b2d5f7a543758162d04be44a4d4961958c69"
+      },
+      "saved": {
+        "bytes": 1030,
+        "estimated_tokens": 248
+      },
+      "status": "open",
+      "tests_passed": 33,
+      "verification": "Source comparison of interactive entry, skeleton and PRDR rules; 11 changed blocks accounted for. All 33 focused tests, adapter and reference lints pass. No fresh model trial."
+    },
+    {
+      "skill": "beep-boop reporting only",
+      "pr": "https://github.com/shftwst/faff/pull/1225",
+      "head": "190b3b58b45557b46e16f2f3ae7af7015826dd7c",
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "before": {
+        "bytes": 157576,
+        "estimated_tokens": 39048,
+        "sha256": "6ea68fdab91425ccf686415c8b273c0bcc0788c6cffc022ddbe9b38e9ae83559"
+      },
+      "after": {
+        "bytes": 156122,
+        "estimated_tokens": 38692,
+        "sha256": "39344609da4cfe88a6671cf29a191cb96f79e4a3b6ba5d51ed1c1cae2d27b3e4"
+      },
+      "saved": {
+        "bytes": 1454,
+        "estimated_tokens": 356
+      },
+      "status": "open",
+      "tests_passed": 76,
+      "verification": "Reporting-only treatment. Existing 6/6 Opus baseline and new 6/6 candidate used identical frozen common policy and CLI. All case, native, assessment and manual checks passed. Four captured summaries, eight controlled publications and zero discarded drafts. Current main kernel differs. Ledger, hosted publication and full unattended workflow outside the test.",
+      "qualification_path": "beep-reporting-only/manual-audit.json"
     }
   ],
   "pending_savings": {
-    "bytes": 11031,
-    "estimated_tokens": 2713
+    "bytes": 13515,
+    "estimated_tokens": 3317
   },
   "limits": [
     "Merged figures use the current main tree. Fresh diagnostics and historical cohorts remain separate.",
@@ -154,8 +201,8 @@
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1199592,
-    "estimated_tokens": 297484
+    "bytes": 1197108,
+    "estimated_tokens": 296880
   },
   "landed_extractions": [
     {
@@ -905,5 +952,5 @@
       "status": "source-reviewed, 143 tests and 2/2 inventory. Based on #1222 for a clean follow-up after merge. No fresh model trial."
     }
   ],
-  "recorded_at_utc": "2026-11-18T00:33:00.042710+00:00"
+  "recorded_at_utc": "2026-11-18T00:43:07.959697+00:00"
 }

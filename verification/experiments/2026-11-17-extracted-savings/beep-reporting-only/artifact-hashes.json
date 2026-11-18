@@ -1,0 +1,14 @@
+{
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-only-main-opus-v1-candidate-1/capture.json": "43643af88c1bef6b6cc524b01785acdd015a84248c8c17e8f8b6e29462d0b948",
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-only-main-opus-v1-candidate-1/report.json": "0bf2b1e17fca6281211cec8400e5aca1f90939945df49d6d22c404c6df7a440f",
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-only-main-opus-v1-candidate-1/native-audit.json": "e82e98c9c8904e8714899fb59c9fa415fbb348e3285720cfb7208bce00fb2682",
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-only-main-opus-v1-candidate-1/expected.json": "00ca96b437d9733f577c667999cf3e08c1b6a0efaef35dc96fb90cbad25934ef",
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-only-main-opus-v1-candidate-1/manifest.json": "1b9a018a1ef19a732637e33997577a6391451e960206c700a76c6c77dc0dc8ed",
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-only-main-opus-v1-candidate-1/task.json": "c01fc996e75c4be0082ea57cf43e53b58bf5d16b211b087f9e014b8fc3b01312",
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-only-main-opus-v1-candidate-1/worker-manifest.json": "8ffb88f9f5885d2212a7a32c3f471161c92888e0c86318743b0b84e7d41dc3c7",
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-only-main-opus-v1-candidate-1/worker-final-state.json": "dea738de8082634bdf05ae980cfbc55f3c1c3cc7117381987bf27c6a644e1c3f",
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-main-opus-v1-baseline-manual-audit.json": "0153477cd2f80ad12834440e68a33b09e813dc5655e149cf92fa75b90a3726b0",
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3",
+  ".worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-only-main-opus-v1-candidate-assessment.json": "e3be9a954d2d7d1212d5c2ad95a88b236ab152d26e1f66993884ab4d1cdc56fc",
+  ".worktrees/beep-reporting-only-opus-v1/candidate-policy.md": "4adbea93aa9c569275c4f4ee3a676e412c413efa36a641b86e0afe80f0ad75cc"
+}

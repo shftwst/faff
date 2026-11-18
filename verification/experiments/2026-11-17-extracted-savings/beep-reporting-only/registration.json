@@ -1,0 +1,220 @@
+{
+  "status": "prepared, not launched; parent approval of scoped baseline reuse required",
+  "registered_treatment_change": "Candidate-only reporting source, distinct from held combined candidate. Existing failed ledger baseline and combined registration remain unchanged; no claim that their gate passed. Reporting baseline is reused explicitly, not freshly replicated.",
+  "source_worktree": "/var/tmp/faff-skill-diet-beep-reporting-only",
+  "source_branch": "feat/skill-diet-beep-reporting-only",
+  "source_base": "c16aeafe34f7bbf3c16e3cec784feb0ae0406dee",
+  "source_commit": "2ccb47febcd8390dd5e03ac6a1b0eb0f1ba457b3",
+  "source_sha256": "39344609da4cfe88a6671cf29a191cb96f79e4a3b6ba5d51ed1c1cae2d27b3e4",
+  "saved_bytes": 1454,
+  "saved_estimated_file_tokens": 356,
+  "inventory": {
+    "result": "pass",
+    "blocks_deleted": 9,
+    "covered_moved": 0,
+    "covered_by_row": 9
+  },
+  "current_checks": [
+    {
+      "argv": [
+        "node",
+        "--test",
+        "test/run-summary.test.mjs",
+        "test/beep-boop-admission-prose.test.mjs",
+        "test/run-ledger-serialiser.test.mjs",
+        "test/run-ledger-record-outcome.test.mjs"
+      ],
+      "exit_code": 0,
+      "log": "/var/tmp/faff-reporting-only-tests.log"
+    },
+    {
+      "argv": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "validate-adapters"
+      ],
+      "exit_code": 0,
+      "log": "/var/tmp/faff-reporting-only-lint.log"
+    },
+    {
+      "argv": [
+        "node",
+        "plugin/skills/faff/bin/faff",
+        "rule-inventory",
+        "check",
+        "--base",
+        "c16aeafe",
+        "--json"
+      ],
+      "exit_code": 0,
+      "log": "/var/tmp/faff-reporting-only-inventory.log"
+    }
+  ],
+  "test_result": "76/76 pass",
+  "baseline": {
+    "run": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-runs/beep-reporting-main-opus-v1-baseline-1",
+    "raw": "6/6 pass",
+    "assessment": "pass, zero discarded drafts",
+    "native": "pass",
+    "manual": "pass-bounded-reporting-baseline",
+    "baseline_policy_target_equals_current_main": true
+  },
+  "common_prefix": {
+    "bytes": 83755,
+    "sha256": "e56004f5611c4ead05252796a7578a615868cff584d321233add682dd836082c",
+    "kernel_commit": "89ad284a36cf24da33c0e0f44e34d18fd1db7507",
+    "kernel_sha256": "aa76c16a0d51ee966c3e77cf5df8564834966173f08dd2100da174b82c97ac89",
+    "current_main_kernel_differs": true
+  },
+  "runtime_root": "/Users/shftwst/workspace/shftwst/faff/.worktrees/review-comment-interactive",
+  "runtime_commit": "a8509086ad28fa0e55cf3d1d818f2055294e663b",
+  "cases": [
+    "shipped-precedence",
+    "review-holds",
+    "budget-zero-ship",
+    "dirty-install",
+    "no-budget-continuation",
+    "unreadable-ledger"
+  ],
+  "retries": 0,
+  "timeout_seconds": 1200,
+  "expected_actual_model": "claude-opus-5-5",
+  "expected_cli": "2.1.325",
+  "requested_effort": "medium, not independent proof of actual effort",
+  "gates": [
+    "Read every actual execution trace, arguments, stdin, tool results, persisted artifacts and case completion against supplied facts and authority. Bind every capture/report/manifest/artifact/native and separate assessment/replay record hash.",
+    "Check real command invocation and authoritative facts, exact canonical summary file, budget/continuation/fault handling, bucket precedence, health, economics and distinct prep outage.",
+    "Read both tracker and conversation actual publications and every discarded draft. Only unused drafts before publication may be projected by the existing assessor; wrong final publication, authority, extra summary call, cross-case/channel result, after-publication draft or missing case must fail.",
+    "Controlled identity rendering/publication and actual pinned cmdRunSummary handler with isolated dependency injection are the bounded boundary; no external acquisition, rendering quality, hosted publication or full unattended loop claim.",
+    "Exactly one matching actual native session per named sample, passing tool restriction/full-policy delivery audit.",
+    "Inspect expected actual model and native version against worker transcript, and worker guidance hashes against verified preflight.",
+    "Preserve complete native audit bytes/hash and source evidence; requested model/effort in runner manifest alone cannot prove actual execution.",
+    "Unchanged symmetric pre-publication-draft assessment only; preserve raw failures and all discarded drafts. No new normalisation.",
+    "Full worker guidance must match original worker-visible registered hashes, not host substitutes.",
+    "Six complete actual cases, canonical summaries, commands and both publications independently reviewed. Strict hold on any unpermitted raw, assessed, native or manual failure."
+  ],
+  "assessment": {
+    "assessor": "assess-reporting-drafts-v1.mjs",
+    "symmetric": true,
+    "scope": "Only existing unused pre-publication rendering drafts are projected; all final authority/facts/publications and all other operations stay strict. No new normalization.",
+    "required_order": [
+      "Run native-tool-audit for exact arm plan, independently check actual model/version/guidance and full policy.",
+      "Copy the complete matching passing native audit bytes to RUN_DIRECTORY/native-audit.json and verify copy SHA256 equals original. Keep original audit and binding.",
+      "Run unchanged assessor; retain report.json, capture.json, all drafts, native evidence and literal runner exit/code1. Never overwrite raw report."
+    ],
+    "command_template": [
+      "node",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/assess-reporting-drafts-v1.mjs",
+      "RUN_DIRECTORY",
+      "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json",
+      "NEW_ASSESSMENT_JSON"
+    ],
+    "required_status": "pass",
+    "raw_failure": "Retain raw/code1 even where the preregistered existing assessment passes; no blanket raw waiver."
+  },
+  "command": [
+    "python3",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-literal-workflow-samples.py",
+    "/var/tmp/faff-beep-reporting-only-opus-v1/candidate-plan.json"
+  ],
+  "native_command": [
+    "node",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/native-tool-audit.mjs",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet",
+    "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/beep-reporting-only-main-opus-v1-candidate.json",
+    "/Users/shftwst/workspace/shftwst/faff",
+    "/var/tmp/faff-beep-reporting-only-opus-v1/candidate-plan.json"
+  ],
+  "prelaunch_requirements": [
+    "Verify worker model/CLI and exact original worker guidance; do not assume host guidance equals worker bytes.",
+    "The host runner can read absolute /var/tmp policy path: pathlib evidence / absolute path resolves to the absolute path. Model receives policy via existing read_policy port.",
+    "For native audit inside worker, make the exact plan bytes readable there or stage an identical copy at a shared path; /var/tmp visibility is not assumed. No runner edits required.",
+    "Keep original baseline, plans, combined candidate registration and failed ledger evidence immutable."
+  ],
+  "cost_and_coverage": {
+    "new_model_samples": 1,
+    "cases": 6,
+    "policy_bytes": 239877,
+    "policy_estimated_utf16_over_4_tokens": 59470,
+    "time_limit_seconds": 1200,
+    "billing": "Existing runner records provider_usage unmetered. Exact monetary cost unavailable; this consumes one actual Opus sample and full policy plus task/tool turns.",
+    "coverage": "Bounded reporting producer/command consumer with controlled identity normalisation/publication. No live acquisition, hosted publication, ledger execution, full unattended loop or statistical reliability claim. No current-main changed-kernel claim."
+  },
+  "bindings": [
+    {
+      "path": "/var/tmp/faff-beep-reporting-only-opus-v1/candidate-plan.json",
+      "bytes": 1500,
+      "sha256": "48c4dd5c98a85903223efca48bffa53b1507a680ac36ecdc4bac0fe3fbf553a7"
+    },
+    {
+      "path": "/var/tmp/faff-beep-reporting-only-opus-v1/candidate-policy.md",
+      "bytes": 239877,
+      "sha256": "4adbea93aa9c569275c4f4ee3a676e412c413efa36a641b86e0afe80f0ad75cc"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-main-opus-v1-registration.json",
+      "bytes": 18890,
+      "sha256": "f5c41965b27c14563acc798968f68609e8881f0b3c6fa1f0055f16e2b7a84228"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-main-opus-v1-baseline-plan.json",
+      "bytes": 1549,
+      "sha256": "d7d4cfaa1c591538283c0966aef5c47fd8c9bbc2e208ddefc85e12f55196ec46"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-main-opus-v1-baseline-policy.md",
+      "bytes": 241331,
+      "sha256": "56f48a229880e4513955945611f1725b9285ae668f1c0893d270bb0776e71cb9"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-main-opus-v1-baseline-manual-audit.json",
+      "bytes": 31106,
+      "sha256": "0153477cd2f80ad12834440e68a33b09e813dc5655e149cf92fa75b90a3726b0"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/beep-reporting-main-opus-v1-baseline-assessment.json",
+      "bytes": 2665,
+      "sha256": "eb27f54cd66fea229a401ec09e4e3f556948ff76c30632e7b8bac566ca262fd9"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/native-audits/beep-reporting-main-opus-v1-baseline.json",
+      "bytes": 57250,
+      "sha256": "009c73f843923401ceb61c846733b5bd5d4801477bc1e16e8a784d5aa4e378ca"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/workflow-fixtures/beep-reporting-v1.json",
+      "bytes": 27501,
+      "sha256": "d2d8624e1587eae1384feb5aa09cabcdc3880023c088924604d20a83e2494fc3"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/run-literal-workflow-samples.py",
+      "bytes": 6749,
+      "sha256": "9729ab8093dac62581fd1911840b39a9c1d07d25e9f964f364a4670231b74cff"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/verification/experiments/2026-11-16-skill-diet/assess-reporting-drafts-v1.mjs",
+      "bytes": 6182,
+      "sha256": "f1dc98f052da42022faf2aa72ff0f926c725e44d5513d7f33bc1f20fd374afd1"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/reporting-execution.mjs",
+      "bytes": 20670,
+      "sha256": "baedd016cfd7502a237c9255b1dfba8f7e150357f04cc8e2b29c2865773fce58"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/mailbox-call.mjs",
+      "bytes": 618,
+      "sha256": "3feb07ca89eb0ddb815a064bac88d10848f05b662f89efbc684d5c51326df49d"
+    },
+    {
+      "path": "/Users/shftwst/workspace/shftwst/faff/.worktrees/skill-diet-12h/eval/control-parity/native-tool-audit.mjs",
+      "bytes": 10283,
+      "sha256": "3f40f2fe4bc5094e14bb6f5796b2f5e46d9c9730b7fcbf8c04dfca03cacf5027"
+    },
+    {
+      "path": "/var/tmp/faff-reporting-only-inventory-committed.json",
+      "bytes": 2311,
+      "sha256": "8cc647951aa2cf20a82d54db7553ebd10d0c1558bc1051ac97c5463d8914feab"
+    }
+  ]
+}

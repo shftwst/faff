@@ -116,14 +116,14 @@ Slots choose the skill; dispatch chooses model/effort only where a transport can
 
 | Setting | Consumer |
 |---|---|
-| `dispatch.build` | Concurrency build agents and graft Step 7's bare executor; resolve per unit with `dispatch resolve build --tier <tier> --confidence <conf>`. |
+| `dispatch.build` | Concurrency uses `dispatch prepare-build`. Graft Step 7 uses `dispatch resolve build`. |
 | `dispatch.prep_explore` | Prep exploration and clean-context verification subagents. |
 | `dispatch.spec`, `spec_review`, `methodology`, `intake`, `architecture`, `adr` | Interactive producer subagents in prep/jot/graft and tidy/plot/map/wtf. ADR is graft Step 4b. Only `methodology` and `intake` allow `model: engine:<name>` via the top-level `engines` map and `engine call`. |
 | `eval.model`, `eval.effort` | Separate eval settings, not a dispatch lane. The driver's `claude -p` model is pinned to `claude-sonnet-4-6` by default; `run-evals --model` explicitly overrides it. Record the resolved model in output and baseline metadata; never inherit the account default for bulk eval. |
 
 Graft's inline `review`/`ship` and beep-boop's direct methodology `build-queue`/`pick-ordering` requests remain session-pinned. A different model requires a real subagent/helper dispatch.
 
-Every dispatch site calls `faff dispatch resolve <lane>`, never `config get dispatch.*`: the resolver owns precedence and whole-tree validation. Unset fields resolve to `inherit`; the registry supplies no dispatch defaults.
+Use `faff dispatch prepare-build` for concurrency units and `faff dispatch resolve <lane>` elsewhere. Both use the same resolver and whole-tree validation. Unset fields resolve to `inherit`; the registry supplies no dispatch defaults.
 
 | Build field | Precedence, most specific first |
 |---|---|

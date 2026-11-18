@@ -748,6 +748,17 @@
    "tokens": 316
   },
   {
+   "title": "Build worker prompt",
+   "consumers": [
+    "faffter-noon-concurrency-sequential",
+    "faffter-dark-concurrency-parallel"
+   ],
+   "keep": true,
+   "keep_reason": "canonical build worker instructions for both executors",
+   "source": "verified",
+   "tokens": 294
+  },
+  {
    "title": "The `concurrency` slot contract (fixed)",
    "consumers": [
     "faffter-noon-concurrency-sequential",

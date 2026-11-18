@@ -3,7 +3,7 @@
 `status.json` records source hashes, bytes, estimated tokens and fidelity limits.
 Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 
-The 34-item CLI extraction plan orders upcoming work by determinism, caller frequency, expected size reduction and dependencies. The first delivery starts with shared build-dispatch inputs. [Ranked queue and acceptance criteria](../2026-11-18-cli-extraction-roadmap/README.md)
+The ranked list records the disposition of all 34 items. Each published slice gives its size and verification scope. [Ranked queue and acceptance criteria](../2026-11-18-cli-extraction-roadmap/README.md)
 
 | PR | Installed prompt saving | Estimated token saving | State |
 |---|---:|---:|---|
@@ -31,7 +31,7 @@ The 34-item CLI extraction plan orders upcoming work by determinism, caller freq
 | [1230](https://github.com/shftwst/faff/pull/1230), tidy container transition recap | 1,568 B | 384 | Merged |
 | [1231](https://github.com/shftwst/faff/pull/1231), graft post-fix assessment | 3,091 B | 766 | Merged |
 | [1232](https://github.com/shftwst/faff/pull/1232), build dispatch preparation | 6,072 B | 1,497 | Merged |
-| [1233](https://github.com/shftwst/faff/pull/1233), tracker issue facts | 4,642 B | 1,141 | Open |
+| [1233](https://github.com/shftwst/faff/pull/1233), tracker issue facts | 4,642 B | 1,141 | Merged |
 | [1234](https://github.com/shftwst/faff/pull/1234), build queue partition | 5,137 B | 1,270 | Open |
 | [1235](https://github.com/shftwst/faff/pull/1235), L4 request preparation | 9,336 B | 2,327 | Open |
 | [1236](https://github.com/shftwst/faff/pull/1236), build-return mapping | 1,732 B | 424 | Open |
@@ -39,8 +39,23 @@ The 34-item CLI extraction plan orders upcoming work by determinism, caller freq
 | [1238](https://github.com/shftwst/faff/pull/1238), L4 round receipts | 12,585 B | 3,117 | Open |
 | [1239](https://github.com/shftwst/faff/pull/1239), planning graph facts | 2,382 B | 589 | Open |
 | [1240](https://github.com/shftwst/faff/pull/1240), review checkpoint resume | 1,696 B | 419 | Open |
+| [1241](https://github.com/shftwst/faff/pull/1241), compact author diagnostics | 3,194 B | 796 | Open |
+| [1242](https://github.com/shftwst/faff/pull/1242), build worktree checkpoint | 1,607 B | 398 | Open |
+| [1243](https://github.com/shftwst/faff/pull/1243), park receipt finalization | 3,950 B | 974 | Open |
+| [1244](https://github.com/shftwst/faff/pull/1244), ticket template fields | 5,615 B | 1,387 | Open |
+| [1245](https://github.com/shftwst/faff/pull/1245), prep queue from supplied issue facts | 1,638 B | 403 | Open |
+| [1246](https://github.com/shftwst/faff/pull/1246), run-entry preflight | 2,393 B | 590 | Open |
+| [1247](https://github.com/shftwst/faff/pull/1247), standalone PRD selection | 975 B | 243 | Open |
+| [1248](https://github.com/shftwst/faff/pull/1248), holdout inputs and recorded result | 3,577 B | 886 | Open |
+| [1249](https://github.com/shftwst/faff/pull/1249), discovered-scope filing plan | 8,054 B | 1,982 | Open |
+| [1250](https://github.com/shftwst/faff/pull/1250), PR-open tracker transition | 1,361 B | 340 | Open |
+| [1251](https://github.com/shftwst/faff/pull/1251), verified merge receipt to delivery outcome | 2,486 B | 614 | Open |
+| [1252](https://github.com/shftwst/faff/pull/1252), onboarding local overlay preview | 1,093 B | 272 | Open |
+| [1253](https://github.com/shftwst/faff/pull/1253), run wave convergence mode | 2,532 B | 625 | Open |
+| [1254](https://github.com/shftwst/faff/pull/1254), ADR promotion source | 916 B | 226 | Open |
+| [1255](https://github.com/shftwst/faff/pull/1255), slot skill scaffold and structural check | 3,948 B | 977 | Open |
 
-Merged savings since the quick-pass starting main total **190,849 bytes / 46,965 estimated tokens**. Main totals **1,181,232 bytes / 292,964 estimated tokens** across 41 covered files. The 8 open reduction PRs save another 40,863 bytes and 10,116 estimated tokens, for a cumulative projection of 231,712 bytes and 57,081 estimated tokens (16.89% by bytes). Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
+Merged savings since the quick-pass starting main total **195,491 bytes / 48,106 estimated tokens**. Main totals **1,176,590 bytes / 291,823 estimated tokens** across 41 covered files. The 22 open reduction PRs save another 79,560 bytes and 19,687 estimated tokens, for a cumulative projection of 275,051 bytes and 67,793 estimated tokens (20.05% by bytes). Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
 Graft #1231 still removes 3,091 bytes after #1228 landed. Its incremental estimate is now 766 tokens because the complete file is rounded once. Local and held reductions are excluded from both totals.
 
 The ranked CLI slices record actual input and output sizes, native-run scope and deliberate changes to error handling. [CLI qualification](ranked-cli-results.json)

@@ -626,7 +626,7 @@
         "slices": [
           {
             "pr": 1233,
-            "status": "open",
+            "status": "merged",
             "net_measured": {
               "bytes": 4642,
               "estimated_tokens": 1141
@@ -1568,7 +1568,19 @@
           "reuse": "gates-cli.js, gates-progress.ts, gates-discover.js, gates-report.js, spec-commit.ts, admissibility.js (`dod classify`), evidence.js, ac-id.js.",
           "verify": "test/gates-progress.test.mjs, test/gates-budget.test.mjs, test/evidence-spec.test.mjs, test/dod.test.mjs plus reuse, edit-after-budget, partial verify and invalid locator regressions."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1242,
+            "status": "open",
+            "net_measured": {
+              "bytes": 1607,
+              "estimated_tokens": 398
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 13,
@@ -1618,7 +1630,19 @@
           "reuse": "park-history, park-reconsider, park-verdict, run summary, labels/label transition, spec-review-hold and current run-ledger writer. Git-only clearing is already executable.",
           "verify": "test/park-records.test.mjs, test/park-reconsider.test.mjs, test/faff-1007-park-reconsider-classification.test.mjs and test/spec-review-hold.test.mjs. Include timeout, repeated occurrence, same-label no-op, damaged previous run and escaping symlink."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1243,
+            "status": "open",
+            "net_measured": {
+              "bytes": 3950,
+              "estimated_tokens": 974
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 14,
@@ -1691,7 +1715,19 @@
           "reuse": "queue-state new-key and derive, state resolveSpec and existing repository-local atomic write helpers.",
           "verify": "Extend test/queue-state.test.mjs and test/impure/state.test.mjs with write/read round trip, duplicate titles, new child, nested container vs leaf, repeated invocation and interrupted write."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1244,
+            "status": "open",
+            "net_measured": {
+              "bytes": 5615,
+              "estimated_tokens": 1387
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 15,
@@ -1757,7 +1793,19 @@
           ],
           "verify": "Run test/admissible.test.mjs, test/prep-attach.test.mjs and test/punt-scan.test.mjs; add diagnostics/severity-cap boundary fixtures and prove both producers use the same path."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1241,
+            "status": "open",
+            "net_measured": {
+              "bytes": 3194,
+              "estimated_tokens": 796
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 16,
@@ -1846,7 +1894,19 @@
           "reuse": "eligible, next, contract automation-routing, punt-scan, existing queue partition supplied by collision analysis and methodology order. No duplicate routing policy.",
           "verify": "Replay mixed verdicts, no candidates, queues without specs, split owner and repeated issue, namespace label overrides, ineligible hypothetical, malformed/unanswered methodology and scoped cache inputs."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1245,
+            "status": "open",
+            "net_measured": {
+              "bytes": 1638,
+              "estimated_tokens": 403
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 17,
@@ -1928,7 +1988,11 @@
           "reuse": "faffidavit-rendering and typed queue/graph outputs. Reuse a named renderer only on structured data; do not create a central write function that touches remote state.",
           "verify": "Use existing rendering eval and test/ golden structured view cases, multi-owner and no-section edge cases, explicit empty automation exception and replacement adaptor preference."
         }
-      ]
+      ],
+      "delivery": {
+        "status": "held",
+        "rationale": "Held. A display-only cycle renderer trimmed 553 bytes in the corpus and added a local invocation, median 39 ms. The existing caller already has the graph."
+      }
     },
     {
       "rank": 18,
@@ -2001,7 +2065,11 @@
           "reuse": "run ledger, run summary, events, heartbeat, config logging, gitignore-ensure, integrity-digest and existing locked/atomic writers.",
           "verify": "Use test/run-state-writers.test.mjs, run summary fixtures, lock/ownership and full/essential/standalone tests. Prove same-pass-only cache and no cross-run writes."
         }
-      ]
+      ],
+      "delivery": {
+        "status": "held",
+        "rationale": "Held. Collecting local briefing facts removed 726 prompt bytes but the new write path sends the whole narrative through a command. No CLI publication."
+      }
     },
     {
       "rank": 19,
@@ -2088,7 +2156,19 @@
           "reuse": "container-check, branch-protection-check, github-auth-check, config effective appetite, contract automation-routing, decisions match and contain.",
           "verify": "Pure policy tests for all levels, each unclear/unknown fact, host socket and auth faults, marker exemptions and immutable floors, plus existing decision and probe tests."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1246,
+            "status": "open",
+            "net_measured": {
+              "bytes": 2393,
+              "estimated_tokens": 590
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 20,
@@ -2149,7 +2229,19 @@
           ],
           "verify": "test/run-done.test.mjs and a real otherwise-identical default call with no policy input."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1253,
+            "status": "open",
+            "net_measured": {
+              "bytes": 2532,
+              "estimated_tokens": 625
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 21,
@@ -2218,7 +2310,11 @@
           ],
           "verify": "Fixture matrix over off/stack, forge/git-only, merged/pr-open/parked/errored/superseded, unavailable head SHA and collision-only. Run existing stack/merge-gate fixtures."
         }
-      ]
+      ],
+      "delivery": {
+        "status": "held",
+        "rationale": "Held. The dispatcher receives an entire chain after its worker returns. A verified intermediate custody receipt is unavailable to the worker. A handoff command at this point would bypass the existing dispatcher boundary."
+      }
     },
     {
       "rank": 22,
@@ -2301,7 +2397,19 @@
           ],
           "verify": "test/holdout-{record,delegation,evaluate-integration,rpc-evaluate-integration,exercise-headers}.test.mjs; malformed env, missing/duplicate observation, all prose and leaked-credential fixtures."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1248,
+            "status": "open",
+            "net_measured": {
+              "bytes": 3577,
+              "estimated_tokens": 886
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 23,
@@ -2397,7 +2505,19 @@
           "reuse": "prdr new/yagni/admit/accept, contract prdr-admission, prdr coverage and existing PRD goal parsing. Prefer reusing gate surfaces and do not bring any new hosted-write authority into CLI.",
           "verify": "Extend test/prdr-loop-admit.test.mjs and contract cases, covering all refusal reasons and preservation of Proposed on each path. Measure integration at existing orchestration boundary rather than create a new harness."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1247,
+            "status": "open",
+            "net_measured": {
+              "bytes": 975,
+              "estimated_tokens": 243
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 24,
@@ -2512,7 +2632,19 @@
           "reuse": "Use existing IDs, labels, config and intake-record. Can use existing test/mock-tracker infrastructure. Methodology rehome-set already defines the proposal shape.",
           "verify": "Timeout-after-success, zero/multiple title matches, multi-team identity, rejected/trimmed edge, incomplete or duplicate partition membership, stale member and partial results using existing mock tracker in test/."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1249,
+            "status": "open",
+            "net_measured": {
+              "bytes": 8054,
+              "estimated_tokens": 1982
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 25,
@@ -2585,7 +2717,19 @@
           "reuse": "adr supersede remains sole linker. Reuse ADR readers and add a narrow proposal reader/completion operation if recurrence warrants it.",
           "verify": "Temp repo tests for malformed/legacy and missing proposals, denied decision, failed linker and success cleanup only."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1254,
+            "status": "open",
+            "net_measured": {
+              "bytes": 916,
+              "estimated_tokens": 226
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 26,
@@ -2628,7 +2772,11 @@
           "reuse": "graft-admit.ts, reconcile.js `reconcileSuperseded`, `supersession.json` as described in skill. Run summary already recognizes superseded. No authoritative producer writer in bin/lib found.",
           "verify": "Extend reconcile tests and add fully covered, partial, cancelled terminal as insufficient proof, wrong base, no verifiable ticket, missing record and close replay."
         }
-      ]
+      ],
+      "delivery": {
+        "status": "held",
+        "rationale": "Held. Existing run-summary reads supersession.json directly, and reconcile verifies all named delivering tickets. The only separable write sentence is 269 bytes. Another command would duplicate the evidence path."
+      }
     },
     {
       "rank": 27,
@@ -2680,7 +2828,19 @@
           ],
           "verify": "test/merge-gate.test.mjs, test/merge-gate-local.test.mjs and test/merge-gate-controlflow.test.mjs, plus partial custody flags, unconfirmed outcomes, precondition and local parity receipts."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1251,
+            "status": "open",
+            "net_measured": {
+              "bytes": 2486,
+              "estimated_tokens": 614
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 28,
@@ -2746,7 +2906,19 @@
           "reuse": "bundle.js (`build-claim` CAS), label.js, native-map.js, pr-open.ts returns tracker_transition, effects.js, merge-authorize.ts, commissaire.ts and merge-gate.js.",
           "verify": "test/graft-in-review-bracket.test.mjs, test/pr-open.test.mjs, test/effects.test.mjs and test/merge-gate-commissaire-verify.test.mjs, plus forward-rank, no capability, connector error, effect order and scope mismatch."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1250,
+            "status": "open",
+            "net_measured": {
+              "bytes": 1361,
+              "estimated_tokens": 340
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 29,
@@ -2810,7 +2982,19 @@
           "reuse": "config path/init/set/check, resolveLabelPrefix and validation, conventions mine, profile's remote reader, gitignore-ensure, hooks-ensure and native-map. Use current worktree-aware paths and do not relax writer allowlists implicitly.",
           "verify": "test/onboard-local.test.mjs, test/config-*.test.mjs and test/native-map.test.mjs for legacy config, decline then onboarding, overlay/no clobber, config changed after preview, private remote URL and partial failure between writers."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1252,
+            "status": "open",
+            "net_measured": {
+              "bytes": 1093,
+              "estimated_tokens": 272
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 30,
@@ -2862,7 +3046,19 @@
           ],
           "verify": "test/validate-adapters.test.mjs and test/validate-adapters-delegation.test.mjs, with scaffold golden files and explicit foreign-path cases."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1255,
+            "status": "open",
+            "net_measured": {
+              "bytes": 3948,
+              "estimated_tokens": 977
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 31,
@@ -2929,7 +3125,11 @@
           ],
           "verify": "Run test/env.test.mjs, test/faff-bridge-node.test.mjs and test/holdout-rpc-evaluate-integration.test.mjs. Inject health/seed/down failure and add topology matrix, simultaneous bridge contributions, one Compose bring-up and path/credential isolation."
         }
-      ]
+      ],
+      "delivery": {
+        "status": "held",
+        "rationale": "Held. The 378-byte endpoint excerpt already uses the Compose resolver. Project and seed cleanup ownership, the bridge service contribution and proposal-only fallback are unresolved. Local probes covered absent profiles, invalid hosts and two plans sharing an ID."
+      }
     },
     {
       "rank": 32,
@@ -2966,7 +3166,11 @@
           "reuse": "project-next.js, prdr.js, admissibility.js (`holdout verdicts`), decision-capture.js, native-map.js.",
           "verify": "test/project-next.test.mjs, test/holdout-verdicts.test.mjs plus has-DoD all-done with missing/unverified/failed/pass and no PRDR/rename cases."
         }
-      ]
+      ],
+      "delivery": {
+        "status": "held",
+        "rationale": "Held. A missing association requires a hold, while cold coverage can pass on persisted verdicts. The release decision needs a precedence rule covering both histories."
+      }
     },
     {
       "rank": 33,
@@ -2996,7 +3200,11 @@
           "reuse": "The review-comment planner and byte-fidelity tests already exist on the draft branch. #1187 proposes policy decisions, #1216 adds a separate connector. Salvage the pure transformations after resolving the existing connector handoff.",
           "verify": "Replay the decided normal and edge cases, CRLF and ambiguous/lost acknowledgements through the discovered connector. Hosted byte-preserving application remains unqualified."
         }
-      ]
+      ],
+      "delivery": {
+        "status": "held",
+        "rationale": "Held. The draft splice planner covers CRLF locally. Canonical comment selection, pagination and uncertain acknowledgement still need an end-to-end trial with the discovered tracker. Draft #1203 is excluded."
+      }
     },
     {
       "rank": 34,

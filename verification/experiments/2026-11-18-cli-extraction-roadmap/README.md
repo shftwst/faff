@@ -1,15 +1,15 @@
 # Prioritised skill-to-CLI extraction plan
 
-Audited all 32 installed skill prompts and nine shared references. The source inventory ties 55 candidate operations to exact ranges in the repository. The ranking groups them into 34 work items, including two policy holds and one implementation already in review. The cited ranges total 599,084 distinct bytes. They include instructions that must stay with the caller. [Pinned source tree](https://github.com/shftwst/faff/tree/a0e84c3cb28213367523ad825cabb6919c572185/plugin/skills) · [Source inventory, reuse and proposed tests](sources.json)
+Audited all 32 installed skill prompts and nine shared references. The source inventory ties 55 candidate operations to exact ranges in the repository. The ranking groups them into 34 work items, including two items originally held for policy decisions and one already in review at the time of the audit. The cited ranges total 599,084 distinct bytes. They include instructions that must stay with the caller. [Pinned source tree](https://github.com/shftwst/faff/tree/a0e84c3cb28213367523ad825cabb6919c572185/plugin/skills) · [Source inventory, reuse and proposed tests](sources.json)
 
 ## Delivery progress
 
-Merged savings since the quick-pass starting main total **190,849 bytes / 46,965 estimated tokens**. Main totals **1,181,232 bytes / 292,964 estimated tokens** across 41 covered files. The 8 open reduction PRs save another 40,863 bytes and 10,116 estimated tokens, for a cumulative projection of 231,712 bytes and 57,081 estimated tokens (16.89% by bytes). [Campaign ledger](../2026-11-17-extracted-savings/README.md)
+Merged savings since the quick-pass starting main total **195,491 bytes / 48,106 estimated tokens**. Main totals **1,176,590 bytes / 291,823 estimated tokens** across 41 covered files. The 22 open reduction PRs save another 79,560 bytes and 19,687 estimated tokens, for a cumulative projection of 275,051 bytes and 67,793 estimated tokens (20.05% by bytes). [Campaign ledger](../2026-11-17-extracted-savings/README.md)
 
 | Rank | Extraction | Prompt bytes saved | Estimated tokens | State |
 |---|---|---:|---:|---|
 | 1 | [build dispatch preparation](https://github.com/shftwst/faff/pull/1232) | 6,072 | 1,497 | Merged |
-| 2 | [tracker issue facts](https://github.com/shftwst/faff/pull/1233) | 4,642 | 1,141 | Open |
+| 2 | [tracker issue facts](https://github.com/shftwst/faff/pull/1233) | 4,642 | 1,141 | Merged |
 | 3 | [build queue partition](https://github.com/shftwst/faff/pull/1234) | 5,137 | 1,270 | Open |
 | 4 | [L4 request preparation](https://github.com/shftwst/faff/pull/1235) | 9,336 | 2,327 | Open |
 | 4 | [L4 round receipts](https://github.com/shftwst/faff/pull/1238) | 12,585 | 3,117 | Open |
@@ -17,6 +17,22 @@ Merged savings since the quick-pass starting main total **190,849 bytes / 46,965
 | 9 | [review checkpoint resume](https://github.com/shftwst/faff/pull/1240) | 1,696 | 419 | Open |
 | 10 | [planning graph facts](https://github.com/shftwst/faff/pull/1239) | 2,382 | 589 | Open |
 | 11 | [run-end reconciliation](https://github.com/shftwst/faff/pull/1237) | 3,353 | 830 | Open |
+| 12 | [build worktree checkpoint](https://github.com/shftwst/faff/pull/1242) | 1,607 | 398 | Open |
+| 13 | [park receipt finalization](https://github.com/shftwst/faff/pull/1243) | 3,950 | 974 | Open |
+| 14 | [ticket template fields](https://github.com/shftwst/faff/pull/1244) | 5,615 | 1,387 | Open |
+| 15 | [compact author diagnostics](https://github.com/shftwst/faff/pull/1241) | 3,194 | 796 | Open |
+| 16 | [prep queue from supplied issue facts](https://github.com/shftwst/faff/pull/1245) | 1,638 | 403 | Open |
+| 19 | [run-entry preflight](https://github.com/shftwst/faff/pull/1246) | 2,393 | 590 | Open |
+| 20 | [run wave convergence mode](https://github.com/shftwst/faff/pull/1253) | 2,532 | 625 | Open |
+| 22 | [holdout inputs and recorded result](https://github.com/shftwst/faff/pull/1248) | 3,577 | 886 | Open |
+| 23 | [standalone PRD selection](https://github.com/shftwst/faff/pull/1247) | 975 | 243 | Open |
+| 24 | [discovered-scope filing plan](https://github.com/shftwst/faff/pull/1249) | 8,054 | 1,982 | Open |
+| 25 | [ADR promotion source](https://github.com/shftwst/faff/pull/1254) | 916 | 226 | Open |
+| 27 | [verified merge receipt to delivery outcome](https://github.com/shftwst/faff/pull/1251) | 2,486 | 614 | Open |
+| 28 | [PR-open tracker transition](https://github.com/shftwst/faff/pull/1250) | 1,361 | 340 | Open |
+| 29 | [onboarding local overlay preview](https://github.com/shftwst/faff/pull/1252) | 1,093 | 272 | Open |
+| 30 | [slot skill scaffold and structural check](https://github.com/shftwst/faff/pull/1255) | 3,948 | 977 | Open |
+| 34 | [graft post-fix assessment](https://github.com/shftwst/faff/pull/1231) | 3,091 | 766 | Merged |
 
 **Rank 5.** Held. A post acknowledgement or a fresh discovered spec is sufficient in the existing callers. Mandatory same-comment readback changes tracker behaviour.
 
@@ -24,7 +40,25 @@ Merged savings since the quick-pass starting main total **190,849 bytes / 46,965
 
 **Rank 8.** Held locally. Extracting one delivery-envelope parser saved 551 bytes across the prompts. A compact reply increased input from 53 to 145 bytes; arbitrary slot text can be longer. Native delivery has not been qualified.
 
-## Where to start
+**Rank 17.** Held. A display-only cycle renderer trimmed 553 bytes in the corpus and added a local invocation, median 39 ms. The existing caller already has the graph.
+
+**Rank 18.** Held. Collecting local briefing facts removed 726 prompt bytes but the new write path sends the whole narrative through a command. No CLI publication.
+
+**Rank 21.** Held. The dispatcher receives an entire chain after its worker returns. A verified intermediate custody receipt is unavailable to the worker. A handoff command at this point would bypass the existing dispatcher boundary.
+
+**Rank 26.** Held. Existing run-summary reads supersession.json directly, and reconcile verifies all named delivering tickets. The only separable write sentence is 269 bytes. Another command would duplicate the evidence path.
+
+**Rank 31.** Held. The 378-byte endpoint excerpt already uses the Compose resolver. Project and seed cleanup ownership, the bridge service contribution and proposal-only fallback are unresolved. Local probes covered absent profiles, invalid hosts and two plans sharing an ID.
+
+**Rank 32.** Held. A missing association requires a hold, while cold coverage can pass on persisted verdicts. The release decision needs a precedence rule covering both histories.
+
+**Rank 33.** Held. The draft splice planner covers CRLF locally. Canonical comment selection, pagination and uncertain acknowledgement still need an end-to-end trial with the discovered tracker. Draft #1203 is excluded.
+
+All 34 ranks have a recorded disposition. Hosted checks run separately on each PR head. The local rehearsal of the combined implementation passed 1,143 tests across 45 files. One existing timing probe requires a prefix-caching backend and skipped. All 41 prompt files in the combined tree matched the independent measurement byte for byte. The rule inventory covered 302 deleted blocks with zero uncovered. The PRs keep their own unit tests and design inventories. [Combined revision, checks, individual heads and limitations](../2026-11-17-extracted-savings/status.json)
+
+[Original size ranking for all 32 skills and nine references](size-ranking.md)
+
+## Original delivery forecast
 
 Start with **build dispatch**. The sequential and parallel executors both choose a model, log the configured effort and assemble issue context for a build worker. A shared preparer can be checked by comparing the actual argv and payload each executor sends today. The next independent change normalizes supplied issue snapshots. Queue partitioning can then consume those facts.
 
@@ -38,7 +72,7 @@ Put **L4 spec-review** in the first delivery batch. It is the largest individual
 
 These are planning ranges for net prompt text removed after replacement instructions. Each kB means 1,000 bytes. Estimates use about four bytes per token. Actual landed figures use the existing per-file estimate of one token per four UTF-16 code units, rounded up. The 31-item sum is a scenario before rebasing overlapping draft work and checking production fidelity. The two holds, the current graft PR and possible read-on-demand savings contribute zero to it. The first six are the delivery forecast. The longer range is sensitive to shared helpers, policy decisions and the instructions that trials show must remain.
 
-The campaign started at 1,372,081 bytes. A 25% reduction takes 343,021 bytes. If all measured open cuts land, the total saved reaches 184,777 bytes. That leaves **158,244 more bytes** to reach 25%, near the upper end of the 31-item estimate. [Measured savings ledger](../2026-11-17-extracted-savings/README.md)
+The campaign started at 1,372,081 bytes. A 25% reduction takes 343,021 bytes. The current projection saves 275,051 bytes and leaves 67,970 bytes to reach 25%. [Measured savings ledger](../2026-11-17-extracted-savings/README.md)
 
 ## Evidence behind the order
 

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea",
+  "base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -8,70 +8,15 @@
     "estimated_tokens": 339929
   },
   "current_main": {
-    "bytes": 1181232,
-    "estimated_tokens": 292964,
+    "bytes": 1176590,
+    "estimated_tokens": 291823,
     "files": 41
   },
   "landed_savings": {
-    "bytes": 190849,
-    "estimated_tokens": 46965
+    "bytes": 195491,
+    "estimated_tokens": 48106
   },
   "pending_extractions": [
-    {
-      "pr": "https://github.com/shftwst/faff/pull/1233",
-      "rank": 2,
-      "skill": "tracker issue facts",
-      "files": [
-        {
-          "path": "plugin/skills/faff-map/SKILL.md",
-          "before": {
-            "bytes": 23737,
-            "estimated_tokens": 5791,
-            "sha256": "e627744fd9ce3f9b15e10ae141e3e848622094382191155fed8fc93797b9b95d"
-          },
-          "after": {
-            "bytes": 23486,
-            "estimated_tokens": 5732,
-            "sha256": "835b129019bed64b9bf307d5020820a77e6c9a562aed4b72b90be8e2b6d8c1f7"
-          }
-        },
-        {
-          "path": "plugin/skills/faff/references/tracker.md",
-          "before": {
-            "bytes": 22649,
-            "estimated_tokens": 5615,
-            "sha256": "f3f01623ec743a633a4b68a6b7162809393db7ee70efa7f2cd14fcca1c17a13d"
-          },
-          "after": {
-            "bytes": 18258,
-            "estimated_tokens": 4533,
-            "sha256": "273863334fdce17a028aa3f2a3a1b8e449f20263979c51242c67022f5e390b43"
-          }
-        }
-      ],
-      "before": {
-        "bytes": 46386,
-        "estimated_tokens": 11406
-      },
-      "after": {
-        "bytes": 41744,
-        "estimated_tokens": 10265
-      },
-      "saved": {
-        "bytes": 4642,
-        "estimated_tokens": 1141
-      },
-      "tests_passed": 61,
-      "verification": "Native Claude Code callers reproduced all eleven downstream next calls across supplied GitHub and Linear batches and both refusal paths. Two compact classifier inputs totalled 1,740 bytes. No live tracker operation.",
-      "qualification_path": "ranked-cli-results.json",
-      "measured_base": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea",
-      "head": "a671940641c2731a1b0667877af83dfda1de3eaf",
-      "status": "open",
-      "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
-      }
-    },
     {
       "pr": "https://github.com/shftwst/faff/pull/1234",
       "rank": 3,
@@ -106,12 +51,12 @@
       "tests_passed": 137,
       "verification": "One native candidate used the actual classifier on a supplied wave. Independent replay reproduced its ordered components. No paired native baseline or live workers. A 12-issue fixture used 1,641 input bytes and 703 output bytes, median 40.8 ms. A subsequent caller clarification restricted merge inputs to declared dependencies.",
       "qualification_path": "ranked-cli-results.json",
-      "measured_base": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea",
-      "head": "6f9db30d64c5112aa7fd45988322fd2a40f2c358",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "ca085c47e6dce34a09d224a2f693df53034aac79",
       "status": "open",
       "ci": {
         "state": "pending",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
       }
     },
     {
@@ -148,12 +93,12 @@
       "tests_passed": 627,
       "verification": "Paired native callers preserved backend bytes and normalized configured and pinned requests. Unset config stopped both without fan-out, and the candidate supplied an explicit round. Seven interleaved timings. One prior skip. After the initial qualification, the four-lens request contract checks the real nonempty input paths in CI.",
       "qualification_path": "ranked-cli-results.json",
-      "measured_base": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea",
-      "head": "682980389d99c06ec9869cf5d05097060331347f",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "2000e00606e0497356dd8669c1fc91f7c385faf9",
       "status": "open",
       "ci": {
         "state": "pending",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
       }
     },
     {
@@ -203,12 +148,12 @@
       "tests_passed": 152,
       "verification": "Original and extracted disposition tables were checked through the real CLI and replay, including all nine native outcomes, annotations, merge handoff and pre-admission paths. No native caller pair. A representative result used 77 stdout bytes and median 40.6 ms.",
       "qualification_path": "ranked-cli-results.json",
-      "measured_base": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea",
-      "head": "4bca0a992e393a4c221897619d925a0697ea72cd",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "52b3594ba68da1a8d79eeb358b726f417ae39ec3",
       "status": "open",
       "ci": {
         "state": "pending",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
       }
     },
     {
@@ -245,12 +190,12 @@
       "tests_passed": 305,
       "verification": "The pure gate, new assembler, existing summary, land and merge gate tests passed. Compact 1/20 issue fixtures use a stub forge. The 20-issue case avoids a 5,342-byte intermediate. Missing sibling or delivery observations stay unproven. No live tracker or forge trial.",
       "qualification_path": "ranked-cli-results.json",
-      "measured_base": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea",
-      "head": "31ef14b9709deb1e2fac3754e8a48b734b944601",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "0359ba6897d326dbfb438f30bb4e1bc847316666",
       "status": "open",
       "ci": {
-        "state": "failure",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
       }
     },
     {
@@ -287,12 +232,12 @@
       "tests_passed": 1061,
       "verification": "One existing skip. Native exploratory verdicts matched on the initial, retry and unset fixture. A distinguishing partial retry can approve or revise depending on a retained prior vote. The final recorder refuses direct partial publication. Through the real prep round consumer the guarded receipts plus retained caller vote reproduced fix-and-rerun. Raw transcript headings can differ. No live provider calls.",
       "qualification_path": "ranked-cli-results.json",
-      "measured_base": "682980389d99c06ec9869cf5d05097060331347f",
-      "head": "f8f4433443c95fd60b55ca86a73fce7ff9c63af6",
+      "measured_base": "2000e00606e0497356dd8669c1fc91f7c385faf9",
+      "head": "055599f7d24c87ce9bd2b23b149baa9dc0eb6896",
       "status": "open",
       "ci": {
         "state": "pending",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
       }
     },
     {
@@ -303,14 +248,14 @@
         {
           "path": "plugin/skills/faff-map/SKILL.md",
           "before": {
-            "bytes": 23737,
-            "estimated_tokens": 5791,
-            "sha256": "e627744fd9ce3f9b15e10ae141e3e848622094382191155fed8fc93797b9b95d"
+            "bytes": 23486,
+            "estimated_tokens": 5732,
+            "sha256": "835b129019bed64b9bf307d5020820a77e6c9a562aed4b72b90be8e2b6d8c1f7"
           },
           "after": {
-            "bytes": 23204,
-            "estimated_tokens": 5662,
-            "sha256": "73c03c93342974cf172312e4b67cbdbaca2ab56d3eee4e566e8013305ed09e6d"
+            "bytes": 22953,
+            "estimated_tokens": 5603,
+            "sha256": "2d28dbc8bc4f9b6b87b7c498aa652789ef11096d48d4874c2569daefa157e58b"
           }
         },
         {
@@ -367,12 +312,12 @@
         }
       ],
       "before": {
-        "bytes": 194413,
-        "estimated_tokens": 48095
+        "bytes": 194162,
+        "estimated_tokens": 48036
       },
       "after": {
-        "bytes": 192031,
-        "estimated_tokens": 47506
+        "bytes": 191780,
+        "estimated_tokens": 47447
       },
       "saved": {
         "bytes": 2382,
@@ -381,12 +326,12 @@
       "tests_passed": 143,
       "verification": "The actual issue classifier and routing contract consumed a cycle fixture. Thirty-two build queues matched the preceding partition command byte-for-byte. A 120-issue case with 20 roots used 4,893 input and 415 output bytes, median 39 ms over 25 fresh invocations. No native caller trial.",
       "qualification_path": "ranked-cli-results.json",
-      "measured_base": "6f9db30d64c5112aa7fd45988322fd2a40f2c358",
-      "head": "760ccb78ba5abfbbf69c89025b4a57a64f99fcf2",
+      "measured_base": "ca085c47e6dce34a09d224a2f693df53034aac79",
+      "head": "bd7ea05f508c6f8eca5a24a59ae43e57751ca7b5",
       "status": "open",
       "ci": {
         "state": "pending",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
       }
     },
     {
@@ -434,20 +379,780 @@
         "estimated_tokens": 419
       },
       "tests_passed": 68,
-      "verification": "Executable cases bind the diff, issue and readable findings. The old writer lost its outage counter after a phase rewrite. The new writer preserves it, refuses stale callbacks and serializes increments. Guarded corrections are intentional departures.",
+      "verification": "Executable cases bind the diff, issue and readable findings. The old writer lost its outage counter after a phase rewrite. The new writer preserves it, refuses stale callbacks and serializes increments. Guarded corrections are intentional departures. Native Claude Code matched the three normal routes. On a rewrite the baseline lost the outage counter; the candidate retained it. A late stale callback changed the baseline to complete, whereas the candidate returned 3 and restored control to graft. Nine real calls per arm, no external effects.",
       "qualification_path": "ranked-cli-results.json",
-      "measured_base": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea",
-      "head": "be4cf4fd3b2a4ca77c7461336849c030a5503816",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "6f384edfd2580082fc983b5b1805b4572d846011",
       "status": "open",
       "ci": {
         "state": "pending",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1241",
+      "rank": 15,
+      "skill": "compact author diagnostics",
+      "files": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "before": {
+            "bytes": 70435,
+            "estimated_tokens": 17511,
+            "sha256": "ff353773f0906602e3b8159d29d14a8083945ee46186f7ef84ed97ca58ad4030"
+          },
+          "after": {
+            "bytes": 70288,
+            "estimated_tokens": 17474,
+            "sha256": "43116c79b008f464f7fb5cd541863abd50718d377ea9ea331ffa626c851a7928"
+          }
+        },
+        {
+          "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+          "before": {
+            "bytes": 17941,
+            "estimated_tokens": 4456,
+            "sha256": "364d732bba56797a83568dcdb9a09de47f9e3a97d309e8e2f339c911bcbb48a6"
+          },
+          "after": {
+            "bytes": 16749,
+            "estimated_tokens": 4159,
+            "sha256": "1998f6967bf7d74772db4a93427393e2d8646a26f9861c28eb8ea5721f18275d"
+          }
+        },
+        {
+          "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+          "before": {
+            "bytes": 16577,
+            "estimated_tokens": 4115,
+            "sha256": "b2755b2a2935eb57cee4fdfd47de029459bf686e46355c5eef2d792d482593a5"
+          },
+          "after": {
+            "bytes": 14722,
+            "estimated_tokens": 3653,
+            "sha256": "8d2edac9d91a0a04ddbebf1ac886e7afa4b05cfbe07197a248bf25f2fb05f0dd"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 104953,
+        "estimated_tokens": 26082
+      },
+      "after": {
+        "bytes": 101759,
+        "estimated_tokens": 25286
+      },
+      "saved": {
+        "bytes": 3194,
+        "estimated_tokens": 796
+      },
+      "tests_passed": 354,
+      "verification": "Sixteen legacy forced-gate invocations retained stdout, stderr and exit status. The new author-only view shares the same scanners and emits 77 versus 1,534 bytes on a 262-byte draft. Confidence and authored text remain caller decisions. Median 36.1 versus 36.9 ms over 25 fresh calls.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "ce732b4542b30f84ed6a8d622fd11f182df3ec51",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1242",
+      "rank": 12,
+      "skill": "build worktree checkpoint",
+      "files": [
+        {
+          "path": "plugin/skills/faff-graft/SKILL.md",
+          "before": {
+            "bytes": 168608,
+            "estimated_tokens": 41822,
+            "sha256": "da02120b4170b024cdeccfe07f74d40c91f578d1d473e03ef8ea3ab2d7db7535"
+          },
+          "after": {
+            "bytes": 167001,
+            "estimated_tokens": 41424,
+            "sha256": "1397f07a8d46a53f5a237202e36e0febcba191f69458b4be0b2ff8792954fc3a"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 168608,
+        "estimated_tokens": 41822
+      },
+      "after": {
+        "bytes": 167001,
+        "estimated_tokens": 41424
+      },
+      "saved": {
+        "bytes": 1607,
+        "estimated_tokens": 398
+      },
+      "tests_passed": 238,
+      "verification": "The real remote-base fixture resumes from the checkpoint produced in the original worktree. Exact diff bytes stream via private scratch with bounded reads. A >65 MiB fixture and forced partial failure tested cleanup and prior receipt preservation. Separate local bare-origin and git-only timings; no production latency claim.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "b42130f4f181f1cc5e47def87eba700c7d1ad57c",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1243",
+      "rank": 13,
+      "skill": "park receipt finalization",
+      "files": [
+        {
+          "path": "plugin/skills/faff-beep-boop/SKILL.md",
+          "before": {
+            "bytes": 154055,
+            "estimated_tokens": 38180,
+            "sha256": "e3378bc2d8138963cf1f7322edfd2d66411ec75b9fd3929d53f2a1e91ab28791"
+          },
+          "after": {
+            "bytes": 152900,
+            "estimated_tokens": 37895,
+            "sha256": "04cb992565feca2468fb823396be534b7fbb1ec2dcacc43bc13c8221d36977c8"
+          }
+        },
+        {
+          "path": "plugin/skills/faff-prep/SKILL.md",
+          "before": {
+            "bytes": 97780,
+            "estimated_tokens": 24269,
+            "sha256": "48161f87db967d13309cbe603241689e960335a31a715573fb91f7e798397717"
+          },
+          "after": {
+            "bytes": 97550,
+            "estimated_tokens": 24212,
+            "sha256": "ed9245b2ea6a905d9b9b6c8ebc3e91d2e7ba00fab0ca81eb61daf3581bc7ce27"
+          }
+        },
+        {
+          "path": "plugin/skills/faff/references/park.md",
+          "before": {
+            "bytes": 13771,
+            "estimated_tokens": 3417,
+            "sha256": "d609101fd0f9a02a0e8b804fba1c943ac63f86e0e0b45d2a2fc035b0453e1e12"
+          },
+          "after": {
+            "bytes": 11206,
+            "estimated_tokens": 2785,
+            "sha256": "f70042a78ff8e4a441ef352b5dde7f6d4e06be2235bcfb1e3ca5bebb335bbd19"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 265606,
+        "estimated_tokens": 65866
+      },
+      "after": {
+        "bytes": 261656,
+        "estimated_tokens": 64892
+      },
+      "saved": {
+        "bytes": 3950,
+        "estimated_tokens": 974
+      },
+      "tests_passed": 126,
+      "verification": "Real local CLI traced prepare, comment, label and record using 638 input and 331 stdout bytes across four calls. A distinct transition after manual unpark can park again. Unknown or unacknowledged tracker writes require live reconciliation; effects were simulated. The original local full suite had 96 failures, all reproduced by name on the base.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "9d31c51fa16ae8dd6240008550482ba1bd81a477",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1244",
+      "rank": 14,
+      "skill": "ticket template fields",
+      "files": [
+        {
+          "path": "plugin/skills/faff-jot/SKILL.md",
+          "before": {
+            "bytes": 18798,
+            "estimated_tokens": 4661,
+            "sha256": "092c601c552ca569476922ec8059ba1fa722bfc7477ab1f709096b8cbf956433"
+          },
+          "after": {
+            "bytes": 18380,
+            "estimated_tokens": 4557,
+            "sha256": "cf9d3ae1c96c383c4dbf982c45b8dc7365e7045c369d2d46f54f743aefba85dc"
+          }
+        },
+        {
+          "path": "plugin/skills/faff/references/create.md",
+          "before": {
+            "bytes": 7429,
+            "estimated_tokens": 1840,
+            "sha256": "fbcfb8b614d7cbedfb7d6a363bec38aed88467792687aa7d4c19cf4b98ce4396"
+          },
+          "after": {
+            "bytes": 2232,
+            "estimated_tokens": 557,
+            "sha256": "038f291a3800a104ebc01eb2c723a214285aebc21db35a54fa386fbbe4c5e87a"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 26227,
+        "estimated_tokens": 6501
+      },
+      "after": {
+        "bytes": 20612,
+        "estimated_tokens": 5114
+      },
+      "saved": {
+        "bytes": 5615,
+        "estimated_tokens": 1387
+      },
+      "tests_passed": 113,
+      "verification": "Real CLI tests cover all six built-ins, overrides, mapped identity, supplied native markdown, stale/opaque bodies, duplicate headings and fenced examples. The old native-map remains usable. No live tracker, rendering or authored descriptions. A native hit can add a local process; a local fallback saves one.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "10a8d18a7781711e2f75b162d83a5cfdd5bdf5a3",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1245",
+      "rank": 16,
+      "skill": "prep queue from supplied issue facts",
+      "files": [
+        {
+          "path": "plugin/skills/faff-beep-boop/SKILL.md",
+          "before": {
+            "bytes": 154055,
+            "estimated_tokens": 38180,
+            "sha256": "e3378bc2d8138963cf1f7322edfd2d66411ec75b9fd3929d53f2a1e91ab28791"
+          },
+          "after": {
+            "bytes": 152417,
+            "estimated_tokens": 37777,
+            "sha256": "e3b3ddd1671821403cc5c281dfc59d05fdea5ed5192dbc7269b0c0d92f8d3475"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 154055,
+        "estimated_tokens": 38180
+      },
+      "after": {
+        "bytes": 152417,
+        "estimated_tokens": 37777
+      },
+      "saved": {
+        "bytes": 1638,
+        "estimated_tokens": 403
+      },
+      "tests_passed": 168,
+      "verification": "Existing eligible and next decisions matched the batch plus downstream graft needs-prep handoff. For eight issues the measured tool path used 304 to 279 estimated I/O tokens and 499.9 to 40.6 ms; at 20 issues, 728 to 681 and 1299.1 to 41.8 ms. The separate WTF projection and cache parser remain held.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "548be0d3b98807f5dd9ec083d0366702c2316e62",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1246",
+      "rank": 19,
+      "skill": "run-entry preflight",
+      "files": [
+        {
+          "path": "plugin/skills/faff-beep-boop/SKILL.md",
+          "before": {
+            "bytes": 154055,
+            "estimated_tokens": 38180,
+            "sha256": "e3378bc2d8138963cf1f7322edfd2d66411ec75b9fd3929d53f2a1e91ab28791"
+          },
+          "after": {
+            "bytes": 152966,
+            "estimated_tokens": 37913,
+            "sha256": "9ba7c08a3ac636b3c220718b1c086c90ed37cebca6d01bd8e7ef55f95f9bc642"
+          }
+        },
+        {
+          "path": "plugin/skills/faff/references/autonomous.md",
+          "before": {
+            "bytes": 36702,
+            "estimated_tokens": 9109,
+            "sha256": "151e34f70534858d2a0279e5b85364c25a6e324084fb12e8b7c39954147adf4c"
+          },
+          "after": {
+            "bytes": 35398,
+            "estimated_tokens": 8786,
+            "sha256": "f4d1f32a9e5bc3131127ea635700053962a687e476e521f18d05878be54a2fab"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 190757,
+        "estimated_tokens": 47289
+      },
+      "after": {
+        "bytes": 188364,
+        "estimated_tokens": 46699
+      },
+      "saved": {
+        "bytes": 2393,
+        "estimated_tokens": 590
+      },
+      "tests_passed": 366,
+      "verification": "Same four underlying GitHub reads verified using a stub forge. Three local probes now compose in one CLI call with the existing warning and refusal policies. Sample stdout 499 to 37 bytes, median 105.1 to 46.0 ms across 25 fresh iterations. No provider latency or live network measurement.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "d490585ed1b869ab040648e822b562629e15e248",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1247",
+      "rank": 23,
+      "skill": "standalone PRD selection",
+      "files": [
+        {
+          "path": "plugin/skills/faff-plot/SKILL.md",
+          "before": {
+            "bytes": 41576,
+            "estimated_tokens": 10284,
+            "sha256": "be1ba68a7e735108b79e409d2341b2d5f7a543758162d04be44a4d4961958c69"
+          },
+          "after": {
+            "bytes": 40601,
+            "estimated_tokens": 10041,
+            "sha256": "29126e2297ec6f97fdea2eda924f787428ac101f07e7b9faf091097bb46a7c30"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 41576,
+        "estimated_tokens": 10284
+      },
+      "after": {
+        "bytes": 40601,
+        "estimated_tokens": 10041
+      },
+      "saved": {
+        "bytes": 975,
+        "estimated_tokens": 243
+      },
+      "tests_passed": 125,
+      "verification": "Actual standalone plot reads the existing selector. One survivor used 106 vs 581 stdout bytes and one instead of two local calls. Ties still require the human choice. Checked inherited-ledger bytes and directory unchanged. No live stakeholder or ticket operations.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "79108af8056f7532bc193dfde61adc3f508cb551",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1248",
+      "rank": 22,
+      "skill": "holdout inputs and recorded result",
+      "files": [
+        {
+          "path": "plugin/skills/faff-beep-boop/SKILL.md",
+          "before": {
+            "bytes": 154055,
+            "estimated_tokens": 38180,
+            "sha256": "e3378bc2d8138963cf1f7322edfd2d66411ec75b9fd3929d53f2a1e91ab28791"
+          },
+          "after": {
+            "bytes": 153649,
+            "estimated_tokens": 38080,
+            "sha256": "d44affaf4a74ddfd7552bb9af5fbf153ea97bf1ed4c7a03092df627a2fcddda4"
+          }
+        },
+        {
+          "path": "plugin/skills/faff-graft/SKILL.md",
+          "before": {
+            "bytes": 168608,
+            "estimated_tokens": 41822,
+            "sha256": "da02120b4170b024cdeccfe07f74d40c91f578d1d473e03ef8ea3ab2d7db7535"
+          },
+          "after": {
+            "bytes": 168542,
+            "estimated_tokens": 41806,
+            "sha256": "9db02fc272bbdb4779976a174e8d824b1858051b3c18e2645f0ec6cd5586b99b"
+          }
+        },
+        {
+          "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+          "before": {
+            "bytes": 15592,
+            "estimated_tokens": 3878,
+            "sha256": "0e129824ca4346ec36bc22925825bb8cb0525ba6066b7400cb0598c7d0a8485b"
+          },
+          "after": {
+            "bytes": 12487,
+            "estimated_tokens": 3108,
+            "sha256": "47550bf642818aa7f1cafaaa250119a4c306ef4c046feefb1fc6dd79574469e5"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 338255,
+        "estimated_tokens": 83880
+      },
+      "after": {
+        "bytes": 334678,
+        "estimated_tokens": 82994
+      },
+      "saved": {
+        "bytes": 3577,
+        "estimated_tokens": 886
+      },
+      "tests_passed": 292,
+      "verification": "Same caged and inline paths, full spec and original spawner evidence writer. With four judged and six delegated criteria, evaluator criteria output went from 2,557 to 495 bytes, counts to 61 bytes, and receipt output from 1,285 to 52 bytes. Corroborated real spawner-hook identity and scrubbing with local fixtures. Restored explicit mixed gaps rubric example after hosted scorer test.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "d9afb9a30836e7ac880bc9b04619360fbf5edca4",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1249",
+      "rank": 24,
+      "skill": "discovered-scope filing plan",
+      "files": [
+        {
+          "path": "plugin/skills/faff-beep-boop/SKILL.md",
+          "before": {
+            "bytes": 154055,
+            "estimated_tokens": 38180,
+            "sha256": "e3378bc2d8138963cf1f7322edfd2d66411ec75b9fd3929d53f2a1e91ab28791"
+          },
+          "after": {
+            "bytes": 149068,
+            "estimated_tokens": 36952,
+            "sha256": "104052564232edc09defc4d36c46e5e7f1a23404c01f789328228e9761d3fbe4"
+          }
+        },
+        {
+          "path": "plugin/skills/faff-tidy/SKILL.md",
+          "before": {
+            "bytes": 69483,
+            "estimated_tokens": 17217,
+            "sha256": "942a94907fb76c2cc037a76e84a2082cabffa27fd34ecb45d915d3329bb16cf8"
+          },
+          "after": {
+            "bytes": 66436,
+            "estimated_tokens": 16468,
+            "sha256": "e5e0166b85d546c1dccfa78625f81db8190f5b7dd281c8a50a3c8e01a3179bf6"
+          }
+        },
+        {
+          "path": "plugin/skills/faff/references/autonomous.md",
+          "before": {
+            "bytes": 36702,
+            "estimated_tokens": 9109,
+            "sha256": "151e34f70534858d2a0279e5b85364c25a6e324084fb12e8b7c39954147adf4c"
+          },
+          "after": {
+            "bytes": 36682,
+            "estimated_tokens": 9104,
+            "sha256": "f643d14c7ef15c0bc0e0389e9e058819939eafa18b94bc995672345314140690"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 260240,
+        "estimated_tokens": 64506
+      },
+      "after": {
+        "bytes": 252186,
+        "estimated_tokens": 62524
+      },
+      "saved": {
+        "bytes": 8054,
+        "estimated_tokens": 1982
+      },
+      "tests_passed": 239,
+      "verification": "Existing audited containment/self-intake kernels exercised on file-native supplied facts. One contained case increased stdout 89 to 248 bytes and median time 20.7 to 37.3 ms. The self-intake plan decreased stdout 334 to 298 bytes and median time 49.2 to 39.9 ms while removing one process. No tracker writes or acknowledgements by CLI. Interactive rehome excluded.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "6344fca6f9de292607e1e204188c2239405396e5",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1250",
+      "rank": 28,
+      "skill": "PR-open tracker transition",
+      "files": [
+        {
+          "path": "plugin/skills/faff-graft/SKILL.md",
+          "before": {
+            "bytes": 168608,
+            "estimated_tokens": 41822,
+            "sha256": "da02120b4170b024cdeccfe07f74d40c91f578d1d473e03ef8ea3ab2d7db7535"
+          },
+          "after": {
+            "bytes": 167247,
+            "estimated_tokens": 41482,
+            "sha256": "fe5448b07ccc4ef0289f1ce27a75856b52a76cb530123396a0bca546966e37c1"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 168608,
+        "estimated_tokens": 41822
+      },
+      "after": {
+        "bytes": 167247,
+        "estimated_tokens": 41482
+      },
+      "saved": {
+        "bytes": 1361,
+        "estimated_tokens": 340
+      },
+      "tests_passed": 118,
+      "verification": "Supplied fresh tracker status and exact PR-open result rendered the descriptor consumed by the actual local effects declare/check/observe writer. Positive input 212 bytes and output 257 bytes; already advanced returned 18 bytes. Connector calls and acknowledgement simulated, no claim or merge changes.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "424306376e3d2f11a5406f7fbebfce6b850ebacf",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1251",
+      "rank": 27,
+      "skill": "verified merge receipt to delivery outcome",
+      "files": [
+        {
+          "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+          "before": {
+            "bytes": 12793,
+            "estimated_tokens": 3179,
+            "sha256": "1acd953ac9f07c3a0e5d1bd97f4f2ef3c94170085b5c9da24038d9d58f50592e"
+          },
+          "after": {
+            "bytes": 10307,
+            "estimated_tokens": 2565,
+            "sha256": "76336362077da4a184b38f81c500886d0bdcc5eb02ece8d55706952f26c2f201"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 12793,
+        "estimated_tokens": 3179
+      },
+      "after": {
+        "bytes": 10307,
+        "estimated_tokens": 2565
+      },
+      "saved": {
+        "bytes": 2486,
+        "estimated_tokens": 614
+      },
+      "tests_passed": 236,
+      "verification": "Consumes the existing merge-gate receipt with matching exit. A confirmed open PR can be deferred and inconclusive observations stay unknown. No extra Git or forge reads. Representative output adds about 56 to 65 native result tokens, around 45 ms locally. No new merge operation.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "dd543dc8b6d119c39bb0fa853772042bf14c9af4",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1252",
+      "rank": 29,
+      "skill": "onboarding local overlay preview",
+      "files": [
+        {
+          "path": "plugin/skills/faff-onboard/SKILL.md",
+          "before": {
+            "bytes": 17929,
+            "estimated_tokens": 4437,
+            "sha256": "44f1f2e8d861598fe8689ade074dc0b9a2cfbbe3b150593fd629f9e5a80d57af"
+          },
+          "after": {
+            "bytes": 16836,
+            "estimated_tokens": 4165,
+            "sha256": "a43c3e80ea3a8343a55650bd81186b7b915ad777073506db561144e79decdeec"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 17929,
+        "estimated_tokens": 4437
+      },
+      "after": {
+        "bytes": 16836,
+        "estimated_tokens": 4165
+      },
+      "saved": {
+        "bytes": 1093,
+        "estimated_tokens": 272
+      },
+      "tests_passed": 237,
+      "verification": "Four original config preview/apply subprocesses reduce to two. Final local overlay matches old bytes; conflicting pin/changed preview refuses before write. Local interleaved samples 341 to 202 stdout bytes, median 110.8 to 56.7 ms, 25 trials. Prefix, first-run branching and tracker work left with existing callers.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "975e139318b2e7b385a9046ec310346bffbca1a5",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1253",
+      "rank": 20,
+      "skill": "run wave convergence mode",
+      "files": [
+        {
+          "path": "plugin/skills/faff-beep-boop/SKILL.md",
+          "before": {
+            "bytes": 154055,
+            "estimated_tokens": 38180,
+            "sha256": "e3378bc2d8138963cf1f7322edfd2d66411ec75b9fd3929d53f2a1e91ab28791"
+          },
+          "after": {
+            "bytes": 151523,
+            "estimated_tokens": 37555,
+            "sha256": "55e86c0ef2d9aa709dc713a80cdce655b7ad0afc38c9fd462a525998d5698289"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 154055,
+        "estimated_tokens": 38180
+      },
+      "after": {
+        "bytes": 151523,
+        "estimated_tokens": 37555
+      },
+      "saved": {
+        "bytes": 2532,
+        "estimated_tokens": 625
+      },
+      "tests_passed": 133,
+      "verification": "Explicit run ledger and real run-done kernel. Nine matrix cases plus corrupt/missing/ambient/contradictory input; documented --json spelling corrected and a drained queue with incomplete product remained escalated. One 30-byte output per run, observed 41.4 ms median locally. No write to the historical unkeyed stalled-wave counter.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "dda111dc10b8fdf45c50b4050f36a68c9a7182eb",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1254",
+      "rank": 25,
+      "skill": "ADR promotion source",
+      "files": [
+        {
+          "path": "plugin/skills/faff-graft/SKILL.md",
+          "before": {
+            "bytes": 168608,
+            "estimated_tokens": 41822,
+            "sha256": "da02120b4170b024cdeccfe07f74d40c91f578d1d473e03ef8ea3ab2d7db7535"
+          },
+          "after": {
+            "bytes": 167692,
+            "estimated_tokens": 41596,
+            "sha256": "d98ce0cc173829fd7c411f563809f13f696f6e14a46c572f8bbf32754c89ca0a"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 168608,
+        "estimated_tokens": 41822
+      },
+      "after": {
+        "bytes": 167692,
+        "estimated_tokens": 41596
+      },
+      "saved": {
+        "bytes": 916,
+        "estimated_tokens": 226
+      },
+      "tests_passed": 169,
+      "verification": "Existing ADR/extract-intent, spec and adapter suites passed. A separate 41-test run exercises discovery and rejects the selector on legacy verbs. Median local spec fallback 104.1 to 41.7 ms, three processes to one. Supplied tracker intent takes priority. No tracker or ADR write; idempotent creation by title or issue remains unproven.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "47c222b668050bebaafd2982563924ed2d263ba6",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1255",
+      "rank": 30,
+      "skill": "slot skill scaffold and structural check",
+      "files": [
+        {
+          "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+          "before": {
+            "bytes": 11876,
+            "estimated_tokens": 2945,
+            "sha256": "a1adaa37ea1313d9d45ee4d542d71f18919a9a12b4dbdea66fa62eb6894d8521"
+          },
+          "after": {
+            "bytes": 7928,
+            "estimated_tokens": 1968,
+            "sha256": "437276eb3cb0d0ba6dc597eaafc697d712a4176af2d77d97b341c57fa363ca4f"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 11876,
+        "estimated_tokens": 2945
+      },
+      "after": {
+        "bytes": 7928,
+        "estimated_tokens": 1968
+      },
+      "saved": {
+        "bytes": 3948,
+        "estimated_tokens": 977
+      },
+      "tests_passed": 161,
+      "verification": "Real CLI checks for every supported slot, installed name and no-clobber handling. Four measured profiles returned 70–92 bytes on scaffold and 123–145 on check. Including rereading the entire scaffold, the maximum added input was 1,190 bytes. Separate o200k counts give 930 prompt tokens and at least 655 net in these four cases. Semantic review remains with the skill.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "head": "f4dbcf0c5262d757c1833561e3c3138a354d45a6",
+      "status": "open",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
       }
     }
   ],
   "pending_savings": {
-    "bytes": 40863,
-    "estimated_tokens": 10116
+    "bytes": 79560,
+    "estimated_tokens": 19687
   },
   "limits": [
     "Merged figures use the current main tree. Fresh diagnostics and historical cohorts remain separate.",
@@ -457,8 +1162,8 @@
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1140369,
-    "estimated_tokens": 282848
+    "bytes": 1097030,
+    "estimated_tokens": 272136
   },
   "landed_extractions": [
     {
@@ -1468,7 +2173,7 @@
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
       },
       "merge_commit": "f70d085143a65353849e0a3471b3decaa66d6636"
     },
@@ -1497,7 +2202,7 @@
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
       },
       "qualification_path": "graft-assess-fix.json",
       "original_isolated_measurement": {
@@ -1597,10 +2302,66 @@
       "verification": "Both executors matched across 12 cases per arm. Worker launches and corrective effects simulated. Candidate inspected the fixture wrapper. Published CLI replayed all ten actual calls exactly.",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T12:46:23.926991+00:00"
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
       },
       "remote_rebase_measured_source_unchanged": true,
       "merge_commit": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea"
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1233",
+      "rank": 2,
+      "skill": "tracker issue facts",
+      "files": [
+        {
+          "path": "plugin/skills/faff-map/SKILL.md",
+          "before": {
+            "bytes": 23737,
+            "estimated_tokens": 5791,
+            "sha256": "e627744fd9ce3f9b15e10ae141e3e848622094382191155fed8fc93797b9b95d"
+          },
+          "after": {
+            "bytes": 23486,
+            "estimated_tokens": 5732,
+            "sha256": "835b129019bed64b9bf307d5020820a77e6c9a562aed4b72b90be8e2b6d8c1f7"
+          }
+        },
+        {
+          "path": "plugin/skills/faff/references/tracker.md",
+          "before": {
+            "bytes": 22649,
+            "estimated_tokens": 5615,
+            "sha256": "f3f01623ec743a633a4b68a6b7162809393db7ee70efa7f2cd14fcca1c17a13d"
+          },
+          "after": {
+            "bytes": 18258,
+            "estimated_tokens": 4533,
+            "sha256": "273863334fdce17a028aa3f2a3a1b8e449f20263979c51242c67022f5e390b43"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 46386,
+        "estimated_tokens": 11406
+      },
+      "after": {
+        "bytes": 41744,
+        "estimated_tokens": 10265
+      },
+      "saved": {
+        "bytes": 4642,
+        "estimated_tokens": 1141
+      },
+      "tests_passed": 61,
+      "verification": "Native Claude Code callers reproduced all eleven downstream next calls across supplied GitHub and Linear batches and both refusal paths. Two compact classifier inputs totalled 1,740 bytes. No live tracker operation.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea",
+      "head": "a671940641c2731a1b0667877af83dfda1de3eaf",
+      "status": "merged",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T14:27:59.854457+00:00"
+      },
+      "merge_commit": "626f6a3caf5f216975323cfdb9007e0b06a522a0"
     }
   ],
   "local_not_counted": [
@@ -1673,7 +2434,7 @@
       "status": "held. Source corrections for transient-only CI continuation, no-op before effects, and custody wording. 270 focused tests pass. Combined unattended handoff through collision, authorisation, custody, ship and post-merge has no paired caller qualification. No broad model run."
     }
   ],
-  "recorded_at_utc": "2026-11-18T12:46:23.926991+00:00",
+  "recorded_at_utc": "2026-11-18T14:27:59.854457+00:00",
   "new_cli_tests": {
     "prep_context": {
       "implementation_pr": 1219,
@@ -1716,15 +2477,209 @@
   "combined_file_rounding": {
     "source": "Prompt patches applied in dependency order to a disposable index. Each resulting full file is rounded once.",
     "prs": [
-      1233,
       1234,
       1235,
       1236,
       1237,
       1238,
       1239,
-      1240
+      1240,
+      1241,
+      1242,
+      1243,
+      1244,
+      1245,
+      1246,
+      1247,
+      1248,
+      1249,
+      1250,
+      1251,
+      1252,
+      1253,
+      1254,
+      1255
     ],
-    "adjustment_estimated_tokens": -1
+    "adjustment_estimated_tokens": -2
+  },
+  "starting_commit": "63e71d1f6bfa5ea8ba6590861ab2fd76b7042f2d",
+  "cumulative_projected_savings": {
+    "bytes": 275051,
+    "estimated_tokens": 67793
+  },
+  "ranked_cli_rehearsal": {
+    "main": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+    "combined_tree": "0b7d792b84b4e408e9454f1ad07fe783e66fb4c1",
+    "local_rehearsal_commit": "b0dbd88dde4b4f7235018c0e5e4bc15a8d40a873",
+    "prompt_tree_matches_all_41_files": true,
+    "open_prs": {
+      "1234": {
+        "head": "ca085c47e6dce34a09d224a2f693df53034aac79",
+        "base": "main"
+      },
+      "1235": {
+        "head": "2000e00606e0497356dd8669c1fc91f7c385faf9",
+        "base": "main"
+      },
+      "1236": {
+        "head": "52b3594ba68da1a8d79eeb358b726f417ae39ec3",
+        "base": "main"
+      },
+      "1237": {
+        "head": "0359ba6897d326dbfb438f30bb4e1bc847316666",
+        "base": "main"
+      },
+      "1238": {
+        "head": "055599f7d24c87ce9bd2b23b149baa9dc0eb6896",
+        "base": "feat/l4-round-prepare"
+      },
+      "1239": {
+        "head": "bd7ea05f508c6f8eca5a24a59ae43e57751ca7b5",
+        "base": "feat/build-queue-partition"
+      },
+      "1240": {
+        "head": "6f384edfd2580082fc983b5b1805b4572d846011",
+        "base": "main"
+      },
+      "1241": {
+        "head": "ce732b4542b30f84ed6a8d622fd11f182df3ec51",
+        "base": "main"
+      },
+      "1242": {
+        "head": "b42130f4f181f1cc5e47def87eba700c7d1ad57c",
+        "base": "main"
+      },
+      "1243": {
+        "head": "9d31c51fa16ae8dd6240008550482ba1bd81a477",
+        "base": "main"
+      },
+      "1244": {
+        "head": "10a8d18a7781711e2f75b162d83a5cfdd5bdf5a3",
+        "base": "main"
+      },
+      "1245": {
+        "head": "548be0d3b98807f5dd9ec083d0366702c2316e62",
+        "base": "main"
+      },
+      "1246": {
+        "head": "d490585ed1b869ab040648e822b562629e15e248",
+        "base": "main"
+      },
+      "1247": {
+        "head": "79108af8056f7532bc193dfde61adc3f508cb551",
+        "base": "main"
+      },
+      "1248": {
+        "head": "d9afb9a30836e7ac880bc9b04619360fbf5edca4",
+        "base": "main"
+      },
+      "1249": {
+        "head": "6344fca6f9de292607e1e204188c2239405396e5",
+        "base": "main"
+      },
+      "1250": {
+        "head": "424306376e3d2f11a5406f7fbebfce6b850ebacf",
+        "base": "main"
+      },
+      "1251": {
+        "head": "dd543dc8b6d119c39bb0fa853772042bf14c9af4",
+        "base": "main"
+      },
+      "1252": {
+        "head": "975e139318b2e7b385a9046ec310346bffbca1a5",
+        "base": "main"
+      },
+      "1253": {
+        "head": "dda111dc10b8fdf45c50b4050f36a68c9a7182eb",
+        "base": "main"
+      },
+      "1254": {
+        "head": "47c222b668050bebaafd2982563924ed2d263ba6",
+        "base": "main"
+      },
+      "1255": {
+        "head": "f4dbcf0c5262d757c1833561e3c3138a354d45a6",
+        "base": "main"
+      }
+    },
+    "node_version": "v22.23.5",
+    "test_files": [
+      "test/admissible.test.mjs",
+      "test/adr-extract-intent.test.mjs",
+      "test/adr-promotion-source.test.mjs",
+      "test/adversarial-call.test.mjs",
+      "test/build-queue-partition.test.mjs",
+      "test/check-no-boundary-cast.test.mjs",
+      "test/discovered-scope-plan.test.mjs",
+      "test/graft-in-review-bracket.test.mjs",
+      "test/graft-remote-base.test.mjs",
+      "test/holdout-handoff.test.mjs",
+      "test/holdout-record.test.mjs",
+      "test/issue-facts.test.mjs",
+      "test/merge-delivery-receipt.test.mjs",
+      "test/merge-gate-controlflow.test.mjs",
+      "test/merge-gate-local.test.mjs",
+      "test/next-prep-queue.test.mjs",
+      "test/onboard-local.test.mjs",
+      "test/park-finalize.test.mjs",
+      "test/planning-graph.test.mjs",
+      "test/review-progress-resume.test.mjs",
+      "test/run-entry-preflight.test.mjs",
+      "test/run-reconcile-input.test.mjs",
+      "test/run-return-map.test.mjs",
+      "test/run-summary.test.mjs",
+      "test/run-trigger.test.mjs",
+      "test/run-wave-mode.test.mjs",
+      "test/scaffolder-cli-surface-drift.test.mjs",
+      "test/spec-producer-scenario-format.test.mjs",
+      "test/spec-review-dispatch-resolution.test.mjs",
+      "test/spec-review-occupant-served-dispatch.test.mjs",
+      "test/spec-review-pin.test.mjs",
+      "test/spec-review-prepare-requests.test.mjs",
+      "test/spec-review-record-results.test.mjs",
+      "test/spec-review-reputation.test.mjs",
+      "test/spec-review-round.test.mjs",
+      "test/ticket-template-fields.test.mjs",
+      "test/validate-adapters-authoring.test.mjs",
+      "test/validate-adapters-commissaire-unit-id.test.mjs",
+      "test/validate-adapters-delegation.test.mjs",
+      "test/validate-adapters-enum-restatement.test.mjs",
+      "test/validate-adapters-prose-defaults.test.mjs",
+      "test/validate-adapters-removed-dispatch-key.test.mjs",
+      "test/validate-adapters-voice-pointer.test.mjs",
+      "test/validate-adapters.test.mjs",
+      "test/worktree-ensure.test.mjs"
+    ],
+    "results": {
+      "tests": 1144,
+      "pass": 1143,
+      "fail": 0,
+      "skipped": 1
+    },
+    "skip": "Existing real prefix-caching backend timing probe. No backend configured.",
+    "checks": [
+      "TypeScript build and no-emit type-check",
+      "committed emit and manifest",
+      "TypeScript boundary checker",
+      "regions check",
+      "validate-adapters",
+      "lint-cli-doc",
+      "lint-cli-coverage",
+      "lint-refs",
+      "rule-inventory check"
+    ],
+    "rule_inventory": {
+      "base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "blocks_deleted": 302,
+      "covered_moved": 4,
+      "covered_by_row": 298,
+      "uncovered": [],
+      "row_errors": [],
+      "warnings": [
+        "records/specs/2026-11-18-l4-spec-review-record-results-design.md:13: anchor matches no deleted prose",
+        "records/specs/2026-11-18-l4-spec-review-record-results-design.md:14: anchor matches no deleted prose"
+      ]
+    },
+    "limits": "Local integration tree only. Rebuilding the generated registries and merging the TypeScript source list required conflict resolutions. Rebased PR tips retained the exact tested combined tree. Native Claude pairing was scoped to the slices explicitly marked in ranked-cli-results.json. Live provider caching, tracker publication and merge writes were outside this trial."
   }
 }

@@ -2,7 +2,27 @@
   "held": {
     "5": "Held. A post acknowledgement or a fresh discovered spec is sufficient in the existing callers. Mandatory same-comment readback changes tracker behaviour.",
     "7": "Held. Six of nine plausible archived spec samples exceeded the 2,500-byte per-path saving before the raw heading. Build archives lacked per-pass prose. No result formatter published.",
-    "8": "Held locally. Extracting one delivery-envelope parser saved 551 bytes across the prompts. A compact reply increased input from 53 to 145 bytes; arbitrary slot text can be longer. Native delivery has not been qualified."
+    "8": "Held locally. Extracting one delivery-envelope parser saved 551 bytes across the prompts. A compact reply increased input from 53 to 145 bytes; arbitrary slot text can be longer. Native delivery has not been qualified.",
+    "17": "Held. A display-only cycle renderer trimmed 553 bytes in the corpus and added a local invocation, median 39 ms. The existing caller already has the graph.",
+    "18": "Held. Collecting local briefing facts removed 726 prompt bytes but the new write path sends the whole narrative through a command. No CLI publication.",
+    "21": "Held. The dispatcher receives an entire chain after its worker returns. A verified intermediate custody receipt is unavailable to the worker. A handoff command at this point would bypass the existing dispatcher boundary.",
+    "26": "Held. Existing run-summary reads supersession.json directly, and reconcile verifies all named delivering tickets. The only separable write sentence is 269 bytes. Another command would duplicate the evidence path.",
+    "31": "Held. The 378-byte endpoint excerpt already uses the Compose resolver. Project and seed cleanup ownership, the bridge service contribution and proposal-only fallback are unresolved. Local probes covered absent profiles, invalid hosts and two plans sharing an ID.",
+    "32": "Held. A missing association requires a hold, while cold coverage can pass on persisted verdicts. The release decision needs a precedence rule covering both histories.",
+    "33": "Held. The draft splice planner covers CRLF locally. Canonical comment selection, pagination and uncertain acknowledgement still need an end-to-end trial with the discovered tracker. Draft #1203 is excluded."
+  },
+  "rank31_probe": {
+    "base": "a3fa5446",
+    "same_profile_project": "faff-env-2b787f5f",
+    "default_endpoint": "http://localhost:8080",
+    "bracketed_ipv6_endpoint": "http://[::1]:8080",
+    "seed_formats": {
+      "redis": "command-replay",
+      "mongo": "mongoimport"
+    },
+    "invalid_host_exit": 2,
+    "profile_absent_exit": 3,
+    "provider_calls": 0
   },
   "rank7_artifact_sample": {
     "base": "513b6e7f7c93d9356a2e62571ef0ad77be2f7a4f",
@@ -1950,11 +1970,834 @@
     "1240": {
       "rank": 9,
       "test_count": 68,
-      "qualification": "Executable cases bind the diff, issue and readable findings. The old writer lost its outage counter after a phase rewrite. The new writer preserves it, refuses stale callbacks and serializes increments. Guarded corrections are intentional departures.",
+      "qualification": "Executable cases bind the diff, issue and readable findings. The old writer lost its outage counter after a phase rewrite. The new writer preserves it, refuses stale callbacks and serializes increments. Guarded corrections are intentional departures. Native Claude Code matched the three normal routes. On a rewrite the baseline lost the outage counter; the candidate retained it. A late stale callback changed the baseline to complete, whereas the candidate returned 3 and restored control to graft. Nine real calls per arm, no external effects.",
       "feature_files": [
         "plugin/skills/faff-graft/SKILL.md",
         "plugin/skills/faffter-dark-adversarial-review/SKILL.md"
+      ],
+      "native": {
+        "baseline": {
+          "outage_retries_after_each_call": [
+            null,
+            null,
+            null,
+            null
+          ],
+          "late_write_exit": 0,
+          "late_checkpoint_status": "complete",
+          "late_checkpoint_findings": "findings.md",
+          "cli_calls": 9,
+          "cli_stdout_bytes": 2255,
+          "cli_stderr_bytes": 0,
+          "entry_cli_stdout_bytes": 745
+        },
+        "candidate": {
+          "outage_retries_after_each_call": [
+            2,
+            2,
+            2,
+            2
+          ],
+          "late_write_exit": 3,
+          "late_checkpoint_status": "pending",
+          "late_checkpoint_findings": null,
+          "cli_calls": 9,
+          "cli_stdout_bytes": 1419,
+          "cli_stderr_bytes": 78,
+          "entry_cli_stdout_bytes": 98
+        }
+      }
+    },
+    "1241": {
+      "rank": 15,
+      "test_count": 354,
+      "qualification": "Sixteen legacy forced-gate invocations retained stdout, stderr and exit status. The new author-only view shares the same scanners and emits 77 versus 1,534 bytes on a 262-byte draft. Confidence and authored text remain caller decisions. Median 36.1 versus 36.9 ms over 25 fresh calls.",
+      "feature_files": [
+        "plugin/skills/faff/references/kernel.md",
+        "plugin/skills/faffter-dark-nlspec/SKILL.md",
+        "plugin/skills/faffter-noon-spec/SKILL.md"
       ]
+    },
+    "1242": {
+      "rank": 12,
+      "test_count": 238,
+      "qualification": "The real remote-base fixture resumes from the checkpoint produced in the original worktree. Exact diff bytes stream via private scratch with bounded reads. A >65 MiB fixture and forced partial failure tested cleanup and prior receipt preservation. Separate local bare-origin and git-only timings; no production latency claim.",
+      "feature_files": [
+        "plugin/skills/faff-graft/SKILL.md"
+      ],
+      "runtime": {
+        "git-only": {
+          "baseline": {
+            "median_ms": 33.2,
+            "stdout_bytes": 273,
+            "runs": 30
+          },
+          "candidate": {
+            "median_ms": 62.3,
+            "stdout_bytes": 25,
+            "runs": 30
+          }
+        },
+        "bare-origin": {
+          "baseline": {
+            "median_ms": 36.3,
+            "stdout_bytes": 273,
+            "runs": 30
+          },
+          "candidate": {
+            "median_ms": 63.6,
+            "stdout_bytes": 25,
+            "runs": 30
+          }
+        }
+      }
+    },
+    "1243": {
+      "rank": 13,
+      "test_count": 126,
+      "qualification": "Real local CLI traced prepare, comment, label and record using 638 input and 331 stdout bytes across four calls. A distinct transition after manual unpark can park again. Unknown or unacknowledged tracker writes require live reconciliation; effects were simulated. The original local full suite had 96 failures, all reproduced by name on the base.",
+      "feature_files": [
+        "plugin/skills/faff-beep-boop/SKILL.md",
+        "plugin/skills/faff-prep/SKILL.md",
+        "plugin/skills/faff/references/park.md"
+      ],
+      "runtime_before_final_repark_clarification": {
+        "candidate": "0bdf134fc9134bdb0ba0e7175b48a749ee053101",
+        "removed_prompt_bytes": 4066,
+        "traces": {
+          "fresh_tracker": [
+            {
+              "verb": "prepare",
+              "action": null,
+              "stdin_bytes": 107,
+              "stdout_bytes": 127,
+              "stderr_bytes": 0
+            },
+            {
+              "verb": "finalize",
+              "action": "comment",
+              "stdin_bytes": 175,
+              "stdout_bytes": 21,
+              "stderr_bytes": 0
+            },
+            {
+              "verb": "finalize",
+              "action": "label",
+              "stdin_bytes": 177,
+              "stdout_bytes": 19,
+              "stderr_bytes": 0
+            },
+            {
+              "verb": "finalize",
+              "action": "record",
+              "stdin_bytes": 179,
+              "stdout_bytes": 164,
+              "stderr_bytes": 0
+            }
+          ],
+          "uncertain_comment": [
+            {
+              "verb": "finalize",
+              "action": "reconcile",
+              "stdin_bytes": 175,
+              "stdout_bytes": 42,
+              "stderr_bytes": 0
+            },
+            {
+              "verb": "finalize",
+              "action": "record",
+              "stdin_bytes": 179,
+              "stdout_bytes": 164,
+              "stderr_bytes": 0
+            }
+          ],
+          "backstop": [
+            {
+              "verb": "finalize",
+              "action": "reconcile",
+              "stdin_bytes": 191,
+              "stdout_bytes": 42,
+              "stderr_bytes": 0
+            }
+          ],
+          "after_manual_unpark": [
+            {
+              "verb": "finalize",
+              "action": "already-recorded",
+              "stdin_bytes": 321,
+              "stdout_bytes": 30,
+              "stderr_bytes": 0
+            }
+          ],
+          "git_only": [
+            {
+              "verb": "finalize",
+              "action": "record",
+              "stdin_bytes": 158,
+              "stdout_bytes": 164,
+              "stderr_bytes": 0
+            }
+          ]
+        },
+        "scope": "Compact JSON stdin and actual stdout/stderr. All caller data synthetic. No MCP/model operations or approvals invoked."
+      }
+    },
+    "1244": {
+      "rank": 14,
+      "test_count": 113,
+      "qualification": "Real CLI tests cover all six built-ins, overrides, mapped identity, supplied native markdown, stale/opaque bodies, duplicate headings and fenced examples. The old native-map remains usable. No live tracker, rendering or authored descriptions. A native hit can add a local process; a local fallback saves one.",
+      "feature_files": [
+        "plugin/skills/faff-jot/SKILL.md",
+        "plugin/skills/faff/references/create.md"
+      ],
+      "runtime": {
+        "replicates": 9,
+        "local_fallback": {
+          "before": {
+            "median_ms": 115.4,
+            "stdout_bytes": 67
+          },
+          "after": {
+            "median_ms": 72.9,
+            "stdout_bytes": 66
+          },
+          "before_processes": 2,
+          "after_processes": 1
+        },
+        "native_sample": {
+          "body_bytes": 95,
+          "after": {
+            "median_ms": 114.9,
+            "stdout_bytes": 55
+          },
+          "after_processes": 2,
+          "before_processes": 1,
+          "before_stdout_bytes": 85
+        },
+        "limits": "Synthetic connector response, local processes only. Old native path parsed the fetched markdown in the caller. Native measurements exclude connector calls and ticket authoring."
+      }
+    },
+    "1245": {
+      "rank": 16,
+      "test_count": 168,
+      "qualification": "Existing eligible and next decisions matched the batch plus downstream graft needs-prep handoff. For eight issues the measured tool path used 304 to 279 estimated I/O tokens and 499.9 to 40.6 ms; at 20 issues, 728 to 681 and 1299.1 to 41.8 ms. The separate WTF projection and cache parser remain held.",
+      "feature_files": [
+        "plugin/skills/faff-beep-boop/SKILL.md"
+      ],
+      "queue_fixture": {
+        "source": {
+          "plugin/skills/faff-beep-boop/SKILL.md": {
+            "before_bytes": 154055,
+            "after_bytes": 152417,
+            "before_tokens": 38035,
+            "after_tokens": 37647
+          },
+          "plugin/skills/faff-wtf/SKILL.md": {
+            "before_bytes": 29189,
+            "after_bytes": 29189,
+            "before_tokens": 7000,
+            "after_tokens": 7000
+          },
+          "plugin/skills/faff/references/methodology.md": {
+            "before_bytes": 32071,
+            "after_bytes": 32071,
+            "before_tokens": 7658,
+            "after_tokens": 7658
+          }
+        },
+        "mixed_preview": [],
+        "prep_dispatch": [
+          {
+            "issues": 1,
+            "baseline_workflow_tokens": 50,
+            "candidate_workflow_tokens": 47,
+            "baseline_workflow_bytes": 201,
+            "candidate_workflow_bytes": 161,
+            "wall_ms": {
+              "old": 123.8,
+              "new": 79.7
+            }
+          },
+          {
+            "issues": 8,
+            "baseline_workflow_tokens": 304,
+            "candidate_workflow_tokens": 278,
+            "baseline_workflow_bytes": 1170,
+            "candidate_workflow_bytes": 903,
+            "wall_ms": {
+              "old": 542.0,
+              "new": 43.5
+            }
+          },
+          {
+            "issues": 15,
+            "baseline_workflow_tokens": 558,
+            "candidate_workflow_tokens": 510,
+            "baseline_workflow_bytes": 2139,
+            "candidate_workflow_bytes": 1646,
+            "wall_ms": {
+              "old": 962.5,
+              "new": 40.8
+            }
+          },
+          {
+            "issues": 20,
+            "baseline_workflow_tokens": 728,
+            "candidate_workflow_tokens": 680,
+            "baseline_workflow_bytes": 2779,
+            "candidate_workflow_bytes": 2181,
+            "wall_ms": {
+              "old": 1290.5,
+              "new": 41.9
+            }
+          }
+        ]
+      },
+      "held_routing_preview": {
+        "source": {
+          "plugin/skills/faff-beep-boop/SKILL.md": {
+            "before_bytes": 154055,
+            "after_bytes": 152783,
+            "before_tokens": 38035,
+            "after_tokens": 37727
+          },
+          "plugin/skills/faff-wtf/SKILL.md": {
+            "before_bytes": 29189,
+            "after_bytes": 28027,
+            "before_tokens": 7000,
+            "after_tokens": 6706
+          },
+          "plugin/skills/faff/references/methodology.md": {
+            "before_bytes": 32071,
+            "after_bytes": 31529,
+            "before_tokens": 7658,
+            "after_tokens": 7528
+          }
+        },
+        "mixed_preview": [
+          {
+            "issues": 1,
+            "input_bytes": 129,
+            "output_bytes": 158,
+            "io_tokens": 82
+          },
+          {
+            "issues": 8,
+            "input_bytes": 984,
+            "output_bytes": 365,
+            "io_tokens": 405
+          },
+          {
+            "issues": 15,
+            "input_bytes": 1814,
+            "output_bytes": 491,
+            "io_tokens": 699
+          },
+          {
+            "issues": 20,
+            "input_bytes": 2431,
+            "output_bytes": 593,
+            "io_tokens": 922
+          },
+          {
+            "issues": 50,
+            "input_bytes": 5901,
+            "output_bytes": 1037,
+            "io_tokens": 2122
+          }
+        ],
+        "prep_dispatch": [
+          {
+            "issues": 1,
+            "baseline_workflow_tokens": 50,
+            "candidate_workflow_tokens": 48,
+            "baseline_workflow_bytes": 201,
+            "candidate_workflow_bytes": 173,
+            "wall_ms": {
+              "old": 62.8,
+              "new": 40.3
+            }
+          },
+          {
+            "issues": 8,
+            "baseline_workflow_tokens": 304,
+            "candidate_workflow_tokens": 279,
+            "baseline_workflow_bytes": 1170,
+            "candidate_workflow_bytes": 915,
+            "wall_ms": {
+              "old": 499.9,
+              "new": 40.6
+            }
+          },
+          {
+            "issues": 15,
+            "baseline_workflow_tokens": 558,
+            "candidate_workflow_tokens": 511,
+            "baseline_workflow_bytes": 2139,
+            "candidate_workflow_bytes": 1658,
+            "wall_ms": {
+              "old": 947.5,
+              "new": 41.3
+            }
+          },
+          {
+            "issues": 20,
+            "baseline_workflow_tokens": 728,
+            "candidate_workflow_tokens": 681,
+            "baseline_workflow_bytes": 2779,
+            "candidate_workflow_bytes": 2193,
+            "wall_ms": {
+              "old": 1299.1,
+              "new": 41.8
+            }
+          }
+        ]
+      }
+    },
+    "1246": {
+      "rank": 19,
+      "test_count": 366,
+      "qualification": "Same four underlying GitHub reads verified using a stub forge. Three local probes now compose in one CLI call with the existing warning and refusal policies. Sample stdout 499 to 37 bytes, median 105.1 to 46.0 ms across 25 fresh iterations. No provider latency or live network measurement.",
+      "feature_files": [
+        "plugin/skills/faff-beep-boop/SKILL.md",
+        "plugin/skills/faff/references/autonomous.md"
+      ]
+    },
+    "1247": {
+      "rank": 23,
+      "test_count": 125,
+      "qualification": "Actual standalone plot reads the existing selector. One survivor used 106 vs 581 stdout bytes and one instead of two local calls. Ties still require the human choice. Checked inherited-ledger bytes and directory unchanged. No live stakeholder or ticket operations.",
+      "feature_files": [
+        "plugin/skills/faff-plot/SKILL.md"
+      ],
+      "fixture_measurement": {
+        "base": "a3fa5446",
+        "prompt_bytes_removed": 975,
+        "single_survivor": {
+          "baseline_stdout_bytes": 581,
+          "candidate_stdout_bytes": 106,
+          "baseline_calls": 2,
+          "candidate_calls": 1
+        },
+        "tie_before_human_choice": {
+          "baseline_stdout_bytes": 693,
+          "candidate_stdout_bytes": 145,
+          "baseline_calls": 1,
+          "candidate_calls": 1
+        },
+        "scope": "Actual archived baseline and candidate CLI stdout. Local synthetic PRD files and no model invocation.",
+        "candidate": "9cec42545282055137e275a43b9a603a9bd42b16"
+      }
+    },
+    "1248": {
+      "rank": 22,
+      "test_count": 292,
+      "qualification": "Same caged and inline paths, full spec and original spawner evidence writer. With four judged and six delegated criteria, evaluator criteria output went from 2,557 to 495 bytes, counts to 61 bytes, and receipt output from 1,285 to 52 bytes. Corroborated real spawner-hook identity and scrubbing with local fixtures. Restored explicit mixed gaps rubric example after hosted scorer test.",
+      "feature_files": [
+        "plugin/skills/faff-beep-boop/SKILL.md",
+        "plugin/skills/faff-graft/SKILL.md",
+        "plugin/skills/faffter-noon-evaluate/SKILL.md"
+      ],
+      "fixture_measurement": {
+        "source": {
+          "plugin/skills/faff-graft/SKILL.md": {
+            "before": [
+              168608,
+              42022
+            ],
+            "after": [
+              168542,
+              42010
+            ]
+          },
+          "plugin/skills/faff-beep-boop/SKILL.md": {
+            "before": [
+              154055,
+              38035
+            ],
+            "after": [
+              153649,
+              37914
+            ]
+          },
+          "plugin/skills/faffter-noon-evaluate/SKILL.md": {
+            "before": [
+              15592,
+              3803
+            ],
+            "after": [
+              12487,
+              3039
+            ]
+          }
+        },
+        "fixtures": [
+          {
+            "judged": 1,
+            "delegated": 6,
+            "criteria": {
+              "counts": {
+                "stdout_bytes": 61,
+                "stdout_tokens": 18,
+                "median_ms": 35.2
+              },
+              "criteria": {
+                "stdout_bytes": 135,
+                "stdout_tokens": 38,
+                "median_ms": 35.1
+              },
+              "classify": {
+                "stdout_bytes": 1845,
+                "stdout_tokens": 515,
+                "median_ms": 35.3
+              }
+            },
+            "receipt": {
+              "receipt": {
+                "stdout_bytes": 52,
+                "stdout_tokens": 14,
+                "median_ms": 38.4
+              },
+              "contract": {
+                "stdout_bytes": 1099,
+                "stdout_tokens": 337,
+                "median_ms": 32.8
+              }
+            },
+            "record_bytes_if_returned": 1905
+          },
+          {
+            "judged": 4,
+            "delegated": 6,
+            "criteria": {
+              "counts": {
+                "stdout_bytes": 61,
+                "stdout_tokens": 18,
+                "median_ms": 35.9
+              },
+              "criteria": {
+                "stdout_bytes": 495,
+                "stdout_tokens": 137,
+                "median_ms": 35.5
+              },
+              "classify": {
+                "stdout_bytes": 2557,
+                "stdout_tokens": 698,
+                "median_ms": 35.1
+              }
+            },
+            "receipt": {
+              "receipt": {
+                "stdout_bytes": 52,
+                "stdout_tokens": 14,
+                "median_ms": 38.5
+              },
+              "contract": {
+                "stdout_bytes": 1285,
+                "stdout_tokens": 385,
+                "median_ms": 33.4
+              }
+            },
+            "record_bytes_if_returned": 3087
+          },
+          {
+            "judged": 20,
+            "delegated": 6,
+            "criteria": {
+              "counts": {
+                "stdout_bytes": 62,
+                "stdout_tokens": 18,
+                "median_ms": 39.6
+              },
+              "criteria": {
+                "stdout_bytes": 2436,
+                "stdout_tokens": 665,
+                "median_ms": 41.0
+              },
+              "classify": {
+                "stdout_bytes": 6373,
+                "stdout_tokens": 1674,
+                "median_ms": 41.4
+              }
+            },
+            "receipt": {
+              "receipt": {
+                "stdout_bytes": 52,
+                "stdout_tokens": 14,
+                "median_ms": 43.7
+              },
+              "contract": {
+                "stdout_bytes": 2277,
+                "stdout_tokens": 641,
+                "median_ms": 38.4
+              }
+            },
+            "record_bytes_if_returned": 9412
+          }
+        ]
+      }
+    },
+    "1249": {
+      "rank": 24,
+      "test_count": 239,
+      "qualification": "Existing audited containment/self-intake kernels exercised on file-native supplied facts. One contained case increased stdout 89 to 248 bytes and median time 20.7 to 37.3 ms. The self-intake plan decreased stdout 334 to 298 bytes and median time 49.2 to 39.9 ms while removing one process. No tracker writes or acknowledgements by CLI. Interactive rehome excluded.",
+      "feature_files": [
+        "plugin/skills/faff-beep-boop/SKILL.md",
+        "plugin/skills/faff-tidy/SKILL.md",
+        "plugin/skills/faff/references/autonomous.md"
+      ]
+    },
+    "1250": {
+      "rank": 28,
+      "test_count": 118,
+      "qualification": "Supplied fresh tracker status and exact PR-open result rendered the descriptor consumed by the actual local effects declare/check/observe writer. Positive input 212 bytes and output 257 bytes; already advanced returned 18 bytes. Connector calls and acknowledgement simulated, no claim or merge changes.",
+      "feature_files": [
+        "plugin/skills/faff-graft/SKILL.md"
+      ],
+      "fixture_measurement": {
+        "candidate": "d3a0cb3778e29e5a53b6b9f5f5fae354b3398658",
+        "prompt_bytes_removed": 1361,
+        "positive": {
+          "stdin_bytes": 212,
+          "stdout_bytes": 257,
+          "stderr_bytes": 0,
+          "result": {
+            "action": "write",
+            "state": "review-state-id",
+            "bracket": {
+              "args": [
+                "--run-dir",
+                "/var/tmp/faff-review-plan-47bvc3_k",
+                "--issue",
+                "TEST-28",
+                "--step",
+                "tracker-write"
+              ],
+              "payload": [
+                {
+                  "kind": "tracker-write",
+                  "target": "TEST-28:In Progress->In Review",
+                  "reversible": true
+                }
+              ]
+            }
+          }
+        },
+        "already_advanced": {
+          "stdin_bytes": 210,
+          "stdout_bytes": 18,
+          "stderr_bytes": 0,
+          "result": {
+            "action": "noop"
+          }
+        },
+        "scope": "Real local CLI with simulated tracker observations. The run path contributes to stdout. Observed effects are confirmed only by the existing caller."
+      }
+    },
+    "1251": {
+      "rank": 27,
+      "test_count": 236,
+      "qualification": "Consumes the existing merge-gate receipt with matching exit. A confirmed open PR can be deferred and inconclusive observations stay unknown. No extra Git or forge reads. Representative output adds about 56 to 65 native result tokens, around 45 ms locally. No new merge operation.",
+      "feature_files": [
+        "plugin/skills/faffter-noon-ship/SKILL.md"
+      ],
+      "fixture_measurement": {
+        "source": {
+          "before_bytes": 12793,
+          "after_bytes": 10307,
+          "before_tokens": 3170,
+          "after_tokens": 2537
+        },
+        "cases": {
+          "confirmed": {
+            "old_output_bytes": 193,
+            "new_output_bytes": 385,
+            "old_output_tokens": 64,
+            "new_output_tokens": 122,
+            "formatter_median_ms": 45.7
+          },
+          "cleanup_incomplete": {
+            "old_output_bytes": 249,
+            "new_output_bytes": 478,
+            "old_output_tokens": 76,
+            "new_output_tokens": 141,
+            "formatter_median_ms": 45.6
+          },
+          "floor_refusal": {
+            "old_output_bytes": 282,
+            "new_output_bytes": 475,
+            "old_output_tokens": 81,
+            "new_output_tokens": 137,
+            "formatter_median_ms": 45.1
+          },
+          "state_unavailable": {
+            "old_output_bytes": 231,
+            "new_output_bytes": 452,
+            "old_output_tokens": 71,
+            "new_output_tokens": 135,
+            "formatter_median_ms": 44.9
+          }
+        }
+      }
+    },
+    "1252": {
+      "rank": 29,
+      "test_count": 237,
+      "qualification": "Four original config preview/apply subprocesses reduce to two. Final local overlay matches old bytes; conflicting pin/changed preview refuses before write. Local interleaved samples 341 to 202 stdout bytes, median 110.8 to 56.7 ms, 25 trials. Prefix, first-run branching and tracker work left with existing callers.",
+      "feature_files": [
+        "plugin/skills/faff-onboard/SKILL.md"
+      ]
+    },
+    "1253": {
+      "rank": 20,
+      "test_count": 133,
+      "qualification": "Explicit run ledger and real run-done kernel. Nine matrix cases plus corrupt/missing/ambient/contradictory input; documented --json spelling corrected and a drained queue with incomplete product remained escalated. One 30-byte output per run, observed 41.4 ms median locally. No write to the historical unkeyed stalled-wave counter.",
+      "feature_files": [
+        "plugin/skills/faff-beep-boop/SKILL.md"
+      ],
+      "fixture_measurement": {
+        "before": {
+          "bytes": 154055,
+          "tokens": 38180
+        },
+        "after": {
+          "bytes": 151523,
+          "tokens": 37555
+        },
+        "sample_output_bytes": 30,
+        "median_ms": 41.4,
+        "calls_per_run": 1
+      }
+    },
+    "1254": {
+      "rank": 25,
+      "test_count": 169,
+      "qualification": "Existing ADR/extract-intent, spec and adapter suites passed. A separate 41-test run exercises discovery and rejects the selector on legacy verbs. Median local spec fallback 104.1 to 41.7 ms, three processes to one. Supplied tracker intent takes priority. No tracker or ADR write; idempotent creation by title or issue remains unproven.",
+      "feature_files": [
+        "plugin/skills/faff-graft/SKILL.md"
+      ],
+      "fixture_measurement": {
+        "spec": {
+          "before": {
+            "calls": 3,
+            "stdout": 61,
+            "median_ms": 104.1
+          },
+          "after": {
+            "calls": 1,
+            "stdout": 106,
+            "median_ms": 41.7
+          }
+        },
+        "tracker": {
+          "before": {
+            "calls": 2,
+            "stdout": 15,
+            "median_ms": 59.4
+          },
+          "after": {
+            "calls": 1,
+            "stdout": 48,
+            "median_ms": 38.1
+          }
+        },
+        "before": {
+          "bytes": 168608,
+          "tokens": 41822
+        },
+        "after": {
+          "bytes": 167692,
+          "tokens": 41596
+        }
+      }
+    },
+    "1255": {
+      "rank": 30,
+      "test_count": 161,
+      "qualification": "Real CLI checks for every supported slot, installed name and no-clobber handling. Four measured profiles returned 70–92 bytes on scaffold and 123–145 on check. Including rereading the entire scaffold, the maximum added input was 1,190 bytes. Separate o200k counts give 930 prompt tokens and at least 655 net in these four cases. Semantic review remains with the skill.",
+      "feature_files": [
+        "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md"
+      ],
+      "fixture_measurement": {
+        "base_prompt": {
+          "bytes": 11876,
+          "tokens": 2695
+        },
+        "candidate_prompt": {
+          "bytes": 7928,
+          "tokens": 1765
+        },
+        "samples": [
+          {
+            "slot": "review",
+            "scaffold_ms": 46.2,
+            "check_ms": 43.4,
+            "scaffold_receipt": {
+              "bytes": 70,
+              "tokens": 28
+            },
+            "check_receipt": {
+              "bytes": 123,
+              "tokens": 41
+            },
+            "scaffold_file": {
+              "bytes": 801,
+              "tokens": 175
+            }
+          },
+          {
+            "slot": "rendering_adaptor",
+            "scaffold_ms": 39.9,
+            "check_ms": 40.6,
+            "scaffold_receipt": {
+              "bytes": 92,
+              "tokens": 33
+            },
+            "check_receipt": {
+              "bytes": 145,
+              "tokens": 46
+            },
+            "scaffold_file": {
+              "bytes": 528,
+              "tokens": 111
+            }
+          },
+          {
+            "slot": "methodology",
+            "scaffold_ms": 35.1,
+            "check_ms": 35.4,
+            "scaffold_receipt": {
+              "bytes": 80,
+              "tokens": 30
+            },
+            "check_receipt": {
+              "bytes": 133,
+              "tokens": 43
+            },
+            "scaffold_file": {
+              "bytes": 901,
+              "tokens": 199
+            }
+          },
+          {
+            "slot": "concurrency",
+            "scaffold_ms": 34.6,
+            "check_ms": 34.4,
+            "scaffold_receipt": {
+              "bytes": 80,
+              "tokens": 29
+            },
+            "check_receipt": {
+              "bytes": 133,
+              "tokens": 42
+            },
+            "scaffold_file": {
+              "bytes": 977,
+              "tokens": 204
+            }
+          }
+        ]
+      }
     }
   }
 }

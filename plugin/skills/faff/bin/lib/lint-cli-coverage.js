@@ -38,6 +38,7 @@ const LINT_CLI_COVERAGE_SPEC = { flags: { "--root": { arity: 1 }, "--selftest": 
 // file must exist and exercise the command.
 const TEST_FILE_COVERAGE = {
   "prep-context": "test/prep-context.test.mjs",
+  "build-queue-partition": "test/build-queue-partition.test.mjs",
   "sync": "test/sync.test.mjs",
   "validate-adapters": "test/validate-adapters-prose-defaults.test.mjs",
   "labels": "test/claim-verdict.test.mjs",

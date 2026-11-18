@@ -774,7 +774,7 @@
         "No fresh model parity or actual hosted connector qualification.",
         "Net estimate excludes protocol and output; does not claim repository shrinkage."
       ],
-      "delivery_decision": "Hold the model-facing MCP prototype outside the landing queue. Prefer an ordinary CLI if a qualified writer can read and apply the exact stored body.",
+      "delivery_decision": "Keep #1216 as a reference draft. The skill discovers and uses the existing tracker MCP for live reads and writes. A local CLI may plan from supplied data. Review-comment savings require verification that human text survives the handoff through the existing connector.",
       "net_static_guidance_assumption": "Both edited prompts and both tool definitions loaded once. Sessions loading only the two definitions incur 998 extra bytes / about 250 tokens of static context."
     },
     {

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+  "base": "6716b920bb64cbe22f4dbf7f904e8c7fa7533cd0",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -8,60 +8,15 @@
     "estimated_tokens": 339929
   },
   "current_main": {
-    "bytes": 1176590,
-    "estimated_tokens": 291823,
+    "bytes": 1171453,
+    "estimated_tokens": 290553,
     "files": 41
   },
   "landed_savings": {
-    "bytes": 195491,
-    "estimated_tokens": 48106
+    "bytes": 200628,
+    "estimated_tokens": 49376
   },
   "pending_extractions": [
-    {
-      "pr": "https://github.com/shftwst/faff/pull/1234",
-      "rank": 3,
-      "skill": "build queue partition",
-      "files": [
-        {
-          "path": "plugin/skills/faff-beep-boop/SKILL.md",
-          "before": {
-            "bytes": 154055,
-            "estimated_tokens": 38180,
-            "sha256": "e3378bc2d8138963cf1f7322edfd2d66411ec75b9fd3929d53f2a1e91ab28791"
-          },
-          "after": {
-            "bytes": 148918,
-            "estimated_tokens": 36910,
-            "sha256": "da0f30b3742684ea56864dc331468cca5929840352b44536b6adafef2edacaaf"
-          }
-        }
-      ],
-      "before": {
-        "bytes": 154055,
-        "estimated_tokens": 38180
-      },
-      "after": {
-        "bytes": 148918,
-        "estimated_tokens": 36910
-      },
-      "saved": {
-        "bytes": 5137,
-        "estimated_tokens": 1270
-      },
-      "tests_passed": 137,
-      "verification": "One native candidate used the actual classifier on a supplied wave. Independent replay reproduced its ordered components. No paired native baseline or live workers. A 12-issue fixture used 1,641 input bytes and 703 output bytes, median 40.8 ms. A subsequent caller clarification restricted merge inputs to declared dependencies.",
-      "qualification_path": "ranked-cli-results.json",
-      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
-      "cli_test_files": [
-        "test/build-queue-partition.test.mjs"
-      ],
-      "head": "ca085c47e6dce34a09d224a2f693df53034aac79",
-      "status": "open",
-      "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
-      }
-    },
     {
       "pr": "https://github.com/shftwst/faff/pull/1235",
       "rank": 4,
@@ -96,7 +51,7 @@
       "tests_passed": 627,
       "verification": "Paired native callers preserved backend bytes and normalized configured and pinned requests. Unset config stopped both without fan-out, and the candidate supplied an explicit round. Seven interleaved timings. One prior skip. After the initial qualification, the four-lens request contract checks the real nonempty input paths in CI.",
       "qualification_path": "ranked-cli-results.json",
-      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "measured_base": "6716b920bb64cbe22f4dbf7f904e8c7fa7533cd0",
       "cli_test_files": [
         "test/adversarial-call.test.mjs",
         "test/spec-review-dispatch-resolution.test.mjs",
@@ -104,11 +59,11 @@
         "test/spec-review-prepare-requests.test.mjs",
         "test/spec-review-reputation.test.mjs"
       ],
-      "head": "2000e00606e0497356dd8669c1fc91f7c385faf9",
+      "head": "95075fbe83d8405b1e9fc4e14c64b4eeba72980d",
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -166,7 +121,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -211,7 +166,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -248,7 +203,7 @@
       "tests_passed": 1061,
       "verification": "One existing skip. Native exploratory verdicts matched on the initial, retry and unset fixture. A distinguishing partial retry can approve or revise depending on a retained prior vote. The final recorder refuses direct partial publication. Through the real prep round consumer the guarded receipts plus retained caller vote reproduced fix-and-rerun. Raw transcript headings can differ. No live provider calls.",
       "qualification_path": "ranked-cli-results.json",
-      "measured_base": "2000e00606e0497356dd8669c1fc91f7c385faf9",
+      "measured_base": "95075fbe83d8405b1e9fc4e14c64b4eeba72980d",
       "cli_test_files": [
         "test/adversarial-call.test.mjs",
         "test/spec-review-dispatch-resolution.test.mjs",
@@ -256,11 +211,11 @@
         "test/spec-review-pin.test.mjs",
         "test/spec-review-record-results.test.mjs"
       ],
-      "head": "055599f7d24c87ce9bd2b23b149baa9dc0eb6896",
+      "head": "6c03420ed7a6e0fc6ef98c4bd9ef3baf1291df2f",
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -349,7 +304,7 @@
       "tests_passed": 143,
       "verification": "The actual issue classifier and routing contract consumed a cycle fixture. Thirty-two build queues matched the preceding partition command byte-for-byte. A 120-issue case with 20 roots used 4,893 input and 415 output bytes, median 39 ms over 25 fresh invocations. No native caller trial.",
       "qualification_path": "ranked-cli-results.json",
-      "measured_base": "ca085c47e6dce34a09d224a2f693df53034aac79",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
       "cli_test_files": [
         "test/planning-graph.test.mjs"
       ],
@@ -357,7 +312,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -415,7 +370,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -487,7 +442,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -533,7 +488,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -604,7 +559,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -662,7 +617,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -707,7 +662,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -765,7 +720,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -810,7 +765,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -882,7 +837,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -953,7 +908,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -998,7 +953,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -1045,7 +1000,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -1090,7 +1045,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -1135,7 +1090,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -1181,7 +1136,7 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     },
     {
@@ -1226,13 +1181,186 @@
       "status": "open",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1256",
+      "skill": "methodology dispatch and appetite",
+      "files": [
+        {
+          "path": "plugin/skills/faff-jot/SKILL.md",
+          "before": {
+            "bytes": 18798,
+            "estimated_tokens": 4661,
+            "sha256": "092c601c552ca569476922ec8059ba1fa722bfc7477ab1f709096b8cbf956433"
+          },
+          "after": {
+            "bytes": 18490,
+            "estimated_tokens": 4587,
+            "sha256": "eecf4a7c076bda10026c821a9828ea69e279fdad6b246f7f4bc60b351b197ad3"
+          }
+        },
+        {
+          "path": "plugin/skills/faff-map/SKILL.md",
+          "before": {
+            "bytes": 23486,
+            "estimated_tokens": 5732,
+            "sha256": "835b129019bed64b9bf307d5020820a77e6c9a562aed4b72b90be8e2b6d8c1f7"
+          },
+          "after": {
+            "bytes": 23239,
+            "estimated_tokens": 5672,
+            "sha256": "ae0eff761c7b445a6598a291a024f41c38c063c0a95139df11ce1c849bd4a7fb"
+          }
+        },
+        {
+          "path": "plugin/skills/faff-plot/SKILL.md",
+          "before": {
+            "bytes": 41576,
+            "estimated_tokens": 10284,
+            "sha256": "be1ba68a7e735108b79e409d2341b2d5f7a543758162d04be44a4d4961958c69"
+          },
+          "after": {
+            "bytes": 41214,
+            "estimated_tokens": 10197,
+            "sha256": "b9a824c76abc49e9bc79410b1110c779ef640832697bdc4ed929d7e3f16e76a0"
+          }
+        },
+        {
+          "path": "plugin/skills/faff-tidy/SKILL.md",
+          "before": {
+            "bytes": 69483,
+            "estimated_tokens": 17217,
+            "sha256": "942a94907fb76c2cc037a76e84a2082cabffa27fd34ecb45d915d3329bb16cf8"
+          },
+          "after": {
+            "bytes": 69132,
+            "estimated_tokens": 17132,
+            "sha256": "fcf1ab130b00812846b3b7a96853c4a3d56cbd8dd86b52a8a9323ae99bdba7d0"
+          }
+        },
+        {
+          "path": "plugin/skills/faff-wtf/SKILL.md",
+          "before": {
+            "bytes": 29189,
+            "estimated_tokens": 7228,
+            "sha256": "c36ba658ec8ff452920da345799f126490442cf37c2536adcf26e8ebe219109b"
+          },
+          "after": {
+            "bytes": 28905,
+            "estimated_tokens": 7159,
+            "sha256": "69b6f966420e58ce5da76735f0e77d2795bdd00d033509d9cd15150992df4b41"
+          }
+        },
+        {
+          "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+          "before": {
+            "bytes": 40637,
+            "estimated_tokens": 10084,
+            "sha256": "b8013fc4b6de88c0cf9766af1a2ad0348ef70db28051f1a14276f5c307a94469"
+          },
+          "after": {
+            "bytes": 38697,
+            "estimated_tokens": 9606,
+            "sha256": "491063eeb96340cbbb66cc68b520e327c7b483315f43e363b84b69f8cb3a1429"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 223169,
+        "estimated_tokens": 55206
+      },
+      "after": {
+        "bytes": 219677,
+        "estimated_tokens": 54353
+      },
+      "saved": {
+        "bytes": 3492,
+        "estimated_tokens": 853
+      },
+      "tests_passed": 141,
+      "verification": "Claude Code, one excerpt-based case set per arm. Original and shortened each met all six expected decisions. A further scenario on the final wording separated a clear thematic move from an ambiguous destination and an unconfirmed MVP scope cut.",
+      "qualification_path": "../2026-11-18-cli-extraction-roadmap/prose-followup.md",
+      "measured_base": "6716b920bb64cbe22f4dbf7f904e8c7fa7533cd0",
+      "head": "59713900e52c6025b4176d1c8f3201a9b769b831",
+      "status": "open",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1257",
+      "skill": "supervision and executor returns",
+      "files": [
+        {
+          "path": "plugin/skills/faff-beep-boop/SKILL.md",
+          "before": {
+            "bytes": 148918,
+            "estimated_tokens": 36910,
+            "sha256": "da0f30b3742684ea56864dc331468cca5929840352b44536b6adafef2edacaaf"
+          },
+          "after": {
+            "bytes": 145246,
+            "estimated_tokens": 36001,
+            "sha256": "d571e7df2b65e7c21730ff8756fb01cb54b8367c89d0651bd3c79552241c6bab"
+          }
+        },
+        {
+          "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+          "before": {
+            "bytes": 20682,
+            "estimated_tokens": 5133,
+            "sha256": "23e2cdf23bc1ded6c9640c15dbb4834341e6785ede12adaddb3805c53a5b570d"
+          },
+          "after": {
+            "bytes": 19534,
+            "estimated_tokens": 4847,
+            "sha256": "5529c187995b3a961a0d549ff9ee7c463f73ad9cd7dee5289d2aad12b6242d9b"
+          }
+        },
+        {
+          "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+          "before": {
+            "bytes": 13229,
+            "estimated_tokens": 3288,
+            "sha256": "baaec2b01e9cb039884e4600c5c938364d5c1deff1fb89d32c190d25ff07adff"
+          },
+          "after": {
+            "bytes": 12455,
+            "estimated_tokens": 3096,
+            "sha256": "749d15a4f3712b3a48452f56b949f59f74e428571a0a7782c402472d52a3e28f"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 182829,
+        "estimated_tokens": 45331
+      },
+      "after": {
+        "bytes": 177235,
+        "estimated_tokens": 43944
+      },
+      "saved": {
+        "bytes": 5594,
+        "estimated_tokens": 1387
+      },
+      "tests_passed": 397,
+      "verification": "Claude Code, one excerpt-based case set per arm. Original 4/5 and shortened 5/5 against the expected actions. The original blocked a live foreign owner when recovery was explicit. The shortened version correctly stayed silent. Six local CLI probes exercised the actual Stop hook. Final copyediting split sentences.",
+      "qualification_path": "../2026-11-18-cli-extraction-roadmap/prose-followup.md",
+      "measured_base": "6716b920bb64cbe22f4dbf7f904e8c7fa7533cd0",
+      "head": "990ad56bd6dc31bc6e627570d419cd513159868a",
+      "status": "open",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
       }
     }
   ],
   "pending_savings": {
-    "bytes": 79560,
-    "estimated_tokens": 19687
+    "bytes": 83509,
+    "estimated_tokens": 20657
   },
   "limits": [
     "Merged figures use the current main tree. Fresh diagnostics and historical cohorts remain separate.",
@@ -1242,8 +1370,8 @@
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1097030,
-    "estimated_tokens": 272136
+    "bytes": 1087944,
+    "estimated_tokens": 269896
   },
   "landed_extractions": [
     {
@@ -2445,6 +2573,52 @@
         "checked_at_utc": "2026-11-18T15:16:52.842288+00:00"
       },
       "merge_commit": "626f6a3caf5f216975323cfdb9007e0b06a522a0"
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1234",
+      "rank": 3,
+      "skill": "build queue partition",
+      "files": [
+        {
+          "path": "plugin/skills/faff-beep-boop/SKILL.md",
+          "before": {
+            "bytes": 154055,
+            "estimated_tokens": 38180,
+            "sha256": "e3378bc2d8138963cf1f7322edfd2d66411ec75b9fd3929d53f2a1e91ab28791"
+          },
+          "after": {
+            "bytes": 148918,
+            "estimated_tokens": 36910,
+            "sha256": "da0f30b3742684ea56864dc331468cca5929840352b44536b6adafef2edacaaf"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 154055,
+        "estimated_tokens": 38180
+      },
+      "after": {
+        "bytes": 148918,
+        "estimated_tokens": 36910
+      },
+      "saved": {
+        "bytes": 5137,
+        "estimated_tokens": 1270
+      },
+      "tests_passed": 137,
+      "verification": "One native candidate used the actual classifier on a supplied wave. Independent replay reproduced its ordered components. No paired native baseline or live workers. A 12-issue fixture used 1,641 input bytes and 703 output bytes, median 40.8 ms. A subsequent caller clarification restricted merge inputs to declared dependencies.",
+      "qualification_path": "ranked-cli-results.json",
+      "measured_base": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
+      "cli_test_files": [
+        "test/build-queue-partition.test.mjs"
+      ],
+      "head": "ca085c47e6dce34a09d224a2f693df53034aac79",
+      "status": "merged",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T20:30:07.404025+00:00"
+      },
+      "merge_commit": "6716b920bb64cbe22f4dbf7f904e8c7fa7533cd0"
     }
   ],
   "local_not_counted": [
@@ -2517,7 +2691,7 @@
       "status": "held. Source corrections for transient-only CI continuation, no-op before effects, and custody wording. 270 focused tests pass. Combined unattended handoff through collision, authorisation, custody, ship and post-merge has no paired caller qualification. No broad model run."
     }
   ],
-  "recorded_at_utc": "2026-11-18T15:16:52.842288+00:00",
+  "recorded_at_utc": "2026-11-18T20:30:07.404025+00:00",
   "new_cli_tests": {
     "prep_context": {
       "implementation_pr": 1219,
@@ -2560,7 +2734,6 @@
   "combined_file_rounding": {
     "source": "Prompt patches applied in dependency order to a disposable index. Each resulting full file is rounded once.",
     "prs": [
-      1234,
       1235,
       1236,
       1237,
@@ -2581,14 +2754,16 @@
       1252,
       1253,
       1254,
-      1255
+      1255,
+      1256,
+      1257
     ],
     "adjustment_estimated_tokens": -2
   },
   "starting_commit": "63e71d1f6bfa5ea8ba6590861ab2fd76b7042f2d",
   "cumulative_projected_savings": {
-    "bytes": 275051,
-    "estimated_tokens": 67793
+    "bytes": 284137,
+    "estimated_tokens": 70033
   },
   "ranked_cli_rehearsal": {
     "main": "626f6a3caf5f216975323cfdb9007e0b06a522a0",
@@ -2774,5 +2949,19 @@
         1248
       ]
     }
+  },
+  "prose_followup": {
+    "prs": [
+      1256,
+      1257
+    ],
+    "incremental_savings": {
+      "bytes": 9086,
+      "estimated_tokens": 2240
+    },
+    "open_prompt_replay_tree": "a612c0d8513cb57be1c0f5d6df56ea47a90271d7",
+    "prior_integration_plus_two_prompt_patches": "9c1fbc5d5bc0ee2afb0ef02850ef4f51aeca43a1",
+    "exact_prompt_blob_matches": 41,
+    "qualification_path": "../2026-11-18-cli-extraction-roadmap/prose-followup.md"
   }
 }

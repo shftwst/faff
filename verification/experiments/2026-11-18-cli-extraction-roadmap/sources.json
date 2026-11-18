@@ -681,7 +681,7 @@
         "slices": [
           {
             "pr": 1234,
-            "status": "open",
+            "status": "merged",
             "net_measured": {
               "bytes": 5137,
               "estimated_tokens": 1270

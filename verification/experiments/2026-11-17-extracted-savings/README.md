@@ -32,7 +32,7 @@ The ranked list records the disposition of all 34 items. Each published slice gi
 | [1231](https://github.com/shftwst/faff/pull/1231), graft post-fix assessment | 3,091 B | 766 | Merged |
 | [1232](https://github.com/shftwst/faff/pull/1232), build dispatch preparation | 6,072 B | 1,497 | Merged |
 | [1233](https://github.com/shftwst/faff/pull/1233), tracker issue facts | 4,642 B | 1,141 | Merged |
-| [1234](https://github.com/shftwst/faff/pull/1234), build queue partition | 5,137 B | 1,270 | Open |
+| [1234](https://github.com/shftwst/faff/pull/1234), build queue partition | 5,137 B | 1,270 | Merged |
 | [1235](https://github.com/shftwst/faff/pull/1235), L4 request preparation | 9,336 B | 2,327 | Open |
 | [1236](https://github.com/shftwst/faff/pull/1236), build-return mapping | 1,732 B | 424 | Open |
 | [1237](https://github.com/shftwst/faff/pull/1237), run-end reconciliation | 3,353 B | 830 | Open |
@@ -54,9 +54,13 @@ The ranked list records the disposition of all 34 items. Each published slice gi
 | [1253](https://github.com/shftwst/faff/pull/1253), run wave convergence mode | 2,532 B | 625 | Open |
 | [1254](https://github.com/shftwst/faff/pull/1254), ADR promotion source | 916 B | 226 | Open |
 | [1255](https://github.com/shftwst/faff/pull/1255), slot skill scaffold and structural check | 3,948 B | 977 | Open |
+| [1256](https://github.com/shftwst/faff/pull/1256), methodology dispatch and appetite | 3,492 B | 853 | Open |
+| [1257](https://github.com/shftwst/faff/pull/1257), supervision and executor returns | 5,594 B | 1,387 | Open |
 
-Merged savings since the quick-pass starting main total **195,491 bytes / 48,106 estimated tokens**. Main totals **1,176,590 bytes / 291,823 estimated tokens** across 41 covered files. The 22 open reduction PRs save another 79,560 bytes and 19,687 estimated tokens, for a cumulative projection of 275,051 bytes and 67,793 estimated tokens (20.05% by bytes). Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
+Main at `6716b920` has saved **200,628 bytes / 49,376 estimated tokens** across 41 files. Replaying the 23 open prompt patches saves another **83,509 bytes / 20,657 estimated tokens**. The combined corpus is **1,087,944 bytes / 269,896 estimated tokens**, down **284,137 bytes / 70,033 estimated tokens (20.71% by bytes)** from the original. Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
 Graft #1231 still removes 3,091 bytes after #1228 landed. Its incremental estimate is now 766 tokens because the complete file is rounded once. Local and held reductions are excluded from both totals.
+
+The two follow-up prose PRs remove another 9,086 bytes and 2,240 estimated tokens. [Before-and-after decisions](../2026-11-18-cli-extraction-roadmap/prose-followup.md)
 
 The ranked CLI slices record actual input and output sizes, native-run scope and deliberate changes to error handling. [CLI qualification](ranked-cli-results.json)
 

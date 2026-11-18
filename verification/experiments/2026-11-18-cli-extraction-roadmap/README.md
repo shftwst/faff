@@ -4,13 +4,15 @@ Audited all 32 installed skill prompts and nine shared references. The source in
 
 ## Delivery progress
 
-Merged savings since the quick-pass starting main total **195,491 bytes / 48,106 estimated tokens**. Main totals **1,176,590 bytes / 291,823 estimated tokens** across 41 covered files. The 22 open reduction PRs save another 79,560 bytes and 19,687 estimated tokens, for a cumulative projection of 275,051 bytes and 67,793 estimated tokens (20.05% by bytes). [Campaign ledger](../2026-11-17-extracted-savings/README.md)
+Main at `6716b920` has saved **200,628 bytes / 49,376 estimated tokens** across 41 files. Replaying the 23 open prompt patches saves another **83,509 bytes / 20,657 estimated tokens**. The combined corpus is **1,087,944 bytes / 269,896 estimated tokens**, down **284,137 bytes / 70,033 estimated tokens (20.71% by bytes)** from the original. [Campaign ledger](../2026-11-17-extracted-savings/README.md)
+
+The two follow-up prose PRs account for 9,086 bytes of the current projection. [Before-and-after decisions](prose-followup.md)
 
 | Rank | Extraction | Prompt bytes saved | Estimated tokens | State |
 |---|---|---:|---:|---|
 | 1 | [build dispatch preparation](https://github.com/shftwst/faff/pull/1232) | 6,072 | 1,497 | Merged |
 | 2 | [tracker issue facts](https://github.com/shftwst/faff/pull/1233) | 4,642 | 1,141 | Merged |
-| 3 | [build queue partition](https://github.com/shftwst/faff/pull/1234) | 5,137 | 1,270 | Open |
+| 3 | [build queue partition](https://github.com/shftwst/faff/pull/1234) | 5,137 | 1,270 | Merged |
 | 4 | [L4 request preparation](https://github.com/shftwst/faff/pull/1235) | 9,336 | 2,327 | Open |
 | 4 | [L4 round receipts](https://github.com/shftwst/faff/pull/1238) | 12,585 | 3,117 | Open |
 | 6 | [build-return mapping](https://github.com/shftwst/faff/pull/1236) | 1,732 | 424 | Open |
@@ -72,7 +74,7 @@ Put **L4 spec-review** in the first delivery batch. It is the largest individual
 
 These are planning ranges for net prompt text removed after replacement instructions. Each kB means 1,000 bytes. Estimates use about four bytes per token. Actual landed figures use the existing per-file estimate of one token per four UTF-16 code units, rounded up. The 31-item sum is a scenario before rebasing overlapping draft work and checking production fidelity. The two holds, the current graft PR and possible read-on-demand savings contribute zero to it. The first six are the delivery forecast. The longer range is sensitive to shared helpers, policy decisions and the instructions that trials show must remain.
 
-The campaign started at 1,372,081 bytes. A 25% reduction takes 343,021 bytes. The current projection saves 275,051 bytes and leaves 67,970 bytes to reach 25%. [Measured savings ledger](../2026-11-17-extracted-savings/README.md)
+The campaign started at 1,372,081 bytes. A 25% reduction takes 343,021 bytes. The current projection saves 284,137 bytes and leaves 58,884 bytes to reach 25%. [Measured savings ledger](../2026-11-17-extracted-savings/README.md)
 
 ## Evidence behind the order
 

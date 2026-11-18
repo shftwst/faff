@@ -20,10 +20,11 @@ Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 | [1220](https://github.com/shftwst/faff/pull/1220), defer onboarding tracker guidance | 104 B | 26 | Open |
 | [1221](https://github.com/shftwst/faff/pull/1221), shared autonomous guidance | 2,056 B | 504 | Open |
 | [1222](https://github.com/shftwst/faff/pull/1222), tidy housekeeping | 4,938 B | 1,217 | Open |
+| [1223](https://github.com/shftwst/faff/pull/1223), shared methodology contract | 2,254 B | 553 | Open |
 
 Merged savings since the quick-pass starting main: **161,458 bytes / 39,732
 estimated tokens**. Main totals **1,210,623 bytes / 300,197 estimated tokens**
-across 41 covered files. Four open PRs save another 8,777 bytes and 2,160 estimated tokens. Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. That path-specific estimate is excluded from installed totals.
+across 41 covered files. Five open PRs save another 11,031 bytes and 2,713 estimated tokens. Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. That path-specific estimate is excluded from installed totals.
 Local and held reductions are excluded from both totals.
 
 Fresh Opus diagnostics used one fixed sample per arm. Thematic passed 16/16

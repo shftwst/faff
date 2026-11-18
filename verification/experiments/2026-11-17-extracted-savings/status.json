@@ -117,11 +117,34 @@
       "tests_passed": 76,
       "verification": "30/30 rule blocks accounted for. Actual Claude callers matched all four registered command arguments, verdicts and label proposals per prompt. Tracker input supplied, actions simulated. No full workflow or hosted write test.",
       "qualification_path": "tidy-park-driver/assessment.json"
+    },
+    {
+      "skill": "shared methodology contract",
+      "pr": "https://github.com/shftwst/faff/pull/1223",
+      "head": "6f8988b7e4e52a60d731ee147fc1e786c7c99336",
+      "path": "plugin/skills/faff/references/methodology.md",
+      "before": {
+        "bytes": 34325,
+        "estimated_tokens": 8501,
+        "sha256": "f3deac00756d6d8e64fd000390182651c2f3b4f51abafb754485faccd3785586"
+      },
+      "after": {
+        "bytes": 32071,
+        "estimated_tokens": 7948,
+        "sha256": "0bc9dc7c1c2bd5f90b74546d4b5364100b3b429054b5f6987aefb64f01b34b22"
+      },
+      "saved": {
+        "bytes": 2254,
+        "estimated_tokens": 553
+      },
+      "status": "open",
+      "tests_passed": 554,
+      "verification": "Independent source comparison inspected both lens callers and structure. All nine changed blocks accounted for. No paired model run. Nine fixture failures under signed-commit defaults resolved on a full 554-test rerun with unsigned fixture commits."
     }
   ],
   "pending_savings": {
-    "bytes": 8777,
-    "estimated_tokens": 2160
+    "bytes": 11031,
+    "estimated_tokens": 2713
   },
   "limits": [
     "Merged figures use the current main tree. Fresh diagnostics and historical cohorts remain separate.",
@@ -131,8 +154,8 @@
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1201846,
-    "estimated_tokens": 298037
+    "bytes": 1199592,
+    "estimated_tokens": 297484
   },
   "landed_extractions": [
     {
@@ -869,7 +892,18 @@
       ],
       "delivery_decision": "Keep #1216 as a reference draft. The skill discovers and uses the existing tracker MCP for live reads and writes. A local CLI may plan from supplied data. Review-comment savings require verification that human text survives the handoff through the existing connector.",
       "net_static_guidance_assumption": "Both edited prompts and both tool definitions loaded once. Sessions loading only the two definitions incur 998 extra bytes / about 250 tokens of static context."
+    },
+    {
+      "skill": "tidy container status recap",
+      "head": "d356fe772fd4e2dadc8066b4b51ae028d16e35a8",
+      "base": "2c5e9773bbb8c14cc1d952aa40a9ae88c567f52f",
+      "saved": {
+        "bytes": 1568,
+        "estimated_tokens": 384
+      },
+      "after_sha256": "942a94907fb76c2cc037a76e84a2082cabffa27fd34ecb45d915d3329bb16cf8",
+      "status": "source-reviewed, 143 tests and 2/2 inventory. Based on #1222 for a clean follow-up after merge. No fresh model trial."
     }
   ],
-  "recorded_at_utc": "2026-11-18T00:27:59.223232+00:00"
+  "recorded_at_utc": "2026-11-18T00:33:00.042710+00:00"
 }

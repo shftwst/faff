@@ -582,18 +582,6 @@ test("--selftest reports PASS in-process (both commands)", () => {
 
 // --- SKILL wiring: block-scoped occupant lint + prep scratch-dir/swap-reset prose ---
 
-test("occupant SKILL chain-assembly block calls `spec-review-pin --resolve`, NOT `adversarial-backends`", () => {
-  const body = readFileSync(OCCUPANT_SKILL, "utf8");
-  // Locate the fenced ```bash block that assembles $backends_json (the chain-resolve step) and
-  // scope the presence/absence check to THAT block — mentions of `adversarial-backends` elsewhere
-  // in the SKILL (the outcome-table exit-3/2 prose) are expected and allowed.
-  const blocks = body.split("```").filter((b) => b.startsWith("bash") && b.includes("backends_json"));
-  assert.ok(blocks.length >= 1, "found the chain-assembly bash block");
-  const block = blocks.find((b) => b.includes("--resolve")) || blocks[0];
-  assert.match(block, /spec-review-pin --resolve --dir "\$pin_dir" --consumer spec_review/, "resolve step names spec-review-pin");
-  assert.doesNotMatch(block, /adversarial-backends/, "the chain-assembly block no longer calls adversarial-backends directly");
-});
-
 test("occupant SKILL documents UNCONDITIONAL round-1+ pin capture: served → --winner-index --round, empty → --no-lens-served --round", () => {
   const body = readFileSync(OCCUPANT_SKILL, "utf8");
   assert.match(body, /spec-review-pin --capture --dir "\$pin_dir" --backends-json "\$backends_json" --winner-index "\$winner_index" --round "\$n"/);

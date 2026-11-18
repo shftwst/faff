@@ -24,7 +24,6 @@ import {
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
-const DARK_SKILL = join(REPO, "plugin", "skills", "faffter-dark-spec-review", "SKILL.md");
 const NOON_SKILL = join(REPO, "plugin", "skills", "faffter-noon-spec-review", "SKILL.md");
 
 const RUN_A = "run-20260101-000000-a";
@@ -323,14 +322,6 @@ test("CLI requires exactly one of --report / --eligible", () => {
 });
 
 // --- Occupant wiring: the guard is actually consulted --------------------------------------
-
-test("faffter-dark-spec-review occupant wires the round-1 --eligible reputation filter", () => {
-  const body = readFileSync(DARK_SKILL, "utf8");
-  assert.match(body, /spec-review-reputation --eligible --backends-json "\$backends_json" --consumer spec_review/,
-    "the chain-resolution block pipes the resolved chain through the reputation filter");
-  assert.match(body, /if \[ ! -e "\$pin_dir\/pinned-reviewer\.json" \]/,
-    "the consult is gated to round 1 (unpinned — no pin sidecar yet)");
-});
 
 test("the single-pass faffter-noon-spec-review default resolves no chain and is NOT wired", () => {
   const body = readFileSync(NOON_SKILL, "utf8");

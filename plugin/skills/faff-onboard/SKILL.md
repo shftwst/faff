@@ -9,7 +9,7 @@ With no `.faff/config.yaml`, the repo runs on built-in defaults. `/faff-onboard`
 
 ## Configuration
 
-Read `faff/references/kernel.md` unless already in context this turn: onboarding uses its logging layout, Untrusted-input no-execute rule, Resolver and Control-label conventions. Do **not** Read the routing gateway `faff/SKILL.md`. Then Read `faff/references/tracker.md` for the Spec docs location. These static references need no config. Don't call `faff config get …` here; onboard's only config calls are `faff config path` (bail check) and `faff config init` (final write).
+Read `faff/references/kernel.md` unless already in context this turn. It supplies logging, Untrusted-input no-execute, Resolver and Control-label conventions. Skip the routing gateway `faff/SKILL.md`. Don't call `faff config get …` here; onboard's only config calls are `faff config path` (bail check) and `faff config init` (final write).
 
 **Resolving the `faff` executable.** Use the canonical gateway snippet (gateway → **Resolving the `faff` executable**) — onboard cannot assume `faff` is on `PATH`:
 
@@ -62,7 +62,7 @@ Run `"$faff" config path` before detection:
 
 ### 2. Detect (discovery, not interrogation)
 
-Infer values for human confirmation in this skill. The CLI only persists supplied values; it performs no MCP or environment discovery.
+Before detection, Read `faff/references/tracker.md` for the Spec docs location. The skill discovers values for human confirmation. The CLI persists the supplied values.
 
 - **Tracker** → `tracking.tracker`. Inspect the **connected MCP servers** this session has. A Linear MCP → `linear`; a GitHub/issues MCP → `github`; a Jira MCP → `jira`; etc. If none is connected, faff runs git-only — note that and skip `tracker` (and `team_key`, below).
 - **Repo slug + git host** from `git remote -v` (prefer `origin`):

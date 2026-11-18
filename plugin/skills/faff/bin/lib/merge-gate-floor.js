@@ -14,7 +14,7 @@ const { correctiveIntegrityDirs, correctiveIntegrityProbe, integrityGate, foldMe
 const { buildProgressPath } = require("./effects");
 const { sha256: custodyHashBytes } = require("./integrity-digest");
 const { classifyCiObservation } = require("./merge-gate-classify");
-const { runGh, resolveRunnerIdentityMemoised, ghJson } = require("./merge-gate-gh");
+const { runGh, resolveRunnerIdentityMemoised, ghJson, headCheckRuns } = require("./merge-gate-gh");
 
 // Impure git helper mirroring ghJson's shape: run `git <args>` in cwd.
 function gitRun(cwd, args, timeout = 15000) {
@@ -153,8 +153,9 @@ function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integri
 // Observe CI for the head sha authoritatively (head-sha check-runs + legacy status). A zero head-sha
 // set is disambiguated: if `gh pr checks` shows ANY checks they belong to an earlier commit → stale
 // green (head_sha_matches:false → refuse); otherwise genuine no-ci-coverage. gh outage → indeterminate.
-function observeCi(repo, pr, headSha) {
-  const cr = ghJson(["api", `repos/${repo}/commits/${headSha}/check-runs`, "--jq", "[.check_runs[] | {status, conclusion}]"]);
+function observeCi(repo, pr, headSha, allPages = false) {
+  const cr = allPages ? headCheckRuns(repo, headSha) : ghJson(["api", `repos/${repo}/commits/${headSha}/check-runs`, "--jq", "[.check_runs[] | {status, conclusion}]"]);
+  if (allPages && !cr.ok) return { ci_state: "indeterminate", observation_error: cr.stderr };
   const stt = ghJson(["api", `repos/${repo}/commits/${headSha}/status`, "--jq", "{state: .state, count: (.statuses | length)}"]);
   // Trust judgement first (FAFF-376): loss of the PRIMARY check-runs signal → indeterminate regardless
   // of the legacy status. The old `!cr.ok && !stt.ok` early return is subsumed by this (its both-down

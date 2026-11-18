@@ -22,6 +22,7 @@ const CI_TRIAGE_SPEC = { flags: {
 } };
 const { CI_TRIAGE_FAULT_DOMAIN, CI_TRIAGE_TRANSIENCE, deriveTriageAction } = require("./contract-defs");
 const { ghJson, ghRepoSlug } = require("./merge-gate");
+const { headCheckRuns } = require("./merge-gate-gh");
 const { findRoot } = require("./shared-infra");
 
 // A failing check-run's conclusion vocabulary — mirrors classifyHeadShaChecks' own FAIL set
@@ -86,7 +87,7 @@ const MAIN_HISTORY_FAIL_THRESHOLD = 2;
 // last `N` commits. Bounded to N commits, skips an unreadable commit's read rather than failing the
 // whole fetch, and NEVER throws — any failure (no origin/main, git unavailable, every commit
 // unreadable) degrades to `null` so the caller falls back to today's HEAD-only classification.
-function fetchMainHistory(repo, checkNames, N, repoRoot) {
+function fetchMainHistory(repo, checkNames, N, repoRoot, allPages = false) {
   if (!Array.isArray(checkNames) || checkNames.length === 0) return null;
   let lg;
   try {
@@ -101,7 +102,7 @@ function fetchMainHistory(repo, checkNames, N, repoRoot) {
   for (const sha of shas) {
     let r;
     try {
-      r = ghJson(["api", `repos/${repo}/commits/${sha}/check-runs`, "--jq", "[.check_runs[] | {name, status, conclusion}]"]);
+      r = allPages ? headCheckRuns(repo, sha) : ghJson(["api", `repos/${repo}/commits/${sha}/check-runs`, "--jq", "[.check_runs[] | {name, status, conclusion}]"]);
     } catch {
       continue; // gh not spawnable / threw for this commit — skip it, keep going (never throw)
     }
@@ -179,7 +180,7 @@ function recordFlakyEvent(register, signature, event) {
 // transient`) append flaky events for this pass's failing signatures. Returns { verdict, failLoud,
 // exit } — verdict is the FULL persisted record (contract-shaped fields + issue/checked_at/
 // quarantine bookkeeping); failLoud names an unresolvable identity (exit 2, before any classification).
-function runCiTriage({ pr, issue, repoFlag, transienceFlag, faultDomainFlag, faultDomainSource, root }) {
+function runCiTriage({ pr, issue, repoFlag, transienceFlag, faultDomainFlag, faultDomainSource, root, allPages = false }) {
   const repoRoot = root || findRoot();
   const repo = ghRepoSlug(repoFlag);
   if (!repo) return { failLoud: "cannot resolve repo slug (gh repo view failed)" };
@@ -188,7 +189,7 @@ function runCiTriage({ pr, issue, repoFlag, transienceFlag, faultDomainFlag, fau
   if (!hv.ok || !hv.data || !hv.data.headRefOid) return { failLoud: `cannot establish PR identity for #${pr}: ${hv.stderr}` };
   const headSha = hv.data.headRefOid;
 
-  const prRuns = ghJson(["api", `repos/${repo}/commits/${headSha}/check-runs`, "--jq", "[.check_runs[] | {name, status, conclusion}]"]);
+  const prRuns = allPages ? headCheckRuns(repo, headSha) : ghJson(["api", `repos/${repo}/commits/${headSha}/check-runs`, "--jq", "[.check_runs[] | {name, status, conclusion}]"]);
   const prRunsOk = prRuns.ok && Array.isArray(prRuns.data);
   const failingNames = prRunsOk ? failingCheckNames(prRuns.data) : [];
   const failingRuns = prRunsOk ? prRuns.data.filter(isFailingRun) : [];
@@ -199,7 +200,7 @@ function runCiTriage({ pr, issue, repoFlag, transienceFlag, faultDomainFlag, fau
   let mainRuns = null; // null = unreadable (fail-closed origin)
   let mainCiState = null;
   if (mainHeadSha) {
-    const mr = ghJson(["api", `repos/${repo}/commits/${mainHeadSha}/check-runs`, "--jq", "[.check_runs[] | {name, status, conclusion}]"]);
+    const mr = allPages ? headCheckRuns(repo, mainHeadSha) : ghJson(["api", `repos/${repo}/commits/${mainHeadSha}/check-runs`, "--jq", "[.check_runs[] | {name, status, conclusion}]"]);
     if (mr.ok && Array.isArray(mr.data)) {
       mainRuns = mr.data;
       mainCiState = failingCheckNames(mainRuns).length > 0 ? "ci-red" : "ci-green";
@@ -208,7 +209,7 @@ function runCiTriage({ pr, issue, repoFlag, transienceFlag, faultDomainFlag, fau
 
   // FAFF-1050: fetch recent main history for the failing checks ONLY (nothing to classify, and
   // nothing to fetch, when failingNames is empty) — bounded, best-effort, never throws.
-  const history = failingNames.length > 0 ? fetchMainHistory(repo, failingNames, MAIN_HISTORY_WINDOW, repoRoot) : null;
+  const history = failingNames.length > 0 ? fetchMainHistory(repo, failingNames, MAIN_HISTORY_WINDOW, repoRoot, allPages) : null;
   const origin = classifyOrigin(failingNames, mainRuns, history, MAIN_HISTORY_FAIL_THRESHOLD);
   let main_recent_window = null;
   let main_recent_failures = null;

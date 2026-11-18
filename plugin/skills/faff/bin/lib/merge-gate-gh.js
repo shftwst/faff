@@ -183,6 +183,23 @@ function ghJson(args) {
   catch { return { ok: false, data: null, status: 0, stderr: "unparseable gh JSON" }; }
 }
 
+// gh applies the projection to each page. One JSON row per line keeps large check payloads out of memory.
+function headCheckRuns(repo, sha) {
+  const response = runGh(["api", "--paginate", `repos/${repo}/commits/${sha}/check-runs?per_page=100`,
+    "--jq", ".check_runs[] | {head_sha, name, status, conclusion} | @json"], { timeout: 60000 });
+  if (response.error || response.status !== 0) return { ok: false, data: null, stderr: "could not read all check runs" };
+  try {
+    const rows = response.stdout.trim().split("\n").filter(Boolean).map(line => JSON.parse(line));
+    for (const row of rows) {
+      if (!row || row.head_sha !== sha || typeof row.name !== "string" || !row.name || typeof row.status !== "string" ||
+          (row.status === "completed" && typeof row.conclusion !== "string")) throw new Error();
+    }
+    return { ok: true, data: rows };
+  } catch {
+    return { ok: false, data: null, stderr: "malformed check runs or mismatched head" };
+  }
+}
+
 function ghRepoSlug(explicit) {
   if (explicit) return explicit;
   const r = ghJson(["repo", "view", "--json", "nameWithOwner"]);
@@ -334,4 +351,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { BRANCH_PROTECTION_SPEC, GITHUB_AUTH_SPEC, _runnerGhConfigMemo, _warnedConfigFault, _warnedUnresolved, readRunnerGhConfig, resolveRunnerGhEnv, runGh, githubActorMatches, resolveRunnerIdentity, resolveRunnerIdentityMemoised, recordRunnerIdentity, ghJson, ghRepoSlug, cmdBranchProtectionCheck, cmdGithubAuthCheck, githubAuthSelftest, branchProtectionSelftest };
+module.exports = { BRANCH_PROTECTION_SPEC, GITHUB_AUTH_SPEC, _runnerGhConfigMemo, _warnedConfigFault, _warnedUnresolved, readRunnerGhConfig, resolveRunnerGhEnv, runGh, githubActorMatches, resolveRunnerIdentity, resolveRunnerIdentityMemoised, recordRunnerIdentity, ghJson, headCheckRuns, ghRepoSlug, cmdBranchProtectionCheck, cmdGithubAuthCheck, githubAuthSelftest, branchProtectionSelftest };

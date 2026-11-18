@@ -56,6 +56,7 @@
     "bin/lib/run-trigger.ts",
     "bin/lib/human-only-acs.ts",
     "bin/lib/prep-context.ts",
+    "bin/lib/land-assess-fix.ts",
     "bin/lib/issue-facts.ts"
   ]
 }

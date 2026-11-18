@@ -1,14 +1,15 @@
 # Compact tidy housekeeping rules
 
 Replace repeated housekeeping prose with tables and shorter procedural steps.
-The slice saves 5,013 bytes; every byte outside it remains unchanged.
+The slice saves 4,938 bytes; every byte outside it remains unchanged.
 Eligibility, human curation, park predicates, label cleanup, stale-claim
 provenance, live-status rereads, heartbeat protection and decision capture
 retain their existing conditions. No CLI behaviour changes.
 
 Independent source review found no new obligation loss. Existing predicate
 and consumer tests cover mechanical rules, not model tracker acquisition or
-mutation behaviour. No model parity is claimed for this source draft.
+mutation behaviour. A paired Claude Code check exercised four already-fetched
+park decisions per prompt. The workers proposed tracker changes without live writes.
 The existing contradictory git-only reclaim clauses are preserved; resolving
 that policy ambiguity is outside this prose reduction.
 

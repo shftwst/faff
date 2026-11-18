@@ -261,7 +261,7 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
 
 | Housekeeping | Condition, action and record |
 |---|---|
-| Dead references | Every active issue: remove blocker, blockedBy, parent, sub-issue, related and dependency links to cancelled/archived issues. One tracker comment per cascade; log active id, dead target id and link type. |
+| Dead references | Every active issue: remove blocker, blockedBy, parent, sub-issue, related and dependency links to cancelled/archived issues. Post one tracker comment per cascade. Log the active id, dead target id and link type for each removed link. |
 | Overlooked specs | Copy a **Spec discovery**-found noncanonical spec to the issue tracker comment, or configured spec-docs path (default `docs/specs/…`) if its feature branch exists; log. Todo without a spec at any discovery location: demote to Backlog; log "broken prep gate — no spec found". Never invoke `/faff-prep`; `/faff-beep-boop` owns the default full-pipeline prep queue. |
 | Dead weight | Archive/close merged/cancelled backlog issues as tracker supports. |
 | Obvious orphans | Parent Done/Cancelled/Archived: reparent to grandparent if present, else unlink parent. |
@@ -271,14 +271,14 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
 1. **State moved on: `faff park-verdict`, never status alone.** `strip-ok`: In Review/Done/Cancelled/Archived; `n/a`: below In Progress. For In Progress, fetch tracker facts:
    - `draft_pr`: linked open DRAFT PR, `present`/`absent`.
    - `park_comment`: most-recent faff park comment, `build` (mid-build, blocked-on-external or resume-preserved), `nonbuild` (prep punt, low-confidence, gap or cycle), or `none`.
-   - `human_takeover`: human move to In Progress or non-faff human comment timestamped after that park comment, `true`/`false`.
+   - `human_takeover`: `true` if, after that park comment, a human moved the issue to In Progress or posted a non-faff comment. Otherwise `false`.
 
    Run `faff park-verdict --status in-progress --draft-pr <present|absent> --park-comment <build|nonbuild|none> --human-takeover <true|false>`; never re-derive its predicate. `strip-ok`: remove; `protect`: retain and log "valid mid-build park, label retained"; `surface`: retain and log "stale park label — needs human" for `/faff-wtf`. Live mid-build parks retain eligibility guard (`faff next --parked` ⇒ `needs-human`).
 
    **Capture:** Tier-1, `FAFF_RUN_DIR`-guarded, per issue `--issue <issue>`, best-effort, never gating; no run dir (standalone interactive tidy) mints nothing. Run `eval "$(faff decision-capture decide --run <run> --issue <issue> --kernel park-verdict --export)" && faff park-verdict …` in one command. After label disposition, emit `faff decision-capture action --run <run> --issue <issue> --kernel park-verdict --action strip-ok|protect|surface` for the actual branch, never a re-emitted verdict.
 2. **Reason no longer applies:** read tracker comment or `.faff/runs/<run-id>/ISSUE-XX/park.md`; exactly one basis must hold:
    - Autonomous-contract forbidden pattern: session compaction, context length, too-many-turns, topic-keyword match on a spec-closed decision, or edits taking effect only after merge (`netlify.toml`, `.github/workflows/*.yml`, `Dockerfile`, `package.json` dep bumps, IaC or migration SQL not executed pre-merge). Clear without prompting.
-   - Named blocker now Done/Merged/Cancelled; live-fetch, never cache.
+   - The park reason names a blocker issue ID. Live-fetch it and confirm Done/Merged/Cancelled.
    - Cited spec punt (`Punt:`, `needs human`, `TBD`, "or X if Y") now closed on the same topic by `Chosen:`/`Decision:` under the gateway Spec-readiness contract.
 3. **Subjective/vague/missing reason** ("architectural change needed", "scope unclear"): retain; log "stale park label — needs human" for `/faff-wtf`.
 

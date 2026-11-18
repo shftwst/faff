@@ -5,7 +5,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, chmodSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, chmodSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -247,9 +247,133 @@ test("CLI: --dry-run on a conflicting PR reports needs-fix:conflict and writes n
   assert.equal(existsSync(join(runDir, ISSUE, "landing-loop.json")), false);
 });
 
+test("CLI: detects a later-page regression and captures its checks for a no-push assessment", (t) => {
+  const dir = mkdtempSync(join(tmpdir(), "faff-land-fix-cli-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const git = (...args) => execFileSync("git", args, { cwd: dir, encoding: "utf8" }).trim();
+  git("init", "-q");
+  git("-c", "user.name=Test", "-c", "user.email=test@example.invalid", "-c", "commit.gpgsign=false",
+    "commit", "--allow-empty", "-qm", "base");
+  const main = git("rev-parse", "HEAD");
+  git("update-ref", "refs/remotes/origin/main", main);
+  writeFileSync(join(dir, ".faffrc.yaml"), "graft:\n  landing:\n    autofix: shadow\n");
+
+  const head = "ab".repeat(20);
+  const before = join(dir, "before.json");
+  const calls = join(dir, "gh-calls.jsonl");
+  const failCheckRead = join(dir, "fail-gh-check-read");
+  const bin = join(dir, "bin");
+  const gh = join(bin, "gh");
+  mkdirSync(bin);
+  writeFileSync(gh, `#!/usr/bin/env node
+const assert = require("node:assert/strict");
+const { appendFileSync, existsSync } = require("node:fs");
+const args = process.argv.slice(2);
+const head = ${JSON.stringify(head)};
+const main = ${JSON.stringify(main)};
+const root = "repos/o/r/commits/";
+const green = { name: "build", status: "completed", conclusion: "success" };
+const failed = name => ({ head_sha: head, name, status: "completed", conclusion: "failure" });
+const out = data => { console.log(JSON.stringify(data)); process.exit(0); };
+const outRows = rows => {
+  for (const row of rows) console.log(JSON.stringify(row));
+  process.exit(0);
+};
+if (args[0] === "repo" && args[1] === "view") out({ nameWithOwner: "o/r" });
+if (args[0] === "pr" && args[1] === "view" && args[2] === "7") {
+  out({ headRefOid: head, mergeStateStatus: "CLEAN", mergeable: "MERGEABLE", reviewDecision: "APPROVED" });
+}
+if (args[0] === "pr" && args[1] === "checks" && args[2] === "7") {
+  out([{ name: "unit", bucket: "fail", link: "https://ci.example.invalid/check/1" }]);
+}
+if (args.includes("--slurp") || args.includes("--paginate") || args.some(arg => arg.endsWith("?per_page=100"))) {
+  const checkHead = args[2] === root + main + "/check-runs?per_page=100" ? main : head;
+  assert.deepEqual(args, [
+    "api", "--paginate", root + checkHead + "/check-runs?per_page=100",
+    "--jq", ".check_runs[] | {head_sha, name, status, conclusion} | @json",
+  ]);
+  appendFileSync(${JSON.stringify(calls)}, JSON.stringify({ head: checkHead, paginated: true }) + "\\n");
+  if (checkHead === main) outRows([{ ...green, head_sha: main }]);
+  if (existsSync(${JSON.stringify(failCheckRead)})) {
+    console.error("fixture check-run read failed");
+    process.exit(1);
+  }
+  outRows([
+    { ...green, head_sha: head }, failed("unit"), failed("lint, style"), failed("unit"),
+    { name: "waiting", head_sha: head, status: "in_progress", conclusion: null },
+  ]);
+}
+if (args[1] === root + head + "/check-runs" || args[1] === root + main + "/check-runs") {
+  const checkHead = args[1] === root + head + "/check-runs" ? head : main;
+  appendFileSync(${JSON.stringify(calls)}, JSON.stringify({ head: checkHead, paginated: false }) + "\\n");
+  out([green]);
+}
+if (args[1] === root + head + "/status") out({ state: "success", count: 0 });
+throw new Error("unexpected gh command: " + args.join(" "));
+`);
+  chmodSync(gh, 0o755);
+
+  const land = (run, ...flags) => cli(dir, ["land", "--pr", "7", "--issue", ISSUE, "--run-dir", join(dir, run),
+    "--fault-domain", "code", "--slice-secs", "5", "--json", ...flags], bin);
+  const legacy = land("legacy-run");
+  assert.equal(legacy.code, 0, legacy.err || legacy.out);
+  assert.equal(JSON.parse(legacy.out).token, "ready");
+
+  writeFileSync(calls, "");
+  const captured = land("run", "--fix-checks");
+  assert.equal(captured.code, 0, captured.err || captured.out);
+  const observation = JSON.parse(captured.out);
+  assert.equal(observation.token, "needs-fix");
+  assert.equal(observation.reason, "regression");
+  assert.equal(observation.head_sha, head);
+  assert.deepEqual(observation.failing_checks, ["lint, style", "unit"]);
+  const checkReads = readFileSync(calls, "utf8").trim().split("\n").map(line => JSON.parse(line));
+  assert.ok(checkReads.some(read => read.head === main && read.paginated), "triage reads main's pinned checks");
+  assert.ok(checkReads.filter(read => read.head === head && read.paginated).length >= 3,
+    "observation, triage and capture read the PR's pinned checks");
+  assert.ok(checkReads.every(read => read.head !== head || read.paginated), "strict mode never reads just the first PR page");
+  writeFileSync(before, captured.out);
+
+  const assessment = cli(dir, ["land", "assess-fix", "--mode", "shadow", "--before", before], bin);
+  assert.equal(assessment.code, 0, assessment.err || assessment.out);
+  assert.deepEqual(JSON.parse(assessment.out), {
+    action: "record-failed", kind: "regression", head_sha: head, failing_checks: ["lint, style", "unit"],
+  });
+
+  writeFileSync(failCheckRead, "");
+  const refused = land("unreadable-run", "--fix-checks");
+  assert.equal(refused.code, 2, refused.err || refused.out);
+  assert.equal(JSON.parse(refused.out).token, "errored");
+});
+
 test("CLI: bad arguments exit 2", () => {
   const dir = mkdtempSync(join(tmpdir(), "faff-land-cli-"));
   assert.equal(cli(dir, ["land", "--pr", "x", "--issue", ISSUE, "--run-dir", dir], fakeGh(dir)).code, 2);
   assert.equal(cli(dir, ["land", "--pr", "7", "--issue", ISSUE, "--run-dir", dir, "--fault-domain", "maybe"], fakeGh(dir)).code, 2);
   assert.equal(cli(dir, ["land", "--pr", "7"], fakeGh(dir)).code, 2);
+});
+
+test("fix observations capture the current regression head, sorted, with pending checks excluded", () => {
+  const triage = { persistent: { origin: "mine", action: "fix-attempt", fault_domain: "code", head_sha: "h1" } };
+  const h = harness({ frames: [[CLEAN, RED]], triage });
+  h.deps.fixRuns = (repo, head) => {
+    assert.equal(repo, "o/r"); assert.equal(head, "h1");
+    const rows = ["unit", "a, b", "unit"].map(name => ({ name, head_sha: head, status: "completed", conclusion: "failure" }));
+    return { ok: true, data: [...rows, { name: "waiting", head_sha: head, status: "in_progress", conclusion: null }] };
+  };
+  const r = runLand(h.opts({fixChecks: true}), h.deps);
+  assert.equal(r.token, "needs-fix");
+  assert.deepEqual(r.failing_checks, ["a, b", "unit"]);
+});
+test("fix observations reject stale triage, failed reads and malformed or foreign check rows", () => {
+  for (const [triageHead, runs] of [
+    ["old", null], ["h1", {ok: false}], ["h1", {ok: true, data: []}],
+    ["h1", {ok: true, data: [{head_sha: "old", name: "unit", status: "completed", conclusion: "failure"}]}],
+    ["h1", {ok: true, data: [{head_sha: "h1", name: "unit", status: "completed"}]}],
+  ]) {
+    const triage = { persistent: { origin: "mine", action: "fix-attempt", fault_domain: "code", head_sha: triageHead } };
+    const h = harness({ frames: [[CLEAN, RED]], triage });
+    h.deps.fixRuns = () => { assert.ok(runs, "stale triage must stop before reading checks"); return runs; };
+    assert.equal(runLand(h.opts({fixChecks: true}), h.deps).token, "errored");
+  }
 });

@@ -5,7 +5,7 @@ Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 
 The 34-item CLI extraction plan orders upcoming work by determinism, caller frequency, expected size reduction and dependencies. The first delivery starts with shared build-dispatch inputs. [Ranked queue and acceptance criteria](../2026-11-18-cli-extraction-roadmap/README.md)
 
-| PR | Runtime saving | Estimated token saving | State |
+| PR | Installed prompt saving | Estimated token saving | State |
 |---|---:|---:|---|
 | [1207](https://github.com/shftwst/faff/pull/1207), adversarial review | 52,030 B | 12,859 | Merged |
 | [1208](https://github.com/shftwst/faff/pull/1208), gateway | 7,152 B | 1,764 | Merged |
@@ -28,12 +28,22 @@ The 34-item CLI extraction plan orders upcoming work by determinism, caller freq
 | [1226](https://github.com/shftwst/faff/pull/1226), jot ticket inspection | 880 B | 216 | Merged |
 | [1227](https://github.com/shftwst/faff/pull/1227), beep-boop closing reminders | 2,067 B | 512 | Merged |
 | [1228](https://github.com/shftwst/faff/pull/1228), graft delivery and no-CI routing | 2,198 B | 541 | Merged |
-| [1230](https://github.com/shftwst/faff/pull/1230), tidy container transition recap | 1,568 B | 384 | Open |
-| [1231](https://github.com/shftwst/faff/pull/1231), graft post-fix assessment | 3,091 B | 766 | Open |
-| [1232](https://github.com/shftwst/faff/pull/1232), prepare build dispatch | 6,072 B | 1,497 | Open |
+| [1230](https://github.com/shftwst/faff/pull/1230), tidy container transition recap | 1,568 B | 384 | Merged |
+| [1231](https://github.com/shftwst/faff/pull/1231), graft post-fix assessment | 3,091 B | 766 | Merged |
+| [1232](https://github.com/shftwst/faff/pull/1232), build dispatch preparation | 6,072 B | 1,497 | Merged |
+| [1233](https://github.com/shftwst/faff/pull/1233), tracker issue facts | 4,642 B | 1,141 | Open |
+| [1234](https://github.com/shftwst/faff/pull/1234), build queue partition | 5,137 B | 1,270 | Open |
+| [1235](https://github.com/shftwst/faff/pull/1235), L4 request preparation | 9,336 B | 2,327 | Open |
+| [1236](https://github.com/shftwst/faff/pull/1236), build-return mapping | 1,732 B | 424 | Open |
+| [1237](https://github.com/shftwst/faff/pull/1237), run-end reconciliation | 3,353 B | 830 | Open |
+| [1238](https://github.com/shftwst/faff/pull/1238), L4 round receipts | 12,585 B | 3,117 | Open |
+| [1239](https://github.com/shftwst/faff/pull/1239), planning graph facts | 2,382 B | 589 | Open |
+| [1240](https://github.com/shftwst/faff/pull/1240), review checkpoint resume | 1,696 B | 419 | Open |
 
-Merged savings since the quick-pass starting main total **180,118 bytes / 44,318 estimated tokens**. Main totals **1,191,963 bytes / 295,611 estimated tokens** across 41 covered files. The 3 open reduction PRs save another 10,731 bytes and 2,647 estimated tokens, for a cumulative projection of 190,849 bytes and 46,965 estimated tokens (13.91% by bytes). Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
+Merged savings since the quick-pass starting main total **190,849 bytes / 46,965 estimated tokens**. Main totals **1,181,232 bytes / 292,964 estimated tokens** across 41 covered files. The 8 open reduction PRs save another 40,863 bytes and 10,116 estimated tokens, for a cumulative projection of 231,712 bytes and 57,081 estimated tokens (16.89% by bytes). Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
 Graft #1231 still removes 3,091 bytes after #1228 landed. Its incremental estimate is now 766 tokens because the complete file is rounded once. Local and held reductions are excluded from both totals.
+
+The ranked CLI slices record actual input and output sizes, native-run scope and deliberate changes to error handling. [CLI qualification](ranked-cli-results.json)
 
 Both build executors matched all 12 cases per arm. The CLI emitted 1,608 more stdout bytes across the ten actual calls per arm. [Build dispatch measurements and both caller responses](build-dispatch-prepare.json)
 

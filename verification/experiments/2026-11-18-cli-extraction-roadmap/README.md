@@ -4,9 +4,25 @@ Audited all 32 installed skill prompts and nine shared references. The source in
 
 ## Delivery progress
 
-Rank 1 is in review. The four changed files fell from 137,118 to 131,046 bytes, saving 6,072 bytes and 1,497 estimated tokens against the original 4.0–6.6 kB forecast. The static reduction for a load of one executor and both shared references is 3,099 bytes for sequential and 1,839 bytes for parallel. The measured CLI stdout increase across ten actual calls was 1,608 bytes. The paired callers agreed on all 12 handoffs in each arm with simulated launches and corrections. The forecast table below preserves its audit-time baseline and includes rank 1. [Production PR](https://github.com/shftwst/faff/pull/1232) · [Measurements and caller responses](../2026-11-17-extracted-savings/build-dispatch-prepare.json)
+Merged savings since the quick-pass starting main total **190,849 bytes / 46,965 estimated tokens**. Main totals **1,181,232 bytes / 292,964 estimated tokens** across 41 covered files. The 8 open reduction PRs save another 40,863 bytes and 10,116 estimated tokens, for a cumulative projection of 231,712 bytes and 57,081 estimated tokens (16.89% by bytes). [Campaign ledger](../2026-11-17-extracted-savings/README.md)
 
-Rank 2 starts with a batch of already-fetched issue and blocker facts from Linear and GitHub. The four existing tracker test files passed 45 baseline cases. The existing satisfied-edge fixture supplies the expected call to `next` itself. The new test must exercise the classifier choosing that input from a live, completed or unresolved blocker. Tracker discovery and fetching remain with the caller.
+| Rank | Extraction | Prompt bytes saved | Estimated tokens | State |
+|---|---|---:|---:|---|
+| 1 | [build dispatch preparation](https://github.com/shftwst/faff/pull/1232) | 6,072 | 1,497 | Merged |
+| 2 | [tracker issue facts](https://github.com/shftwst/faff/pull/1233) | 4,642 | 1,141 | Open |
+| 3 | [build queue partition](https://github.com/shftwst/faff/pull/1234) | 5,137 | 1,270 | Open |
+| 4 | [L4 request preparation](https://github.com/shftwst/faff/pull/1235) | 9,336 | 2,327 | Open |
+| 4 | [L4 round receipts](https://github.com/shftwst/faff/pull/1238) | 12,585 | 3,117 | Open |
+| 6 | [build-return mapping](https://github.com/shftwst/faff/pull/1236) | 1,732 | 424 | Open |
+| 9 | [review checkpoint resume](https://github.com/shftwst/faff/pull/1240) | 1,696 | 419 | Open |
+| 10 | [planning graph facts](https://github.com/shftwst/faff/pull/1239) | 2,382 | 589 | Open |
+| 11 | [run-end reconciliation](https://github.com/shftwst/faff/pull/1237) | 3,353 | 830 | Open |
+
+**Rank 5.** Held. A post acknowledgement or a fresh discovered spec is sufficient in the existing callers. Mandatory same-comment readback changes tracker behaviour.
+
+**Rank 7.** Held. Six of nine plausible archived spec samples exceeded the 2,500-byte per-path saving before the raw heading. Build archives lacked per-pass prose. No result formatter published.
+
+**Rank 8.** Held locally. Extracting one delivery-envelope parser saved 551 bytes across the prompts. A compact reply increased input from 53 to 145 bytes; arbitrary slot text can be longer. Native delivery has not been qualified.
 
 ## Where to start
 

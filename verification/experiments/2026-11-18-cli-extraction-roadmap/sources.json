@@ -511,12 +511,11 @@
       ],
       "delivery": {
         "pr": 1232,
-        "status": "open",
+        "status": "merged",
         "net_measured": {
           "bytes": 6072,
           "estimated_tokens": 1497
-        },
-        "evidence": "../2026-11-17-extracted-savings/build-dispatch-prepare.json"
+        }
       }
     },
     {
@@ -622,6 +621,18 @@
           "A completed target remains visible while its edge stops blocking",
           "A missing page or unreachable pinned connector stops the caller from treating empty results as complete"
         ]
+      },
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1233,
+            "status": "open",
+            "net_measured": {
+              "bytes": 4642,
+              "estimated_tokens": 1141
+            }
+          }
+        ]
       }
     },
     {
@@ -665,7 +676,19 @@
           "reuse": "refs in thematic methodology and concurrency slots consume independents/groups; no conflict partition CLI in audited bin/lib.",
           "verify": "New graph permutation, cycle, transitive collision, human override and no-loss fixtures; exercise both executor descriptors."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1234,
+            "status": "open",
+            "net_measured": {
+              "bytes": 5137,
+              "estimated_tokens": 1270
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 4,
@@ -726,7 +749,27 @@
           ],
           "verify": "Migrate test/spec-review-dispatch-resolution.test.mjs and test/spec-review-occupant-served-dispatch.test.mjs from literal bash extraction to the shipped entry point. Drive injected existing lens results, including unavailable, malformed result, mixed fallback, unavailable lens that can swing the verdict, retry transcript and TTFT cases."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1235,
+            "status": "open",
+            "net_measured": {
+              "bytes": 9336,
+              "estimated_tokens": 2327
+            }
+          },
+          {
+            "pr": 1238,
+            "status": "open",
+            "net_measured": {
+              "bytes": 12585,
+              "estimated_tokens": 3117
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 5,
@@ -871,7 +914,11 @@
           "reuse": "spec-review-round.ts, spec-review-hold.ts, spec-review-window.js, spec-review-pin.js, spec-review.js, spec-refresh-carry.js, spec-judge-evidence.js, spec-judge-casefile.js, prep-attach.ts and `faff events`.",
           "verify": "test/spec-review-{round,hold,window,carry-check,evidence-write}.test.mjs, spec-judge assemble/admit and casefile fixtures, turn-boundary replay and untrusted evidence edit cases."
         }
-      ]
+      ],
+      "delivery": {
+        "status": "held",
+        "rationale": "Held. A post acknowledgement or a fresh discovered spec is sufficient in the existing callers. Mandatory same-comment readback changes tracker behaviour."
+      }
     },
     {
       "rank": 6,
@@ -942,7 +989,19 @@
           "reuse": "run-ledger.js, events.js, inflightcheck.js, turncheck.js, run-open.ts, run-close.ts, result.ts, heartbeat.js, evidence.js. The d6a6cf99 combined ledger draft overlaps this text; remeasure on its eventual merge base.",
           "verify": "test/run-ledger-{serialiser,writer-inventory,record-outcome}.test.mjs, test/ledger-concurrency.test.mjs and marker re-entry/event token capture regressions."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1236,
+            "status": "open",
+            "net_measured": {
+              "bytes": 1732,
+              "estimated_tokens": 424
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 7,
@@ -1008,7 +1067,11 @@
           ],
           "verify": "test/heading-slug.test.mjs, test/review-prior.test.mjs, test/spec-review-route.test.mjs and review contract tests; conflicting blockers, empty findings, carried handles and raw annotation goldens."
         }
-      ]
+      ],
+      "delivery": {
+        "status": "held",
+        "rationale": "Held. Six of nine plausible archived spec samples exceeded the 2,500-byte per-path saving before the raw heading. Build archives lacked per-pass prose. No result formatter published."
+      }
     },
     {
       "rank": 8,
@@ -1079,7 +1142,11 @@
           "reuse": "validate-adapters.REGISTRY/--is-bundled, dispatch resolve, engine call, inflightcheck, events/heartbeat, contract --describe and existing fence handling in run-trigger.ts. Reuse canonical artifact ownership. Use a narrow shared result parser first. Keep custom-occupant discovery, dispatch selection and rendering with the current owners.",
           "verify": "test/dispatch-config.test.mjs, test/dispatch-build-chain.test.mjs, test/contract-describe.test.mjs, test/contract-golden.test.mjs and existing spec-review resolution tests. Add collision/duplicate-fence, nested producer, invalid JSON and custom slot fallback cases."
         }
-      ]
+      ],
+      "delivery": {
+        "status": "held",
+        "rationale": "Held locally. Extracting one delivery-envelope parser saved 551 bytes across the prompts. A compact reply increased input from 53 to 145 bytes; arbitrary slot text can be longer. Native delivery has not been qualified."
+      }
     },
     {
       "rank": 9,
@@ -1162,7 +1229,19 @@
           ],
           "verify": "Run test/review-{spawn,progress,fixture-paths}.test.mjs and test/impure/review-call-{served-exit,empty-completion}.test.mjs. Add injected cases for L3/L4 all-429, hard kill, missing config, malformed creds and changed diff."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1240,
+            "status": "open",
+            "net_measured": {
+              "bytes": 1696,
+              "estimated_tokens": 419
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 10,
@@ -1335,7 +1414,19 @@
           "reuse": "park-history.js, findings-reconcile.js, decision-capture.js, label.js and methodology `backlog-diagnostics`. No complete graph command or calibration tally seen.",
           "verify": "test/faff-tidy.test.mjs, test/faff-tidy-repeat-park.test.mjs and test/findings-reconcile.test.mjs plus graph-cycle, missing/cancelled parent, ambiguous map and exact-window data."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1239,
+            "status": "open",
+            "net_measured": {
+              "bytes": 2382,
+              "estimated_tokens": 589
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 11,
@@ -1385,7 +1476,19 @@
           "reuse": "reconcile.js pure gate, run-summary.ts assembleReconcileInput, run-close.ts, run-ledger.js, post-merge.js, merge-gate-local.js. reconcile-recover.js is a separate narrowly scoped recovery write.",
           "verify": "Extend test/reconcile.test.mjs, test/run-close.test.mjs, summary and local-merge tests for no baseline, squash head, git-only ancestry, superseded proof, and repeated close."
         }
-      ]
+      ],
+      "delivery": {
+        "slices": [
+          {
+            "pr": 1237,
+            "status": "open",
+            "net_measured": {
+              "bytes": 3353,
+              "estimated_tokens": 830
+            }
+          }
+        ]
+      }
     },
     {
       "rank": 12,
@@ -2944,7 +3047,15 @@
           "reuse": "PR #1231 implements the fix assessor. Check native land and landing-progress first for any remaining resume operation. #1228 handles other delivery and no-CI routing.",
           "verify": "test/landing-progress.test.mjs and test/ci-triage.test.mjs plus expired/claimed cross-executor replay, cap-entry, retry without record while pending, unrelated check failures, shadow and exact-head fixtures."
         }
-      ]
+      ],
+      "delivery": {
+        "pr": 1231,
+        "status": "merged",
+        "net_measured": {
+          "bytes": 3091,
+          "estimated_tokens": 766
+        }
+      }
     }
   ]
 }

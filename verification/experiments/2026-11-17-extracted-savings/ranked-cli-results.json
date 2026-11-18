@@ -1,0 +1,1960 @@
+{
+  "held": {
+    "5": "Held. A post acknowledgement or a fresh discovered spec is sufficient in the existing callers. Mandatory same-comment readback changes tracker behaviour.",
+    "7": "Held. Six of nine plausible archived spec samples exceeded the 2,500-byte per-path saving before the raw heading. Build archives lacked per-pass prose. No result formatter published.",
+    "8": "Held locally. Extracting one delivery-envelope parser saved 551 bytes across the prompts. A compact reply increased input from 53 to 145 bytes; arbitrary slot text can be longer. Native delivery has not been qualified."
+  },
+  "rank7_artifact_sample": {
+    "base": "513b6e7f7c93d9356a2e62571ef0ad77be2f7a4f",
+    "deduplication": "SHA-256 over stored signal/verdict and ordered findings/objections. Stable hash-sort over path, capped at 64 anchored records per kind. Test fixtures excluded.",
+    "limitations": [
+      "These are terminal artifacts, not per-pass model outputs. Build prose descriptions and exact pass counts are unrecorded. Single-pass spec producer cannot be verified from the artifact. Neither group supports an empirical provider-cost estimate.",
+      "Artifact-derived build examples use only persisted standard findings with titles, fabricated minimum-length descriptions, a short category and pass 2. The unknown actual descriptions add approximately two bytes of payload per description byte, before JSON escaping.",
+      "Artifact-derived spec examples accept only one to four objections with distinct known lenses and no evidence of a multi-round roll-up. They use the persisted enrichment and a short approximation of the raw heading. Existing holdout and refutation content is not replayed."
+    ],
+    "build": {
+      "tracked_anchor_paths": 479,
+      "paths_sampled": 64,
+      "unique_outcomes": 21,
+      "nonempty_unique": 20,
+      "stored_artifact_bytes": {
+        "count": 64,
+        "min": 31,
+        "median": 37.0,
+        "max": 24876
+      },
+      "nonempty_final_row_counts": {
+        "1": 1,
+        "2": 1,
+        "3": 2,
+        "4": 4,
+        "5": 3,
+        "6": 3,
+        "7": 3,
+        "8": 1,
+        "19": 1,
+        "22": 1
+      },
+      "metadata_names_only": [
+        "faff_version",
+        "findings",
+        "round_history",
+        "rounds_total",
+        "schema_version",
+        "signal"
+      ],
+      "artifact_derived_replays": 10,
+      "artifact_derived_full_extra_payload_bytes": {
+        "count": 10,
+        "min": 873,
+        "median": 1697.0,
+        "max": 9664
+      },
+      "crossings_even_at_artifact_estimate": 1,
+      "lengths_only": [
+        {
+          "row_count": 1,
+          "stdin_bytes": 521,
+          "stdout_bytes": 704,
+          "unrecorded_description_budget_bytes_approx": 1526,
+          "was_standard_only": false
+        },
+        {
+          "row_count": 1,
+          "stdin_bytes": 809,
+          "stdout_bytes": 1094,
+          "unrecorded_description_budget_bytes_approx": 1187,
+          "was_standard_only": false
+        },
+        {
+          "row_count": 3,
+          "stdin_bytes": 1080,
+          "stdout_bytes": 1422,
+          "unrecorded_description_budget_bytes_approx": 887,
+          "was_standard_only": true
+        },
+        {
+          "row_count": 3,
+          "stdin_bytes": 1300,
+          "stdout_bytes": 1676,
+          "unrecorded_description_budget_bytes_approx": 650,
+          "was_standard_only": false
+        },
+        {
+          "row_count": 2,
+          "stdin_bytes": 865,
+          "stdout_bytes": 1125,
+          "unrecorded_description_budget_bytes_approx": 1143,
+          "was_standard_only": false
+        },
+        {
+          "row_count": 1,
+          "stdin_bytes": 517,
+          "stdout_bytes": 728,
+          "unrecorded_description_budget_bytes_approx": 1516,
+          "was_standard_only": false
+        },
+        {
+          "row_count": 2,
+          "stdin_bytes": 603,
+          "stdout_bytes": 840,
+          "unrecorded_description_budget_bytes_approx": 1417,
+          "was_standard_only": false
+        },
+        {
+          "row_count": 1,
+          "stdin_bytes": 635,
+          "stdout_bytes": 856,
+          "unrecorded_description_budget_bytes_approx": 1393,
+          "was_standard_only": false
+        },
+        {
+          "row_count": 1,
+          "stdin_bytes": 337,
+          "stdout_bytes": 536,
+          "unrecorded_description_budget_bytes_approx": 1702,
+          "was_standard_only": false
+        },
+        {
+          "row_count": 9,
+          "stdin_bytes": 4280,
+          "stdout_bytes": 5384,
+          "unrecorded_description_budget_bytes_approx": -2694,
+          "was_standard_only": false
+        }
+      ]
+    },
+    "spec": {
+      "tracked_anchor_paths": 76,
+      "paths_sampled": 64,
+      "unique_outcomes": 55,
+      "nonempty_unique": 54,
+      "stored_artifact_bytes": {
+        "count": 64,
+        "min": 37,
+        "median": 9176.5,
+        "max": 111797
+      },
+      "nonempty_final_row_counts": {
+        "1": 8,
+        "2": 4,
+        "3": 5,
+        "4": 5,
+        "5": 3,
+        "6": 4,
+        "7": 1,
+        "8": 6,
+        "9": 1,
+        "10": 2,
+        "11": 1,
+        "14": 1,
+        "15": 2,
+        "16": 1,
+        "17": 1,
+        "22": 1,
+        "23": 1,
+        "25": 3,
+        "26": 1,
+        "27": 1,
+        "42": 1,
+        "44": 1
+      },
+      "metadata_names_only": [
+        "conformant",
+        "faff_version",
+        "final_verdict",
+        "objections",
+        "rounds_total",
+        "schema_version",
+        "verdict",
+        "violations"
+      ],
+      "artifact_derived_replays": 9,
+      "artifact_derived_full_extra_payload_bytes": {
+        "count": 9,
+        "min": 159,
+        "median": 3415,
+        "max": 8971
+      },
+      "crossings_even_at_artifact_estimate": 6,
+      "lengths_only": [
+        {
+          "row_count": 1,
+          "stdin_bytes": 1508,
+          "stdout_bytes": 1561
+        },
+        {
+          "row_count": 3,
+          "stdin_bytes": 4467,
+          "stdout_bytes": 4504
+        },
+        {
+          "row_count": 3,
+          "stdin_bytes": 4014,
+          "stdout_bytes": 4051
+        },
+        {
+          "row_count": 2,
+          "stdin_bytes": 98,
+          "stdout_bytes": 159
+        },
+        {
+          "row_count": 1,
+          "stdin_bytes": 1681,
+          "stdout_bytes": 1734
+        },
+        {
+          "row_count": 1,
+          "stdin_bytes": 1959,
+          "stdout_bytes": 2012
+        },
+        {
+          "row_count": 1,
+          "stdin_bytes": 49,
+          "stdout_bytes": 110
+        },
+        {
+          "row_count": 1,
+          "stdin_bytes": 1704,
+          "stdout_bytes": 1757
+        },
+        {
+          "row_count": 1,
+          "stdin_bytes": 54,
+          "stdout_bytes": 115
+        }
+      ]
+    }
+  },
+  "slices": {
+    "1233": {
+      "rank": 2,
+      "test_count": 61,
+      "qualification": "Native Claude Code callers reproduced all eleven downstream next calls across supplied GitHub and Linear batches and both refusal paths. Two compact classifier inputs totalled 1,740 bytes. No live tracker operation.",
+      "feature_files": [
+        "plugin/skills/faff-map/SKILL.md",
+        "plugin/skills/faff/references/tracker.md"
+      ],
+      "native": {
+        "fixtures": {
+          "complete_batches": {
+            "linear": {
+              "complete": true,
+              "issues": [
+                {
+                  "id": "LNX-10",
+                  "state": {
+                    "name": "Duplicate",
+                    "type": "started"
+                  }
+                },
+                {
+                  "id": "LNX-11",
+                  "state": {
+                    "name": "Retired",
+                    "stateCategory": "cancelled"
+                  }
+                },
+                {
+                  "id": "LNX-12",
+                  "state": {
+                    "name": "Duplicate"
+                  }
+                },
+                {
+                  "id": "LNX-13",
+                  "state": {
+                    "name": "Todo",
+                    "type": "unstarted"
+                  },
+                  "archived": true
+                },
+                {
+                  "id": "LNX-14",
+                  "state": {
+                    "name": "Todo",
+                    "type": "unstarted"
+                  },
+                  "parent": {
+                    "archived": true
+                  }
+                },
+                {
+                  "id": "LNX-15",
+                  "state": {
+                    "name": "Todo",
+                    "type": "unstarted"
+                  },
+                  "parent": {
+                    "state": {
+                      "name": "Closed",
+                      "type": "cancelled"
+                    }
+                  }
+                },
+                {
+                  "id": "LNX-20",
+                  "state": {
+                    "name": "Released",
+                    "type": "completed"
+                  }
+                },
+                {
+                  "id": "LNX-21",
+                  "state": {
+                    "name": "Done"
+                  }
+                },
+                {
+                  "id": "LNX-22",
+                  "state": {
+                    "name": "Done",
+                    "type": "started"
+                  }
+                },
+                {
+                  "id": "LNX-23",
+                  "state": {
+                    "name": "Todo",
+                    "type": "unstarted"
+                  }
+                },
+                {
+                  "id": "LNX-24",
+                  "state": {
+                    "name": "Todo",
+                    "type": "unstarted"
+                  }
+                },
+                {
+                  "id": "LNX-25",
+                  "state": {
+                    "name": "Todo",
+                    "type": "unstarted"
+                  }
+                }
+              ],
+              "edges": [
+                [
+                  "LNX-10",
+                  "LNX-20"
+                ],
+                [
+                  "LNX-10",
+                  "LNX-23"
+                ],
+                [
+                  "LNX-23",
+                  "LNX-20"
+                ],
+                [
+                  "LNX-23",
+                  "LNX-21"
+                ],
+                [
+                  "LNX-23",
+                  "LNX-22"
+                ],
+                [
+                  "LNX-24",
+                  "LNX-404"
+                ],
+                [
+                  "LNX-25",
+                  "LNX-20"
+                ],
+                [
+                  "LNX-13",
+                  "LNX-23"
+                ]
+              ],
+              "queue": [
+                "LNX-10",
+                "LNX-23",
+                "LNX-24",
+                "LNX-25"
+              ],
+              "next_probe_ids": [
+                "LNX-10",
+                "LNX-20",
+                "LNX-23",
+                "LNX-24",
+                "LNX-25"
+              ]
+            },
+            "github": {
+              "complete": true,
+              "issues": [
+                {
+                  "id": "GH-1",
+                  "state": "open"
+                },
+                {
+                  "id": "GH-2",
+                  "state": "closed",
+                  "state_reason": "not_planned"
+                },
+                {
+                  "id": "GH-3",
+                  "state": "closed",
+                  "state_reason": "completed"
+                },
+                {
+                  "id": "GH-4",
+                  "state": "closed",
+                  "pull_request": {
+                    "merged_at": "2026-01-08T12:30:00Z"
+                  }
+                },
+                {
+                  "id": "GH-5",
+                  "state": "closed"
+                },
+                {
+                  "id": "GH-6",
+                  "state": "open",
+                  "parent": {
+                    "archived": true
+                  }
+                },
+                {
+                  "id": "GH-7",
+                  "state": "open",
+                  "parent": {
+                    "state": "closed",
+                    "state_reason": "not_planned"
+                  }
+                },
+                {
+                  "id": "GH-8",
+                  "state": "open"
+                },
+                {
+                  "id": "GH-9",
+                  "state": "open"
+                },
+                {
+                  "id": "GH-10",
+                  "state": "open"
+                }
+              ],
+              "edges": [
+                [
+                  "GH-1",
+                  "GH-3"
+                ],
+                [
+                  "GH-1",
+                  "GH-8"
+                ],
+                [
+                  "GH-8",
+                  "GH-4"
+                ],
+                [
+                  "GH-8",
+                  "GH-5"
+                ],
+                [
+                  "GH-9",
+                  "GH-404"
+                ],
+                [
+                  "GH-10",
+                  "GH-3"
+                ],
+                [
+                  "GH-10",
+                  "GH-4"
+                ],
+                [
+                  "GH-6",
+                  "GH-1"
+                ]
+              ],
+              "queue": [
+                "GH-1",
+                "GH-8",
+                "GH-9",
+                "GH-10"
+              ],
+              "next_probe_ids": [
+                "GH-1",
+                "GH-3",
+                "GH-4",
+                "GH-8",
+                "GH-9",
+                "GH-10"
+              ]
+            }
+          },
+          "incomplete_page": {
+            "source": "linear",
+            "pinned": true,
+            "available": true,
+            "complete": false,
+            "hasNextPage": true,
+            "requestNextPageResult": "unavailable",
+            "issues": [
+              {
+                "id": "LNX-10",
+                "state": {
+                  "name": "Todo",
+                  "type": "unstarted"
+                }
+              }
+            ],
+            "edges": [],
+            "queue": [
+              "LNX-10"
+            ]
+          },
+          "pinned_unreachable": {
+            "source": "github",
+            "pinned": true,
+            "available": false,
+            "complete": false,
+            "discoveryResult": "connector unavailable"
+          }
+        },
+        "baseline-result": {
+          "arm": "before",
+          "revision": "b4b86788",
+          "cwd": "/Users/shftwst/workspace/shftwst/faff/.worktrees/tracker-facts-caller-eval/base",
+          "cli": "plugin/skills/faff/bin/faff",
+          "status_mapping_notes": [
+            "Linear: cancelled/completed detection is category-driven first (type/stateCategory), name fallback only when category metadata is absent. LNX-10 'Duplicate' with type started is NOT cancelled (mapped in-progress); LNX-22 'Done' with type started is NOT done.",
+            "GitHub: open issue mapped to todo (no finer state supplied). GH-5 closed with no state_reason is neither completed nor not_planned: unresolvable status, so it stays visible, is not Done, and an edge to it is live (fail-safe).",
+            "Edge targets not present in the snapshot (LNX-404, GH-404) have unresolvable status, so they are live, open external blockers (fail-safe).",
+            "Edges whose blocked issue is hidden (LNX-13, GH-6) are dropped with the hidden node."
+          ],
+          "cases": {
+            "linear": {
+              "disposition": "routed",
+              "hidden_ids": [
+                "LNX-11",
+                "LNX-12",
+                "LNX-13",
+                "LNX-14",
+                "LNX-15"
+              ],
+              "visible_done_ids": [
+                "LNX-20",
+                "LNX-21"
+              ],
+              "live_edges": [
+                [
+                  "LNX-10",
+                  "LNX-23"
+                ],
+                [
+                  "LNX-23",
+                  "LNX-22"
+                ],
+                [
+                  "LNX-24",
+                  "LNX-404"
+                ]
+              ],
+              "queue_open_external_blocker_ids": [
+                "LNX-23",
+                "LNX-24"
+              ],
+              "routes": {
+                "LNX-10": "graft",
+                "LNX-20": "done",
+                "LNX-23": "blocked",
+                "LNX-24": "blocked",
+                "LNX-25": "graft"
+              },
+              "cli_calls": [
+                {
+                  "issue": "LNX-10",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "in-progress",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"graft\",\"reason\":\"build-eligible / resume\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "LNX-20",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "done",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"done\",\"reason\":\"complete\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "LNX-23",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high",
+                    "--blocked"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"blocked\",\"reason\":\"external blocker unmet\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "LNX-24",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high",
+                    "--blocked"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"blocked\",\"reason\":\"external blocker unmet\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "LNX-25",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"graft\",\"reason\":\"build-eligible / resume\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                }
+              ]
+            },
+            "github": {
+              "disposition": "routed",
+              "hidden_ids": [
+                "GH-2",
+                "GH-6",
+                "GH-7"
+              ],
+              "visible_done_ids": [
+                "GH-3",
+                "GH-4"
+              ],
+              "live_edges": [
+                [
+                  "GH-1",
+                  "GH-8"
+                ],
+                [
+                  "GH-8",
+                  "GH-5"
+                ],
+                [
+                  "GH-9",
+                  "GH-404"
+                ]
+              ],
+              "queue_open_external_blocker_ids": [
+                "GH-8",
+                "GH-9"
+              ],
+              "routes": {
+                "GH-1": "graft",
+                "GH-3": "done",
+                "GH-4": "done",
+                "GH-8": "blocked",
+                "GH-9": "blocked",
+                "GH-10": "graft"
+              },
+              "cli_calls": [
+                {
+                  "issue": "GH-1",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"graft\",\"reason\":\"build-eligible / resume\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "GH-3",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "done",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"done\",\"reason\":\"complete\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "GH-4",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "done",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"done\",\"reason\":\"complete\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "GH-8",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high",
+                    "--blocked"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"blocked\",\"reason\":\"external blocker unmet\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "GH-9",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high",
+                    "--blocked"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"blocked\",\"reason\":\"external blocker unmet\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "GH-10",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"graft\",\"reason\":\"build-eligible / resume\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                }
+              ]
+            },
+            "incomplete_page": {
+              "disposition": "fault",
+              "reason": "Snapshot incomplete: hasNextPage true and the next-page request was unavailable. Partial freshness invalidates the shared snapshot (always pull fresh), and a failed read under a pinned connector is a loud fault, not git-only and not 'no spec'. No facts derived and no routing for LNX-10; missing pages/statuses not fabricated.",
+              "attempted_commands": [
+                "simulated tracker read: page 1 (returned)",
+                "simulated tracker read: next page (unavailable)"
+              ],
+              "cli_calls": []
+            },
+            "pinned_unreachable": {
+              "disposition": "fault",
+              "reason": "tracker configured/pinned but connector not reachable this session (discovery: connector unavailable). Not downgraded to git-only; no snapshot, no facts, no routing.",
+              "attempted_commands": [
+                "simulated connector discovery (github, pinned): connector unavailable"
+              ],
+              "cli_calls": []
+            }
+          }
+        },
+        "candidate-result": {
+          "arm": "after",
+          "cwd": "/Users/shftwst/workspace/shftwst/faff/.worktrees/tracker-facts-caller-eval/candidate",
+          "notes": [
+            "stdin is recorded as the parsed JSON object; the exact bytes sent were that object serialised on one line plus a trailing newline.",
+            "Input mapping: each issue's parent object was copied to project (key renamed); no status classification or rewriting of the input.",
+            "next --status mapping: LNX-10 type started -> in-progress; IDs in the facts done set -> done; other open/unstarted -> todo. --blocked only for IDs in the facts blocked set."
+          ],
+          "cases": {
+            "linear": {
+              "disposition": "routed",
+              "hidden_ids": [
+                "LNX-11",
+                "LNX-12",
+                "LNX-13",
+                "LNX-14",
+                "LNX-15"
+              ],
+              "visible_done_ids": [
+                "LNX-20",
+                "LNX-21"
+              ],
+              "live_edges": [
+                [
+                  "LNX-10",
+                  "LNX-23"
+                ],
+                [
+                  "LNX-23",
+                  "LNX-22"
+                ],
+                [
+                  "LNX-24",
+                  "LNX-404"
+                ]
+              ],
+              "queue_open_external_blocker_ids": [
+                "LNX-23",
+                "LNX-24"
+              ],
+              "routes": {
+                "LNX-10": "graft",
+                "LNX-20": "done",
+                "LNX-23": "blocked",
+                "LNX-24": "blocked",
+                "LNX-25": "graft"
+              },
+              "cli_calls": [
+                {
+                  "command": "tracker facts",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "tracker",
+                    "facts",
+                    "--source",
+                    "linear"
+                  ],
+                  "stdin": {
+                    "complete": true,
+                    "issues": [
+                      {
+                        "id": "LNX-10",
+                        "state": {
+                          "name": "Duplicate",
+                          "type": "started"
+                        }
+                      },
+                      {
+                        "id": "LNX-11",
+                        "state": {
+                          "name": "Retired",
+                          "stateCategory": "cancelled"
+                        }
+                      },
+                      {
+                        "id": "LNX-12",
+                        "state": {
+                          "name": "Duplicate"
+                        }
+                      },
+                      {
+                        "id": "LNX-13",
+                        "state": {
+                          "name": "Todo",
+                          "type": "unstarted"
+                        },
+                        "archived": true
+                      },
+                      {
+                        "id": "LNX-14",
+                        "state": {
+                          "name": "Todo",
+                          "type": "unstarted"
+                        },
+                        "project": {
+                          "archived": true
+                        }
+                      },
+                      {
+                        "id": "LNX-15",
+                        "state": {
+                          "name": "Todo",
+                          "type": "unstarted"
+                        },
+                        "project": {
+                          "state": {
+                            "name": "Closed",
+                            "type": "cancelled"
+                          }
+                        }
+                      },
+                      {
+                        "id": "LNX-20",
+                        "state": {
+                          "name": "Released",
+                          "type": "completed"
+                        }
+                      },
+                      {
+                        "id": "LNX-21",
+                        "state": {
+                          "name": "Done"
+                        }
+                      },
+                      {
+                        "id": "LNX-22",
+                        "state": {
+                          "name": "Done",
+                          "type": "started"
+                        }
+                      },
+                      {
+                        "id": "LNX-23",
+                        "state": {
+                          "name": "Todo",
+                          "type": "unstarted"
+                        }
+                      },
+                      {
+                        "id": "LNX-24",
+                        "state": {
+                          "name": "Todo",
+                          "type": "unstarted"
+                        }
+                      },
+                      {
+                        "id": "LNX-25",
+                        "state": {
+                          "name": "Todo",
+                          "type": "unstarted"
+                        }
+                      }
+                    ],
+                    "edges": [
+                      [
+                        "LNX-10",
+                        "LNX-20"
+                      ],
+                      [
+                        "LNX-10",
+                        "LNX-23"
+                      ],
+                      [
+                        "LNX-23",
+                        "LNX-20"
+                      ],
+                      [
+                        "LNX-23",
+                        "LNX-21"
+                      ],
+                      [
+                        "LNX-23",
+                        "LNX-22"
+                      ],
+                      [
+                        "LNX-24",
+                        "LNX-404"
+                      ],
+                      [
+                        "LNX-25",
+                        "LNX-20"
+                      ],
+                      [
+                        "LNX-13",
+                        "LNX-23"
+                      ]
+                    ],
+                    "queue": [
+                      "LNX-10",
+                      "LNX-23",
+                      "LNX-24",
+                      "LNX-25"
+                    ]
+                  },
+                  "exit": 0,
+                  "stdout": "{\"hidden\":[\"LNX-11\",\"LNX-12\",\"LNX-13\",\"LNX-14\",\"LNX-15\"],\"done\":[\"LNX-20\",\"LNX-21\"],\"live_edges\":[[\"LNX-10\",\"LNX-23\"],[\"LNX-23\",\"LNX-22\"],[\"LNX-24\",\"LNX-404\"]],\"blocked\":[\"LNX-23\",\"LNX-24\"]}\n",
+                  "stderr": ""
+                },
+                {
+                  "issue": "LNX-10",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "in-progress",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"graft\",\"reason\":\"build-eligible / resume\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "LNX-20",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "done",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"done\",\"reason\":\"complete\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "LNX-23",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high",
+                    "--blocked"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"blocked\",\"reason\":\"external blocker unmet\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "LNX-24",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high",
+                    "--blocked"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"blocked\",\"reason\":\"external blocker unmet\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "LNX-25",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"graft\",\"reason\":\"build-eligible / resume\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                }
+              ]
+            },
+            "github": {
+              "disposition": "routed",
+              "hidden_ids": [
+                "GH-2",
+                "GH-6",
+                "GH-7"
+              ],
+              "visible_done_ids": [
+                "GH-3",
+                "GH-4"
+              ],
+              "live_edges": [
+                [
+                  "GH-1",
+                  "GH-8"
+                ],
+                [
+                  "GH-8",
+                  "GH-5"
+                ],
+                [
+                  "GH-9",
+                  "GH-404"
+                ]
+              ],
+              "queue_open_external_blocker_ids": [
+                "GH-8",
+                "GH-9"
+              ],
+              "routes": {
+                "GH-1": "graft",
+                "GH-3": "done",
+                "GH-4": "done",
+                "GH-8": "blocked",
+                "GH-9": "blocked",
+                "GH-10": "graft"
+              },
+              "cli_calls": [
+                {
+                  "command": "tracker facts",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "tracker",
+                    "facts",
+                    "--source",
+                    "github"
+                  ],
+                  "stdin": {
+                    "complete": true,
+                    "issues": [
+                      {
+                        "id": "GH-1",
+                        "state": "open"
+                      },
+                      {
+                        "id": "GH-2",
+                        "state": "closed",
+                        "state_reason": "not_planned"
+                      },
+                      {
+                        "id": "GH-3",
+                        "state": "closed",
+                        "state_reason": "completed"
+                      },
+                      {
+                        "id": "GH-4",
+                        "state": "closed",
+                        "pull_request": {
+                          "merged_at": "2026-01-08T12:30:00Z"
+                        }
+                      },
+                      {
+                        "id": "GH-5",
+                        "state": "closed"
+                      },
+                      {
+                        "id": "GH-6",
+                        "state": "open",
+                        "project": {
+                          "archived": true
+                        }
+                      },
+                      {
+                        "id": "GH-7",
+                        "state": "open",
+                        "project": {
+                          "state": "closed",
+                          "state_reason": "not_planned"
+                        }
+                      },
+                      {
+                        "id": "GH-8",
+                        "state": "open"
+                      },
+                      {
+                        "id": "GH-9",
+                        "state": "open"
+                      },
+                      {
+                        "id": "GH-10",
+                        "state": "open"
+                      }
+                    ],
+                    "edges": [
+                      [
+                        "GH-1",
+                        "GH-3"
+                      ],
+                      [
+                        "GH-1",
+                        "GH-8"
+                      ],
+                      [
+                        "GH-8",
+                        "GH-4"
+                      ],
+                      [
+                        "GH-8",
+                        "GH-5"
+                      ],
+                      [
+                        "GH-9",
+                        "GH-404"
+                      ],
+                      [
+                        "GH-10",
+                        "GH-3"
+                      ],
+                      [
+                        "GH-10",
+                        "GH-4"
+                      ],
+                      [
+                        "GH-6",
+                        "GH-1"
+                      ]
+                    ],
+                    "queue": [
+                      "GH-1",
+                      "GH-8",
+                      "GH-9",
+                      "GH-10"
+                    ]
+                  },
+                  "exit": 0,
+                  "stdout": "{\"hidden\":[\"GH-2\",\"GH-6\",\"GH-7\"],\"done\":[\"GH-3\",\"GH-4\"],\"live_edges\":[[\"GH-1\",\"GH-8\"],[\"GH-8\",\"GH-5\"],[\"GH-9\",\"GH-404\"]],\"blocked\":[\"GH-8\",\"GH-9\"]}\n",
+                  "stderr": ""
+                },
+                {
+                  "issue": "GH-1",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"graft\",\"reason\":\"build-eligible / resume\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "GH-3",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "done",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"done\",\"reason\":\"complete\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "GH-4",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "done",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"done\",\"reason\":\"complete\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "GH-8",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high",
+                    "--blocked"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"blocked\",\"reason\":\"external blocker unmet\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "GH-9",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high",
+                    "--blocked"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"blocked\",\"reason\":\"external blocker unmet\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                },
+                {
+                  "issue": "GH-10",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "next",
+                    "--status",
+                    "todo",
+                    "--spec",
+                    "high"
+                  ],
+                  "exit": 0,
+                  "stdout": "{\"next\":\"graft\",\"reason\":\"build-eligible / resume\"}\n",
+                  "stderr": "faff decision-capture record: degraded capture — no $FAFF_RUN_DIR — standalone call, no substrate to capture into\n"
+                }
+              ]
+            },
+            "incomplete_page": {
+              "disposition": "fault",
+              "reason": "Read incomplete (hasNextPage true, next-page request unavailable). tracker facts rejected the batch with exit 2; an incomplete read or exit 2 cannot authorize action. Pinned connector read failure is a loud fault, not git-only. No facts, no next call, no fabricated pages or statuses.",
+              "attempted_commands": [
+                "simulated tracker read: page 1 (returned)",
+                "simulated tracker read: next page (unavailable)",
+                "faff tracker facts --source linear (rejected, exit 2)"
+              ],
+              "cli_calls": [
+                {
+                  "command": "tracker facts",
+                  "argv": [
+                    "node",
+                    "plugin/skills/faff/bin/faff",
+                    "tracker",
+                    "facts",
+                    "--source",
+                    "linear"
+                  ],
+                  "stdin": {
+                    "complete": false,
+                    "issues": [
+                      {
+                        "id": "LNX-10",
+                        "state": {
+                          "name": "Todo",
+                          "type": "unstarted"
+                        }
+                      }
+                    ],
+                    "edges": [],
+                    "queue": [
+                      "LNX-10"
+                    ]
+                  },
+                  "exit": 2,
+                  "stdout": "",
+                  "stderr": "faff tracker facts: expected complete:true and an issues array from a completed read\n"
+                }
+              ]
+            },
+            "pinned_unreachable": {
+              "disposition": "fault",
+              "reason": "tracker configured/pinned but connector not reachable this session (github, discovery: connector unavailable). Not reclassified as git-only; no batch to classify, so no CLI call.",
+              "attempted_commands": [
+                "simulated connector discovery (github, pinned): connector unavailable"
+              ],
+              "cli_calls": []
+            }
+          }
+        },
+        "parity": {
+          "providers": [
+            {
+              "provider": "linear",
+              "facts_and_routes_match": true,
+              "next_call_count": 5,
+              "next_argv_and_results_match": true,
+              "tracker_facts": {
+                "exit": 0,
+                "stdout": "{\"hidden\":[\"LNX-11\",\"LNX-12\",\"LNX-13\",\"LNX-14\",\"LNX-15\"],\"done\":[\"LNX-20\",\"LNX-21\"],\"live_edges\":[[\"LNX-10\",\"LNX-23\"],[\"LNX-23\",\"LNX-22\"],[\"LNX-24\",\"LNX-404\"]],\"blocked\":[\"LNX-23\",\"LNX-24\"]}\n",
+                "stderr": ""
+              }
+            },
+            {
+              "provider": "github",
+              "facts_and_routes_match": true,
+              "next_call_count": 6,
+              "next_argv_and_results_match": true,
+              "tracker_facts": {
+                "exit": 0,
+                "stdout": "{\"hidden\":[\"GH-2\",\"GH-6\",\"GH-7\"],\"done\":[\"GH-3\",\"GH-4\"],\"live_edges\":[[\"GH-1\",\"GH-8\"],[\"GH-8\",\"GH-5\"],[\"GH-9\",\"GH-404\"]],\"blocked\":[\"GH-8\",\"GH-9\"]}\n",
+                "stderr": ""
+              }
+            }
+          ],
+          "incomplete_page": {
+            "exit": 2,
+            "stdout": "",
+            "stderr": "faff tracker facts: expected complete:true and an issues array from a completed read\n"
+          },
+          "both_refusals_match": true,
+          "no_unreachable_cli_calls": true
+        }
+      }
+    },
+    "1234": {
+      "rank": 3,
+      "test_count": 137,
+      "qualification": "One native candidate used the actual classifier on a supplied wave. Independent replay reproduced its ordered components. No paired native baseline or live workers. A 12-issue fixture used 1,641 input bytes and 703 output bytes, median 40.8 ms. A subsequent caller clarification restricted merge inputs to declared dependencies.",
+      "feature_files": [
+        "plugin/skills/faff-beep-boop/SKILL.md"
+      ],
+      "native_wave": {
+        "issues": [
+          {
+            "id": "Q-01",
+            "files": [
+              "src/auth/a.ts"
+            ],
+            "directories": [],
+            "surfaces": [],
+            "scope_tags": [],
+            "blocked_by": []
+          },
+          {
+            "id": "Q-02",
+            "files": [
+              "src/auth/a.ts"
+            ],
+            "directories": [],
+            "surfaces": [
+              "TokenService"
+            ],
+            "scope_tags": [],
+            "blocked_by": [
+              "Q-04"
+            ]
+          },
+          {
+            "id": "Q-03",
+            "files": [
+              "src/auth/b.ts"
+            ],
+            "directories": [],
+            "surfaces": [
+              "TokenService"
+            ],
+            "scope_tags": [],
+            "blocked_by": []
+          },
+          {
+            "id": "Q-04",
+            "files": [
+              "pkg/signer.ts"
+            ],
+            "directories": [],
+            "surfaces": [],
+            "scope_tags": [],
+            "blocked_by": []
+          },
+          {
+            "id": "Q-05",
+            "files": [
+              "pkg/use.ts"
+            ],
+            "directories": [],
+            "surfaces": [],
+            "scope_tags": [],
+            "blocked_by": []
+          },
+          {
+            "id": "Q-06",
+            "files": [],
+            "directories": [],
+            "surfaces": [],
+            "scope_tags": [],
+            "blocked_by": []
+          },
+          {
+            "id": "Q-07",
+            "files": [],
+            "directories": [],
+            "surfaces": [],
+            "scope_tags": [],
+            "blocked_by": []
+          },
+          {
+            "id": "Q-08",
+            "files": [],
+            "directories": [],
+            "surfaces": [],
+            "scope_tags": [],
+            "blocked_by": []
+          },
+          {
+            "id": "Q-09",
+            "files": [
+              "pkg/cache.ts"
+            ],
+            "directories": [],
+            "surfaces": [],
+            "scope_tags": [],
+            "blocked_by": []
+          },
+          {
+            "id": "Q-10",
+            "files": [],
+            "directories": [],
+            "surfaces": [],
+            "scope_tags": [],
+            "blocked_by": []
+          },
+          {
+            "id": "Q-11",
+            "files": [
+              "src/authorization/a.ts"
+            ],
+            "directories": [],
+            "surfaces": [],
+            "scope_tags": [],
+            "blocked_by": []
+          },
+          {
+            "id": "Q-12",
+            "files": [],
+            "directories": [
+              "src/auth"
+            ],
+            "surfaces": [],
+            "scope_tags": [],
+            "blocked_by": []
+          }
+        ],
+        "inferred": [
+          {
+            "producer": "Q-04",
+            "consumer": "Q-05",
+            "match_kind": "id_reference",
+            "confidence": "firm",
+            "evidence": "Q-05 Assumes: Q-04 supplies signed receipts"
+          },
+          {
+            "producer": "Q-07",
+            "consumer": "Q-06",
+            "match_kind": "id_reference",
+            "confidence": "firm",
+            "evidence": "Q-06 Assumes Q-07 by exact ticket ID"
+          },
+          {
+            "producer": "Q-06",
+            "consumer": "Q-07",
+            "match_kind": "id_reference",
+            "confidence": "firm",
+            "evidence": "Q-07 Assumes Q-06 by exact ticket ID"
+          },
+          {
+            "producer": "Q-04",
+            "consumer": "Q-08",
+            "match_kind": "paraphrase",
+            "confidence": "ambiguous",
+            "evidence": "Q-08 assumes one of Q-04 or Q-09 provides an unnamed thing (Q-04 produces signer service)"
+          },
+          {
+            "producer": "Q-09",
+            "consumer": "Q-08",
+            "match_kind": "paraphrase",
+            "confidence": "ambiguous",
+            "evidence": "Q-08 assumes one of Q-04 or Q-09 provides an unnamed thing (Q-09 proposes receipt cache)"
+          },
+          {
+            "producer": "Q-04",
+            "consumer": "Q-10",
+            "match_kind": "id_reference",
+            "confidence": "firm",
+            "evidence": "Q-10 says it depends on Q-04"
+          }
+        ],
+        "non_blocking": [
+          {
+            "producer": "Q-04",
+            "consumer": "Q-10"
+          }
+        ],
+        "uncertain_collisions": []
+      }
+    },
+    "1235": {
+      "rank": 4,
+      "test_count": 627,
+      "qualification": "Paired native callers preserved backend bytes and normalized configured and pinned requests. Unset config stopped both without fan-out, and the candidate supplied an explicit round. Seven interleaved timings. One prior skip. After the initial qualification, the four-lens request contract checks the real nonempty input paths in CI.",
+      "feature_files": [
+        "plugin/skills/faffter-dark-spec-review/SKILL.md"
+      ],
+      "native": {
+        "cases": {
+          "configured": {
+            "round": 1,
+            "strategy": "prime-then-parallel",
+            "backends_bytes_each": 148,
+            "baseline_requests_bytes": 1889,
+            "candidate_requests_bytes": 1745,
+            "normalized_requests_sha256": "2aa62e350d0dce561cc182ec5dc87f6e349d5f787b781c260e3ac64d08e71612",
+            "lens_order": [
+              "QA",
+              "architectural"
+            ],
+            "actual_backend_order": [
+              "first",
+              "second"
+            ]
+          },
+          "retry": {
+            "round": 2,
+            "strategy": "prime-then-parallel",
+            "backends_bytes_each": 148,
+            "baseline_requests_bytes": 767,
+            "candidate_requests_bytes": 701,
+            "normalized_requests_sha256": "88b24b414b97b27c688b3eaf927899ce4193ad44e1efeb493b200d0b18502b55",
+            "lens_order": [
+              "QA"
+            ],
+            "actual_backend_order": [
+              "second",
+              "first"
+            ]
+          },
+          "unset": {
+            "exit": 3,
+            "fanout": null,
+            "unavailable_kind": "config-fault",
+            "baseline_round": null,
+            "candidate_round": 1
+          }
+        },
+        "timing": {
+          "configured": {
+            "baseline": {
+              "ms": 350.9,
+              "processes": 12,
+              "stdout_bytes": 2234,
+              "stderr_bytes": 0,
+              "bytes_to_agent": null,
+              "repetitions": 7
+            },
+            "candidate": {
+              "ms": 39.14,
+              "processes": 1,
+              "stdout_bytes": 361,
+              "stderr_bytes": 0,
+              "bytes_to_agent": 361,
+              "repetitions": 7
+            }
+          },
+          "retry": {
+            "baseline": {
+              "ms": 318.41,
+              "processes": 11,
+              "stdout_bytes": 976,
+              "stderr_bytes": 0,
+              "bytes_to_agent": null,
+              "repetitions": 7
+            },
+            "candidate": {
+              "ms": 37.46,
+              "processes": 1,
+              "stdout_bytes": 361,
+              "stderr_bytes": 0,
+              "bytes_to_agent": 361,
+              "repetitions": 7
+            }
+          }
+        }
+      }
+    },
+    "1236": {
+      "rank": 6,
+      "test_count": 152,
+      "qualification": "Original and extracted disposition tables were checked through the real CLI and replay, including all nine native outcomes, annotations, merge handoff and pre-admission paths. No native caller pair. A representative result used 77 stdout bytes and median 40.6 ms.",
+      "feature_files": [
+        "plugin/skills/faff-graft/SKILL.md",
+        "plugin/skills/faff/references/l4.md"
+      ]
+    },
+    "1237": {
+      "rank": 11,
+      "test_count": 305,
+      "qualification": "The pure gate, new assembler, existing summary, land and merge gate tests passed. Compact 1/20 issue fixtures use a stub forge. The 20-issue case avoids a 5,342-byte intermediate. Missing sibling or delivery observations stay unproven. No live tracker or forge trial.",
+      "feature_files": [
+        "plugin/skills/faff-beep-boop/SKILL.md"
+      ],
+      "runtime": {
+        "prompt_before_bytes": 154055,
+        "prompt_after_bytes": 150702,
+        "prompt_bytes_saved": 3353,
+        "measure": "Seven local runs per fixture. Stubbed forge results, identical core outcomes. Old timing excludes external assembly, old input bytes count compact JSON only, and the tracker facts file exists in both workflows. No production latency or token estimate.",
+        "samples": [
+          {
+            "shipped": 1,
+            "old_assembled_payload_bytes": 456,
+            "old_gate_stdout_bytes": 71,
+            "new_gate_stdout_bytes": 72,
+            "old_pure_gate_ms": 15.0,
+            "new_assembly_and_gate_ms": 52.3
+          },
+          {
+            "shipped": 20,
+            "old_assembled_payload_bytes": 5342,
+            "old_gate_stdout_bytes": 71,
+            "new_gate_stdout_bytes": 72,
+            "old_pure_gate_ms": 14.8,
+            "new_assembly_and_gate_ms": 60.8
+          }
+        ]
+      }
+    },
+    "1238": {
+      "rank": 4,
+      "test_count": 1061,
+      "qualification": "One existing skip. Native exploratory verdicts matched on the initial, retry and unset fixture. A distinguishing partial retry can approve or revise depending on a retained prior vote. The final recorder refuses direct partial publication. Through the real prep round consumer the guarded receipts plus retained caller vote reproduced fix-and-rerun. Raw transcript headings can differ. No live provider calls.",
+      "feature_files": [
+        "plugin/skills/faffter-dark-spec-review/SKILL.md"
+      ],
+      "exploratory": {
+        "blocks": {
+          "initial": {
+            "bytes": 115,
+            "sha256": "3acc6bb60941ee2372e5899ecc3232a61e63e0170b1d5600c1b32a80e24b0bf5"
+          },
+          "retry": {
+            "bytes": 79,
+            "sha256": "3c25cd6a20084042c63f349512062565f1d3d401409414c015a373b62517d0d6"
+          },
+          "missing": {
+            "bytes": 157,
+            "sha256": "7dda5e01b1306ad7f5a9bb683828733402f74af6550343aa61b710604c89690d"
+          }
+        },
+        "commands": {
+          "baseline": 9,
+          "candidate": 3
+        },
+        "transcripts": {
+          "architectural": {
+            "baseline": 131,
+            "candidate": 141
+          },
+          "QA": {
+            "baseline": 126,
+            "candidate": 136
+          }
+        },
+        "sidecars": {
+          "pinned-reviewer.json": {
+            "provider": "nvidia",
+            "model": "team/two",
+            "host": "https://second.invalid/v1"
+          },
+          "pin-capture.json": {
+            "state": "captured",
+            "round": 1,
+            "winner_index": 1,
+            "backend_identity": "nvidia|team/two|https://second.invalid/v1"
+          },
+          "served-1.json": {
+            "round": 1,
+            "served_identity": "openai|one|https://first.invalid/v1",
+            "winner_index": 0
+          }
+        }
+      },
+      "guarded_runtime": {
+        "baseline": {
+          "median_ms": 189.2,
+          "processes": 9,
+          "process_stdout_bytes": 570,
+          "repetitions": 7
+        },
+        "guarded": {
+          "median_ms": 140.04,
+          "processes": 6,
+          "process_stdout_bytes": 748,
+          "repetitions": 7
+        }
+      },
+      "distinguishing": {
+        "baseline": {
+          "action": "approve",
+          "round": 2,
+          "window_start": 2,
+          "verdict": "approve",
+          "cause": null,
+          "carried_design_objections": [],
+          "outaged_lenses": [],
+          "attempt": null,
+          "retry_limit": null,
+          "cap": {
+            "limit": 5,
+            "used": 0,
+            "from_round": 1,
+            "reached": false,
+            "yielded": false
+          },
+          "churn": null,
+          "convergence": null,
+          "governance": {
+            "action": "swap-reset",
+            "window_start": 2
+          },
+          "summary": {
+            "max_severity": null,
+            "counts": {
+              "blocker": 0,
+              "major": 0,
+              "minor": 0
+            },
+            "lenses": []
+          },
+          "level": null,
+          "retain": "spec-review: approve",
+          "warnings": []
+        },
+        "candidate": {
+          "action": "approve",
+          "round": 2,
+          "window_start": 2,
+          "verdict": "approve",
+          "cause": null,
+          "carried_design_objections": [],
+          "outaged_lenses": [],
+          "attempt": null,
+          "retry_limit": null,
+          "cap": {
+            "limit": 5,
+            "used": 0,
+            "from_round": 1,
+            "reached": false,
+            "yielded": false
+          },
+          "churn": null,
+          "convergence": null,
+          "governance": {
+            "action": "swap-reset",
+            "window_start": 2
+          },
+          "summary": {
+            "max_severity": null,
+            "counts": {
+              "blocker": 0,
+              "major": 0,
+              "minor": 0
+            },
+            "lenses": []
+          },
+          "level": null,
+          "retain": "spec-review: approve",
+          "warnings": []
+        },
+        "carried-replay": {
+          "action": "fix-and-rerun",
+          "round": 2,
+          "window_start": 2,
+          "verdict": "revise",
+          "cause": null,
+          "carried_design_objections": [],
+          "outaged_lenses": [],
+          "attempt": null,
+          "retry_limit": null,
+          "cap": {
+            "limit": 5,
+            "used": 1,
+            "from_round": 1,
+            "reached": false,
+            "yielded": false
+          },
+          "churn": null,
+          "convergence": null,
+          "governance": {
+            "action": "swap-reset",
+            "window_start": 2
+          },
+          "summary": {
+            "max_severity": "major",
+            "counts": {
+              "blocker": 0,
+              "major": 1,
+              "minor": 0
+            },
+            "lenses": [
+              "architectural"
+            ]
+          },
+          "level": null,
+          "retain": null,
+          "warnings": []
+        },
+        "guarded": {
+          "action": "fix-and-rerun",
+          "round": 2,
+          "window_start": 2,
+          "verdict": "revise",
+          "cause": null,
+          "carried_design_objections": [],
+          "outaged_lenses": [],
+          "attempt": null,
+          "retry_limit": null,
+          "cap": {
+            "limit": 5,
+            "used": 1,
+            "from_round": 1,
+            "reached": false,
+            "yielded": false
+          },
+          "churn": null,
+          "convergence": null,
+          "governance": {
+            "action": "swap-reset",
+            "window_start": 2
+          },
+          "summary": {
+            "max_severity": "major",
+            "counts": {
+              "blocker": 0,
+              "major": 1,
+              "minor": 0
+            },
+            "lenses": [
+              "architectural"
+            ]
+          },
+          "level": null,
+          "retain": null,
+          "warnings": []
+        }
+      }
+    },
+    "1239": {
+      "rank": 10,
+      "test_count": 143,
+      "qualification": "The actual issue classifier and routing contract consumed a cycle fixture. Thirty-two build queues matched the preceding partition command byte-for-byte. A 120-issue case with 20 roots used 4,893 input and 415 output bytes, median 39 ms over 25 fresh invocations. No native caller trial.",
+      "feature_files": [
+        "plugin/skills/faff-map/SKILL.md",
+        "plugin/skills/faff-tidy/SKILL.md",
+        "plugin/skills/faff/references/methodology.md",
+        "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+        "plugin/skills/faffter-noon-methodology-thematic/SKILL.md"
+      ]
+    },
+    "1240": {
+      "rank": 9,
+      "test_count": 68,
+      "qualification": "Executable cases bind the diff, issue and readable findings. The old writer lost its outage counter after a phase rewrite. The new writer preserves it, refuses stale callbacks and serializes increments. Guarded corrections are intentional departures.",
+      "feature_files": [
+        "plugin/skills/faff-graft/SKILL.md",
+        "plugin/skills/faffter-dark-adversarial-review/SKILL.md"
+      ]
+    }
+  }
+}

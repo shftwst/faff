@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "78cef388a312d86cf69fcfa6511059e55c01fd521ec0c6c6d0dd2e9f2fe6c570"
+    "tsconfig.json": "254db3db1bf4814e3ea91faccc66a623f633b2b726e209813ee580ed69dd63a7"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -27,6 +27,7 @@
     "bin/lib/graft-admit.ts": "14766391a87241be17915b8e378407365da0e7d5432ee96335913594af780f19",
     "bin/lib/human-only-acs.ts": "a133dd350629f28fc564768c589dd56099fd3a80e4e6335c9b2f44700859e990",
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
+    "bin/lib/issue-facts.ts": "78ba7488fa252fb1b9286a99611a491c6cbfe8ed951a42638fa3228acad42844",
     "bin/lib/judge-dispositions.ts": "e693efecbdd54dd88f0e5a08f106579474ae8b1131442b9a76d20d1d1ba5ab13",
     "bin/lib/land-assess-fix.ts": "ba796f578a4c4cef0961de556d7f2f0da2c1c2802c8906942b9e833180f63a38",
     "bin/lib/land.ts": "e78338b70779f99dd602ba6b2bb9c548c8d3a1bcc8f53120c5aa4fe74cf5c36a",
@@ -65,6 +66,7 @@
     "bin/lib/graft-admit.js": "fb9f9020d238075046b89fd9c5b725582268506d2f6c67211c77c3270a046215",
     "bin/lib/human-only-acs.js": "3972c683d4f34c9c9da60aff42ec903e64216fe05c8cc882b781cd3764b8c622",
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
+    "bin/lib/issue-facts.js": "92e9c33efbba3def4b8d2484c7d05741f98837ae23f64ed9ee467953fc102056",
     "bin/lib/judge-dispositions.js": "5dae168f0fb7e18d23a0092d045ff9927dca79556f1ffb0008b91ab0ac917316",
     "bin/lib/land-assess-fix.js": "9fd9868c47e405912d1104b28e59507a8c778e92eb1f909c0b168e0f6cfe7602",
     "bin/lib/land.js": "64fb3ee3123716fea265e218a0422017abdd7a9001e3e29072e68c9e63c9d186",
@@ -88,5 +90,5 @@
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "a4d7154206e6d3dd6511248e3d0bcbadbc90079907146bc81430cf157433e44a"
   },
-  "output_digest": "ad1934a583e9e6fd9303320cddadaac76da480766b234340f926dd3759070da6"
+  "output_digest": "067bed07423d76aa82ab32280583d73a00deb2ef1989385f33650d223174c70e"
 }

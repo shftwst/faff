@@ -80,9 +80,10 @@ const TRACKER_SPEC = {
     "--root": { arity: 1 },
   },
 };
-const TRACKER_USAGE = "usage: faff tracker probe [--json] [--root DIR]";
+const TRACKER_USAGE = "usage: faff tracker probe [--json] [--root DIR]\n       faff tracker facts --source linear|github < batch.json";
 
 function cmdTracker(args) {
+  if (args[0] === "facts") return require("./issue-facts").cmdIssueFacts(args.slice(1));
   if (args.includes("--selftest")) return trackerSelftest();
   const [verb, ...rest] = args;
   if (verb !== "probe") return usageError([`unknown tracker verb: ${verb ?? "(none)"}`], TRACKER_USAGE);

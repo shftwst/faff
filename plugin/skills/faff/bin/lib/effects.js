@@ -629,7 +629,16 @@ function cmdLandingProgress(args) {
     return 2;
   }
   const splitCsv = (v) => (v ? v.split(",").map((s) => s.trim()).filter((s) => s !== "") : []);
-  const failingChecks = splitCsv(get("--failing-checks"));
+  let failingChecks = splitCsv(get("--failing-checks"));
+  if (args.includes("--failing-checks-json")) {
+    try {
+      failingChecks = JSON.parse(get("--failing-checks-json"));
+      if (args.includes("--failing-checks") || !Array.isArray(failingChecks) || !failingChecks.every(name => typeof name === "string" && name)) throw new Error();
+    } catch {
+      process.stderr.write("landing-progress: pass one failing-checks option; --failing-checks-json requires a JSON array of non-empty names\n");
+      return 2;
+    }
+  }
   const tried = splitCsv(get("--tried"));
   const nowIso = new Date().toISOString();
   const rec = landingProgressApplyFixCycle(existing, issue, kind, failingChecks, tried, headSha, nowIso);

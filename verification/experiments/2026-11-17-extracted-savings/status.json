@@ -41,7 +41,11 @@
       "status": "open",
       "added_shipped_module_bytes": 6161,
       "new_mcp_tool_definitions": 0,
-      "qualification_path": "prep-context-driver/assessment.json"
+      "qualification_path": "prep-context-driver/assessment.json",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+      }
     },
     {
       "skill": "onboard tracker reference on detection",
@@ -69,6 +73,10 @@
         "bytes": 22649,
         "estimated_tokens": 5615,
         "actual_session_usage_measured": false
+      },
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
       }
     },
     {
@@ -92,7 +100,11 @@
       },
       "tests_passed": 151,
       "verification": "Source review plus 151 tests before wording clarifications and 57 affected checks after.",
-      "status": "open"
+      "status": "open",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+      }
     },
     {
       "skill": "tidy housekeeping",
@@ -116,7 +128,11 @@
       "status": "open",
       "tests_passed": 76,
       "verification": "30/30 rule blocks accounted for. Actual Claude callers matched all four registered command arguments, verdicts and label proposals per prompt. Tracker input supplied, actions simulated. No full workflow or hosted write test.",
-      "qualification_path": "tidy-park-driver/assessment.json"
+      "qualification_path": "tidy-park-driver/assessment.json",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+      }
     },
     {
       "skill": "shared methodology contract",
@@ -139,7 +155,11 @@
       },
       "status": "open",
       "tests_passed": 554,
-      "verification": "Independent source comparison inspected both lens callers and structure. All nine changed blocks accounted for. No paired model run. Nine fixture failures under signed-commit defaults resolved on a full 554-test rerun with unsigned fixture commits."
+      "verification": "Independent source comparison inspected both lens callers and structure. All nine changed blocks accounted for. No paired model run. Nine fixture failures under signed-commit defaults resolved on a full 554-test rerun with unsigned fixture commits.",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+      }
     },
     {
       "skill": "plot interactive planning",
@@ -162,7 +182,11 @@
       },
       "status": "open",
       "tests_passed": 33,
-      "verification": "Source comparison of interactive entry, skeleton and PRDR rules; 11 changed blocks accounted for. All 33 focused tests, adapter and reference lints pass. No fresh model trial."
+      "verification": "Source comparison of interactive entry, skeleton and PRDR rules; 11 changed blocks accounted for. All 33 focused tests, adapter and reference lints pass. No fresh model trial.",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+      }
     },
     {
       "skill": "beep-boop reporting only",
@@ -186,7 +210,11 @@
       "status": "open",
       "tests_passed": 76,
       "verification": "Reporting-only treatment. Existing 6/6 Opus baseline and new 6/6 candidate used identical frozen common policy and CLI. All case, native, assessment and manual checks passed. Four captured summaries, eight controlled publications and zero discarded drafts. Current main kernel differs. Ledger, hosted publication and full unattended workflow outside the test.",
-      "qualification_path": "beep-reporting-only/manual-audit.json"
+      "qualification_path": "beep-reporting-only/manual-audit.json",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+      }
     },
     {
       "skill": "jot existing-ticket inspection",
@@ -215,7 +243,11 @@
         "estimated_tokens": 1840,
         "actual_session_usage_measured": false
       },
-      "qualification_path": "jot-inspection-independent-review.json"
+      "qualification_path": "jot-inspection-independent-review.json",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
+      }
     }
   ],
   "pending_savings": {
@@ -981,5 +1013,5 @@
       "status": "source-reviewed, 143 tests and 2/2 inventory. Based on #1222 for a clean follow-up after merge. No fresh model trial."
     }
   ],
-  "recorded_at_utc": "2026-11-18T00:49:48.168827+00:00"
+  "recorded_at_utc": "2026-11-18T00:55:22.373460+00:00"
 }

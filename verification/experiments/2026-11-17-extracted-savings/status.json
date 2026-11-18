@@ -16,10 +16,112 @@
     "bytes": 161458,
     "estimated_tokens": 39732
   },
-  "pending_extractions": [],
+  "pending_extractions": [
+    {
+      "skill": "prep review context",
+      "pr": "https://github.com/shftwst/faff/pull/1219",
+      "head": "a6c6fe38c3034c5fe5483d0ea1fde87db05f9e08",
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "before": {
+        "bytes": 99459,
+        "estimated_tokens": 24682,
+        "sha256": "1b698f6eac7954a6d6f8901e85b35199ed34df2e91c143a251019d77e7fed154"
+      },
+      "after": {
+        "bytes": 97780,
+        "estimated_tokens": 24269,
+        "sha256": "48161f87db967d13309cbe603241689e960335a31a715573fb91f7e798397717"
+      },
+      "saved": {
+        "bytes": 1679,
+        "estimated_tokens": 413
+      },
+      "tests_passed": 327,
+      "verification": "Actual Claude callers passed 3/3 per arm on local context preparation; real outputs and routing decisions checked. Tracker input supplied, final dispatch simulated.",
+      "status": "open",
+      "added_shipped_module_bytes": 6161,
+      "new_mcp_tool_definitions": 0,
+      "qualification_path": "prep-context-driver/assessment.json"
+    },
+    {
+      "skill": "onboard tracker reference on detection",
+      "pr": "https://github.com/shftwst/faff/pull/1220",
+      "head": "4e4b2e043899d68fdd13479b28cca2973e3a6db4",
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "before": {
+        "bytes": 18033,
+        "estimated_tokens": 4463,
+        "sha256": "7a461d10c65a0098c219b65cb67a0d34065fa2ef28268bb89e592009830be786"
+      },
+      "after": {
+        "bytes": 17929,
+        "estimated_tokens": 4437,
+        "sha256": "44f1f2e8d861598fe8689ade074dc0b9a2cfbbe3b150593fd629f9e5a80d57af"
+      },
+      "saved": {
+        "bytes": 104,
+        "estimated_tokens": 26
+      },
+      "tests_passed": 160,
+      "verification": "Source review traced early-stop and proceed paths. Cold-read avoidance is potential only.",
+      "status": "open",
+      "cold_reference_read_avoided_on_early_exit_only": {
+        "bytes": 22649,
+        "estimated_tokens": 5615,
+        "actual_session_usage_measured": false
+      }
+    },
+    {
+      "skill": "shared autonomous guidance",
+      "pr": "https://github.com/shftwst/faff/pull/1221",
+      "head": "7f64ad0b3929c1463c27ca902febb6cd550d37d6",
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "before": {
+        "bytes": 38758,
+        "estimated_tokens": 9613,
+        "sha256": "bdce7d30ce7977774fe212752229437c9361f1e19671647d3de5e254174ed77f"
+      },
+      "after": {
+        "bytes": 36702,
+        "estimated_tokens": 9109,
+        "sha256": "151e34f70534858d2a0279e5b85364c25a6e324084fb12e8b7c39954147adf4c"
+      },
+      "saved": {
+        "bytes": 2056,
+        "estimated_tokens": 504
+      },
+      "tests_passed": 151,
+      "verification": "Source review plus 151 tests before wording clarifications and 57 affected checks after.",
+      "status": "open"
+    },
+    {
+      "skill": "tidy housekeeping",
+      "pr": "https://github.com/shftwst/faff/pull/1222",
+      "head": "2c5e9773bbb8c14cc1d952aa40a9ae88c567f52f",
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "before": {
+        "bytes": 75989,
+        "estimated_tokens": 18818,
+        "sha256": "5459e9aac89b2f7aee8234b7f9f535ee8e159a28a7c220670782c7a387fa2399"
+      },
+      "after": {
+        "bytes": 71051,
+        "estimated_tokens": 17601,
+        "sha256": "ecae7b4ccd1f993c3aae22f51c26bb18f708e14e974b72a994999d551e9a9bd4"
+      },
+      "saved": {
+        "bytes": 4938,
+        "estimated_tokens": 1217
+      },
+      "status": "open",
+      "tests_passed": 76,
+      "verification": "30/30 rule blocks accounted for. Actual Claude callers matched all four registered command arguments, verdicts and label proposals per prompt. Tracker input supplied, actions simulated. No full workflow or hosted write test.",
+      "qualification_path": "tidy-park-driver/assessment.json"
+    }
+  ],
   "pending_savings": {
-    "bytes": 0,
-    "estimated_tokens": 0
+    "bytes": 8777,
+    "estimated_tokens": 2160
   },
   "limits": [
     "Merged figures use the current main tree. Fresh diagnostics and historical cohorts remain separate.",
@@ -29,8 +131,8 @@
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1210623,
-    "estimated_tokens": 300197
+    "bytes": 1201846,
+    "estimated_tokens": 298037
   },
   "landed_extractions": [
     {
@@ -246,7 +348,7 @@
       },
       "integration": {
         "from_heading": "## Synthesis: the issue-gloss contract",
-        "to_heading": "## Synthesis \u2014 the issue-gloss contract",
+        "to_heading": "## Synthesis — the issue-gloss contract",
         "added_bytes": 3,
         "reversal_equals_qualified": true,
         "root_approved": true
@@ -736,15 +838,6 @@
       "fresh_native": "pass both"
     },
     {
-      "skill": "tidy housekeeping",
-      "head": "bae5e23304233153958ea37a339bf8ae4a165f09",
-      "saved": {
-        "bytes": 5013,
-        "estimated_tokens": 1236
-      },
-      "status": "source review and 133 tests pass; model behaviour unmeasured; not in merge queue"
-    },
-    {
       "skill": "beep-boop reporting and ledger combined",
       "head": "d6a6cf997387c313e053a8c5a87a0393e931fb19",
       "saved": {
@@ -776,22 +869,7 @@
       ],
       "delivery_decision": "Keep #1216 as a reference draft. The skill discovers and uses the existing tracker MCP for live reads and writes. A local CLI may plan from supplied data. Review-comment savings require verification that human text survives the handoff through the existing connector.",
       "net_static_guidance_assumption": "Both edited prompts and both tool definitions loaded once. Sessions loading only the two definitions incur 998 extra bytes / about 250 tokens of static context."
-    },
-    {
-      "skill": "prep-context CLI and caller port",
-      "head": "ee5fbb64345c002de517afad08a3dbf3ce57c8ef",
-      "saved_provisional": {
-        "bytes": 1976,
-        "estimated_tokens": 486
-      },
-      "status": "local unpublished; code64 focused tests and caller161 existing checks pass; independent source review and literal prompt shell smoke pass; no model workflow run",
-      "source_sha256": "ea9e251bf079628aafcbb33367c7520030452b0ca8756819fe63de92751bb1be",
-      "limits": [
-        "PR1215 overlaps one replaced explanation; recompute incremental savings after it merges. Do not add this provisional figure to qualified pending totals.",
-        "Raw comment judgement and provenance remain caller-owned; all input/fold failures now explicitly prevent dispatch, a disclosed conservative tightening.",
-        "No new mandatory help/reference load or tool declarations. Added code is tracked separately."
-      ]
     }
   ],
-  "recorded_at_utc": "2026-11-18T00:07:58.999775+00:00"
+  "recorded_at_utc": "2026-11-18T00:27:59.223232+00:00"
 }

@@ -1,0 +1,22 @@
+{
+  "alpha": {
+    "status": "ready",
+    "dispatch": true,
+    "attach_context": true,
+    "warnings": [
+      "Honouring storage under recorded Scope \"current service\" without scope/topology expiry enforcement (v1); v2 owns automatic expiry."
+    ]
+  },
+  "beta": {
+    "status": "absent",
+    "dispatch": true,
+    "attach_context": false,
+    "warnings": []
+  },
+  "gamma": {
+    "status": "needs-human",
+    "dispatch": false,
+    "attach_context": false,
+    "warnings": []
+  }
+}

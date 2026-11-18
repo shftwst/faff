@@ -1,0 +1,43 @@
+{
+  "scope": "State-moved-on branch on already-fetched facts, including existing test/faff-tidy.test.mjs scenario D and three timestamp/decision controls. One interactive worker per arm. Baseline must pass before candidate launch. No real tracker writes.",
+  "expected_inputs_and_verdicts": [
+    [
+      "present",
+      "build",
+      "false",
+      "protect"
+    ],
+    [
+      "absent",
+      "build",
+      "false",
+      "protect"
+    ],
+    [
+      "absent",
+      "build",
+      "true",
+      "surface"
+    ],
+    [
+      "absent",
+      "nonbuild",
+      "true",
+      "strip-ok"
+    ]
+  ],
+  "expected_proposals": [
+    "retain",
+    "retain",
+    "retain",
+    "remove"
+  ],
+  "extra_expectations": [
+    "Use real per-case park-verdict, zero capture operations. Preserve protect/surface audit cause and explain the strip.",
+    "For simulated label removal, the policy uses faff label remove and its descriptor. Record whether invoked; no hosted writes expected."
+  ],
+  "hashes": {
+    "before": "bac3b65b072114e57cbeb3bef0c7769312894e0bd361951cc2b9c0a9d42b904f",
+    "after": "4f3b5d2e6ac2ffd316b41a8dd5858ba9dcffa885412a7d3b8b34c1f87694fdca"
+  }
+}

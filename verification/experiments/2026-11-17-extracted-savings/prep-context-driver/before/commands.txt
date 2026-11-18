@@ -1,0 +1,4 @@
+/Users/shftwst/workspace/shftwst/faff/.worktrees/prep-context-driver-cases-20261118/before/alpha	ratified-scope --assemble
+/Users/shftwst/workspace/shftwst/faff/.worktrees/prep-context-driver-cases-20261118/before/alpha	ratified-scope --fold-resolutions --into /Users/shftwst/workspace/shftwst/faff/.worktrees/prep-context-driver-cases-20261118/before/alpha/.faff/spec-review/ISSUE-1/ratified-scope.md
+/Users/shftwst/workspace/shftwst/faff/.worktrees/prep-context-driver-cases-20261118/before/beta	ratified-scope --assemble
+/Users/shftwst/workspace/shftwst/faff/.worktrees/prep-context-driver-cases-20261118/before/gamma	ratified-scope --assemble

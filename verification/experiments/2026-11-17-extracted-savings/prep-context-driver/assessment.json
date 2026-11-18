@@ -1,0 +1,67 @@
+{
+  "status": "pass",
+  "checks": {
+    "before": {
+      "cases_passed": 3,
+      "commands_executed": 4,
+      "context_sha256": "0a69a5bcc59d48f0123daf4fcd05e439a9a8d9b4b62bd04d7f0b040a0b95a834",
+      "reported": {
+        "alpha": {
+          "status": "dispatched",
+          "dispatch": true,
+          "attach_context": true,
+          "warnings": [
+            "Honouring storage under recorded Scope \"current service\" without scope/topology expiry enforcement (v1); v2 owns automatic expiry."
+          ]
+        },
+        "beta": {
+          "status": "dispatched",
+          "dispatch": true,
+          "attach_context": false,
+          "warnings": []
+        },
+        "gamma": {
+          "status": "needs-human",
+          "dispatch": false,
+          "attach_context": false,
+          "warnings": [
+            "faff ratified-scope: cannot read a source (EISDIR: illegal operation on a directory, read)"
+          ]
+        }
+      }
+    },
+    "after": {
+      "cases_passed": 3,
+      "commands_executed": 3,
+      "context_sha256": "0a69a5bcc59d48f0123daf4fcd05e439a9a8d9b4b62bd04d7f0b040a0b95a834",
+      "reported": {
+        "alpha": {
+          "status": "ready",
+          "dispatch": true,
+          "attach_context": true,
+          "warnings": [
+            "Honouring storage under recorded Scope \"current service\" without scope/topology expiry enforcement (v1); v2 owns automatic expiry."
+          ]
+        },
+        "beta": {
+          "status": "absent",
+          "dispatch": true,
+          "attach_context": false,
+          "warnings": []
+        },
+        "gamma": {
+          "status": "needs-human",
+          "dispatch": false,
+          "attach_context": false,
+          "warnings": []
+        }
+      }
+    }
+  },
+  "scope": "One three-case local per-round context preparation per arm in an existing interactive Claude worker. Resolution gathering completed beforehand. No live tracker or downstream model dispatch. One attempt per arm.",
+  "limits": [
+    "Existing interactive Claude workers and a supplied resolved comment array; each used the shipped section.",
+    "Final dispatch and tracker calls were simulated. Recorded decisions, executed commands, generated files, stale-file removal and returned tradeoff warnings were checked. A full operator-run workflow and session token usage were not measured.",
+    "The old arm reported dispatched for each permitted route; the new arm named ready/absent. The candidate put the unreadable-source diagnostic in the scratch stderr file."
+  ]
+}

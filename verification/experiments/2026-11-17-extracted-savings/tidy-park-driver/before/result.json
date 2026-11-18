@@ -1,0 +1,26 @@
+[
+  {
+    "issue": "ISS-MIDBUILD",
+    "verdict": "protect",
+    "proposed_label": "retain",
+    "log": "ISS-MIDBUILD: valid mid-build park, label retained (In Progress; open draft PR present; last faff park comment C1 is a mid-build park; no human takeover after it)"
+  },
+  {
+    "issue": "ISS-OLDMOVE",
+    "verdict": "protect",
+    "proposed_label": "retain",
+    "log": "ISS-OLDMOVE: valid mid-build park, label retained (In Progress; no draft PR; last faff park comment C1 is a mid-build park; human move to In Progress on 2026-01-01 predates the park on 2026-01-02, so no takeover)"
+  },
+  {
+    "issue": "ISS-NEWCOMMENT",
+    "verdict": "surface",
+    "proposed_label": "retain",
+    "log": "ISS-NEWCOMMENT: stale park label — needs human (In Progress; no draft PR; last faff park comment C1 is a mid-build park; human comment on 2026-01-03 after the park)"
+  },
+  {
+    "issue": "ISS-TAKEOVER",
+    "verdict": "strip-ok",
+    "proposed_label": "remove",
+    "log": "ISS-TAKEOVER: proposed removal of faff-parked; original park reason \"Parked at prep for a low-confidence spec.\" (comment C1, a prep-time park); rule: state moved on, park-verdict strip-ok (In Progress, no draft PR, human comment on 2026-01-03 after the park)"
+  }
+]

@@ -1,0 +1,27 @@
+{
+  "scope": "One three-case local per-round context preparation per arm in an existing interactive Claude worker. Resolution gathering completed beforehand. No live tracker or downstream model dispatch. One attempt per arm.",
+  "criteria": [
+    "Each scenario runs the applicable real commands from its pinned checkout before the reported routing decision.",
+    "alpha: ready, attached as context, warn about the ratified tradeoff, file identical to the reference assembly+fold; initial register unchanged.",
+    "beta: empty, dispatch without context, stale file removed.",
+    "gamma: needs human, no dispatch, stale file removed, source directory left intact."
+  ],
+  "bind": {
+    "before": {
+      "worker": "claude-retry",
+      "source": "c16aeafe34f7bbf3c16e3cec784feb0ae0406dee",
+      "skill_sha256": "1b698f6eac7954a6d6f8901e85b35199ed34df2e91c143a251019d77e7fed154",
+      "section_sha256": "eec761e3236354b81bedb83de1f872051fb2c68ce54d0629b88a8d5a18410cd0"
+    },
+    "after": {
+      "worker": "claude-challenges",
+      "source": "a6c6fe38c3034c5fe5483d0ea1fde87db05f9e08",
+      "skill_sha256": "48161f87db967d13309cbe603241689e960335a31a715573fb91f7e798397717",
+      "section_sha256": "059d57943203d22abd8b15ebdf2b7b096a519f194ffdb8d54f3f52dd0147847c"
+    }
+  },
+  "expected_alpha_sha256": "0a69a5bcc59d48f0123daf4fcd05e439a9a8d9b4b62bd04d7f0b040a0b95a834",
+  "expected_alpha_warnings": [
+    "Honouring storage under recorded Scope \"current service\" without scope/topology expiry enforcement (v1); v2 owns automatic expiry."
+  ]
+}

@@ -1,0 +1,1 @@
+faff ratified-scope: cannot read a source (EISDIR: illegal operation on a directory, read)

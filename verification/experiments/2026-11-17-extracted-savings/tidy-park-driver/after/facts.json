@@ -1,0 +1,75 @@
+[
+  {
+    "issue": "ISS-MIDBUILD",
+    "state": "In Progress",
+    "labels": [
+      "faff-parked"
+    ],
+    "linked_open_draft_pr": true,
+    "last_faff_park_comment": {
+      "id": "C1",
+      "body": "## /faff-beep-boop \u2014 parked (needs-decision-first)\nheld mid-build; draft PR preserved for resume",
+      "createdAt": "2026-01-02T00:00:00Z"
+    },
+    "human_events": []
+  },
+  {
+    "issue": "ISS-OLDMOVE",
+    "state": "In Progress",
+    "labels": [
+      "faff-parked"
+    ],
+    "linked_open_draft_pr": false,
+    "last_faff_park_comment": {
+      "id": "C1",
+      "body": "Parked mid-build to preserve work for resume.",
+      "createdAt": "2026-01-02T00:00:00Z"
+    },
+    "human_events": [
+      {
+        "type": "human status move to In Progress",
+        "at": "2026-01-01T00:00:00Z"
+      }
+    ]
+  },
+  {
+    "issue": "ISS-NEWCOMMENT",
+    "state": "In Progress",
+    "labels": [
+      "faff-parked"
+    ],
+    "linked_open_draft_pr": false,
+    "last_faff_park_comment": {
+      "id": "C1",
+      "body": "Parked mid-build to preserve work for resume.",
+      "createdAt": "2026-01-02T00:00:00Z"
+    },
+    "human_events": [
+      {
+        "type": "human comment",
+        "at": "2026-01-03T00:00:00Z",
+        "text": "I am taking over."
+      }
+    ]
+  },
+  {
+    "issue": "ISS-TAKEOVER",
+    "state": "In Progress",
+    "labels": [
+      "faff-parked"
+    ],
+    "linked_open_draft_pr": false,
+    "last_faff_park_comment": {
+      "id": "C1",
+      "body": "Parked at prep for a low-confidence spec.",
+      "createdAt": "2026-01-02T00:00:00Z"
+    },
+    "human_events": [
+      {
+        "type": "human comment",
+        "at": "2026-01-03T00:00:00Z",
+        "text": "I am taking over."
+      }
+    ]
+  }
+]

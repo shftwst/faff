@@ -1,0 +1,4 @@
+park-verdict --status in-progress --draft-pr present --park-comment build --human-takeover false
+park-verdict --status in-progress --draft-pr absent --park-comment build --human-takeover false
+park-verdict --status in-progress --draft-pr absent --park-comment build --human-takeover true
+park-verdict --status in-progress --draft-pr absent --park-comment nonbuild --human-takeover true

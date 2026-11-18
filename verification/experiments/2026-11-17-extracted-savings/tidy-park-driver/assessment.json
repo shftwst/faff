@@ -1,0 +1,24 @@
+{
+  "assessment": "Both prompts matched the registered decision and proposal on all four already-fetched snapshots. Both retained the audit reasons.",
+  "arms": {
+    "before": {
+      "verdicts_and_proposed_label_actions": "4/4",
+      "registered_cli_arguments": "4/4",
+      "audit_reasons_manually_reviewed": "4/4",
+      "actual_park_verdict_calls": 4,
+      "capture_calls": 0,
+      "label_command_calls": 0,
+      "tracker_writes": 0
+    },
+    "after": {
+      "verdicts_and_proposed_label_actions": "4/4",
+      "registered_cli_arguments": "4/4",
+      "audit_reasons_manually_reviewed": "4/4",
+      "actual_park_verdict_calls": 4,
+      "capture_calls": 0,
+      "label_command_calls": 0,
+      "tracker_writes": 0
+    }
+  },
+  "limits": "One pass per arm on the state-moved-on branch, with supplied facts and simulated tracker actions. Neither arm exercised the label descriptor command, a hosted write, acquisition, or the whole tidy workflow."
+}

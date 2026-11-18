@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+printf "%s\n" "$*" >> /Users/shftwst/workspace/shftwst/faff/.worktrees/tidy-park-driver-20261118/after/commands.log
+exec node /Users/shftwst/workspace/shftwst/faff/.worktrees/prep-context-driver-before/plugin/skills/faff/bin/faff "$@"

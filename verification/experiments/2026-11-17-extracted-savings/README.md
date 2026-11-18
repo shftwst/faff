@@ -16,10 +16,14 @@ Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 | [1215](https://github.com/shftwst/faff/pull/1215), graft/prep/spec-review paragraphs | 12,646 B | 3,111 | Merged |
 | [1217](https://github.com/shftwst/faff/pull/1217), concurrency paragraphs | 2,498 B | 614 | Merged |
 | [1218](https://github.com/shftwst/faff/pull/1218), six producer/routing paragraphs | 3,497 B | 861 | Merged |
+| [1219](https://github.com/shftwst/faff/pull/1219), prep context command | 1,679 B | 413 | Open |
+| [1220](https://github.com/shftwst/faff/pull/1220), defer onboarding tracker guidance | 104 B | 26 | Open |
+| [1221](https://github.com/shftwst/faff/pull/1221), shared autonomous guidance | 2,056 B | 504 | Open |
+| [1222](https://github.com/shftwst/faff/pull/1222), tidy housekeeping | 4,938 B | 1,217 | Open |
 
 Merged savings since the quick-pass starting main: **161,458 bytes / 39,732
 estimated tokens**. Main totals **1,210,623 bytes / 300,197 estimated tokens**
-across 41 covered files. All previously queued prose cuts in the table have merged.
+across 41 covered files. Four open PRs save another 8,777 bytes and 2,160 estimated tokens. Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. That path-specific estimate is excluded from installed totals.
 Local and held reductions are excluded from both totals.
 
 Fresh Opus diagnostics used one fixed sample per arm. Thematic passed 16/16
@@ -32,8 +36,8 @@ checks do not establish complete caller execution or statistical equivalence.
 Default review remains held: its fresh baseline passed automated/native checks
 but five finding titles differed between prose and JSON in four artifacts.
 No candidate was launched. This is a baseline failure, not a measured regression
-from reduction. Tidy housekeeping is also outside the merge queue: its source
-review and 133 existing tests pass, but model behaviour remains unmeasured.
+from reduction. Tidy housekeeping passed all four parked-issue decisions per prompt on Claude Code,
+with supplied tracker facts and simulated writes. The final source also passed 76 focused tests.
 Intake remains held by a lexical mismatch: the candidate wrote "kept" where
 the frozen rubric accepts "retention", "retained" or "keep". Manual review
 found the meaning preserved; raw 17/18 and the registered hold remain.

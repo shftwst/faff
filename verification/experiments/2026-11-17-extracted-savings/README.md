@@ -12,14 +12,14 @@ Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 | [1211](https://github.com/shftwst/faff/pull/1211), thematic | 3,672 B | 896 | Merged |
 | [1212](https://github.com/shftwst/faff/pull/1212), PRD | 2,001 B | 494 | Merged |
 | [1213](https://github.com/shftwst/faff/pull/1213), default spec-review | 1,550 B | 380 | Merged |
-| [1214](https://github.com/shftwst/faff/pull/1214), kernel core contracts | 13,174 B | 3,231 | Open |
-| [1215](https://github.com/shftwst/faff/pull/1215), graft/prep/spec-review paragraphs | 12,646 B | 3,111 | Open |
+| [1214](https://github.com/shftwst/faff/pull/1214), kernel core contracts | 13,174 B | 3,231 | Merged |
+| [1215](https://github.com/shftwst/faff/pull/1215), graft/prep/spec-review paragraphs | 12,646 B | 3,111 | Merged |
 | [1217](https://github.com/shftwst/faff/pull/1217), concurrency paragraphs | 2,498 B | 614 | Merged |
-| [1218](https://github.com/shftwst/faff/pull/1218), six producer/routing paragraphs | 3,497 B | 861 | Open |
+| [1218](https://github.com/shftwst/faff/pull/1218), six producer/routing paragraphs | 3,497 B | 861 | Merged |
 
-Merged savings since the quick-pass starting main: **132,141 bytes / 32,529
-estimated tokens**. Main totals **1,239,940 bytes / 307,400 estimated tokens**
-across 41 covered files. Open PRs contribute another 29,317 bytes / 7,203 tokens.
+Merged savings since the quick-pass starting main: **161,458 bytes / 39,732
+estimated tokens**. Main totals **1,210,623 bytes / 300,197 estimated tokens**
+across 41 covered files. All previously queued prose cuts in the table have merged.
 Local and held reductions are excluded from both totals.
 
 Fresh Opus diagnostics used one fixed sample per arm. Thematic passed 16/16
@@ -59,4 +59,4 @@ passing CI. Runtime prompt bytes and recorded fidelity limits remain unchanged.
 Implementation PRs contain prompt changes, required inventories and ratchets,
 and necessary consumer fixes. Experiment harnesses and raw runs stay off main.
 
-Review-comment CLI draft #1216 saves 3,211 prompt bytes / 786 tokens; its two tool declarations add 998 bytes / 250 tokens when loaded. Net static guidance saving is 2,213 bytes / 536 tokens before protocol/output. The test-only CI fix passes 219 tests. The attempted unchanged CRLF diagnostic stopped before any provider request because the interactive worker lacked the required OAuth environment. Hosted connector qualification remains outstanding; none of this draft saving is counted.
+Review-comment CLI draft #1216 saves 3,211 prompt bytes / 786 tokens; its two tool declarations add 998 bytes / 250 tokens when loaded. A workflow loading both edited prompts and both definitions once would save 2,213 bytes / 536 tokens before protocol/output. An unrelated workflow loading only the new definitions would add around 250 tokens. The MCP prototype stays outside the landing queue. The test-only CI fix passes 219 tests. The attempted unchanged CRLF diagnostic stopped before any provider request because the interactive worker lacked the required OAuth environment. Hosted connector qualification remains outstanding; none of this draft saving is counted.

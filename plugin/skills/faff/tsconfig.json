@@ -58,6 +58,7 @@
     "bin/lib/prep-context.ts",
     "bin/lib/land-assess-fix.ts",
     "bin/lib/dispatch-prepare.ts",
+    "bin/lib/issue-facts.ts",
     "bin/lib/spec-review-prepare.ts"
   ]
 }

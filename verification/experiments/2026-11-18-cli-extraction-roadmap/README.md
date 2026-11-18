@@ -2,6 +2,10 @@
 
 Audited all 32 installed skill prompts and nine shared references. The source inventory ties 55 candidate operations to exact ranges in the repository. The ranking groups them into 34 work items, including two policy holds and one implementation already in review. The cited ranges total 599,084 distinct bytes. They include instructions that must stay with the caller. [Pinned source tree](https://github.com/shftwst/faff/tree/a0e84c3cb28213367523ad825cabb6919c572185/plugin/skills) · [Source inventory, reuse and proposed tests](sources.json)
 
+## Delivery progress
+
+Rank 1 is in review. The four changed files fell from 137,118 to 131,046 bytes, saving 6,072 bytes and 1,497 estimated tokens against the original 4.0–6.6 kB forecast. The static reduction for a load of one executor and both shared references is 3,099 bytes for sequential and 1,839 bytes for parallel. The measured CLI stdout increase across ten actual calls was 1,608 bytes. The paired callers agreed on all 12 handoffs in each arm with simulated launches and corrections. The forecast table below preserves its audit-time baseline and includes rank 1. [Production PR](https://github.com/shftwst/faff/pull/1232) · [Measurements and caller responses](../2026-11-17-extracted-savings/build-dispatch-prepare.json)
+
 ## Where to start
 
 Start with **build dispatch**. The sequential and parallel executors both choose a model, log the configured effort and assemble issue context for a build worker. A shared preparer can be checked by comparing the actual argv and payload each executor sends today. The next independent change normalizes supplied issue snapshots. Queue partitioning can then consume those facts.

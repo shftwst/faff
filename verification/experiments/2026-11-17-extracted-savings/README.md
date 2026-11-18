@@ -25,14 +25,17 @@ The 34-item CLI extraction plan orders upcoming work by determinism, caller freq
 | [1223](https://github.com/shftwst/faff/pull/1223), shared methodology contract | 2,254 B | 553 | Merged |
 | [1224](https://github.com/shftwst/faff/pull/1224), interactive roadmap planning | 1,030 B | 248 | Merged |
 | [1225](https://github.com/shftwst/faff/pull/1225), beep-boop reporting | 1,454 B | 356 | Merged |
-| [1226](https://github.com/shftwst/faff/pull/1226), jot ticket inspection | 880 B | 216 | Open |
+| [1226](https://github.com/shftwst/faff/pull/1226), jot ticket inspection | 880 B | 216 | Merged |
 | [1227](https://github.com/shftwst/faff/pull/1227), beep-boop closing reminders | 2,067 B | 512 | Open |
 | [1228](https://github.com/shftwst/faff/pull/1228), graft delivery and no-CI routing | 2,198 B | 541 | Open |
 | [1230](https://github.com/shftwst/faff/pull/1230), tidy container transition recap | 1,568 B | 384 | Open |
 | [1231](https://github.com/shftwst/faff/pull/1231), graft post-fix assessment | 3,091 B | 767 | Open |
+| [1232](https://github.com/shftwst/faff/pull/1232), prepare build dispatch | 6,072 B | 1,497 | Open |
 
-Merged savings since the quick-pass starting main total **174,973 bytes / 43,049 estimated tokens**. Main totals **1,197,108 bytes / 296,880 estimated tokens** across 41 covered files. The 5 open reduction PRs save another 9,804 bytes and 2,420 estimated tokens, for a cumulative projection of 184,777 bytes and 45,469 estimated tokens (13.47% by bytes). Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
+Merged savings since the quick-pass starting main total **175,853 bytes / 43,265 estimated tokens**. Main totals **1,196,228 bytes / 296,664 estimated tokens** across 41 covered files. The 5 open reduction PRs save another 14,996 bytes and 3,701 estimated tokens, for a cumulative projection of 190,849 bytes and 46,966 estimated tokens (13.91% by bytes). Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
 Local and held reductions are excluded from both totals.
+
+Both build executors matched all 12 cases per arm. The CLI emitted 1,608 more stdout bytes across the ten actual calls per arm. [Build dispatch measurements and both caller responses](build-dispatch-prepare.json)
 
 Claude Code matched the seven graft post-fix routes in both arms, including whether to record a cycle, the resulting count, the head and exact failing check names. The candidate made seven actual CLI calls. Observations were supplied and writes were simulated. [Inputs and both caller responses](graft-assess-fix.json)
 

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "77d70981404afb986223b85fcfd91560514da7e3",
+  "base": "4729f7b31743ec3dae2ae833f8fb5523c99f8946",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -8,52 +8,18 @@
     "estimated_tokens": 339929
   },
   "current_main": {
-    "bytes": 1197108,
-    "estimated_tokens": 296880,
+    "bytes": 1196228,
+    "estimated_tokens": 296664,
     "files": 41
   },
   "landed_savings": {
-    "bytes": 174973,
-    "estimated_tokens": 43049
+    "bytes": 175853,
+    "estimated_tokens": 43265
   },
   "pending_extractions": [
     {
-      "skill": "jot existing-ticket inspection",
-      "pr": "https://github.com/shftwst/faff/pull/1226",
-      "head": "ee32fc469cf547f413179584100a28e5ac44a847",
-      "path": "plugin/skills/faff-jot/SKILL.md",
-      "before": {
-        "bytes": 19678,
-        "estimated_tokens": 4877,
-        "sha256": "6ccd48d0bd390b80909f42f7a178afdfd1b97f33c739d0e495266741aeec8516"
-      },
-      "after": {
-        "bytes": 18798,
-        "estimated_tokens": 4661,
-        "sha256": "092c601c552ca569476922ec8059ba1fa722bfc7477ab1f709096b8cbf956433"
-      },
-      "saved": {
-        "bytes": 880,
-        "estimated_tokens": 216
-      },
-      "status": "open",
-      "tests_passed": 444,
-      "verification": "Two source reviews traced the narrow inspection route, shared methodology obligations and new-work/fallback paths. 8/8 changed blocks, 444 tests and lints passed. No paired model run.",
-      "cold_reference_read_avoided_on_resolved_tracker_interactive_inspection_only": {
-        "bytes": 7429,
-        "estimated_tokens": 1840,
-        "actual_session_usage_measured": false
-      },
-      "qualification_path": "jot-inspection-independent-review.json",
-      "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T02:35:07.740648+00:00"
-      },
-      "remote_rebase_measured_source_unchanged": true
-    },
-    {
       "pr": "https://github.com/shftwst/faff/pull/1227",
-      "head": "0fc057b3d87afe977bf440b908e818e18a408965",
+      "head": "5e3d7919c7c291391a4a7dc2a07303002588e3a1",
       "skill": "beep-boop closing reminders",
       "path": "plugin/skills/faff-beep-boop/SKILL.md",
       "before": {
@@ -76,13 +42,13 @@
       "base_pr": 1225,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T02:35:07.740648+00:00"
+        "checked_at_utc": "2026-11-18T03:34:38.699968+00:00"
       },
       "remote_rebase_measured_source_unchanged": true
     },
     {
       "pr": "https://github.com/shftwst/faff/pull/1228",
-      "head": "12a20107458ddecf22c40e4016439bb8c980f88c",
+      "head": "baba3a1335190778dbf34ec59e5c36a40d263372",
       "skill": "graft delivery and no-CI routing",
       "path": "plugin/skills/faff-graft/SKILL.md",
       "before": {
@@ -106,12 +72,12 @@
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T02:35:07.740648+00:00"
+        "checked_at_utc": "2026-11-18T03:34:38.699968+00:00"
       }
     },
     {
       "pr": "https://github.com/shftwst/faff/pull/1230",
-      "head": "a46074fe7d0d7e5ba88a9fcbbd4fef2df21d75f8",
+      "head": "4118d4b78daf7536299c5eeaf616231a00fb08ad",
       "skill": "tidy container transition recap",
       "path": "plugin/skills/faff-tidy/SKILL.md",
       "before": {
@@ -133,8 +99,8 @@
       "verification": "Source review plus direct constituent tests. No dedicated caller pair.",
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T02:35:07.740648+00:00"
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T03:34:38.699968+00:00"
       }
     },
     {
@@ -162,14 +128,93 @@
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T02:35:07.740648+00:00"
+        "checked_at_utc": "2026-11-18T03:34:38.699968+00:00"
       },
       "qualification_path": "graft-assess-fix.json"
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1232",
+      "head": "c344a6812e79361125c6cf1cf46408825286190b",
+      "skill": "build dispatch preparation",
+      "files": [
+        {
+          "path": "plugin/skills/faff/references/kernel.md",
+          "before": {
+            "bytes": 70478,
+            "estimated_tokens": 17522,
+            "sha256": "4505afeeec9f75b9d2d388564f5f61ce9b7daeac7bbf21bd546d04de41f4e1f5"
+          },
+          "after": {
+            "bytes": 70435,
+            "estimated_tokens": 17511,
+            "sha256": "ff353773f0906602e3b8159d29d14a8083945ee46186f7ef84ed97ca58ad4030"
+          }
+        },
+        {
+          "path": "plugin/skills/faff/references/l4.md",
+          "before": {
+            "bytes": 25523,
+            "estimated_tokens": 6328,
+            "sha256": "7db85429ab189be2243c4f83c67b1c6e5116f5a0e964954e09425938da3b2ebc"
+          },
+          "after": {
+            "bytes": 26700,
+            "estimated_tokens": 6621,
+            "sha256": "5d71ae864fb18d684b33324adb4fc171d6a018a4ab553c1ba9997025116ace3d"
+          }
+        },
+        {
+          "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+          "before": {
+            "bytes": 23655,
+            "estimated_tokens": 5867,
+            "sha256": "869c4782577f07f7e61171bd99a73eae2979d8ef99d35f0650835185ba3eb648"
+          },
+          "after": {
+            "bytes": 20682,
+            "estimated_tokens": 5133,
+            "sha256": "23e2cdf23bc1ded6c9640c15dbb4834341e6785ede12adaddb3805c53a5b570d"
+          }
+        },
+        {
+          "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+          "before": {
+            "bytes": 17462,
+            "estimated_tokens": 4333,
+            "sha256": "bd9cb2c9c8dda87a45828382666d76aaf8844f73205b42dc3500b3b2a731959c"
+          },
+          "after": {
+            "bytes": 13229,
+            "estimated_tokens": 3288,
+            "sha256": "baaec2b01e9cb039884e4600c5c938364d5c1deff1fb89d32c190d25ff07adff"
+          }
+        }
+      ],
+      "before": {
+        "bytes": 137118,
+        "estimated_tokens": 34050
+      },
+      "after": {
+        "bytes": 131046,
+        "estimated_tokens": 32553
+      },
+      "saved": {
+        "bytes": 6072,
+        "estimated_tokens": 1497
+      },
+      "status": "open",
+      "tests_passed": 126,
+      "qualification_path": "build-dispatch-prepare.json",
+      "verification": "Both executors matched across 12 cases per arm. Worker launches and corrective effects simulated. Candidate inspected the fixture wrapper. Published CLI replayed all ten actual calls exactly.",
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T03:34:38.699968+00:00"
+      }
     }
   ],
   "pending_savings": {
-    "bytes": 9804,
-    "estimated_tokens": 2420
+    "bytes": 14996,
+    "estimated_tokens": 3701
   },
   "limits": [
     "Merged figures use the current main tree. Fresh diagnostics and historical cohorts remain separate.",
@@ -179,8 +224,8 @@
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1187304,
-    "estimated_tokens": 294460
+    "bytes": 1181232,
+    "estimated_tokens": 292963
   },
   "landed_extractions": [
     {
@@ -1069,6 +1114,41 @@
       },
       "remote_rebase_measured_source_unchanged": true,
       "merge_commit": "77d70981404afb986223b85fcfd91560514da7e3"
+    },
+    {
+      "skill": "jot existing-ticket inspection",
+      "pr": "https://github.com/shftwst/faff/pull/1226",
+      "head": "ee32fc469cf547f413179584100a28e5ac44a847",
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "before": {
+        "bytes": 19678,
+        "estimated_tokens": 4877,
+        "sha256": "6ccd48d0bd390b80909f42f7a178afdfd1b97f33c739d0e495266741aeec8516"
+      },
+      "after": {
+        "bytes": 18798,
+        "estimated_tokens": 4661,
+        "sha256": "092c601c552ca569476922ec8059ba1fa722bfc7477ab1f709096b8cbf956433"
+      },
+      "saved": {
+        "bytes": 880,
+        "estimated_tokens": 216
+      },
+      "status": "merged",
+      "tests_passed": 444,
+      "verification": "Two source reviews traced the narrow inspection route, shared methodology obligations and new-work/fallback paths. 8/8 changed blocks, 444 tests and lints passed. No paired model run.",
+      "cold_reference_read_avoided_on_resolved_tracker_interactive_inspection_only": {
+        "bytes": 7429,
+        "estimated_tokens": 1840,
+        "actual_session_usage_measured": false
+      },
+      "qualification_path": "jot-inspection-independent-review.json",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T03:34:38.699968+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true,
+      "merge_commit": "4729f7b31743ec3dae2ae833f8fb5523c99f8946"
     }
   ],
   "local_not_counted": [
@@ -1141,7 +1221,7 @@
       "status": "held. Source corrections for transient-only CI continuation, no-op before effects, and custody wording. 270 focused tests pass. Combined unattended handoff through collision, authorisation, custody, ship and post-merge has no paired caller qualification. No broad model run."
     }
   ],
-  "recorded_at_utc": "2026-11-18T02:35:07.740648+00:00",
+  "recorded_at_utc": "2026-11-18T03:34:38.699968+00:00",
   "new_cli_tests": {
     "prep_context": {
       "implementation_pr": 1219,
@@ -1173,6 +1253,11 @@
       "executable_test": "test/land-assess-fix.test.mjs",
       "paginated_integration": "test/land.test.mjs",
       "focused_passed": 296
+    },
+    "dispatch_prepare_build": {
+      "implementation_pr": 1232,
+      "executable_test": "test/dispatch-prepare-build.test.mjs",
+      "focused_passed": 126
     }
   },
   "prioritized_extraction_plan": "../2026-11-18-cli-extraction-roadmap/sources.json"

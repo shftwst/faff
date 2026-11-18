@@ -1,0 +1,1269 @@
+{
+  "base": "4729f7b31743ec3dae2ae833f8fb5523c99f8946",
+  "implementation_head": "c344a6812e79361125c6cf1cf46408825286190b",
+  "pr": 1232,
+  "method": "One Claude Code Opus 5.5 caller per arm, six supplied scenarios per executor. Launch and corrective effects were simulated. The candidate caller also inspected the simulation wrapper. Ten real CLI commands per arm, plus four simulated corrective checks. A deterministic replay at the published head matched all ten candidate command receipts including exit status, stdout and stderr.",
+  "candidate_snapshot_hashes": {
+    "faff/bin/faff": "97c18b3c474bd66d6eb83dfd223da80085d8e94cc9ff86bafcf36d719dc53a02",
+    "faff/bin/lib/dispatch.js": "f8d61e79946d1f1b63176bb660f54e8b3389db63d22ba9866fb33c5e4382a053",
+    "faff/bin/lib/dispatch-prepare.js": "b698c1bdb0b55e0a894e054d08097271d6bdc49facd6303474bd94659717a121",
+    "faff/references/kernel.md": "ff353773f0906602e3b8159d29d14a8083945ee46186f7ef84ed97ca58ad4030",
+    "faff/references/l4.md": "5d71ae864fb18d684b33324adb4fc171d6a018a4ab553c1ba9997025116ace3d",
+    "faffter-noon-concurrency-sequential/SKILL.md": "baaec2b01e9cb039884e4600c5c938364d5c1deff1fb89d32c190d25ff07adff",
+    "faffter-dark-concurrency-parallel/SKILL.md": "23e2cdf23bc1ded6c9640c15dbb4834341e6785ede12adaddb3805c53a5b570d"
+  },
+  "cases": [
+    {
+      "id": "mixed",
+      "members": [
+        {
+          "issue": "A-3",
+          "tier": "mechanical",
+          "confidence": "high"
+        },
+        {
+          "issue": "A-1",
+          "tier": "complex",
+          "confidence": "high"
+        },
+        {
+          "issue": "A-2",
+          "tier": "standard",
+          "confidence": "medium"
+        }
+      ],
+      "run_id": "audit-run",
+      "run_dir": "/tmp/audit-run",
+      "session_id": "audit-session"
+    },
+    {
+      "id": "absent-tier",
+      "members": [
+        {
+          "issue": "A-5",
+          "confidence": "high"
+        },
+        {
+          "issue": "A-4",
+          "confidence": "medium"
+        }
+      ],
+      "run_id": "audit-run",
+      "run_dir": "/tmp/audit-run",
+      "session_id": "audit-session"
+    },
+    {
+      "id": "inherit",
+      "members": [
+        {
+          "issue": "A-6"
+        }
+      ],
+      "config": "empty",
+      "run_id": "audit-run",
+      "run_dir": "/tmp/audit-run",
+      "session_id": "audit-session"
+    },
+    {
+      "id": "narrowed",
+      "members": [
+        {
+          "issue": "A-7",
+          "tier": "mechanical"
+        }
+      ],
+      "redispatch": true,
+      "run_id": "audit-run",
+      "run_dir": "/tmp/audit-run",
+      "session_id": "audit-session"
+    },
+    {
+      "id": "empty",
+      "members": [
+        {
+          "issue": "A-8",
+          "tier": "standard"
+        }
+      ],
+      "redispatch": true,
+      "run_id": "audit-run",
+      "run_dir": "/tmp/audit-run",
+      "session_id": "audit-session"
+    },
+    {
+      "id": "invalid",
+      "members": [
+        {
+          "issue": "A-9",
+          "tier": "mechanical",
+          "confidence": "high"
+        }
+      ],
+      "config": "invalid",
+      "run_id": "audit-run",
+      "run_dir": "/tmp/audit-run",
+      "session_id": "audit-session"
+    }
+  ],
+  "fixture_configs": {
+    "empty": "{}\n",
+    "invalid": "dispatch:\n  build:\n    by_tier:\n      complex:\n        model: invalid-model\n",
+    "normal": "dispatch:\n  build:\n    by_tier:\n      default:\n        effort: medium\n      mechanical:\n        model: haiku\n        effort: low\n      complex:\n        model: opus\n        effort: high\n    by_confidence:\n      high:\n        model: haiku\n      medium:\n        model: sonnet\n"
+  },
+  "simulated_correction": {
+    "constraints": {
+      "forbid_surfaces": [
+        "src/legacy.js"
+      ],
+      "thresholds": {},
+      "descope": [
+        "src/new.js"
+      ]
+    }
+  },
+  "held_manifest": {
+    "fixture": "post-authoring custody baseline, held in context",
+    "members": {
+      "run-ledger.json": {},
+      "corrective/": {}
+    }
+  },
+  "files": [
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "before": {
+        "bytes": 70478,
+        "estimated_tokens": 17522,
+        "sha256": "4505afeeec9f75b9d2d388564f5f61ce9b7daeac7bbf21bd546d04de41f4e1f5"
+      },
+      "after": {
+        "bytes": 70435,
+        "estimated_tokens": 17511,
+        "sha256": "ff353773f0906602e3b8159d29d14a8083945ee46186f7ef84ed97ca58ad4030"
+      }
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "before": {
+        "bytes": 25523,
+        "estimated_tokens": 6328,
+        "sha256": "7db85429ab189be2243c4f83c67b1c6e5116f5a0e964954e09425938da3b2ebc"
+      },
+      "after": {
+        "bytes": 26700,
+        "estimated_tokens": 6621,
+        "sha256": "5d71ae864fb18d684b33324adb4fc171d6a018a4ab553c1ba9997025116ace3d"
+      }
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "before": {
+        "bytes": 23655,
+        "estimated_tokens": 5867,
+        "sha256": "869c4782577f07f7e61171bd99a73eae2979d8ef99d35f0650835185ba3eb648"
+      },
+      "after": {
+        "bytes": 20682,
+        "estimated_tokens": 5133,
+        "sha256": "23e2cdf23bc1ded6c9640c15dbb4834341e6785ede12adaddb3805c53a5b570d"
+      }
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "before": {
+        "bytes": 17462,
+        "estimated_tokens": 4333,
+        "sha256": "bd9cb2c9c8dda87a45828382666d76aaf8844f73205b42dc3500b3b2a731959c"
+      },
+      "after": {
+        "bytes": 13229,
+        "estimated_tokens": 3288,
+        "sha256": "baaec2b01e9cb039884e4600c5c938364d5c1deff1fb89d32c190d25ff07adff"
+      }
+    }
+  ],
+  "before": {
+    "bytes": 137118,
+    "estimated_tokens": 34050
+  },
+  "after": {
+    "bytes": 131046,
+    "estimated_tokens": 32553
+  },
+  "saved": {
+    "bytes": 6072,
+    "estimated_tokens": 1497
+  },
+  "arms": {
+    "baseline": {
+      "responses": [
+        {
+          "executor": "sequential",
+          "id": "mixed",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-3",
+              "A-1",
+              "A-2"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "opus"
+          },
+          "agent_parameters": {
+            "model": "opus",
+            "run_in_background": false
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "high",
+          "note": "One collision-chain unit; resolved once with highest tier complex and lowest confidence medium -> opus/high."
+        },
+        {
+          "executor": "sequential",
+          "id": "absent-tier",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-5",
+              "A-4"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "sonnet"
+          },
+          "agent_parameters": {
+            "model": "sonnet",
+            "run_in_background": false
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "medium",
+          "note": "No member has a tier so --tier omitted; lowest confidence medium -> sonnet/medium."
+        },
+        {
+          "executor": "sequential",
+          "id": "inherit",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-6"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "inherit"
+          },
+          "agent_parameters": {
+            "run_in_background": false
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "inherit",
+          "note": "Empty config, no flags -> inherit/inherit; model stamped as inherit in BuildDispatch, omitted from Agent parameters."
+        },
+        {
+          "executor": "sequential",
+          "id": "narrowed",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-7"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "haiku",
+            "constraints": {
+              "forbid_surfaces": [
+                "src/legacy.js"
+              ],
+              "thresholds": {},
+              "descope": [
+                "src/new.js"
+              ]
+            }
+          },
+          "agent_parameters": {
+            "model": "haiku",
+            "run_in_background": false
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "low",
+          "note": "Re-dispatch: corrective check with --manifest - fed the held baseline on stdin -> custody-trusted + narrowed, constraints stamped; mechanical -> haiku/low."
+        },
+        {
+          "executor": "sequential",
+          "id": "empty",
+          "action": "park",
+          "dispatch": null,
+          "agent_parameters": null,
+          "prompt_clauses": [],
+          "effort_log": null,
+          "note": "Re-dispatch: corrective check with held baseline on stdin -> custody-trusted but mandate empty -> park, never dispatch; no resolve run."
+        },
+        {
+          "executor": "sequential",
+          "id": "invalid",
+          "action": "fail",
+          "dispatch": null,
+          "agent_parameters": null,
+          "prompt_clauses": [],
+          "effort_log": null,
+          "note": "dispatch resolve exit 2: invalid model token \"invalid-model\" at dispatch.build.by_tier.complex.model -> fail loud, never dispatch."
+        },
+        {
+          "executor": "parallel",
+          "id": "mixed",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-3",
+              "A-1",
+              "A-2"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "opus"
+          },
+          "agent_parameters": {
+            "model": "opus",
+            "run_in_background": true
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "high",
+          "note": "One collision-chain unit; resolved once with highest tier complex and lowest confidence medium -> opus/high."
+        },
+        {
+          "executor": "parallel",
+          "id": "absent-tier",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-5",
+              "A-4"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "sonnet"
+          },
+          "agent_parameters": {
+            "model": "sonnet",
+            "run_in_background": true
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "medium",
+          "note": "No member has a tier so --tier omitted; lowest confidence medium -> sonnet/medium."
+        },
+        {
+          "executor": "parallel",
+          "id": "inherit",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-6"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "inherit"
+          },
+          "agent_parameters": {
+            "run_in_background": true
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "inherit",
+          "note": "Empty config, no flags -> inherit/inherit; model stamped as inherit in BuildDispatch, omitted from Agent parameters."
+        },
+        {
+          "executor": "parallel",
+          "id": "narrowed",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-7"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "haiku",
+            "constraints": {
+              "forbid_surfaces": [
+                "src/legacy.js"
+              ],
+              "thresholds": {},
+              "descope": [
+                "src/new.js"
+              ]
+            }
+          },
+          "agent_parameters": {
+            "model": "haiku",
+            "run_in_background": true
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "low",
+          "note": "Re-dispatch: corrective check without manifest (parallel procedure) -> trusted + narrowed, constraints stamped; mechanical -> haiku/low."
+        },
+        {
+          "executor": "parallel",
+          "id": "empty",
+          "action": "park",
+          "dispatch": null,
+          "agent_parameters": null,
+          "prompt_clauses": [],
+          "effort_log": null,
+          "note": "Re-dispatch: corrective check (no manifest) -> trusted but mandate empty -> park, never dispatch; no resolve run."
+        },
+        {
+          "executor": "parallel",
+          "id": "invalid",
+          "action": "fail",
+          "dispatch": null,
+          "agent_parameters": null,
+          "prompt_clauses": [],
+          "effort_log": null,
+          "note": "dispatch resolve exit 2: invalid model token \"invalid-model\" at dispatch.build.by_tier.complex.model -> fail loud, never dispatch."
+        }
+      ],
+      "calls": [
+        {
+          "executor": "sequential",
+          "id": "mixed",
+          "argv": [
+            "dispatch",
+            "resolve",
+            "build",
+            "--tier",
+            "complex",
+            "--confidence",
+            "medium"
+          ],
+          "exit": 0,
+          "stdout_bytes": 33,
+          "stderr_bytes": 0,
+          "stdout": "{\"model\":\"opus\",\"effort\":\"high\"}\n",
+          "stderr": "",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "sequential",
+          "id": "absent-tier",
+          "argv": [
+            "dispatch",
+            "resolve",
+            "build",
+            "--confidence",
+            "medium"
+          ],
+          "exit": 0,
+          "stdout_bytes": 37,
+          "stderr_bytes": 0,
+          "stdout": "{\"model\":\"sonnet\",\"effort\":\"medium\"}\n",
+          "stderr": "",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "sequential",
+          "id": "inherit",
+          "argv": [
+            "dispatch",
+            "resolve",
+            "build"
+          ],
+          "exit": 0,
+          "stdout_bytes": 39,
+          "stderr_bytes": 0,
+          "stdout": "{\"model\":\"inherit\",\"effort\":\"inherit\"}\n",
+          "stderr": "",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "sequential",
+          "id": "invalid",
+          "argv": [
+            "dispatch",
+            "resolve",
+            "build",
+            "--tier",
+            "mechanical",
+            "--confidence",
+            "high"
+          ],
+          "exit": 2,
+          "stdout_bytes": 0,
+          "stderr_bytes": 190,
+          "stdout": "",
+          "stderr": "faff dispatch resolve: config dispatch.build.by_tier.complex.model: invalid model token \"invalid-model\" — legal set: inherit | sonnet | opus | haiku | fable (fail-loud, no silent inherit)\n",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "parallel",
+          "id": "mixed",
+          "argv": [
+            "dispatch",
+            "resolve",
+            "build",
+            "--tier",
+            "complex",
+            "--confidence",
+            "medium"
+          ],
+          "exit": 0,
+          "stdout_bytes": 33,
+          "stderr_bytes": 0,
+          "stdout": "{\"model\":\"opus\",\"effort\":\"high\"}\n",
+          "stderr": "",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "parallel",
+          "id": "absent-tier",
+          "argv": [
+            "dispatch",
+            "resolve",
+            "build",
+            "--confidence",
+            "medium"
+          ],
+          "exit": 0,
+          "stdout_bytes": 37,
+          "stderr_bytes": 0,
+          "stdout": "{\"model\":\"sonnet\",\"effort\":\"medium\"}\n",
+          "stderr": "",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "parallel",
+          "id": "inherit",
+          "argv": [
+            "dispatch",
+            "resolve",
+            "build"
+          ],
+          "exit": 0,
+          "stdout_bytes": 39,
+          "stderr_bytes": 0,
+          "stdout": "{\"model\":\"inherit\",\"effort\":\"inherit\"}\n",
+          "stderr": "",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "parallel",
+          "id": "invalid",
+          "argv": [
+            "dispatch",
+            "resolve",
+            "build",
+            "--tier",
+            "mechanical",
+            "--confidence",
+            "high"
+          ],
+          "exit": 2,
+          "stdout_bytes": 0,
+          "stderr_bytes": 190,
+          "stdout": "",
+          "stderr": "faff dispatch resolve: config dispatch.build.by_tier.complex.model: invalid model token \"invalid-model\" — legal set: inherit | sonnet | opus | haiku | fable (fail-loud, no silent inherit)\n",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "sequential",
+          "id": "narrowed",
+          "argv": [
+            "corrective",
+            "check",
+            "--run-dir",
+            "/tmp/audit-run",
+            "--issue",
+            "A-7",
+            "--manifest",
+            "-",
+            "--json"
+          ],
+          "exit": 0,
+          "stdout_bytes": 148,
+          "stderr_bytes": 0,
+          "stdout": "{\"disposition\":\"custody-trusted\",\"mandate\":\"narrowed\",\"constraints\":{\"forbid_surfaces\":[\"src/legacy.js\"],\"thresholds\":{},\"descope\":[\"src/new.js\"]}}\n",
+          "stderr": "",
+          "stdin_bytes": 119
+        },
+        {
+          "executor": "sequential",
+          "id": "empty",
+          "argv": [
+            "corrective",
+            "check",
+            "--run-dir",
+            "/tmp/audit-run",
+            "--issue",
+            "A-8",
+            "--manifest",
+            "-",
+            "--json"
+          ],
+          "exit": 0,
+          "stdout_bytes": 118,
+          "stderr_bytes": 0,
+          "stdout": "{\"disposition\":\"custody-trusted\",\"mandate\":\"empty\",\"constraints\":{\"forbid_surfaces\":[],\"thresholds\":{},\"descope\":[]}}\n",
+          "stderr": "",
+          "stdin_bytes": 119
+        },
+        {
+          "executor": "parallel",
+          "id": "narrowed",
+          "argv": [
+            "corrective",
+            "check",
+            "--run-dir",
+            "/tmp/audit-run",
+            "--issue",
+            "A-7",
+            "--json"
+          ],
+          "exit": 0,
+          "stdout_bytes": 140,
+          "stderr_bytes": 0,
+          "stdout": "{\"disposition\":\"trusted\",\"mandate\":\"narrowed\",\"constraints\":{\"forbid_surfaces\":[\"src/legacy.js\"],\"thresholds\":{},\"descope\":[\"src/new.js\"]}}\n",
+          "stderr": "",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "parallel",
+          "id": "empty",
+          "argv": [
+            "corrective",
+            "check",
+            "--run-dir",
+            "/tmp/audit-run",
+            "--issue",
+            "A-8",
+            "--json"
+          ],
+          "exit": 0,
+          "stdout_bytes": 110,
+          "stderr_bytes": 0,
+          "stdout": "{\"disposition\":\"trusted\",\"mandate\":\"empty\",\"constraints\":{\"forbid_surfaces\":[],\"thresholds\":{},\"descope\":[]}}\n",
+          "stderr": "",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "sequential",
+          "id": "narrowed",
+          "argv": [
+            "dispatch",
+            "resolve",
+            "build",
+            "--tier",
+            "mechanical"
+          ],
+          "exit": 0,
+          "stdout_bytes": 33,
+          "stderr_bytes": 0,
+          "stdout": "{\"model\":\"haiku\",\"effort\":\"low\"}\n",
+          "stderr": "",
+          "stdin_bytes": 0
+        },
+        {
+          "executor": "parallel",
+          "id": "narrowed",
+          "argv": [
+            "dispatch",
+            "resolve",
+            "build",
+            "--tier",
+            "mechanical"
+          ],
+          "exit": 0,
+          "stdout_bytes": 33,
+          "stderr_bytes": 0,
+          "stdout": "{\"model\":\"haiku\",\"effort\":\"low\"}\n",
+          "stderr": "",
+          "stdin_bytes": 0
+        }
+      ],
+      "real_cli": {
+        "stdout_bytes": 284,
+        "stderr_bytes": 380,
+        "stdin_bytes": 0
+      }
+    },
+    "candidate": {
+      "responses": [
+        {
+          "executor": "sequential",
+          "id": "mixed",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-3",
+              "A-1",
+              "A-2"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "opus"
+          },
+          "agent_parameters": {
+            "run_in_background": false,
+            "model": "opus"
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "high",
+          "note": "prepare-build exit 0; chain kept in supplied order; CLI resolved unit model opus; effort high logged as not applied."
+        },
+        {
+          "executor": "sequential",
+          "id": "absent-tier",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-5",
+              "A-4"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "sonnet"
+          },
+          "agent_parameters": {
+            "run_in_background": false,
+            "model": "sonnet"
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "medium",
+          "note": "No tier guessed; model resolved via confidence to sonnet; effort medium logged as not applied."
+        },
+        {
+          "executor": "sequential",
+          "id": "inherit",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-6"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "inherit"
+          },
+          "agent_parameters": {
+            "run_in_background": false
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "inherit",
+          "note": "Empty config: model inherit, so no model passed to the Agent call; effort inherit logged as not applied."
+        },
+        {
+          "executor": "sequential",
+          "id": "narrowed",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-7"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "haiku",
+            "constraints": {
+              "forbid_surfaces": [
+                "src/legacy.js"
+              ],
+              "thresholds": {},
+              "descope": [
+                "src/new.js"
+              ]
+            }
+          },
+          "agent_parameters": {
+            "run_in_background": false,
+            "model": "haiku"
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "low",
+          "note": "corrective check with held manifest on stdin (--manifest -) returned custody-trusted/narrowed; verified constraints attached to the returned BuildDispatch; model haiku, effort low logged as not applied."
+        },
+        {
+          "executor": "sequential",
+          "id": "empty",
+          "action": "park",
+          "dispatch": null,
+          "agent_parameters": null,
+          "prompt_clauses": [],
+          "effort_log": null,
+          "note": "corrective check (held manifest on stdin) returned mandate empty; unit parked before dispatch, prepare-build not run (park simulated)."
+        },
+        {
+          "executor": "sequential",
+          "id": "invalid",
+          "action": "fail",
+          "dispatch": null,
+          "agent_parameters": null,
+          "prompt_clauses": [],
+          "effort_log": null,
+          "note": "prepare-build exit 2: dispatch.build.by_tier.complex.model invalid token \"invalid-model\"; dispatch stopped, no Agent call."
+        },
+        {
+          "executor": "parallel",
+          "id": "mixed",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-3",
+              "A-1",
+              "A-2"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "opus"
+          },
+          "agent_parameters": {
+            "run_in_background": true,
+            "model": "opus"
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "high",
+          "note": "prepare-build exit 0; chain kept in supplied order; CLI resolved unit model opus; effort high logged as not applied."
+        },
+        {
+          "executor": "parallel",
+          "id": "absent-tier",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-5",
+              "A-4"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "sonnet"
+          },
+          "agent_parameters": {
+            "run_in_background": true,
+            "model": "sonnet"
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "medium",
+          "note": "No tier guessed; model resolved via confidence to sonnet; effort medium logged as not applied."
+        },
+        {
+          "executor": "parallel",
+          "id": "inherit",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-6"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "inherit"
+          },
+          "agent_parameters": {
+            "run_in_background": true
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "inherit",
+          "note": "Empty config: model inherit, so no model passed to the Agent call; effort inherit logged as not applied."
+        },
+        {
+          "executor": "parallel",
+          "id": "narrowed",
+          "action": "dispatch",
+          "dispatch": {
+            "issues": [
+              "A-7"
+            ],
+            "run_id": "audit-run",
+            "run_dir": "/tmp/audit-run",
+            "session_id": "audit-session",
+            "mode_signal": "autonomous",
+            "model": "haiku",
+            "constraints": {
+              "forbid_surfaces": [
+                "src/legacy.js"
+              ],
+              "thresholds": {},
+              "descope": [
+                "src/new.js"
+              ]
+            }
+          },
+          "agent_parameters": {
+            "run_in_background": true,
+            "model": "haiku"
+          },
+          "prompt_clauses": [
+            "Foreground-to-terminal: run every gate/test/review step in the foreground; never end your turn without returning the TerminalToken per issue (or the sanctioned retry-later hold).",
+            "House voice: read the `# Writing style` section of `AGENTS.md` at the repo root (worktree included) and apply it to all durable prose you write — specs, PR bodies, commit messages, tracker comments. File or section absent → skip this instruction.",
+            "Explicit review target: before any ad-hoc code-review fork, resolve this build's target via `faff review-target --resolve --issue <issue>` and pass it explicitly — never rely on an ambient-cwd default. `faff review-target --guard --issue <issue>` is the pre-review backstop: a non-zero exit means the ambient cwd is on the wrong branch — do not proceed with an un-targeted review."
+          ],
+          "effort_log": "low",
+          "note": "corrective check without manifest returned trusted/narrowed; verified constraints attached to the returned BuildDispatch; model haiku, effort low logged as not applied."
+        },
+        {
+          "executor": "parallel",
+          "id": "empty",
+          "action": "park",
+          "dispatch": null,
+          "agent_parameters": null,
+          "prompt_clauses": [],
+          "effort_log": null,
+          "note": "corrective check (no manifest) returned mandate empty; unit parked before dispatch, prepare-build not run (park simulated)."
+        },
+        {
+          "executor": "parallel",
+          "id": "invalid",
+          "action": "fail",
+          "dispatch": null,
+          "agent_parameters": null,
+          "prompt_clauses": [],
+          "effort_log": null,
+          "note": "prepare-build exit 2: dispatch.build.by_tier.complex.model invalid token \"invalid-model\"; dispatch stopped, no Agent call."
+        }
+      ],
+      "calls": [
+        {
+          "executor": "sequential",
+          "id": "mixed",
+          "argv": [
+            "dispatch",
+            "prepare-build",
+            "--executor",
+            "sequential"
+          ],
+          "exit": 0,
+          "stdout_bytes": 245,
+          "stderr_bytes": 0,
+          "stdout": "{\"dispatch\":{\"issues\":[\"A-3\",\"A-1\",\"A-2\"],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\",\"mode_signal\":\"autonomous\",\"model\":\"opus\"},\"agent_parameters\":{\"run_in_background\":false,\"model\":\"opus\"},\"effort_log\":\"high\"}\n",
+          "stderr": "",
+          "stdin_bytes": 256,
+          "stdin": "{\"members\":[{\"issue\":\"A-3\",\"tier\":\"mechanical\",\"confidence\":\"high\"},{\"issue\":\"A-1\",\"tier\":\"complex\",\"confidence\":\"high\"},{\"issue\":\"A-2\",\"tier\":\"standard\",\"confidence\":\"medium\"}],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\"}\n"
+        },
+        {
+          "executor": "parallel",
+          "id": "mixed",
+          "argv": [
+            "dispatch",
+            "prepare-build",
+            "--executor",
+            "parallel"
+          ],
+          "exit": 0,
+          "stdout_bytes": 244,
+          "stderr_bytes": 0,
+          "stdout": "{\"dispatch\":{\"issues\":[\"A-3\",\"A-1\",\"A-2\"],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\",\"mode_signal\":\"autonomous\",\"model\":\"opus\"},\"agent_parameters\":{\"run_in_background\":true,\"model\":\"opus\"},\"effort_log\":\"high\"}\n",
+          "stderr": "",
+          "stdin_bytes": 256,
+          "stdin": "{\"members\":[{\"issue\":\"A-3\",\"tier\":\"mechanical\",\"confidence\":\"high\"},{\"issue\":\"A-1\",\"tier\":\"complex\",\"confidence\":\"high\"},{\"issue\":\"A-2\",\"tier\":\"standard\",\"confidence\":\"medium\"}],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\"}\n"
+        },
+        {
+          "executor": "sequential",
+          "id": "absent-tier",
+          "argv": [
+            "dispatch",
+            "prepare-build",
+            "--executor",
+            "sequential"
+          ],
+          "exit": 0,
+          "stdout_bytes": 245,
+          "stderr_bytes": 0,
+          "stdout": "{\"dispatch\":{\"issues\":[\"A-5\",\"A-4\"],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\",\"mode_signal\":\"autonomous\",\"model\":\"sonnet\"},\"agent_parameters\":{\"run_in_background\":false,\"model\":\"sonnet\"},\"effort_log\":\"medium\"}\n",
+          "stderr": "",
+          "stdin_bytes": 165,
+          "stdin": "{\"members\":[{\"issue\":\"A-5\",\"confidence\":\"high\"},{\"issue\":\"A-4\",\"confidence\":\"medium\"}],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\"}\n"
+        },
+        {
+          "executor": "parallel",
+          "id": "absent-tier",
+          "argv": [
+            "dispatch",
+            "prepare-build",
+            "--executor",
+            "parallel"
+          ],
+          "exit": 0,
+          "stdout_bytes": 244,
+          "stderr_bytes": 0,
+          "stdout": "{\"dispatch\":{\"issues\":[\"A-5\",\"A-4\"],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\",\"mode_signal\":\"autonomous\",\"model\":\"sonnet\"},\"agent_parameters\":{\"run_in_background\":true,\"model\":\"sonnet\"},\"effort_log\":\"medium\"}\n",
+          "stderr": "",
+          "stdin_bytes": 165,
+          "stdin": "{\"members\":[{\"issue\":\"A-5\",\"confidence\":\"high\"},{\"issue\":\"A-4\",\"confidence\":\"medium\"}],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\"}\n"
+        },
+        {
+          "executor": "sequential",
+          "id": "inherit",
+          "argv": [
+            "dispatch",
+            "prepare-build",
+            "--executor",
+            "sequential"
+          ],
+          "exit": 0,
+          "stdout_bytes": 224,
+          "stderr_bytes": 0,
+          "stdout": "{\"dispatch\":{\"issues\":[\"A-6\"],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\",\"mode_signal\":\"autonomous\",\"model\":\"inherit\"},\"agent_parameters\":{\"run_in_background\":false},\"effort_log\":\"inherit\"}\n",
+          "stderr": "",
+          "stdin_bytes": 107,
+          "stdin": "{\"members\":[{\"issue\":\"A-6\"}],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\"}\n"
+        },
+        {
+          "executor": "parallel",
+          "id": "inherit",
+          "argv": [
+            "dispatch",
+            "prepare-build",
+            "--executor",
+            "parallel"
+          ],
+          "exit": 0,
+          "stdout_bytes": 223,
+          "stderr_bytes": 0,
+          "stdout": "{\"dispatch\":{\"issues\":[\"A-6\"],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\",\"mode_signal\":\"autonomous\",\"model\":\"inherit\"},\"agent_parameters\":{\"run_in_background\":true},\"effort_log\":\"inherit\"}\n",
+          "stderr": "",
+          "stdin_bytes": 107,
+          "stdin": "{\"members\":[{\"issue\":\"A-6\"}],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\"}\n"
+        },
+        {
+          "executor": "sequential",
+          "id": "invalid",
+          "argv": [
+            "dispatch",
+            "prepare-build",
+            "--executor",
+            "sequential"
+          ],
+          "exit": 2,
+          "stdout_bytes": 0,
+          "stderr_bytes": 196,
+          "stdout": "",
+          "stderr": "faff dispatch prepare-build: config dispatch.build.by_tier.complex.model: invalid model token \"invalid-model\" — legal set: inherit | sonnet | opus | haiku | fable (fail-loud, no silent inherit)\n",
+          "stdin_bytes": 147,
+          "stdin": "{\"members\":[{\"issue\":\"A-9\",\"tier\":\"mechanical\",\"confidence\":\"high\"}],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\"}\n"
+        },
+        {
+          "executor": "parallel",
+          "id": "invalid",
+          "argv": [
+            "dispatch",
+            "prepare-build",
+            "--executor",
+            "parallel"
+          ],
+          "exit": 2,
+          "stdout_bytes": 0,
+          "stderr_bytes": 196,
+          "stdout": "",
+          "stderr": "faff dispatch prepare-build: config dispatch.build.by_tier.complex.model: invalid model token \"invalid-model\" — legal set: inherit | sonnet | opus | haiku | fable (fail-loud, no silent inherit)\n",
+          "stdin_bytes": 147,
+          "stdin": "{\"members\":[{\"issue\":\"A-9\",\"tier\":\"mechanical\",\"confidence\":\"high\"}],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\"}\n"
+        },
+        {
+          "executor": "sequential",
+          "id": "narrowed",
+          "argv": [
+            "corrective",
+            "check",
+            "--run-dir",
+            "/tmp/audit-run",
+            "--issue",
+            "A-7",
+            "--manifest",
+            "-",
+            "--json"
+          ],
+          "exit": 0,
+          "stdout_bytes": 148,
+          "stderr_bytes": 0,
+          "stdout": "{\"disposition\":\"custody-trusted\",\"mandate\":\"narrowed\",\"constraints\":{\"forbid_surfaces\":[\"src/legacy.js\"],\"thresholds\":{},\"descope\":[\"src/new.js\"]}}\n",
+          "stderr": "",
+          "stdin_bytes": 119,
+          "stdin": "{\"fixture\": \"post-authoring custody baseline, held in context\", \"members\": {\"run-ledger.json\": {}, \"corrective/\": {}}}\n"
+        },
+        {
+          "executor": "parallel",
+          "id": "narrowed",
+          "argv": [
+            "corrective",
+            "check",
+            "--run-dir",
+            "/tmp/audit-run",
+            "--issue",
+            "A-7",
+            "--json"
+          ],
+          "exit": 0,
+          "stdout_bytes": 140,
+          "stderr_bytes": 0,
+          "stdout": "{\"disposition\":\"trusted\",\"mandate\":\"narrowed\",\"constraints\":{\"forbid_surfaces\":[\"src/legacy.js\"],\"thresholds\":{},\"descope\":[\"src/new.js\"]}}\n",
+          "stderr": "",
+          "stdin_bytes": 0,
+          "stdin": ""
+        },
+        {
+          "executor": "sequential",
+          "id": "empty",
+          "argv": [
+            "corrective",
+            "check",
+            "--run-dir",
+            "/tmp/audit-run",
+            "--issue",
+            "A-8",
+            "--manifest",
+            "-",
+            "--json"
+          ],
+          "exit": 0,
+          "stdout_bytes": 118,
+          "stderr_bytes": 0,
+          "stdout": "{\"disposition\":\"custody-trusted\",\"mandate\":\"empty\",\"constraints\":{\"forbid_surfaces\":[],\"thresholds\":{},\"descope\":[]}}\n",
+          "stderr": "",
+          "stdin_bytes": 119,
+          "stdin": "{\"fixture\": \"post-authoring custody baseline, held in context\", \"members\": {\"run-ledger.json\": {}, \"corrective/\": {}}}\n"
+        },
+        {
+          "executor": "parallel",
+          "id": "empty",
+          "argv": [
+            "corrective",
+            "check",
+            "--run-dir",
+            "/tmp/audit-run",
+            "--issue",
+            "A-8",
+            "--json"
+          ],
+          "exit": 0,
+          "stdout_bytes": 110,
+          "stderr_bytes": 0,
+          "stdout": "{\"disposition\":\"trusted\",\"mandate\":\"empty\",\"constraints\":{\"forbid_surfaces\":[],\"thresholds\":{},\"descope\":[]}}\n",
+          "stderr": "",
+          "stdin_bytes": 0,
+          "stdin": ""
+        },
+        {
+          "executor": "sequential",
+          "id": "narrowed",
+          "argv": [
+            "dispatch",
+            "prepare-build",
+            "--executor",
+            "sequential"
+          ],
+          "exit": 0,
+          "stdout_bytes": 234,
+          "stderr_bytes": 0,
+          "stdout": "{\"dispatch\":{\"issues\":[\"A-7\"],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\",\"mode_signal\":\"autonomous\",\"model\":\"haiku\"},\"agent_parameters\":{\"run_in_background\":false,\"model\":\"haiku\"},\"effort_log\":\"low\"}\n",
+          "stderr": "",
+          "stdin_bytes": 127,
+          "stdin": "{\"members\":[{\"issue\":\"A-7\",\"tier\":\"mechanical\"}],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\"}\n"
+        },
+        {
+          "executor": "parallel",
+          "id": "narrowed",
+          "argv": [
+            "dispatch",
+            "prepare-build",
+            "--executor",
+            "parallel"
+          ],
+          "exit": 0,
+          "stdout_bytes": 233,
+          "stderr_bytes": 0,
+          "stdout": "{\"dispatch\":{\"issues\":[\"A-7\"],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\",\"mode_signal\":\"autonomous\",\"model\":\"haiku\"},\"agent_parameters\":{\"run_in_background\":true,\"model\":\"haiku\"},\"effort_log\":\"low\"}\n",
+          "stderr": "",
+          "stdin_bytes": 127,
+          "stdin": "{\"members\":[{\"issue\":\"A-7\",\"tier\":\"mechanical\"}],\"run_id\":\"audit-run\",\"run_dir\":\"/tmp/audit-run\",\"session_id\":\"audit-session\"}\n"
+        }
+      ],
+      "real_cli": {
+        "stdout_bytes": 1892,
+        "stderr_bytes": 392,
+        "stdin_bytes": 1604
+      }
+    }
+  }
+}

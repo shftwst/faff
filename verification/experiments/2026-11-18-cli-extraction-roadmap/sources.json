@@ -508,7 +508,16 @@
           ],
           "verify": "Run test/dispatch-build-chain.test.mjs, test/dispatch-config.test.mjs, test/validate-adapters-delegation.test.mjs and test/validate-adapters-voice-pointer.test.mjs. Snapshot real agent call arguments for both launchers, mixed/missing member tiers, inherit, bad config and correction."
         }
-      ]
+      ],
+      "delivery": {
+        "pr": 1232,
+        "status": "open",
+        "net_measured": {
+          "bytes": 6072,
+          "estimated_tokens": 1497
+        },
+        "evidence": "../2026-11-17-extracted-savings/build-dispatch-prepare.json"
+      }
     },
     {
       "rank": 2,

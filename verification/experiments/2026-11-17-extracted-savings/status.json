@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "edce58a030b00152999f1e4a703674d7ee27f926",
+  "base": "e19dc276bad820c41428b27ae5533270cd82553d",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -8,47 +8,18 @@
     "estimated_tokens": 339929
   },
   "current_main": {
-    "bytes": 1194161,
-    "estimated_tokens": 296152,
+    "bytes": 1191963,
+    "estimated_tokens": 295611,
     "files": 41
   },
   "landed_savings": {
-    "bytes": 177920,
-    "estimated_tokens": 43777
+    "bytes": 180118,
+    "estimated_tokens": 44318
   },
   "pending_extractions": [
     {
-      "pr": "https://github.com/shftwst/faff/pull/1228",
-      "head": "26c4c34ea1678d680dedafab56d0655ce29f6105",
-      "skill": "graft delivery and no-CI routing",
-      "path": "plugin/skills/faff-graft/SKILL.md",
-      "before": {
-        "bytes": 173897,
-        "estimated_tokens": 43129,
-        "sha256": "d76758a91ae52dcf09017ed8eaa49da97ce3a5dbc6834f72e06cb5c3f0a27d14"
-      },
-      "after": {
-        "bytes": 171699,
-        "estimated_tokens": 42588,
-        "sha256": "2a69b8e56f3722aaa4c73150896773ccf2826a875f99f7c07deb321ddd7c8ba9"
-      },
-      "saved": {
-        "bytes": 2198,
-        "estimated_tokens": 541
-      },
-      "status": "open",
-      "tests_passed": 169,
-      "verification": "Before and candidate matched 6/6 registered decisions, using the real contract parser three times per arm. Final source restored the original not-ready paragraph. No externally executed merges. 169 local tests passed.",
-      "qualification_path": "graft-delivery-ci-routes/assessment.json",
-      "remote_rebase_measured_source_unchanged": true,
-      "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T03:47:48.465203+00:00"
-      }
-    },
-    {
       "pr": "https://github.com/shftwst/faff/pull/1230",
-      "head": "1130bd4370fbd8621e2155d88658a60b514a6800",
+      "head": "a912e2d867480cfefc9bc2ffcd669aa782a63841",
       "skill": "tidy container transition recap",
       "path": "plugin/skills/faff-tidy/SKILL.md",
       "before": {
@@ -70,42 +41,61 @@
       "verification": "Source review plus direct constituent tests. No dedicated caller pair.",
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T03:47:48.465203+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T04:11:36.933518+00:00"
       }
     },
     {
       "pr": "https://github.com/shftwst/faff/pull/1231",
-      "head": "7d593627db8609443c58b2c3a5dbbd5f2e983af6",
+      "head": "7dc5bb4bbf5589f2d39946003fc08dc2c65a3ea2",
       "skill": "graft post-fix assessment",
       "path": "plugin/skills/faff-graft/SKILL.md",
       "before": {
-        "bytes": 173897,
-        "estimated_tokens": 43129,
-        "sha256": "d76758a91ae52dcf09017ed8eaa49da97ce3a5dbc6834f72e06cb5c3f0a27d14"
+        "bytes": 171699,
+        "estimated_tokens": 42588,
+        "sha256": "2a69b8e56f3722aaa4c73150896773ccf2826a875f99f7c07deb321ddd7c8ba9"
       },
       "after": {
-        "bytes": 170806,
-        "estimated_tokens": 42362,
-        "sha256": "e225ead49ebcbad9eccdcfe5dbcba047179be760e566be64e9d97c654f4a36b5"
+        "bytes": 168608,
+        "estimated_tokens": 41822,
+        "sha256": "da02120b4170b024cdeccfe07f74d40c91f578d1d473e03ef8ea3ab2d7db7535"
       },
       "saved": {
         "bytes": 3091,
-        "estimated_tokens": 767
+        "estimated_tokens": 766
       },
       "status": "open",
       "tests_passed": 296,
       "verification": "Claude Code one sample per arm, seven scenarios each. Same checkpoint count, head, sorted failed checks and next routing decision in both. Supplied observations, seven candidate CLI calls, simulated writes. Subsequent strict pagination tested at the real CLI and via read-only GitHub query.",
-      "remote_rebase_measured_source_unchanged": true,
+      "remote_rebase_measured_source_unchanged": false,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T03:47:48.465203+00:00"
+        "checked_at_utc": "2026-11-18T04:11:36.933518+00:00"
       },
-      "qualification_path": "graft-assess-fix.json"
+      "qualification_path": "graft-assess-fix.json",
+      "original_isolated_measurement": {
+        "head": "7d593627db8609443c58b2c3a5dbbd5f2e983af6",
+        "before": {
+          "bytes": 173897,
+          "estimated_tokens": 43129,
+          "sha256": "d76758a91ae52dcf09017ed8eaa49da97ce3a5dbc6834f72e06cb5c3f0a27d14"
+        },
+        "after": {
+          "bytes": 170806,
+          "estimated_tokens": 42362,
+          "sha256": "e225ead49ebcbad9eccdcfe5dbcba047179be760e566be64e9d97c654f4a36b5"
+        },
+        "saved": {
+          "bytes": 3091,
+          "estimated_tokens": 767
+        }
+      },
+      "base": "e19dc276bad820c41428b27ae5533270cd82553d",
+      "rebase_verification": "Same graft instructions as the previously verified combined tree. All 11 deleted blocks accounted for and the complete-file size ratchet was recomputed after #1228."
     },
     {
       "pr": "https://github.com/shftwst/faff/pull/1232",
-      "head": "c344a6812e79361125c6cf1cf46408825286190b",
+      "head": "7d9f346587e326ed945e113ef088bb163c43b4d5",
       "skill": "build dispatch preparation",
       "files": [
         {
@@ -179,13 +169,14 @@
       "verification": "Both executors matched across 12 cases per arm. Worker launches and corrective effects simulated. Candidate inspected the fixture wrapper. Published CLI replayed all ten actual calls exactly.",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T03:47:48.465203+00:00"
-      }
+        "checked_at_utc": "2026-11-18T04:11:36.933518+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true
     }
   ],
   "pending_savings": {
-    "bytes": 12929,
-    "estimated_tokens": 3188
+    "bytes": 10731,
+    "estimated_tokens": 2647
   },
   "limits": [
     "Merged figures use the current main tree. Fresh diagnostics and historical cohorts remain separate.",
@@ -1150,6 +1141,36 @@
       },
       "remote_rebase_measured_source_unchanged": true,
       "merge_commit": "edce58a030b00152999f1e4a703674d7ee27f926"
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1228",
+      "head": "26c4c34ea1678d680dedafab56d0655ce29f6105",
+      "skill": "graft delivery and no-CI routing",
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "before": {
+        "bytes": 173897,
+        "estimated_tokens": 43129,
+        "sha256": "d76758a91ae52dcf09017ed8eaa49da97ce3a5dbc6834f72e06cb5c3f0a27d14"
+      },
+      "after": {
+        "bytes": 171699,
+        "estimated_tokens": 42588,
+        "sha256": "2a69b8e56f3722aaa4c73150896773ccf2826a875f99f7c07deb321ddd7c8ba9"
+      },
+      "saved": {
+        "bytes": 2198,
+        "estimated_tokens": 541
+      },
+      "status": "merged",
+      "tests_passed": 169,
+      "verification": "Before and candidate matched 6/6 registered decisions, using the real contract parser three times per arm. Final source restored the original not-ready paragraph. No externally executed merges. 169 local tests passed.",
+      "qualification_path": "graft-delivery-ci-routes/assessment.json",
+      "remote_rebase_measured_source_unchanged": true,
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T03:57:27.770843+00:00"
+      },
+      "merge_commit": "e19dc276bad820c41428b27ae5533270cd82553d"
     }
   ],
   "local_not_counted": [
@@ -1222,7 +1243,7 @@
       "status": "held. Source corrections for transient-only CI continuation, no-op before effects, and custody wording. 270 focused tests pass. Combined unattended handoff through collision, authorisation, custody, ship and post-merge has no paired caller qualification. No broad model run."
     }
   ],
-  "recorded_at_utc": "2026-11-18T03:47:48.465203+00:00",
+  "recorded_at_utc": "2026-11-18T04:11:36.933518+00:00",
   "new_cli_tests": {
     "prep_context": {
       "implementation_pr": 1219,
@@ -1261,18 +1282,5 @@
       "focused_passed": 126
     }
   },
-  "prioritized_extraction_plan": "../2026-11-18-cli-extraction-roadmap/sources.json",
-  "combined_file_rounding": {
-    "prs": [
-      1228,
-      1231
-    ],
-    "path": "plugin/skills/faff-graft/SKILL.md",
-    "verified_merged_text": {
-      "bytes": 168608,
-      "estimated_tokens": 41822,
-      "sha256": "da02120b4170b024cdeccfe07f74d40c91f578d1d473e03ef8ea3ab2d7db7535"
-    },
-    "adjustment_estimated_tokens": -1
-  }
+  "prioritized_extraction_plan": "../2026-11-18-cli-extraction-roadmap/sources.json"
 }

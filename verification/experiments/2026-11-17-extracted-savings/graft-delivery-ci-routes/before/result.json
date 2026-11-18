@@ -1,0 +1,76 @@
+[
+  {
+    "id": "A",
+    "verdict": "no-ci-coverage: validation is post-merge-only",
+    "actions": [
+      "surface loudly: \"No applicable CI ran on this PR (zero checks). CI-green could not be established; the diff was NOT validated pre-merge.\" (only workflow is push-to-main, post-merge-only)",
+      "do not hand off to ship / do not merge (no fast-path, no re-run)",
+      "flip PR #50 to draft (simulated)",
+      "park T-11 needs-human per the shared protocol, attaching the AC checklist, review comment and the no-ci-coverage: validation is post-merge-only reason (simulated tracker write)",
+      "log the decision for /faff-wtf",
+      "return pr-open-for-human"
+    ],
+    "authority": "graft merge-confidence gate, fail-closed: an empty check set is not green; autonomous mode has no human to accept the gap",
+    "operator_handoff": null
+  },
+  {
+    "id": "B",
+    "verdict": "no-ci-coverage, human confirmed merge anyway; merge handed to human terminal",
+    "actions": [
+      "explicit no-CI confirm already obtained (operator replied yes)",
+      "do not run merge-gate in-session (--allow-no-ci is fenced on a real TTY; this session has none)",
+      "print the exact merge-gate command for the operator to run in their own terminal",
+      "after operator reports running it, re-read PR #51 state (gh pr view / idempotent merge-gate already-merged path) to confirm the merge landed (simulated)"
+    ],
+    "authority": "the present human is the gate, exercised through merge-gate --allow-no-ci on their own TTY",
+    "operator_handoff": "faff merge-gate --pr 51 --issue T-12 --run-dir /tmp/supplied-run --level L2 --execute --interactive --allow-no-ci --merge-args \"--squash --delete-branch\""
+  },
+  {
+    "id": "C",
+    "verdict": "failed",
+    "actions": [
+      "faff contract delivery-outcome consult (exit 1): shipped not corroborated -> coerced to failed (reason: no verified merge record); producer narrative ignored",
+      "treat as post-build failure; no obvious fix available, so no fix attempt",
+      "park the issue (none supplied in the case) per the shared protocol with reason failed: no verified merge record (simulated tracker write)",
+      "no post-merge verification, no worktree cleanup, no chain unblock"
+    ],
+    "authority": "faff contract delivery-outcome script (sole source of contract data; uncorroborated shipped coerces to failed)",
+    "operator_handoff": null
+  },
+  {
+    "id": "D",
+    "verdict": "not-ready:precondition:push",
+    "actions": [
+      "faff contract delivery-outcome consult (exit 0, conformant): not-ready, precondition:push",
+      "leave the PR open and mergeable (not merged)",
+      "record the reason",
+      "park retry-later (not a defect, not needs-human), with park comment naming the blocker precondition:push and remedy: restore push permission (simulated tracker write)"
+    ],
+    "authority": "faff contract delivery-outcome script",
+    "operator_handoff": "Blocker precondition:push. Remedy: restore push permission, then re-invoke /faff-graft to resume."
+  },
+  {
+    "id": "E",
+    "verdict": "shipped",
+    "actions": [
+      "faff contract delivery-outcome consult (exit 0, conformant): shipped, corroborated",
+      "run autonomous post-merge verification before worktree is eligible for cleanup (simulated)",
+      "mark worktree eligible for cleanup; any metadata prune via faff worktree-prune --issue <id> scoped to this run's worktree (simulated)",
+      "unblock chained issues (simulated)",
+      "done"
+    ],
+    "authority": "faff contract delivery-outcome script",
+    "operator_handoff": null
+  },
+  {
+    "id": "F",
+    "verdict": "pr-ready",
+    "actions": [
+      "dispatch cut: do not run the merge locus (no ship handoff, no merge-gate, no merge-record.json, no post-merge tail)",
+      "keep in-lane Step 8/9 writes and the Step 9b immutable anchor as already present",
+      "return pr-ready with EvidenceReturn to the waiting concurrency executor"
+    ],
+    "authority": "the dispatcher (concurrency executor) runs the merge against dispatcher-verified evidence (concurrency slot contract obligation 7)",
+    "operator_handoff": null
+  }
+]

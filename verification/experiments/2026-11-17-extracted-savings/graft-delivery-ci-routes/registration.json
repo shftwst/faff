@@ -1,0 +1,20 @@
+{
+  "scope": "Step 10 caller decisions from supplied observations. One actual worker per arm, baseline must pass before candidate is launched. Only delivery-outcome CLI executed. No remote operations.",
+  "expected": {
+    "A": "no ship or merge; draft, park needs-human, pr-open-for-human, post-merge-only reason",
+    "B": "print exact interactive allow-no-ci command for the operator, never execute here, reread PR state to confirm human merge",
+    "C": "actual validator coerces invalid shipped to failed; no success or cleanup; park when no obvious fix",
+    "D": "actual validator, PR open, retry-later and remedy reported",
+    "E": "actual validator, perform autonomous post-merge verification before eligible caller-owned issue-scoped cleanup",
+    "F": "return pr-ready and EvidenceReturn; dispatcher owns merge and post-merge tail"
+  },
+  "limits": "One six-case sample. No integrated successful governed handoff, ADR collision, cold discovery, or hosted merge measurement.",
+  "before": {
+    "ref": "c16aeafe",
+    "section_sha256": "cce3acbda47e8b4842ac5c61efe64a13c57a14febd70cc837f4d0c74e2507f7d"
+  },
+  "after": {
+    "ref": "bf035663",
+    "section_sha256": "43f3370b6ee8b51b6f3bb4041c97387ea9aef255b66d64fffa2ead0705a6e7c0"
+  }
+}

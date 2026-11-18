@@ -248,11 +248,59 @@
         "state": "success",
         "checked_at_utc": "2026-11-18T00:55:22.373460+00:00"
       }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1227",
+      "head": "d7077c2473277da0cc357dc120ec7fe1913e253d",
+      "skill": "beep-boop closing reminders",
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "before": {
+        "bytes": 156122,
+        "estimated_tokens": 38692,
+        "sha256": "39344609da4cfe88a6671cf29a191cb96f79e4a3b6ba5d51ed1c1cae2d27b3e4"
+      },
+      "after": {
+        "bytes": 154055,
+        "estimated_tokens": 38180,
+        "sha256": "e3378bc2d8138963cf1f7322edfd2d66411ec75b9fd3929d53f2a1e91ab28791"
+      },
+      "saved": {
+        "bytes": 2067,
+        "estimated_tokens": 512
+      },
+      "status": "open",
+      "tests_passed": 76,
+      "verification": "Independent source review traced four recaps to mandatory existing instructions. All 76 local tests passed. No new model trial on this follow-up.",
+      "base_pr": 1225
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1228",
+      "head": "2c6cd206adf347debdb0a52783b9ea18e92ae969",
+      "skill": "graft delivery and no-CI routing",
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "before": {
+        "bytes": 173897,
+        "estimated_tokens": 43129,
+        "sha256": "d76758a91ae52dcf09017ed8eaa49da97ce3a5dbc6834f72e06cb5c3f0a27d14"
+      },
+      "after": {
+        "bytes": 171699,
+        "estimated_tokens": 42588,
+        "sha256": "2a69b8e56f3722aaa4c73150896773ccf2826a875f99f7c07deb321ddd7c8ba9"
+      },
+      "saved": {
+        "bytes": 2198,
+        "estimated_tokens": 541
+      },
+      "status": "open",
+      "tests_passed": 169,
+      "verification": "Before and candidate matched 6/6 registered decisions, using the real contract parser three times per arm. Final source restored the original not-ready paragraph. No externally executed merges. 169 local tests passed.",
+      "qualification_path": "graft-delivery-ci-routes/assessment.json"
     }
   ],
   "pending_savings": {
-    "bytes": 14395,
-    "estimated_tokens": 3533
+    "bytes": 18660,
+    "estimated_tokens": 4586
   },
   "limits": [
     "Merged figures use the current main tree. Fresh diagnostics and historical cohorts remain separate.",
@@ -262,8 +310,8 @@
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1196228,
-    "estimated_tokens": 296664
+    "bytes": 1191963,
+    "estimated_tokens": 295611
   },
   "landed_extractions": [
     {
@@ -1011,7 +1059,17 @@
       },
       "after_sha256": "942a94907fb76c2cc037a76e84a2082cabffa27fd34ecb45d915d3329bb16cf8",
       "status": "source-reviewed, 143 tests and 2/2 inventory. Based on #1222 for a clean follow-up after merge. No fresh model trial."
+    },
+    {
+      "skill": "broader graft Step 10 draft",
+      "head": "a069d0cd5f6e01a4b32cf712ccf283cbee1d0a8f",
+      "saved_against_current_main": {
+        "bytes": 12560,
+        "estimated_tokens": 3077
+      },
+      "overlaps_with_pr": 1228,
+      "status": "held. Source corrections for transient-only CI continuation, no-op before effects, and custody wording. 270 focused tests pass. Combined unattended handoff through collision, authorisation, custody, ship and post-merge has no paired caller qualification. No broad model run."
     }
   ],
-  "recorded_at_utc": "2026-11-18T00:55:22.373460+00:00"
+  "recorded_at_utc": "2026-11-18T01:20:44.512746+00:00"
 }

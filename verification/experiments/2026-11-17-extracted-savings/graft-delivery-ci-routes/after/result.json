@@ -1,0 +1,84 @@
+[
+  {
+    "id": "A",
+    "verdict": "no-ci-coverage (post-merge-only validation); return pr-open-for-human",
+    "actions": [
+      "Classify the CI leg as no-ci-coverage: zero applicable pre-merge checks, so CI-green is not established",
+      "Annotate the reason as 'no-ci-coverage: validation is post-merge-only'",
+      "Skip the ship handoff; no merge-gate, no retry, no automatic merge",
+      "Surface: 'No applicable CI ran on this PR (zero checks). CI-green could not be established; the diff was NOT validated pre-merge.'",
+      "Flip PR #50 to draft (simulated)",
+      "Park T-11 needs-human per the shared protocol, with the AC checklist, review comment and the no-ci-coverage reason (simulated tracker write)",
+      "Log the park for /faff-wtf",
+      "Return pr-open-for-human"
+    ],
+    "authority": "graft (autonomous, top-level); the CI floor leg fails closed, so only a human can override",
+    "operator_handoff": "None issued. A human who wants this merged reviews PR #50 and uses the interactive no-CI or --human-override path."
+  },
+  {
+    "id": "B",
+    "verdict": "human-confirmed no-CI merge; hand the merge command to the operator, never run it in-session",
+    "actions": [
+      "Classify the CI leg as no-ci-coverage",
+      "Record the operator's separate, explicit 'yes' to the no-CI confirmation",
+      "Declare the merge's effects before the handoff (simulated): pipe [{kind:'merge', target:'pr:51', reversible:true}, {kind:'branch-delete', target:'<head-branch-name of PR #51>', reversible:true}] to 'faff effects declare --run supplied-run --issue T-12 --step merge'; a non-zero exit is logged and does not block",
+      "Print the merge-gate command for the human to run in their own real terminal; do not execute it, even though this session has no terminal for the human",
+      "After the operator reports back, re-read PR #51 state (gh pr view, or the idempotent gate) to confirm the merge before treating it as shipped"
+    ],
+    "authority": "human operator (interactive L2); graft prepares and verifies only",
+    "operator_handoff": "faff merge-gate --pr 51 --issue T-12 --run-dir /tmp/supplied-run --level L2 --execute --interactive --allow-no-ci --merge-args \"--squash --delete-branch\"",
+    "notes": "Assumes an ungoverned run. If the governed-run check reports governed, the schema:2 declare is replaced by 'faff merge authorize --run-dir /tmp/supplied-run --issue T-12 --pr 51 --delete-branch' before, and 'faff merge observe' with the same arguments after."
+  },
+  {
+    "id": "C",
+    "verdict": "failed (coerced): 'faff contract delivery-outcome' exited 1, outcome failed, reason 'no verified merge record', violation 'shipped is not corroborated by the producer's result'",
+    "actions": [
+      "Pipe the delivery-outcome block to 'faff contract delivery-outcome' (done, exit 1)",
+      "Route on the script's outcome, failed, and ignore the producer's 'shipped' narrative",
+      "Do not run post-merge verification, worktree prune or chain unblocking",
+      "No obvious fix is available, so take no fix attempt",
+      "Park per the shared protocol with reason 'failed: no verified merge record (uncorroborated shipped claim coerced to failed)' (simulated tracker write)",
+      "Log the park for /faff-wtf"
+    ],
+    "authority": "faff contract delivery-outcome is the sole source of contract data; graft (autonomous) routes on it",
+    "operator_handoff": "Check whether the PR actually merged, then resolve and re-invoke /faff-graft."
+  },
+  {
+    "id": "D",
+    "verdict": "not-ready:precondition:push, conformant (exit 0); park retry-later",
+    "actions": [
+      "Pipe the delivery-outcome block to 'faff contract delivery-outcome' (done, exit 0, conformant)",
+      "Keep the PR open, unmerged and mergeable; do not draft it",
+      "Record the reason 'not-ready:precondition:push'",
+      "Park retry-later, not needs-human and not failed, with the blocker and remedy in the park comment (simulated tracker write)",
+      "Spend no fix attempt"
+    ],
+    "authority": "faff contract delivery-outcome; graft (autonomous) parks retry-later",
+    "operator_handoff": "Blocker: push precondition failed. remedy: restore push permission, then re-invoke /faff-graft to resume."
+  },
+  {
+    "id": "E",
+    "verdict": "shipped, corroborated and conformant (exit 0)",
+    "actions": [
+      "Pipe the delivery-outcome block to 'faff contract delivery-outcome' (done, exit 0, conformant)",
+      "Treat the PR as merged",
+      "Run post-merge verification before cleanup eligibility (autonomous) (simulated)",
+      "Leave worktree cleanup to the caller per the worktree policy: 'faff worktree-prune --issue <issue-id>', never a repo-wide 'git worktree prune' (simulated)",
+      "Unblock chained issues (simulated tracker writes)"
+    ],
+    "authority": "faff contract delivery-outcome; graft (autonomous)",
+    "operator_handoff": "None.",
+    "notes": "On a governed run, also run 'faff merge observe' with the same --run-dir/--issue/--pr after the merge."
+  },
+  {
+    "id": "F",
+    "verdict": "pr-ready; return to the dispatcher with EvidenceReturn",
+    "actions": [
+      "Confirm the Step 8/9 evidence and the immutable Step-9b PR anchor are present",
+      "Skip the ship handoff, merge-gate, merge-record.json and the post-merge tail",
+      "Return 'pr-ready' with EvidenceReturn to the waiting concurrency executor"
+    ],
+    "authority": "dispatcher (concurrency executor) runs the floor, interlock and routing on dispatcher-verified evidence; the dispatched build does not merge",
+    "operator_handoff": "None."
+  }
+]

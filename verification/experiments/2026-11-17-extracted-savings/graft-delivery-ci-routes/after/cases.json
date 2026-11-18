@@ -1,0 +1,52 @@
+[
+  {
+    "id": "A",
+    "mode": "autonomous",
+    "issue": "T-11",
+    "pr": 50,
+    "observation": "Remote PR has zero applicable pre-merge checks. The only workflow runs after a push to main. All other floor legs passed."
+  },
+  {
+    "id": "B",
+    "mode": "interactive",
+    "issue": "T-12",
+    "pr": 51,
+    "run_dir": "/tmp/supplied-run",
+    "level": "L2",
+    "observation": "Remote PR has zero applicable checks. Following a separate explicit no-CI confirmation, the operator replied yes in chat. Your agent session has no terminal for a human."
+  },
+  {
+    "id": "C",
+    "mode": "autonomous",
+    "observation": "The ship producer has already returned. No obvious fix is available. Its narrative says it shipped. Its sole faff-contract:delivery-outcome block is below.",
+    "block": {
+      "outcome": "shipped",
+      "reason": "no verified merge record",
+      "corroborated": false
+    }
+  },
+  {
+    "id": "D",
+    "mode": "autonomous",
+    "observation": "The ship producer has already returned. Its sole faff-contract:delivery-outcome block is below.",
+    "block": {
+      "outcome": "not-ready",
+      "reason": "precondition:push. remedy: restore push permission"
+    }
+  },
+  {
+    "id": "E",
+    "mode": "autonomous",
+    "observation": "The ship producer has already returned. Its sole faff-contract:delivery-outcome block is below.",
+    "block": {
+      "outcome": "shipped",
+      "reason": "merge record confirms success",
+      "corroborated": true
+    }
+  },
+  {
+    "id": "F",
+    "mode": "autonomous",
+    "observation": "This build was dispatched through a concurrency executor. Step 8/9 evidence and the Step 9b immutable anchor are present, and the PR is open. The executor is waiting on your response."
+  }
+]

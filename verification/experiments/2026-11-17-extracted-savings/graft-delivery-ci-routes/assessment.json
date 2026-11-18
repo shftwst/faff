@@ -1,0 +1,40 @@
+{
+  "arms": [
+    {
+      "arm": "before",
+      "cases_passed": 6,
+      "real_contract_calls": 3,
+      "contract_exit_codes": [
+        1,
+        0,
+        0
+      ],
+      "sha256": {
+        "instructions.md": "cce3acbda47e8b4842ac5c61efe64a13c57a14febd70cc837f4d0c74e2507f7d",
+        "result.json": "98eac778db319181ca68a9456b196e03721d104e15af4cdd146417aa8059f580",
+        "calls.jsonl": "ddea2ead8239c0397c3d0ba6021f295f9292d2436306d788ef4571faa5e58d79",
+        "cases.json": "745099d8c1b1f1d97e3169f05f7276490c9bb9d27bf50431f9377bfb9e270b1a"
+      }
+    },
+    {
+      "arm": "after",
+      "cases_passed": 6,
+      "real_contract_calls": 3,
+      "contract_exit_codes": [
+        1,
+        0,
+        0
+      ],
+      "sha256": {
+        "instructions.md": "4209c263d36b999b487278bd14f7e0c35d1d2f22871fa2c89eca68cc7ac9e966",
+        "result.json": "183fa47937300079a9771449170348073c40241ea401f2cf1226e97183d3ad7d",
+        "calls.jsonl": "04334bda05d71386341f3bac086572c701c8d0d5545e1cc7d87ec6f5764d493b",
+        "cases.json": "745099d8c1b1f1d97e3169f05f7276490c9bb9d27bf50431f9377bfb9e270b1a"
+      }
+    }
+  ],
+  "candidate": "43af657e",
+  "release": "2c6cd206",
+  "release_change": "After the pair, restored the complete not-ready paragraph from baseline to retain both explicit distinctions. All other candidate bytes identical. No rerun on restored paragraph.",
+  "limits": "Supplied case observations and simulated external actions. Three real delivery-outcome parser invocations per arm. No full governed/custody/merge execution claim."
+}

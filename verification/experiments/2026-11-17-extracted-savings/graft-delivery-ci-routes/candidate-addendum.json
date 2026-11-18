@@ -1,0 +1,7 @@
+{
+  "ref": "43af657e878091e86d79eeb09087bfbf997a9514",
+  "section_sha256": "4209c263d36b999b487278bd14f7e0c35d1d2f22871fa2c89eca68cc7ac9e966",
+  "reason": "Before any candidate call, restricted candidate to the exact three routing areas this test exercises. A source audit found custody wording and ordering problems in the broader unrun draft. Baseline, scenarios and scoring rules unchanged.",
+  "broad_candidate_runs": 0,
+  "baseline": "6/6, including real delivery-outcome calls, parsed outputs and exact human command."
+}

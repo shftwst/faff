@@ -24,10 +24,12 @@ Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 | [1224](https://github.com/shftwst/faff/pull/1224), interactive roadmap planning | 1,030 B | 248 | Open |
 | [1225](https://github.com/shftwst/faff/pull/1225), beep-boop reporting | 1,454 B | 356 | Open |
 | [1226](https://github.com/shftwst/faff/pull/1226), jot ticket inspection | 880 B | 216 | Open |
+| [1227](https://github.com/shftwst/faff/pull/1227), beep-boop closing reminders | 2,067 B | 512 | Open |
+| [1228](https://github.com/shftwst/faff/pull/1228), graft delivery and no-CI routing | 2,198 B | 541 | Open |
 
 Merged savings since the quick-pass starting main: **161,458 bytes / 39,732
 estimated tokens**. Main totals **1,210,623 bytes / 300,197 estimated tokens**
-across 41 covered files. Eight open PRs save another 14,395 bytes and 3,533 estimated tokens. Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
+across 41 covered files. Ten open PRs save another 18,660 bytes and 4,586 estimated tokens. The tidy follow-up behind #1222 adds 1,568 bytes and 384 estimated tokens to the projection once it merges. Together those changes would bring the reduction since the original baseline to 181,686 bytes and 44,702 estimated tokens (13.24% by bytes). Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
 Local and held reductions are excluded from both totals.
 
 Fresh Opus diagnostics used one fixed sample per arm. Thematic passed 16/16

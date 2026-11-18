@@ -32,52 +32,31 @@ PRDs, PRDRs, ADRs, and spikes follow the same rule through `tracking.prd_docs_pa
 
 ### Ignore cancelled and archived
 
-Every faff sub-skill excludes the following from every query, recommendation, count, and output:
+Exclude cancelled or archived issues, projects and children of cancelled or archived projects from all queries, recommendations, counts and output. Completed issues stay visible.
 
-- Cancelled issues (and any issue in the tracker's cancellation state category — see **What counts as cancelled** below)
-- Archived issues
-- Issues whose parent project is cancelled or archived
-- Cancelled or archived projects themselves
+**What counts as cancelled.** For Linear and GitHub, classify each freshly fetched batch once with `faff tracker facts --source linear|github`. Pass JSON on stdin: `{complete:true,issues,edges,queue}`. Use the same `id` throughout. Supply the observed Linear `state` (name/type or `stateCategory`) or GitHub `state`, closure reason and merge metadata. Include archive evidence and any parent project status under `project`. Edges are ordered `[issue, blocker]` ID pairs. Queue IDs mark in-wave dependencies. Omit edges and queue for a visibility-only read. Exclude `hidden` IDs. Discovery, pagination and fresh reads belong to the tracker MCP. An incomplete read or exit 2 cannot authorize action.
 
-**What counts as cancelled.** The literal "Cancelled" state name isn't the only one — trackers group multiple sibling states under a cancellation category, and all of them are treated as cancelled for faff's purposes. Detection is **category-driven first, name-based fallback**:
-
-- **Linear** — any workflow state in the `cancelled` state category. By default this includes `Cancelled`, `Duplicate`, and any team-defined custom states placed in that category. Read the state-category field returned by the Linear MCP (state objects expose a `type` or `stateCategory` of `cancelled`); fall back to a name-based match against `Cancelled`, `Duplicate`, `Won't Fix` if category metadata is unavailable.
-- **GitHub Issues** — closed issues with `state_reason = not_planned` (this covers closed-as-not-planned, including closed-as-duplicate).
-- **Jira** — issues resolved with a cancellation-category resolution (`Won't Do`, `Duplicate`, `Cannot Reproduce`, or team-defined equivalents in the same category).
-- **Other trackers** — fall back to a name-based match against `Cancelled`, `Duplicate`, `Won't Fix`, `Won't Do`, `Cannot Reproduce`. If the tracker exposes state categories, prefer the category-driven check.
-
-This wider definition matters because a tidy run that suggests cancelling tickets already in Linear's Duplicate state recommends a no-op at best, and a status-signage downgrade at worst (Duplicate → Cancelled preserves the `duplicate-of` relation but loses the self-documenting status text).
-
-No exceptions. Cancelled/archived items (across every state above) are invisible to faff — they are never surfaced in catch-ups, never flagged in tidy, never picked up by graft, never counted in beep-boop queues.
+For Jira, exclude cancellation-category resolutions (Won't Do, Duplicate, Cannot Reproduce and team equivalents). Elsewhere use the tracker's cancellation category, falling back to Cancelled, Duplicate, Won't Fix, Won't Do or Cannot Reproduce when categories are unavailable.
 
 ### Satisfied blockers — edges to terminal work
 
-A `blockedBy` edge to a shipped target is a **satisfied edge**, not a live blocker — trackers never auto-remove the relation when the target completes, so a raw read over-counts open blockers and under-counts unlock value. **Rule:** in any read-side blocker computation (is-it-blocked, unlock-value counts, an outside-blocker admission test, chain-fireability, a "blocked only by the head" render), an edge to a **terminal-complete** (Done) target is satisfied — not a live/open blocker, not traversed in an unlock-value/dependency walk (the walk stops there), and the source issue is unblocked by that edge; a mixed list drops only the satisfied edges, others keep full force. **Sibling of Ignore cancelled and archived**, not the same rule — that hides the *node*, this nulls only the *edge's* force, so a Done target stays fully visible; **non-effects:** the target is never hidden/decremented, and no `blockedBy` relation is ever added/removed/rewritten (read-side only). **Detection** (category-driven, name-fallback — mirrors *What counts as cancelled*): Linear a `completed`-category state (fallback `Done`); GitHub closed `state_reason = completed` or PR merged (not `not_planned`); Jira a done-category resolution; other trackers fall back to `Done`/`Complete`/`Shipped`/`Closed-as-done`. **Unresolvable status ⇒ live** (fail-safe): under-counting is the safe direction.
-
+For Linear and GitHub use `live_edges` for walks, unlock counts and chain-fireability. Only IDs in `blocked` have live external blockers. The classifier drops edges from hidden sources and edges to completed targets. Unresolved targets stay live. The read leaves tracker relations intact. On Jira a done-category resolution satisfies the edge. On other trackers prefer the completed category, then Done, Complete, Shipped or Closed-as-done by name.
 
 ### Next-step transition — consult `faff next`
 
-The single canonical answer to *"what's the legal next step for this issue?"* is the `faff next` CLI transition function (a pure function — it has no tracker access). Every sub-skill that decides an issue's next step (faff-beep-boop queue/wave assembly, faff-prep's post-attach step, faff-graft's prep-gate, faff-tidy's readiness promotion, the interactive next-step suggestion) **consults `faff next` rather than prose-deciding** — so the base decision is deterministic and identical everywhere.
-
-**The agent maps fetched tracker state → the flags, then calls the function** (the agent already reads all of these per the **Always pull fresh** rule — this adds no new fetch):
+Every caller deciding an issue's next step consults `faff next` using live facts at the decision point.
 
 ```
 faff next --status <S> --spec none|low|medium|high [--not-eligible] [--parked] [--blocked] [--awaiting-spec-review]
 ```
 
-- `--status` ← the issue's tracker state, mapped to `backlog|todo|in-progress|in-review|done|cancelled|duplicate`.
-- `--spec` ← the **Spec discovery** result: `none` when no spec exists, else the spec's retained `confidence` rating (`low|medium|high`).
-- `--not-eligible` ← the issue is **not automation-eligible** (gateway → **Automation eligibility**): the agent computes `faff eligible` from the issue's labels (the sole `faff-automate` signal) and passes `--not-eligible` when that returns `false`. (`--held` is accepted as a deprecated, fail-safe alias.) `--parked` ← the `faff-parked` label. `--blocked` ← any open **external** blocker (in-queue dependencies are **not** `--blocked` — they are serialised by faff-beep-boop's conflict analysis; nor is a satisfied edge to a terminal-complete target — gateway → **Satisfied blockers — edges to terminal work**). Resolve each blocker's live status before computing this flag. `--awaiting-spec-review` ← the `faff-awaiting-spec-review` label — a spec-review-outage hold; forces `next: prep` (re-enter at the review gate) ahead of the spec-confidence branches, since the retained confidence rating alone doesn't mean review concluded. `--parked` is checked first and still wins over the hold (a park always beats a hold; the disposition that escalates to `needs-human` already removes this label before applying `faff-parked`, so the combination is defence-in-depth, not a live case).
+- Map live status to `backlog|todo|in-progress|in-review|done|cancelled|duplicate`. Use the retained **Spec discovery** confidence or `none`.
+- Add `--not-eligible` when `faff eligible` returns false for the fresh labels (`--held` is its deprecated alias). Add `--parked` for the park label and `--awaiting-spec-review` for the review-outage label. Park wins over outage. An outage returns to prep before considering confidence.
+- Add `--blocked` only for a live external blocker. Use the batch's `blocked` IDs where supported, otherwise resolve blocker states live. Queue members are serialised by conflict analysis.
 
-It prints `{next, reason}` where `next` ∈ `prep | graft | skip-ineligible | needs-human | blocked | done | none`. The mapping is computed **per-issue at the decision point**, never cached across passes.
+Use `{next,reason}` at this decision point. For crank-up proposals or the On-hold report, `--if-eligible` previews an ineligible issue's route and marks it `would_be_eligible:true`. Terminal states still win. The flag grants no eligibility and has no effect on eligible issues.
 
-**Advisory: `--if-eligible` (read-only hypothetical).** When a **not-eligible** item carries `--if-eligible`, `faff next` bypasses the `skip-ineligible` short-circuit and returns the route the item *would* take **if it were cranked up** (made automation-eligible), tagged `would_be_eligible: true`. It is purely advisory — never grants eligibility, never mutates, and is a no-op for an already-eligible item; terminal states (`done`/`cancelled`/`duplicate`) still win. Decision-support layers (crank-up-set proposals, the On-hold render) use it to show a not-eligible item's runway; the live `skip-ineligible` path is unchanged.
-
-**Three hard boundaries:**
-- **Reports, never executes or gates.** `faff next` says what's *legal next*; the sub-skill still runs the interactive chain-to-build gate (**faff-jot**/prep's standalone gate) and still executes the step itself. A returned `graft` is **not** consent to build.
-- **Base transition, not the whole router.** `faff next` has no inputs for the diagnostic verdicts (`gap-blocked` / `circular-blocked` / `repeat-parked`); those stay in the `routing_adaptor` automation-routing computation and layer **on top** where `faff next` returns `graft` (it gates *eligibility*; the verdict gates build-queue *admission*).
-- **Fail safe.** On `error` / unknown status, fall back to the sub-skill's existing prose behaviour and log it — never crash the pass. `faff next --selftest` runs the transition table.
-
+Keep the interactive jot/prep chain-to-build gate. A legal `graft` route still requires consent. The routing adaptor decides admission (`gap-blocked`, `circular-blocked`, `repeat-parked`). On error or unknown status, log the fault and use the caller's existing fallback.
 
 ### Re-ground before gate (gating inputs must be live)
 

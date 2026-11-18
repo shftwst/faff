@@ -1,0 +1,2923 @@
+{
+  "source_commit": "a0e84c3cb28213367523ad825cabb6919c572185",
+  "cadence_evidence": {
+    "base": "a0e84c3c",
+    "archives": 490,
+    "unique_typed_event_runs": 338,
+    "types": {
+      "run-start": 338,
+      "ledger-write": 1011,
+      "issue-outcome": 165,
+      "tidy-done": 3,
+      "prep-start": 87,
+      "prep-done": 135,
+      "sentry-checkpoint": 316,
+      "park": 79,
+      "issue-admitted": 334,
+      "build-start": 209,
+      "budget-checkpoint": 31,
+      "run-end": 7,
+      "run-resume": 1,
+      "sentry-trip": 56,
+      "agent-dispatch": 13,
+      "containment-check": 6,
+      "discovered-scope-filed": 1,
+      "decision-capture": 197,
+      "decision-capture-action": 41,
+      "runner-identity": 81,
+      "self-intake-check": 5,
+      "evidence-terminal-only": 18,
+      "human-only-acs-stamp": 4
+    },
+    "phase": {
+      "run": 2442,
+      "build": 410,
+      "tidy": 3,
+      "prep": 283
+    },
+    "from": "2026-07-22T15:36:14.641Z",
+    "to": "2026-11-16T00:50:46.595Z",
+    "bad_lines": 0
+  },
+  "gross_cited_bytes": 599084,
+  "files": [
+    {
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "bytes": 173897,
+      "tokens": 43129,
+      "ranked_work_items": [
+        6,
+        9,
+        12,
+        19,
+        22,
+        24,
+        25,
+        26,
+        28,
+        34
+      ],
+      "retained": "Input ID fallback and harness-only todos; configuration/reference reads; worktree/spec commit/PR open commands and their token routes; spec freshness, implementer choices, live AC execution, reviewer authorship, human merge choices, park/resolution judgement. Delivery summaries and post-merge check already have CLI owners. Governed evidence rules stay close to the calling lane."
+    },
+    {
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "bytes": 157576,
+      "tokens": 39048,
+      "ranked_work_items": [
+        3,
+        5,
+        6,
+        11,
+        19,
+        20,
+        22,
+        24,
+        34
+      ],
+      "retained": "Configuration and lane setup; budget/Sentry composition already owned by run-checkpoint.ts; human/methodology narrowing and Agent/Skill dispatch remain harness actions. Run open/close, runcheck and run summary are already extracted. Reporting/guarantee cuts overlap upstream. Foreground lifecycle and tenant consent remain constraints. The existing single review/landing/run caps remain policy inputs."
+    },
+    {
+      "path": "plugin/skills/faff-prep/SKILL.md",
+      "bytes": 97780,
+      "tokens": 24269,
+      "ranked_work_items": [
+        5,
+        25,
+        26
+      ],
+      "retained": "Spec-author, architecture and review lens selection judgement; ratification scope and permission; producer output semantics, explore and freshness assessment, methodology judgement, interactive choices, post-spec comment semantics, L4 re-slice plot dispatch and plot retry. Stage/attach and paths-only carry verbs already exist."
+    },
+    {
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "bytes": 75989,
+      "tokens": 18818,
+      "ranked_work_items": [
+        5,
+        10,
+        24,
+        32
+      ],
+      "retained": "Qualitative duplicate, vagueness, feasibility, semantic relation, cancellation rationale, grouping and spec-health decisions; split, chain-gap classification, and symptom similarity sections are directly consumed by evals. LLM methodology stays authoritative. No unsanctioned autonomous curation or connector writes. PR #1222 covers prose compression only."
+    },
+    {
+      "path": "plugin/skills/faff/references/kernel.md",
+      "bytes": 70478,
+      "tokens": 17522,
+      "ranked_work_items": [
+        2,
+        5,
+        8,
+        10,
+        13,
+        17,
+        18
+      ],
+      "retained": "Keep principles, trust/actor constraints, human-facing chaining and narrative content. Install health, repo path/dispatch configuration and contract verdicts mostly already have named commands. Consider help/reference compression only after independent cold consumers can resolve required schema; exclude general fragment loading from CLI-extraction byte totals."
+    },
+    {
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "bytes": 42606,
+      "tokens": 10532,
+      "ranked_work_items": [
+        2,
+        14,
+        23,
+        24
+      ],
+      "retained": "Initiative/project/epic content, branch sufficiency, human-gated rehome and scope remain model or human decisions. Do not create an all-purpose planner or new remote writer."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+      "bytes": 40637,
+      "tokens": 10084,
+      "ranked_work_items": [
+        10
+      ],
+      "retained": "Compose tracker graph mechanics. Keep value/risk, scope, stream fit and mutation in slot/caller."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+      "bytes": 37882,
+      "tokens": 9418,
+      "ranked_work_items": [
+        4
+      ],
+      "retained": "Round preparation and completion. Defensive lens prompt and judgement stay separate."
+    },
+    {
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "bytes": 36702,
+      "tokens": 9109,
+      "ranked_work_items": [
+        2,
+        13,
+        19
+      ],
+      "retained": "Judgement about ambiguity and irreversible consequences, no-prompt contract and declaration of lane safety remain normative. Move finite policy only. Legacy audit-comment examples need no executable command for prose generation."
+    },
+    {
+      "path": "plugin/skills/faff/references/methodology.md",
+      "bytes": 34325,
+      "tokens": 8501,
+      "ranked_work_items": [
+        8,
+        16,
+        18,
+        23
+      ],
+      "retained": "Most named outputs state requirements for custom slot judgement and cannot move wholesale. Existing eligibility, PRDR predicates and branch vocabularies should remain single-sourced."
+    },
+    {
+      "path": "plugin/skills/faff-wtf/SKILL.md",
+      "bytes": 29189,
+      "tokens": 7228,
+      "ranked_work_items": [
+        2,
+        10,
+        16,
+        17,
+        18,
+        25
+      ],
+      "retained": "Grey areas in milestones, focus rationale, use of live project context and calls from the user stay semantic. Git/forge reads may be project-specific; the candidate covers only fixed local dated facts, no hosted effects."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+      "bytes": 28485,
+      "tokens": 7055,
+      "ranked_work_items": [
+        10,
+        20
+      ],
+      "retained": "Topology, order, crank-up and default ladder. Chain-gap interpretation and remedies stay semantic."
+    },
+    {
+      "path": "plugin/skills/faff/references/l4.md",
+      "bytes": 25523,
+      "tokens": 6328,
+      "ranked_work_items": [
+        21
+      ],
+      "retained": "Evaluator semantics, secrets/capability isolation and human effects stay in current lanes. Enforcement requires an actual transport boundary. Long pre-existing dispatch-cut policy will only shrink after tests demonstrate control ownership."
+    },
+    {
+      "path": "plugin/skills/faff-map/SKILL.md",
+      "bytes": 23737,
+      "tokens": 5791,
+      "ranked_work_items": [
+        10,
+        17,
+        18
+      ],
+      "retained": "Meaningful structural risks, intentional horizons and summary judgement remain with methodology/model. Map's read-only invariant stays. Verify whether map's autonomous return branch is reached before attributing local usage."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+      "bytes": 23655,
+      "tokens": 5867,
+      "ranked_work_items": [
+        1,
+        21
+      ],
+      "retained": "Shared dispatch and dependency intent; supervision, polling, reconciliation and custody placement stay in the executor."
+    },
+    {
+      "path": "plugin/skills/faff/references/tracker.md",
+      "bytes": 22649,
+      "tokens": 5615,
+      "ranked_work_items": [
+        2,
+        5
+      ],
+      "retained": "Tracker controls and live MCP discovery remain a distributed, model-assisted host concern. Existing config handles paths and existing label descriptors handle part of the write contract. Referencing smaller summaries need not move a hosted action."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+      "bytes": 22259,
+      "tokens": 5565,
+      "ranked_work_items": [
+        7,
+        9
+      ],
+      "retained": "Prepare existing commands and map receipts/checkpoints. Preserve findings, refutation and ADR/YAGNI judgement."
+    },
+    {
+      "path": "plugin/skills/faff-jot/SKILL.md",
+      "bytes": 19678,
+      "tokens": 4877,
+      "ranked_work_items": [
+        5,
+        14,
+        23,
+        24
+      ],
+      "retained": "Discovery, shaping and conversational identifier ambiguity/confirmation stay in prompt; no new local command needed just for issue-id/no-argument branching."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+      "bytes": 17941,
+      "tokens": 4456,
+      "ranked_work_items": [
+        15
+      ],
+      "retained": "Shared diagnostics and readiness. Rich prose and codebase-fact interpretation stay in the author."
+    },
+    {
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "bytes": 17929,
+      "tokens": 4437,
+      "ranked_work_items": [
+        29
+      ],
+      "retained": "Team choice, native template inference, explicit config preview consent and user-directed corrections stay human/connector. Current native-map CLI already validates and persists mappings."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+      "bytes": 17462,
+      "tokens": 4333,
+      "ranked_work_items": [
+        1,
+        21
+      ],
+      "retained": "Shared dispatch and dependency intent; no new parallel scheduler, merge path or custody mechanism."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+      "bytes": 16577,
+      "tokens": 4115,
+      "ranked_work_items": [
+        15
+      ],
+      "retained": "Diagnostics, cap and readiness envelope. Draft/advice remain judgement."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+      "bytes": 15592,
+      "tokens": 3878,
+      "ranked_work_items": [
+        22
+      ],
+      "retained": "Classification/result assembly. Exercises and judgement remain code-blind."
+    },
+    {
+      "path": "plugin/skills/faff/references/park.md",
+      "bytes": 13771,
+      "tokens": 3417,
+      "ranked_work_items": [
+        13
+      ],
+      "retained": "Git-only unpark implementation already owns core invariants. Keep human-resolution distinction and ownership boundaries even if examples or stale prose can be compressed."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-review/SKILL.md",
+      "bytes": 13503,
+      "tokens": 3351,
+      "ranked_work_items": [
+        7
+      ],
+      "retained": "Verdict/envelope only. Keep findings, scope and prior-defect identity judgement."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+      "bytes": 12793,
+      "tokens": 3179,
+      "ranked_work_items": [
+        27
+      ],
+      "retained": "Native result mapping and custody flag relay. Read-only hosted prechecks need separate investigation."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+      "bytes": 12054,
+      "tokens": 3000,
+      "ranked_work_items": [
+        31
+      ],
+      "retained": "Local transaction and assembly. Subject selection remains with the slot."
+    },
+    {
+      "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+      "bytes": 11876,
+      "tokens": 2945,
+      "ranked_work_items": [
+        30
+      ],
+      "retained": "Scaffold and targeted lint are candidates. Semantic conformance remains review."
+    },
+    {
+      "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+      "bytes": 11291,
+      "tokens": 2778,
+      "ranked_work_items": [
+        17
+      ],
+      "retained": "Typed visuals/caps are candidates. Voice, gloss and explanation order require judgement."
+    },
+    {
+      "path": "plugin/skills/faffidavit-routing/SKILL.md",
+      "bytes": 10286,
+      "tokens": 2549,
+      "ranked_work_items": [
+        16
+      ],
+      "retained": "Prepare facts and validate/cache the result. Interpret residual markers and overlapping precedence in the slot."
+    },
+    {
+      "path": "plugin/skills/faff/references/build.md",
+      "bytes": 9689,
+      "tokens": 2405,
+      "ranked_work_items": [
+        21,
+        28
+      ],
+      "retained": "Implementor responsibilities and evaluation of a genuinely dirty workspace remain a lane policy. Existing worktree commands already implement most local mechanism."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+      "bytes": 9400,
+      "tokens": 2339,
+      "ranked_work_items": [
+        31
+      ],
+      "retained": "Generate plan contribution when trusted build/module facts already exist."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+      "bytes": 8055,
+      "tokens": 2001,
+      "ranked_work_items": [
+        7
+      ],
+      "retained": "Light roll-up and heading slug. Lens assessments stay in the skill."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-intake/SKILL.md",
+      "bytes": 7594,
+      "tokens": 1883,
+      "ranked_work_items": [],
+      "retained": "No material candidate. Discovery dialogue dominates and the output template is small. Brief codec would change the slot seam for little prompt gain."
+    },
+    {
+      "path": "plugin/skills/faff/references/create.md",
+      "bytes": 7429,
+      "tokens": 1840,
+      "ranked_work_items": [
+        14
+      ],
+      "retained": "Field content and type inference for unclear proposals stay judgement. Headings, precedence and physical rendering are mechanical candidates."
+    },
+    {
+      "path": "plugin/skills/faff/references/review.md",
+      "bytes": 7238,
+      "tokens": 1796,
+      "ranked_work_items": [
+        8,
+        33
+      ],
+      "retained": "Fixture scope is a reviewer instruction. Contents are intentionally treated as data and guidance should remain concise. Existing fixture-path command already owns path detection."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+      "bytes": 6143,
+      "tokens": 1529,
+      "ranked_work_items": [
+        31
+      ],
+      "retained": "Local topology switch is dependent on provision integration. Fly follow-on remains deferred."
+    },
+    {
+      "path": "plugin/skills/faff/SKILL.md",
+      "bytes": 5832,
+      "tokens": 1458,
+      "ranked_work_items": [
+        29
+      ],
+      "retained": "Intent route and product narrative stay conversational. Only first-run data and local write sequence are candidates. Gateway line 15 describes existing-ticket shaping/hold while jot limits it to inspection."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-architecture/SKILL.md",
+      "bytes": 4608,
+      "tokens": 1148,
+      "ranked_work_items": [],
+      "retained": "No standalone material candidate. Profile show and contract already handle mechanics. Duplicated ADR intent is a small presentation issue."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-adr/SKILL.md",
+      "bytes": 4158,
+      "tokens": 1032,
+      "ranked_work_items": [],
+      "retained": "No material candidate. ADR list, format and scaffold are already commands; prose and consequence checking remain semantic."
+    },
+    {
+      "path": "plugin/skills/faffter-noon-prd/SKILL.md",
+      "bytes": 2516,
+      "tokens": 629,
+      "ranked_work_items": [],
+      "retained": "No material candidate. PRD path and its validator already own mechanics. Machine-checkability and creative licence remain review."
+    }
+  ],
+  "ranked_work": [
+    {
+      "rank": 1,
+      "name": "Build dispatch arguments for both executors",
+      "determinism": "High",
+      "frequency": "Every dispatched build or collision chain",
+      "net_estimate_bytes": [
+        4000,
+        6600
+      ],
+      "net_estimate_tokens": [
+        1000,
+        1650
+      ],
+      "benefit": "Bind issue, checkout, model, effort and verified correction once. Sequential and parallel execution get identical arguments.",
+      "first_slice_and_dependencies": "Start here. Compare both real executor inputs for independent, blocked and corrective builds. Keep the dispatcher and merge ownership in their current lanes.",
+      "status": "proposed",
+      "gross_inspected_bytes": 9401,
+      "source_inspections": [
+        {
+          "name": "BuildDispatch payload preparation",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+              "heading": "How the default runs it",
+              "first": 31,
+              "last": 32,
+              "bytes": 4922
+            },
+            {
+              "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+              "heading": "How the default runs it",
+              "first": 36,
+              "last": 36,
+              "bytes": 700
+            },
+            {
+              "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+              "heading": "Worktree isolation",
+              "first": 31,
+              "last": 41,
+              "bytes": 3779
+            }
+          ],
+          "read_bytes": 9401,
+          "frequency": "One preparation per independent or collision-chain unit. Both occupants resolve one model/effort pair per chain.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/dispatch.js:41 resolveDispatch and :67 cmdDispatch; config-dispatch.js:469 resolveBuildModel; review-target.js:109 cmdReviewTarget",
+            "plugin/skills/faff/bin/lib/corrective.js:513 cmdCorrectiveCheck, if a verified correction is passed in; validate-adapters.js:444-450 checks prompt literal today"
+          ],
+          "verify": "Run test/dispatch-build-chain.test.mjs, test/dispatch-config.test.mjs, test/validate-adapters-delegation.test.mjs and test/validate-adapters-voice-pointer.test.mjs. Snapshot real agent call arguments for both launchers, mixed/missing member tiers, inherit, bad config and correction."
+        }
+      ]
+    },
+    {
+      "rank": 2,
+      "name": "Normalize issue facts from the discovered tracker",
+      "determinism": "High",
+      "frequency": "Per issue read by six entry skills",
+      "net_estimate_bytes": [
+        2500,
+        5300
+      ],
+      "net_estimate_tokens": [
+        625,
+        1325
+      ],
+      "benefit": "One mapping for native status, cancellation, labels, team scope and partial reads feeds existing next and eligible decisions.",
+      "first_slice_and_dependencies": "Start with two adapters and complete/incomplete snapshots. The skill still discovers the tracker MCP, fetches every page and decides what an ambiguous field means.",
+      "status": "proposed",
+      "gross_inspected_bytes": 18418,
+      "source_inspections": [
+        {
+          "name": "Issue snapshot normalization and next-step input mapping",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/tracker.md",
+              "heading": "Ignore cancelled and archived, Satisfied blockers, Next-step transition",
+              "first": 33,
+              "last": 79,
+              "bytes": 7531
+            },
+            {
+              "path": "plugin/skills/faff/references/autonomous.md",
+              "heading": "Workable vs terminal states",
+              "first": 5,
+              "last": 17,
+              "bytes": 1529
+            },
+            {
+              "path": "plugin/skills/faff-wtf/SKILL.md",
+              "heading": "Timeline Check, Issue Tracker State, Git Activity",
+              "first": 34,
+              "last": 53,
+              "bytes": 2102
+            },
+            {
+              "path": "plugin/skills/faff-plot/SKILL.md",
+              "heading": "R1. Pull the loose backlog",
+              "first": 117,
+              "last": 119,
+              "bytes": 398
+            }
+          ],
+          "read_bytes": 11560,
+          "frequency": "All issue-reading entry paths apply cancellation. Next is used by prep, graft, jot, tidy, wtf and beep-boop at decision sites. Beep-boop alone may constrain generic queue fetches to workable statuses. Map and wtf use normalized edges on each pass.",
+          "reuse": "Reuse next, eligible, control-label manifest, resolveTeams in config-resolve.js and project-next. Tracker probe addresses the separate mode decision.",
+          "verify": "Frozen multi-team JSON inputs, category overrides, archived ancestry, completed/satisfied/missing endpoints, branch status and unknown states. Exercise existing next and tracker tests where applicable."
+        },
+        {
+          "name": "Tracker discovery result and read completeness checks",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/tracker.md",
+              "heading": "Tracker availability resolution",
+              "first": 5,
+              "last": 17,
+              "bytes": 2927
+            },
+            {
+              "path": "plugin/skills/faff/references/tracker.md",
+              "heading": "Re-ground before gate, Lean tracker reads",
+              "first": 82,
+              "last": 91,
+              "bytes": 2336
+            },
+            {
+              "path": "plugin/skills/faff/references/kernel.md",
+              "heading": "Always pull fresh",
+              "first": 176,
+              "last": 183,
+              "bytes": 1595
+            }
+          ],
+          "read_bytes": 6858,
+          "frequency": "Tracker reference lists seven direct resolver callers at line 7. Once per entry or inherited run context, then coherence/completeness checks at each relevant read or action boundary.",
+          "reuse": "tracker probe, config resolve, and existing adapter mocks. Preserve the distinction between pin assertion and transport reachability.",
+          "verify": "test/tracker-probe.test.mjs and test/mock-tracker.test.mjs. Cover pin, none sentinel, deferred tool, failure, mixed generation, intentional smaller scope and truncated comments."
+        }
+      ]
+    },
+    {
+      "rank": 3,
+      "name": "Partition the build queue and order dependencies",
+      "determinism": "High",
+      "frequency": "Once per nonempty wave, across every issue pair",
+      "net_estimate_bytes": [
+        1800,
+        3400
+      ],
+      "net_estimate_tokens": [
+        450,
+        850
+      ],
+      "benefit": "The same paths, declared blockers and accepted inferred edges produce the same groups and stable order. No candidate disappears.",
+      "first_slice_and_dependencies": "Accept normalized facts and human overrides. Test permutations, cycles, transitive collisions and both executor consumers. Keep semantic inference and value ordering in the methodology slot.",
+      "status": "proposed",
+      "gross_inspected_bytes": 7967,
+      "source_inspections": [
+        {
+          "name": "Build queue conflict graph and dependency order",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "Conflict analysis",
+              "first": 492,
+              "last": 525,
+              "bytes": 4191
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "Inferred build-order dependencies (heuristic 6)",
+              "first": 527,
+              "last": 548,
+              "bytes": 3776
+            }
+          ],
+          "read_bytes": 7967,
+          "frequency": "One partition per nonempty build wave, including explicit-list runs, across every admitted candidate and pair.",
+          "reuse": "refs in thematic methodology and concurrency slots consume independents/groups; no conflict partition CLI in audited bin/lib.",
+          "verify": "New graph permutation, cycle, transitive collision, human override and no-loss fixtures; exercise both executor descriptors."
+        }
+      ]
+    },
+    {
+      "rank": 4,
+      "name": "Prepare and finish an L4 spec-review round",
+      "determinism": "High",
+      "frequency": "Per L4 review round, again on a retry",
+      "net_estimate_bytes": [
+        12000,
+        20000
+      ],
+      "net_estimate_tokens": [
+        3000,
+        5000
+      ],
+      "benefit": "One callable path prepares lens argv, correlates raw replies, applies the existing aggregation rule and records the actual backend for each lens.",
+      "first_slice_and_dependencies": "Biggest individual target. Deliver request preparation first and receipt collection second. Test missing lenses that could change the verdict, retry pinning and raw transcript fidelity. Lens opinions stay with the reviewers.",
+      "status": "proposed",
+      "gross_inspected_bytes": 29055,
+      "source_inspections": [
+        {
+          "name": "L4 spec-review round mechanics",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+              "heading": "Backend call — reuse the shared transport (do not fork it)",
+              "first": 53,
+              "last": 179,
+              "bytes": 17340
+            },
+            {
+              "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+              "heading": "Per-lens outcome (the helper's exit decides — not prose)",
+              "first": 181,
+              "last": 205,
+              "bytes": 3735
+            },
+            {
+              "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+              "heading": "Per-lens transcript (audit trail)",
+              "first": 207,
+              "last": 213,
+              "bytes": 2990
+            },
+            {
+              "path": "plugin/skills/faffter-dark-spec-review/SKILL.md",
+              "heading": "Aggregation — the majority/severity gate (deterministic)",
+              "first": 215,
+              "last": 248,
+              "bytes": 4990
+            }
+          ],
+          "read_bytes": 29055,
+          "frequency": "One preparation and completion per L4 spec-review round, including a same-round in-turn retry. The current skill resolves one chain/request array/fan-out per round and records each enabled lens.",
+          "reuse": [
+            "plugin/skills/faffter-dark-spec-review/build-lens-requests.mjs:32 buildLensRequests; parse-refutation.mjs:143 parseRefutation and its CLI residual-fault classification; aggregate.mjs:61 aggregate and :118 renderBlock",
+            "plugin/skills/faffter-dark-adversarial-review/fan-out.mjs:174 fanOut and review-call.mjs:2248 captureRawResponseBody for exclusive retry naming",
+            "plugin/skills/faff/bin/lib/spec-review-pin.js:163 resolvePinChain and :206 capturePin, spec-review-reputation.js:189 filterEligible, spec-review-window.js:291 cmdSpecReviewWindow"
+          ],
+          "verify": "Migrate test/spec-review-dispatch-resolution.test.mjs and test/spec-review-occupant-served-dispatch.test.mjs from literal bash extraction to the shipped entry point. Drive injected existing lens results, including unavailable, malformed result, mixed fallback, unavailable lens that can swing the verdict, retry transcript and TTFT cases."
+        }
+      ]
+    },
+    {
+      "rank": 5,
+      "name": "Verify staged specs and reconcile attach results",
+      "determinism": "High",
+      "frequency": "Per prepared issue and again on admission or a new review round",
+      "net_estimate_bytes": [
+        3000,
+        6000
+      ],
+      "net_estimate_tokens": [
+        750,
+        1500
+      ],
+      "benefit": "Compare the staged bytes against the exact live comment supplied by the caller. Detect stale digests, missing comments and mismatched issues before accepting a handoff.",
+      "first_slice_and_dependencies": "Reuse prep attach, prep-context and spec-review round. Start with exact identity. Hold ambiguous source selection until the tracker reference rules agree.",
+      "status": "proposed",
+      "gross_inspected_bytes": 47803,
+      "source_inspections": [
+        {
+          "name": "Prep and build queue input normalization and attach reconciliation",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "2. Prep queue build",
+              "first": 158,
+              "last": 170,
+              "bytes": 2470
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "3. Prep queue drain",
+              "first": 187,
+              "last": 187,
+              "bytes": 2048
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "4. Build queue assembly",
+              "first": 189,
+              "last": 211,
+              "bytes": 7807
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "Explicit-list mode",
+              "first": 481,
+              "last": 487,
+              "bytes": 1626
+            },
+            {
+              "path": "plugin/skills/faff-prep/SKILL.md",
+              "heading": "Return values",
+              "first": 595,
+              "last": 595,
+              "bytes": 476
+            },
+            {
+              "path": "plugin/skills/faff-tidy/SKILL.md",
+              "heading": "Prep-queue candidates (handed to `/faff-beep-boop`'s prep queue in the default full pipeline; log-only otherwise)",
+              "first": 298,
+              "last": 302,
+              "bytes": 1804
+            }
+          ],
+          "read_bytes": 16231,
+          "frequency": "Per candidate in full/build/prep/explicit and re-entry modes, plus each completed prep dispatch and its own before-return check.",
+          "reuse": "next.js, eligible.js, graft-admit.ts, prep-attach.ts, prepcheck.js, tracker.js, native-map.js, spec-review-hold.ts; existing admission has replay and consult IDs. The local prep-context command already landed in #1219.",
+          "verify": "test/graft-admit* and test/prep-attach.test.mjs/test/prepcheck.test.mjs plus batch membership, invalid marker, stale/mismatched comment digest, attach-exempt hold and phase parity."
+        },
+        {
+          "name": "Spec candidate enumeration and durable selection",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/tracker.md",
+              "heading": "Spec discovery",
+              "first": 115,
+              "last": 131,
+              "bytes": 3749
+            },
+            {
+              "path": "plugin/skills/faff-jot/SKILL.md",
+              "heading": "Existing-ticket interactor flow",
+              "first": 112,
+              "last": 116,
+              "bytes": 632
+            },
+            {
+              "path": "plugin/skills/faff/references/kernel.md",
+              "heading": "Spec readiness",
+              "first": 411,
+              "last": 432,
+              "bytes": 4363
+            }
+          ],
+          "read_bytes": 8744,
+          "frequency": "Tracker reference names tidy, prep, graft, wtf, map and methodology promotion-readiness. Jot inspection also reads spec comments. Often per issue, and again at action gates.",
+          "reuse": "state/resolveSpec handles a narrower local read. Reuse prep attach's stamp/hash, config spec-docs-path, punt-scan and spec-readiness contract.",
+          "verify": "Extend test/impure/state.test.mjs, test/prep-attach.test.mjs and contract cases for committed path exact identity, failed live reads, description conflict, legacy prose, timestamp ties and git-only visibility."
+        },
+        {
+          "name": "Prep spec-review lifecycle glue and attach evidence",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-prep/SKILL.md",
+              "heading": "Spec-review gate (approach-critique consumer-fold)",
+              "first": 99,
+              "last": 105,
+              "bytes": 2375
+            },
+            {
+              "path": "plugin/skills/faff-prep/SKILL.md",
+              "heading": "Spec-review gate (approach-critique consumer-fold)",
+              "first": 128,
+              "last": 147,
+              "bytes": 3323
+            },
+            {
+              "path": "plugin/skills/faff-prep/SKILL.md",
+              "heading": "Spec-review gate (approach-critique consumer-fold)",
+              "first": 209,
+              "last": 227,
+              "bytes": 8300
+            },
+            {
+              "path": "plugin/skills/faff-prep/SKILL.md",
+              "heading": "Spec-review gate (approach-critique consumer-fold)",
+              "first": 230,
+              "last": 256,
+              "bytes": 6835
+            },
+            {
+              "path": "plugin/skills/faff-prep/SKILL.md",
+              "heading": "Path 1 — Stale-refresh (existing spec on the ticket)",
+              "first": 538,
+              "last": 544,
+              "bytes": 1995
+            }
+          ],
+          "read_bytes": 22828,
+          "frequency": "Each reviewed prep attach/revision, each refuter/judge round and resume, plus a carry-check on qualifying refreshes.",
+          "reuse": "spec-review-round.ts, spec-review-hold.ts, spec-review-window.js, spec-review-pin.js, spec-review.js, spec-refresh-carry.js, spec-judge-evidence.js, spec-judge-casefile.js, prep-attach.ts and `faff events`.",
+          "verify": "test/spec-review-{round,hold,window,carry-check,evidence-write}.test.mjs, spec-judge assemble/admit and casefile fixtures, turn-boundary replay and untrusted evidence edit cases."
+        }
+      ]
+    },
+    {
+      "rank": 6,
+      "name": "Map native returns to the run ledger and events",
+      "determinism": "High",
+      "frequency": "Per admitted issue outcome and significant phase boundary",
+      "net_estimate_bytes": [
+        1000,
+        2900
+      ],
+      "net_estimate_tokens": [
+        250,
+        725
+      ],
+      "benefit": "Every valid return has one bucket or annotation. Retries preserve unrelated fields and cannot append the same event twice.",
+      "first_slice_and_dependencies": "First ship the pure return table. Reuse record-outcome and record-declined. Qualify event ownership, concurrent writers and partial failure before automating writes. Subtract the held beep-boop ledger draft.",
+      "status": "proposed",
+      "gross_inspected_bytes": 36893,
+      "source_inspections": [
+        {
+          "name": "Run event and issue outcome bookkeeping",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "3. Prep queue drain",
+              "first": 174,
+              "last": 185,
+              "bytes": 3224
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "4. Build queue assembly",
+              "first": 224,
+              "last": 224,
+              "bytes": 814
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "Run ledger (mechanical completeness)",
+              "first": 383,
+              "last": 418,
+              "bytes": 15019
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "Run-event log (observability substrate)",
+              "first": 453,
+              "last": 475,
+              "bytes": 4726
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "The staged fix cycle (CONFLICTING and CI_RED_REGRESSION)",
+              "first": 676,
+              "last": 676,
+              "bytes": 1571
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Autonomous Mode",
+              "first": 774,
+              "last": 797,
+              "bytes": 11539
+            }
+          ],
+          "read_bytes": 36893,
+          "frequency": "Per queue admission, prep/build dispatch, phase close, park and return across every drain and top-level graft.",
+          "reuse": "run-ledger.js, events.js, inflightcheck.js, turncheck.js, run-open.ts, run-close.ts, result.ts, heartbeat.js, evidence.js. The d6a6cf99 combined ledger draft overlaps this text; remeasure on its eventual merge base.",
+          "verify": "test/run-ledger-{serialiser,writer-inventory,record-outcome}.test.mjs, test/ledger-concurrency.test.mjs and marker re-entry/event token capture regressions."
+        }
+      ]
+    },
+    {
+      "rank": 7,
+      "name": "Build review and spec-review result envelopes",
+      "determinism": "High",
+      "frequency": "Per default review pass and per objection",
+      "net_estimate_bytes": [
+        4000,
+        6900
+      ],
+      "net_estimate_tokens": [
+        1000,
+        1725
+      ],
+      "benefit": "Build findings IDs, heading links, verdict payloads and machine receipts from the findings already made.",
+      "first_slice_and_dependencies": "Use finding-id, review-prior and the contract validators. Compare exact heading links and dual-format titles. Reviewers still find and rate defects.",
+      "status": "proposed",
+      "gross_inspected_bytes": 9213,
+      "source_inspections": [
+        {
+          "name": "Default review verdict and anchor assembly",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-noon-review/SKILL.md",
+              "heading": "Verdict rules",
+              "first": 111,
+              "last": 117,
+              "bytes": 759
+            },
+            {
+              "path": "plugin/skills/faffter-noon-review/SKILL.md",
+              "heading": "Contract artifact",
+              "first": 123,
+              "last": 146,
+              "bytes": 3975
+            },
+            {
+              "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+              "heading": "Folding both passes into one `findings` array",
+              "first": 68,
+              "last": 81,
+              "bytes": 1096
+            },
+            {
+              "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+              "heading": "The four lenses (single-pass checklist)",
+              "first": 48,
+              "last": 52,
+              "bytes": 1322
+            },
+            {
+              "path": "plugin/skills/faffter-noon-spec-review/SKILL.md",
+              "heading": "The verdict roll-up (severity → verdict)",
+              "first": 56,
+              "last": 90,
+              "bytes": 2061
+            }
+          ],
+          "read_bytes": 9213,
+          "frequency": "One code review envelope per default pass (also dark Phase 1) and one L1-L3 spec-review envelope per light pass. Heading conversion is per objection with a selected section.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/contract-defs-review.js:73-139 and :160-231; heading-slug.js:36 headingSlug; finding-id.js and review-prior.js"
+          ],
+          "verify": "test/heading-slug.test.mjs, test/review-prior.test.mjs, test/spec-review-route.test.mjs and review contract tests; conflicting blockers, empty findings, carried handles and raw annotation goldens."
+        }
+      ]
+    },
+    {
+      "rank": 8,
+      "name": "Validate slot results at dispatch",
+      "determinism": "High",
+      "frequency": "At each producer dispatch across entry skills",
+      "net_estimate_bytes": [
+        3000,
+        6000
+      ],
+      "net_estimate_tokens": [
+        750,
+        1500
+      ],
+      "benefit": "One parser rejects missing, duplicate or malformed contract blocks and stale result bindings consistently.",
+      "first_slice_and_dependencies": "Start with one contract and a second caller. Reuse dispatch resolve and the existing roster. Keep discovery, model selection authority and live host tools with their owners.",
+      "status": "proposed",
+      "gross_inspected_bytes": 27479,
+      "source_inspections": [
+        {
+          "name": "Slot resolution, dispatch envelope and validated producer output",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/kernel.md",
+              "heading": "Slots and descriptors",
+              "first": 84,
+              "last": 110,
+              "bytes": 5006
+            },
+            {
+              "path": "plugin/skills/faff/references/kernel.md",
+              "heading": "Model and effort selection",
+              "first": 113,
+              "last": 137,
+              "bytes": 3214
+            },
+            {
+              "path": "plugin/skills/faff/references/kernel.md",
+              "heading": "Sibling-skill invocation, dispatch and observability",
+              "first": 279,
+              "last": 318,
+              "bytes": 10209
+            },
+            {
+              "path": "plugin/skills/faff/references/kernel.md",
+              "heading": "Contract loading and conformance",
+              "first": 350,
+              "last": 385,
+              "bytes": 4634
+            },
+            {
+              "path": "plugin/skills/faff/references/review.md",
+              "heading": "Producer slots vs adaptor slots",
+              "first": 29,
+              "last": 36,
+              "bytes": 1734
+            },
+            {
+              "path": "plugin/skills/faff/references/methodology.md",
+              "heading": "Methodology transport",
+              "first": 102,
+              "last": 123,
+              "bytes": 2682
+            }
+          ],
+          "read_bytes": 27479,
+          "frequency": "Kernel is loaded by all nine entries. Repeat once per actual producer/slot use, with first-use conformance and per-output batching. Methodology transport has verified jot, plot, map and wtf consumers plus other callers listed at 66–80.",
+          "reuse": "validate-adapters.REGISTRY/--is-bundled, dispatch resolve, engine call, inflightcheck, events/heartbeat, contract --describe and existing fence handling in run-trigger.ts. Reuse canonical artifact ownership. Use a narrow shared result parser first. Keep custom-occupant discovery, dispatch selection and rendering with the current owners.",
+          "verify": "test/dispatch-config.test.mjs, test/dispatch-build-chain.test.mjs, test/contract-describe.test.mjs, test/contract-golden.test.mjs and existing spec-review resolution tests. Add collision/duplicate-fence, nested producer, invalid JSON and custom slot fallback cases."
+        }
+      ]
+    },
+    {
+      "rank": 9,
+      "name": "Resume review retries and preserve Phase 2 receipts",
+      "determinism": "High",
+      "frequency": "Whenever a build needs another review pass or Phase 2 runs",
+      "net_estimate_bytes": [
+        4500,
+        8000
+      ],
+      "net_estimate_tokens": [
+        1125,
+        2000
+      ],
+      "benefit": "Resume from the recorded pass, keep reviewer independence and retry caps, and attach the right receipt to the right implementation head.",
+      "first_slice_and_dependencies": "First bind local receipts. Add the state transition only after older checkpoints and unavailable-reviewer cases pass through the existing readers.",
+      "status": "proposed",
+      "gross_inspected_bytes": 32735,
+      "source_inspections": [
+        {
+          "name": "Build review dialogue, retry and hold transitions",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 3: Check for Existing Worktree",
+              "first": 149,
+              "last": 159,
+              "bytes": 1631
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 9: Review phase (mandatory — interactive and autonomous; runs PRE-PR)",
+              "first": 397,
+              "last": 439,
+              "bytes": 16431
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 9: Review phase (mandatory — interactive and autonomous; runs PRE-PR)",
+              "first": 443,
+              "last": 459,
+              "bytes": 5547
+            }
+          ],
+          "read_bytes": 23609,
+          "frequency": "For every graft reaching review; repeated on critic/fix rounds or resumed outage and turn-budget holds.",
+          "reuse": "effects.js (`review-progress`), resume-store.js, worktree-ensure.ts, build-review-churn.js, build-review-convergence.js, build-judge-evidence.js, review-iteration-cap.js, contract-defs-review.js.",
+          "verify": "test/review-progress.test.mjs, test/build-review-convergence.test.mjs, test/build-judge-evidence.test.mjs plus process-restart replay, budget caps and wrong-head result rejection."
+        },
+        {
+          "name": "Adversarial code review Phase 2 receipts and checkpoints",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+              "heading": "Backend call",
+              "first": 87,
+              "last": 126,
+              "bytes": 2321
+            },
+            {
+              "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+              "heading": "Backend call",
+              "first": 128,
+              "last": 134,
+              "bytes": 1881
+            },
+            {
+              "path": "plugin/skills/faffter-dark-adversarial-review/SKILL.md",
+              "heading": "Exit code to Phase-2 outcome",
+              "first": 136,
+              "last": 182,
+              "bytes": 4924
+            }
+          ],
+          "read_bytes": 9126,
+          "frequency": "Once when Phase 1 passes and Phase 2 runs or resumes. Checkpoints occur only with an autonomous issue/run directory.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/adversarial-backends.js, review-fixture-paths.js, effects.js:308 cmdReviewProgress, review-prior.js",
+            "plugin/skills/faffter-dark-adversarial-review/review-spawn.mjs and review-call.mjs current wrappers"
+          ],
+          "verify": "Run test/review-{spawn,progress,fixture-paths}.test.mjs and test/impure/review-call-{served-exit,empty-completion}.test.mjs. Add injected cases for L3/L4 all-429, hard kill, missing config, malformed creds and changed diff."
+        }
+      ]
+    },
+    {
+      "rank": 10,
+      "name": "Share graph facts across planning, tidy and queue eligibility",
+      "determinism": "High",
+      "frequency": "Per roadmap or tidy sweep and per batch eligibility check",
+      "net_estimate_bytes": [
+        5000,
+        9000
+      ],
+      "net_estimate_tokens": [
+        1250,
+        2250
+      ],
+      "benefit": "One graph yields reachability, cycles, unlock counts and eligible dependencies across the callers.",
+      "first_slice_and_dependencies": "Build on queue partitioning. Reuse the methodology's order and native eligibility rules. Selecting themes, interpreting structural problems and choosing priorities stay in the skill.",
+      "status": "proposed",
+      "gross_inspected_bytes": 31781,
+      "source_inspections": [
+        {
+          "name": "Roadmap graph facts, trigger reachability and recent unlocks",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-map/SKILL.md",
+              "heading": "Pull the live structure",
+              "first": 37,
+              "last": 48,
+              "bytes": 2323
+            },
+            {
+              "path": "plugin/skills/faff-map/SKILL.md",
+              "heading": "Workstream horizons",
+              "first": 74,
+              "last": 76,
+              "bytes": 778
+            },
+            {
+              "path": "plugin/skills/faff-map/SKILL.md",
+              "heading": "Dependency chain and trigger gates",
+              "first": 78,
+              "last": 109,
+              "bytes": 3228
+            },
+            {
+              "path": "plugin/skills/faff-map/SKILL.md",
+              "heading": "Risks the structure surfaces",
+              "first": 131,
+              "last": 140,
+              "bytes": 2218
+            },
+            {
+              "path": "plugin/skills/faff-map/SKILL.md",
+              "heading": "Risks the structure surfaces, continued",
+              "first": 142,
+              "last": 149,
+              "bytes": 1648
+            },
+            {
+              "path": "plugin/skills/faff-wtf/SKILL.md",
+              "heading": "Automation preview and value chains",
+              "first": 106,
+              "last": 117,
+              "bytes": 1824
+            },
+            {
+              "path": "plugin/skills/faff/references/kernel.md",
+              "heading": "Ordering and judgement delegation",
+              "first": 160,
+              "last": 174,
+              "bytes": 2617
+            }
+          ],
+          "read_bytes": 14636,
+          "frequency": "One graph snapshot per map and wtf pass, plus tidy methodology and beep-boop ordering/queues. Map Phase 4 and 7 already share one diagnostic result. Wtf requires cross-team chains.",
+          "reuse": "Shared normalized snapshot recommended first. backlog-diagnostics already promises cycles in the default and replacements. Reuse project-next for rollup policy only if its contract applies, never as an edge calculator.",
+          "verify": "Test branching, SCC/self-loop, missing endpoints, cross-team overlap, same and cross-initiative edges, cycles on/off rendered paths, multiple remaining blockers, duplicate IDs, stable tie order and methodology replacement."
+        },
+        {
+          "name": "Tracker snapshot topology and thematic order",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+              "heading": "Core ordering rule",
+              "first": 14,
+              "last": 34,
+              "bytes": 1493
+            },
+            {
+              "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+              "heading": "Detection categories",
+              "first": 78,
+              "last": 84,
+              "bytes": 1638
+            },
+            {
+              "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+              "heading": "`build-queue`",
+              "first": 183,
+              "last": 189,
+              "bytes": 891
+            },
+            {
+              "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+              "heading": "Re-homing gating chains into the stream they gate",
+              "first": 64,
+              "last": 74,
+              "bytes": 2150
+            }
+          ],
+          "read_bytes": 6172,
+          "frequency": "One graph analysis per tidy structural pass. Thematic pick-ordering applies to each sequencing output, with build queues recomputed after each wave. Agile walks outward prerequisites per stream.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/next.js:197 exports TERMINAL_STATUSES (check actual tracker/category parity first)",
+            "plugin/skills/faff/bin/lib/contract-defs-prd.js:491-575 distance rank and validation; park-history.js:136 current counts"
+          ],
+          "verify": "Reuse eval/cases/ordering-001.json and ordering-002.json. Add cycle/self-loop, satisfied edge, diamond deduplication, partial page, multiple ancestors, tie order and neutral-vs-matched ranks fixtures."
+        },
+        {
+          "name": "Eligibility batch graph walk",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+              "heading": "`crank-up-set`",
+              "first": 210,
+              "last": 224,
+              "bytes": 2203
+            },
+            {
+              "path": "plugin/skills/faffter-dark-methodology-agile-delivery/SKILL.md",
+              "heading": "Outputs",
+              "first": 36,
+              "last": 36,
+              "bytes": 370
+            }
+          ],
+          "read_bytes": 2573,
+          "frequency": "Once per optional crank-up-set answer for wtf or tidy. It already consumes one next --if-eligible fact per candidate.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/next.js:197 exports nextStep and status constants; reuse proposed topology helper"
+          ],
+          "verify": "Fixtures for satisfied outside blocker, diamond, shared issue, same priority, risk frontier and stable badge counts."
+        },
+        {
+          "name": "Tidy structural graph and calibration facts",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-tidy/SKILL.md",
+              "heading": "5. Structural diagnostics",
+              "first": 103,
+              "last": 125,
+              "bytes": 5316
+            },
+            {
+              "path": "plugin/skills/faff-tidy/SKILL.md",
+              "heading": "6. Calibration signals",
+              "first": 176,
+              "last": 184,
+              "bytes": 947
+            },
+            {
+              "path": "plugin/skills/faff-tidy/SKILL.md",
+              "heading": "Auto-actions (applied without prompting)",
+              "first": 293,
+              "last": 295,
+              "bytes": 2137
+            }
+          ],
+          "read_bytes": 8400,
+          "frequency": "Once per tidy pass over active graph; calibration once per pass. Mechanical edge/repoint/demotion only on verified eligible cases.",
+          "reuse": "park-history.js, findings-reconcile.js, decision-capture.js, label.js and methodology `backlog-diagnostics`. No complete graph command or calibration tally seen.",
+          "verify": "test/faff-tidy.test.mjs, test/faff-tidy-repeat-park.test.mjs and test/findings-reconcile.test.mjs plus graph-cycle, missing/cancelled parent, ambiguous map and exact-window data."
+        }
+      ]
+    },
+    {
+      "rank": 11,
+      "name": "Assemble run-end reconciliation inputs",
+      "determinism": "High",
+      "frequency": "Once per autonomous run end and sibling comparison",
+      "net_estimate_bytes": [
+        2000,
+        3400
+      ],
+      "net_estimate_tokens": [
+        500,
+        850
+      ],
+      "benefit": "Match each observed issue and PR with the correct baseline so a sibling cannot supply a false completion.",
+      "first_slice_and_dependencies": "Extract the existing assembleReconcileInput in run-summary.ts for both callers. Preserve incomplete forge and tracker observations.",
+      "status": "proposed",
+      "gross_inspected_bytes": 8130,
+      "source_inspections": [
+        {
+          "name": "Run-end ground-truth input assembly and sibling baseline",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "4. Build queue assembly",
+              "first": 226,
+              "last": 226,
+              "bytes": 1251
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "11.5. Run-end ground-truth reconcile (blocking at L4, warn at ≤L3)",
+              "first": 360,
+              "last": 373,
+              "bytes": 5671
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "11.6. Post-merge verification annotations (informational, never blocking)",
+              "first": 375,
+              "last": 377,
+              "bytes": 1208
+            }
+          ],
+          "read_bytes": 8130,
+          "frequency": "At each run close; baseline observations per admitted candidate; forge/git observations per shipped issue and tracker observations per sibling or superseded ticket.",
+          "reuse": "reconcile.js pure gate, run-summary.ts assembleReconcileInput, run-close.ts, run-ledger.js, post-merge.js, merge-gate-local.js. reconcile-recover.js is a separate narrowly scoped recovery write.",
+          "verify": "Extend test/reconcile.test.mjs, test/run-close.test.mjs, summary and local-merge tests for no baseline, squash head, git-only ancestry, superseded proof, and repeated close."
+        }
+      ]
+    },
+    {
+      "rank": 12,
+      "name": "Prepare build checkpoints, diff and AC evidence",
+      "determinism": "High",
+      "frequency": "Per build, with repeated gate visits on resume",
+      "net_estimate_bytes": [
+        1800,
+        3800
+      ],
+      "net_estimate_tokens": [
+        450,
+        950
+      ],
+      "benefit": "Hash and bind the diff, gate evidence and checkpoint to the same head before deciding what can be reused.",
+      "first_slice_and_dependencies": "Use existing progress and evidence writers. Exercise moving heads, missing evidence and re-entry. The implementor still decides whether the acceptance criteria are met.",
+      "status": "proposed",
+      "gross_inspected_bytes": 12766,
+      "source_inspections": [
+        {
+          "name": "Build checkpoint and remote diff capture",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 8b: Push branch at build-complete + build-progress checkpoint (both modes)",
+              "first": 327,
+              "last": 345,
+              "bytes": 2995
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 9: Review phase (mandatory — interactive and autonomous; runs PRE-PR)",
+              "first": 387,
+              "last": 393,
+              "bytes": 911
+            }
+          ],
+          "read_bytes": 3906,
+          "frequency": "One build-complete checkpoint and one review diff per normal graft reaching gates, plus re-capture on review/judge resume.",
+          "reuse": "faff-graft/remote-diff-base.sh, effects.js (`build-progress`), worktree-ensure.ts, review-target.js, merge-gate-local.js.",
+          "verify": "test/graft-remote-base.test.mjs and test/build-progress.test.mjs, plus push failure, git-only checkpoint, changed remote default and action bracket parity."
+        },
+        {
+          "name": "Engineering gate resume and AC evidence plumbing",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 7.5: Engineering gate ladder (runs after build, before AC verification's full run and before review/PR/CI)",
+              "first": 265,
+              "last": 273,
+              "bytes": 1108
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 7.5: Engineering gate ladder (runs after build, before AC verification's full run and before review/PR/CI)",
+              "first": 275,
+              "last": 289,
+              "bytes": 3431
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 8: AC verification (mandatory)",
+              "first": 295,
+              "last": 297,
+              "bytes": 1049
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 8: AC verification (mandatory)",
+              "first": 306,
+              "last": 323,
+              "bytes": 3272
+            }
+          ],
+          "read_bytes": 8860,
+          "frequency": "Every graft that builds or returns at gate, plus per-criterion verification action.",
+          "reuse": "gates-cli.js, gates-progress.ts, gates-discover.js, gates-report.js, spec-commit.ts, admissibility.js (`dod classify`), evidence.js, ac-id.js.",
+          "verify": "test/gates-progress.test.mjs, test/gates-budget.test.mjs, test/evidence-spec.test.mjs, test/dod.test.mjs plus reuse, edit-after-budget, partial verify and invalid locator regressions."
+        }
+      ]
+    },
+    {
+      "rank": 13,
+      "name": "Finalize park records and deduplicate effects",
+      "determinism": "High",
+      "frequency": "Each park and subsequent retry",
+      "net_estimate_bytes": [
+        2000,
+        4500
+      ],
+      "net_estimate_tokens": [
+        500,
+        1125
+      ],
+      "benefit": "One local plan records the right reason, evidence and intended effects without repeating a comment or label transition on retry.",
+      "first_slice_and_dependencies": "Test duplicate observations, uncertain writes and manual unpark. The tracker MCP executes and confirms live effects.",
+      "status": "proposed",
+      "gross_inspected_bytes": 16113,
+      "source_inspections": [
+        {
+          "name": "Park finalization, classification normalization and deduplication",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/park.md",
+              "heading": "Park protocol and park-versus-hold boundary",
+              "first": 15,
+              "last": 53,
+              "bytes": 7673
+            },
+            {
+              "path": "plugin/skills/faff/references/kernel.md",
+              "heading": "Unpark protocol",
+              "first": 267,
+              "last": 277,
+              "bytes": 2982
+            },
+            {
+              "path": "plugin/skills/faff/references/autonomous.md",
+              "heading": "Control-label provisioning",
+              "first": 154,
+              "last": 166,
+              "bytes": 5458
+            }
+          ],
+          "read_bytes": 16113,
+          "frequency": "Each completed park from prep, graft, beep-boop, tidy and plot as applicable. Read/recovery through wtf plus future prep/graft/tidy. Label provision is invoked wherever faff-owned control labels change.",
+          "reuse": "park-history, park-reconsider, park-verdict, run summary, labels/label transition, spec-review-hold and current run-ledger writer. Git-only clearing is already executable.",
+          "verify": "test/park-records.test.mjs, test/park-reconsider.test.mjs, test/faff-1007-park-reconsider-classification.test.mjs and test/spec-review-hold.test.mjs. Include timeout, repeated occurrence, same-label no-op, damaged previous run and escaping symlink."
+        }
+      ]
+    },
+    {
+      "rank": 14,
+      "name": "Resolve ticket templates and render local checklists",
+      "determinism": "Medium",
+      "frequency": "Per proposed ticket or epic, more often in a plot batch",
+      "net_estimate_bytes": [
+        3200,
+        6000
+      ],
+      "net_estimate_tokens": [
+        800,
+        1500
+      ],
+      "benefit": "Use one field order, routing default and unresolved-field check for both tracker templates and git-only checklists.",
+      "first_slice_and_dependencies": "Preserve configured templates and team rules. People decide scope and wording. The connector owns publication.",
+      "status": "proposed",
+      "gross_inspected_bytes": 13064,
+      "source_inspections": [
+        {
+          "name": "Ticket template resolution, rendering and team routing",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/create.md",
+              "heading": "Ticket templates",
+              "first": 5,
+              "last": 83,
+              "bytes": 7167
+            },
+            {
+              "path": "plugin/skills/faff-jot/SKILL.md",
+              "heading": "Confirm and create",
+              "first": 79,
+              "last": 81,
+              "bytes": 1192
+            },
+            {
+              "path": "plugin/skills/faff-plot/SKILL.md",
+              "heading": "Write the skeleton",
+              "first": 73,
+              "last": 77,
+              "bytes": 1651
+            }
+          ],
+          "read_bytes": 10010,
+          "frequency": "One fill per proposed jot ticket or plot container/epic, including git-only checklist. Plot invokes the jot team-routing procedure for epics. Onboard prepares optional native mappings.",
+          "reuse": "native-map get, config templates-path, validated config team settings, heading utilities if compatible. Do not add a second config writer or taxonomy.",
+          "verify": "test/native-map.test.mjs plus native/stale/opaque/missing, duplicate headings, unknown type, default override, no-team legacy case, safe fallback and exact placeholder/provenance output."
+        },
+        {
+          "name": "Stable git-only intake checklist writer",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-jot/SKILL.md",
+              "heading": "Tracker-less mode and autonomous fallback",
+              "first": 124,
+              "last": 134,
+              "bytes": 1316
+            },
+            {
+              "path": "plugin/skills/faff-plot/SKILL.md",
+              "heading": "Tracker-less mode and autonomous mode",
+              "first": 176,
+              "last": 186,
+              "bytes": 1738
+            }
+          ],
+          "read_bytes": 3054,
+          "frequency": "Once per git-only jot or plot proposal. Accidental autonomous calls can produce proposal-only intake. Queue-state later reads the artifact during runs.",
+          "reuse": "queue-state new-key and derive, state resolveSpec and existing repository-local atomic write helpers.",
+          "verify": "Extend test/queue-state.test.mjs and test/impure/state.test.mjs with write/read round trip, duplicate titles, new child, nested container vs leaf, repeated invocation and interrupted write."
+        }
+      ]
+    },
+    {
+      "rank": 15,
+      "name": "Assemble spec diagnostics and readiness",
+      "determinism": "Medium",
+      "frequency": "Per default or rich-spec drafting pass",
+      "net_estimate_bytes": [
+        2000,
+        3400
+      ],
+      "net_estimate_tokens": [
+        500,
+        850
+      ],
+      "benefit": "Render normalized warnings and readiness blocks from existing scanners without counting the same blocker twice.",
+      "first_slice_and_dependencies": "Reuse punt and readiness checks. Compare malformed and unresolved sections. Authors keep spec content and qualitative ratings.",
+      "status": "proposed",
+      "gross_inspected_bytes": 4361,
+      "source_inspections": [
+        {
+          "name": "Spec author diagnostics and readiness assembly",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+              "heading": "Self-review before returning (mandatory, all sizes)",
+              "first": 87,
+              "last": 87,
+              "bytes": 1195
+            },
+            {
+              "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+              "heading": "Self-review before returning (mandatory, all sizes)",
+              "first": 106,
+              "last": 106,
+              "bytes": 164
+            },
+            {
+              "path": "plugin/skills/faffter-noon-spec/SKILL.md",
+              "heading": "Contract artifact",
+              "first": 124,
+              "last": 137,
+              "bytes": 1289
+            },
+            {
+              "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+              "heading": "Quality bar — self-review before returning",
+              "first": 249,
+              "last": 250,
+              "bytes": 424
+            },
+            {
+              "path": "plugin/skills/faffter-dark-nlspec/SKILL.md",
+              "heading": "Contract artifact",
+              "first": 252,
+              "last": 265,
+              "bytes": 1289
+            }
+          ],
+          "read_bytes": 4361,
+          "frequency": "One precheck plus at most one recheck per fresh/default or full nlspec draft. One envelope per draft.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/admissibility.js:816 admissibleVerdict, :958 cmdAdmissible; contract-defs-review.js:22 computeSpecReadiness; prep-attach.js:76 confidenceLineIndex, :149 computeAdmissibility and :224 readinessBlocks; punt-scan.js"
+          ],
+          "verify": "Run test/admissible.test.mjs, test/prep-attach.test.mjs and test/punt-scan.test.mjs; add diagnostics/severity-cap boundary fixtures and prove both producers use the same path."
+        }
+      ]
+    },
+    {
+      "rank": 16,
+      "name": "Prepare routing evidence and automation previews",
+      "determinism": "Medium",
+      "frequency": "Per triage pass and WTF queue preview",
+      "net_estimate_bytes": [
+        3000,
+        5500
+      ],
+      "net_estimate_tokens": [
+        750,
+        1375
+      ],
+      "benefit": "CLI supplies the same route inputs, caches only within the pass, and makes preview exclusions reproducible.",
+      "first_slice_and_dependencies": "Reuse next and eligible. The routing adaptor applies judgement and honours an explicit human override. Compare preview with the next real dispatch.",
+      "status": "proposed",
+      "gross_inspected_bytes": 17683,
+      "source_inspections": [
+        {
+          "name": "Routing facts and pass-local verdict artefact",
+          "sections": [
+            {
+              "path": "plugin/skills/faffidavit-routing/SKILL.md",
+              "heading": "The six verdicts (non-normative recap for assignment)",
+              "first": 28,
+              "last": 43,
+              "bytes": 2802
+            },
+            {
+              "path": "plugin/skills/faffidavit-routing/SKILL.md",
+              "heading": "Assignment",
+              "first": 47,
+              "last": 58,
+              "bytes": 933
+            },
+            {
+              "path": "plugin/skills/faffidavit-routing/SKILL.md",
+              "heading": "Validate — wired to the contract script",
+              "first": 86,
+              "last": 111,
+              "bytes": 2244
+            }
+          ],
+          "read_bytes": 5979,
+          "frequency": "Once per spec-gated Todo issue per tidy pass. The run artifact is reused within the same pass, and standalone wtf recomputes. Validate once per supplied candidate.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/punt-scan.js:481 exports reader/scan; park-history.js:136 onward; contract-defs-delivery.js:48 onward closed names and conformance"
+          ],
+          "verify": "Reuse eval/cases/routing-001.json through routing-006.json and test/punt-scan.test.mjs. Add simultaneous conditions, missing versus unknown facts, eligible/closed Punt and stale-cache cases."
+        },
+        {
+          "name": "WTF automation preview and returned queue data",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-wtf/SKILL.md",
+              "heading": "Automation preview verdict sections",
+              "first": 119,
+              "last": 123,
+              "bytes": 2344
+            },
+            {
+              "path": "plugin/skills/faff-wtf/SKILL.md",
+              "heading": "Automation preview output format",
+              "first": 244,
+              "last": 282,
+              "bytes": 1549
+            },
+            {
+              "path": "plugin/skills/faff-wtf/SKILL.md",
+              "heading": "Output rules and Autonomous Mode",
+              "first": 298,
+              "last": 310,
+              "bytes": 1305
+            },
+            {
+              "path": "plugin/skills/faff/references/methodology.md",
+              "heading": "Automation eligibility",
+              "first": 5,
+              "last": 43,
+              "bytes": 6506
+            }
+          ],
+          "read_bytes": 11704,
+          "frequency": "Always on wtf, verdict membership shared with tidy, beep-boop and the routing adaptor. Optional autonomous return path is described in wtf 300–310 despite the interactive-only load line.",
+          "reuse": "eligible, next, contract automation-routing, punt-scan, existing queue partition supplied by collision analysis and methodology order. No duplicate routing policy.",
+          "verify": "Replay mixed verdicts, no candidates, queues without specs, split owner and repeated issue, namespace label overrides, ineligible hypothetical, malformed/unanswered methodology and scoped cache inputs."
+        }
+      ]
+    },
+    {
+      "rank": 17,
+      "name": "Render structured lists and apply count limits",
+      "determinism": "Medium",
+      "frequency": "Each applicable human-facing output",
+      "net_estimate_bytes": [
+        1500,
+        3000
+      ],
+      "net_estimate_tokens": [
+        375,
+        750
+      ],
+      "benefit": "Render a supplied set once with stable counts, truncation and table/list rules.",
+      "first_slice_and_dependencies": "Use the rendering adaptor's actual consumers. Keep explanation, voice and choice of visualization in the adaptor.",
+      "status": "proposed",
+      "gross_inspected_bytes": 7307,
+      "source_inspections": [
+        {
+          "name": "Canonical rendering of supplied structures",
+          "sections": [
+            {
+              "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+              "heading": "Canonical visual forms",
+              "first": 47,
+              "last": 94,
+              "bytes": 1812
+            },
+            {
+              "path": "plugin/skills/faffidavit-rendering/SKILL.md",
+              "heading": "Tabular data: markdown tables vs definition lists",
+              "first": 165,
+              "last": 189,
+              "bytes": 1501
+            }
+          ],
+          "read_bytes": 3313,
+          "frequency": "Whenever the default adaptor emits structured visuals, including tidy diagnostics, wtf queues and map workstreams/gates. Lines 21-23 specify final normalisation for each human-facing emission.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/run-summary.ts has formatting examples, not a complete renderer"
+          ],
+          "verify": "Add output goldens for shapes, caps, Unicode and escaping. test/rendering-routing.test.mjs covers routing presence/order only."
+        },
+        {
+          "name": "Structured rendering data and formatter checks",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/kernel.md",
+              "heading": "Rendering universal routing",
+              "first": 433,
+              "last": 434,
+              "bytes": 1042
+            },
+            {
+              "path": "plugin/skills/faff-map/SKILL.md",
+              "heading": "Outcome initiatives and workstream table",
+              "first": 50,
+              "last": 73,
+              "bytes": 1270
+            },
+            {
+              "path": "plugin/skills/faff-map/SKILL.md",
+              "heading": "Output format",
+              "first": 155,
+              "last": 193,
+              "bytes": 944
+            },
+            {
+              "path": "plugin/skills/faff-wtf/SKILL.md",
+              "heading": "Methodology findings highlight and WIP coupling",
+              "first": 97,
+              "last": 104,
+              "bytes": 738
+            }
+          ],
+          "read_bytes": 3994,
+          "frequency": "All entries emit; scoped concrete views are per map/wtf pass. Normalisation is called per terminal render or hosted write.",
+          "reuse": "faffidavit-rendering and typed queue/graph outputs. Reuse a named renderer only on structured data; do not create a central write function that touches remote state.",
+          "verify": "Use existing rendering eval and test/ golden structured view cases, multi-owner and no-section edge cases, explicit empty automation exception and replacement adaptor preference."
+        }
+      ]
+    },
+    {
+      "rank": 18,
+      "name": "Collect briefing facts and write canonical local logs",
+      "determinism": "Medium",
+      "frequency": "Per briefing, event summary and local artifact write",
+      "net_estimate_bytes": [
+        2500,
+        5500
+      ],
+      "net_estimate_tokens": [
+        625,
+        1375
+      ],
+      "benefit": "Read one run's files, normalize timestamps and paths, and write the artifact once. Reduces stale-run and cross-run reporting.",
+      "first_slice_and_dependencies": "Build on existing run-summary and log-path helpers. Keep interpretation of weak signals with the caller.",
+      "status": "proposed",
+      "gross_inspected_bytes": 14291,
+      "source_inspections": [
+        {
+          "name": "Local briefing facts and calibration aggregation",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-wtf/SKILL.md",
+              "heading": "Parked work and two provider-outage sections",
+              "first": 55,
+              "last": 78,
+              "bytes": 2643
+            },
+            {
+              "path": "plugin/skills/faff-wtf/SKILL.md",
+              "heading": "Structural diagnostics and calibration signals",
+              "first": 125,
+              "last": 137,
+              "bytes": 1299
+            },
+            {
+              "path": "plugin/skills/faff/references/methodology.md",
+              "heading": "Calibration log",
+              "first": 125,
+              "last": 147,
+              "bytes": 3259
+            },
+            {
+              "path": "plugin/skills/faff-map/SKILL.md",
+              "heading": "Tidy log enrichment",
+              "first": 141,
+              "last": 141,
+              "bytes": 378
+            }
+          ],
+          "read_bytes": 7579,
+          "frequency": "Wtf every pass for relevant projections. Tidy every pass for calibration and diagnostics. Map reads optional tidy enrichment but computes fresh graph risks independently.",
+          "reuse": "park-history, run summary, prepcheck, spec-review-hold, config retry limits and git logs. Keep repeat-park threshold logic single-sourced in park-verdict where it already applies.",
+          "verify": "test/park-records.test.mjs, test/faff-tidy-repeat-park.test.mjs and test/spec-review-hold.test.mjs plus fixed-clock count boundaries, malformed/unreadable folders, ties, absent logs and distinct hold visibility."
+        },
+        {
+          "name": "Local log policy, paths and typed artifact writing",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/kernel.md",
+              "heading": "Logging directory and run artifact classes",
+              "first": 204,
+              "last": 257,
+              "bytes": 6712
+            }
+          ],
+          "read_bytes": 6712,
+          "frequency": "Kernel required on all nine entries. Per invocation, plus per run and per issue artifacts. Essential-mode narrative exception has different materiality from retained machine artifacts.",
+          "reuse": "run ledger, run summary, events, heartbeat, config logging, gitignore-ensure, integrity-digest and existing locked/atomic writers.",
+          "verify": "Use test/run-state-writers.test.mjs, run summary fixtures, lock/ownership and full/essential/standalone tests. Prove same-pass-only cache and no cross-run writes."
+        }
+      ]
+    },
+    {
+      "rank": 19,
+      "name": "Compose run-entry preflights and appetite checks",
+      "determinism": "High",
+      "frequency": "Once per autonomous start, with appetite checked before side effects",
+      "net_estimate_bytes": [
+        2000,
+        4500
+      ],
+      "net_estimate_tokens": [
+        500,
+        1125
+      ],
+      "benefit": "Use a consistent run identity and check finite budgets before dispatch.",
+      "first_slice_and_dependencies": "Reuse run open, trigger and checkpoint. Governed effects and human consent retain existing owners. Test absent, resumed and exhausted runs.",
+      "status": "proposed",
+      "gross_inspected_bytes": 26078,
+      "source_inspections": [
+        {
+          "name": "Run entry preflights and standalone graft substrate",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "Install-health preflight (doctor-at-entry surfacing)",
+              "first": 23,
+              "last": 34,
+              "bytes": 1216
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "GitHub-auth preflight (run-start, before the build queue is minted)",
+              "first": 36,
+              "last": 48,
+              "bytes": 1528
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "0a. Run-start trigger — PLAN / drain / refuse (L4 lights-out only)",
+              "first": 134,
+              "last": 152,
+              "bytes": 2970
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 3: Check for Existing Worktree",
+              "first": 122,
+              "last": 127,
+              "bytes": 3315
+            }
+          ],
+          "read_bytes": 9029,
+          "frequency": "Once per beep-boop entry and once per standalone interactive graft after admission; inherited runs adopt their own substrate.",
+          "reuse": "run-open.ts, run-trigger.ts, run-ledger.js, commissaire.ts, hooks-ensure.js and gates-doctor.js.",
+          "verify": "test/run-open.test.mjs, test/run-trigger.test.mjs, test/doctor.test.mjs, test/commissaire-contract-status.test.mjs and test/run-ledger-init-interactive.test.mjs, with timeout/malformed output."
+        },
+        {
+          "name": "Autonomous preflight and finite appetite decisions",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/autonomous.md",
+              "heading": "Entry preflights",
+              "first": 46,
+              "last": 54,
+              "bytes": 1912
+            },
+            {
+              "path": "plugin/skills/faff/references/autonomous.md",
+              "heading": "Appetite modulation and hard floors",
+              "first": 65,
+              "last": 125,
+              "bytes": 12148
+            },
+            {
+              "path": "plugin/skills/faff/references/autonomous.md",
+              "heading": "Resolve-attempt rules and budgets",
+              "first": 128,
+              "last": 143,
+              "bytes": 2989
+            }
+          ],
+          "read_bytes": 17049,
+          "frequency": "Preflights once per autonomous entry where configured. Their concrete owner is beep-boop at queue kickoff. Appetite admission recurs on each candidate; most expensive resolve-attempt branch fires only for qualifying verdicts.",
+          "reuse": "container-check, branch-protection-check, github-auth-check, config effective appetite, contract automation-routing, decisions match and contain.",
+          "verify": "Pure policy tests for all levels, each unclear/unknown fact, host socket and auth faults, marker exemptions and immutable floors, plus existing decision and probe tests."
+        }
+      ]
+    },
+    {
+      "rank": 20,
+      "name": "Fold wave convergence and run termination",
+      "determinism": "High",
+      "frequency": "Per completed wave",
+      "net_estimate_bytes": [
+        1200,
+        2800
+      ],
+      "net_estimate_tokens": [
+        300,
+        700
+      ],
+      "benefit": "Use the default termination predicate directly and calculate no-progress consistently from admitted work.",
+      "first_slice_and_dependencies": "The no_progress_waves counter is described in the skill but absent from the pinned ledger implementation. Define legacy and replay behaviour before persisting it.",
+      "status": "proposed",
+      "gross_inspected_bytes": 13614,
+      "source_inspections": [
+        {
+          "name": "Wave re-entry and convergence state",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "8. Wave re-entry",
+              "first": 257,
+              "last": 279,
+              "bytes": 12502
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "9. Wave-1 empty short-circuit",
+              "first": 281,
+              "last": 283,
+              "bytes": 265
+            }
+          ],
+          "read_bytes": 12767,
+          "frequency": "On each completed wave, including waves with new upstream deliveries, plus each nonempty L3/L4 run's initial boundary.",
+          "reuse": "The existing run-done and run checkpoint commands handle termination observations. no_progress_waves appears in the prompt, but the pinned ledger has no persisted counter implementation.",
+          "verify": "Extend test/run-done.test.mjs, test/queue-state.test.mjs, test/convergence-resolution.test.mjs and ledger concurrency fixtures for zero-progress, dedup, first empty wave and L3/L4 parity."
+        },
+        {
+          "name": "Use built-in run termination directly",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-noon-methodology-thematic/SKILL.md",
+              "heading": "`run-termination-policy`",
+              "first": 193,
+              "last": 208,
+              "bytes": 847
+            }
+          ],
+          "read_bytes": 847,
+          "frequency": "One optional policy answer per thematic termination dispatch; the existing run-done command still runs at its caller.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/run-done.js:28-46 canonical rungs and :98-107 safety floor and fallback"
+          ],
+          "verify": "test/run-done.test.mjs and a real otherwise-identical default call with no policy input."
+        }
+      ]
+    },
+    {
+      "rank": 21,
+      "name": "Prepare dependency branch and custody handoffs",
+      "determinism": "High",
+      "frequency": "Per chained parallel unit and handoff",
+      "net_estimate_bytes": [
+        3000,
+        6000
+      ],
+      "net_estimate_tokens": [
+        750,
+        1500
+      ],
+      "benefit": "Bind the child to the correct base, parent receipt and run. Stale custody cannot silently become the next unit's authority.",
+      "first_slice_and_dependencies": "Depends on build dispatch. Preserve existing signature and merge-gate checks. Prove rebase, stale anchor, cancellation and lost worker cases.",
+      "status": "proposed",
+      "gross_inspected_bytes": 29238,
+      "source_inspections": [
+        {
+          "name": "Concurrency result, custody and dependency branch sequencing",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/l4.md",
+              "heading": "Concurrency slot fixed contract",
+              "first": 52,
+              "last": 71,
+              "bytes": 21506
+            },
+            {
+              "path": "plugin/skills/faff/references/build.md",
+              "heading": "Worktree policy",
+              "first": 30,
+              "last": 42,
+              "bytes": 3871
+            }
+          ],
+          "read_bytes": 25377,
+          "frequency": "Per issue in the beep-boop build pass. Both concurrency occupants use fixed obligations, independent and serial groups. Graft uses scoped worktree mechanics.",
+          "reuse": "worktree ensure/check/prune, run ledger, integrity-digest, merge-gate evidence/stack commands, build dispatch and runcheck. Coordinate these ranges with concurrency occupant extraction before counting bytes.",
+          "verify": "test/faff-1077-dependency-stacking.test.mjs, existing integrity/evidence tests and runcheck, plus nonmerged blocker, divergent pinned tip, lost worker and tampered return cases."
+        },
+        {
+          "name": "In-run dependency disposition and stack-anchor intent",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-noon-concurrency-sequential/SKILL.md",
+              "heading": "How the default runs it",
+              "first": 48,
+              "last": 51,
+              "bytes": 1680
+            },
+            {
+              "path": "plugin/skills/faffter-dark-concurrency-parallel/SKILL.md",
+              "heading": "Worktree isolation",
+              "first": 45,
+              "last": 50,
+              "bytes": 2181
+            }
+          ],
+          "read_bytes": 3861,
+          "frequency": "One decision per collision-chain member with a live dependency on an earlier member. Both executors currently resolve dependency_wait once per pass.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/merge-gate-stack.js:21 onward reads the existing stack-parent anchor and checks dependent merge disposition",
+            "plugin/skills/faff/bin/lib/merge-gate.js owns execute-time gates; worktree-ensure.js owns worktree preparation"
+          ],
+          "verify": "Fixture matrix over off/stack, forge/git-only, merged/pr-open/parked/errored/superseded, unavailable head SHA and collision-only. Run existing stack/merge-gate fixtures."
+        }
+      ]
+    },
+    {
+      "rank": 22,
+      "name": "Bind holdout criteria and evaluator results",
+      "determinism": "High",
+      "frequency": "Per eligible autonomous build and individual criterion",
+      "net_estimate_bytes": [
+        3500,
+        6000
+      ],
+      "net_estimate_tokens": [
+        875,
+        1500
+      ],
+      "benefit": "Select the existing criteria, pair each returned result to its ID and retain unavailable or human-only cases explicitly.",
+      "first_slice_and_dependencies": "The existing independent, code-blind evaluator owns the verdict. Verify failed and missing evaluator runs and spawner attestations.",
+      "status": "proposed",
+      "gross_inspected_bytes": 18403,
+      "source_inspections": [
+        {
+          "name": "Code-blind holdout offer, eligibility and evidence lifecycle",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 6: Present spec and choose path",
+              "first": 230,
+              "last": 240,
+              "bytes": 1598
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 8c: Run the code-blind holdout (post-checkpoint — the RUN)",
+              "first": 347,
+              "last": 360,
+              "bytes": 2200
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "10b. Per-run holdout phase (L4 lights-out signal only — the enforced holdout guardrail)",
+              "first": 333,
+              "last": 346,
+              "bytes": 7396
+            }
+          ],
+          "read_bytes": 11194,
+          "frequency": "Offer and re-check for each applicable graft, once per enforced L4 run plus dispatcher-side per-issue path under a cut.",
+          "reuse": "admissibility.js (`dod`, `holdout`, `spec-review-lenses`), config.js (`verification`), holdout-record.js, env.js, lane-boundary.js, PRDR bridge and faffter-noon-evaluate/evaluate-call.mjs.",
+          "verify": "test/evaluate-call.test.mjs, test/holdout-delegation.test.mjs, test/holdout-record.test.mjs, test/faff-1363-holdout-skip-rule.test.mjs and RPC integration, stale evidence and teardown tests."
+        },
+        {
+          "name": "Holdout criterion bookkeeping and result assembly",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+              "heading": "How it evaluates",
+              "first": 36,
+              "last": 40,
+              "bytes": 2124
+            },
+            {
+              "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+              "heading": "How it evaluates",
+              "first": 46,
+              "last": 48,
+              "bytes": 2929
+            },
+            {
+              "path": "plugin/skills/faffter-noon-evaluate/SKILL.md",
+              "heading": "Output (the contract artifact)",
+              "first": 52,
+              "last": 80,
+              "bytes": 2156
+            }
+          ],
+          "read_bytes": 7209,
+          "frequency": "Once per evaluator lifecycle. One result per running-stack criterion; reused handles still go through the existing validator.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/admissibility.js dod classify; holdout-record.js:350 deriveHoldoutAggregate; contract-defs-evidence.js:49 computeHoldoutVerdict",
+            "plugin/skills/faffter-noon-evaluate/evaluate-call.mjs:70 deriveAttestation and :105 deriveAuthHeaders; plugin/skills/faff/bin/lib/redact.js:106 redactKnownSecrets"
+          ],
+          "verify": "test/holdout-{record,delegation,evaluate-integration,rpc-evaluate-integration,exercise-headers}.test.mjs; malformed env, missing/duplicate observation, all prose and leaked-credential fixtures."
+        }
+      ]
+    },
+    {
+      "rank": 23,
+      "name": "Prepare plot, PRD selection and PRDR operations",
+      "determinism": "Medium",
+      "frequency": "Per plot session, per planning node or product decision",
+      "net_estimate_bytes": [
+        5000,
+        10000
+      ],
+      "net_estimate_tokens": [
+        1250,
+        2500
+      ],
+      "benefit": "Select the local records and construct the next permitted operation deterministically before each proposed change.",
+      "first_slice_and_dependencies": "Resolve inherited-ledger ambiguity first, then split selection, topology and admission into separate changes. Keep product reasoning and accept/rehome decisions with humans.",
+      "status": "proposed",
+      "gross_inspected_bytes": 28781,
+      "source_inspections": [
+        {
+          "name": "Shared PRD selection before interactive plot",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-plot/SKILL.md",
+              "heading": "Entry and committed PRD discovery",
+              "first": 36,
+              "last": 43,
+              "bytes": 2034
+            }
+          ],
+          "read_bytes": 2034,
+          "frequency": "Standalone interactive plot once. Jot-chained plot already has a brief. Run trigger already implements the duplicated selection once per eligible invocation.",
+          "reuse": "run-trigger.ts readPrd at 213–242, prd list/path and config path resolution. Preserve single candidate behaviour and multi-candidate Active/Frozen filter.",
+          "verify": "Extend test/run-trigger.test.mjs with both consumer modes, malformed listing, active/frozen/historical combinations, ties and unavailable path."
+        },
+        {
+          "name": "Plot ignition, descent and topology-operation assembly",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-plot/SKILL.md",
+              "heading": "Recurse top-down, stop rule and per-level gating",
+              "first": 47,
+              "last": 71,
+              "bytes": 3440
+            },
+            {
+              "path": "plugin/skills/faff-plot/SKILL.md",
+              "heading": "Ignition, gate-to-verdict, honest op construction, HALT and logging",
+              "first": 188,
+              "last": 241,
+              "bytes": 9866
+            }
+          ],
+          "read_bytes": 13306,
+          "frequency": "At plot ignition, per altitude and per autonomous topology operation. Direct and inherited L4 paths exist in pinned prose. Interactive branch remains the primary path.",
+          "reuse": "run-outward, run-record-prd --classify, run-start, lights-out, run checkpoint, contain --record, contract l4-topology-envelope and existing intake provenance.",
+          "verify": "Extend test/run-outward.test.mjs, test/run-trigger.test.mjs, test/run-checkpoint.test.mjs and contract golden cases for fault/refuse zero writes, nested ownership, root placement, cached ancestry refused and sibling completion after HALT."
+        },
+        {
+          "name": "PRDR proposal and admission step composition",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/methodology.md",
+              "heading": "Authored-PRDR level-scaling, Manual changes, upper gate",
+              "first": 82,
+              "last": 89,
+              "bytes": 4628
+            },
+            {
+              "path": "plugin/skills/faff-jot/SKILL.md",
+              "heading": "Propose a project DoD",
+              "first": 84,
+              "last": 84,
+              "bytes": 1044
+            },
+            {
+              "path": "plugin/skills/faff-plot/SKILL.md",
+              "heading": "Step 5b Project DoD",
+              "first": 81,
+              "last": 90,
+              "bytes": 2058
+            },
+            {
+              "path": "plugin/skills/faff-plot/SKILL.md",
+              "heading": "Step 5b/5c L4 PRDR admission and smoke",
+              "first": 243,
+              "last": 266,
+              "bytes": 5711
+            }
+          ],
+          "read_bytes": 13441,
+          "frequency": "Per created project in jot, plot, rehome, tidy and lights-out flow when configured output answers. L4 adjudicates every Proposed PRDR that is in scope.",
+          "reuse": "prdr new/yagni/admit/accept, contract prdr-admission, prdr coverage and existing PRD goal parsing. Prefer reusing gate surfaces and do not bring any new hosted-write authority into CLI.",
+          "verify": "Extend test/prdr-loop-admit.test.mjs and contract cases, covering all refusal reasons and preservation of Proposed on each path. Measure integration at existing orchestration boundary rather than create a new harness."
+        }
+      ]
+    },
+    {
+      "rank": 24,
+      "name": "Plan discovered-scope filing and rehome operations",
+      "determinism": "Medium",
+      "frequency": "Per concrete discovered item or proposed rehome",
+      "net_estimate_bytes": [
+        3000,
+        6000
+      ],
+      "net_estimate_tokens": [
+        750,
+        1500
+      ],
+      "benefit": "One plan binds provenance, ownership and the intended parent, with a consistent contain/self-intake decision.",
+      "first_slice_and_dependencies": "Require fresh destination facts from the discovered connector. Judgement handles semantic duplicates. A create or relink needs acknowledgement before bookkeeping.",
+      "status": "proposed",
+      "gross_inspected_bytes": 34062,
+      "source_inspections": [
+        {
+          "name": "Discovered-scope and chain-gap filing plans",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "7. Wave drain",
+              "first": 242,
+              "last": 247,
+              "bytes": 1260
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "8. Wave re-entry",
+              "first": 253,
+              "last": 255,
+              "bytes": 1772
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "10. File discovered-scope tickets",
+              "first": 285,
+              "last": 302,
+              "bytes": 7423
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "Containment at the filing chokepoint",
+              "first": 304,
+              "last": 323,
+              "bytes": 3045
+            },
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "Orchestrator-lane capture",
+              "first": 325,
+              "last": 331,
+              "bytes": 2661
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Discovered scope (record, never file)",
+              "first": 511,
+              "last": 522,
+              "bytes": 3342
+            },
+            {
+              "path": "plugin/skills/faff-tidy/SKILL.md",
+              "heading": "5. Structural diagnostics",
+              "first": 130,
+              "last": 138,
+              "bytes": 4206
+            },
+            {
+              "path": "plugin/skills/faff-tidy/SKILL.md",
+              "heading": "Log-only (no tracker changes in autonomous mode)",
+              "first": 310,
+              "last": 310,
+              "bytes": 2504
+            }
+          ],
+          "read_bytes": 26213,
+          "frequency": "Per concrete discovered item at L4 return, per wave at L3 default/L4 and at run close; also per eligible chain gap during tidy.",
+          "reuse": "contain.js, self-intake.js, run-outward.js, intake-provenance.js, discovered-scope-priority.js, run-ledger.js, ids.ts. No discovered-scope writer found in audited bin/lib.",
+          "verify": "Fixtures for same-team self-intake, unfamiliar/unknown/cyclic ancestry, out-of-mandate all appetite levels, all four relation types, replay after partial create, and routed-out count; run self-intake and FAFF-1399 priority tests."
+        },
+        {
+          "name": "Create/relink and rehome plans over live facts",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-jot/SKILL.md",
+              "heading": "Idempotent create and link authoring",
+              "first": 90,
+              "last": 98,
+              "bytes": 2158
+            },
+            {
+              "path": "plugin/skills/faff-plot/SKILL.md",
+              "heading": "Write the skeleton retry discipline",
+              "first": 79,
+              "last": 79,
+              "bytes": 733
+            },
+            {
+              "path": "plugin/skills/faff-plot/SKILL.md",
+              "heading": "Dispatch, render, confirm and apply rehome",
+              "first": 121,
+              "last": 154,
+              "bytes": 4958
+            }
+          ],
+          "read_bytes": 7849,
+          "frequency": "Jot and plot create once per approved node and conditionally re-query per ambiguous write/re-slice. Beep-boop discovered filing also references create discipline. Rehome runs on explicit plot rehome only.",
+          "reuse": "Use existing IDs, labels, config and intake-record. Can use existing test/mock-tracker infrastructure. Methodology rehome-set already defines the proposal shape.",
+          "verify": "Timeout-after-success, zero/multiple title matches, multi-team identity, rejected/trimmed edge, incomplete or duplicate partition membership, stale member and partial results using existing mock tracker in test/."
+        }
+      ]
+    },
+    {
+      "rank": 25,
+      "name": "Prepare ADRs and decisions-register records",
+      "determinism": "Medium",
+      "frequency": "Once per recorded decision, with a possible supersession",
+      "net_estimate_bytes": [
+        1500,
+        3200
+      ],
+      "net_estimate_tokens": [
+        375,
+        800
+      ],
+      "benefit": "Derive the right predecessor, number and path and avoid a second record after retrying the same accepted decision.",
+      "first_slice_and_dependencies": "Reuse ADR and decisions commands. Keep decision rationale and confirmation of supersession with the operator.",
+      "status": "proposed",
+      "gross_inspected_bytes": 18916,
+      "source_inspections": [
+        {
+          "name": "Graft ADR and decisions-register materialisation",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 4b: Materialise ADR promotions (body authored by the `adr` slot)",
+              "first": 177,
+              "last": 192,
+              "bytes": 8067
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 4c: Reconcile-before-materialise a decisions-register intent",
+              "first": 194,
+              "last": 206,
+              "bytes": 4327
+            },
+            {
+              "path": "plugin/skills/faff-prep/SKILL.md",
+              "heading": "Decisions-register capture step (shared subroutine)",
+              "first": 285,
+              "last": 308,
+              "bytes": 2761
+            },
+            {
+              "path": "plugin/skills/faff-prep/SKILL.md",
+              "heading": "Decisions-register reconcile step (shared subroutine)",
+              "first": 310,
+              "last": 320,
+              "bytes": 2287
+            }
+          ],
+          "read_bytes": 17442,
+          "frequency": "Only for ADR promotion or human-confirmed register intents during prep/reprep and graft. Repeats with multiple decisions per issue.",
+          "reuse": "adr.js (new, extract-intent, live-decisions, admit, supersede, validate), decisions.js (intent-status, validate), conventions.js, effects.js.",
+          "verify": "test/adr-extract-intent.test.mjs, test/adr-format.test.mjs, test/adr-l3.test.mjs, test/decisions-intent-status.test.mjs and partial-commit, tracker body precedence, rerun and conflict fixtures."
+        },
+        {
+          "name": "List and confirm pending ADR supersessions",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-wtf/SKILL.md",
+              "heading": "ADR supersession proposals awaiting ratification",
+              "first": 80,
+              "last": 86,
+              "bytes": 1474
+            }
+          ],
+          "read_bytes": 1474,
+          "frequency": "One optional read per wtf pass, local candidates appear after autonomous graft writes proposals.",
+          "reuse": "adr supersede remains sole linker. Reuse ADR readers and add a narrow proposal reader/completion operation if recurrence warrants it.",
+          "verify": "Temp repo tests for malformed/legacy and missing proposals, denied decision, failed linker and success cleanup only."
+        }
+      ]
+    },
+    {
+      "rank": 26,
+      "name": "Bind premise-supersession evidence",
+      "determinism": "Medium",
+      "frequency": "When prep or graft encounters a changed premise",
+      "net_estimate_bytes": [
+        800,
+        1800
+      ],
+      "net_estimate_tokens": [
+        200,
+        450
+      ],
+      "benefit": "Carry the supplied old/new evidence into a closure proposal and stable audit record.",
+      "first_slice_and_dependencies": "The model determines whether the premise actually changed. Exercise missing predecessor and human disagreement.",
+      "status": "proposed",
+      "gross_inspected_bytes": 4605,
+      "source_inspections": [
+        {
+          "name": "Premise-supersession evidence and close record",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 2: Check prep gate",
+              "first": 104,
+              "last": 117,
+              "bytes": 3357
+            },
+            {
+              "path": "plugin/skills/faff-prep/SKILL.md",
+              "heading": "Shared subroutine: already-shipped scan + premise-superseded gate",
+              "first": 505,
+              "last": 512,
+              "bytes": 1248
+            }
+          ],
+          "read_bytes": 4605,
+          "frequency": "Prep paths that run the premise scan and grafts past admission, with close write only on verified deliverable overlap.",
+          "reuse": "graft-admit.ts, reconcile.js `reconcileSuperseded`, `supersession.json` as described in skill. Run summary already recognizes superseded. No authoritative producer writer in bin/lib found.",
+          "verify": "Extend reconcile tests and add fully covered, partial, cancelled terminal as insufficient proof, wrong base, no verifiable ticket, missing record and close replay."
+        }
+      ]
+    },
+    {
+      "rank": 27,
+      "name": "Map a verified merge receipt to delivery output",
+      "determinism": "High",
+      "frequency": "Per ship operation",
+      "net_estimate_bytes": [
+        2400,
+        4500
+      ],
+      "net_estimate_tokens": [
+        600,
+        1125
+      ],
+      "benefit": "All ship callers get the same terminal state from the actual merge-gate receipt, including an incomplete deploy.",
+      "first_slice_and_dependencies": "Read the existing receipt. Keep deployment decisions and merge authority in ship and the gate. Test refused and partially observed outcomes.",
+      "status": "proposed",
+      "gross_inspected_bytes": 6111,
+      "source_inspections": [
+        {
+          "name": "Delivery outcome from merge-gate receipt",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+              "heading": "How the default runs it",
+              "first": 43,
+              "last": 47,
+              "bytes": 2960
+            },
+            {
+              "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+              "heading": "How the default runs it",
+              "first": 49,
+              "last": 56,
+              "bytes": 1391
+            },
+            {
+              "path": "plugin/skills/faffter-noon-ship/SKILL.md",
+              "heading": "Contract artifact",
+              "first": 58,
+              "last": 74,
+              "bytes": 1760
+            }
+          ],
+          "read_bytes": 6111,
+          "frequency": "Once per default ship invocation that reaches merge. Local/forge and interactive/dispatched calls use the same receipt logic.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/merge-gate.js:53 cmdMergeGate; merge-gate-classify.js; contract-defs-delivery.js computeDeliveryOutcome"
+          ],
+          "verify": "test/merge-gate.test.mjs, test/merge-gate-local.test.mjs and test/merge-gate-controlflow.test.mjs, plus partial custody flags, unconfirmed outcomes, precondition and local parity receipts."
+        }
+      ]
+    },
+    {
+      "rank": 28,
+      "name": "Plan tracker transitions and bracket effects",
+      "determinism": "High",
+      "frequency": "Per claim, status move or governed external change",
+      "net_estimate_bytes": [
+        1200,
+        3000
+      ],
+      "net_estimate_tokens": [
+        300,
+        750
+      ],
+      "benefit": "Emit a forward-only descriptor and join its acknowledgement to the right effect record.",
+      "first_slice_and_dependencies": "The Git ref compare-and-swap in build-claim already owns the claim. Tracker status is a breadcrumb. Preserve the live reread, human changes and existing MCP.",
+      "status": "proposed",
+      "gross_inspected_bytes": 14063,
+      "source_inspections": [
+        {
+          "name": "Tracker status transition and claim planning",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/build.md",
+              "heading": "Issue claim and status monotonicity",
+              "first": 19,
+              "last": 28,
+              "bytes": 3994
+            }
+          ],
+          "read_bytes": 3994,
+          "frequency": "Graft claim per candidate. Build reference lists four status writer loci: graft, ship, tidy and beep-boop post-merge. Tidy periodically handles proven stale claims.",
+          "reuse": "Existing build-claim owns the origin ref compare-and-swap. Preserve claim/intent decisions there and use only the missing tracker planning step.",
+          "verify": "Existing test/graft-admit.test.mjs and claim/hold tests. Cover both carve-outs, TTL boundary, human claims, live eligibility reread and no downgrade of shipped/review states."
+        },
+        {
+          "name": "Tracker transition descriptors and governed effect brackets",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 5: Claim the issue (the build-claim ref is the mutex; In Progress + faff-claimed are breadcrumbs) + status-monotonicity guard",
+              "first": 212,
+              "last": 220,
+              "bytes": 5326
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 9b: Open the PR (after review `pass` — identical interactive + autonomous)",
+              "first": 485,
+              "last": 503,
+              "bytes": 2266
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 10: Merge-confidence gate",
+              "first": 563,
+              "last": 568,
+              "bytes": 2477
+            }
+          ],
+          "read_bytes": 10069,
+          "frequency": "Claim and PR-open boundaries per successful graft, with merge records for governed top-level merges.",
+          "reuse": "bundle.js (`build-claim` CAS), label.js, native-map.js, pr-open.ts returns tracker_transition, effects.js, merge-authorize.ts, commissaire.ts and merge-gate.js.",
+          "verify": "test/graft-in-review-bracket.test.mjs, test/pr-open.test.mjs, test/effects.test.mjs and test/merge-gate-commissaire-verify.test.mjs, plus forward-rank, no capability, connector error, effect order and scope mismatch."
+        }
+      ]
+    },
+    {
+      "rank": 29,
+      "name": "Prepare onboarding detection, preview and apply",
+      "determinism": "Medium",
+      "frequency": "Once per install or explicit reconfiguration",
+      "net_estimate_bytes": [
+        3500,
+        6500
+      ],
+      "net_estimate_tokens": [
+        875,
+        1625
+      ],
+      "benefit": "Normalize local signals and generate a preview that can be replayed exactly on apply.",
+      "first_slice_and_dependencies": "Resolve gateway/onboard first-run and prefix disagreements. Preserve operator choice and existing config writes. Large prompt, low repeated usage.",
+      "status": "proposed",
+      "gross_inspected_bytes": 12744,
+      "source_inspections": [
+        {
+          "name": "Onboarding local detection, preview, apply and first-run stub",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/SKILL.md",
+              "heading": "First run",
+              "first": 51,
+              "last": 61,
+              "bytes": 1322
+            },
+            {
+              "path": "plugin/skills/faff-onboard/SKILL.md",
+              "heading": "Resolve mode, Bail first, Detect",
+              "first": 43,
+              "last": 76,
+              "bytes": 4582
+            },
+            {
+              "path": "plugin/skills/faff-onboard/SKILL.md",
+              "heading": "Local mode label-prefix derivation",
+              "first": 89,
+              "last": 89,
+              "bytes": 552
+            },
+            {
+              "path": "plugin/skills/faff-onboard/SKILL.md",
+              "heading": "Preview, Persist the native map, Ensurers, Re-run never clobbers",
+              "first": 100,
+              "last": 152,
+              "bytes": 4894
+            },
+            {
+              "path": "plugin/skills/faff-onboard/SKILL.md",
+              "heading": "Rules",
+              "first": 166,
+              "last": 174,
+              "bytes": 1394
+            }
+          ],
+          "read_bytes": 12744,
+          "frequency": "Bare gateway tests first-run once per interactive entry. Onboard handles initial setup or explicit local overlay write. Mechanical apply is once per confirmed configuration, plus an optional separately confirmed native map.",
+          "reuse": "config path/init/set/check, resolveLabelPrefix and validation, conventions mine, profile's remote reader, gitignore-ensure, hooks-ensure and native-map. Use current worktree-aware paths and do not relax writer allowlists implicitly.",
+          "verify": "test/onboard-local.test.mjs, test/config-*.test.mjs and test/native-map.test.mjs for legacy config, decline then onboarding, overlay/no clobber, config changed after preview, private remote URL and partial failure between writers."
+        }
+      ]
+    },
+    {
+      "rank": 30,
+      "name": "Scaffold and validate slot packages",
+      "determinism": "Medium",
+      "frequency": "Per adaptor authoring session",
+      "net_estimate_bytes": [
+        2000,
+        3500
+      ],
+      "net_estimate_tokens": [
+        500,
+        875
+      ],
+      "benefit": "Generate the supported layout and flag structural violations at authoring time.",
+      "first_slice_and_dependencies": "Reuse validate-adapters and existing manifests. Semantic conformance still requires review.",
+      "status": "proposed",
+      "gross_inspected_bytes": 5658,
+      "source_inspections": [
+        {
+          "name": "Slot scaffold and structural validation",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+              "heading": "Conformance checklist (what Validate checks, what Author bakes in)",
+              "first": 43,
+              "last": 52,
+              "bytes": 3240
+            },
+            {
+              "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+              "heading": "Author face",
+              "first": 54,
+              "last": 74,
+              "bytes": 911
+            },
+            {
+              "path": "plugin/skills/faffter-dark-authoring-adaptors/SKILL.md",
+              "heading": "Validate face",
+              "first": 76,
+              "last": 90,
+              "bytes": 1507
+            }
+          ],
+          "read_bytes": 5658,
+          "frequency": "One per scaffold or requested validation. Runtime validation is for each configured foreign occupant before first use, per lines 94-96.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/validate-adapters.js:1156 cmdValidateAdapters and its structural profiles; docs/reference/skill-authoring.md"
+          ],
+          "verify": "test/validate-adapters.test.mjs and test/validate-adapters-delegation.test.mjs, with scaffold golden files and explicit foreign-path cases."
+        }
+      ]
+    },
+    {
+      "rank": 31,
+      "name": "Plan and provision the local environment transaction",
+      "determinism": "High",
+      "frequency": "Per applicable environment setup and recovery",
+      "net_estimate_bytes": [
+        5000,
+        9000
+      ],
+      "net_estimate_tokens": [
+        1250,
+        2250
+      ],
+      "benefit": "Resolve profile inputs and exact cleanup ownership so recovery cannot delete resources owned by another run.",
+      "first_slice_and_dependencies": "Defer until fallback, teardown order and seed ownership are reconciled. Test partial provisioning, external services and concurrent teardown. Keep provider and hosted operations at their current boundaries.",
+      "status": "proposed",
+      "gross_inspected_bytes": 16090,
+      "source_inspections": [
+        {
+          "name": "Environment plan, bridge contribution and provision transaction",
+          "sections": [
+            {
+              "path": "plugin/skills/faffter-noon-env-compose/SKILL.md",
+              "heading": "How it provisions",
+              "first": 32,
+              "last": 39,
+              "bytes": 5433
+            },
+            {
+              "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+              "heading": "How it provisions",
+              "first": 28,
+              "last": 65,
+              "bytes": 4474
+            },
+            {
+              "path": "plugin/skills/faffter-noon-env-code-interface/SKILL.md",
+              "heading": "Output",
+              "first": 67,
+              "last": 86,
+              "bytes": 2124
+            },
+            {
+              "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+              "heading": "How it resolves",
+              "first": 27,
+              "last": 64,
+              "bytes": 2840
+            },
+            {
+              "path": "plugin/skills/faffter-noon-transport-private-network/SKILL.md",
+              "heading": "Output",
+              "first": 66,
+              "last": 77,
+              "bytes": 1219
+            }
+          ],
+          "read_bytes": 16090,
+          "frequency": "One transaction and transport resolution per fresh env, one bridge contribution per selected code component.",
+          "reuse": [
+            "plugin/skills/faff/bin/lib/env.js:360 envValidateBaseHost, :390 composeGen, :649 cmdEnv and up/seed/down legs, envResolveEndpoint",
+            "plugin/skills/faff/bin/lib/manifest.js:154 cmdManifest; bundled faff-bridge-node.mjs; fixed env-handle contract"
+          ],
+          "verify": "Run test/env.test.mjs, test/faff-bridge-node.test.mjs and test/holdout-rpc-evaluate-integration.test.mjs. Inject health/seed/down failure and add topology matrix, simultaneous bridge contributions, one Compose bring-up and path/credential isolation."
+        }
+      ]
+    },
+    {
+      "rank": 32,
+      "name": "Resolve tidy's release gate",
+      "determinism": "High",
+      "frequency": "Per active DoD project when its children are all done",
+      "net_estimate_bytes": null,
+      "net_estimate_tokens": null,
+      "benefit": "Turn the holdout lookup and coverage result into one local project-next input and audit reason.",
+      "first_slice_and_dependencies": "No-association instructions require a hold. Cold coverage can pass on persisted verdicts. Define precedence and prove both histories before replacing the prose. Preserve live-status reread before every tracker write.",
+      "status": "held",
+      "gross_inspected_bytes": 8232,
+      "source_inspections": [
+        {
+          "name": "Tidy container state coherence and release-gate assembly",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-tidy/SKILL.md",
+              "heading": "8. State coherence (container status follows its children)",
+              "first": 194,
+              "last": 216,
+              "bytes": 6682
+            },
+            {
+              "path": "plugin/skills/faff-tidy/SKILL.md",
+              "heading": "Auto-actions (applied without prompting)",
+              "first": 296,
+              "last": 296,
+              "bytes": 1550
+            }
+          ],
+          "read_bytes": 8232,
+          "frequency": "Per active container in every tidy pass with child data; holdout/coverage only for has-DoD all-done projects.",
+          "reuse": "project-next.js, prdr.js, admissibility.js (`holdout verdicts`), decision-capture.js, native-map.js.",
+          "verify": "test/project-next.test.mjs, test/holdout-verdicts.test.mjs plus has-DoD all-done with missing/unverified/failed/pass and no PRDR/rename cases."
+        }
+      ]
+    },
+    {
+      "rank": 33,
+      "name": "Splice a review comment without changing human text",
+      "determinism": "High",
+      "frequency": "Per published terminal review comment",
+      "net_estimate_bytes": null,
+      "net_estimate_tokens": null,
+      "benefit": "Select the canonical comment and replace only the owned region byte for byte.",
+      "first_slice_and_dependencies": "Reuse the existing draft planner and CRLF tests. Confirm behaviour through the discovered tracker MCP, including pagination and uncertain acknowledgements. Keep the additional MCP transport out of the landing queue.",
+      "status": "held",
+      "gross_inspected_bytes": 4335,
+      "source_inspections": [
+        {
+          "name": "Review comment selection and byte-preserving splice",
+          "sections": [
+            {
+              "path": "plugin/skills/faff/references/review.md",
+              "heading": "Review-findings comment identity",
+              "first": 5,
+              "last": 26,
+              "bytes": 4335
+            }
+          ],
+          "read_bytes": 4335,
+          "frequency": "Once per terminal graft review that emits a tracker findings comment. Graft is the writer and both concurrency occupants can reach it. Prep loads the review reference for other rules.",
+          "reuse": "The review-comment planner and byte-fidelity tests already exist on the draft branch. #1187 proposes policy decisions, #1216 adds a separate connector. Salvage the pure transformations after resolving the existing connector handoff.",
+          "verify": "Replay the decided normal and edge cases, CRLF and ambiguous/lost acknowledgements through the discovered connector. Hosted byte-preserving application remains unqualified."
+        }
+      ]
+    },
+    {
+      "rank": 34,
+      "name": "Resume landing and classify a failed fix",
+      "determinism": "High",
+      "frequency": "Per resumed PR or failed fix attempt",
+      "net_estimate_bytes": null,
+      "net_estimate_tokens": null,
+      "benefit": "Compare pinned heads and repeated failures, keep pending/deadline cycles out of the count, and preserve the human shadow handoff.",
+      "first_slice_and_dependencies": "The classifier is in #1231 and saves 3,091 bytes. Remaining resume-admission work shares this source range and needs a new baseline. Count no additional saving for it here.",
+      "status": "in PR",
+      "gross_inspected_bytes": 13694,
+      "source_inspections": [
+        {
+          "name": "Landing resume admission and fix-cycle transitions",
+          "sections": [
+            {
+              "path": "plugin/skills/faff-beep-boop/SKILL.md",
+              "heading": "4. Build queue assembly",
+              "first": 213,
+              "last": 223,
+              "bytes": 3634
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 10: Merge-confidence gate",
+              "first": 526,
+              "last": 526,
+              "bytes": 906
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "Step 10: Merge-confidence gate",
+              "first": 587,
+              "last": 618,
+              "bytes": 2774
+            },
+            {
+              "path": "plugin/skills/faff-graft/SKILL.md",
+              "heading": "The staged fix cycle (CONFLICTING and CI_RED_REGRESSION)",
+              "first": 620,
+              "last": 674,
+              "bytes": 6380
+            }
+          ],
+          "read_bytes": 13694,
+          "frequency": "Each autonomous top-level landing path, often through repeated CI polls; every previously stranded In Review candidate may visit admission.",
+          "reuse": "PR #1231 implements the fix assessor. Check native land and landing-progress first for any remaining resume operation. #1228 handles other delivery and no-CI routing.",
+          "verify": "test/landing-progress.test.mjs and test/ci-triage.test.mjs plus expired/claimed cross-executor replay, cap-entry, retry without record while pending, unrelated check failures, shadow and exact-head fixtures."
+        }
+      ]
+    }
+  ]
+}

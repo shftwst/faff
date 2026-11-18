@@ -1,0 +1,359 @@
+{
+  "assessment": "Claude Code, one independent caller per arm, seven supplied scenarios each. The actual next actions in both responses were compared to the expected routes below. Each candidate case invoked the shipped assessor. Checkpoint writes, further polling and external effects were simulated.",
+  "baseline_source": "a0e84c3cb28213367523ad825cabb6919c572185",
+  "candidate_source": "c5238f9f4eadb7eb1c6710964ce9f2f16162c1b9",
+  "implementation_pr": "https://github.com/shftwst/faff/pull/1231",
+  "subsequent_verification": "The assessed skill prompt and classifier are byte-identical at the published head. The pagination wiring for obtaining observations was corrected subsequently and exercised through the actual CLI with fixture pages, a failure on the second page and a read-only query against GitHub.",
+  "cases": [
+    {
+      "id": "no-push",
+      "mode": "unattended",
+      "before": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "needs-fix",
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "reason": "regression",
+        "failing_checks": [
+          "unit",
+          "lint"
+        ]
+      },
+      "after": null,
+      "pushed_head": null,
+      "fix_cycles_before": 2
+    },
+    {
+      "id": "still-red",
+      "mode": "unattended",
+      "before": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "needs-fix",
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "reason": "regression",
+        "failing_checks": [
+          "unit",
+          "lint"
+        ]
+      },
+      "after": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "needs-fix",
+        "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "reason": "regression",
+        "failing_checks": [
+          "unit",
+          "typecheck"
+        ]
+      },
+      "pushed_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "fix_cycles_before": 0
+    },
+    {
+      "id": "different-red",
+      "mode": "unattended",
+      "before": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "needs-fix",
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "reason": "regression",
+        "failing_checks": [
+          "unit",
+          "lint"
+        ]
+      },
+      "after": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "needs-fix",
+        "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "reason": "regression",
+        "failing_checks": [
+          "docs"
+        ]
+      },
+      "pushed_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "fix_cycles_before": 1
+    },
+    {
+      "id": "pending",
+      "mode": "unattended",
+      "before": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "needs-fix",
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "reason": "regression",
+        "failing_checks": [
+          "unit",
+          "lint"
+        ]
+      },
+      "after": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "pending"
+      },
+      "pushed_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "fix_cycles_before": 1
+    },
+    {
+      "id": "expired",
+      "mode": "shadow",
+      "before": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "needs-fix",
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "reason": "regression",
+        "failing_checks": [
+          "unit",
+          "lint"
+        ]
+      },
+      "after": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "landing-resumable"
+      },
+      "pushed_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "fix_cycles_before": 1
+    },
+    {
+      "id": "shadow-clear",
+      "mode": "shadow",
+      "before": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "needs-fix",
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "reason": "conflict"
+      },
+      "after": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "ready",
+        "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "pushed_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "fix_cycles_before": 1
+    },
+    {
+      "id": "same-conflict",
+      "mode": "unattended",
+      "before": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "needs-fix",
+        "head_sha": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "reason": "conflict"
+      },
+      "after": {
+        "issue": "AUDIT-1",
+        "pr": 7,
+        "token": "needs-fix",
+        "head_sha": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "reason": "conflict"
+      },
+      "pushed_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "fix_cycles_before": 0
+    }
+  ],
+  "expected_route_count_failed_checks": {
+    "no-push": [
+      "park-budget",
+      3,
+      [
+        "lint",
+        "unit"
+      ]
+    ],
+    "still-red": [
+      "continue",
+      1,
+      [
+        "typecheck",
+        "unit"
+      ]
+    ],
+    "different-red": [
+      "continue",
+      1,
+      []
+    ],
+    "pending": [
+      "observe",
+      1,
+      []
+    ],
+    "expired": [
+      "landing-resumable",
+      1,
+      []
+    ],
+    "shadow-clear": [
+      "park-shadow",
+      1,
+      []
+    ],
+    "same-conflict": [
+      "continue",
+      1,
+      []
+    ]
+  },
+  "observations": {
+    "before": {
+      "responses": [
+        {
+          "id": "no-push",
+          "next_action": "record failed cycle (fix not pushed; kind regression, pre-fix failing checks, pre head), then park_or_continue: fix_cycles now 3 -> hard-park reason landing-fix-budget-exhausted with diagnosis, return pr-open-for-human",
+          "record_failed_cycle": true,
+          "resulting_count": 3,
+          "failing_checks": [
+            "lint",
+            "unit"
+          ],
+          "checkpoint_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "id": "still-red",
+          "next_action": "cycle failed (post CI_RED_REGRESSION, pre {lint,unit} and post {typecheck,unit} share unit): record failed cycle on the fix head, then park_or_continue: fix_cycles 1 < 3 -> return CONTINUE (landing loop continues)",
+          "record_failed_cycle": true,
+          "resulting_count": 1,
+          "failing_checks": [
+            "typecheck",
+            "unit"
+          ],
+          "checkpoint_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "id": "different-red",
+          "next_action": "cycle resolved for same_class (post regression but failing set {docs} does not intersect pre {lint,unit}): no counter increment; unattended -> return CONTINUE (loop continues and re-handles the new state)",
+          "record_failed_cycle": false,
+          "resulting_count": 1,
+          "failing_checks": [],
+          "checkpoint_head": null
+        },
+        {
+          "id": "pending",
+          "next_action": "do not classify while pending: keep observing \u2014 re-invoke faff land until it returns a token other than pending, then classify the terminal state (or return landing-resumable on deadline)",
+          "record_failed_cycle": false,
+          "resulting_count": 1,
+          "failing_checks": [],
+          "checkpoint_head": null
+        },
+        {
+          "id": "expired",
+          "next_action": "observe_to_terminal hit the loop deadline (landing-resumable): no classification, no cycle recorded; return landing-resumable with the PR open",
+          "record_failed_cycle": false,
+          "resulting_count": 1,
+          "failing_checks": [],
+          "checkpoint_head": null
+        },
+        {
+          "id": "shadow-clear",
+          "next_action": "cycle resolved (post ready, not CONFLICTING); shadow -> leave_for_human reason autofix-shadow, note \"autofix (shadow): fix pushed, merge left for human\", return pr-open-for-human",
+          "record_failed_cycle": false,
+          "resulting_count": 1,
+          "failing_checks": [],
+          "checkpoint_head": null
+        },
+        {
+          "id": "same-conflict",
+          "next_action": "cycle failed (post still CONFLICTING): record failed conflict cycle on the fix head, then park_or_continue: fix_cycles 1 < 3 -> return CONTINUE",
+          "record_failed_cycle": true,
+          "resulting_count": 1,
+          "failing_checks": [],
+          "checkpoint_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "assessment_calls": []
+    },
+    "after": {
+      "responses": [
+        {
+          "id": "no-push",
+          "assessment": "record-failed",
+          "next_action": "Record the failed cycle, re-read the counter (3), hard-park with reason landing-fix-budget-exhausted and the recorded history, return pr-open-for-human. Push nothing.",
+          "record_failed_cycle": true,
+          "resulting_count": 3,
+          "failing_checks": [
+            "lint",
+            "unit"
+          ],
+          "checkpoint_head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        {
+          "id": "still-red",
+          "assessment": "record-failed",
+          "next_action": "Record the failed cycle, re-read the counter (1, below three), continue the landing loop.",
+          "record_failed_cycle": true,
+          "resulting_count": 1,
+          "failing_checks": [
+            "typecheck",
+            "unit"
+          ],
+          "checkpoint_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        {
+          "id": "different-red",
+          "assessment": "continue",
+          "next_action": "Re-enter the landing loop without incrementing; it handles the new docs failure on the fix head as a fresh observation. Only its READY branch hands off to ship through the merge gate.",
+          "record_failed_cycle": false,
+          "resulting_count": 1,
+          "failing_checks": [],
+          "checkpoint_head": null
+        },
+        {
+          "id": "pending",
+          "assessment": "observe-again",
+          "next_action": "Re-invoke faff land --fix-checks --json on the PR, then run faff land assess-fix --mode unattended --before pending-before.json --pushed bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb --after <fresh after file> against the original before file. Write no checkpoint while pending.",
+          "record_failed_cycle": false,
+          "resulting_count": 1,
+          "failing_checks": [],
+          "checkpoint_head": null
+        },
+        {
+          "id": "expired",
+          "assessment": "landing-resumable",
+          "next_action": "The 25-minute landing deadline elapsed: leave PR #7 open and return landing-resumable without recording a cycle.",
+          "record_failed_cycle": false,
+          "resulting_count": 1,
+          "failing_checks": [],
+          "checkpoint_head": null
+        },
+        {
+          "id": "shadow-clear",
+          "assessment": "park-shadow",
+          "next_action": "Leave for a human with reason autofix-shadow and the note 'autofix (shadow): fix pushed, merge left for human'; return pr-open-for-human.",
+          "record_failed_cycle": false,
+          "resulting_count": 1,
+          "failing_checks": [],
+          "checkpoint_head": null
+        },
+        {
+          "id": "same-conflict",
+          "assessment": "record-failed",
+          "next_action": "Record the failed conflict cycle, re-read the counter (1, below three), continue the landing loop.",
+          "record_failed_cycle": true,
+          "resulting_count": 1,
+          "failing_checks": [],
+          "checkpoint_head": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        }
+      ],
+      "assessment_calls": [
+        "land assess-fix --mode unattended --before no-push-before.json",
+        "land assess-fix --mode unattended --before still-red-before.json --pushed bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb --after still-red-after.json",
+        "land assess-fix --mode unattended --before different-red-before.json --pushed bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb --after different-red-after.json",
+        "land assess-fix --mode unattended --before pending-before.json --pushed bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb --after pending-after.json",
+        "land assess-fix --mode shadow --before expired-before.json --pushed bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb --after expired-after.json",
+        "land assess-fix --mode shadow --before shadow-clear-before.json --pushed bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb --after shadow-clear-after.json",
+        "land assess-fix --mode unattended --before same-conflict-before.json --pushed bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb --after same-conflict-after.json"
+      ]
+    }
+  }
+}

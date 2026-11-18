@@ -17,18 +17,22 @@ Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 | [1217](https://github.com/shftwst/faff/pull/1217), concurrency paragraphs | 2,498 B | 614 | Merged |
 | [1218](https://github.com/shftwst/faff/pull/1218), six producer/routing paragraphs | 3,497 B | 861 | Merged |
 | [1219](https://github.com/shftwst/faff/pull/1219), prep context command | 1,679 B | 413 | Merged |
-| [1220](https://github.com/shftwst/faff/pull/1220), defer onboarding tracker guidance | 104 B | 26 | Open |
-| [1221](https://github.com/shftwst/faff/pull/1221), shared autonomous guidance | 2,056 B | 504 | Open |
-| [1222](https://github.com/shftwst/faff/pull/1222), tidy housekeeping | 4,938 B | 1,217 | Open |
-| [1223](https://github.com/shftwst/faff/pull/1223), shared methodology contract | 2,254 B | 553 | Open |
-| [1224](https://github.com/shftwst/faff/pull/1224), interactive roadmap planning | 1,030 B | 248 | Open |
-| [1225](https://github.com/shftwst/faff/pull/1225), beep-boop reporting | 1,454 B | 356 | Open |
+| [1220](https://github.com/shftwst/faff/pull/1220), defer onboarding tracker guidance | 104 B | 26 | Merged |
+| [1221](https://github.com/shftwst/faff/pull/1221), shared autonomous guidance | 2,056 B | 504 | Merged |
+| [1222](https://github.com/shftwst/faff/pull/1222), tidy housekeeping | 4,938 B | 1,217 | Merged |
+| [1223](https://github.com/shftwst/faff/pull/1223), shared methodology contract | 2,254 B | 553 | Merged |
+| [1224](https://github.com/shftwst/faff/pull/1224), interactive roadmap planning | 1,030 B | 248 | Merged |
+| [1225](https://github.com/shftwst/faff/pull/1225), beep-boop reporting | 1,454 B | 356 | Merged |
 | [1226](https://github.com/shftwst/faff/pull/1226), jot ticket inspection | 880 B | 216 | Open |
 | [1227](https://github.com/shftwst/faff/pull/1227), beep-boop closing reminders | 2,067 B | 512 | Open |
 | [1228](https://github.com/shftwst/faff/pull/1228), graft delivery and no-CI routing | 2,198 B | 541 | Open |
+| [1230](https://github.com/shftwst/faff/pull/1230), tidy container transition recap | 1,568 B | 384 | Open |
+| [1231](https://github.com/shftwst/faff/pull/1231), graft post-fix assessment | 3,091 B | 767 | Open |
 
-Merged savings since the quick-pass starting main total **163,137 bytes / 40,145 estimated tokens**. Main totals **1,208,944 bytes / 299,784 estimated tokens** across 41 covered files. The 9 open reduction PRs save another 16,981 bytes and 4,173 estimated tokens. The tidy follow-up behind #1222 adds 1,568 bytes and 384 estimated tokens to the projection once it merges. Together those changes would bring the reduction since the original baseline to 181,686 bytes and 44,702 estimated tokens (13.24% by bytes). Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
+Merged savings since the quick-pass starting main total **174,973 bytes / 43,049 estimated tokens**. Main totals **1,197,108 bytes / 296,880 estimated tokens** across 41 covered files. The 5 open reduction PRs save another 9,804 bytes and 2,420 estimated tokens, for a cumulative projection of 184,777 bytes and 45,469 estimated tokens (13.47% by bytes). Onboarding can also avoid a 22,649-byte (5,615 estimated token) cold reference read when configuration checks stop setup before detection. Interactive jot inspection with a resolved tracker can also avoid reading the 7,429-byte creation reference (1,840 estimated tokens). Both path-specific estimates are excluded from installed totals.
 Local and held reductions are excluded from both totals.
+
+Claude Code matched the seven graft post-fix routes in both arms, including whether to record a cycle, the resulting count, the head and exact failing check names. The candidate made seven actual CLI calls. Observations were supplied and writes were simulated. [Inputs and both caller responses](graft-assess-fix.json)
 
 Fresh Opus diagnostics used one fixed sample per arm. Thematic passed 16/16
 cases and 9/9 real termination CLI scenarios per arm. PRD passed 14/14 cases

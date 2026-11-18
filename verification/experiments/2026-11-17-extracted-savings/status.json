@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "base": "399084de2fe335f63b8c252d6fbfb4071f71e691",
+  "base": "77d70981404afb986223b85fcfd91560514da7e3",
   "estimator": "ceil(UTF-16 code units / 4) per full file, summed; not provider usage",
   "pre_quick_pass_main": {
     "files": 41,
@@ -8,185 +8,15 @@
     "estimated_tokens": 339929
   },
   "current_main": {
-    "bytes": 1208944,
-    "estimated_tokens": 299784,
+    "bytes": 1197108,
+    "estimated_tokens": 296880,
     "files": 41
   },
   "landed_savings": {
-    "bytes": 163137,
-    "estimated_tokens": 40145
+    "bytes": 174973,
+    "estimated_tokens": 43049
   },
   "pending_extractions": [
-    {
-      "skill": "onboard tracker reference on detection",
-      "pr": "https://github.com/shftwst/faff/pull/1220",
-      "head": "fd1dea63b7335823e446571b09d6dc6e4fee13f9",
-      "path": "plugin/skills/faff-onboard/SKILL.md",
-      "before": {
-        "bytes": 18033,
-        "estimated_tokens": 4463,
-        "sha256": "7a461d10c65a0098c219b65cb67a0d34065fa2ef28268bb89e592009830be786"
-      },
-      "after": {
-        "bytes": 17929,
-        "estimated_tokens": 4437,
-        "sha256": "44f1f2e8d861598fe8689ade074dc0b9a2cfbbe3b150593fd629f9e5a80d57af"
-      },
-      "saved": {
-        "bytes": 104,
-        "estimated_tokens": 26
-      },
-      "tests_passed": 160,
-      "verification": "Source review traced early-stop and proceed paths. Cold-read avoidance is potential only.",
-      "status": "open",
-      "cold_reference_read_avoided_on_early_exit_only": {
-        "bytes": 22649,
-        "estimated_tokens": 5615,
-        "actual_session_usage_measured": false
-      },
-      "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
-      },
-      "remote_rebase_measured_source_unchanged": true
-    },
-    {
-      "skill": "shared autonomous guidance",
-      "pr": "https://github.com/shftwst/faff/pull/1221",
-      "head": "7f64ad0b3929c1463c27ca902febb6cd550d37d6",
-      "path": "plugin/skills/faff/references/autonomous.md",
-      "before": {
-        "bytes": 38758,
-        "estimated_tokens": 9613,
-        "sha256": "bdce7d30ce7977774fe212752229437c9361f1e19671647d3de5e254174ed77f"
-      },
-      "after": {
-        "bytes": 36702,
-        "estimated_tokens": 9109,
-        "sha256": "151e34f70534858d2a0279e5b85364c25a6e324084fb12e8b7c39954147adf4c"
-      },
-      "saved": {
-        "bytes": 2056,
-        "estimated_tokens": 504
-      },
-      "tests_passed": 151,
-      "verification": "Source review plus 151 tests before wording clarifications and 57 affected checks after.",
-      "status": "open",
-      "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
-      }
-    },
-    {
-      "skill": "tidy housekeeping",
-      "pr": "https://github.com/shftwst/faff/pull/1222",
-      "head": "2c5e9773bbb8c14cc1d952aa40a9ae88c567f52f",
-      "path": "plugin/skills/faff-tidy/SKILL.md",
-      "before": {
-        "bytes": 75989,
-        "estimated_tokens": 18818,
-        "sha256": "5459e9aac89b2f7aee8234b7f9f535ee8e159a28a7c220670782c7a387fa2399"
-      },
-      "after": {
-        "bytes": 71051,
-        "estimated_tokens": 17601,
-        "sha256": "ecae7b4ccd1f993c3aae22f51c26bb18f708e14e974b72a994999d551e9a9bd4"
-      },
-      "saved": {
-        "bytes": 4938,
-        "estimated_tokens": 1217
-      },
-      "status": "open",
-      "tests_passed": 76,
-      "verification": "30/30 rule blocks accounted for. Actual Claude callers matched all four registered command arguments, verdicts and label proposals per prompt. Tracker input supplied, actions simulated. No full workflow or hosted write test.",
-      "qualification_path": "tidy-park-driver/assessment.json",
-      "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
-      }
-    },
-    {
-      "skill": "shared methodology contract",
-      "pr": "https://github.com/shftwst/faff/pull/1223",
-      "head": "6f8988b7e4e52a60d731ee147fc1e786c7c99336",
-      "path": "plugin/skills/faff/references/methodology.md",
-      "before": {
-        "bytes": 34325,
-        "estimated_tokens": 8501,
-        "sha256": "f3deac00756d6d8e64fd000390182651c2f3b4f51abafb754485faccd3785586"
-      },
-      "after": {
-        "bytes": 32071,
-        "estimated_tokens": 7948,
-        "sha256": "0bc9dc7c1c2bd5f90b74546d4b5364100b3b429054b5f6987aefb64f01b34b22"
-      },
-      "saved": {
-        "bytes": 2254,
-        "estimated_tokens": 553
-      },
-      "status": "open",
-      "tests_passed": 554,
-      "verification": "Independent source comparison inspected both lens callers and structure. All nine changed blocks accounted for. No paired model run. Nine fixture failures under signed-commit defaults resolved on a full 554-test rerun with unsigned fixture commits.",
-      "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
-      }
-    },
-    {
-      "skill": "plot interactive planning",
-      "pr": "https://github.com/shftwst/faff/pull/1224",
-      "head": "ce975bfe831c249882bdc5e9c8c64ca4c61336a8",
-      "path": "plugin/skills/faff-plot/SKILL.md",
-      "before": {
-        "bytes": 42606,
-        "estimated_tokens": 10532,
-        "sha256": "2104007c47b11d711bcbcc9db14e2e442c23718f759494418faa5cd5fa820b96"
-      },
-      "after": {
-        "bytes": 41576,
-        "estimated_tokens": 10284,
-        "sha256": "be1ba68a7e735108b79e409d2341b2d5f7a543758162d04be44a4d4961958c69"
-      },
-      "saved": {
-        "bytes": 1030,
-        "estimated_tokens": 248
-      },
-      "status": "open",
-      "tests_passed": 33,
-      "verification": "Source comparison of interactive entry, skeleton and PRDR rules; 11 changed blocks accounted for. All 33 focused tests, adapter and reference lints pass. No fresh model trial.",
-      "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
-      }
-    },
-    {
-      "skill": "beep-boop reporting only",
-      "pr": "https://github.com/shftwst/faff/pull/1225",
-      "head": "190b3b58b45557b46e16f2f3ae7af7015826dd7c",
-      "path": "plugin/skills/faff-beep-boop/SKILL.md",
-      "before": {
-        "bytes": 157576,
-        "estimated_tokens": 39048,
-        "sha256": "6ea68fdab91425ccf686415c8b273c0bcc0788c6cffc022ddbe9b38e9ae83559"
-      },
-      "after": {
-        "bytes": 156122,
-        "estimated_tokens": 38692,
-        "sha256": "39344609da4cfe88a6671cf29a191cb96f79e4a3b6ba5d51ed1c1cae2d27b3e4"
-      },
-      "saved": {
-        "bytes": 1454,
-        "estimated_tokens": 356
-      },
-      "status": "open",
-      "tests_passed": 76,
-      "verification": "Reporting-only treatment. Existing 6/6 Opus baseline and new 6/6 candidate used identical frozen common policy and CLI. All case, native, assessment and manual checks passed. Four captured summaries, eight controlled publications and zero discarded drafts. Current main kernel differs. Ledger, hosted publication and full unattended workflow outside the test.",
-      "qualification_path": "beep-reporting-only/manual-audit.json",
-      "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
-      }
-    },
     {
       "skill": "jot existing-ticket inspection",
       "pr": "https://github.com/shftwst/faff/pull/1226",
@@ -217,12 +47,12 @@
       "qualification_path": "jot-inspection-independent-review.json",
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
+        "checked_at_utc": "2026-11-18T02:26:50.692052+00:00"
       }
     },
     {
       "pr": "https://github.com/shftwst/faff/pull/1227",
-      "head": "d7077c2473277da0cc357dc120ec7fe1913e253d",
+      "head": "0fc057b3d87afe977bf440b908e818e18a408965",
       "skill": "beep-boop closing reminders",
       "path": "plugin/skills/faff-beep-boop/SKILL.md",
       "before": {
@@ -244,9 +74,10 @@
       "verification": "Independent source review traced four recaps to mandatory existing instructions. All 76 local tests passed. No new model trial on this follow-up.",
       "base_pr": 1225,
       "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
-      }
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T02:26:50.692052+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true
     },
     {
       "pr": "https://github.com/shftwst/faff/pull/1228",
@@ -274,13 +105,70 @@
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T01:36:08.720728+00:00"
+        "checked_at_utc": "2026-11-18T02:26:50.692052+00:00"
       }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1230",
+      "head": "a46074fe7d0d7e5ba88a9fcbbd4fef2df21d75f8",
+      "skill": "tidy container transition recap",
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "before": {
+        "bytes": 71051,
+        "estimated_tokens": 17601,
+        "sha256": "ecae7b4ccd1f993c3aae22f51c26bb18f708e14e974b72a994999d551e9a9bd4"
+      },
+      "after": {
+        "bytes": 69483,
+        "estimated_tokens": 17217,
+        "sha256": "942a94907fb76c2cc037a76e84a2082cabffa27fd34ecb45d915d3329bb16cf8"
+      },
+      "saved": {
+        "bytes": 1568,
+        "estimated_tokens": 384
+      },
+      "status": "open",
+      "tests_passed": 143,
+      "verification": "Source review plus direct constituent tests. No dedicated caller pair.",
+      "remote_rebase_measured_source_unchanged": true,
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T02:26:50.692052+00:00"
+      }
+    },
+    {
+      "pr": "https://github.com/shftwst/faff/pull/1231",
+      "head": "7d593627db8609443c58b2c3a5dbbd5f2e983af6",
+      "skill": "graft post-fix assessment",
+      "path": "plugin/skills/faff-graft/SKILL.md",
+      "before": {
+        "bytes": 173897,
+        "estimated_tokens": 43129,
+        "sha256": "d76758a91ae52dcf09017ed8eaa49da97ce3a5dbc6834f72e06cb5c3f0a27d14"
+      },
+      "after": {
+        "bytes": 170806,
+        "estimated_tokens": 42362,
+        "sha256": "e225ead49ebcbad9eccdcfe5dbcba047179be760e566be64e9d97c654f4a36b5"
+      },
+      "saved": {
+        "bytes": 3091,
+        "estimated_tokens": 767
+      },
+      "status": "open",
+      "tests_passed": 296,
+      "verification": "Claude Code one sample per arm, seven scenarios each. Same checkpoint count, head, sorted failed checks and next routing decision in both. Supplied observations, seven candidate CLI calls, simulated writes. Subsequent strict pagination tested at the real CLI and via read-only GitHub query.",
+      "remote_rebase_measured_source_unchanged": true,
+      "ci": {
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T02:26:50.692052+00:00"
+      },
+      "qualification_path": "graft-assess-fix.json"
     }
   ],
   "pending_savings": {
-    "bytes": 16981,
-    "estimated_tokens": 4173
+    "bytes": 9804,
+    "estimated_tokens": 2420
   },
   "limits": [
     "Merged figures use the current main tree. Fresh diagnostics and historical cohorts remain separate.",
@@ -290,8 +178,8 @@
   ],
   "next_candidates_not_counted": [],
   "projected_after_all_prs": {
-    "bytes": 1191963,
-    "estimated_tokens": 295611
+    "bytes": 1187304,
+    "estimated_tokens": 294460
   },
   "landed_extractions": [
     {
@@ -999,6 +887,187 @@
         "checked_at_utc": "2026-11-18T01:31:52.891316+00:00"
       },
       "merge_commit": "399084de2fe335f63b8c252d6fbfb4071f71e691"
+    },
+    {
+      "skill": "onboard tracker reference on detection",
+      "pr": "https://github.com/shftwst/faff/pull/1220",
+      "head": "fd1dea63b7335823e446571b09d6dc6e4fee13f9",
+      "path": "plugin/skills/faff-onboard/SKILL.md",
+      "before": {
+        "bytes": 18033,
+        "estimated_tokens": 4463,
+        "sha256": "7a461d10c65a0098c219b65cb67a0d34065fa2ef28268bb89e592009830be786"
+      },
+      "after": {
+        "bytes": 17929,
+        "estimated_tokens": 4437,
+        "sha256": "44f1f2e8d861598fe8689ade074dc0b9a2cfbbe3b150593fd629f9e5a80d57af"
+      },
+      "saved": {
+        "bytes": 104,
+        "estimated_tokens": 26
+      },
+      "tests_passed": 160,
+      "verification": "Source review traced early-stop and proceed paths. Cold-read avoidance is potential only.",
+      "status": "merged",
+      "cold_reference_read_avoided_on_early_exit_only": {
+        "bytes": 22649,
+        "estimated_tokens": 5615,
+        "actual_session_usage_measured": false
+      },
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T02:21:28.620237+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true,
+      "merge_commit": "3fbb7c0e2233e7c84457676ece57ff05bd9e5540"
+    },
+    {
+      "skill": "shared autonomous guidance",
+      "pr": "https://github.com/shftwst/faff/pull/1221",
+      "head": "976193a7a75c4805f71eb2d8aacd0ba1faf920f0",
+      "path": "plugin/skills/faff/references/autonomous.md",
+      "before": {
+        "bytes": 38758,
+        "estimated_tokens": 9613,
+        "sha256": "bdce7d30ce7977774fe212752229437c9361f1e19671647d3de5e254174ed77f"
+      },
+      "after": {
+        "bytes": 36702,
+        "estimated_tokens": 9109,
+        "sha256": "151e34f70534858d2a0279e5b85364c25a6e324084fb12e8b7c39954147adf4c"
+      },
+      "saved": {
+        "bytes": 2056,
+        "estimated_tokens": 504
+      },
+      "tests_passed": 151,
+      "verification": "Source review plus 151 tests before wording clarifications and 57 affected checks after.",
+      "status": "merged",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T02:21:28.620237+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true,
+      "merge_commit": "a0e84c3cb28213367523ad825cabb6919c572185"
+    },
+    {
+      "skill": "tidy housekeeping",
+      "pr": "https://github.com/shftwst/faff/pull/1222",
+      "head": "33ad8cf2c81a5ab4dc313d4defce0b28716ef0b0",
+      "path": "plugin/skills/faff-tidy/SKILL.md",
+      "before": {
+        "bytes": 75989,
+        "estimated_tokens": 18818,
+        "sha256": "5459e9aac89b2f7aee8234b7f9f535ee8e159a28a7c220670782c7a387fa2399"
+      },
+      "after": {
+        "bytes": 71051,
+        "estimated_tokens": 17601,
+        "sha256": "ecae7b4ccd1f993c3aae22f51c26bb18f708e14e974b72a994999d551e9a9bd4"
+      },
+      "saved": {
+        "bytes": 4938,
+        "estimated_tokens": 1217
+      },
+      "status": "merged",
+      "tests_passed": 76,
+      "verification": "30/30 rule blocks accounted for. Actual Claude callers matched all four registered command arguments, verdicts and label proposals per prompt. Tracker input supplied, actions simulated. No full workflow or hosted write test.",
+      "qualification_path": "tidy-park-driver/assessment.json",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T02:21:28.620237+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true,
+      "merge_commit": "778376d8f9886c5aea20723c0f38c27898820c52"
+    },
+    {
+      "skill": "shared methodology contract",
+      "pr": "https://github.com/shftwst/faff/pull/1223",
+      "head": "fb7c7c3e73b454f33816662c67b63a8d7aa9b60d",
+      "path": "plugin/skills/faff/references/methodology.md",
+      "before": {
+        "bytes": 34325,
+        "estimated_tokens": 8501,
+        "sha256": "f3deac00756d6d8e64fd000390182651c2f3b4f51abafb754485faccd3785586"
+      },
+      "after": {
+        "bytes": 32071,
+        "estimated_tokens": 7948,
+        "sha256": "0bc9dc7c1c2bd5f90b74546d4b5364100b3b429054b5f6987aefb64f01b34b22"
+      },
+      "saved": {
+        "bytes": 2254,
+        "estimated_tokens": 553
+      },
+      "status": "merged",
+      "tests_passed": 554,
+      "verification": "Independent source comparison inspected both lens callers and structure. All nine changed blocks accounted for. No paired model run. Nine fixture failures under signed-commit defaults resolved on a full 554-test rerun with unsigned fixture commits.",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T02:21:28.620237+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true,
+      "merge_commit": "c2635a7d940c8e54af1b6e92ddc98a578ae24b57"
+    },
+    {
+      "skill": "plot interactive planning",
+      "pr": "https://github.com/shftwst/faff/pull/1224",
+      "head": "5b8cd485c62d383ca98934bd4b343e812916f507",
+      "path": "plugin/skills/faff-plot/SKILL.md",
+      "before": {
+        "bytes": 42606,
+        "estimated_tokens": 10532,
+        "sha256": "2104007c47b11d711bcbcc9db14e2e442c23718f759494418faa5cd5fa820b96"
+      },
+      "after": {
+        "bytes": 41576,
+        "estimated_tokens": 10284,
+        "sha256": "be1ba68a7e735108b79e409d2341b2d5f7a543758162d04be44a4d4961958c69"
+      },
+      "saved": {
+        "bytes": 1030,
+        "estimated_tokens": 248
+      },
+      "status": "merged",
+      "tests_passed": 33,
+      "verification": "Source comparison of interactive entry, skeleton and PRDR rules; 11 changed blocks accounted for. All 33 focused tests, adapter and reference lints pass. No fresh model trial.",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T02:21:28.620237+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true,
+      "merge_commit": "29027f6777ea23d1d81f738f937e039506249d20"
+    },
+    {
+      "skill": "beep-boop reporting only",
+      "pr": "https://github.com/shftwst/faff/pull/1225",
+      "head": "150f6279d1acfd8eb5c3040a3b3156f4e51d3b0b",
+      "path": "plugin/skills/faff-beep-boop/SKILL.md",
+      "before": {
+        "bytes": 157576,
+        "estimated_tokens": 39048,
+        "sha256": "6ea68fdab91425ccf686415c8b273c0bcc0788c6cffc022ddbe9b38e9ae83559"
+      },
+      "after": {
+        "bytes": 156122,
+        "estimated_tokens": 38692,
+        "sha256": "39344609da4cfe88a6671cf29a191cb96f79e4a3b6ba5d51ed1c1cae2d27b3e4"
+      },
+      "saved": {
+        "bytes": 1454,
+        "estimated_tokens": 356
+      },
+      "status": "merged",
+      "tests_passed": 76,
+      "verification": "Reporting-only treatment. Existing 6/6 Opus baseline and new 6/6 candidate used identical frozen common policy and CLI. All case, native, assessment and manual checks passed. Four captured summaries, eight controlled publications and zero discarded drafts. Current main kernel differs. Ledger, hosted publication and full unattended workflow outside the test.",
+      "qualification_path": "beep-reporting-only/manual-audit.json",
+      "ci": {
+        "state": "success",
+        "checked_at_utc": "2026-11-18T02:21:28.620237+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true,
+      "merge_commit": "77d70981404afb986223b85fcfd91560514da7e3"
     }
   ],
   "local_not_counted": [
@@ -1061,17 +1130,6 @@
       "net_static_guidance_assumption": "Both edited prompts and both tool definitions loaded once. Sessions loading only the two definitions incur 998 extra bytes / about 250 tokens of static context."
     },
     {
-      "skill": "tidy container status recap",
-      "head": "d356fe772fd4e2dadc8066b4b51ae028d16e35a8",
-      "base": "2c5e9773bbb8c14cc1d952aa40a9ae88c567f52f",
-      "saved": {
-        "bytes": 1568,
-        "estimated_tokens": 384
-      },
-      "after_sha256": "942a94907fb76c2cc037a76e84a2082cabffa27fd34ecb45d915d3329bb16cf8",
-      "status": "source-reviewed, 143 tests and 2/2 inventory. Based on #1222 for a clean follow-up after merge. No fresh model trial."
-    },
-    {
       "skill": "broader graft Step 10 draft",
       "head": "a069d0cd5f6e01a4b32cf712ccf283cbee1d0a8f",
       "saved_against_current_main": {
@@ -1082,7 +1140,7 @@
       "status": "held. Source corrections for transient-only CI continuation, no-op before effects, and custody wording. 270 focused tests pass. Combined unattended handoff through collision, authorisation, custody, ship and post-merge has no paired caller qualification. No broad model run."
     }
   ],
-  "recorded_at_utc": "2026-11-18T01:36:08.720728+00:00",
+  "recorded_at_utc": "2026-11-18T02:26:50.692052+00:00",
   "new_cli_tests": {
     "prep_context": {
       "implementation_pr": 1219,
@@ -1108,6 +1166,12 @@
         "test/review-comment-mcp.test.mjs"
       ],
       "scope": "Local planner, session and connector tests with a fixture tracker."
+    },
+    "land_assess_fix": {
+      "implementation_pr": 1231,
+      "executable_test": "test/land-assess-fix.test.mjs",
+      "paginated_integration": "test/land.test.mjs",
+      "focused_passed": 296
     }
   }
 }

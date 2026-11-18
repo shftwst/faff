@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { buildLensRequests } from "../plugin/skills/faffter-dark-spec-review/build-lens-requests.mjs";
@@ -67,6 +67,29 @@ test("prepare-requests preserves the legacy request bytes and default full lens 
   })) + "\n");
   assert.equal(statSync(dirname(result.backends_path)).mode & 0o777, 0o700);
   assert.deepEqual(readdirSync(f.dir), ["ratified-scope.md"]);
+});
+
+test("FAFF-746/706 spec-review command contract supplies non-empty system, diff, and context paths", (t) => {
+  const f = fixture(t);
+  const named = [join(f.root, "named file.mjs"), "relative context.md"];
+  const scope = join(f.dir, "ratified-scope.md");
+  writeFileSync(named[0], "export const fixture = true;\n");
+  writeFileSync(join(f.root, named[1]), "# Named context\n");
+  writeFileSync(scope, "# Ratified scope\n");
+  const ready = readReady(f.prepare(...named.flatMap(file => ["--context", file])));
+  const requests = JSON.parse(ready.requests);
+  assert.deepEqual(requests.map(({ lens }) => lens), ["architectural", "infosec", "methodology", "QA"]);
+  for (const { lens, argv } of requests) {
+    const values = flag => argv.filter((_, index) => argv[index - 1] === flag);
+    const system = join(systemDir, `refute-${lens.toLowerCase()}.md`);
+    assert.deepEqual(values("--system"), [system]);
+    assert.deepEqual(values("--diff"), [f.spec]);
+    // Exact context checks enforce FAFF-882's gateway exclusion and preserve named file order.
+    assert.deepEqual(values("--context"), [...named, scope]);
+    for (const file of [system, f.spec, ...named, scope]) {
+      assert.ok(readFileSync(resolve(f.root, file), "utf8").trim(), file);
+    }
+  }
 });
 
 test("prepare-requests uses the pinned chain, exact retry subset, unchanged round and matching raw paths", (t) => {

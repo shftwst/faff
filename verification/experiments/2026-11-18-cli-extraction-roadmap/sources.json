@@ -604,7 +604,25 @@
           "reuse": "tracker probe, config resolve, and existing adapter mocks. Preserve the distinction between pin assertion and transport reachability.",
           "verify": "test/tracker-probe.test.mjs and test/mock-tracker.test.mjs. Cover pin, none sentinel, deferred tool, failure, mixed generation, intentional smaller scope and truncated comments."
         }
-      ]
+      ],
+      "first_slice_baseline": {
+        "source": "4729f7b31743ec3dae2ae833f8fb5523c99f8946",
+        "tests_passed": 45,
+        "files": [
+          "test/blocker-satisfied-edges.test.mjs",
+          "test/control-parity-tracker.test.mjs",
+          "test/mock-tracker.test.mjs",
+          "test/tracker-probe.test.mjs"
+        ],
+        "coverage": "Existing mock tracker, CLI and recorder behaviour. The satisfied-edge fixture scripts the expected call to next. A new classifier must itself choose that call from supplied facts.",
+        "initial_scenarios": [
+          "Linear completed-category blocker with a custom display name",
+          "GitHub closed as not_planned versus completed",
+          "Absent or unresolvable blocker status stays live",
+          "A completed target remains visible while its edge stops blocking",
+          "A missing page or unreachable pinned connector stops the caller from treating empty results as complete"
+        ]
+      }
     },
     {
       "rank": 3,

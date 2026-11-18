@@ -6,6 +6,8 @@ Audited all 32 installed skill prompts and nine shared references. The source in
 
 Rank 1 is in review. The four changed files fell from 137,118 to 131,046 bytes, saving 6,072 bytes and 1,497 estimated tokens against the original 4.0–6.6 kB forecast. The static reduction for a load of one executor and both shared references is 3,099 bytes for sequential and 1,839 bytes for parallel. The measured CLI stdout increase across ten actual calls was 1,608 bytes. The paired callers agreed on all 12 handoffs in each arm with simulated launches and corrections. The forecast table below preserves its audit-time baseline and includes rank 1. [Production PR](https://github.com/shftwst/faff/pull/1232) · [Measurements and caller responses](../2026-11-17-extracted-savings/build-dispatch-prepare.json)
 
+Rank 2 starts with a batch of already-fetched issue and blocker facts from Linear and GitHub. The four existing tracker test files passed 45 baseline cases. The existing satisfied-edge fixture supplies the expected call to `next` itself. The new test must exercise the classifier choosing that input from a live, completed or unresolved blocker. Tracker discovery and fetching remain with the caller.
+
 ## Where to start
 
 Start with **build dispatch**. The sequential and parallel executors both choose a model, log the configured effort and assemble issue context for a build worker. A shared preparer can be checked by comparing the actual argv and payload each executor sends today. The next independent change normalizes supplied issue snapshots. Queue partitioning can then consume those facts.

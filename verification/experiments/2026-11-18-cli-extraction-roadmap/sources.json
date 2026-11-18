@@ -470,8 +470,8 @@
         1000,
         1650
       ],
-      "benefit": "Bind issue, checkout, model, effort and verified correction once. Sequential and parallel execution get identical arguments.",
-      "first_slice_and_dependencies": "Start here. Compare both real executor inputs for independent, blocked and corrective builds. Keep the dispatcher and merge ownership in their current lanes.",
+      "benefit": "Both executors select the same ordered issues, model and review target from the same inputs. Effort appears only in the run log.",
+      "first_slice_and_dependencies": "Start with shared payload fields and chain tier selection. Preserve foreground versus background launch and each executor’s corrective-verification rules. Test actual worker arguments for individual issues, chains, parks and corrections.",
       "status": "proposed",
       "gross_inspected_bytes": 9401,
       "source_inspections": [

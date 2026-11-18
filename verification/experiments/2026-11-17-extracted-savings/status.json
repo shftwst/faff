@@ -20,7 +20,7 @@
     {
       "skill": "jot existing-ticket inspection",
       "pr": "https://github.com/shftwst/faff/pull/1226",
-      "head": "e8b9b667f01b41af525e2dad0751580ae9731adb",
+      "head": "ee32fc469cf547f413179584100a28e5ac44a847",
       "path": "plugin/skills/faff-jot/SKILL.md",
       "before": {
         "bytes": 19678,
@@ -46,9 +46,10 @@
       },
       "qualification_path": "jot-inspection-independent-review.json",
       "ci": {
-        "state": "success",
-        "checked_at_utc": "2026-11-18T02:26:50.692052+00:00"
-      }
+        "state": "pending",
+        "checked_at_utc": "2026-11-18T02:35:07.740648+00:00"
+      },
+      "remote_rebase_measured_source_unchanged": true
     },
     {
       "pr": "https://github.com/shftwst/faff/pull/1227",
@@ -74,8 +75,8 @@
       "verification": "Independent source review traced four recaps to mandatory existing instructions. All 76 local tests passed. No new model trial on this follow-up.",
       "base_pr": 1225,
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T02:26:50.692052+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T02:35:07.740648+00:00"
       },
       "remote_rebase_measured_source_unchanged": true
     },
@@ -105,7 +106,7 @@
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T02:26:50.692052+00:00"
+        "checked_at_utc": "2026-11-18T02:35:07.740648+00:00"
       }
     },
     {
@@ -133,7 +134,7 @@
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
         "state": "success",
-        "checked_at_utc": "2026-11-18T02:26:50.692052+00:00"
+        "checked_at_utc": "2026-11-18T02:35:07.740648+00:00"
       }
     },
     {
@@ -160,8 +161,8 @@
       "verification": "Claude Code one sample per arm, seven scenarios each. Same checkpoint count, head, sorted failed checks and next routing decision in both. Supplied observations, seven candidate CLI calls, simulated writes. Subsequent strict pagination tested at the real CLI and via read-only GitHub query.",
       "remote_rebase_measured_source_unchanged": true,
       "ci": {
-        "state": "pending",
-        "checked_at_utc": "2026-11-18T02:26:50.692052+00:00"
+        "state": "success",
+        "checked_at_utc": "2026-11-18T02:35:07.740648+00:00"
       },
       "qualification_path": "graft-assess-fix.json"
     }
@@ -1140,7 +1141,7 @@
       "status": "held. Source corrections for transient-only CI continuation, no-op before effects, and custody wording. 270 focused tests pass. Combined unattended handoff through collision, authorisation, custody, ship and post-merge has no paired caller qualification. No broad model run."
     }
   ],
-  "recorded_at_utc": "2026-11-18T02:26:50.692052+00:00",
+  "recorded_at_utc": "2026-11-18T02:35:07.740648+00:00",
   "new_cli_tests": {
     "prep_context": {
       "implementation_pr": 1219,
@@ -1173,5 +1174,6 @@
       "paginated_integration": "test/land.test.mjs",
       "focused_passed": 296
     }
-  }
+  },
+  "prioritized_extraction_plan": "../2026-11-18-cli-extraction-roadmap/sources.json"
 }

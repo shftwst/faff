@@ -3,6 +3,8 @@
 `status.json` records source hashes, bytes, estimated tokens and fidelity limits.
 Tokens use the ceiling of UTF-16 code units divided by four per complete file.
 
+The 34-item CLI extraction plan orders upcoming work by determinism, caller frequency, expected size reduction and dependencies. The first delivery starts with shared build-dispatch inputs. [Ranked queue and acceptance criteria](../2026-11-18-cli-extraction-roadmap/README.md)
+
 | PR | Runtime saving | Estimated token saving | State |
 |---|---:|---:|---|
 | [1207](https://github.com/shftwst/faff/pull/1207), adversarial review | 52,030 B | 12,859 | Merged |

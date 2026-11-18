@@ -27,9 +27,9 @@
 
     "faff/references/create.md": 7429,
 
-    "faff/references/kernel.md": 70478,
+    "faff/references/kernel.md": 70435,
 
-    "faff/references/l4.md": 25523,
+    "faff/references/l4.md": 26700,
 
     "faff/references/methodology.md": 32071,
 
@@ -47,7 +47,7 @@
 
     "faffter-dark-authoring-adaptors/SKILL.md": 11876,
 
-    "faffter-dark-concurrency-parallel/SKILL.md": 23655,
+    "faffter-dark-concurrency-parallel/SKILL.md": 20682,
 
     "faffter-dark-methodology-agile-delivery/SKILL.md": 40637,
 
@@ -59,7 +59,7 @@
 
     "faffter-noon-architecture/SKILL.md": 4608,
 
-    "faffter-noon-concurrency-sequential/SKILL.md": 17462,
+    "faffter-noon-concurrency-sequential/SKILL.md": 13229,
 
     "faffter-noon-env-code-interface/SKILL.md": 9400,
 

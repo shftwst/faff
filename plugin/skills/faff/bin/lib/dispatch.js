@@ -21,7 +21,7 @@ const DISPATCH_SPEC = {
   flags: { "--selftest": { arity: 0 }, "--tier": { arity: 1 }, "--confidence": { arity: 1 }, "--root": { arity: 1 } },
   positionals: { min: 0, max: 2, name: "verb lane" },
 };
-const DISPATCH_USAGE = "usage: faff dispatch resolve <lane> [--tier <tier>] [--confidence <conf>] [--root DIR]";
+const DISPATCH_USAGE = "usage: faff dispatch resolve <lane> [--tier <tier>] [--confidence <conf>] [--root DIR]\n       faff dispatch prepare-build --executor sequential|parallel [--root DIR] < unit.json";
 
 function isEmpty(v) {
   return v === null || v === undefined || v === "";
@@ -62,9 +62,21 @@ function resolveDispatch(cfg, lane, { tier = null, confidence = null } = {}) {
   return { model, effort };
 }
 
+function resolveConfiguredDispatch(root, lane, tier, confidence) {
+  const legacy = legacyTreeGuard(root);
+  if (legacy) return { error: legacy };
+  const [cfg] = loadConfig(root);
+  return resolveDispatch(cfg, lane, { tier, confidence });
+}
+
 // `faff dispatch resolve <lane> [--tier T] [--confidence C]` — print {"model":..,"effort":..}.
 // Exit 0 resolved / 2 usage, unknown lane or any invalid value in the dispatch tree or lane chain.
 function cmdDispatch(args) {
+  if (args[0] === "prepare-build") {
+    const { cmdPrepareBuild } = require("./dispatch-prepare");
+    return cmdPrepareBuild(args.slice(1), (root, tier, confidence) =>
+      resolveConfiguredDispatch(root || findRoot(), "build", tier, confidence));
+  }
   if (args.includes("--selftest")) return dispatchSelftest();
   const { values, positionals, errors } = parseArgs(args, DISPATCH_SPEC);
   if (errors.length) return usageError(errors, DISPATCH_USAGE);
@@ -74,13 +86,7 @@ function cmdDispatch(args) {
     return 2;
   }
   const root = values["--root"] || findRoot();
-  const legacy = legacyTreeGuard(root);
-  if (legacy) {
-    process.stderr.write(`faff dispatch resolve: ${legacy}\n`);
-    return 2;
-  }
-  const [cfg] = loadConfig(root);
-  const res = resolveDispatch(cfg, lane, { tier: values["--tier"] || null, confidence: values["--confidence"] || null });
+  const res = resolveConfiguredDispatch(root, lane, values["--tier"] || null, values["--confidence"] || null);
   if (res.error) {
     process.stderr.write(`faff dispatch resolve: ${res.error}\n`);
     return 2;

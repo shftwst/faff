@@ -55,6 +55,7 @@
     "bin/lib/spec-review-hold.ts",
     "bin/lib/run-trigger.ts",
     "bin/lib/human-only-acs.ts",
-    "bin/lib/prep-context.ts"
+    "bin/lib/prep-context.ts",
+    "bin/lib/dispatch-prepare.ts"
   ]
 }

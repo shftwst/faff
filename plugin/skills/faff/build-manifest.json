@@ -6,13 +6,14 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "62ccf40c8ef43c8334d1ccbc978d805e43b3a411cef7348ec65e0da12e6b1b20"
+    "tsconfig.json": "034bb5858d1c1e5c6158b71bf5519d0457bd9a172b4c9b4bd191b47f71aef4ac"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
     "package.json": "249331b02133d368292b2a867c07f4fce92083acd3d892850b74e23f95b2ea7c"
   },
   "inputs": {
+    "bin/lib/build-queue-partition.ts": "0d3ac17231bc4d8fac203e2bef1e41ab8806cf26d932f0790ff59b04728cb328",
     "bin/lib/commissaire-governor-client.ts": "90e01905816c4e12ea1a24eab1ed9b6d6e6106c29bb322e3988ca50b6604604b",
     "bin/lib/commissaire-trust.ts": "c2d4bffa2f153db70746395cf708195cc11ba0aa51b5ccc25e9f181c08555a65",
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
@@ -52,6 +53,7 @@
     "bin/lib/worktree-ensure.ts": "5d7279ab2a14bfc2f34ed7e8e5c11c609647e5474a5b91f516f3bb4b8189ea8d"
   },
   "outputs": {
+    "bin/lib/build-queue-partition.js": "7c2d2c0f5d062c114f8fb504c1ec6fdb71938eef636a7ac8dbb6bd42cbfe8d26",
     "bin/lib/commissaire-governor-client.js": "9e14c9ebe762d860b0249f853dd308a4abc3ef9d3e92a416d1ad8decd44d0885",
     "bin/lib/commissaire-trust.js": "c69b5fb8ffb57c7195bc795b1aeb6a77c90e3145457a5b6b78da94589c197572",
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
@@ -90,5 +92,5 @@
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "a4d7154206e6d3dd6511248e3d0bcbadbc90079907146bc81430cf157433e44a"
   },
-  "output_digest": "346943747ec8f846da445dc09e0b4515aaeada1b5e1aab402bc53e32b6a74875"
+  "output_digest": "716ead3e1b51837a980633b88a7e35818e789cc59387cca5cc7077e783480123"
 }

@@ -54,96 +54,14 @@ Each enabled lens is a single isolated pass with its own "break this spec" syste
 
 Each refuter pass is made by the bundled adversarial-review transport, **`review-call.mjs`** (model preflight, think-suppression, streaming, token budget, the fallback chain, and the exit-code→outcome discipline). It is **reused verbatim** — never fork it, and never hand-roll an API call in its place. Backend configuration (provider/model/host/auth) and the transport call itself have one home: the sibling `faffter-dark-adversarial-review` skill's **LLM provider integration** section — this skill only *reuses* that call, it never restates the recipe. The spec-altitude review and the product-altitude PRDR review share exactly this transport plus the "a different model challenges; the loop never self-grades" discipline — nothing above it (artifact, lens count, arbiter, contract) is shared.
 
-**Dispatch the lenses via `fan-out.mjs`'s resolved strategy, never a per-lens loop.** Reuse the helper beside `review-call.mjs` in `faffter-dark-adversarial-review` verbatim; never fork it or replace it with a hand-rolled loop. It spawns all enabled lenses under the resolved strategy. The default `prime-then-parallel` awaits the first lens to populate the shared-prefix cache, then fans out the rest. `serial` runs one at a time; `parallel` runs all at once. Resolve the strategy below.
+**Dispatch the lenses via `fan-out.mjs`'s resolved strategy, never a per-lens loop.** Reuse the helper beside `review-call.mjs` in `faffter-dark-adversarial-review` verbatim; never fork it or replace it with a hand-rolled loop. It spawns all enabled lenses under the resolved strategy. The default `prime-then-parallel` awaits the first lens to populate the shared-prefix cache, then fans out the rest. `serial` runs one at a time; `parallel` runs all at once. Set `$FANOUT` to the bundled sibling helper and resolve the strategy below.
 
-**Resolve the chain mechanically through the reviewer-pin — never `JSON.parse` `adversarial.fallbacks` or hand-merge the primary/fallback objects yourself.** Run the bundled `faff spec-review-pin --resolve` subcommand **once**. It wraps the mechanical `faff adversarial-backends` per-consumer assembly with the reviewer-pin: the backend that served round 1 is preferred across the rounds of one spec's loop (prefer-with-fallback — pinned backend first, the rest of the chain behind it, so a rate-limited pin round falls back instead of hard-parking), while round 1 / an unpinned dir is **byte-identical** to the bare per-consumer chain. It prints the same bare primary-first JSON array (drop-in for the `--backends-json` mapper), branch on its exit code, then build one `LensRequest` per enabled lens and fan them all out in a single `fan-out.mjs` call. On the exit-0 branch, **round 1 only** (before the pin exists), the resolved chain is first piped through `faff spec-review-reputation --eligible` so a candidate-degenerate reviewer is struck for cause at selection time; the filter never empties the chain, so the gate always survives:
+**Prepare the requests once.** Resolve `$faff` per the shared executable rule. Run `"$faff" spec-review prepare-requests --dir "$pin_dir" --spec "$spec_file"`. Pass the supplied enabled lenses as `--lenses <ordered CSV>`, including only the re-dispatched lenses on a retry. Omit the flag when no lens set was supplied. Pass each named file as a separate `--context <path>` in its original order. The command appends the ratified-scope file when present. Use the returned `round` as `$n` for capture and the round's raw responses.
 
-```bash
-faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
-FANOUT=<.../skills/faffter-dark-adversarial-review/fan-out.mjs>
-BUILD_REQUESTS=<.../skills/faffter-dark-spec-review/build-lens-requests.mjs>
-backends_json=$(mktemp)
-# $pin_dir is the per-spec spec-review scratch dir prep passes (`faff spec-review-dir`).
-# `spec-review-pin --resolve` prefers the round-1 pinned backend and falls back to the rest of the
-# chain if the pin is unavailable; round 1 / unpinned is byte-identical to the bare per-consumer
-# chain. It wraps the per-consumer selection, so an unset adversarial.spec_review.* still falls
-# through byte-identically (zero change for existing configs).
-"$faff" spec-review-pin --resolve --dir "$pin_dir" --consumer spec_review > "$backends_json"; backends_exit=$?
-# Inactivity-timeout resolution (unchanged two-read fallback) PLUS its own -gt 0 numeric guard: a
-# non-numeric/empty/non-positive timeout is a plumbing fault reset to its 120 default, so no later
-# comparison can silently fail-open on an unparseable timeout.
-timeout=$("$faff" config get adversarial.spec_review.timeout)
-[ -z "$timeout" ] && timeout=$("$faff" config get adversarial.timeout -d 120)
-[ "$timeout" -gt 0 ] 2>/dev/null || timeout=120
-# Output-token cap (max_tokens): per-consumer override, else global, else the 2000 default, the same
-# two-read fallback as timeout. The -gt 0 guard resets a present-but-non-positive-integer value
-# (empty/non-numeric/float/0/negative) back to 2000, so no NaN/null/max_tokens:0 reaches the wire.
-max_tokens=$("$faff" config get adversarial.spec_review.max_tokens)
-[ -z "$max_tokens" ] && max_tokens=$("$faff" config get adversarial.max_tokens -d 2000)
-[ "$max_tokens" -gt 0 ] 2>/dev/null || max_tokens=2000
-# Dispatch strategy: parallel | serial | prime-then-parallel, per-consumer override else global else
-# the prime-then-parallel default (the two defaults differ on purpose: fan-out.mjs's OWN --strategy
-# default stays "parallel", byte-identical to before this ticket, when a caller omits the flag
-# entirely; this occupant's -d chain is what actually resolves prime-then-parallel).
-strategy=$("$faff" config get adversarial.spec_review.dispatch_strategy \
-           -d "$("$faff" config get adversarial.dispatch_strategy -d prime-then-parallel)")
-# Total wall-clock deadline per lens (seconds), same two-tier fallback, terminal default 900. The -gt 0
-# guard resets a non-positive/non-numeric value to 900, so no NaN/0/negative reaches review-call.mjs's
-# Number(value)*1000 deadline math (an unguarded NaN fires its timer immediately; a 0 zeroes every
-# backend slice, and both make every lens fail instantly while misreporting as an infra outage).
-deadline=$("$faff" config get adversarial.spec_review.deadline \
-           -d "$("$faff" config get adversarial.deadline -d 900)")
-[ "$deadline" -gt 0 ] 2>/dev/null || deadline=900
-# Sanity-floor WARNING, never a reset: --deadline is the TOTAL wall-clock across the whole fallback
-# chain. A deadline below a small ABSOLUTE floor (60s, not the inactivity timeout above) risks expiring
-# a lens before its primary backend answers and advancing the chain to a weaker fallback, but a small
-# total budget on a fast backend is a legitimate operator choice, so the configured value is HONOURED
-# and the risk is surfaced loud rather than silently neutered.
-DEADLINE_SANITY_FLOOR=60
-if [ "$deadline" -lt "$DEADLINE_SANITY_FLOOR" ] 2>/dev/null; then
-  echo "WARNING: adversarial.spec_review.deadline (${deadline}s) is below the ${DEADLINE_SANITY_FLOOR}s sanity floor; a deadline this small may expire a lens before its primary backend can answer and advance the chain to a weaker fallback." >&2
-fi
+- **Exit 0** gives `{round, strategy, backends_path, requests_path}`. Set `$backends_json` and `$requests_json` to those paths and `$strategy` to the returned strategy. Run `node "$FANOUT" --requests "$requests_json" --strategy "$strategy"` once. Keep the prepared backend file for pin capture so the winner indexes refer to the selected chain.
+- **Exit 2 or 3**, or a missing or malformed descriptor, means no fan-out. Mark every enabled lens `unavailable`, kind `config-fault`, and run the no-lens capture. If the reply has no usable round, get it from `faff spec-review-window --next-round --dir "$pin_dir"`. Surface stderr diagnostics, including any reputation or deadline advisory.
 
-case "$backends_exit" in
-  0)
-    # Selection-time reputation strike — ROUND 1 ONLY (unpinned, no pin sidecar yet).
-    # Pipe the resolved chain through `faff spec-review-reputation --eligible` so a candidate-
-    # degenerate backend (blocks nearly every spec it reviews while a meaningful fraction of those
-    # blocks later ship/are accepted) is struck BEFORE it is served or pinned. Filter IN PLACE so
-    # the LensRequest[] --backends-json, the chain[<i>] header indices, and the --capture below all
-    # read the already-struck chain. It NEVER empties the chain (an all-flagged input passes through
-    # unchanged with the gate intact), so this cannot turn an exit-0 resolve into an empty fan-out.
-    # Round-1-only (per the committed "read at selection time, not per round" decision): on rounds
-    # >= 2 the pin already names the clean round-1 winner, so no per-round cross-run scan runs.
-    if [ ! -e "$pin_dir/pinned-reviewer.json" ]; then
-      "$faff" spec-review-reputation --eligible --backends-json "$backends_json" --consumer spec_review > "$backends_json.elig" \
-        && mv "$backends_json.elig" "$backends_json"
-    fi
-    # Build the full LensRequest[] in ONE pass over $enabled_lenses (never a per-lens loop that
-    # calls fan-out.mjs once per lens — the array is what fans out, not the assembly loop) via the
-    # bundled deterministic assembler `build-lens-requests.mjs` (reused verbatim, never hand-rolled
-    # inline — the same discipline as review-call.mjs / parse-refutation.mjs). Every argv field is
-    # byte-identical to the old per-lens call except --system (the lens's own refute-<lens>.md) plus
-    # the raw-body flags below.
-    # Raw-body capture: retain each backend's raw response body under <scratch>/raw, keyed per lens × backend ×
-    # round. $pin_dir is the spec-review scratch dir; $n is this round (same number prep names the round
-    # record with — reading it here before the fan-out is idempotent, disk is unchanged until prep writes).
-    raw_dir="$pin_dir/raw"
-    n=$("$faff" spec-review-window --next-round --dir "$pin_dir")
-    requests_json=$(mktemp)
-    node "$BUILD_REQUESTS" --lenses "$(IFS=,; echo "${enabled_lenses[*]}")" \
-      --backends-json "$backends_json" --timeout "$timeout" --max-tokens "$max_tokens" --deadline "$deadline" \
-      --system-dir <dir holding refute-<lens>.md> --diff <spec-file> \
-      $(for c in <each file the spec names> [$pin_dir/ratified-scope.md when present]; do printf ' --context %s' "$c"; done) \
-      --raw-dir "$raw_dir" --round "$n" > "$requests_json"
-    node "$FANOUT" --requests "$requests_json" --strategy "$strategy"   # ONE call: spawns every lens under the resolved strategy, waits for all
-    ;;
-  3) : ;; # unconfigured — the resolver found no chain; every lens's outcome is unavailable/config-fault, below
-  2) : ;; # malformed chain config — every lens's outcome is unavailable/config-fault
-esac
-```
-
-**Pin capture (after aggregation, EVERY round, unconditional).** Capture every round once lens results arrive, without conditional skips. Parse `chain[<i>]` from each exit-0 lens's stdout header (`## Adversarial findings — <provider>/<model> (chain[<i>], host: <src>)`); `winner_index = min(i)` is the strongest reachable reviewer. Reuse `$n` from `faff spec-review-window --next-round --dir "$pin_dir"`, already resolved for raw-body capture; never re-derive it. Then:
+**Pin capture (after aggregation, EVERY round, unconditional).** Capture every round once lens results arrive, without conditional skips. Parse `chain[<i>]` from each exit-0 lens's stdout header (`## Adversarial findings — <provider>/<model> (chain[<i>], host: <src>)`); `winner_index = min(i)` is the strongest reachable reviewer. Reuse the round `$n` resolved at preparation for raw-body capture. Then:
 
 - **Served (≥1 lens returned exit-0):** idempotent on the pin itself (it writes `pinned-reviewer.json` only on the first served round and is a no-op on every later served round), but writes `served-<n>.json` (this round's served identity) on **every** served round, round 1 and rounds ≥ 2 alike, **even when the pin write is a no-op** — the round-2+ recording the round-2 architectural fix depends on, so a later round always has a served identity for `--govern` to read. It also writes `pin-capture.json{state:"captured"|"failed", round, ...}` — a failed `--backends-json` read/parse is never silent: an established `captured` marker is preserved with the failure folded beside it, and `{failed}` is written when there is no established capture; the CLI exits 2 either way.
 - **No lens served (empty exit-0 set):** write no pin or `served-<n>.json`; record `pin-capture.json{state:"skipped-no-lens", round, reason:"empty exit-0 set"}`, exit 0. This records the legitimate no-op; the round is `needs-human` via the transport floor.
@@ -152,7 +70,7 @@ esac
 # The unconditional capture call — round 1 and every later round alike, served or not.
 # $winner_index = min(chain[<i>]) across served lenses (parsed from each exit-0 lens's
 # stdout header, above). $served_count is the size of that served-lens set. $n is this
-# round's number (already resolved above via `spec-review-window --next-round`).
+# round's number from preparation.
 if [ "$served_count" -gt 0 ]; then
   "$faff" spec-review-pin --capture --dir "$pin_dir" --backends-json "$backends_json" --winner-index "$winner_index" --round "$n"
 else
@@ -162,16 +80,10 @@ fi
 
 prep reads the occupant-written `served-<n>.json` (never the stdout header, never a pin-first `--resolve` re-derivation) via `faff spec-review-window --govern` to detect a swap round and reset the convergence window (`faff-prep/SKILL.md` — the loop-level half); the occupant only captures.
 
-Each `LensRequest.argv` carries exactly what the old per-lens `review-call.mjs` invocation received, plus the resolved output-token cap and the resolved total-wall-clock `--deadline` (both assembled once, identical across every lens in the pass, like `$timeout`, not per lens), plus the raw-body flags, plus **`--diff-kind prose`** (the spec under scrutiny is a document, not a unified diff, declared once by `build-lens-requests.mjs` for every lens, never a per-caller choice): `--backends-json "$backends_json" --timeout "$timeout" --max-tokens "$max_tokens" --deadline "$deadline" --system plugin/skills/faffter-dark-spec-review/refute-<lens>.md --context <each file the spec names> --diff <spec-file> --diff-kind prose --raw-dir "$pin_dir/raw" --lens <lens> --round <n>`.
+Each request uses its lens's own system prompt and the same spec, context and selected backend chain. The existing assembler passes the spec as `--diff-kind prose` and keeps raw response bodies in `$pin_dir/raw`, keyed by lens, backend and round. The design lenses act on the shared ratified scope when present, and methodology receives the same context without acting on the block.
 
-- **Raw-body capture.** `--raw-dir "$pin_dir/raw" --lens <lens> --round <n>` make `review-call.mjs` retain each backend's raw response body (per lens × backend × round) under `<scratch>/raw`, regardless of classification — the corpus for debugging a misclassification and calibrating the clean-vs-malformed classifier. `$pin_dir` is the scratch dir prep resolves via `faff spec-review-dir`; `<n>` is this round (`faff spec-review-window --next-round --dir "$pin_dir"`, the same number prep names the round record with). The bodies live in a sibling `raw/` subdir of the round record (`round-<n>.json`), never beside it as a same-name file — so the `^round-(\d+)\.json$` round scan is untouched.
-
-- The **spec** is supplied as `--diff` (the thing under scrutiny), declared `--diff-kind prose` (it has no unified-diff hunks, so the context trim's anchored-relevance model has nothing to anchor against it); the files the spec names as `--context`; the lens refutation prompt as `--system`.
-- **Ratified-scope block (when prep assembled one).** If `$pin_dir/ratified-scope.md` exists (prep wrote it at loop entry from `faff ratified-scope --assemble`), append it as one extra `--context` file to **all four** lenses' `argv`, byte-identical across them — so it rides the shared-prefix cache and the design lenses can defer to it (the methodology lens receives it but does not act on it). Absent the file, the `--context` list is exactly the files the spec names, and no lens defers (behaviour is exactly as today).
 - **Wire shape.** `review-call.mjs` places the byte-identical shared context+spec block in the cacheable prefix (the builders' `system` slot), and the per-lens `--system` brief in the trailing `user` turn. CLI flags are unchanged. With default `prime-then-parallel`, the priming lens populates the cache on a prefix-caching backend and the rest reuse it. Plain `parallel` starts all lenses before any finishes populating the cache, so all miss. See the advisory self-check below.
-- `$backends_json` holds the primary-first JSON array (`{provider, model, host, api_key_env?, reasoning_off?, timeout?}`) `review-call.mjs`'s `--backends-json` mapper consumes verbatim, whether the config is a single backend or a fallback chain, assembled **once**, not per lens, since it is identical across every lens in a given spec-review pass.
 - `fan-out.mjs` returns a JSON array of `LensResult` (`{lens, exit, stdout, stderr, truncated, primarySkipped, ttftMs}`, in the same order as the input requests): `primarySkipped` is produced today for future consumption, no consumer reads it yet; `truncated` is true iff the child emitted the transport's `TRUNCATION_SIGNAL` on a standalone stderr line; `ttftMs` is the time to the child's first observed byte on either stream, `null` when the transport exposes none, read by the in-band self-check below and never used for anything else. Apply the existing per-lens outcome table (below) to each entry exactly as it was applied to one `review-call.mjs` invocation's exit code, forwarding `truncated` to `parse-refutation.mjs` on the exit-0 arm.
-- A `faff spec-review-pin --resolve` exit `3` (unconfigured/unset host — passed through from the wrapped `faff adversarial-backends`) or `2` (malformed chain config, or a corrupt pin file) means there is no chain to call the helper with; treat either as every lens's **`unavailable`**, kind `config-fault` (the same per-lens outcome the table below assigns a `review-call.mjs` config-fault exit) — never a silent `clear`.
 - Configure the refuter backend to a model **structurally different** from the spec author's; independence is the whole point.
 
 **In-band prefill-cache self-check (advisory, `prime-then-parallel` only).** The shared-prefix cache saves prefill only: every lens, prime and post-prime alike, still pays its own full decode, so the correct observable is prefill time, proxied by time-to-first-byte (`ttftMs`), never total wall-clock (a slow decode would otherwise be misread as a cache miss). After the pass, compute `ratio = max(ttftMs of lenses 2..N) / ttftMs(prime)`. When every lens's `ttftMs` is present and `ratio` is **≥ 1/5**, no prefill-cache benefit was realised this run: emit exactly one operator advisory naming the ratio, `prime-then-parallel showed no prefill-cache benefit on this backend (post-prime/prime TTFT ratio ≥ 1/5); consider adversarial.spec_review.dispatch_strategy: parallel`. When the prime's or any post-prime lens's `ttftMs` is `null`, record `not-computed` and emit **no** advisory, it never falls back to wall-clock and never manufactures a false positive. The advisory is informational only: it never gates, never downgrades a verdict, and never changes this run's dispatch.

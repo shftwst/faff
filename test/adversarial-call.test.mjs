@@ -2250,22 +2250,12 @@ test("FAFF-1053 runReviewChain smoke test: the spec's own 80-line-preamble scena
   assert.equal(res.primarySkipped, null);
 });
 
-test("FAFF-746/706 spec-review command contract supplies non-empty system, diff, and context paths", () => {
-  // FAFF-706: the per-lens `node "$REVIEW_CALL" ...` case-block invocation was replaced by a single
-  // fan-out.mjs dispatch (see the "Backend call" section) — the --system/--diff/--context argv
-  // fields it describes for each LensRequest now live in the prose paragraph documenting that argv,
-  // not inside the bash block itself. Scope the match to the "Backend call" section as a whole.
+test("FAFF-706 spec-review dispatch sends prepared requests through fan-out", () => {
   const skill = readFileSync(new URL("../plugin/skills/faffter-dark-spec-review/SKILL.md", import.meta.url), "utf8");
   const section = skill.match(/## Backend call[\s\S]*?\n## Aggregation/)?.[0] || "";
-  assert.match(section, /--system\s+plugin\/skills\/faffter-dark-spec-review\/refute-<lens>\.md/);
-  assert.match(section, /--diff\s+<spec-file>/);
-  assert.match(section, /--context\s+<each file the spec names>/);
-  // FAFF-882: the gateway is no longer review context. Assert its ABSENCE from the argv, so
-  // reinstating it fails CI rather than passing quietly. The positive above keeps this honest:
-  // on an empty section match a bare negative would pass vacuously.
-  assert.doesNotMatch(section, /--context\s+plugin\/skills\/faff\/SKILL\.md/);
-  // FAFF-706: the dispatch mechanism itself must be the concurrent fan-out, never a per-lens loop.
+  assert.match(section, /spec-review prepare-requests --dir "\$pin_dir" --spec "\$spec_file"/);
   assert.match(section, /fan-out\.mjs/);
+  assert.match(section, /node "\$FANOUT" --requests "\$requests_json" --strategy "\$strategy"/);
 });
 
 test("FAFF-882 code-review command contract: --context is the touched files, never the gateway", () => {

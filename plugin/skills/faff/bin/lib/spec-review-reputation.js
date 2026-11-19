@@ -453,6 +453,18 @@ const SPEC_REVIEW_REPUTATION_USAGE =
   "usage: faff spec-review-reputation (--report | --eligible --backends-json FILE) " +
   "[--consumer NAME] [--now ISO] [--root DIR] [--scan N] [--json]";
 
+function readReputation(root, scan = REPUTATION_SCAN) {
+  return computeReputation(gatherReviewFacts(root, scan), gatherOutcomeFacts(root, scan), { scan });
+}
+
+function reportEligibleFilter(res) {
+  if (res.all_struck) {
+    process.stderr.write(`faff spec-review-reputation: every candidate backend is flagged candidate-degenerate (${res.struck.join(", ")}) — the chain is preserved UNCHANGED with the gate intact, but the reviewer pool should be widened\n`);
+  } else if (res.struck.length) {
+    process.stderr.write(`faff spec-review-reputation: struck ${res.struck.length} candidate-degenerate backend(s) from the chain: ${res.struck.join(", ")}\n`);
+  }
+}
+
 function cmdSpecReviewReputation(args) {
   if (args.includes("--selftest")) return specReviewReputationSelftest();
   const { values, errors } = parseArgs(args, SPEC_REVIEW_REPUTATION_SPEC);
@@ -477,9 +489,7 @@ function cmdSpecReviewReputation(args) {
   // Compute the ledger (fail-loud on a corrupt round record / run-ledger.json).
   let ledger;
   try {
-    const reviewFacts = gatherReviewFacts(root, scan);
-    const outcomeFacts = gatherOutcomeFacts(root, scan);
-    ledger = computeReputation(reviewFacts, outcomeFacts, { scan });
+    ledger = readReputation(root, scan);
   } catch (e) {
     process.stderr.write(`faff spec-review-reputation: ${e.message}\n`);
     return 2;
@@ -507,16 +517,7 @@ function cmdSpecReviewReputation(args) {
     return 2;
   }
   const res = filterEligible(chain, new Set(ledger.flagged));
-  // Operator-attention advisory on STDERR (never stdout — the bare chain stays byte-compatible
-  // with adversarial-backends / spec-review-pin, the drop-in-filter guarantee). The occupant
-  // consumes the default bare-array stdout, which cannot itself carry `all_struck`, so surface it
-  // here where a run log / operator can see it: an all-flagged chain is preserved with the gate
-  // intact, but the operator is advised to widen the backend pool (the strike was a no-op).
-  if (res.all_struck) {
-    process.stderr.write(`faff spec-review-reputation: every candidate backend is flagged candidate-degenerate (${res.struck.join(", ")}) — the chain is preserved UNCHANGED with the gate intact, but the reviewer pool should be widened\n`);
-  } else if (res.struck.length) {
-    process.stderr.write(`faff spec-review-reputation: struck ${res.struck.length} candidate-degenerate backend(s) from the chain: ${res.struck.join(", ")}\n`);
-  }
+  reportEligibleFilter(res);
   // Default: the bare struck chain array (byte-compatible with adversarial-backends /
   // spec-review-pin output, so it is a drop-in filter). --json: the { chain, struck, all_struck } wrapper.
   console.log(JSON.stringify(values["--json"] ? { chain: res.chain, struck: res.struck, all_struck: res.all_struck } : res.chain));
@@ -531,6 +532,8 @@ module.exports = {
   cmpOrderKey,
   computeReputation,
   filterEligible,
+  readReputation,
+  reportEligibleFilter,
   gatherReviewFacts,
   gatherOutcomeFacts,
   cmdSpecReviewReputation,

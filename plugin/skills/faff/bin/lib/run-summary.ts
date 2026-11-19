@@ -32,11 +32,18 @@ interface PathApi {
 }
 type GhResult = { ok: boolean; data: unknown; stderr: string };
 interface MergeGateGhApi {
-  ghJson(args: string[]): GhResult;
+  ghJson(args: string[], cwd?: string): GhResult;
 }
 type Divergence = { class: string; issue: string | null; detail: string };
 type ReconcileResult = { divergences: Divergence[]; consistent: boolean; disposition: string };
+interface LocalMergeApi {
+  resolveLocalBase(root: string, explicit: null): string | null;
+}
+interface MergeGateFloorApi {
+  gitRun(root: string, args: string[]): { ok: boolean };
+}
 interface ReconcileApi {
+  LEVELS: string[];
   reconcileCore(input: unknown): ReconcileResult;
   validateReconcileInput(input: unknown): string | null;
 }
@@ -83,6 +90,8 @@ interface ArgvApi {
 
 const mergeGateGh: MergeGateGhApi = require("./merge-gate-gh");
 const reconcileApi: ReconcileApi = require("./reconcile");
+const localMerge: LocalMergeApi = require("./merge-gate-local");
+const mergeGateFloor: MergeGateFloorApi = require("./merge-gate-floor");
 const economicsApi: EconomicsApi = require("./economics");
 const budgetApi: BudgetApi = require("./budget");
 const backendsApi: BackendsApi = require("./backends");
@@ -140,7 +149,7 @@ const REPORTED = " _(reported)_";
 // --- The facts file (§3). format 2; every field optional. ---
 
 const FACTS_TOP_KEYS = ["format", "tracker", "run"];
-const FACTS_TRACKER_KEYS = ["titles", "sibling_end_states", "superseded_delivered"];
+const FACTS_TRACKER_KEYS = ["titles", "sibling_end_states", "superseded_delivered", "supersession_ticket_states"];
 const FACTS_RUN_KEYS = ["gloss", "methodology_findings", "verdicts", "resolve_attempts", "park_records", "reasons", "inferred_deps", "discovered_scope", "follow_ups", "prep_summary", "tidy_log", "waves"];
 
 interface FactsRead {
@@ -208,7 +217,7 @@ function outcomeEntries(ledger: unknown): Array<[string, string]> {
 // --- Dependencies, injectable so tests can stub the forge, the install and the clock-free figures. ---
 
 interface Deps {
-  ghJson(args: string[]): GhResult;
+  ghJson(args: string[], cwd?: string): GhResult;
   doctor(root: string): { exit: number; resultLine: string };
   economics(runDir: string, root: string, sessionId: string | null): unknown;
   budget(runDir: string, root: string, sessionId: string | null, nowMs: number): unknown;
@@ -229,7 +238,7 @@ function measureEnv(sessionId: string | null): { [k: string]: string } {
 
 function realDeps(): Deps {
   return {
-    ghJson: (args) => mergeGateGh.ghJson(args),
+    ghJson: (args, cwd) => mergeGateGh.ghJson(args, cwd),
     doctor: (root) => {
       const set = doctorApi.resolveDoctorScanSet(null, process.env["CLAUDE_PLUGIN_ROOT"], sharedInfra.homeDir(), root);
       const state = doctorApi.gatherDoctorState(set.scanSet, set.collapseNotices, set.expectCopies, root, false);
@@ -690,7 +699,7 @@ function renderRunSummary(input: RenderInput, deps: Deps): string {
   }
 
   // A19: ground-truth divergences from reconcileCore over an input assembled here (§3).
-  const ground = groundTruth(runDir, ledger, tracker, deps, outcomes);
+  const ground = groundTruth(runDir, ledger, tracker, deps, outcomes, input.root);
   if (ground.lines.length > 0 || ground.divergences.length > 0) {
     L.push("");
     const suffix = ground.disposition === "needs-human" ? " — ESCALATED" : ground.disposition === "warn" ? " — warn" : "";
@@ -777,72 +786,154 @@ function renderRunSummary(input: RenderInput, deps: Deps): string {
 
 type Ground = { divergences: Divergence[]; disposition: string; lines: string[] };
 
-function assembleReconcileInput(runDir: string, ledger: unknown, tracker: unknown, deps: Deps, outcomes: Array<[string, string]>): { input: { [k: string]: unknown } | null; lines: string[] } {
+type ReconcileOptions = { root?: string; required?: boolean };
+
+function safeUnit(id: string): boolean {
+  return id !== "" && id !== "." && id !== ".." && !/[\\/\0]/.test(id);
+}
+
+function readIssueRecord(runDir: string, id: string, file: string): object | null {
+  if (!safeUnit(id)) return null;
+  const recorded = readJson(path.join(runDir, id, file));
+  const issue = field(recorded, "issue");
+  return isRecord(recorded) && (issue === undefined || issue === id) ? recorded : null;
+}
+
+function assembleReconcileInput(runDir: string, ledger: unknown, tracker: unknown, deps: Pick<Deps, "ghJson">, outcomes: Array<[string, string]>, opts: ReconcileOptions = {}): { input: { [k: string]: unknown } | null; lines: string[] } {
   const lines: string[] = [];
   const shipped = outcomes.filter(([, o]) => o === "shipped").map(([id]) => id);
   const supersededIds = outcomes.filter(([, o]) => o === "superseded").map(([id]) => id);
   const baselinePath = path.join(runDir, "sibling-baseline.json");
   const baselineRaw = readJson(baselinePath);
   const baseline = Array.isArray(baselineRaw) ? baselineRaw : null;
-  if (shipped.length === 0 && supersededIds.length === 0 && baseline === null && !fs.existsSync(baselinePath)) return { input: null, lines };
+  if (!opts.required && shipped.length === 0 && supersededIds.length === 0 && baseline === null && !fs.existsSync(baselinePath)) return { input: null, lines };
 
   const input: { [k: string]: unknown } = { level: field(ledger, "level") };
-  input["shipped"] = shipped.map((id) => {
-    const recorded = readJson(path.join(runDir, id, "merge-record.json"));
+  const records = shipped.map((id) => {
+    const recorded = readIssueRecord(runDir, id, "merge-record.json");
+    return { id, recorded, pr: num(field(recorded, "pr")) };
+  });
+  const prCounts = new Map<number, number>();
+  for (const { pr } of records) {
+    if (pr !== undefined && pr > 0) prCounts.set(pr, (prCounts.get(pr) ?? 0) + 1);
+  }
+  let localBase: string | null | undefined;
+  input["shipped"] = records.map(({ id, recorded, pr }) => {
     const observed: { [k: string]: unknown } = {};
-    const pr = num(field(recorded, "pr"));
-    if (pr !== undefined && pr > 0) {
-      // Head against head: recorded.head_sha is the PR head merge-gate pinned, so the forge's
-      // headRefOid is the comparable value (step 11.5's rule; a squash mints a new commit sha).
-      const r = deps.ghJson(["pr", "view", String(pr), "--json", "state,headRefOid"]);
-      if (r.ok) {
+    const head = str(field(recorded, "head_sha"));
+    if (pr !== undefined && (prCounts.get(pr) ?? 0) > 1) {
+      lines.push(`- could not read forge: ${factText(id)} PR #${pr}: recorded by multiple shipped issues`);
+    } else if (head && pr !== undefined && Number.isSafeInteger(pr) && pr > 0) {
+      const fields = opts.required ? "number,state,headRefOid" : "state,headRefOid";
+      const r = deps.ghJson(["pr", "view", String(pr), "--json", fields], opts.root);
+      const observedHead = str(field(r.data, "headRefOid"));
+      if (r.ok && (!opts.required || field(r.data, "number") === pr) && observedHead) {
         observed["pr_merged"] = field(r.data, "state") === "MERGED";
-        observed["merged_head_sha"] = field(r.data, "headRefOid");
+        observed["merged_head_sha"] = observedHead;
       } else {
-        lines.push(`- could not read forge: ${factText(id)} PR #${pr}: ${factText(r.stderr || "gh failed")}`);
+        const reason = r.ok ? "missing or mismatched PR head evidence" : r.stderr || "gh failed";
+        lines.push(`- could not read forge: ${factText(id)} PR #${pr}: ${factText(reason)}`);
+      }
+    } else if (head && pr === 0 && opts.root && /^[0-9a-f]{40,64}$/i.test(head)) {
+      if (localBase === undefined) localBase = localMerge.resolveLocalBase(opts.root, null);
+      if (localBase && mergeGateFloor.gitRun(opts.root, ["merge-base", "--is-ancestor", head, localBase]).ok) {
+        observed["pr_merged"] = true;
+        observed["merged_head_sha"] = head;
       }
     }
-    return { issue: id, recorded: isRecord(recorded) ? recorded : null, observed };
+    return { issue: id, recorded, observed };
   });
-  if (baseline !== null) input["sibling_baseline"] = { captured: true, entry_count: baseline.length };
 
-  if (!isRecord(tracker)) {
-    if (supersededIds.length > 0 || (baseline !== null && baseline.length > 0)) {
-      lines.push("- could not read tracker observations: superseded and sibling checks not run _(reported input missing)_");
-    }
-    return { input, lines };
-  }
   const delivered = field(tracker, "superseded_delivered");
-  input["superseded"] = supersededIds.map((id) => {
-    const rec = readJson(path.join(runDir, id, "supersession.json"));
-    const d = field(delivered, id);
-    return { issue: id, recorded: isRecord(rec) ? rec : null, observed: typeof d === "boolean" ? { all_delivered: d } : {} };
-  });
+  const namedDeliveryStates = field(tracker, "supersession_ticket_states");
+  if (opts.required || isRecord(tracker)) {
+    input["superseded"] = supersededIds.map((id) => {
+      const recorded = readIssueRecord(runDir, id, "supersession.json");
+      const by = field(recorded, "superseded_by");
+      const bound = isStringArray(by) && by.length > 0 && by.every((ticket) => safeUnit(ticket) && field(namedDeliveryStates, ticket) === true);
+      const legacy = field(delivered, id);
+      const proven = opts.required || isRecord(namedDeliveryStates) ? bound : legacy;
+      return { issue: id, recorded, observed: typeof proven === "boolean" ? { all_delivered: proven } : {} };
+    });
+  }
+
+  const admitted = new Set(arr(field(ledger, "admitted")));
   const ends = field(tracker, "sibling_end_states");
-  const admitted = field(ledger, "admitted");
   const missing: string[] = [];
-  input["siblings"] = (baseline ?? []).map((entry) => {
-    const id = str(field(entry, "issue")) ?? "";
+  const boundSiblings: Array<{ issue: string; start_state_terminal: boolean; end_state_terminal: boolean; admitted: boolean }> = [];
+  const seen = new Set<string>();
+  let malformed = false;
+  for (const entry of baseline ?? []) {
+    const id = str(field(entry, "issue"));
+    const start = field(entry, "start_state_terminal");
+    if (!id || !safeUnit(id) || typeof start !== "boolean" || seen.has(id)) { malformed = true; continue; }
+    seen.add(id);
+    if (admitted.has(id)) continue;
     const end = field(field(ends, id), "end_state_terminal");
-    if (typeof end !== "boolean") missing.push(id);
-    return {
-      issue: id,
-      start_state_terminal: field(entry, "start_state_terminal") === true,
-      end_state_terminal: end === true,
-      admitted: isStringArray(admitted) && admitted.includes(id),
-    };
-  });
-  if (missing.length > 0) lines.push(`- could not read tracker observations for sibling(s): ${missing.map((m) => factText(m)).join(", ")}${REPORTED}`);
+    if (typeof end !== "boolean") { missing.push(id); continue; }
+    boundSiblings.push({ issue: id, start_state_terminal: start, end_state_terminal: end, admitted: false });
+  }
+  input["siblings"] = boundSiblings;
+  if (baseline === null || malformed) {
+    if (opts.required) lines.push("- could not read sibling baseline: missing, invalid or duplicate entries");
+  } else if (!opts.required || missing.length === 0) {
+    input["sibling_baseline"] = { captured: true, entry_count: baseline.length };
+  }
+
+  if (!isRecord(tracker) && (supersededIds.length > 0 || (baseline !== null && baseline.length > 0))) {
+    lines.push("- could not read tracker observations: superseded and sibling checks not run _(reported input missing)_");
+  } else if (missing.length > 0) {
+    lines.push(`- could not read tracker observations for sibling(s): ${missing.map((m) => factText(m)).join(", ")}${REPORTED}`);
+  }
   return { input, lines };
 }
 
-function groundTruth(runDir: string, ledger: unknown, tracker: unknown, deps: Deps, outcomes: Array<[string, string]>): Ground {
-  const { input, lines } = assembleReconcileInput(runDir, ledger, tracker, deps, outcomes);
+function groundTruth(runDir: string, ledger: unknown, tracker: unknown, deps: Deps, outcomes: Array<[string, string]>, root: string): Ground {
+  const { input, lines } = assembleReconcileInput(runDir, ledger, tracker, deps, outcomes, {
+    root, required: isRecord(field(tracker, "supersession_ticket_states")),
+  });
   if (input === null) return { divergences: [], disposition: "pass", lines };
   const problem = reconcileApi.validateReconcileInput(input);
   if (problem !== null) return { divergences: [], disposition: "pass", lines: [`- could not read reconcile input: ${factText(problem)}`, ...lines] };
   const result = reconcileApi.reconcileCore(input);
   return { divergences: result.divergences, disposition: result.disposition, lines };
+}
+
+const RECONCILE_SPEC = {
+  flags: {
+    "--run-dir": { arity: 1 }, "--facts": { arity: 1 }, "--root": { arity: 1 }, "--json": { arity: 0 },
+    "--level": { arity: 1, enum: reconcileApi.LEVELS },
+  }, positionals: { min: 0, max: 0 },
+};
+const RECONCILE_USAGE = "usage: faff run reconcile --run-dir DIR --level L1|L2|L3|L4 [--facts FILE] [--root DIR] [--json]";
+
+function cmdRunReconcile(args: string[], deps: Pick<Deps, "ghJson"> = mergeGateGh): number {
+  const { values, errors } = argvApi.parseArgs(args, RECONCILE_SPEC);
+  const runDir = str(values["--run-dir"]);
+  const level = str(values["--level"]);
+  if (errors.length || !runDir || !level) return argvApi.usageError(errors, RECONCILE_USAGE);
+  const refuse = (message: string): number => { process.stderr.write(`faff run reconcile: ${message}\n`); return 2; };
+  let ledger: unknown;
+  try { ledger = readLedgerStrict(runDir); } catch (e) { return refuse(errText(e)); }
+  const ledgerLevel = field(ledger, "level");
+  if (ledgerLevel !== undefined && ledgerLevel !== level) return refuse("ledger level contradicts --level");
+  const root = str(values["--root"]) ?? sharedInfra.findRoot();
+  const factsPath = str(values["--facts"]);
+  const facts = factsPath ? readFacts(factsPath) : null;
+  if (facts?.note) return refuse(facts.note);
+  const { input, lines } = assembleReconcileInput(runDir, ledger, field(facts?.facts, "tracker"), deps, outcomeEntries(ledger), { root, required: true });
+  if (input === null) return refuse("missing reconciliation input");
+  input["level"] = level;
+  const problem = reconcileApi.validateReconcileInput(input);
+  if (problem !== null) return refuse(problem);
+  const result = reconcileApi.reconcileCore(input);
+  if (values["--json"]) process.stdout.write(JSON.stringify({ ...result, warnings: lines }) + "\n");
+  else {
+    process.stdout.write(`run reconcile: ${result.disposition} (level ${level})\n`);
+    for (const d of result.divergences) process.stdout.write(`- [${d.class}] ${factText(d.issue ?? "run")}: ${factText(d.detail)}\n`);
+    for (const warning of lines) process.stdout.write(warning + "\n");
+  }
+  return result.consistent ? 0 : 1;
 }
 
 // --- The verb. ---
@@ -887,4 +978,4 @@ function cmdRunSummary(args: string[], deps: Deps = realDeps()): number {
   return 0;
 }
 
-module.exports = { cmdRunSummary, renderRunSummary, assembleReconcileInput, readFacts, factText, realDeps, LedgerFault };
+module.exports = { cmdRunReconcile, cmdRunSummary, renderRunSummary, assembleReconcileInput, readFacts, factText, realDeps, LedgerFault };

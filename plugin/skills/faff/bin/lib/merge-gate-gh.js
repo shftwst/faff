@@ -176,8 +176,8 @@ function recordRunnerIdentity(runDir, opts) {
 }
 
 // Impure gh helper: run `gh <args>`, JSON-parse stdout. Returns { ok, data, status, stderr }.
-function ghJson(args) {
-  const r = runGh(args, { timeout: 60000 }); // FAFF-1213: route through the single gh chokepoint
+function ghJson(args, cwd) {
+  const r = runGh(args, { timeout: 60000, cwd }); // FAFF-1213: route through the single gh chokepoint
   if (r.error || r.status !== 0) return { ok: false, data: null, status: r.status, stderr: (r.stderr || (r.error && r.error.message) || "").trim() };
   try { return { ok: true, data: JSON.parse(r.stdout), status: 0, stderr: "" }; }
   catch { return { ok: false, data: null, status: 0, stderr: "unparseable gh JSON" }; }

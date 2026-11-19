@@ -3,8 +3,7 @@
 // === region:factory — run — FAFF-1435: the `faff run` verb dispatcher ===
 //
 // `faff run <verb>` groups the run-lifecycle commands that move beep-boop's run bracket from prose
-// into code. It registers `summary` (FAFF-1435), `checkpoint` (FAFF-1436), and `open` and `close`
-// (FAFF-1437), `trigger` (FAFF-1418), and the pure `return-map` lookup. Unknown or missing verbs exit 2.
+// into code. An unknown or missing verb exits 2 with the registered verbs.
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
 const runSummary = require("./run-summary");
@@ -20,6 +19,7 @@ const VERBS = {
     close: (args) => runClose.cmdRunClose(args),
     trigger: (args) => runTrigger.cmdRunTrigger(args),
     "return-map": (args) => returnMap.cmdRunReturnMap(args),
+    reconcile: (args) => runSummary.cmdRunReconcile(args),
 };
 const RUN_USAGE = `usage: faff run <verb> [args...] — registered verbs: ${Object.keys(VERBS).join(", ")}`;
 function cmdRun(args) {

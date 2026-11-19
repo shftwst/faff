@@ -3,7 +3,7 @@
 //
 // `faff run <verb>` groups the run-lifecycle commands that move beep-boop's run bracket from prose
 // into code. It registers `summary` (FAFF-1435), `checkpoint` (FAFF-1436), and `open` and `close`
-// (FAFF-1437) and `trigger` (FAFF-1418). An unknown or missing verb exits 2 with a usage line naming the registered verbs.
+// (FAFF-1437), `trigger` (FAFF-1418), and the pure `return-map` lookup. Unknown or missing verbs exit 2.
 // ===========================================================================
 
 interface RunSummaryApi {
@@ -27,6 +27,7 @@ const runCheckpoint: RunCheckpointApi = require("./run-checkpoint");
 const runOpen: RunOpenApi = require("./run-open");
 const runClose: RunCloseApi = require("./run-close");
 const runTrigger: RunTriggerApi = require("./run-trigger");
+const returnMap: { cmdRunReturnMap(args: string[]): number } = require("./run-return-map");
 
 const VERBS: { [verb: string]: (args: string[]) => number } = {
   summary: (args) => runSummary.cmdRunSummary(args),
@@ -34,6 +35,7 @@ const VERBS: { [verb: string]: (args: string[]) => number } = {
   open: (args) => runOpen.cmdRunOpen(args),
   close: (args) => runClose.cmdRunClose(args),
   trigger: (args) => runTrigger.cmdRunTrigger(args),
+  "return-map": (args) => returnMap.cmdRunReturnMap(args),
 };
 
 const RUN_USAGE = `usage: faff run <verb> [args...] — registered verbs: ${Object.keys(VERBS).join(", ")}`;

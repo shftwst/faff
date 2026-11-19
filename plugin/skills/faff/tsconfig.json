@@ -60,6 +60,7 @@
     "bin/lib/dispatch-prepare.ts",
     "bin/lib/issue-facts.ts",
     "bin/lib/build-queue-partition.ts",
-    "bin/lib/spec-review-prepare.ts"
+    "bin/lib/spec-review-prepare.ts",
+    "bin/lib/run-return-map.ts"
   ]
 }

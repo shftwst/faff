@@ -79,7 +79,7 @@ function deps(fx, over = {}, extraEnv = {}) {
     const o = over[kind] && over[kind](...a);
     return o === undefined ? real[kind](...a) : o;
   };
-  return { calls, d: { ...real, faff: wrap("faff"), git: wrap("git"), gitNet: wrap("gitNet"), gitBytes: wrap("gitBytes"), bash: wrap("bash"), ...(over.graftSkillDir ? { graftSkillDir: over.graftSkillDir } : {}) } };
+  return { calls, d: { ...real, faff: wrap("faff"), git: wrap("git"), gitNet: wrap("gitNet"), gitDiffHash: wrap("gitDiffHash"), bash: wrap("bash"), ...(over.graftSkillDir ? { graftSkillDir: over.graftSkillDir } : {}) } };
 }
 
 function run(fx, opts = {}, over = {}, extraEnv = {}) {
@@ -1199,4 +1199,177 @@ test("graft Step 3 names the branch on a remote-branch-exists refusal, and cli.m
   const row = doc.split("\n").find((l) => l.startsWith("| `worktree ensure "));
   assert.ok(row !== undefined);
   for (const want of ["`setup-refused`", "`base_sha`", "`remote branch exists`", "`path is a symlink`", "`path already exists`", "`remote branch check failed`"]) assert.ok(row.includes(want), want);
+});
+
+const checkpointArgs = (fx, branch, head, issue = ISSUE) =>
+  ["worktree", "checkpoint", "--run-dir", fx.runDir, "--issue", issue, "--branch", branch, "--head", head];
+
+for (const gitOnly of [false, true]) {
+  test(`checkpoint captures ${gitOnly ? "local master" : "the advertised remote default"} bytes and resumes from a pruned worktree`, () => {
+    const fx = fixture({ gitOnly });
+    try {
+      const base = gitOnly ? "master" : "trunk";
+      const branch = "team/FAFF-9-demo";
+      git(fx.repo, "branch", "-m", base);
+      if (!gitOnly) {
+        git(fx.repo, "push", "-q", "origin", base);
+        git(fx.repo, "--git-dir", fx.origin, "symbolic-ref", "HEAD", `refs/heads/${base}`);
+      }
+      const wt = path.join(fx.wtroot, "build");
+      git(fx.repo, "worktree", "add", "-q", "-b", branch, wt);
+      writeFileSync(path.join(wt, "feature.txt"), Buffer.from([0x74, 0xf0, 0x0a]));
+      git(wt, "add", "feature.txt");
+      git(wt, "commit", "-qm", "build");
+      const head = git(wt, "rev-parse", "HEAD");
+      if (!gitOnly) git(wt, "push", "-q", "origin", branch);
+      const result = faffCli(checkpointArgs(fx, branch, head), wt, fx.env);
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(JSON.parse(result.stdout), { checkpoint: "written" });
+      const prefix = gitOnly ? "" : "origin/";
+      const diff = spawnSync("git", ["diff", `${prefix}${base}...${prefix}${branch}`], { cwd: wt });
+      assert.equal(diff.status, 0);
+      const record = JSON.parse(readFileSync(path.join(fx.runDir, ISSUE, "build-progress.json"), "utf8"));
+      assert.equal(record.schema_version, 1);
+      assert.equal(record.build.status, "complete");
+      assert.equal(record.build.branch, branch);
+      assert.equal(record.build.diff_hash, createHash("sha256").update(diff.stdout).digest("hex"));
+      git(fx.repo, "worktree", "remove", wt);
+      const { out } = run(fx, { mode: "autonomous" });
+      assert.equal(out.resume_at, "gate", JSON.stringify(out));
+      assert.equal(git(out.wt, "rev-parse", "HEAD"), head);
+    } finally { cleanup(fx); }
+  });
+}
+
+test("checkpoint refuses absent or stale remote tips and preserves a previously sealed checkpoint", () => {
+  const fx = fixture();
+  try {
+    const branch = "FAFF-9-demo";
+    git(fx.repo, "checkout", "-qb", branch);
+    git(fx.repo, "commit", "-qm", "build", "--allow-empty");
+    const firstHead = git(fx.repo, "rev-parse", "HEAD");
+    const file = path.join(fx.runDir, ISSUE, "build-progress.json");
+    const capture = () => faffCli(checkpointArgs(fx, branch, firstHead), fx.repo, fx.env);
+    assert.notEqual(capture().status, 0);
+    assert.equal(existsSync(file), false);
+    git(fx.repo, "push", "-q", "origin", branch);
+    assert.equal(capture().status, 0);
+    const prior = readFileSync(file);
+    git(fx.repo, "commit", "-qm", "moved", "--allow-empty");
+    assert.match(capture().stderr, /checked-out head/);
+    const newHead = git(fx.repo, "rev-parse", "HEAD");
+    const rejected = faffCli(checkpointArgs(fx, branch, newHead), fx.repo, fx.env);
+    assert.notEqual(rejected.status, 0);
+    assert.match(rejected.stderr, /durable branch/);
+    // Simulate a different publisher updating origin while the local remote-tracking ref stays stale.
+    git(fx.repo, "--git-dir", fx.origin, "update-ref", `refs/heads/${branch}`, git(fx.repo, "rev-parse", "main"));
+    git(fx.repo, "reset", "--hard", firstHead);
+    const moved = capture();
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /durable branch/);
+    assert.deepEqual(readFileSync(file), prior);
+  } finally { cleanup(fx); }
+});
+
+test("checkpoint rejects an unrelated checkout, malformed flags, and a missing run directory", () => {
+  const fx = fixture({ gitOnly: true });
+  try {
+    const head = git(fx.repo, "rev-parse", "HEAD");
+    const fail = (args) => faffCli(args, fx.repo, fx.env);
+    assert.match(fail(checkpointArgs(fx, "other", head)).stderr, /checked-out branch/);
+    assert.equal(fail(checkpointArgs(fx, "main", head, "../FAFF-9")).status, 2);
+    assert.equal(fail([...checkpointArgs(fx, "main", head), "--head", head]).status, 2);
+    assert.equal(fail(checkpointArgs({ runDir: path.join(fx.runDir, "missing") }, "main", head)).status, 2);
+    assert.equal(existsSync(path.join(fx.runDir, ISSUE)), false);
+  } finally { cleanup(fx); }
+});
+
+test("checkpoint refuses when the branch changes while hashing", () => {
+  const fx = fixture({ gitOnly: true });
+  try {
+    const branch = "FAFF-9-demo";
+    git(fx.repo, "checkout", "-qb", branch);
+    writeFileSync(path.join(fx.repo, "feature.txt"), "built\n");
+    git(fx.repo, "add", "feature.txt");
+    git(fx.repo, "commit", "-qm", "build");
+    const head = git(fx.repo, "rev-parse", "HEAD");
+    // The external diff driver moves the ref during the read, after the command pins both tips.
+    const diffDriver = path.join(fx.parent, "move-ref.sh");
+    writeFileSync(diffDriver, "#!/bin/sh\ngit update-ref refs/heads/FAFF-9-demo main\n", { mode: 0o755 });
+    git(fx.repo, "config", "diff.external", diffDriver);
+    const result = faffCli(checkpointArgs(fx, branch, head), fx.repo, fx.env);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /refs moved while capturing/);
+    assert.equal(existsSync(path.join(fx.runDir, ISSUE)), false);
+  } finally { cleanup(fx); }
+});
+
+test("checkpoint honors the writer's refusal of an unsupported record version", () => {
+  const fx = fixture({ gitOnly: true });
+  try {
+    const branch = "FAFF-9-demo";
+    git(fx.repo, "checkout", "-qb", branch);
+    const head = git(fx.repo, "rev-parse", "HEAD");
+    const issueDir = path.join(fx.runDir, ISSUE);
+    const checkpoint = path.join(issueDir, "build-progress.json");
+    const existing = '{"schema_version":99}\n';
+    mkdirSync(issueDir);
+    writeFileSync(checkpoint, existing);
+    const result = faffCli(checkpointArgs(fx, branch, head), fx.repo, fx.env);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /schema_version is not 1/);
+    assert.equal(result.stdout, "");
+    assert.equal(readFileSync(checkpoint, "utf8"), existing);
+  } finally { cleanup(fx); }
+});
+
+test("checkpoint hashes more than 64 MiB exactly, reuses it on resume, and cleans up after diff failure", () => {
+  const fx = fixture({ gitOnly: true });
+  try {
+    const branch = "FAFF-9-demo";
+    const wt = path.join(fx.wtroot, "build");
+    git(fx.repo, "worktree", "add", "-q", "-b", branch, wt);
+    writeFileSync(path.join(wt, "feature.txt"), "built\n");
+    git(wt, "add", "feature.txt");
+    git(wt, "commit", "-qm", "build");
+    const head = git(wt, "rev-parse", "HEAD");
+    const diffDriver = path.join(fx.parent, "large-diff");
+    writeFileSync(diffDriver, `#!${process.execPath}
+const { writeFileSync } = require("node:fs");
+const block = Buffer.alloc(1024 * 1024, 0xfe);
+for (let i = 0; i < 65; i++) writeFileSync(1, block);
+writeFileSync(1, Buffer.from([0, 13, 10]));
+`, { mode: 0o755 });
+    git(wt, "config", "diff.external", diffDriver);
+    const scratch = path.join(fx.parent, "scratch");
+    mkdirSync(scratch);
+    const env = { ...fx.env, TMPDIR: scratch };
+    const args = checkpointArgs(fx, branch, head);
+    const result = faffCli(args, wt, env);
+    assert.equal(result.status, 0, result.stderr);
+    const expected = createHash("sha256");
+    const block = Buffer.alloc(1024 * 1024, 0xfe);
+    for (let i = 0; i < 65; i++) expected.update(block);
+    const hash = expected.update(Buffer.from([0, 13, 10])).digest("hex");
+    const recordPath = path.join(fx.runDir, ISSUE, "build-progress.json");
+    const recorded = readFileSync(recordPath, "utf8");
+    assert.equal(JSON.parse(recorded).build.diff_hash, hash);
+    assert.deepEqual(readdirSync(scratch), []);
+    git(fx.repo, "worktree", "remove", wt);
+    const resumed = faffCli([
+      "worktree", "ensure", "--issue", ISSUE, "--mode", "autonomous", "--slug", "demo",
+      "--labels", "[]", "--run-dir", fx.runDir, "--json",
+    ], fx.repo, env);
+    assert.equal(resumed.status, 0, resumed.stderr);
+    const out = JSON.parse(resumed.stdout);
+    assert.equal(out.resume_at, "gate", JSON.stringify(out));
+    assert.equal(git(out.wt, "rev-parse", "HEAD"), head);
+    assert.deepEqual(readdirSync(scratch), []);
+    writeFileSync(diffDriver, "#!/bin/sh\nprintf partial\nexit 1\n");
+    const failed = faffCli(args, out.wt, env);
+    assert.equal(failed.status, 1);
+    assert.match(failed.stderr, /could not hash checkpoint diff/);
+    assert.equal(readFileSync(recordPath, "utf8"), recorded);
+    assert.deepEqual(readdirSync(scratch), []);
+  } finally { cleanup(fx); }
 });

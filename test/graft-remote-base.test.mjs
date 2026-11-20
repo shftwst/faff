@@ -1,24 +1,6 @@
-// FAFF-708 — graft's coupled diff identities (review input + its review-progress hash, the
-// resume recompute, and the Step 8b build-progress hash) must all derive from the FETCHED remote
-// default branch, never a hardcoded local `main` / `origin/main`. Two of them are prose, each a fenced
-// shell block immediately under a stable heading in faff-graft's SKILL.md:
-//   - `Remote-backed review diff`         (Step 9 — captures the diff ONCE, hashes those exact bytes)
-//   - `Remote-backed build-progress diff` (Step 8b — durable checkpoint hash)
-// The third, the resume recompute, is code: `faff worktree ensure` (FAFF-1415) hashes the raw bytes of
-// the remote three-dot diff and resumes only on a checkpoint whose hash matches. This test locates each
-// prose block by the single-block-under-a-stable-heading anchor (NOT a fuzzy grep of any `git diff`-shaped
-// line — the anchor is the integrity boundary: an unrelated doc edit cannot smuggle a different command
-// into the executed block), executes it in a stale-local-main / newer-remote fixture, and asserts the
-// two share one diff identity: the remote-only sibling commit is excluded, the feature commit is
-// included, and both hashes are equal. It then runs the real `faff worktree ensure --mode autonomous`
-// in the same fixture: a checkpoint carrying either block's hash resumes, and one carrying any other
-// hash does not, so the resume identity is the same identity. It also asserts neither prose block
-// contains a literal `main...HEAD` or hardcoded `origin/main` base — the prompt-regression guard.
-//
-// Integrity boundary (infosec, spec §3): the extracted blocks are committed, PR-reviewed content
-// (trusted-command-source class), located by a stable structural anchor, and executed only inside a
-// disposable git fixture. Runtime graft never extracts-and-executes Markdown — only this harness does,
-// to prove the prose and the behaviour agree.
+// FAFF-708: the build checkpoint, review input and resume check share the fetched remote default.
+// Execute the tested review block from its stable heading inside a disposable repo, and compare its
+// byte digest with the shipped worktree checkpoint command and the real resume check.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, symlinkSync, chmodSync } from "node:fs";
@@ -73,7 +55,6 @@ function extractBlock(md, heading) {
 
 const MD = readFileSync(SKILL_MD, "utf8");
 const REVIEW_BLOCK = extractBlock(MD, "Remote-backed review diff");
-const BUILDPROG_BLOCK = extractBlock(MD, "Remote-backed build-progress diff");
 
 // Run an extracted block with an appended `echo "$<var>"`, capturing that variable's value from the
 // last stdout line. env supplies the placeholders the block references ($branch, $diff_file).
@@ -133,23 +114,25 @@ function setupFixture(defaultBranch = "main") {
   return { parent, work, branch, shaA, shaB, shaC };
 }
 
-// Write a build-complete checkpoint carrying `hash` for the fixture's feature branch into a fresh run
-// dir, then run the real `faff worktree ensure --mode autonomous` against the work checkout.
-function ensureFromCheckpoint(fx, hash) {
-  const runDir = mkdtempSync(path.join(fx.parent, "run-"));
+function runFaff(fx, args) {
   const env = { ...process.env, HOME: path.join(fx.parent, "home"), GIT_TERMINAL_PROMPT: "0", FAFF_WORKTREE_ROOT: path.join(fx.parent, "wtroot"), SKIP_NPM_PACKAGES_INSTALL: "1" };
   delete env.FAFF_RUN_DIR;
-  const faff = (args) => spawnSync(process.execPath, [FAFF_BIN, ...args], { cwd: fx.work, encoding: "utf8", env });
-  const w = faff(["build-progress", "write", runDir, "FAFF-9", "--build-complete", "--diff-hash", hash, "--branch", fx.branch]);
-  assert.equal(w.status, 0, `checkpoint write failed: ${w.stderr}`);
-  const r = faff(["worktree", "ensure", "--issue", "FAFF-9", "--mode", "autonomous", "--slug", "resume", "--labels", "[]", "--run-dir", runDir, "--root", fx.work, "--json"]);
+  return spawnSync(process.execPath, [FAFF_BIN, ...args], { cwd: fx.work, encoding: "utf8", env });
+}
+
+function ensureFromCheckpoint(fx, runDir, hash) {
+  if (hash !== undefined) {
+    const w = runFaff(fx, ["build-progress", "write", runDir, "FAFF-9", "--build-complete", "--diff-hash", hash, "--branch", fx.branch]);
+    assert.equal(w.status, 0, `checkpoint write failed: ${w.stderr}`);
+  }
+  const r = runFaff(fx, ["worktree", "ensure", "--issue", "FAFF-9", "--mode", "autonomous", "--slug", "resume", "--labels", "[]", "--run-dir", runDir, "--root", fx.work, "--json"]);
   assert.equal(r.status, 0, `worktree ensure exited ${r.status}: ${r.stderr}`);
   return JSON.parse(r.stdout);
 }
 
-test("the review and build-progress blocks and worktree ensure's resume share one remote-based diff identity (FAFF-708)", () => {
+test("review, worktree checkpoint, and worktree ensure share one remote-based diff identity (FAFF-708)", () => {
   // The origin's default is `trunk`, so any derivation that hardcodes `main`/`origin/main` instead of
-  // asking remote-diff-base.sh fails the match (no such ref), in the prose blocks and in the command alike.
+  // asking remote-diff-base.sh fails the match (no such ref), in the review prose and in the commands alike.
   const fx = setupFixture("trunk");
   const diffFile = path.join(fx.parent, "review.diff");
   try {
@@ -164,22 +147,25 @@ test("the review and build-progress blocks and worktree ensure's resume share on
     const expected = createHash("sha256").update(captured).digest("hex");
     assert.equal(review.value, expected, "cur_hash must be the sha256 of the captured diff file");
 
-    // Build-progress block: durable checkpoint hash — must equal the review block's hash.
-    const buildprog = runBlock(BUILDPROG_BLOCK, fx.work, "diff_hash", { branch: fx.branch });
-    assert.equal(buildprog.value, review.value, "build-progress hash must equal the review-diff hash (one identity)");
+    const step8b = MD.slice(MD.indexOf("**Step 8b:"), MD.indexOf("**Step 8c:"));
+    assert.match(step8b, /git push origin <branch>[\s\S]*faff worktree checkpoint [^`]*--head "\$build_head"/);
+    const runDir = mkdtempSync(path.join(fx.parent, "run-"));
+    const checkpoint = runFaff(fx, ["worktree", "checkpoint", "--run-dir", runDir, "--issue", "FAFF-9", "--branch", fx.branch, "--head", fx.shaC]);
+    assert.equal(checkpoint.status, 0, checkpoint.stderr);
+    const record = JSON.parse(readFileSync(path.join(runDir, "FAFF-9", "build-progress.json"), "utf8"));
+    assert.equal(record.build.diff_hash, review.value, "the checkpoint must hash the same bytes the reviewer received");
 
-    // Resume: the real `faff worktree ensure` recomputes the hash and resumes only on a match. Free the
-    // branch from the main checkout first, so the recreate can check it out in its own worktree.
+    // Free the branch from the main checkout before worktree ensure recreates it.
     git(fx.work, "checkout", "-q", "--detach");
-    const fromBuildProgress = ensureFromCheckpoint(fx, buildprog.value);
+    const fromBuildProgress = ensureFromCheckpoint(fx, runDir);
     assert.equal(fromBuildProgress.mode, "resumed", `a checkpoint with the build-progress hash must resume: ${JSON.stringify(fromBuildProgress)}`);
     assert.equal(fromBuildProgress.cause, "checkpoint-match");
     assert.equal(git(fromBuildProgress.wt, "rev-parse", "HEAD").trim(), fx.shaC, "the resumed worktree is at the feature tip");
     git(fx.work, "worktree", "remove", "--force", fromBuildProgress.wt);
-    const fromReview = ensureFromCheckpoint(fx, review.value);
+    const fromReview = ensureFromCheckpoint(fx, mkdtempSync(path.join(fx.parent, "run-")), review.value);
     assert.equal(fromReview.mode, "resumed", `a checkpoint with the review hash must resume: ${JSON.stringify(fromReview)}`);
     git(fx.work, "worktree", "remove", "--force", fromReview.wt);
-    const other = ensureFromCheckpoint(fx, createHash("sha256").update(`${captured}\n`).digest("hex"));
+    const other = ensureFromCheckpoint(fx, mkdtempSync(path.join(fx.parent, "run-")), createHash("sha256").update(`${captured}\n`).digest("hex"));
     assert.equal(other.mode, "fresh", `a checkpoint with any other hash must not resume: ${JSON.stringify(other)}`);
     assert.equal(other.cause, "checkpoint-mismatch");
   } finally {
@@ -187,8 +173,7 @@ test("the review and build-progress blocks and worktree ensure's resume share on
   }
 });
 
-// Direct coverage of the remote-diff-base.sh helper the three blocks share — the fail-loud base
-// resolver is a named oracle in its own right, not only via the extracted blocks.
+// Direct coverage of the shared base resolver.
 const HELPER = path.join(GRAFT_SKILL_DIR, "remote-diff-base.sh");
 
 function runHelper(cwd, env = {}) {
@@ -374,18 +359,7 @@ test("operator-set GIT_SSH_COMMAND is passed through verbatim — never clobbere
   }
 });
 
-test("no coupled graft diff block hardcodes a `main...HEAD` or `origin/main` base (FAFF-708 prompt-regression guard)", () => {
-  for (const [name, block] of [
-    ["Remote-backed review diff", REVIEW_BLOCK],
-    ["Remote-backed build-progress diff", BUILDPROG_BLOCK],
-  ]) {
-    assert.ok(!block.includes("main...HEAD"), `${name} block must not hardcode a local \`main...HEAD\` base`);
-    assert.ok(!block.includes("origin/main"), `${name} block must not hardcode an \`origin/main\` base`);
-    // Each block must derive its base from the fail-loud remote-diff-base.sh helper (which resolves
-    // the default branch from the remote's advertised symref), not an inline hardcoded ref.
-    assert.ok(
-      block.includes("remote-diff-base.sh"),
-      `${name} block must resolve its base via the remote-diff-base.sh helper`,
-    );
-  }
+test("the review block resolves its base through the shared resolver (FAFF-708 prompt-regression guard)", () => {
+  assert.doesNotMatch(REVIEW_BLOCK, /main\.\.\.HEAD|origin\/main/);
+  assert.match(REVIEW_BLOCK, /remote-diff-base\.sh/);
 });

@@ -455,7 +455,7 @@ function reviewProgressSelftest() {
 // review — recreating the worktree from origin/<branch> and skipping the build — rather than rebuilding.
 // Lives beside review-progress.json at `<run-dir>/<issue>/build-progress.json`. PURE JSON read/write — no
 // tracker, no network, no git (the CLI determinism invariant); the diff_hash (which needs a git fetch/diff)
-// is computed in graft prose and passed in. It is a HINT the graft flow consults, never authoritative over
+// is supplied by the caller. It is a HINT the graft flow consults, never authoritative over
 // git truth (the diff-identity guard keeps it honest — the build is skipped only when the recorded diff_hash
 // still matches the remote three-dot diff of the pushed branch).
 
@@ -518,6 +518,18 @@ function writeRunState(cmd, anchorPath, file, existing, rec, diffBase, opts = {}
   return 0;
 }
 
+function readBuildProgress(runDir, issue) {
+  try { return JSON.parse(fs.readFileSync(buildProgressPath(runDir, issue), "utf8")); } catch { return null; }
+}
+
+function writeBuildProgress(runDir, issue, diffHash, branch, opts) {
+  const file = buildProgressPath(runDir, issue);
+  const existing = readBuildProgress(runDir, issue);
+  const rec = buildProgressApplyComplete(existing, issue, diffHash, branch, new Date().toISOString());
+  // The whole record comes from this write, so any violation refuses it.
+  return writeRunState("build-progress write", "build-progress.json", file, existing, rec, null, opts);
+}
+
 function cmdBuildProgress(args) {
   if (args.includes("--selftest")) return buildProgressSelftest();
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
@@ -529,11 +541,9 @@ function cmdBuildProgress(args) {
     process.stderr.write("usage: faff build-progress <read|write> <run-dir> <issue> [--build-complete --diff-hash H --branch B]\n");
     return 2;
   }
-  const file = buildProgressPath(runDir, issue);
-  const readExisting = () => { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } };
 
   if (sub === "read") {
-    const rec = readExisting();
+    const rec = readBuildProgress(runDir, issue);
     if (!rec) return 3;   // no checkpoint yet — NOT an error ("nothing recorded"), just absent (mirrors review-progress)
     console.log(JSON.stringify(rec));
     return 0;
@@ -550,11 +560,7 @@ function cmdBuildProgress(args) {
   // tracker round-trip. A build-complete with either missing is a coverage lie — reject it.
   if (!diffHash) { process.stderr.write("faff build-progress write --build-complete requires --diff-hash <h>\n"); return 2; }
   if (!branch) { process.stderr.write("faff build-progress write --build-complete requires --branch <b>\n"); return 2; }
-  const nowIso = new Date().toISOString();
-  const existing = readExisting();
-  const rec = buildProgressApplyComplete(existing, issue, diffHash, branch, nowIso);
-  // build-progress replaces the whole record, so every path is this write's own: any violation refuses
-  return writeRunState("build-progress write", "build-progress.json", file, existing, rec, null);
+  return writeBuildProgress(runDir, issue, diffHash, branch);
 }
 
 function buildProgressSelftest() {
@@ -1165,4 +1171,4 @@ function effectsSelftest() {
 }
 
 
-module.exports = { writeRunState, CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, declaredEffectViolations, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };
+module.exports = { writeBuildProgress, writeRunState, CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, declaredEffectViolations, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };

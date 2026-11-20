@@ -58,110 +58,32 @@ Each refuter pass is made by the bundled adversarial-review transport, **`review
 
 **Prepare the requests once.** Resolve `$faff` per the shared executable rule. Run `"$faff" spec-review prepare-requests --dir "$pin_dir" --spec "$spec_file"`. Pass the supplied enabled lenses as `--lenses <ordered CSV>`, including only the re-dispatched lenses on a retry. Omit the flag when no lens set was supplied. Pass each named file as a separate `--context <path>` in its original order. The command appends the ratified-scope file when present. Use the returned `round` as `$n` for capture and the round's raw responses.
 
-- **Exit 0** gives `{round, strategy, backends_path, requests_path}`. Set `$backends_json` and `$requests_json` to those paths and `$strategy` to the returned strategy. Run `node "$FANOUT" --requests "$requests_json" --strategy "$strategy"` once. Keep the prepared backend file for pin capture so the winner indexes refer to the selected chain.
-- **Exit 2 or 3**, or a missing or malformed descriptor, means no fan-out. Mark every enabled lens `unavailable`, kind `config-fault`, and run the no-lens capture. If the reply has no usable round, get it from `faff spec-review-window --next-round --dir "$pin_dir"`. Surface stderr diagnostics, including any reputation or deadline advisory.
-
-**Pin capture (after aggregation, EVERY round, unconditional).** Capture every round once lens results arrive, without conditional skips. Parse `chain[<i>]` from each exit-0 lens's stdout header (`## Adversarial findings — <provider>/<model> (chain[<i>], host: <src>)`); `winner_index = min(i)` is the strongest reachable reviewer. Reuse the round `$n` resolved at preparation for raw-body capture. Then:
-
-- **Served (≥1 lens returned exit-0):** idempotent on the pin itself (it writes `pinned-reviewer.json` only on the first served round and is a no-op on every later served round), but writes `served-<n>.json` (this round's served identity) on **every** served round, round 1 and rounds ≥ 2 alike, **even when the pin write is a no-op** — the round-2+ recording the round-2 architectural fix depends on, so a later round always has a served identity for `--govern` to read. It also writes `pin-capture.json{state:"captured"|"failed", round, ...}` — a failed `--backends-json` read/parse is never silent: an established `captured` marker is preserved with the failure folded beside it, and `{failed}` is written when there is no established capture; the CLI exits 2 either way.
-- **No lens served (empty exit-0 set):** write no pin or `served-<n>.json`; record `pin-capture.json{state:"skipped-no-lens", round, reason:"empty exit-0 set"}`, exit 0. This records the legitimate no-op; the round is `needs-human` via the transport floor.
-
-```bash
-# The unconditional capture call — round 1 and every later round alike, served or not.
-# $winner_index = min(chain[<i>]) across served lenses (parsed from each exit-0 lens's
-# stdout header, above). $served_count is the size of that served-lens set. $n is this
-# round's number from preparation.
-if [ "$served_count" -gt 0 ]; then
-  "$faff" spec-review-pin --capture --dir "$pin_dir" --backends-json "$backends_json" --winner-index "$winner_index" --round "$n"
-else
-  "$faff" spec-review-pin --capture --no-lens-served --dir "$pin_dir" --round "$n"
-fi
-```
-
-prep reads the occupant-written `served-<n>.json` (never the stdout header, never a pin-first `--resolve` re-derivation) via `faff spec-review-window --govern` to detect a swap round and reset the convergence window (`faff-prep/SKILL.md` — the loop-level half); the occupant only captures.
+- **Exit 0** gives `{round, strategy, backends_path, requests_path}`. Set `$backends_json` and `$requests_json` to those paths and `$strategy` to the returned strategy. Run `node "$FANOUT" --requests "$requests_json" --strategy "$strategy"` once and retain its stdout as `$results_json`. Keep the prepared backend file for result recording.
+- **Exit 2 or 3**, or a missing or malformed descriptor, means no fan-out. Use `record-results --no-results` below for the enabled lenses. If the reply has no usable round, get it from `faff spec-review-window --next-round --dir "$pin_dir"`. Surface stderr diagnostics, including any reputation or deadline advisory.
 
 Each request uses its lens's own system prompt and the same spec, context and selected backend chain. The existing assembler passes the spec as `--diff-kind prose` and keeps raw response bodies in `$pin_dir/raw`, keyed by lens, backend and round. The design lenses act on the shared ratified scope when present, and methodology receives the same context without acting on the block.
 
 - **Wire shape.** `review-call.mjs` places the byte-identical shared context+spec block in the cacheable prefix (the builders' `system` slot), and the per-lens `--system` brief in the trailing `user` turn. CLI flags are unchanged. With default `prime-then-parallel`, the priming lens populates the cache on a prefix-caching backend and the rest reuse it. Plain `parallel` starts all lenses before any finishes populating the cache, so all miss. See the advisory self-check below.
-- `fan-out.mjs` returns a JSON array of `LensResult` (`{lens, exit, stdout, stderr, truncated, primarySkipped, ttftMs}`, in the same order as the input requests): `primarySkipped` is produced today for future consumption, no consumer reads it yet; `truncated` is true iff the child emitted the transport's `TRUNCATION_SIGNAL` on a standalone stderr line; `ttftMs` is the time to the child's first observed byte on either stream, `null` when the transport exposes none, read by the in-band self-check below and never used for anything else. Apply the existing per-lens outcome table (below) to each entry exactly as it was applied to one `review-call.mjs` invocation's exit code, forwarding `truncated` to `parse-refutation.mjs` on the exit-0 arm.
+- `fan-out.mjs` returns a JSON array of `LensResult` in request order. Read its `ttftMs` for the advisory below.
 - Configure the refuter backend to a model **structurally different** from the spec author's; independence is the whole point.
 
 **In-band prefill-cache self-check (advisory, `prime-then-parallel` only).** The shared-prefix cache saves prefill only: every lens, prime and post-prime alike, still pays its own full decode, so the correct observable is prefill time, proxied by time-to-first-byte (`ttftMs`), never total wall-clock (a slow decode would otherwise be misread as a cache miss). After the pass, compute `ratio = max(ttftMs of lenses 2..N) / ttftMs(prime)`. When every lens's `ttftMs` is present and `ratio` is **≥ 1/5**, no prefill-cache benefit was realised this run: emit exactly one operator advisory naming the ratio, `prime-then-parallel showed no prefill-cache benefit on this backend (post-prime/prime TTFT ratio ≥ 1/5); consider adversarial.spec_review.dispatch_strategy: parallel`. When the prime's or any post-prime lens's `ttftMs` is `null`, record `not-computed` and emit **no** advisory, it never falls back to wall-clock and never manufactures a false positive. The advisory is informational only: it never gates, never downgrades a verdict, and never changes this run's dispatch.
 
-A non-zero `fan-out.mjs` exit (empty/malformed `--requests` or a `spawn()` fault such as missing `node` on `$PATH`) yields no results: mark every enabled lens `unavailable`, kind `config-fault`, as for resolver exits 3/2. Never mark it `clear`.
+### Record results and aggregate
 
-### Per-lens outcome (the helper's exit decides — not prose)
+On a successful fan-out, run `"$faff" spec-review record-results --dir "$pin_dir" --round "$n" --results "$results_json" --backends-json "$backends_json"`. Pass the same ordered `--lenses` subset used in preparation. Omit `--lenses` only when the default full set ran. When preparation or fan-out returned no results, replace `--results` and `--backends-json` with `--no-results`. The command records all those lenses as unavailable/config-fault and captures the empty served set.
 
-Map each `LensResult.exit` (the underlying `review-call.mjs` exit code the fan-out carries through unchanged, per lens) to a per-lens outcome:
+**Partial lens batches, including outage retries.** Add `--receipts-only` to record this attempt and return its refutation entries. The caller still assembles the entries for the enabled set, including earlier entries when the caller carries them on retry, and runs `aggregate.mjs --n <enabled-lens count>` on that array. Supply exactly one entry per enabled lens. An incomplete or inconsistent set is needs-human. Never use the latest retry by itself to replace a carried vote.
 
-| exit | meaning | lens outcome |
-|---|---|---|
-| `0` | findings returned | run the bundled **`parse-refutation.mjs`** (below) on the exit-0 stdout; **refuted** if it carries any gating objection, else **clear** |
-| `5` / `12` | configured host unreachable / persistent transport failure / rate-limited (all backends 429) | **unavailable**, kind `infra-configured` |
-| `8` | total wall-clock deadline elapsed before any backend produced findings (`EXIT.DEADLINE`) | **unavailable**, kind `infra-configured` (a slow/hung backend is transient: never `config-fault`, never a silent `pass+skip`) |
-| `6` / `2` / `4` / `7` | default-host down / unsupported provider / model-not-served / auth failed | **unavailable**, kind `config-fault` |
+The command passes raw served stdout and its truncation flag to the existing parser, retains stdout with separate stderr and parser diagnostics in the retry-safe lens transcripts, and uses the existing majority/severity aggregation. It records the lowest serving index from the transport headers against the prepared backend chain. Each served attempt writes its identity for prep's window governance, preserving the original pin. It writes no prep round record. Use the returned lens exit codes to report whether this attempt served any lens. Surface diagnostics and treat a non-zero exit as needs-human.
 
-A refuter that is **down never silently approves** — an unavailable lens feeds the transport floor in aggregation below, surfacing `needs-human` rather than a quiet pass.
-
-**Parsing an exit-0 lens (deterministic, not prose).** Convert each exit-0 stdout from markdown to `objections[]` with the bundled parser, never by prose judgement. Run:
-
-```bash
-# pass --truncated iff this lens's LensResult.truncated is true (fan-out derived it from the
-# transport's exported TRUNCATION_SIGNAL). It is plumbing — forward the boolean, judge nothing.
-printf '%s' "$LENS_STDOUT" | node plugin/skills/faffter-dark-spec-review/parse-refutation.mjs --lens <lens> [--truncated if LensResult.truncated]
-```
-
-- **Exit 0, 1, or 3** — **record the parser's STDOUT verbatim** as that lens's entry. The parser now writes a machine record on every one of these exits: exit 0 a `RefutationEntry` (`refuted`/`clear`, objections possibly degraded to `claim`-only); exit 1 a residual-fault `{lens, outcome:"unavailable", kind:"model-transient", objections:[]}` (a gating section with no usable `claim`, a body with no recognised-severity section, or a finding-shaped section without a severity, and no truncation signal — `model-transient`, not `config-fault`, since a served-and-shape-gate-passed body proves the config worked; swing-capable → the `unavailable` verdict + a resumable `faff-awaiting-spec-review` hold, exactly like `infra-configured`, never a `needs-human` park); exit 3 the same residual fault **with** the truncation signal, `kind:"infra-configured"` (also swing-capable → the same `unavailable` verdict + resumable hold). **The occupant performs no exit-to-`kind` judgement of its own** — the `model-transient`-versus-`infra-configured` decision is deterministic, so the parser names it (from `--truncated`) and this occupant records it verbatim.
-- **Exit 2 (usage) or any other exit** — a real fault: record `{ "lens": "<lens>", "outcome": "unavailable", "kind": "config-fault", "objections": [] }` (the same transport floor an exit `6`/`2`/`4`/`7` config-fault lens hits). Write the parser's stderr diagnostic (names lens + severity + title + missing field + `truncated=<bool>`) into that lens's `$pin_dir/round-<n>-<lens>.md` transcript alongside its raw stdout, noting `truncated=<LensResult.truncated>` so a resumable truncation hold is distinguishable from a genuine `review-call.mjs` config fault.
-
-Reuse the self-contained, zero-dependency `plugin/skills/faffter-dark-spec-review/parse-refutation.mjs` verbatim, never hand-roll it inline. It parses exit-0 wire bytes after `normaliseCleanRefutation`/`refuteFindings`, not raw prompt grammar. The contract remains permissive (legacy `{lens, severity}` still validates); `aggregate.mjs`'s majority/severity gate is unchanged.
-
-### Per-lens transcript (audit trail)
-
-`aggregate.mjs` drops observations before building the objections array (`observation → null`), so a **deferred** objection — recorded by a design lens as an observation citing the ratified-scope line — leaves no trace in the round record. Write each served lens's raw `review-call.mjs` stdout (the `## Adversarial findings` header line included) to `$pin_dir/round-<n>-<lens>.md`, so a deferral stays auditable. Derive the round from disk — `n=$("$faff" spec-review-window --next-round --dir "$pin_dir")` — the same number prep names the round record with (prep writes `round-<n>.json` after this pass returns), so the transcript and the record share a round; the `round-<n>-<lens>.md` name never matches the `^round-(\d+)\.json$` round-record scan, so it cannot perturb the counter. This is a **separate file** — keep `round-<n>.json`'s top-level `{verdict, objections}` shape and the gating reads unchanged (`faff spec-review-churn` / `faff spec-review-convergence` read only `lens` / `severity` / objection count). Each objection *entry* may additionally carry the optional enrichment fields (the triple `{claim, evidence, predicted_consequence}` plus `spec_anchor`) — additive per-objection fields the gating reads ignore, never a widening of the record's top-level shape. `<lens>` is one of `{architectural, infosec, methodology, QA}`.
-
-Append each served lens's `LensResult.stderr` under a separate heading after stdout in the same `round-<n>-<lens>.md`. This preserves trim notes (intact / head-fit / head-fit-floored / head-fit-declined and zero-hunk advisory) for later trim-ratio consumers.
-
-**Do not clobber a retained transcript within a round.** The in-turn retry (prep's `disposition_unavailable`) re-dispatches the same lens with the same round number, so a naive write would overwrite the first attempt's `round-<n>-<lens>.md` — the very transcript that captured the fault the re-run then cleared. On a re-dispatch, **do not overwrite an existing `round-<n>-<lens>.md`** — write the new attempt to a `.retry-<k>` sibling (`round-<n>-<lens>.retry-1.md`, `.retry-2.md`, …), preserving the first (fault) transcript. This mirrors the raw-body non-clobber `captureRawResponseBody` applies in the transport (`round-<n>.….retry-<k>.txt`): under the **sequential** in-turn retry (`disposition_unavailable` re-dispatches one attempt at a time), attempt 2 lands `.retry-1` on both sides, so the transcript and the raw body correlate per attempt. Correlation is **best-effort, not guaranteed**, under genuinely concurrent same-round writers — the `wx` create still preserves every body, but the two suffixes are then assigned by independent counters and need not match; correlate by round + lens + backend, not by suffix alone. This is a within-round (phase-1) rule; a hold-resume (phase 2) re-enters on a later drain with an advanced round number, whose `round-<n+1>-<lens>.md` never collides with the fault transcript.
-
-## Aggregation — the majority/severity gate (deterministic)
-
-Collect one JSON array of per-lens refutations and pipe it to bundled **`aggregate.mjs`**. The tool owns deterministic severity-to-verdict aggregation; this occupant's judgement mapping stays outside the contract. Each entry:
-
-```json
-{ "lens": "infosec", "outcome": "refuted|clear|unavailable",
-  "kind": "infra-configured|config-fault|model-transient",
-  "objections": [{ "severity": "critical|major|minor|observation", "claim": "…", "evidence": "…", "predicted_consequence": "…", "spec_anchor": "…", "summary": "…" }],
-  "model": "provider/model" }
-```
-
-Each objection carries the **enrichment fields** — the triple `{claim, evidence, predicted_consequence}` plus the optional `spec_anchor` — extracted from the lens's `### [severity]` block by `parse-refutation.mjs` above, never by an ad-hoc prose parse. On a **gating** objection (`critical`/`major`/`minor`) the triple is machine-guaranteed present (a missing/empty field is a parse fault, handled above); an `observation` carries whatever fields the parser found, unchecked. `aggregate.mjs` carries these verbatim onto the output objection, so they survive into the round record and thence `faff spec-judge-evidence`. A taste-level objection that cannot name a concrete consequence sets `predicted_consequence: "not separately stated"` (a present value, not a fault). A lens that cannot name the single attacked section omits `spec_anchor` (absence is the signal; canonical derivation: faff `bin/lib/heading-slug.js`). Each lens's prompt states the anchor rule as this exact bullet:
+A taste-level objection without a separately stated consequence uses `predicted_consequence: "not separately stated"`. Each lens's prompt states the anchor rule as this exact bullet:
 
 - spec_anchor: the heading slug of the spec section this objection attacks. Derive it from the heading's raw markdown line (drop the leading hash marks and surrounding whitespace, strip nothing else): lowercase; replace every run of characters outside a-z0-9 with a single hyphen; trim leading and trailing hyphens. Omit the field entirely if you cannot name one section. Worked examples: `### Aggregation — carry the anchor` → `aggregation-carry-the-anchor`; `### Phase 2 — (revised)` → `phase-2-revised`; ``### The `spec_anchor` field`` → `the-spec-anchor-field`.
 
-The enrichment fields are **additive** — they never change the majority/severity gate.
-
-**`model` may be sourced from the transport-prepended header, not reconstructed from config.** On exit 0, read provider/model from the first stdout line: `## Adversarial findings — <provider>/<model> (chain[<i>], host: <source>)`. This unconditional harness-authored header identifies the backend that actually served, including a fallback (sibling `faffter-dark-adversarial-review/SKILL.md` → "The header is harness-authored").
-
-```bash
-printf '%s' "$REFUTATIONS_JSON" | node plugin/skills/faffter-dark-spec-review/aggregate.mjs --n <count of enabled lenses>
-```
-
-Supply exactly one refutation entry per enabled lens. `aggregate.mjs` **refuses to vote on an absent or inconsistent set** — an empty input, unparseable JSON, or a refutation count that disagrees with `--n` exits non-zero with no block. Treat any **non-zero `aggregate.mjs` exit as `needs-human`**, never as `approve` — the same fail-safe discipline as a non-zero `review-call.mjs` exit; an empty set must never silently approve.
-
-The rule it applies to a consistent set, in order:
-
-1. **Transport floor** — any `config-fault` unavailable lens → `needs-human` (a human must fix the config — not a transient the retry/hold loop can ride out); an `infra-configured` **or `model-transient`** unavailable lens whose missing vote could swing the verdict → **`unavailable`** (a mandatory spec-review *outage*, not a verdict about the spec — the orchestrator's in-turn retry / resumable outage-hold loop consumes this, distinct from the human-judgement-call `needs-human`). `model-transient` (a non-truncated parser residual fault — served, healthy backend, off-grammar content) routes identically to `infra-configured` here; only a genuine `config-fault` reaches the `needs-human` floor.
-2. **Severity veto** — any `critical` objection → `reject-approach`.
-3. **Majority** — a strict majority of *enabled* lenses refuted (`ceil((n+1)/2)`) → `reject-approach`.
-4. **Minority** — at least one non-critical refutation → `revise`.
-5. **Clean** — all clear → `approve`.
-
-A lens is "refuted" only when it carries a **gating** objection (`critical`/`major`/`minor`); an `observation` is advisory and never gates. The refuters' `critical|major|minor|observation` vocabulary maps onto the contract's `blocker|major|minor` enum (`critical → blocker`, observations dropped). Both `needs-human` and `unavailable` from the transport floor name the missing lens(es) as objections (severity `blocker` for a `config-fault`, `major` — the founded default for a lens with no actual finding to grade — for a swing-capable `infra-configured` **or `model-transient`** outage), so the founded-verdict invariant always holds.
-
 ## Output (the contract artifact)
 
-`aggregate.mjs` emits the producer's single output — exactly one fenced block the consumer parses and pipes to `faff contract spec-review-verdict` (the sole source of contract data):
+Forward the single fenced block from complete-set `record-results` or the caller's aggregate unchanged. The consumer pipes its JSON to `faff contract spec-review-verdict`.
 
 ```faff-contract:spec-review-verdict
 { "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker" } ] }

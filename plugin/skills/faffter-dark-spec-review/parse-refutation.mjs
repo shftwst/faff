@@ -122,14 +122,24 @@ function parseBullets(body) {
 // review-call.mjs's own preamble-scoped header search (findHeaderLineIdx) so a finding body that
 // happens to quote a header-shaped line is never mistaken for the document's own provenance line.
 const HEADER_RE = /^##\s*Adversarial findings\s*(?:—|-{1,2})\s*(\S+)/i;
-function headerModel(content) {
-  const lines = String(content == null ? "" : content).split("\n");
-  for (const line of lines) {
-    if (HEADING_LINE_RE.test(line)) break; // preamble ends at the first finding heading
-    const m = line.match(HEADER_RE);
-    if (m) return m[1];
+function headerLine(content) {
+  for (const line of String(content ?? "").split("\n")) {
+    if (HEADING_LINE_RE.test(line)) break;
+    if (HEADER_RE.test(line)) return line;
   }
   return undefined;
+}
+
+function headerModel(content) {
+  return headerLine(content)?.match(HEADER_RE)?.[1];
+}
+
+export function servingAttribution(content) {
+  const header = headerLine(content);
+  const matched = header?.match(/^## Adversarial findings — (.+) \(chain\[(\d+)\], host: config\)\r?$/);
+  if (!matched) return null;
+  const index = Number(matched[2]);
+  return Number.isSafeInteger(index) ? { model: matched[1], index } : null;
 }
 
 // PURE: parseRefutation(content, lens) -> { ok: true, entry: RefutationEntry }
@@ -259,6 +269,17 @@ function faultMessage(f, truncated) {
   return `parse-refutation: parse fault — ${parts.join(" ")}`;
 }
 
+export function classifyRefutation(content, lens, truncated) {
+  const result = parseRefutation(content, lens);
+  if (result.ok) return { entry: result.entry, exit: 0 };
+  const kind = truncated ? "infra-configured" : "model-transient";
+  return {
+    entry: { lens, outcome: "unavailable", kind, objections: [] },
+    diagnostic: faultMessage(result.fault, truncated),
+    exit: truncated ? 3 : 1,
+  };
+}
+
 function main(argv) {
   const args = argv.slice(2);
   const li = args.indexOf("--lens");
@@ -275,21 +296,10 @@ function main(argv) {
     process.stderr.write(`parse-refutation: cannot read stdin — ${e.message}\n`);
     return 2;
   }
-  const result = parseRefutation(content, lens);
-  if (!result.ok) {
-    // Residual fault: emit the machine record on STDOUT (the occupant records it verbatim) and the
-    // human diagnostic on STDERR (the audit trail). `kind`/exit are the same decision, keyed on
-    // --truncated. FAFF-1056: the non-truncated residual fault carries `model-transient` (was
-    // `config-fault`) — a served, shape-valid, off-grammar body is a model-quality transient, not a
-    // human-fixable config fault, so it routes to the swing `unavailable` verdict (retry/hold), never
-    // the `config-fault` floor -> needs-human park.
-    const kind = truncated ? "infra-configured" : "model-transient";
-    process.stdout.write(JSON.stringify({ lens, outcome: "unavailable", kind, objections: [] }) + "\n");
-    process.stderr.write(faultMessage(result.fault, truncated) + "\n");
-    return truncated ? 3 : 1;
-  }
+  const result = classifyRefutation(content, lens, truncated);
   process.stdout.write(JSON.stringify(result.entry) + "\n");
-  return 0;
+  if (result.diagnostic) process.stderr.write(result.diagnostic + "\n");
+  return result.exit;
 }
 
 // Run as CLI only when invoked directly (not when imported by the test). Canonicalise argv[1]

@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "9543d822b44f9c3dfcc913856b25c0670bc1d37d71bf429c266b436424475ade"
+    "tsconfig.json": "5849f26b0f8e1c63136b6f2dcf28172dbdfed123276eb5924a4ceb15b06e7dfe"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -46,11 +46,12 @@
     "bin/lib/rule-inventory.ts": "c4cb6d85b49519c4bca68d3b30b63a603eaf0590b8d31edbd7eaffe60dff4621",
     "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
     "bin/lib/run-close.ts": "4f6f57ee9305f04f076285af97953ba0a4c69a37c01288748fac5c38cce97fa4",
+    "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
     "bin/lib/run-open.ts": "ce538c68a6de316a5d5372c8fe9ec52ea6a25802cbcca2a0e06810569ae0a337",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
     "bin/lib/run-summary.ts": "44da1368fd3120e0781245fa80a5913b758b4d11bbb0445db5926a2392fe70d2",
     "bin/lib/run-trigger.ts": "b7e36d37a44dcb213f7dfc3c520454a854238fc4801db30cc640acb562f419c7",
-    "bin/lib/run.ts": "72956caca6b224c0807a0498a68249fb8343748b8e26a9c0d53e80847c79ed64",
+    "bin/lib/run.ts": "238bd6f0b32c052d657426c04cabd730f457943a477b9eead5cf7a0d85bc624f",
     "bin/lib/spec-commit.ts": "c158a7e3dee49d9dd77d9abe92998624aa4c5be984640e93f7e82aa0820b0bfa",
     "bin/lib/spec-review-hold.ts": "538479bf72ec1d3f63b6894fdaa462b7a40d0c07d44cb2d45a57a38cced91790",
     "bin/lib/spec-review-prepare.ts": "b3eef5b06dbbd7a6c6eefbbd7f7f49a0489f222326bd3ac842b2e3e4c4bb19a3",
@@ -93,11 +94,12 @@
     "bin/lib/rule-inventory.js": "e4cc399a8b003fb062065d612f5b28b578fb14cc371611568f68b47150b9e69d",
     "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
     "bin/lib/run-close.js": "ebfdac166fd6586f0fc75ee14967babe5c5e2db68bc8672aac6931760c289ea2",
+    "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
     "bin/lib/run-open.js": "68f9978aadb0cbaad1887be23443e2667ed1678b12c4403e9cd518c5686a553c",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
     "bin/lib/run-summary.js": "7aecd152564efaeb618eb4ea075462f940f65aab0554da2281f08fc911a186c0",
     "bin/lib/run-trigger.js": "3b145b63d920241c7d76ee0eb096351517149afc1d0c1fe239f0ac992450cd77",
-    "bin/lib/run.js": "df579d7b754d7e18d6104031ed75c821ee8ca7666dc10169547463860e123f36",
+    "bin/lib/run.js": "ea95da11544ac282d9d18f917084f361979bf5a8df57146fe2cced4c22c28a0b",
     "bin/lib/spec-commit.js": "1b250425767b1ff8e87c43226b4dfbfcf4776052ca10e32508994166d2d026f7",
     "bin/lib/spec-review-hold.js": "1e3ab668ca1acbb249470c5dfd12f4d0d46c8b530a0fb9443bb79b26baa58f8d",
     "bin/lib/spec-review-prepare.js": "7013c578aad0620b4c0a82e07126fbadc804fa002db5166e7a24b6d3918c9416",
@@ -106,5 +108,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "bc523d3efce3ad9b4a9af73ae89635e3a9147ba9786b47b5adc45638785697ce"
+  "output_digest": "a6942b4787a5c6d899a682b563452219c4aa78abc6cccdf6d3a9473b00be6500"
 }

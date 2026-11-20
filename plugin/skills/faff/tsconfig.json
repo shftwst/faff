@@ -67,6 +67,7 @@
     "bin/lib/review-progress-resume.ts",
     "bin/lib/park-finalize.ts",
     "bin/lib/ticket-template-fields.ts",
-    "bin/lib/next-prep-queue.ts"
+    "bin/lib/next-prep-queue.ts",
+    "bin/lib/run-entry-preflight.ts"
   ]
 }

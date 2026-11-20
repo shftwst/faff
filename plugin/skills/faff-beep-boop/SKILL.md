@@ -35,17 +35,7 @@ Surface-only: this never runs `faff sync` itself, and it does not downgrade any 
 
 ## GitHub-auth preflight (run-start, before the build queue is minted)
 
-The gateway's **GitHub-auth preflight** (gateway → Autonomous Mode Contract) runs `faff github-auth-check` once at autonomous entry — the pattern (probe, `warn`/`block` knob, fail-open on `indeterminate`) is single-sourced there. What beep-boop adds is **surfacing**, mirroring the install-health line above:
-
-- **`auth-failed`** — prepend the kickoff line to `.faff/runs/<run-id>/summary.md`, ahead of the Methodology line (see `## Reporting`), as a loud warning, and lead the condensed tracker status post with the same line (`## Reporting` → step 2):
-
-      ⚠ GITHUB-AUTH: GitHub auth invalid — `GH_TOKEN` malformed/expired; re-auth (`gh auth login` / refresh `GH_TOKEN`) and re-run.
-
-  Under the opt-in `autonomous.require_github_auth: block` knob, abort here (needs-human, naming the credential + fix) **before** minting the build queue; under the default `warn`, continue — the run still produces specs, and each build parks gracefully at the delivery precondition.
-- **`indeterminate`** — add **one** advisory line ("GitHub auth could not be verified: `<basis>` — not necessarily an auth failure") to summary.md + the `/faff-wtf` surface; never abort, even under `block`.
-- **`authed`** — no line added; nothing changes.
-
-Surface-only, GitHub-only: this probes the push credential directly (a healthy tracker credential never masks a dead one) and does not touch the delivery gate, the merge floor, or any per-build audit trail.
+Run gateway **Entry preflights** at autonomous kickoff. Keep finding messages for the run summary and `/faff-wtf`. Lead the summary and condensed tracker post with an `auth-failed` message, after any install-health line. Put an indeterminate auth advisory in the summary once. Honour the returned block before queue minting. Per-build delivery gates remain in force.
 
 ## Invocation
 

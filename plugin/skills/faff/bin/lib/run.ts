@@ -28,6 +28,7 @@ const runOpen: RunOpenApi = require("./run-open");
 const runClose: RunCloseApi = require("./run-close");
 const runTrigger: RunTriggerApi = require("./run-trigger");
 const returnMap: { cmdRunReturnMap(args: string[]): number } = require("./run-return-map");
+const { cmdRunEntryPreflight }: { cmdRunEntryPreflight(args: string[]): number } = require("./run-entry-preflight");
 
 const VERBS: { [verb: string]: (args: string[]) => number } = {
   summary: (args) => runSummary.cmdRunSummary(args),
@@ -37,6 +38,7 @@ const VERBS: { [verb: string]: (args: string[]) => number } = {
   trigger: (args) => runTrigger.cmdRunTrigger(args),
   "return-map": (args) => returnMap.cmdRunReturnMap(args),
   reconcile: (args) => runSummary.cmdRunReconcile(args),
+  preflight: cmdRunEntryPreflight,
 };
 
 const RUN_USAGE = `usage: faff run <verb> [args...] — registered verbs: ${Object.keys(VERBS).join(", ")}`;

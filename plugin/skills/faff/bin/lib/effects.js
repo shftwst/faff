@@ -23,6 +23,8 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { withFileLock } = require("./fs-lock");
+const { reviewResume } = require("./review-progress-resume");
 const { requireFlags } = require("./argv");
 const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 const { HEX64_RE, RUNNER_IDENTITY_CREDENTIAL_SOURCES, appendRecordsUnderLock, sha256Hex, verifyEffectsChain, verifyExitCode } = require("./events");
@@ -265,6 +267,11 @@ function reviewProgressPath(runDir, issue) {
   return path.join(runDir, issue, "review-progress.json");
 }
 
+function carriedOutageRetries(checkpoint) {
+  return Number.isInteger(checkpoint.outage_retries) && checkpoint.outage_retries >= 0
+    ? { outage_retries: checkpoint.outage_retries } : {};
+}
+
 // Pure: fold a Phase-1 pass (+ the diff hash it was computed against) into the record. Phase-1 fail /
 // needs-human are already terminal (graft returns with no Phase-2), so the checkpoint is only ever written
 // on a `pass`. Seeds phase2 to `pending` when absent so a resume knows Phase-2 has not started.
@@ -279,7 +286,7 @@ function reviewProgressApplyPhase1(existing, issue, diffHash, nowIso) {
   const priorHash = base.phase1 && base.phase1.diff_hash;
   const phase2 = (base.phase2 && typeof base.phase2 === "object" && priorHash === hash)
     ? base.phase2 : { status: "pending", attempts: 0, findings_ref: null };
-  return { issue, phase1: { status: "done", verdict: "pass", diff_hash: hash }, phase2, updated_at: nowIso };
+  return { ...carriedOutageRetries(base), issue, phase1: { status: "done", verdict: "pass", diff_hash: hash }, phase2, updated_at: nowIso };
 }
 
 // Pure: fold a Phase-2 status transition into the record (preserving phase1). `findings` sets findings_ref
@@ -290,7 +297,7 @@ function reviewProgressApplyPhase2(existing, status, findings, attempts, nowIso)
   phase2.status = status;
   if (findings != null) phase2.findings_ref = String(findings);
   if (attempts != null) phase2.attempts = Number(attempts);
-  return { issue: base.issue, phase1: base.phase1 || null, phase2, updated_at: nowIso };
+  return { ...carriedOutageRetries(base), issue: base.issue, phase1: base.phase1 || null, phase2, updated_at: nowIso };
 }
 
 // FAFF-403: pure fold for the outage-retry counter. Increments the top-level `outage_retries` field
@@ -312,12 +319,21 @@ function cmdReviewProgress(args) {
   const sub = positional[0];
   const runDir = positional[1];
   const issue = positional[2];
-  if ((sub !== "read" && sub !== "write") || !runDir || !issue) {
-    process.stderr.write("usage: faff review-progress <read|write> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N] | --outage-retry]\n");
+  if (!["read", "write", "resume"].includes(sub) || !runDir || !issue) {
+    process.stderr.write("usage: faff review-progress <read|write|resume> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N] | --outage-retry]\n");
     return 2;
   }
   const file = reviewProgressPath(runDir, issue);
   const readExisting = () => { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } };
+
+  if (sub === "resume") {
+    if (args.length !== 5 || args[3] !== "--diff-hash" || !args[4] || args[4].startsWith("-")) {
+      process.stderr.write("usage: faff review-progress resume <run-dir> <issue> --diff-hash <hash>\n");
+      return 2;
+    }
+    console.log(JSON.stringify(reviewResume(readExisting(), issue, args[4])));
+    return 0;
+  }
 
   if (sub === "read") {
     const rec = readExisting();
@@ -326,13 +342,23 @@ function cmdReviewProgress(args) {
     return 0;
   }
 
-  // write
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  return withFileLock(file + ".lock", () => writeReviewProgress(args, get, readExisting, file, issue));
+}
+
+function writeReviewProgress(args, get, readExisting, file, issue) {
   const nowIso = new Date().toISOString();
   // FAFF-403: --outage-retry is a standalone increment form — reject it combined with either write mode
   // explicitly (rather than silently letting the first-matching branch below win and dropping the
   // increment unflagged). A caller passing both gets a loud usage error, not a quietly-ignored flag.
   if (args.includes("--outage-retry") && (args.includes("--phase1-pass") || args.includes("--phase2"))) {
     process.stderr.write("faff review-progress write --outage-retry is not combinable with --phase1-pass or --phase2\n"); return 2;
+  }
+  const guarded = args.includes("--expect-diff");
+  const expected = get("--expect-diff");
+  if (guarded && (!expected || expected.startsWith("-") || !args.includes("--phase2") || args.includes("--phase1-pass"))) {
+    process.stderr.write("faff review-progress write --expect-diff requires a hash and a Phase-2 transition\n");
+    return 2;
   }
   let rec;
   if (args.includes("--phase1-pass")) {
@@ -345,6 +371,10 @@ function cmdReviewProgress(args) {
       process.stderr.write(`faff review-progress: invalid phase2 status "${status}" — one of: ${[...REVIEW_PHASE2_STATUSES].join(" | ")}\n`); return 2;
     }
     const existing = readExisting();
+    if (guarded && (existing?.issue !== issue || existing.phase1?.verdict !== "pass" || existing.phase1.diff_hash !== expected)) {
+      process.stderr.write("faff review-progress: checkpoint identity changed before Phase 2 was recorded\n");
+      return 3;
+    }
     // A Phase-2 transition only ever follows a recorded Phase-1 pass (the checkpoint is written on pass and
     // never earlier) — reject a phase2 write with no prior phase1, so no `phase1: null` checkpoint (an
     // unenumerated resume state) can ever be created.
@@ -371,7 +401,6 @@ function cmdReviewProgress(args) {
   } else {
     process.stderr.write("faff review-progress write: expected --phase1-pass or --phase2 <status> or --outage-retry\n"); return 2;
   }
-  fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = file + ".tmp";
   fs.writeFileSync(tmp, JSON.stringify(rec, null, 2) + "\n");
   fs.renameSync(tmp, file);

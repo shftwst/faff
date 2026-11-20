@@ -106,7 +106,7 @@ A separate pass that examines the **shape of the backlog itself**, not individua
 
 Categories detected:
 
-- **Dependency cycles** — blocker graph cycles of any length, computed over the full active-issue graph (Tarjan / DFS-with-coloring).
+- **Dependency cycles** from the shared structural floor.
 - **Ghost-project pointers** — issue specs or descriptions naming a tracker container (project, initiative, milestone) that does not exist.
 - **Repeat-park patterns** — active issues parked 3+ times in the last 21 days with the same root-cause class.
 - **Splittable specs** — specs that cover two structurally independent concerns, each a valid ticket-sized unit. Restricted to specs already flagged stale/challenged — do not sweep every spec every run.

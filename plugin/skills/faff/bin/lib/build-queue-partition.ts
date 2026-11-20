@@ -1,4 +1,5 @@
 // === region:factory — build-queue-partition: group admitted work from caller-supplied facts ===
+import { directedComponents, graph } from "./planning-graph.ts";
 const argv: {
   parseArgs(args: string[], spec: unknown): { values: Record<string, unknown>; errors: unknown[] };
   usageError(errors: unknown[], usage: string): number;
@@ -25,7 +26,6 @@ type Match = Edge & {
 type AuditedMatch = Match & { disposition: "serialised" | "ambiguous" | "human-non-blocker" };
 type CollisionReason = { kind: "file" | "directory" | "surface" | "scope-tag"; value: string } | { kind: "uncertain" };
 type Collision = { left: string; right: string } & CollisionReason;
-type Graph = Map<string, Set<string>>;
 
 function object(value: unknown, label: string): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object`);
@@ -154,52 +154,11 @@ function collision(left: Candidate, right: Candidate): CollisionReason | undefin
   return tag === undefined ? undefined : { kind: "scope-tag", value: tag };
 }
 
-function graph(ids: string[]): Graph {
-  return new Map(ids.map(id => [id, new Set<string>()]));
-}
-
-function components(g: Graph, roots: string[]): string[][] {
-  const seen = new Set<string>();
-  const groups: string[][] = [];
-  for (const root of roots) {
-    if (seen.has(root)) continue;
-    const group: string[] = [];
-    const stack = [root];
-    for (let id = stack.pop(); id !== undefined; id = stack.pop()) {
-      if (seen.has(id)) continue;
-      seen.add(id);
-      group.push(id);
-      for (const next of g.get(id) ?? []) if (!seen.has(next)) stack.push(next);
-    }
-    groups.push(group.sort());
-  }
-  return groups;
-}
-
-function directedComponents(ids: string[], dependencies: Edge[]): string[][] {
-  const forward = graph(ids);
-  const reverse = graph(ids);
-  for (const { producer, consumer } of dependencies) {
-    forward.get(producer)?.add(consumer);
-    reverse.get(consumer)?.add(producer);
-  }
-  const seen = new Set<string>();
-  const finished: string[] = [];
-  // Finish each depth-first traversal before walking the transposed graph.
-  for (const root of ids) {
-    if (seen.has(root)) continue;
-    const stack = [{ id: root, exiting: false }];
-    for (let frame = stack.pop(); frame !== undefined; frame = stack.pop()) {
-      if (frame.exiting) {
-        finished.push(frame.id);
-      } else if (!seen.has(frame.id)) {
-        seen.add(frame.id);
-        stack.push({ id: frame.id, exiting: true });
-        for (const next of forward.get(frame.id) ?? []) if (!seen.has(next)) stack.push({ id: next, exiting: false });
-      }
-    }
-  }
-  return components(reverse, finished.reverse());
+function dependencyComponents(ids: string[], edges: Edge[]): string[][] {
+  return directedComponents(
+    graph(ids, edges.map(({ producer, consumer }) => [producer, consumer])),
+    graph(ids, edges.map(({ producer, consumer }) => [consumer, producer])),
+  );
 }
 
 function orderGroup(componentsByDependency: Iterable<string[]>, dependencies: Edge[]): string[] {
@@ -309,8 +268,8 @@ export function partitionBuildQueue(input: unknown) {
   }
 
   const relation = [...dependencies.entries()].sort(([a], [b]) => compare(a, b)).map(([, value]) => value);
-  const serial = directedComponents(ids, relation);
-  const inferredOnly = directedComponents(ids, relation.filter(edge => edge.source === "inferred"));
+  const serial = dependencyComponents(ids, relation);
+  const inferredOnly = dependencyComponents(ids, relation.filter(edge => edge.source === "inferred"));
   const independents: string[] = [];
   const groups: string[][] = [];
   const componentByMember = new Map<string, string[]>();

@@ -65,7 +65,7 @@ The `methodology` slot answers named questions about backlog and build state. Th
 
 | Output | Requested by | Required? | In → out |
 |---|---|---|---|
-| `backlog-diagnostics` | faff-tidy, faff-wtf, faff-map | **Always fires** | active-issue graph → topology findings. The baseline every pass depends on; two of its findings feed the routing verdict (see below). **Mandatory floor: the structural (topology) floor — dependency-graph detection of cycles and ghost-project pointers** — these are not optional flavour, they produce the `circular-blocked` / `gap-blocked` routing verdicts. `repeat-parks`, `splittable specs`, and `chain gaps` are the expected-but-degradable remainder. |
+| `backlog-diagnostics` | faff-tidy, faff-wtf, faff-map | **Always fires** | Active graph → structural floor below. Include repeat-parks, splittable specs and chain gaps when available. |
 | `pick-ordering` | faff-tidy, faff-wtf, faff-map, faff-beep-boop | **Required** | a set of issues → the same set ordered by the methodology's sequencing rule. **Optional `prd-distance` input** (the `faff prdr distance` map, supplied only under a resolved target PRD): a within-band tiebreaker composed into the ordering, never a takeover; absent ⇒ byte-identical (see the Standard-envelope floor). |
 | `promotion-readiness` | faff-tidy, faff-prep | **Required** | an issue + its spec/blocker state → promote / demote / hold decision with reasons. |
 | `build-queue` | faff-beep-boop | **Required** | routed-in issues + conflict analysis → admission-filtered, ordered, wave-partitioned queue. **Optional `prd-distance` input**: same PRD-scoped within-band tiebreaker as `pick-ordering` — supplied only under a resolved target PRD, composed not substituted, absent ⇒ byte-identical. |
@@ -95,9 +95,7 @@ The `methodology` slot answers named questions about backlog and build state. Th
 
 **Appetite.** Every output respects `appetite` (see **Appetite for destruction**). The configured methodology defines behaviour at each level.
 
-The `routing_adaptor` assigns the **Automation-routing verdict** from `backlog-diagnostics`: a cycle member gets `circular-blocked`, an issue with a ghost-project pointer gets `gap-blocked`. Here, "structural" means tracker topology (dependency graph, blocker edges, where issues sit), independent of the lens. The gateway owns the shared structural/topology floor. The thematic `backlog-diagnostics` documents its detection rules. See the default methodology's `SKILL.md` for detection categories, mechanical fixes and rendering. Each lens owns its other categories (`repeat-parks`, `splittable specs`, `chain gaps`, `orphaned`).
-
-**What a replacement methodology owes (the swap floor).** Every `backlog-diagnostics` must detect cycles and ghost-project pointers. A replacement can compose the shared floor and add findings, as the thematic and agile lenses do. For `pick-ordering`, `promotion-readiness` and `build-queue`, it may supply its own answer or re-rank the topology baseline.
+**Structural floor.** Supply cycles and ghost-project pointers for `backlog-diagnostics`. From the full scoped snapshot, pipe JSON `{issues: [active IDs], live_edges: [[issue, blocker], ...]}` to `faff planning-graph --cycles` (gateway → **Resolving the `faff` executable**). Use live edges sourced at those IDs from gateway → **Satisfied blockers — edges to terminal work**. Preserve `dependency_cycles`: `members` lists every cyclic issue, `witness` gives a closed blocker path. Use the supplied live edges to assess any break action. On error, apply **Loud degradation**. The `routing_adaptor` maps members to `circular-blocked` and ghost pointers to `gap-blocked`. Lenses may add findings. For `pick-ordering`, `promotion-readiness` and `build-queue`, lenses may supply their own answer or rerank the baseline.
 
 ### Transport (per-output dispatch grain)
 

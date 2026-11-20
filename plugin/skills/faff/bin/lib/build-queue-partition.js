@@ -3,6 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.partitionBuildQueue = partitionBuildQueue;
 exports.cmdBuildQueuePartition = cmdBuildQueuePartition;
 // === region:factory — build-queue-partition: group admitted work from caller-supplied facts ===
+const planning_graph_ts_1 = require("./planning-graph.js");
 const argv = require("./argv");
 const { readValidateInput } = require("./ratified-scope");
 function object(value, label) {
@@ -136,58 +137,8 @@ function collision(left, right) {
     const tag = common(left.scope_tags, right.scope_tags);
     return tag === undefined ? undefined : { kind: "scope-tag", value: tag };
 }
-function graph(ids) {
-    return new Map(ids.map(id => [id, new Set()]));
-}
-function components(g, roots) {
-    const seen = new Set();
-    const groups = [];
-    for (const root of roots) {
-        if (seen.has(root))
-            continue;
-        const group = [];
-        const stack = [root];
-        for (let id = stack.pop(); id !== undefined; id = stack.pop()) {
-            if (seen.has(id))
-                continue;
-            seen.add(id);
-            group.push(id);
-            for (const next of g.get(id) ?? [])
-                if (!seen.has(next))
-                    stack.push(next);
-        }
-        groups.push(group.sort());
-    }
-    return groups;
-}
-function directedComponents(ids, dependencies) {
-    const forward = graph(ids);
-    const reverse = graph(ids);
-    for (const { producer, consumer } of dependencies) {
-        forward.get(producer)?.add(consumer);
-        reverse.get(consumer)?.add(producer);
-    }
-    const seen = new Set();
-    const finished = [];
-    // Finish each depth-first traversal before walking the transposed graph.
-    for (const root of ids) {
-        if (seen.has(root))
-            continue;
-        const stack = [{ id: root, exiting: false }];
-        for (let frame = stack.pop(); frame !== undefined; frame = stack.pop()) {
-            if (frame.exiting) {
-                finished.push(frame.id);
-            }
-            else if (!seen.has(frame.id)) {
-                seen.add(frame.id);
-                stack.push({ id: frame.id, exiting: true });
-                for (const next of forward.get(frame.id) ?? [])
-                    if (!seen.has(next))
-                        stack.push({ id: next, exiting: false });
-            }
-        }
-    }
-    return components(reverse, finished.reverse());
+function dependencyComponents(ids, edges) {
+    return (0, planning_graph_ts_1.directedComponents)((0, planning_graph_ts_1.graph)(ids, edges.map(({ producer, consumer }) => [producer, consumer])), (0, planning_graph_ts_1.graph)(ids, edges.map(({ producer, consumer }) => [consumer, producer])));
 }
 function orderGroup(componentsByDependency, dependencies) {
     const componentFor = new Map();
@@ -200,7 +151,7 @@ function orderGroup(componentsByDependency, dependencies) {
         for (const id of component)
             componentFor.set(id, lead);
     }
-    const edges = graph([...members.keys()]);
+    const edges = (0, planning_graph_ts_1.graph)([...members.keys()]);
     const incoming = new Map([...members.keys()].map(id => [id, 0]));
     for (const { producer, consumer } of dependencies) {
         const from = componentFor.get(producer);
@@ -303,8 +254,8 @@ function partitionBuildQueue(input) {
         }
     }
     const relation = [...dependencies.entries()].sort(([a], [b]) => compare(a, b)).map(([, value]) => value);
-    const serial = directedComponents(ids, relation);
-    const inferredOnly = directedComponents(ids, relation.filter(edge => edge.source === "inferred"));
+    const serial = dependencyComponents(ids, relation);
+    const inferredOnly = dependencyComponents(ids, relation.filter(edge => edge.source === "inferred"));
     const independents = [];
     const groups = [];
     const componentByMember = new Map();

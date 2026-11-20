@@ -151,6 +151,7 @@ const { cmdResumeStore } = lazy(() => require("./lib/resume-store"), ["cmdResume
 const { cmdBuildReviewConvergence } = lazy(() => require("./lib/build-review-convergence"), ["cmdBuildReviewConvergence"]);
 const { cmdBuildJudgeEvidence } = lazy(() => require("./lib/build-judge-evidence"), ["cmdBuildJudgeEvidence"]);
 const { cmdBuildQueuePartition } = lazy(() => require("./lib/build-queue-partition"), ["cmdBuildQueuePartition"]);
+const { cmdPlanningGraph } = lazy(() => require("./lib/planning-graph"), ["cmdPlanningGraph"]);
 const { cmdPrepContext } = lazy(() => require("./lib/prep-context"), ["cmdPrepContext"]);
 const { cmdSpecReview } = lazy(() => require("./lib/spec-review"), ["cmdSpecReview"]);
 const { cmdSpecReviewChurn } = lazy(() => require("./lib/spec-review-churn"), ["cmdSpecReviewChurn"]);
@@ -295,6 +296,7 @@ const COMMANDS = {
   "review-progress": cmdReviewProgress,
   "build-progress": cmdBuildProgress,
   "build-queue-partition": cmdBuildQueuePartition,
+  "planning-graph": cmdPlanningGraph,
   "landing-progress": cmdLandingProgress,
   "resume-store": cmdResumeStore,
   "sentry": cmdSentry,

@@ -437,6 +437,7 @@ const REGION_MAP = {
   // structural diagnostics. Pure stdin→stdout computation, no local requires —
   // a pure computation command, sibling of next/contain → factory.
   "findings-reconcile": "factory",
+  park: "factory",
   "park-history": "factory",
   // FAFF-993: the git-only Unpark decision + write contract. Load-time requires
   // are queue-state/heartbeat/runcheck (ledger seams) + argv/shared-infra — a
@@ -760,6 +761,7 @@ const REGION_SELFTEST_ARGV = {
   "queue-state": ["queue-state", "--selftest"],
   "drain-filter": null, // FAFF-1412: no selftest by design; covered by test/drain-filter.test.mjs (TEST_FILE_COVERAGE)
   "findings-reconcile": ["findings-reconcile", "--selftest"],
+  park: null,
   "park-history": ["park-history", "--selftest"],
   "park-reconsider": ["park-reconsider", "--selftest"], // FAFF-993: reason-table + confine fixtures (no operator unpark side effect)
   "gitignore-ensure": ["gitignore-ensure", "--selftest"], // FAFF-548: host-safe selftest (temp roots only)

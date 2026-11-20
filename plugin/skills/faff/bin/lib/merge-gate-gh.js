@@ -206,15 +206,10 @@ function ghRepoSlug(explicit) {
   return r.ok && r.data ? r.data.nameWithOwner : null;
 }
 
-function cmdBranchProtectionCheck(args) {
-  if (args.includes("--selftest")) return branchProtectionSelftest();
-  const parsed = parseArgs(args, BRANCH_PROTECTION_SPEC);
-  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff branch-protection-check [--repo R] [--branch B] [--json]");
-  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
-  const json = !!parsed.values["--json"];
-  const repo = ghRepoSlug(get("--repo"));
-  if (!repo) { process.stderr.write("faff branch-protection-check: cannot resolve repo slug (gh repo view failed)\n"); return 2; }
-  let branch = get("--branch");
+function probeBranchProtection(explicitRepo, explicitBranch) {
+  const repo = ghRepoSlug(explicitRepo);
+  if (!repo) return null;
+  let branch = explicitBranch;
   if (!branch) {
     const dv = ghJson(["repo", "view", "--json", "defaultBranchRef"]);
     branch = dv.ok && dv.data && dv.data.defaultBranchRef ? dv.data.defaultBranchRef.name : "main";
@@ -248,6 +243,17 @@ function cmdBranchProtectionCheck(args) {
   }
   const st = classifyBranchProtection(probe);
   st.branch = branch; st.repo = repo; st.code_owner_review = codeOwnerReview;
+  return st;
+}
+
+function cmdBranchProtectionCheck(args) {
+  if (args.includes("--selftest")) return branchProtectionSelftest();
+  const parsed = parseArgs(args, BRANCH_PROTECTION_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff branch-protection-check [--repo R] [--branch B] [--json]");
+  const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
+  const json = !!parsed.values["--json"];
+  const st = probeBranchProtection(get("--repo"), get("--branch"));
+  if (!st) { process.stderr.write("faff branch-protection-check: cannot resolve repo slug (gh repo view failed)\n"); return 2; }
   if (json) process.stdout.write(JSON.stringify(st) + "\n");
   else console.log(`${st.status} (basis: ${st.basis})${st.required_checks.length ? ` — required: ${st.required_checks.join(", ")}` : ""} — code-owner review: ${codeOwnerReview === true ? "required" : "not required"}`);
   return st.status === "protected" ? 0 : 1;
@@ -259,11 +265,7 @@ function cmdBranchProtectionCheck(args) {
 // the pure core above. Reuses the 60s bound the sibling gh probes carry so a hung network never
 // stalls kickoff. exit 0 == authed, exit 1 == auth-failed OR indeterminate (mirrors
 // branch-protection-check: 0 = confirmed-good, 1 = otherwise).
-function cmdGithubAuthCheck(args) {
-  if (args.includes("--selftest")) return githubAuthSelftest();
-  const parsed = parseArgs(args, GITHUB_AUTH_SPEC);
-  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff github-auth-check [--json]");
-  const json = !!parsed.values["--json"];
+function probeGithubAuth() {
   // FAFF-1213: the probe now runs UNDER the runner credential when one is configured
   // (routed through runGh). Resolve which identity it reflects and augment the output
   // WITHOUT losing the existing status/basis/login "is gh auth working" signal.
@@ -271,6 +273,15 @@ function cmdGithubAuthCheck(args) {
   const resolvedEnv = resolveRunnerGhEnv(cfg, process.env);
   const r = runGh(["api", "user"], { timeout: 60000 });
   const st = classifyGithubAuth({ error: r.error || null, status: r.status, stdout: r.stdout || "", stderr: r.stderr || "" });
+  return { st, resolvedEnv };
+}
+
+function cmdGithubAuthCheck(args) {
+  if (args.includes("--selftest")) return githubAuthSelftest();
+  const parsed = parseArgs(args, GITHUB_AUTH_SPEC);
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff github-auth-check [--json]");
+  const json = !!parsed.values["--json"];
+  const { st, resolvedEnv } = probeGithubAuth();
   const identitySource = resolvedEnv.identitySource;
   if (json) {
     process.stdout.write(JSON.stringify({ ...st, identity_source: identitySource, credential_source: identitySource, credential_unresolved: resolvedEnv.credentialUnresolved, config_fault: resolvedEnv.configFault }) + "\n");
@@ -351,4 +362,4 @@ function branchProtectionSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { BRANCH_PROTECTION_SPEC, GITHUB_AUTH_SPEC, _runnerGhConfigMemo, _warnedConfigFault, _warnedUnresolved, readRunnerGhConfig, resolveRunnerGhEnv, runGh, githubActorMatches, resolveRunnerIdentity, resolveRunnerIdentityMemoised, recordRunnerIdentity, ghJson, headCheckRuns, ghRepoSlug, cmdBranchProtectionCheck, cmdGithubAuthCheck, githubAuthSelftest, branchProtectionSelftest };
+module.exports = { probeGithubAuth, probeBranchProtection, BRANCH_PROTECTION_SPEC, GITHUB_AUTH_SPEC, _runnerGhConfigMemo, _warnedConfigFault, _warnedUnresolved, readRunnerGhConfig, resolveRunnerGhEnv, runGh, githubActorMatches, resolveRunnerIdentity, resolveRunnerIdentityMemoised, recordRunnerIdentity, ghJson, headCheckRuns, ghRepoSlug, cmdBranchProtectionCheck, cmdGithubAuthCheck, githubAuthSelftest, branchProtectionSelftest };

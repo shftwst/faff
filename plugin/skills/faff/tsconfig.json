@@ -63,6 +63,7 @@
     "bin/lib/spec-review-prepare.ts",
     "bin/lib/run-return-map.ts",
     "bin/lib/spec-review-results.ts",
-    "bin/lib/planning-graph.ts"
+    "bin/lib/planning-graph.ts",
+    "bin/lib/review-progress-resume.ts"
   ]
 }

@@ -169,17 +169,9 @@ For mandatory review the helper maps no-opinion exhaustion (5, 12 or 8) to 9. St
 
 ### Review-progress checkpoint (autonomous resume)
 
-With forwarded `run_dir` and issue ID, use the CLI at these boundaries. Interactive calls skip checkpoint writes. Never edit checkpoint JSON by hand.
+For autonomous review with a run directory and issue, use `faff review-progress write "$run_dir" <ISSUE>`. After Phase 1 passes, add `--phase1-pass --diff-hash "$cur_hash"`. Honour graft's diff-validated Phase-2 resume hint. Interactive calls and non-passing Phase 1 skip writes.
 
-| Boundary | Command |
-|---|---|
-| Phase 1 passes | `faff review-progress write "$run_dir" <ISSUE> --phase1-pass --diff-hash <cur_hash>` |
-| Immediately before the helper call | `faff review-progress write "$run_dir" <ISSUE> --phase2 in_flight` |
-| Helper exit 0 | `faff review-progress write "$run_dir" <ISSUE> --phase2 complete --findings <path>` |
-| Advisory exit 8 | `faff review-progress write "$run_dir" <ISSUE> --phase2 skipped_deadline` |
-| Availability/rate-limit pass+skip | `faff review-progress write "$run_dir" <ISSUE> --phase2 skipped_unreachable` |
-
-Non-pass Phase 1 returns without a write or Phase 2. Needs-human/unavailable exits return terminal without `complete` or a skipped-status write; exit 9 is never `skipped_unreachable`. Honour graft's explicit diff-validated Phase-2 resume hint. A checkpoint is only a hint: graft reconciles it with git/PR/worktree truth and discards stale passes.
+Every Phase-2 write adds `--expect-diff "$cur_hash" --phase2 STATUS`. Record `in_flight` immediately before the helper, `complete --findings <path>` on exit 0, `skipped_deadline` on advisory exit 8, and `skipped_unreachable` on an availability/rate-limit pass+skip. On a changed checkpoint (exit 3), return control to graft for reconciliation. Needs-human and unavailable returns, including exit 9, leave Phase 2 unfinished.
 
 ## Output to faff-graft
 

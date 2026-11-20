@@ -102,7 +102,7 @@ const result = (issue: string, token: string, extra?: PrepExtras): PrepResult =>
 const errored = (issue: string, reason: string, extra?: PrepExtras): PrepResult => result(issue, "errored", { reason, ...extra });
 
 // For each line, whether it sits inside (or opens or closes) a fenced code block.
-function fenceMask(lines: string[]): boolean[] {
+export function fenceMask(lines: string[]): boolean[] {
   const mask = new Array<boolean>(lines.length).fill(false);
   let open: string | null = null;
   lines.forEach((line, i) => {

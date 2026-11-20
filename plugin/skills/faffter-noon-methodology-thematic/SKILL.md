@@ -9,11 +9,11 @@ judgement_seam: ordering
 
 Default `slots.methodology`: `faffter-noon-methodology-thematic`. Derive answers from tracker topology and stated facts, without value, risk, right-sizing or outcome opinions.
 
-Compose the methodology-agnostic cycle + ghost-project structural/topology floor from gateway → **The `methodology` slot**. "Structural" means tracker topology, not this lens. Opinionated methodologies add to this baseline; structural diagnostics always run.
+Compose the structural floor from gateway → **The `methodology` slot** for cycle and ghost-project detection.
 
 ## Core ordering rule
 
-Order by priority (issue-level or inherited from any ancestor), then chainable unlock value (direct + transitive dependents over live blocker edges), then oldest creation first. Apply this to every output sequencing work. Satisfied edges add no unlock count (gateway → **Satisfied blockers — edges to terminal work**).
+Order by issue or ancestor priority, then unlock count, then oldest creation. Pipe the structural-floor graph plus `roots` (IDs being ranked) to `faff planning-graph --unlock`. Use its `unlock_counts` for all sequencing. Combine with `--cycles` in one call when both use the same graph.
 
 ## Outputs
 
@@ -71,15 +71,13 @@ Keep the same Backlog status and brief-seeded descriptions. For a branch the sub
 
 ### `backlog-diagnostics`
 
-Detect backlog structure: dep cycles, ghost-project pointers, repeat-park patterns, splittable specs and chain gaps. This output always fires regardless of config. Callers render it or feed cycle + ghost-project findings to the gateway automation-routing contract.
-
-**Cycle + ghost-project detection is the shared structural (topology) floor, composed not owned.** The gateway homes these methodology-agnostic categories (gateway → **The `methodology` slot** → the structural/topology floor); thematic and agile both compose them. The tables document that floor. **Repeat-park patterns**, **splittable specs**, **chain gaps** and **orphaned + repeat-parked** belong to thematic. Retain their detection semantics, mechanical fixes, conservatism and rendered form.
+Always run the structural floor. Add the findings below for rendering and routing.
 
 #### Detection categories
 
 | Category | What | How |
 |---|---|---|
-| **Dependency cycles** | Blocker graph cycle of any length (A→B→A; A→B→C→A; longer) | Tarjan / DFS-with-coloring pass over the full active-issue blocker graph. Cancelled/archived already filtered per the **Ignore cancelled and archived** rule. |
+| **Dependency cycles** | All cyclic issues | Use the structural floor. Render each witness and identify any other members. |
 | **Ghost-project pointers** | An issue spec or description names a tracker container (project, initiative, milestone — whatever the tracker calls it) that does not exist | String-match against the live container list from the tracker MCP |
 | **Repeat-park patterns** | Active issue parked repeatedly in the same root-cause class within the rolling window (the seam's `window_days` / `threshold`) | Call the deterministic seam — `faff park-history --now <currentDate>` (resolve the `faff` executable per the gateway's *Resolving the `faff` executable* rule, never a hardcoded path; pass the **system `currentDate`** as the window end — the seam has no ambient clock and exits 2 without `--now`). Consume its JSON: `repeat_parked` is the sorted set of issue ids at/over threshold (the finding), and `counts` gives the per-issue / per-class breakdown. The rolling **window and threshold are owned by the seam** (`window_days` / `threshold` in its output) — not re-derived or restated here. Root-cause classification is the shared taxonomy fixed in the gateway's automation-routing contract; the `routing_adaptor` slot, default `faffidavit-routing`, assigns against it. The seam fail-louds (exit 2) on a missing/unparseable `--now` or a malformed parks block — do not paper over it with a prose fallback. |
 | **Splittable specs** | Spec describes two structurally independent concerns AND each concern is a valid ticket-sized unit | LLM inspection — restricted to specs already flagged stale/challenged by existing tidy logic (don't sweep every spec every run) |
@@ -158,7 +156,7 @@ Orphaned + repeat-parked (1) ⚠
             issue parked 3 times since. Is this still wanted?
 ```
 
-The cycle + ghost-project findings feed the **automation-routing contract** (fixed in the gateway; the `routing_adaptor` slot, default `faffidavit-routing`, assigns the verdict): an issue in a detected cycle gets `circular-blocked`; an issue with a ghost-project pointer gets `gap-blocked`.
+Pass the cycle and ghost-project findings through for routing.
 
 ### `standup-digest`
 

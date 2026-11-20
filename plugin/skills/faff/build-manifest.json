@@ -6,14 +6,14 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "1020bc696d83b63a0ae6ebc60dc1af8d257225f3bedcef401cc2da9e27a352e1"
+    "tsconfig.json": "4844d15198179cf26ea4fdd2ef13d6885998e7bc9b73e47900a2bd7f39408c31"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
     "package.json": "249331b02133d368292b2a867c07f4fce92083acd3d892850b74e23f95b2ea7c"
   },
   "inputs": {
-    "bin/lib/build-queue-partition.ts": "0d3ac17231bc4d8fac203e2bef1e41ab8806cf26d932f0790ff59b04728cb328",
+    "bin/lib/build-queue-partition.ts": "90d0d46ca6183ce3ceedac2807a89529a025625936f38fa27ca0e6c0698416bc",
     "bin/lib/commissaire-governor-client.ts": "90e01905816c4e12ea1a24eab1ed9b6d6e6106c29bb322e3988ca50b6604604b",
     "bin/lib/commissaire-trust.ts": "c2d4bffa2f153db70746395cf708195cc11ba0aa51b5ccc25e9f181c08555a65",
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
@@ -33,6 +33,7 @@
     "bin/lib/land.ts": "e78338b70779f99dd602ba6b2bb9c548c8d3a1bcc8f53120c5aa4fe74cf5c36a",
     "bin/lib/merge-authorize.ts": "159bd25af72d30d005a887cda7d8980f7d5030398022c0d9f8371a066c13bd61",
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
+    "bin/lib/planning-graph.ts": "39d02bc552783d4d3b33473f2b355e94798d56eb90deb89d85330c6351e5d529",
     "bin/lib/pr-open.ts": "6ff01c874dabfa945febff26d629dd9b0af6b284e4d594f82bee71f2475baf76",
     "bin/lib/prep-attach.ts": "6e20c0f14e9065a91e72fd417d42da5c0bc1863e0bf9fc3d1dff950ed329bef0",
     "bin/lib/prep-context.ts": "58b0bf3519200acde3fb9076f508bc95d554b068181e4fe557e60aab917d45d3",
@@ -55,7 +56,7 @@
     "bin/lib/worktree-ensure.ts": "5d7279ab2a14bfc2f34ed7e8e5c11c609647e5474a5b91f516f3bb4b8189ea8d"
   },
   "outputs": {
-    "bin/lib/build-queue-partition.js": "7c2d2c0f5d062c114f8fb504c1ec6fdb71938eef636a7ac8dbb6bd42cbfe8d26",
+    "bin/lib/build-queue-partition.js": "ad4128e8032bb6642ca6765a750e82825521ea8d8e22ca8e9895b088774c2e9e",
     "bin/lib/commissaire-governor-client.js": "9e14c9ebe762d860b0249f853dd308a4abc3ef9d3e92a416d1ad8decd44d0885",
     "bin/lib/commissaire-trust.js": "c69b5fb8ffb57c7195bc795b1aeb6a77c90e3145457a5b6b78da94589c197572",
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
@@ -75,6 +76,7 @@
     "bin/lib/land.js": "64fb3ee3123716fea265e218a0422017abdd7a9001e3e29072e68c9e63c9d186",
     "bin/lib/merge-authorize.js": "9b08489832b8d35e025e52f17fe94476bfb400210065048b29facd04d3db582f",
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
+    "bin/lib/planning-graph.js": "718b5eeb1e4eae6717136227905cde9663297f47a087398b593b2c3aa7ba70c1",
     "bin/lib/pr-open.js": "a8613b32ef23683d063ddd9e57e99718c4a8ca24ecba9bf6a4db50a63d42feb1",
     "bin/lib/prep-attach.js": "9d297fe069b19c8084ed9049a788daee75cbf33d1a383242d762e507586a9120",
     "bin/lib/prep-context.js": "b609924254f54d1cbd693ae1db8df6fa4d3daa0036e59fb3f1e48171af1780ac",
@@ -96,5 +98,5 @@
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/worktree-ensure.js": "a4d7154206e6d3dd6511248e3d0bcbadbc90079907146bc81430cf157433e44a"
   },
-  "output_digest": "8968e39f64e86c1d55fab63b721841591db2ce9fac1ce37520728cdca5c5f944"
+  "output_digest": "873c3c532b0a226ff45505245b1d662a0d4184fd2650d05a538755f2a89ac298"
 }

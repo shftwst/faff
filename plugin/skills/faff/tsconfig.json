@@ -66,6 +66,7 @@
     "bin/lib/planning-graph.ts",
     "bin/lib/review-progress-resume.ts",
     "bin/lib/park-finalize.ts",
-    "bin/lib/ticket-template-fields.ts"
+    "bin/lib/ticket-template-fields.ts",
+    "bin/lib/next-prep-queue.ts"
   ]
 }

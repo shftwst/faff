@@ -84,7 +84,7 @@ Motivation to verifiable done, in four phases. Every non-trivial decision carrie
 
 ## Self-review before returning (mandatory, all sizes)
 
-**Deterministic Scenarios check (first, before the reviewer pass).** Pipe the draft to `faff admissible --lights-out --spec - --json` and parse stdout. Treat every `warnings[]` line starting `scenarios-prose advisory:` or `scenarios-code-surface advisory:` as a `major` finding naming the listed unit ids. Read `admissible` and `reasons` too: an R1 refusal (`born-verifiable scenario(s)`) while the Scenarios section has at least one unit is a `major` format finding; with no Scenarios units, note it in the review record only, since a spec may legitimately have none. Rewrite each named unit before self-rating: give it an observable `Then` (or a `MUST` or comparator for a non-functional objective), and move a test-file check to its own DONE item. Re-run once; a warning that remains stays an open finding under the existing rating cap. A failed command (no JSON on stdout) is noted in the review record and never blocks the spec. Treat a refusal naming `R2c`, `R2d` or `R2e` as a `major` finding too: tag a person-only item `needs-human: <reason>`, rewrite any other item so a test or command can check it, keep at least one item that is not tagged, and give or drop an empty-reason marker.
+**Draft check before review.** Pipe the draft to `faff admissible --spec - --author-diagnostics`. Count each `major` entry once. Rewrite its named units with an observable Then, MUST or comparator. Move each `test_file` check into its own DONE item. For `done_check`, tag person-only items `needs-human: <reason>`, fix or remove empty markers, make other checks runnable and keep at least one untagged item. Recheck once and retain unresolved findings for the rating cap. Log `notes` or a command failure without blocking the spec.
 
 Before emitting the spec + self-rating, dispatch a **clean-context subagent** to check it against the codebase. Fresh context checks missed conventions, architectural fit, vague ACs, codebase-answerable `**Punt:**` items, false `**Assumes:**` and scope creep from the spec and codebase alone, as `/faff-graft` will. This is the default producer's delegated quality responsibility, mandatory for **every** fresh spec in both modes, regardless of size, in addition to marker conformance and self-rating. **When this producer is itself dispatched as a subagent** (gateway → **Sibling-skill invocation → Producer dispatch**), verify **in-context** in a fresh-reasoning pass with spec and codebase instead of nesting another subagent. Every claim still needs codebase verification before the spec is trusted.
 
@@ -123,18 +123,7 @@ Faff-prep consumes this line for its autonomous gate (`high` → promote; `mediu
 
 ## Contract artifact
 
-After the prose spec and `confidence:` line, append **one** `faff-contract:spec-readiness` fenced block as the **last** output. Declare the actual markers and confidence token you authored; the block mirrors the prose, never a second truth. Faff-prep parses it **deterministically**, without an LLM re-read, and pipes it to `faff contract spec-readiness`.
-
-````
-```faff-contract:spec-readiness
-{ "confidence": "<your confidence token: high|medium|low>",
-  "decisions": [ { "marker": "chosen" | "punt" | "assumes" | "none" }, ... one per non-trivial decision section, in document order ] }
-```
-````
-
-- **One** block, at the very end. `decisions` lists each non-trivial decision section's canonical marker in order (`chosen` / `punt` / `assumes`; `none` only if a multi-option section is missing one — a clean spec has none).
-- Do **not** include `provenance_present` — faff-prep computes that from the provenance stamp it adds at attach time.
-- The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-prep reading your prose — the absent-block fallback.)
+Emit the final readiness block per gateway → **Spec readiness (fixed)**.
 
 ## Rules
 

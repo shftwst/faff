@@ -251,18 +251,7 @@ Before emitting the spec and confidence line, run sibling `faffter-noon-spec/SKI
 
 ## Contract artifact
 
-After the prose spec and `confidence:` line, append **one** `faff-contract:spec-readiness` fenced block as the **last** output. Declare the actual markers and confidence token you authored; the block mirrors the prose, never a second truth. Faff-prep parses it **deterministically**, without an LLM re-read, and pipes it to `faff contract spec-readiness`.
-
-````
-```faff-contract:spec-readiness
-{ "confidence": "<your confidence token: high|medium|low>",
-  "decisions": [ { "marker": "chosen" | "punt" | "assumes" | "none" }, ... one per non-trivial decision section, in document order ] }
-```
-````
-
-- **One** block, at the very end. `decisions` lists each non-trivial decision section's canonical marker in order (`chosen` / `punt` / `assumes`; `none` only if a multi-option section is missing one — a clean spec has none).
-- Do **not** include `provenance_present` — faff-prep computes that from the provenance stamp it adds at attach time.
-- The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-prep reading your prose — the absent-block fallback.)
+Emit the final readiness block per gateway → **Spec readiness (fixed)**.
 
 ## Rules
 

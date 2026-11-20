@@ -826,3 +826,59 @@ test("e2e T35: the needs-judgement:prd-inputs call writes no capture base", () =
     assert.deepEqual(captureEvents(fx.runDir), []);
   } finally { fx.cleanup(); }
 });
+
+function selectPrd(fx) {
+  const result = spawnSync(process.execPath, [CLI, "prd", "select", "--json", "--root", fx.root], {
+    cwd: fx.root, env: { HOME: process.env.HOME, PATH: process.env.PATH, ...fx.env }, encoding: "utf8",
+  });
+  assert.equal(result.status, 0, result.stderr);
+  return JSON.parse(result.stdout);
+}
+
+function writePrd(fx, slug, container, status) {
+  const dir = join(fx.root, "records", "prd");
+  mkdirSync(dir, { recursive: true });
+  return write(dir, slug + ".md", `# PRD — ${container}\n\n**Container:** ${container}\n**Status:** ${status}\n`);
+}
+
+test("e2e: plot lookup and inherited trigger agree on the single PRD and the Active/Frozen filter", t => {
+  const fx = repo({ config: "tracking:\n  prd_docs_path: records/prd\n" });
+  t.after(fx.cleanup);
+  const ledger = join(fx.runDir, "run-ledger.json");
+  const before = readFileSync(ledger);
+  const old = writePrd(fx, "historical", "Historical", "Stale");
+  assert.deepEqual(selectPrd(fx), { action: "use", container: "Historical", path: old });
+  const first = writePrd(fx, "alpha", "Alpha", "Active (approved)");
+  const selected = selectPrd(fx);
+  assert.deepEqual(selected, { action: "use", container: "Alpha", path: first });
+  const trigger = JSON.parse(cli(["--json"], fx.env, fx.root).out);
+  assert.equal(trigger.token, "needs-judgement:prd-inputs");
+  assert.deepEqual([trigger.prd.container, trigger.prd.path], [selected.container, selected.path]);
+  writePrd(fx, "beta", "Beta", "Frozen");
+  assert.deepEqual(selectPrd(fx), { action: "choose", candidates: [
+    { slug: "alpha", container: "Alpha", status: "Active (approved)" },
+    { slug: "beta", container: "Beta", status: "Frozen" },
+  ] });
+  const tied = cli(["--json"], fx.env, fx.root);
+  assert.equal(tied.code, 3);
+  assert.equal(JSON.parse(tied.out).prd.ambiguous, true);
+  assert.deepEqual(readFileSync(ledger), before);
+  assert.deepEqual(readdirSync(fx.runDir), ["run-ledger.json"]);
+});
+
+test("e2e: plot lookup falls to intake on absence, historical-only choices and unusable local metadata", t => {
+  const fx = repo({ config: "tracking:\n  prd_docs_path: records/prd\n" });
+  t.after(fx.cleanup);
+  assert.deepEqual(selectPrd(fx), { action: "intake", reason: "no-prd" });
+  const old = writePrd(fx, "historical", "Historical", "Stale");
+  const draft = writePrd(fx, "pending", "Pending", "Draft");
+  assert.deepEqual(selectPrd(fx), { action: "intake", reason: "no-prd" });
+  rmSync(old);
+  rmSync(draft);
+  const shifted = writePrd(fx, "renamed", "Original", "Frozen");
+  assert.deepEqual(selectPrd(fx), { action: "intake", reason: "prd-file-missing" });
+  writeFileSync(shifted, "# PRD — No container\n\n**Status:** Active\n");
+  assert.deepEqual(selectPrd(fx), { action: "intake", reason: "prd-container-missing" });
+  mkdirSync(join(fx.root, "records", "prd", "not-a-file.md"));
+  assert.deepEqual(selectPrd(fx), { action: "intake", reason: "prd-list-failed" });
+});

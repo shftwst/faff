@@ -36,11 +36,10 @@ discovery brief → recurse top-down (ticket-shaping per level) → write skelet
 ### 1. Entry — get a discovery brief
 
 - **Chained from `/faff-jot`**: use its application-scale brief directly; do not re-run discovery.
-- **Standalone** (`/faff-plot` invoked directly): **discover a committed PRD** first; fall back to conversational discovery only without an unambiguous PRD.
-  - **Discover.** Resolve the `faff` executable (gateway → **Resolving the `faff` executable**, never hardcode a path). Use only `faff run trigger`'s two mechanical reads: `faff prd list --json`, then `faff prd path <container>`; never invoke the L4 trigger (interactive plot is L3 and human-gated). Parse the `faff prd list --json` array; only if it has multiple elements, filter to `status` `Active` or `Frozen`; zero survivors means no PRD. Keep this selection aligned with `faff run trigger`.
-  - **Exactly one survivor (unambiguous)** → `faff prd path <container>` resolves the discovery-brief file; recurse from it and **skip `intake` entirely**. Exit 2 or a missing file falls to zero-PRD below, never aborts entry.
-  - **More than one survivor (ambiguous)** → list surviving slugs + statuses and ask the human to pick. A clean pick supplies the PRD brief and skips `intake`; a decline falls to intake below.
-  - **Zero (no committed PRD, `[]`, or fallback above)** → invoke configured `intake` via the Skill tool with the human's description to obtain the discovery brief (gateway → **Sibling-skill invocation**: canonical bundled default name; explicitly-namespaced override verbatim). If `intake` is missing, run the default inline; never block.
+- **Standalone:** run `faff prd select --json` (gateway → **Resolving the `faff` executable**).
+  - `use`: read `path` as the brief.
+  - `choose`: show slug and status for each candidate. Ask the human to pick, then read `faff prd path <container>` as the brief.
+  - `intake`, decline or unreadable brief: invoke configured `intake` with the human's description (gateway → **Sibling-skill invocation**). If unavailable, run the default inline.
 
 If the brief is too thin to plan a coherent roadmap (one vague capability, no stated dependencies), say so and offer to deepen discovery rather than inventing structure.
 

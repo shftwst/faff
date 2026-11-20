@@ -1465,4 +1465,4 @@ function adrSelftest() {
 }
 
 
-module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, extractAdrPromotionIntent, listAdrs, listAdrsAcross, nygardDefault, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo, resolveAdrFormat, supersededDir };
+module.exports = { extractLevel2Headings, ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, extractAdrPromotionIntent, listAdrs, listAdrsAcross, nygardDefault, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo, resolveAdrFormat, supersededDir };

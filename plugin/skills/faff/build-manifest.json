@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "9e99337788454d6e262cc40a3269d2d7fb5bdd98e7646255851a3ff189ec4bfd"
+    "tsconfig.json": "0c6163128ca8852285238b424524c62c13a28b61d2251c456da959b9c56ac6a8"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -36,7 +36,7 @@
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/planning-graph.ts": "39d02bc552783d4d3b33473f2b355e94798d56eb90deb89d85330c6351e5d529",
     "bin/lib/pr-open.ts": "6ff01c874dabfa945febff26d629dd9b0af6b284e4d594f82bee71f2475baf76",
-    "bin/lib/prep-attach.ts": "6e20c0f14e9065a91e72fd417d42da5c0bc1863e0bf9fc3d1dff950ed329bef0",
+    "bin/lib/prep-attach.ts": "182ce12bf1d4a85771ff97261af5810e7e2a631ba3712a095faa22bc239c8c1f",
     "bin/lib/prep-context.ts": "58b0bf3519200acde3fb9076f508bc95d554b068181e4fe557e60aab917d45d3",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",
@@ -55,6 +55,7 @@
     "bin/lib/spec-review-prepare.ts": "b3eef5b06dbbd7a6c6eefbbd7f7f49a0489f222326bd3ac842b2e3e4c4bb19a3",
     "bin/lib/spec-review-results.ts": "5003ed8fbde6069399fc2fdd87ddb332f0becae96a123c21765e2a986bc70df3",
     "bin/lib/spec-review-round.ts": "f1b34213ddd655e0c5a6c0df3ad07ced73534e91536b179b66e3ea383be7c856",
+    "bin/lib/ticket-template-fields.ts": "941c59ca966d83726037a38173615b34d2da2b1d249b784f576e7c25faf9caa6",
     "bin/lib/worktree-ensure.ts": "0df6ad5b132a47eb5d029fbf4b5f554e54f4d1108334c5d0f50308434cdf9646"
   },
   "outputs": {
@@ -81,7 +82,7 @@
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/planning-graph.js": "718b5eeb1e4eae6717136227905cde9663297f47a087398b593b2c3aa7ba70c1",
     "bin/lib/pr-open.js": "a8613b32ef23683d063ddd9e57e99718c4a8ca24ecba9bf6a4db50a63d42feb1",
-    "bin/lib/prep-attach.js": "9d297fe069b19c8084ed9049a788daee75cbf33d1a383242d762e507586a9120",
+    "bin/lib/prep-attach.js": "2b7dfec654c048fc72537ddc7bfd8264d6eaec63131ca7b3fafd58dc681c218b",
     "bin/lib/prep-context.js": "b609924254f54d1cbd693ae1db8df6fa4d3daa0036e59fb3f1e48171af1780ac",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/prose-size.js": "df29582b5c00b007ad6dd3f135859edae851c540c2f254b5e7cf869981d5c5a7",
@@ -100,7 +101,8 @@
     "bin/lib/spec-review-prepare.js": "7013c578aad0620b4c0a82e07126fbadc804fa002db5166e7a24b6d3918c9416",
     "bin/lib/spec-review-results.js": "4da113e2c2c469d6c6246a731ca27c468a2734a4fb231088e02f4f5ee2ab42c6",
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
+    "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "98e8abf8919da2f0a26af5ecd33e5d6a7f22acf14359217dfcbbcdf8839b494f"
+  "output_digest": "d0504450addf3d762d77eb5a9f103267b3fbd79e8c932b7918188dda1edd7c94"
 }

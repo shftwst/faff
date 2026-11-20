@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "0c6163128ca8852285238b424524c62c13a28b61d2251c456da959b9c56ac6a8"
+    "tsconfig.json": "9543d822b44f9c3dfcc913856b25c0670bc1d37d71bf429c266b436424475ade"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -32,6 +32,7 @@
     "bin/lib/land-assess-fix.ts": "ba796f578a4c4cef0961de556d7f2f0da2c1c2802c8906942b9e833180f63a38",
     "bin/lib/land.ts": "e78338b70779f99dd602ba6b2bb9c548c8d3a1bcc8f53120c5aa4fe74cf5c36a",
     "bin/lib/merge-authorize.ts": "159bd25af72d30d005a887cda7d8980f7d5030398022c0d9f8371a066c13bd61",
+    "bin/lib/next-prep-queue.ts": "84d3bd7987da28c40ae4d69e6218c09fad73d2e6a8782b215a53d7755af7adf0",
     "bin/lib/park-finalize.ts": "72a906237ad66ae2f5661c1308f8a015408f409912603bbc741cedd6f073bfd3",
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/planning-graph.ts": "39d02bc552783d4d3b33473f2b355e94798d56eb90deb89d85330c6351e5d529",
@@ -78,6 +79,7 @@
     "bin/lib/land-assess-fix.js": "9fd9868c47e405912d1104b28e59507a8c778e92eb1f909c0b168e0f6cfe7602",
     "bin/lib/land.js": "64fb3ee3123716fea265e218a0422017abdd7a9001e3e29072e68c9e63c9d186",
     "bin/lib/merge-authorize.js": "9b08489832b8d35e025e52f17fe94476bfb400210065048b29facd04d3db582f",
+    "bin/lib/next-prep-queue.js": "a164b5b661525fc7b2b0471e3a349eeedf9dde25e74962611780db7ec94c171c",
     "bin/lib/park-finalize.js": "8f0b5524416dc7ff7461effbf42d86643354b2d58e4d6255ff6e1938bc955bf0",
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/planning-graph.js": "718b5eeb1e4eae6717136227905cde9663297f47a087398b593b2c3aa7ba70c1",
@@ -104,5 +106,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "d0504450addf3d762d77eb5a9f103267b3fbd79e8c932b7918188dda1edd7c94"
+  "output_digest": "bc523d3efce3ad9b4a9af73ae89635e3a9147ba9786b47b5adc45638785697ce"
 }

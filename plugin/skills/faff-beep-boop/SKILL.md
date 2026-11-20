@@ -157,17 +157,11 @@ Invoke the `faff-tidy` skill via the Skill tool (resolve per gateway → **Sibli
 
 ### 2. Prep queue build
 
-Gather every issue that is:
-- Not cancelled or archived (shared rule)
-- **Automation-eligible** — skip anything **not automation-eligible** (gateway → **Automation eligibility**: no `faff-automate`)
-- Not explicitly blocked
-- In Backlog or similar pre-Todo state — the fetch **query-constrained** to that workable category, never a whole-tracker pull (gateway → **Workable vs terminal states**: Linear `state` = backlog + `includeArchived: false`; GitHub `state = open`), so terminal issues (Done/Cancelled/Duplicate) are never fetched, not fetched-then-dropped
-- Lacking a valid spec (no spec, or spec marked stale)
-- **Flagged by the tidy pass as a prep candidate** — issues tagged stale-spec (need refresh) or superseded-spec (need fresh spec). These are active issues already in Todo with a spec that's no longer valid; prep's stale-refresh or fresh-spec autonomous paths decide whether they rejoin the build queue or park for human attention. (A Backlog issue held by a spec-review-provider outage — `faff-awaiting-spec-review`, not `faff-parked` — is membership by the same `faff next` consult below, regardless of retained confidence.)
+Gather live Backlog/pre-Todo candidates and Todo issues tidy flagged for stale or superseded specs. Query by workable category (Linear backlog, `includeArchived: false`; GitHub open) and omit cancelled, archived and explicitly blocked work. Treat stale and superseded specs as missing for this queue.
 
-**Decide membership via `faff next`, not by re-deriving these criteria by hand** (gateway → **Next-step transition**): map each issue's fetched state to the flags and consult `faff next` — an issue belongs in the prep queue iff it returns `next: prep`. The bullets above are the human-readable shape of that same transition. **Git-only mode:** the `faff-awaiting-spec-review` label is a tracker no-op, so source that one flag from the hold-file derivation instead — set `--awaiting-spec-review` when `faff prepcheck --issue <id> --json` reports `awaiting_spec_review:true` (the presence of `.faff/resume/<id>/spec-review-hold.json`). This is what re-admits a git-only park that a lights-out resume reconsidered (autonomous input-change) or that an interactive `/faff-prep` resolved — it re-enters at the spec-review gate, never straight to graft.
+Send ordered `{complete:true,issues:[{id,status,spec,labels,blocked,awaiting_spec_review?}]}` to `faff next prep-queue` on stdin. Use the shared **Next-step transition** tokens and live labels and blockers. Dispatch the returned `prep` IDs. In git-only mode take `awaiting_spec_review` from `faff prepcheck --issue <id> --json`. On a batch error with complete observations, log it and use the per-issue transition.
 
-This is the prep queue. The eligibility-exclusion here (and at build-queue assembly / wave re-entry) is an **efficiency early-exit, not the guarantee** — prep and graft are the chokepoints that actually enforce eligibility (gateway → **Automation eligibility**), so a not-eligible issue can't slip through even if a filter is missed. Items skipped here never enter the run-ledger `admitted` array, so `runcheck` is unaffected.
+Prep and graft still enforce eligibility. An issue skipped here never enters `admitted`.
 
 ### 3. Prep queue drain
 

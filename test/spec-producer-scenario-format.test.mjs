@@ -90,7 +90,10 @@ test("negative pins: the FAFF-1431 bullet form is prose with R1 0; bold lines an
   assert.equal(admissibleVerdict(bullet, true).admissible, false);
 });
 
-test("the noon self-review treats an R1 refusal with Scenarios units as a major finding", () => {
-  const text = readFileSync(join(SKILLS, "faffter-noon-spec", "SKILL.md"), "utf8");
-  assert.match(text, /R1 refusal \(`born-verifiable scenario\(s\)`\) while the Scenarios section has at least one unit is a `major` format finding/);
+test("both producers use the draft diagnostics and count each structured major finding once", () => {
+  const noon = readFileSync(join(SKILLS, "faffter-noon-spec", "SKILL.md"), "utf8");
+  assert.match(noon, /faff admissible --spec - --author-diagnostics/);
+  assert.match(noon, /Count each `major` entry once/);
+  const rich = readFileSync(join(SKILLS, "faffter-dark-nlspec", "SKILL.md"), "utf8");
+  assert.match(rich, /faffter-noon-spec\/SKILL\.md` → _Self-review before returning_ \*\*in full/);
 });

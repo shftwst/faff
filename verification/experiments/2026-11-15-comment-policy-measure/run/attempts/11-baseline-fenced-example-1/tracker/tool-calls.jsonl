@@ -1,0 +1,3 @@
+{"at":"2026-11-15T06:30:48.356Z","name":"list_comments","arguments":{"issue_id":"ISS-110"},"isError":false}
+{"at":"2026-11-15T06:30:55.744Z","name":"create_comment","arguments":{"issue_id":"ISS-110","body":"<!-- faff-review-findings:ISS-110 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-110-review.md\n<!-- /faff-review-findings:ISS-110 -->"},"isError":false}
+{"at":"2026-11-15T06:30:58.198Z","name":"finish","arguments":{"status":"completed","reason":"created"},"isError":false}

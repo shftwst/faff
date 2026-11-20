@@ -52,10 +52,18 @@ test('fixtures are synthetic, model-visible inputs carry no expected outcomes, a
   for (const x of Object.values(expected.scenarios)) for (const e of x.effects) assert.ok(!visible.includes(JSON.stringify(e.args.body)), 'expected body leaked into visible input');
 });
 
-test('blocked coverage is listed explicitly and none of it has an expected outcome', () => {
+test('every formerly blocked comment case is decided, covered by a scenario, and none remain blocked', () => {
   const blocked = load('eval/control-parity/blocked-coverage.json');
-  assert.deepEqual(blocked.cases.map(c => c.id).sort(), ['author-preference', 'equal-or-missing-created-at', 'fenced-marker-text', 'indented-marker', 'line-ending-normalisation', 'nested-or-repeated-pairs']);
-  for (const c of blocked.cases) assert.ok(!registry.scenarios.some(s => s.id === c.id));
+  const decisions = load('eval/control-parity/policy-decisions.json');
+  assert.deepEqual(blocked.cases, []);
+  assert.deepEqual(decisions.decisions.map(d => d.id).sort(), ['author-preference', 'equal-or-missing-created-at', 'fenced-marker-text', 'indented-marker', 'line-ending-normalisation', 'nested-or-repeated-pairs', 'splice-newline-framing']);
+  for (const d of decisions.decisions) {
+    assert.equal(d.decided_by, 'operator');
+    assert.equal(d.decided_on, '2026-11-15');
+    assert.equal(typeof d.changes_literal_prose, 'boolean');
+    assert.ok(d.covered_by.length > 0 && d.covered_by.every(id => registry.scenarios.some(s => s.id === id)), d.id);
+  }
+  assert.deepEqual(decisions.decisions.filter(d => d.changes_literal_prose).map(d => d.id), ['fenced-marker-text']);
 });
 
 test('the scripted control satisfies every independent obligation', async () => {

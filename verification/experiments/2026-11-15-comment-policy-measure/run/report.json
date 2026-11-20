@@ -1,0 +1,354 @@
+{
+  "schema": 2,
+  "kind": "baseline-calibration",
+  "status": "failed",
+  "live_transport": "observed",
+  "stopped_by": null,
+  "counts": {
+    "planned": 11,
+    "run": 11,
+    "pass": 7,
+    "fail": 4,
+    "incomplete": 0,
+    "not_run": 0
+  },
+  "attempts": [
+    {
+      "n": 1,
+      "arm": "baseline",
+      "scenario": "author-not-preferred",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 14591,
+      "cost_nanos": 51102000,
+      "tokens": {
+        "input": 8,
+        "cache_read": 10470,
+        "cache_write": 3937,
+        "output": 874
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.051101999999999995",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 2,
+      "arm": "baseline",
+      "scenario": "indented-and-trailing-whitespace",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 23922,
+      "cost_nanos": 66046200,
+      "tokens": {
+        "input": 8,
+        "cache_read": 12311,
+        "cache_write": 3574,
+        "output": 1748
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.0660462",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 3,
+      "arm": "baseline",
+      "scenario": "create-when-absent",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 14536,
+      "cost_nanos": 38993400,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11447,
+        "cache_write": 2739,
+        "output": 738
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.0389934",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 4,
+      "arm": "baseline",
+      "scenario": "quoted-imitation",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 13353,
+      "cost_nanos": 42069600,
+      "tokens": {
+        "input": 8,
+        "cache_read": 12008,
+        "cache_write": 3027,
+        "output": 771
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.0420696",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 5,
+      "arm": "baseline",
+      "scenario": "repeated-pairs",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 18608,
+      "cost_nanos": 50597600,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11768,
+        "cache_write": 3064,
+        "output": 1185
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.0505976",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 6,
+      "arm": "baseline",
+      "scenario": "preserve-human-text",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 3
+      },
+      "elapsed_ms": 12179,
+      "cost_nanos": 37423400,
+      "tokens": {
+        "input": 6,
+        "cache_read": 7697,
+        "cache_write": 2745,
+        "output": 695
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.0374234",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 7,
+      "arm": "baseline",
+      "scenario": "duplicate-reconcile",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 3
+      },
+      "elapsed_ms": 12292,
+      "cost_nanos": 39784600,
+      "tokens": {
+        "input": 6,
+        "cache_read": 7863,
+        "cache_write": 2886,
+        "output": 755
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.0397846",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 8,
+      "arm": "baseline",
+      "scenario": "legacy-open-only",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 14353,
+      "cost_nanos": 40951600,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11458,
+        "cache_write": 2816,
+        "output": 805
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.040951600000000005",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 9,
+      "arm": "baseline",
+      "scenario": "crlf-outside-region",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 19572,
+      "cost_nanos": 54025600,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11888,
+        "cache_write": 3222,
+        "output": 1292
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.05402559999999999",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 10,
+      "arm": "baseline",
+      "scenario": "timestamp-ties",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 3
+      },
+      "elapsed_ms": 13586,
+      "cost_nanos": 39764000,
+      "tokens": {
+        "input": 6,
+        "cache_read": 7820,
+        "cache_write": 2782,
+        "output": 796
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.039764",
+      "status": "fail",
+      "failures": [
+        "effects-differ",
+        "final-state-differs",
+        "terminal-differs"
+      ],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    },
+    {
+      "n": 11,
+      "arm": "baseline",
+      "scenario": "fenced-example",
+      "attempt": 1,
+      "stop": null,
+      "accounting": {
+        "usage_complete": true,
+        "served_models": [
+          "claude-opus-5-5"
+        ],
+        "requests": 4
+      },
+      "elapsed_ms": 18204,
+      "cost_nanos": 49527600,
+      "tokens": {
+        "input": 8,
+        "cache_read": 11738,
+        "cache_write": 3081,
+        "output": 1125
+      },
+      "cache_stratum": "cache-read-observed",
+      "observed_runtime_sha256": "ebf236a39262c33298443e771e6cc858d69aaf249de5eff055ba583793fb90ea",
+      "cli_reported_cost_usd": "0.049527600000000005",
+      "status": "pass",
+      "failures": [],
+      "incomplete": [],
+      "runtime_matches_readiness": true
+    }
+  ],
+  "spend_nanos": 510285600,
+  "held_reservations": 0,
+  "elapsed_ms": 175206,
+  "note": "Calibration completion does not approve migration. Cache strata are observed, not controlled; no cold-cache claim is made."
+}

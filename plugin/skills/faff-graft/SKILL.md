@@ -326,23 +326,12 @@ This step runs in **both** interactive and autonomous modes.
 
 **Step 8b: Push branch at build-complete + build-progress checkpoint (both modes)**
 
-After gates + AC pass, make the build durable on `origin` **before review** so a review-provider outage or turn boundary resumes at review rather than rebuilding (Step 3's `faff worktree ensure` returns `resume_at: gate`). Gate this on `faff config get graft.push_at_build_complete -d true` (default **on**). A repo whose CI fires on every branch push may disable it, deferring the push to Step 9b. When on, in order:
+After gates + AC pass, run in the build worktree. If `faff config get graft.push_at_build_complete -d true` is false, skip this step and defer the push to Step 9b.
 
-1. `git push origin <branch>` — the branch is now durable off-machine. **No PR is opened, so no CI fires** (this repo's CI is `on: pull_request` + `push:[main]`). A failed push writes **no** checkpoint (the next run rebuilds — safe); surface the failure.
-2. Compute `diff_hash` with the **Remote-backed build-progress diff** block below — the remote three-dot diff against the fetched remote default branch (never a hardcoded default-branch ref), reproducible from remote refs alone at resume (no worktree needed). Computed here in prose, never inside the CLI (which stays pure — no git/network).
-3. `faff build-progress write "$run_dir" <ISSUE> --build-complete --diff-hash <diff_hash> --branch <branch>` — push precedes the write, so a checkpoint always implies a pushed, gated branch.
+1. Save `build_head=$(git rev-parse --verify HEAD)`. Push with `git push origin <branch>` (skip the push in git-only mode). A failed push writes no checkpoint. Surface it and expect to rebuild on the next run. This step opens no PR and never merges.
+2. Run `faff worktree checkpoint --run-dir "$run_dir" --issue <ISSUE> --branch <branch> --head "$build_head"`. It verifies the saved head against the durable branch and records its three-dot diff for Step 3 resume. A non-zero exit leaves any prior checkpoint intact and surfaces the cause. Build-progress is a resume artifact outside the merge floor.
 
 _**Governed push record (on a governed run).**_ When the governed-run check reports governed, bracket the item-1 push: `faff effects declare --run "$(basename "$run_dir")" --issue <ISSUE> --step push` piping `[{kind:"push",target:"<branch>",reversible:true}]` **before** `git push`, then the same with `observe` **after** it succeeds. Record-only — the push is DETECTED, never prevented: a non-zero exit from either is logged and the push proceeds regardless. Skip the whole bracket on an ungoverned run (push byte-for-byte today's).
-
-**Remote-backed build-progress diff.** With `$branch` the feature branch, hash the durable remote three-dot diff against the base `remote-diff-base.sh` prints (in `$graft_skill_dir`, this skill's own directory, set from Step 3's `faff worktree ensure` result) — same fail-loud, never-stale base as the resume and review diffs.
-
-```bash
-base=$(bash "$graft_skill_dir/remote-diff-base.sh") || exit 1
-case "$base" in origin/*) fref="origin/$branch";; *) fref="$branch";; esac   # remote branch ref, git-only local
-diff_hash=$(git diff "$base...$fref" | sha256sum | cut -d' ' -f1)
-```
-
-Opens no PR and never merges — `faff merge-gate` does **not** read build-progress (a resume artifact, not a merge-floor assertion). **Git-only mode (no pushable remote, detected/never forced):** Step 1 no-ops (nothing to push to); the block above takes its `else` branch — `diff_hash` is `sha256(git diff <local-default>...<branch>)`, the local three-dot diff against the locally-resolved default (`merge-gate --local`'s own main/master resolution); Step 3 is unchanged (the branch ref survives worktree teardown, so resume re-adds a worktree with no push involved).
 
 **Step 8c: Run the code-blind holdout (post-checkpoint — the RUN)**
 

@@ -11,19 +11,14 @@
 // check, labels from a fresh read. Every disposition exits 0; exit 2 is bad invocation only.
 // ===========================================================================
 
-const fs: FsApi = require("node:fs");
+const fs: typeof import("node:fs") = require("node:fs");
+const os: typeof import("node:os") = require("node:os");
 const path: PathApi = require("node:path");
 const crypto: CryptoApi = require("node:crypto");
 const childProcess: ChildProcessApi = require("node:child_process");
 
 // --- Typed views of the modules this command composes (no casts: the annotation types `require`). ---
 
-interface FsApi {
-  existsSync(p: string): boolean;
-  statSync(p: string): { isDirectory(): boolean };
-  lstatSync(p: string): { isSymbolicLink(): boolean };
-  realpathSync(p: string): string;
-}
 interface PathApi {
   delimiter: string;
   join(...parts: string[]): string;
@@ -41,10 +36,9 @@ interface CryptoApi {
 type SpawnOpts = { cwd: string; env: NodeJS.ProcessEnv };
 type StringSpawn = { status: number | null; stdout: string; stderr: string; error?: Error };
 type SpawnTimeout = { timeout: number; killSignal: "SIGKILL" };
-type BufferSpawn = { status: number | null; stdout: Uint8Array; stderr: Uint8Array; error?: Error };
 interface ChildProcessApi {
   spawnSync(cmd: string, args: string[], opts: { cwd: string; env: NodeJS.ProcessEnv; encoding: "utf8" } | ({ cwd: string; env: NodeJS.ProcessEnv; encoding: "utf8" } & SpawnTimeout)): StringSpawn;
-  spawnSync(cmd: string, args: string[], opts: { cwd: string; env: NodeJS.ProcessEnv }): BufferSpawn;
+  spawnSync(cmd: string, args: string[], opts: SpawnOpts & { stdio: ["ignore", number, "ignore"] }): { status: number | null };
 }
 interface LightsOutApi {
   resolveWorktreeRoot(repoRoot: string, env: NodeJS.ProcessEnv, cfg: unknown): { root: string; source: string };
@@ -54,6 +48,9 @@ interface ConfigApi {
   loadConfig(root: string): unknown[];
   resolveLabelPrefix(root: string): { prefix?: string; error?: string };
   resolveControlLabels(root: string): { names?: { [role: string]: string }; error?: string };
+}
+interface BuildProgressApi {
+  writeBuildProgress(runDir: string, issue: string, diffHash: string, branch: string, opts: { quiet: boolean }): number;
 }
 interface LabelsApi {
   controlLabels(prefix: string, names: { [role: string]: string }): Array<{ role: string; name: string }>;
@@ -124,7 +121,7 @@ export interface Deps {
   faff(args: string[], cwd: string): StringSpawn;
   git(args: string[], cwd: string): StringSpawn;
   gitNet(args: string[], cwd: string): StringSpawn;
-  gitBytes(args: string[], cwd: string): BufferSpawn;
+  gitDiffHash(base: string, feature: string, cwd: string): string | null;
   bash(script: string, args: string[], cwd: string): StringSpawn;
   isDir(p: string): boolean;
   isFile(p: string): boolean;
@@ -167,10 +164,7 @@ function realDeps(env: NodeJS.ProcessEnv = process.env): Deps {
       const r = childProcess.spawnSync("git", args, { cwd, env: netEnv(env), encoding: "utf8", timeout: netTimeoutSecs(env) * 1000, killSignal: "SIGKILL" });
       return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
     },
-    gitBytes: (args, cwd) => {
-      const r = childProcess.spawnSync("git", args, { cwd, env });
-      return { status: r.status, stdout: r.stdout ?? new Uint8Array(0), stderr: r.stderr ?? new Uint8Array(0) };
-    },
+    gitDiffHash: (base, feature, cwd) => gitDiffHash(base, feature, cwd, env),
     // The provisioner resolves the worktree root through `faff worktree-root`, found on PATH. Put this
     // install's bin dir first so it uses the same resolver the step-6 root assert uses; every other
     // variable (FAFF_WORKTREE_BASE_REF, SKIP_NPM_PACKAGES_INSTALL, ...) passes through unchanged.
@@ -327,6 +321,36 @@ function reuseFrom(s: State, chk: Check): Reuse {
 // Step 3's diff check, shared by the checkpoint and the store: the remote-backed three-dot diff hash.
 type Verify = { kind: "match"; branch: string; fref: string; tip: string } | { kind: "mismatch" } | { kind: "blocked"; out: EnsureResult };
 
+function gitDiffHash(base: string, feature: string, cwd: string, env: NodeJS.ProcessEnv): string | null {
+  try {
+    const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "faff-checkpoint-diff-"));
+    try {
+      // The caller is synchronous. Redirect Git's raw bytes to a private file, then hash bounded
+      // reads. A non-zero Git status can leave a partial file, which must never become a hash.
+      const fd = fs.openSync(path.join(scratch, "diff"), "w+", 0o600);
+      try {
+        const diff = childProcess.spawnSync("git", ["diff", `${base}...${feature}`], { cwd, env, stdio: ["ignore", fd, "ignore"] });
+        if (diff.status !== 0) return null;
+        const hash = crypto.createHash("sha256");
+        const chunk = Buffer.alloc(64 * 1024);
+        let offset = 0;
+        let count: number;
+        while ((count = fs.readSync(fd, chunk, 0, chunk.length, offset)) > 0) {
+          hash.update(chunk.subarray(0, count));
+          offset += count;
+        }
+        return hash.digest("hex");
+      } finally {
+        fs.closeSync(fd);
+      }
+    } finally {
+      fs.rmSync(scratch, { force: true, recursive: true });
+    }
+  } catch {
+    return null;
+  }
+}
+
 function verifyCheckpoint(s: State, record: unknown): Verify {
   const build = field(record, "build");
   const branch = str(field(build, "branch"));
@@ -340,9 +364,7 @@ function verifyCheckpoint(s: State, record: unknown): Verify {
   const tipRun = s.deps.git(["rev-parse", "--verify", "--quiet", `${fref}^{commit}`], s.args.root);
   const tip = tipRun.status === 0 ? tipRun.stdout.trim() : "";
   if (tip === "") return { kind: "mismatch" };
-  const diff = s.deps.gitBytes(["diff", `${base}...${fref}`], s.args.root);
-  if (diff.status !== 0) return { kind: "mismatch" };
-  const cur = crypto.createHash("sha256").update(diff.stdout).digest("hex");
+  const cur = s.deps.gitDiffHash(base, fref, s.args.root);
   return cur === hash ? { kind: "match", branch, fref, tip } : { kind: "mismatch" };
 }
 
@@ -626,7 +648,15 @@ const ENSURE_SPEC = {
   },
 };
 const ENSURE_USAGE = "usage: faff worktree ensure --issue ID --mode interactive|autonomous --slug SLUG [--tracker-branch NAME] [--labels JSON] [--run-dir DIR] [--root DIR] [--json]";
-const WORKTREE_USAGE = ENSURE_USAGE;
+const CHECKPOINT_SPEC = {
+  flags: {
+    "--run-dir": { arity: 1 },
+    "--issue": { arity: 1 },
+    "--branch": { arity: 1 },
+    "--head": { arity: 1 },
+  },
+};
+const CHECKPOINT_USAGE = "usage: faff worktree checkpoint --run-dir DIR --issue ID --branch NAME --head SHA (run from the build worktree)";
 
 function toMode(v: unknown): Mode | null {
   return v === "interactive" || v === "autonomous" ? v : null;
@@ -680,9 +710,57 @@ function cmdWorktreeEnsure(argv: string[], deps: Deps = realDeps()): number {
   return 0;
 }
 
+function cmdWorktreeCheckpoint(argv: string[], deps: Deps = realDeps()): number {
+  const { values, errors } = argvApi.parseArgs(argv, CHECKPOINT_SPEC);
+  if (errors.length) return argvApi.usageError(errors, CHECKPOINT_USAGE);
+  const fail = (reason: string, code = 1) => {
+    process.stderr.write(`faff worktree checkpoint: ${reason}\n`);
+    return code;
+  };
+  const runDir = str(values["--run-dir"]);
+  const issue = str(values["--issue"]);
+  const branch = str(values["--branch"]);
+  const head = str(values["--head"]);
+  if (!runDir || !deps.isDir(runDir)) return fail("--run-dir must name an existing directory", 2);
+  if (!issue || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes("..")) return fail("--issue must be a valid issue identifier", 2);
+  if (!head || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(head)) return fail("--head must be a full Git commit id", 2);
+  const cwd = process.cwd();
+  const gitText = (args: string[]): string => {
+    const r = deps.git(args, cwd);
+    return r.status === 0 ? r.stdout.trim() : "";
+  };
+  if (!branch || !gitText(["check-ref-format", "--normalize", `refs/heads/${branch}`]) ||
+      gitText(["symbolic-ref", "--quiet", "HEAD"]) !== `refs/heads/${branch}`) {
+    return fail("--branch must name the checked-out branch");
+  }
+  const tip = (ref: string) => gitText(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
+  if (tip("HEAD") !== head) return fail("checked-out head differs from --head");
+  const baseRun = deps.bash(path.join(deps.graftSkillDir, "remote-diff-base.sh"), ["--feature", branch], cwd);
+  const base = baseRun.status === 0 ? baseRun.stdout.trim() : "";
+  if (!base) return fail(`could not resolve checkpoint refs: ${firstLine(baseRun.stderr)}`);
+  const featureRef = base.startsWith("origin/") ? `refs/remotes/origin/${branch}` : `refs/heads/${branch}`;
+  if (tip(featureRef) !== head) return fail("durable branch differs from --head");
+  const baseRef = base.startsWith("origin/") ? `refs/remotes/${base}` : `refs/heads/${base}`;
+  const baseTip = tip(baseRef);
+  if (!baseTip) return fail("checkpoint base does not resolve to a commit");
+  const hash = deps.gitDiffHash(baseTip, head, cwd);
+  if (!hash) return fail("could not hash checkpoint diff");
+  if (tip(baseRef) !== baseTip || tip(featureRef) !== head || tip("HEAD") !== head ||
+      gitText(["symbolic-ref", "--quiet", "HEAD"]) !== `refs/heads/${branch}`) {
+    return fail("checkpoint refs moved while capturing the diff");
+  }
+
+  const progress: BuildProgressApi = require("./effects");
+  const saved = progress.writeBuildProgress(path.resolve(runDir), issue, hash, branch, { quiet: true });
+  if (saved !== 0) return saved;
+  process.stdout.write('{"checkpoint":"written"}\n');
+  return 0;
+}
+
 function cmdWorktree(args: string[]): number {
-  if (args[0] !== "ensure") return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: ensure" }], WORKTREE_USAGE);
-  return cmdWorktreeEnsure(args.slice(1));
+  if (args[0] === "ensure") return cmdWorktreeEnsure(args.slice(1));
+  if (args[0] === "checkpoint") return cmdWorktreeCheckpoint(args.slice(1));
+  return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: ensure or checkpoint" }], `${ENSURE_USAGE}\n${CHECKPOINT_USAGE}`);
 }
 
 module.exports = { cmdWorktree, cmdWorktreeEnsure, ensure, realDeps, provisionerPath, ENSURE_USAGE, GRAFT_SKILL_DIR };

@@ -27,6 +27,17 @@
 # operator-set GIT_SSH_COMMAND is used verbatim — never clobbered, never appended to.
 set -euo pipefail
 
+# The build checkpoint refreshes its durable feature ref in the same fetch as the base.
+# All other callers resolve only the base.
+feature_branch=""
+if [ "$#" -ne 0 ]; then
+  if [ "$#" -ne 2 ] || [ "$1" != "--feature" ] || ! git check-ref-format "refs/heads/$2"; then
+    echo "usage: remote-diff-base.sh [--feature <branch>]" >&2
+    exit 2
+  fi
+  feature_branch="$2"
+fi
+
 export GIT_TERMINAL_PROMPT=0
 NET_TIMEOUT="${FAFF_GIT_NET_TIMEOUT:-}"
 case "$NET_TIMEOUT" in
@@ -83,8 +94,15 @@ if git remote get-url origin >/dev/null 2>&1; then
     echo "remote-diff-base: origin advertises no symbolic HEAD — cannot resolve a default branch" >&2
     exit 1
   }
-  net_git fetch -q origin "$DEFAULT_BRANCH" >/dev/null 2>&1 || {
-    echo "remote-diff-base: could not fetch origin/${DEFAULT_BRANCH} (fetch failed, timed out, or credential failure)" >&2
+  fetch_refs=("$DEFAULT_BRANCH")
+  if [ -n "$feature_branch" ]; then
+    fetch_refs=("+refs/heads/$DEFAULT_BRANCH:refs/remotes/origin/$DEFAULT_BRANCH")
+    if [ "$feature_branch" != "$DEFAULT_BRANCH" ]; then
+      fetch_refs+=("+refs/heads/$feature_branch:refs/remotes/origin/$feature_branch")
+    fi
+  fi
+  net_git fetch -q origin "${fetch_refs[@]}" >/dev/null 2>&1 || {
+    echo "remote-diff-base: could not fetch origin/${DEFAULT_BRANCH}${feature_branch:+ with durable branch $feature_branch} (fetch failed, timed out, or credential failure)" >&2
     exit 1
   }
   git rev-parse --verify --quiet "refs/remotes/origin/${DEFAULT_BRANCH}^{commit}" >/dev/null || {

@@ -109,6 +109,7 @@ const { cmdMerge } = lazy(() => require("./lib/merge-authorize"), ["cmdMerge"]);
 const { cmdGithubTemplates } = lazy(() => require("./lib/github-templates"), ["cmdGithubTemplates"]);
 const { cmdNativeMap } = lazy(() => require("./lib/native-map"), ["cmdNativeMap"]);
 const { cmdNext } = lazy(() => require("./lib/next"), ["cmdNext"]);
+const { cmdPark } = lazy(() => require("./lib/park-finalize"), ["cmdPark"]);
 const { cmdParkHistory } = lazy(() => require("./lib/park-history"), ["cmdParkHistory"]);
 const { cmdParkReconsider } = lazy(() => require("./lib/park-reconsider"), ["cmdParkReconsider"]);
 const { cmdPostMergeCheck } = lazy(() => require("./lib/post-merge"), ["cmdPostMergeCheck"]);
@@ -270,6 +271,7 @@ const COMMANDS = {
   "tracker": cmdTracker,
   "queue-state": cmdQueueState,
   "findings-reconcile": cmdFindingsReconcile,
+  park: cmdPark,
   "park-history": cmdParkHistory,
   "park-reconsider": cmdParkReconsider,
   "gitignore-ensure": cmdGitignoreEnsure,

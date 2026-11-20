@@ -516,13 +516,7 @@ Every executor honours the same slot contract: build every issue in the partitio
 
 ## Park protocol and tracker tagging
 
-Beep-boop itself rarely parks — its sub-skills do (build-queue assembly's own `needs-decision-first` resolve-attempt, above, is the exception: beep-boop runs that Park-protocol invocation itself). But whenever a sub-skill, or beep-boop's own step-4 resolve-attempt, returns `parked` for an issue, beep-boop's park backstop confirms:
-
-1. The tracker comment written by the sub-skill (or beep-boop itself) is present on the issue.
-2. The issue carries the `faff-parked` tag (or tracker-equivalent label). If the sub-skill didn't apply it, beep-boop does — via `faff label add <issue> faff-parked` and its descriptor's write (gateway → **Control-label provisioning**).
-3. The per-issue log directory (`.faff/runs/<run-id>/ISSUE-XX/`) has the `parked` reason written to a top-level `park.md`, and the park's fact — `{ issue_id, root_cause_class, timestamp }` — is recorded in the run's shared `park_records` accumulator (gateway → **Park protocol (shared)** → _the accumulator and render boundary_), which beep-boop **owns** for the whole run: it receives park facts from sub-skill returns and from this backstop alike, deduplicates a retry or a rediscovery of the same completed transition, and renders the accumulator exactly once at run end, in the summary's canonical `faff-parks` fence (see _Reporting_ below).
-
-This is what `/faff-wtf` looks for to surface parked issues in the morning, and what `faff park-history` reads to detect a repeat-parked issue.
+On a `parked` return (including Step 4), confirm the initiator's tracker comment and reconcile the label or git-only evidence via the shared **Park protocol (shared)**. Reuse the fact and reason in `.faff/runs/<run-id>/ISSUE-XX/park.md`; finalize with the current accumulator and `backstop:true` for worker returns.
 
 ## Reporting
 

@@ -574,10 +574,7 @@ Apply the gate to the producer's output:
 
 ### Park protocol
 
-Follow the shared park protocol (see the sibling `faff/references/park.md`):
-- Post a tracker comment with cause (e.g. "low-confidence fresh-spec", "architectural change required in refresh")
-- Tag the issue `faff-parked` via `faff label add <issue> faff-parked` and its descriptor's write (gateway → **Control-label provisioning**)
-- Log to `.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` with the full reasoning
+Follow the shared park protocol (see the sibling `faff/references/park.md`). Use the existing `.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` log and the prep marker park outcome above.
 
 ### Return values
 

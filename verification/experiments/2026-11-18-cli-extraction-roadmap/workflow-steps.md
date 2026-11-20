@@ -57,3 +57,32 @@ The counters are the CLI's final `result.modelUsage`, summed across models and c
 For direct `Read` calls on a skill or its references, match a successful tool result by tool-use ID to the next distinct API request in that session, parent-tool context and model. All 38 matched reads (23 and 15) retained cache hits at least as large as the prior request's cache-read plus cache-created input. This length comparison is consistent with prefix reuse. It cannot identify the contents of individual cached blocks. Of these reads, 36 were the first observed read of that file in that parent or worker context. The other two were additional reads of the shared kernel reference. The two streams show 303 Bash calls, 263 in child workers.
 
 The recorded drains used 84,797,286 cache-read input tokens and 5,698,568 cache-write input tokens. Their combined input-token cache hit share was 93.7%. A change that removes a redundant turn or shortens the prefix read on many turns can still matter at that hit rate. These files predate the six workflow changes. A post-change matched drain is needed to estimate the effect on a completed issue. Raw transcripts stay outside this branch.
+
+## Producer handoff, November 20
+
+The next changes have four acceptance criteria. Compare cost on the same model and work. Identify the decision that moves into code. Compare the existing Software Delivery outcome and its evidence on ordinary and failing paths. Keep workflow-specific judgement, acceptance rules and external effects outside reusable coordination. A smaller file measures the prompt footprint. A claim about cost per completed issue needs a matched run to that outcome.
+
+The first change prepares the configured producer, first-use conformance requirement, transport, model and effort in one command. Prep uses it for spec authoring, spec review and conditional architecture. All six existing producer lanes are compared with the old public commands in the unit tests. The caller still owns semantic validation, worker execution and contract consumption. [Product PR and tests](https://github.com/shftwst/faff/pull/1264)
+
+| Scope | Before bytes | After bytes | Before estimated tokens | After estimated tokens |
+|---|---:|---:|---:|---:|
+| Prep on main at `f3d6e137` | 97,780 | 96,550 | 24,269 | 23,966 |
+| Shared kernel on the same base | 70,435 | 70,106 | 17,511 | 17,429 |
+| All 41 files, including the queued changes | 1,069,189 | 1,067,630 | 265,249 | 264,866 |
+
+The campaign estimator rounds up each file at four UTF-16 code units per token. The isolated change removes 1,559 bytes and 385 estimated tokens. The composed change removes the same bytes and 383 estimated tokens from the queued tree. The projected reduction from the original is 304,451 bytes and 75,063 estimated tokens. Projections include unmerged PRs.
+
+Two cleared Opus 5.5 Claude Code workers used separate before and after excerpts. Each prepared the same first-use `spec_review` handoff with a bundled ship skill occupying the wrong slot, an explicit Opus model and high effort. Both identified all five required facts and stopped before invoking validation or the producer. Both made three Bash calls, including reading the excerpt. The earlier worker batched commands. The new worker used the single preparation command.
+
+| Native measurement | Before | After |
+|---|---:|---:|
+| Distinct API requests | 4 | 4 |
+| Cache-read tokens | 191,890 | 191,496 |
+| Cache-write tokens | 29,235 | 28,826 |
+| Other input tokens | 8 | 8 |
+| Output tokens | 1,821 | 1,452 |
+| Estimated cost at common five-minute write rates | $0.2210 | $0.2115 |
+
+This single pair used the repository's Opus price table. The answers differed in length. Subscription quota and completed-issue cost remain unmeasured. The normal first-use CLI sequence went from three invocations to one independently of Bash batching. The product branch passed 241 targeted tests. The queued integration, including build review and spec judge, passed 100 targeted tests. Neither count adds evidence of a whole-drain saving.
+
+For the next review-loop extraction, identify a persisted next action that only asks the caller to invoke the same command again. Give the CLI responsibility for that bounded advance, with durable retry and an explicit return for author corrections, independent judgement, deadline or escalation. Preserve the distinct Software Delivery convergence rules. Compare saved parent requests, the number and identity of judge calls, accepted and parked outcomes, and resumed evidence on the same case.

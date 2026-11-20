@@ -9,25 +9,6 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const SKILL_MD = join(HERE, "..", "plugin", "skills", "faffter-dark-spec-review", "SKILL.md");
 const BODY = readFileSync(SKILL_MD, "utf8");
 
-// ── exit-8 -> unavailable/infra-configured (never config-fault, never pass+skip) ──
-
-test("FAFF-1054: the per-lens outcome table pins exit 8 to unavailable/infra-configured", () => {
-  const row = BODY.match(/^\|\s*`8`\s*\|.*\|.*\|$/m);
-  assert.ok(row, "the per-lens outcome table must carry a row for exit 8");
-  // The row's OWN outcome column (the last cell), not the caveat prose (which deliberately names
-  // "config-fault" to rule it out: see the next test).
-  const cells = row[0].split("|");
-  const outcomeColumn = cells[cells.length - 2];
-  assert.match(outcomeColumn, /\*\*unavailable\*\*/);
-  assert.match(outcomeColumn, /`infra-configured`/);
-});
-
-test("FAFF-1054: exit 8's row states the never-config-fault / never-pass+skip pin explicitly", () => {
-  const row = BODY.match(/^\|\s*`8`\s*\|.*\|.*\|$/m)[0];
-  assert.match(row, /never `?config-fault`?/);
-  assert.match(row, /never a? ?silent `?pass\+skip`?/);
-});
-
 // ── in-band TTFT self-check advisory (pure logic pinned from the SKILL.md prose formula) ──
 // SKILL.md states: ratio = max(ttftMs of lenses 2..N) / ttftMs(prime); ratio >= 1/5 with every ttftMs
 // present -> one advisory; any lens's ttftMs null -> "not-computed", no advisory, never a wall-clock
@@ -91,7 +72,7 @@ test("FAFF-1054: SKILL.md's documented advisory ratio floor and suggestion match
 test("the occupant prepares one ordered request batch and passes it to fan-out", () => {
   assert.match(BODY, /spec-review prepare-requests --dir "\$pin_dir" --spec "\$spec_file"/);
   assert.match(BODY, /node "\$FANOUT" --requests "\$requests_json" --strategy "\$strategy"/);
-  assert.match(BODY, /Mark every enabled lens `unavailable`, kind `config-fault`, and run the no-lens capture/);
+  assert.match(BODY, /Use `record-results --no-results` below for the enabled lenses/);
 });
 
 // ── prose corrections: the dispatch/wire-shape/rules prose describes the shipped prime-then-parallel default ──

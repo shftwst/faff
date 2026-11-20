@@ -2250,10 +2250,13 @@ test("FAFF-1053 runReviewChain smoke test: the spec's own 80-line-preamble scena
   assert.equal(res.primarySkipped, null);
 });
 
-test("FAFF-706 spec-review dispatch sends prepared requests through fan-out", () => {
+test("FAFF-746/706 spec-review prepares the named context and fans out its request file", () => {
   const skill = readFileSync(new URL("../plugin/skills/faffter-dark-spec-review/SKILL.md", import.meta.url), "utf8");
-  const section = skill.match(/## Backend call[\s\S]*?\n## Aggregation/)?.[0] || "";
+  const section = skill.match(/## Backend call[\s\S]*?\n## Output/)?.[0] || "";
   assert.match(section, /spec-review prepare-requests --dir "\$pin_dir" --spec "\$spec_file"/);
+  assert.match(section, /Pass each named file as a separate `--context <path>`/);
+  // The executable prepare-requests tests cover --system, --diff and --context bytes.
+  assert.doesNotMatch(section, /--context\s+plugin\/skills\/faff\/SKILL\.md/);
   assert.match(section, /fan-out\.mjs/);
   assert.match(section, /node "\$FANOUT" --requests "\$requests_json" --strategy "\$strategy"/);
 });

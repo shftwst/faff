@@ -61,6 +61,7 @@
     "bin/lib/issue-facts.ts",
     "bin/lib/build-queue-partition.ts",
     "bin/lib/spec-review-prepare.ts",
-    "bin/lib/run-return-map.ts"
+    "bin/lib/run-return-map.ts",
+    "bin/lib/spec-review-results.ts"
   ]
 }

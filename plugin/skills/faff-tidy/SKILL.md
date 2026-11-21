@@ -1,6 +1,6 @@
 ---
 name: faff-tidy
-description: "Groom the backlog in both directions — find problems (dupes, vague tickets, stale blockers, dead weight), surface structural diagnostics (cycles, ghost-project pointers, repeat-parks, splittable specs), and promote ready issues to Todo. Trigger for: 'tidy' / 'clean up' / 'backlog' / 'groom' / 'mess'."
+description: "Groom the backlog: find duplicates, vague work, stale blockers and structural problems; promote ready issues to Todo. Use for tidy, clean up or groom."
 judgement_seam: dupe, vague, stale, superseded, splittable, chain-gap, resolved-elsewhere
 ---
 

@@ -22,7 +22,7 @@ const CONFIG_SPEC = { flags: {
   // FAFF-1062: --local redirects `config init`/`config set` to the gitignored overlay
   // (CANONICAL_OVERLAY_CONFIG) instead of the committable base (CANONICAL_CONFIG) — every
   // other sub-verb ignores it (accepted at the shared gate, unread elsewhere).
-  "--local": { arity: 0 },
+  "--local": { arity: 0 }, "--pin-local-bundle": { arity: 0 }, "--expect-preview": { arity: 1 },
   "--root": { arity: 1 }, "--default": { arity: 1, aliases: ["-d"] }, "--set": { arity: 1, repeatable: true },
 }, positionals: { min: 0, max: null, name: "verb key value" } };
 // FAFF-628 — declared grammar. Every sub-verb reads its "required" argument as a positional
@@ -81,6 +81,12 @@ function cmdConfig(args) {
   // existing `expected one of …` message below.
   if (gate.values["--absolute"] && Object.hasOwn(CONFIG_SURFACE.subcommands, cmd) && cmd !== "templates-path") {
     process.stderr.write(`faff config ${cmd}: --absolute is a \`templates-path\`-only flag and is not accepted by \`${cmd}\`\n`);
+    return 2;
+  }
+  const pinLocalBundle = gate.values["--pin-local-bundle"] === true;
+  const expectedPreview = gate.values["--expect-preview"];
+  if ((pinLocalBundle || expectedPreview !== undefined) && cmd !== "init" && Object.hasOwn(CONFIG_SURFACE.subcommands, cmd)) {
+    process.stderr.write("faff config: local bundle preview flags are only accepted by init\n");
     return 2;
   }
   try {
@@ -296,7 +302,7 @@ function cmdConfig(args) {
     }
     if (cmd === "init") {
       if (rest.includes("--selftest")) return configInitSelftest();
-      return cmdConfigInit(rest.slice(1), root);
+      return cmdConfigInit(rest.slice(1), root, { pinLocalBundle, expectedPreview });
     }
     if (cmd === "set") {
       if (rest.includes("--selftest")) return configSetSelftest();

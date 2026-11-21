@@ -36,7 +36,7 @@ Pass all human-facing output (detection, prompts, preview and report) through th
 
 ```
 resolve mode → bail check → detect (discovery) → ask team_key (+ derive label_prefix, local mode)
-  → discover native templates (propose + confirm) → preview → confirm → write config (×2 in local mode)
+  → discover native templates (propose + confirm) → preview → confirm → write config
   → persist native map (dry-run + confirm) → gitignore-ensure → hooks-ensure → log
 ```
 
@@ -99,33 +99,10 @@ After resolving `team_key`, discover team-scoped native templates and propose a 
 
 ### 4. Preview → one confirm → write
 
-Assemble a **single** `faff config init` call with one `--set tracking.<key>=<value>` per detected/confirmed value:
+Use one `faff config init` with `--set tracking.<key>=<value>` for each confirmed value: `tracker`, `team_key`, `repo`, `git_host`, the six record-location keys, and `label_prefix` as determined above. Omit unset values and `project_id`.
 
-- Only keys this flow detects: **`tracker`, `team_key`, `repo`, `git_host`, `spec_docs_path`, `adr_docs_path`, `adr_superseded_docs_path`, `prd_docs_path`, `prdr_docs_path`, `spike_docs_path`, `label_prefix`** — all already in `TRACKING_KEYS`, so no CLI change. **Never `project_id`** — it is not in the writer's allowlist and `config init` exits 2 on it (deferred to a separate ticket). Omit any key that wasn't detected/confirmed.
-- **Dry-run first:** run the same command with `--dry-run` and show the human the exact `.faff/config.yaml` text that will be written. One confirm gate ("Write this config? (y/n)").
-- On confirm, run it **without** `--dry-run` to write. The writer is surgical and round-trip-verified; it creates `.faff/` and `.faff/config.yaml`.
-
-Example shape (values illustrative):
-
-```bash
-"$faff" config init \
-  --set tracking.tracker=linear \
-  --set tracking.team_key=SHF \
-  --set tracking.repo=shftwst/faff \
-  --set tracking.git_host=github
-```
-
-**Local mode: two writes, both `--local`.** Append `--set tracking.label_prefix=<candidate>` and `--local` to `config init`. Top-level `bundle_store` is outside `TRACKING_KEYS` (`config init` exits 2 for disallowed keys), so use a second call: `"$faff" config set bundle_store local --local`. Both target `.faff/config.local.yaml`, never the base.
-
-Dry-run both before **one confirm**: show the exact overlay text from `config init --local` plus the pending `config set bundle_store local --local`. On confirm, run init first, then set. Local preview/report name the overlay, `.git/info/exclude` and `.claude/settings.local.json`; the base-commit recommendation is standard-only.
-
-```bash
-"$faff" config init \
-  --set tracking.team_key=SHF \
-  --set tracking.label_prefix=SHF \
-  --local
-"$faff" config set bundle_store local --local
-```
+- **Standard:** dry-run the command, show its exact config text and ask once ("Write this config? (y/n)"). On confirm, run without `--dry-run`.
+- **Local:** add `--local --pin-local-bundle` and the resolved `tracking.label_prefix`. Save the `--dry-run` stdout to a scratch file and show that exact overlay, including `bundle_store: local`. Ask once. On confirm, replay without `--dry-run` and with `--expect-preview FILE` using that file. If refused because the overlay changed, preview again before any write. Report the overlay, `.git/info/exclude` and `.claude/settings.local.json` without recommending a base commit.
 
 ### 4b. Persist the native map (its own dry-run + confirm)
 

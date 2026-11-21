@@ -1,0 +1,93 @@
+// === region:factory — form an autonomous candidate from supplied filing facts ===
+const { parseArgs, usageError }: {
+  parseArgs(args: string[], spec: unknown): { values: Record<string, string | undefined>; errors: unknown[] };
+  usageError(errors: unknown[], usage: string): number;
+} = require("./argv");
+const { readValidateInput }: {
+  readValidateInput(file: string | null): { ok: true; text: string } | { ok: false; oversize: true };
+} = require("./ratified-scope");
+const { cmdContain }: { cmdContain(args: string[], printJson: (value: string) => void): number } = require("./contain");
+
+function record(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function id(value: unknown): value is string {
+  return typeof value === "string" && value.trim().length > 0 && !value.startsWith("-");
+}
+
+const appetites = ["low", "medium", "high", "full"];
+const relationships = ["blocker", "blocked-by", "peer", "none", "parent"];
+const priorContainments = ["contained", "outward-new-root", "outward-self-intake"];
+
+function plan(facts: unknown, audit: string[]) {
+  if (!record(facts)) throw new Error("expected a filing facts object");
+  if (facts.confidence === "vague") return { action: "surface", containment: null, reason: "vague" };
+  if (facts.confidence !== "concrete") throw new Error("confidence must be concrete or vague");
+
+  const { mandate, parent, appetite, opinionated, relationship, ancestry } = facts;
+  const prior = facts.prior_containment ?? null;
+  const link = facts.relationship_target ?? null;
+  const target = facts.target ?? { team: null, repo: null };
+  if (!id(mandate) || (parent !== null && !id(parent)) || !Array.isArray(ancestry)
+      || typeof appetite !== "string" || !appetites.includes(appetite) || typeof opinionated !== "boolean"
+      || typeof relationship !== "string" || !relationships.includes(relationship)
+      || (relationship === "none" ? link !== null : !id(link))
+      || (prior !== null && (typeof prior !== "string" || !priorContainments.includes(prior)))
+      || !record(target)) {
+    throw new Error("invalid mandate, placement, ancestry, relationship, appetite or target facts");
+  }
+
+  const placement = parent === null ? ["--root"] : ["--parent", parent];
+  const captureOnly = () => {};
+  const result = cmdContain([mandate, ...placement, "--ancestry", JSON.stringify(ancestry), ...audit, "--json"], captureOnly);
+  if (result !== 0 && result !== 3) throw new Error("containment check failed");
+  let self = false;
+  if (result === 3) {
+    const { cmdSelfIntake }: { cmdSelfIntake(args: string[], printJson: (value: string) => void): number } = require("./self-intake");
+    const intake = cmdSelfIntake([mandate, "--target", JSON.stringify(target), ...audit, "--json"], captureOnly);
+    if (intake !== 0 && intake !== 3) {
+      return { action: "surface", containment: "outward-new-root", reason: "self-intake-check-failed" };
+    }
+    self = intake === 0;
+  }
+  if (!self && (result === 3 || prior === "outward-new-root")) {
+    return { action: "surface", containment: "outward-new-root", reason: "outside-mandate" };
+  }
+  const containment = self ? "outward-self-intake" : "contained";
+  if (appetite === "low" || (appetite === "medium" && !opinionated)) {
+    return { action: "surface", containment, reason: "appetite-withholds" };
+  }
+  return {
+    action: "may-file", containment, reason: "appetite-allows",
+    proposal: {
+      mandate, relationship, relationship_target: link, status: "Backlog",
+      intake: { via: "jot", initiated: "autonomous" },
+      ...(self ? { destination: "self-intake", omit_automation_label: true } : { parent }),
+    },
+  };
+}
+
+const spec = { flags: { "--facts": { arity: 1 }, "--record": { arity: 1 }, "--phase": { arity: 1 } }, positionals: { max: 0 } };
+const usage = "usage: faff discovered-scope-plan --facts FILE|- [--record RUN-ID [--phase run|tidy]]";
+
+export function cmdDiscoveredScopePlan(args: string[]): number {
+  const { values, errors } = parseArgs(args, spec);
+  const source = values["--facts"];
+  const run = values["--record"];
+  const phase = values["--phase"];
+  if (errors.length || !source || run?.startsWith("-") || (phase !== undefined && (!run || !["run", "tidy"].includes(phase)))) {
+    return usageError(errors, usage);
+  }
+  const audit = run === undefined ? [] : ["--record", run, "--phase", phase ?? "run"];
+  try {
+    const input = readValidateInput(source === "-" ? null : source);
+    if (!input.ok) throw new Error("facts exceed one MiB");
+    const facts: unknown = JSON.parse(input.text);
+    process.stdout.write(JSON.stringify(plan(facts, audit)) + "\n");
+    return 0;
+  } catch (error) {
+    process.stderr.write(`faff discovered-scope-plan: ${error instanceof Error ? error.message : String(error)}\n`);
+    return 2;
+  }
+}

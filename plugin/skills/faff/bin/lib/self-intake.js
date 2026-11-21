@@ -90,7 +90,7 @@ const SELF_INTAKE_SPEC = {
   positionals: { min: 0, max: 1, name: "mandate" },
 };
 
-function cmdSelfIntake(args) {
+function cmdSelfIntake(args, printJson = console.log) {
   if (args.includes("--selftest")) return selfIntakeSelftest();
   const usage = "faff self-intake: usage: faff self-intake <mandate> --target <json> [--record <run-id>] [--phase run|tidy|prep|build|plot] [--json]";
 
@@ -196,7 +196,7 @@ function cmdSelfIntake(args) {
   }
 
   if (asJson) {
-    console.log(JSON.stringify({
+    printJson(JSON.stringify({
       mandate,
       target: decision.target,
       self: { team: self.teams.length === 1 ? self.teams[0] : null, teams: self.teams, repo: self.repo, lane_on: self.lane_on },

@@ -1,6 +1,6 @@
 ---
 name: faff-beep-boop
-description: "Chew through ready work unattended — overnight or fire-and-forget. Default: full pipeline (tidy → prep queue drain → build queue drain). Parks anything ambiguous so /faff-wtf can surface it in the morning. Trigger for: 'beep boop' / 'overnight' / 'fire and forget' / 'run the backlog' / 'unattended build'."
+description: "Run ready work unattended: tidy, drain prep, then drain builds. Parks ambiguity for /faff-wtf. Use for overnight, fire-and-forget or running the backlog."
 ---
 
 # Faff — Beep-Boop

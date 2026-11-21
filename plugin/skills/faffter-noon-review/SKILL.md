@@ -1,6 +1,6 @@
 ---
 name: faffter-noon-review
-description: "Default code review for the `review` slot — a senior-engineer pass over the diff: AC coverage, bugs, scope, human-judgement flags. Returns a review verdict (faff contract review-verdict --describe). Runs via faff-graft, not the user `/` menu."
+description: "Default review slot via faff-graft: senior-engineer diff review for acceptance coverage, bugs, scope and human judgement; return a review verdict."
 user-invocable: false
 judgement_seam: verdict-revert, verdict-build, finding-identity
 ---

@@ -1,6 +1,6 @@
 ---
 name: faff-graft
-description: "Start building an issue — checks the spec exists, sets up a worktree, commits the spec to the feature branch, and gets out of your way. Trigger for: 'graft ISSUE-XX' / 'start ISSUE-XX' / 'pick up ISSUE-XX' / 'let me build'."
+description: "Build an existing issue: check its spec, create a worktree and commit the spec to the feature branch. Use for graft, start or pick up an issue."
 ---
 
 # Faff — Graft

@@ -1,6 +1,6 @@
 ---
 name: faff-onboard
-description: "First-run setup. Bootstrap a working faff config for this repo — auto-detects your tracker, repo slug, and git host, asks only what it can't infer, and writes a valid `.faff/config.yaml`. Use for 'set up faff', 'onboard', 'first run', 'no faffrc', 'configure faff for this repo', 'get faff working here'."
+description: "First-run repository setup: detect tracker, repository and git host, ask for missing facts, and write valid .faff/config.yaml. Use to onboard or configure faff."
 ---
 
 # faff-onboard

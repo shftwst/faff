@@ -1,6 +1,6 @@
 ---
 name: faffter-dark-nlspec
-description: "Full nlspec-format spec producer for the `spec` slot — the heavy, formal counterpart to the lite default. Runs via faff-prep, not the user `/` menu."
+description: "Formal, full nlspec producer for the spec slot via faff-prep. Use when the configured spec format requires the heavier alternative to lite-nlspec."
 user-invocable: false
 judgement_seam: confidence, marker, specqual
 ---

@@ -31,6 +31,7 @@ const { DELIVERY_PROFILE, activeProfile } = require("./governance-profile");
 const { REVIEW_DISPOSITIONS, REVIEW_FINDING_SOURCES, REVIEW_SEVERITIES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./review-vocab");
 const { EvidenceRefusal, collateReviewRounds, parseSpecReviewComment, resolvedRoundIds } = require("./evidence-collate");
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
+const { isDeepStrictEqual } = require("node:util");
 const { assignFindingIds, normaliseFindingPath, normaliseFindingTitle } = require("./finding-id");
 const { parseAcId } = require("./ac-id");
 const { resolveFaffVersion, stampFaffVersion } = require("./faff-version");
@@ -1184,14 +1185,15 @@ function carriedOrNull(value, where, warnings) {
 // priorDirFindings(priorDir, issueDir, secrets) -> the findings of the highest round record in the
 // --prior-dir, in record order (the order `faff review-prior` numbers them), or null when it has none.
 // A --prior-dir that does not exist yet (a resume into a fresh run dir) has none.
-function priorDirFindings(priorDir, issueDir, secrets) {
+function priorDirFindings(priorDir, issueDir, secrets, priorRound) {
   if (!fs.existsSync(priorDir)) return null;
   const realIssueDir = realpathOrNull(issueDir);
   const real = realpathOrNull(priorDir);
   if (realIssueDir === null || real === null || real === realIssueDir || !within(realIssueDir, real)) throw new WriterFault("--prior-dir is not inside the issue directory");
   const files = listRoundFiles(real);
   if (files.length === 0) return null;
-  const last = files[files.length - 1];
+  const last = priorRound === undefined ? files[files.length - 1] : files.find((f) => f.n === priorRound);
+  if (!last) return null;
   let rec;
   try { rec = JSON.parse(fs.readFileSync(last.file, "utf8")); } catch { throw new WriterFault(`--prior-dir ${last.name} is unreadable or not valid JSON`); }
   return redactKnownSecrets(isObject(rec) && Array.isArray(rec.findings) ? rec.findings : [], secrets);
@@ -1263,7 +1265,7 @@ function writeExclusive(dir, name, document) {
 // recordReviewRound(runDir, issue, text, secrets, priorDir) -> { written, warnings } | { refused }.
 // Throws WriterFault (exit 2) on a path, IO or existing-round fault. Nothing is written unless every
 // check passes. A supplied finding_id is ignored: resolveRoundChain decides every id.
-function recordReviewRound(runDir, issue, text, secrets, priorDir) {
+function recordReviewRound(runDir, issue, text, secrets, priorDir, pinned) {
   const issueDir = guardWriterPaths(runDir, issue);
   const input = parseStdinObject(text);
   if (input === null) return { refused: [NOT_AN_OBJECT] };
@@ -1275,26 +1277,35 @@ function recordReviewRound(runDir, issue, text, secrets, priorDir) {
     if (e instanceof RoundRecordFault) throw new WriterFault(e.message);
     throw e;
   }
-  const previous = existing.length > 0 ? existing[existing.length - 1] : null;
+  const earlier = pinned ? existing.filter((r) => r.round < pinned.round) : existing;
+  const previous = earlier.at(-1) || null;
   const n = previous ? previous.round + 1 : 1;
+  if (pinned && n !== pinned.round) throw new WriterFault("pinned review-round number is not contiguous");
   const warnings = [];
   let src;
   const findings = block.findings.map((f, i) => {
     const at = `findings[${i}]`;
     let carried = carriedOrNull(f.carried_id, `${at}.carried_id`, warnings);
     if (carried !== null && priorDir != null) {
-      if (src === undefined) src = priorDirFindings(priorDir, issueDir, secrets);
+      if (src === undefined) src = priorDirFindings(priorDir, issueDir, secrets, pinned?.priorRound);
       carried = translateHandle(carried, src, previous, `${at}.carried_id`, warnings);
     }
     return roundFinding(f, at, carried, warnings);
   });
   const adversarialOutcome = enumOrNull(block.adversarial_outcome, ["chain-outage-skipped"], "adversarial_outcome", warnings);
   const doc = withFaffVersion({ schema_version: 1, round: n, signal: block.signal, adversarial_outcome: adversarialOutcome, findings });
-  const ids = resolvedRoundIds([...existing, doc]).pop();
+  const ids = resolvedRoundIds([...earlier, doc]).pop();
   findings.forEach((f, i) => { f.finding_id = ids[i]; });
   const violations = validateAgainstSchema(doc, roundSchema()).map(tidy);
   if (violations.length > 0) return { refused: violations };
-  return { written: writeExclusive(path.join(issueDir, "review-rounds"), `round-${n}.json`, doc), warnings };
+  const dir = path.join(issueDir, "review-rounds");
+  const name = `round-${n}.json`;
+  const recorded = pinned && existing.find((r) => r.round === n);
+  if (recorded) {
+    if (!isDeepStrictEqual({ ...recorded, faff_version: doc.faff_version }, doc)) throw new WriterFault("pinned review-round conflicts with existing evidence");
+    return { written: path.join(dir, name), warnings };
+  }
+  return { written: writeExclusive(dir, name, doc), warnings };
 }
 
 function judgeAdmitRefusal(issueDir) {

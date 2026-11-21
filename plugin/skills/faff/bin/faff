@@ -148,6 +148,7 @@ const { cmdSentryPoller } = lazy(() => require("./lib/sentry-poller"), ["cmdSent
 const { cmdSentrycheck } = lazy(() => require("./lib/sentrycheck"), ["cmdSentrycheck"]);
 const { cmdSpecJudgeEvidence, cmdSpecJudgeAcceptBar } = lazy(() => require("./lib/spec-judge-evidence"), ["cmdSpecJudgeEvidence", "cmdSpecJudgeAcceptBar"]);
 const { cmdBuildReviewChurn } = lazy(() => require("./lib/build-review-churn"), ["cmdBuildReviewChurn"]);
+const { cmdBuildReviewRound } = lazy(() => require("./lib/build-review-round"), ["cmdBuildReviewRound"]);
 const { cmdReviewPrior } = lazy(() => require("./lib/review-prior"), ["cmdReviewPrior"]);
 const { cmdResumeStore } = lazy(() => require("./lib/resume-store"), ["cmdResumeStore"]);
 const { cmdBuildReviewConvergence } = lazy(() => require("./lib/build-review-convergence"), ["cmdBuildReviewConvergence"]);
@@ -331,6 +332,7 @@ const COMMANDS = {
   "spec-judge-evidence": cmdSpecJudgeEvidence,
   "spec-judge-accept-bar": cmdSpecJudgeAcceptBar,
   "build-review-churn": cmdBuildReviewChurn,
+  "build-review-round": cmdBuildReviewRound,
   "review-prior": cmdReviewPrior,
   "build-review-convergence": cmdBuildReviewConvergence,
   "build-judge-evidence": cmdBuildJudgeEvidence,

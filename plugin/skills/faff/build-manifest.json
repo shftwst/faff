@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "7ad88f3ec529b35baeda9c6742a996b8ab04371f4f860964bd6f57379811fbcb"
+    "tsconfig.json": "22d8bb183e04fe52e25c0b88c0a7c166937eff15b06c105ae856d87bbf850373"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -15,6 +15,7 @@
   "inputs": {
     "bin/lib/adr-promotion.ts": "555808b190c81e670d79feca4b842f593d8ae1eee3908b7f57da5927801bebf0",
     "bin/lib/build-queue-partition.ts": "90d0d46ca6183ce3ceedac2807a89529a025625936f38fa27ca0e6c0698416bc",
+    "bin/lib/build-review-round.ts": "e5ec3754726c95eadbcb39c58845adfd0167473ac7082b3a70874773fc2d2e6e",
     "bin/lib/commissaire-governor-client.ts": "90e01905816c4e12ea1a24eab1ed9b6d6e6106c29bb322e3988ca50b6604604b",
     "bin/lib/commissaire-trust.ts": "c2d4bffa2f153db70746395cf708195cc11ba0aa51b5ccc25e9f181c08555a65",
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
@@ -73,6 +74,7 @@
   "outputs": {
     "bin/lib/adr-promotion.js": "453e6ab3a018e2f2e72a8170dac761985dda2726864c20529d2fce2d62c9c8d4",
     "bin/lib/build-queue-partition.js": "ad4128e8032bb6642ca6765a750e82825521ea8d8e22ca8e9895b088774c2e9e",
+    "bin/lib/build-review-round.js": "e57dcc12d48907f3417ba3d44d272cefe9e07235251fe1e64b38cdcc42680831",
     "bin/lib/commissaire-governor-client.js": "9e14c9ebe762d860b0249f853dd308a4abc3ef9d3e92a416d1ad8decd44d0885",
     "bin/lib/commissaire-trust.js": "c69b5fb8ffb57c7195bc795b1aeb6a77c90e3145457a5b6b78da94589c197572",
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
@@ -128,5 +130,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "8c40fd2f29a73ec45f267fce357eaf8d9503f627d34d0767cae7b899ea234949"
+  "output_digest": "8251123b7c147736952e7fa3a401341eb80f06292f90ef26c0d5c6a2db8c98ae"
 }

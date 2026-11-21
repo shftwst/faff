@@ -649,6 +649,7 @@ const REGION_MAP = {
   // shells the case-file assembler/roll-up + dispatches the two-phase judge — same family as
   // spec-judge-evidence → factory.
   "build-review-churn": "factory",
+  "build-review-round": "factory",
   "build-review-convergence": "factory",
   "build-judge-evidence": "factory",
   // FAFF-1276: review-prior lists the previous review round's findings by handle for the
@@ -855,6 +856,7 @@ const REGION_SELFTEST_ARGV = {
   // seam is exercised by test/spec-judge-accept-bar.test.mjs (lint-cli-coverage TEST_FILE_COVERAGE).
   "spec-judge-accept-bar": null,
   "build-review-churn": ["build-review-churn", "--selftest"],
+  "build-review-round": null,
   "build-review-convergence": ["build-review-convergence", "--selftest"],
   // build-judge-evidence has no standalone --selftest (--assemble/--admit only; its dispatch
   // loop + admit roll-up are exercised through the real CLI entrypoint by

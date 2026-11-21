@@ -1,0 +1,296 @@
+{
+  "note": "Six synthetic policy cases supplement the five calibration cases in eval/control-parity/registry.json. Pass only input to a candidate. The expected effects and final-state digests come from the independently written outcomes in shftwst/faff#1187.",
+  "scenarios": [
+    {
+      "input": {
+        "id": "indented-and-trailing-whitespace",
+        "family": "decided-indent",
+        "synthetic": true,
+        "issue_id": "ISS-106",
+        "faff_body": "Verdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-106-review.md",
+        "tracker": {
+          "comments": [
+            {
+              "id": "ISS-106-c1",
+              "created_at": "2026-11-14T08:00:00Z",
+              "body": "  <!-- faff-review-findings:ISS-106 -->\n  Verdict: old indented\n  <!-- /faff-review-findings:ISS-106 -->"
+            },
+            {
+              "id": "ISS-106-c2",
+              "created_at": "2026-11-14T09:00:00Z",
+              "body": "<!-- faff-review-findings:ISS-106 -->  \nVerdict: changes requested\n<!-- /faff-review-findings:ISS-106 -->\t"
+            }
+          ],
+          "next_comment_id": "ISS-106-c9",
+          "now": "2026-11-15T12:00:00Z"
+        }
+      },
+      "input_sha256": "3a670b48f4184ba4beccc07ee1d348763318b2e14f76535a9fed2b3e40412bf3",
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-106"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-106-c2",
+              "body": "<!-- faff-review-findings:ISS-106 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-106-review.md\n<!-- /faff-review-findings:ISS-106 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "updated"
+        },
+        "final_state_sha256": "d36b073ee704c9e51f2787b16abb12c9552ef080a42fa9293e14119668961467"
+      }
+    },
+    {
+      "input": {
+        "id": "timestamp-ties",
+        "family": "decided-ties",
+        "synthetic": true,
+        "issue_id": "ISS-107",
+        "faff_body": "Verdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-107-review.md",
+        "tracker": {
+          "comments": [
+            {
+              "id": "ISS-107-c1",
+              "body": "<!-- faff-review-findings:ISS-107 -->\nVerdict: old, no timestamp\n<!-- /faff-review-findings:ISS-107 -->"
+            },
+            {
+              "id": "ISS-107-c2",
+              "created_at": "2026-11-14T08:00:00Z",
+              "body": "<!-- faff-review-findings:ISS-107 -->\nVerdict: old, tied first\n<!-- /faff-review-findings:ISS-107 -->"
+            },
+            {
+              "id": "ISS-107-c3",
+              "created_at": "2026-11-14T08:00:00Z",
+              "body": "<!-- faff-review-findings:ISS-107 -->\nVerdict: old, tied second\n<!-- /faff-review-findings:ISS-107 -->"
+            }
+          ],
+          "next_comment_id": "ISS-107-c9",
+          "now": "2026-11-15T12:00:00Z"
+        }
+      },
+      "input_sha256": "4a353597cf9471890764e58680251330a0e115358c841360bce1e10d6a522686",
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-107"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-107-c2",
+              "body": "<!-- faff-review-findings:ISS-107 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-107-review.md\n<!-- /faff-review-findings:ISS-107 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "reconciled"
+        },
+        "final_state_sha256": "7b612abb0b5622638d4df41c213603ba291ae5344f4b15998cd5a07b417fe6d8"
+      }
+    },
+    {
+      "input": {
+        "id": "author-not-preferred",
+        "family": "decided-author",
+        "synthetic": true,
+        "issue_id": "ISS-108",
+        "faff_body": "Verdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-108-review.md",
+        "tracker": {
+          "comments": [
+            {
+              "id": "ISS-108-c1",
+              "created_at": "2026-11-14T08:00:00Z",
+              "author": "alec",
+              "body": "<!-- faff-review-findings:ISS-108 -->\nVerdict: old, human account\n<!-- /faff-review-findings:ISS-108 -->"
+            },
+            {
+              "id": "ISS-108-c2",
+              "created_at": "2026-11-14T09:00:00Z",
+              "author": "faff",
+              "body": "<!-- faff-review-findings:ISS-108 -->\nVerdict: old, faff account\n<!-- /faff-review-findings:ISS-108 -->"
+            }
+          ],
+          "next_comment_id": "ISS-108-c9",
+          "now": "2026-11-15T12:00:00Z"
+        }
+      },
+      "input_sha256": "b52eece352297aa7f3859685b9ae2b4154cbc75cb3b20377093b11418ac38a2e",
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-108"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-108-c1",
+              "body": "<!-- faff-review-findings:ISS-108 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-108-review.md\n<!-- /faff-review-findings:ISS-108 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "reconciled"
+        },
+        "final_state_sha256": "cec25f085ba2b893d7430aa17e13bbcf734777a710aa8324b7f7656e607d4870"
+      }
+    },
+    {
+      "input": {
+        "id": "repeated-pairs",
+        "family": "decided-nesting",
+        "synthetic": true,
+        "issue_id": "ISS-109",
+        "faff_body": "Verdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-109-review.md",
+        "tracker": {
+          "comments": [
+            {
+              "id": "ISS-109-c1",
+              "created_at": "2026-11-14T08:00:00Z",
+              "body": "<!-- faff-review-findings:ISS-109 -->\nVerdict: old first\n<!-- /faff-review-findings:ISS-109 -->\nHuman note between pairs.\n<!-- faff-review-findings:ISS-109 -->\nVerdict: old second\n<!-- /faff-review-findings:ISS-109 -->"
+            }
+          ],
+          "next_comment_id": "ISS-109-c9",
+          "now": "2026-11-15T12:00:00Z"
+        }
+      },
+      "input_sha256": "6ad4485695198ee6dc85f0a79c4f6bb24725b082847b801336a5a6ca81b12909",
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-109"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-109-c1",
+              "body": "<!-- faff-review-findings:ISS-109 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-109-review.md\n<!-- /faff-review-findings:ISS-109 -->\nHuman note between pairs.\n<!-- faff-review-findings:ISS-109 -->\nVerdict: old second\n<!-- /faff-review-findings:ISS-109 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "updated"
+        },
+        "final_state_sha256": "9b6efee6a2f21c3653542b531cdc625e06e9fe8e290cb4bb3b2a26509fe8b8fc"
+      }
+    },
+    {
+      "input": {
+        "id": "fenced-example",
+        "family": "decided-fence",
+        "synthetic": true,
+        "issue_id": "ISS-110",
+        "faff_body": "Verdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-110-review.md",
+        "tracker": {
+          "comments": [
+            {
+              "id": "ISS-110-c1",
+              "created_at": "2026-11-14T08:00:00Z",
+              "body": "Example of the bot's format:\n```\n<!-- faff-review-findings:ISS-110 -->\nVerdict: approve\n<!-- /faff-review-findings:ISS-110 -->\n```"
+            }
+          ],
+          "next_comment_id": "ISS-110-c9",
+          "now": "2026-11-15T12:00:00Z"
+        }
+      },
+      "input_sha256": "7e37af648252c7fe33e1fd4506577bb0ef7e01b636ec491065b437dad2a51d76",
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-110"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "create_comment",
+            "args": {
+              "issue_id": "ISS-110",
+              "body": "<!-- faff-review-findings:ISS-110 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-110-review.md\n<!-- /faff-review-findings:ISS-110 -->"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "created"
+        },
+        "final_state_sha256": "28975e4b83ad01716265473db7fef8271bb7808adbd3699f64d9c5b5f3d756d3"
+      }
+    },
+    {
+      "input": {
+        "id": "crlf-outside-region",
+        "family": "decided-line-endings",
+        "synthetic": true,
+        "issue_id": "ISS-111",
+        "faff_body": "Verdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-111-review.md",
+        "tracker": {
+          "comments": [
+            {
+              "id": "ISS-111-c1",
+              "created_at": "2026-11-14T08:00:00Z",
+              "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\r\nVerdict: old\r\n<!-- /faff-review-findings:ISS-111 -->\r\n\r\nTrailing note"
+            }
+          ],
+          "next_comment_id": "ISS-111-c9",
+          "now": "2026-11-15T12:00:00Z"
+        }
+      },
+      "input_sha256": "ad9a88356eb8082755fc3473ee02c076f9770bc7d15342cfb337741b1d8f4620",
+      "expected": {
+        "reads_before_first_effect": [
+          {
+            "op": "list_comments",
+            "args": {
+              "issue_id": "ISS-111"
+            }
+          }
+        ],
+        "effects": [
+          {
+            "op": "save_comment",
+            "args": {
+              "id": "ISS-111-c1",
+              "body": "Human note\r\n\r\n<!-- faff-review-findings:ISS-111 -->\nVerdict: approve\nResolved 3 findings across 2 passes.\nLog: .faff/logs/ISS-111-review.md\n<!-- /faff-review-findings:ISS-111 -->\n\r\nTrailing note"
+            }
+          }
+        ],
+        "terminal": {
+          "status": "completed",
+          "reason": "updated"
+        },
+        "final_state_sha256": "9424a519b8d8fe0b8228e2c44ef63aa030d8e542031af92ee7fa483f68324ab4"
+      }
+    }
+  ]
+}

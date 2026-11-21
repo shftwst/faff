@@ -1,30 +1,73 @@
 {
   "schema": 2,
-  "note": "Comment cases whose intended policy is unresolved in review.md. No expected output exists for them; resolve the policy before any extraction claims compatibility here.",
-  "cases": [
+  "note": "All review-comment cases blocked at calibration were decided by the operator on 2026-11-15. These are expectations for a future extraction. The five calibration cases remain in registry.json. Six additional offline cases are in test/fixtures/review-comment-policy.json.",
+  "source_commit": "670f38e69305b6eefe230d01c69f690d6340762b",
+  "cases": [],
+  "decisions": [
     {
       "id": "indented-marker",
-      "reason": "One sentence trims surrounding whitespace; another excludes indented markers."
+      "decision": "Leading whitespace disqualifies a marker line; trailing whitespace, including \\r, is ignored.",
+      "covered_by": [
+        "indented-and-trailing-whitespace"
+      ]
     },
     {
       "id": "equal-or-missing-created-at",
-      "reason": "No final ordering or missing-value rule for the oldest-wins tie-break."
+      "decision": "Sort by created_at; ties keep the tracker's listing order; a missing created_at sorts after every timestamped comment.",
+      "covered_by": [
+        "timestamp-ties"
+      ]
     },
     {
       "id": "author-preference",
-      "reason": "Faff-authored preference is optional; the policy to freeze is not chosen."
+      "decision": "Authorship is never used.",
+      "covered_by": [
+        "author-not-preferred"
+      ]
     },
     {
       "id": "nested-or-repeated-pairs",
-      "reason": "No pairing algorithm stated."
+      "decision": "The region runs from the first open marker line to the first close marker line after it; later markers are ordinary text and are preserved.",
+      "covered_by": [
+        "repeated-pairs"
+      ]
     },
     {
       "id": "fenced-marker-text",
-      "reason": "The structural rule does not define fenced code handling."
+      "decision": "Lines inside a fenced code block (``` or ~~~) are never marker lines.",
+      "covered_by": [
+        "fenced-example"
+      ],
+      "note": "This changes the literal matching rule in the pinned prose. The measured run already ignored the fenced example."
     },
     {
       "id": "line-ending-normalisation",
-      "reason": "Outside-region preservation is explicit; CRLF and marker whitespace at the splice boundary are not."
+      "decision": "Text outside the region is kept byte for byte, CRLF included; the region is always written marker_open\\nbody\\nmarker_close. A \\r before \\n is trailing whitespace of its line, so on a marker line it is rewritten with the region.",
+      "covered_by": [
+        "crlf-outside-region",
+        "indented-and-trailing-whitespace"
+      ]
+    },
+    {
+      "id": "splice-newline-framing",
+      "decision": "Marker lines stay whole lines: the region runs from the start of the open marker line to the end of the close marker line and is written marker_open\\nbody\\nmarker_close.",
+      "covered_by": [
+        "preserve-human-text",
+        "repeated-pairs",
+        "crlf-outside-region"
+      ]
     }
-  ]
+  ],
+  "pinned_prose_run": {
+    "prose_commit": "f767bdd1c0a78f6259c335742c1567a074f512a0",
+    "samples_per_case": 1,
+    "cases_matched": 7,
+    "cases_run": 11,
+    "observed_behavior_changes": [
+      "author-not-preferred",
+      "indented-and-trailing-whitespace",
+      "timestamp-ties"
+    ],
+    "verbatim_text_defect": "crlf-outside-region"
+  }
 }

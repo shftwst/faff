@@ -1,13 +1,16 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.readFixObservation = readFixObservation;
 exports.observedFailingChecks = observedFailingChecks;
+exports.failedChecks = failedChecks;
+exports.assessLandingFix = assessLandingFix;
 exports.cmdLandAssessFix = cmdLandAssessFix;
 // === region:factory — classify a landing fix from the observations on either side of it ===
 const node_fs_1 = require("node:fs");
 const { parseArgs } = require("./argv");
 const usage = "faff land assess-fix --mode shadow|unattended --before FILE [--pushed SHA --after FILE]";
 const flags = { "--mode": { arity: 1 }, "--before": { arity: 1 }, "--pushed": { arity: 1 }, "--after": { arity: 1 } };
-function observation(file) {
+function readFixObservation(file) {
     const row = JSON.parse((0, node_fs_1.readFileSync)(file, "utf8"));
     if (typeof row !== "object" || row === null || !("issue" in row) || typeof row.issue !== "string" || !row.issue ||
         !("pr" in row) || typeof row.pr !== "number" || !Number.isSafeInteger(row.pr) || row.pr <= 0 || !("token" in row)) {
@@ -34,7 +37,7 @@ function failedChecks(row) {
     }
     return [...new Set(names)].sort();
 }
-function assessed(mode, before, pushed, after) {
+function assessLandingFix(mode, before, pushed, after, sameCheck) {
     if (mode !== "shadow" && mode !== "unattended")
         throw new Error(usage);
     const kind = before.reason;
@@ -61,7 +64,7 @@ function assessed(mode, before, pushed, after) {
             if (after.reason !== kind)
                 break;
             const failing = kind === "regression" ? failedChecks(after) : [];
-            if (kind === "conflict" || failing.some(name => previous.includes(name))) {
+            if (kind === "conflict" || failing.some(sameCheck ?? (name => previous.includes(name)))) {
                 return { action: "record-failed", kind, head_sha: pushed, failing_checks: failing };
             }
             break;
@@ -79,9 +82,9 @@ function cmdLandAssessFix(args) {
     try {
         if (errors.length || !values["--before"] || !values["--mode"] || Boolean(values["--pushed"]) !== Boolean(values["--after"]))
             throw new Error(usage);
-        const before = observation(values["--before"]);
-        const after = values["--after"] ? observation(values["--after"]) : null;
-        const result = assessed(values["--mode"], before, values["--pushed"], after);
+        const before = readFixObservation(values["--before"]);
+        const after = values["--after"] ? readFixObservation(values["--after"]) : null;
+        const result = assessLandingFix(values["--mode"], before, values["--pushed"], after);
         process.stdout.write(JSON.stringify(result) + "\n");
         return 0;
     }

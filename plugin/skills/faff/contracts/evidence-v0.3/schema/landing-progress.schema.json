@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "faff/evidence/v0.3/landing-progress",
   "title": "<anchor-dir>/landing-progress.json",
-  "description": "Written by `faff landing-progress record-fix-cycle`. Matches landingProgressApplyFixCycle (effects.js).",
+  "description": "Written by `faff landing-progress record-fix-cycle` and `faff land fix-attempt`. Legacy history entries have no attempt ID.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -72,9 +72,98 @@
               "type": "string"
             }
           },
+          "attempt_id": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+          },
           "at": {
             "type": "string"
           }
+        }
+      }
+    },
+    "attempt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "pr",
+        "mode",
+        "kind",
+        "head_sha",
+        "failing_checks",
+        "check_keys"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+        },
+        "pr": {
+          "type": "integer"
+        },
+        "mode": {
+          "type": "string",
+          "enum": [
+            "shadow",
+            "unattended"
+          ]
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "conflict",
+            "regression"
+          ]
+        },
+        "head_sha": {
+          "type": "string",
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+        },
+        "failing_checks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "check_keys": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          }
+        },
+        "implementation": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "pushed",
+            "tried"
+          ],
+          "properties": {
+            "pushed": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$"
+            },
+            "tried": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "outcome": {
+          "type": "string",
+          "enum": [
+            "recorded",
+            "continue",
+            "park-shadow",
+            "superseded"
+          ]
         }
       }
     },

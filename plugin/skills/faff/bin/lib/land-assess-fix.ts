@@ -4,9 +4,9 @@ import { readFileSync } from "node:fs";
 const { parseArgs } = require("./argv");
 const usage = "faff land assess-fix --mode shadow|unattended --before FILE [--pushed SHA --after FILE]";
 const flags = { "--mode": { arity: 1 }, "--before": { arity: 1 }, "--pushed": { arity: 1 }, "--after": { arity: 1 } };
-type Observation = Record<string, unknown>;
+export type FixObservation = Record<string, unknown>;
 
-function observation(file: string): Observation {
+export function readFixObservation(file: string): FixObservation {
   const row: unknown = JSON.parse(readFileSync(file, "utf8"));
   if (typeof row !== "object" || row === null || !("issue" in row) || typeof row.issue !== "string" || !row.issue ||
       !("pr" in row) || typeof row.pr !== "number" || !Number.isSafeInteger(row.pr) || row.pr <= 0 || !("token" in row)) {
@@ -25,7 +25,7 @@ export function observedFailingChecks(runs: unknown, head: string): string[] | n
   return [...new Set<string>(failingCheckNames(runs))].sort();
 }
 
-function failedChecks(row: Observation): string[] {
+export function failedChecks(row: FixObservation): string[] {
   const names = row.failing_checks;
   if (!Array.isArray(names) || !names.length || !names.every((name): name is string => typeof name === "string" && name.length > 0)) {
     throw new Error("missing failing checks for the regression head; capture land --json --fix-checks");
@@ -33,7 +33,7 @@ function failedChecks(row: Observation): string[] {
   return [...new Set(names)].sort();
 }
 
-function assessed(mode: string, before: Observation, pushed: string | undefined, after: Observation | null) {
+export function assessLandingFix(mode: string, before: FixObservation, pushed: string | undefined, after: FixObservation | null, sameCheck?: (name: string) => boolean) {
   if (mode !== "shadow" && mode !== "unattended") throw new Error(usage);
   const kind = before.reason;
   if (before.token !== "needs-fix" || (kind !== "conflict" && kind !== "regression") || typeof before.head_sha !== "string" || !before.head_sha) {
@@ -51,7 +51,7 @@ function assessed(mode: string, before: Observation, pushed: string | undefined,
       if (after.reason !== "regression" && after.reason !== "conflict") throw new Error("unknown fix reason");
       if (after.reason !== kind) break;
       const failing = kind === "regression" ? failedChecks(after) : [];
-      if (kind === "conflict" || failing.some(name => previous.includes(name))) {
+      if (kind === "conflict" || failing.some(sameCheck ?? (name => previous.includes(name)))) {
         return { action: "record-failed", kind, head_sha: pushed, failing_checks: failing };
       }
       break;
@@ -69,9 +69,9 @@ export function cmdLandAssessFix(args: string[]): number {
   const { values, errors } = parseArgs(args, { flags, positionals: { min: 0, max: 0 } });
   try {
     if (errors.length || !values["--before"] || !values["--mode"] || Boolean(values["--pushed"]) !== Boolean(values["--after"])) throw new Error(usage);
-    const before = observation(values["--before"]);
-    const after = values["--after"] ? observation(values["--after"]) : null;
-    const result = assessed(values["--mode"], before, values["--pushed"], after);
+    const before = readFixObservation(values["--before"]);
+    const after = values["--after"] ? readFixObservation(values["--after"]) : null;
+    const result = assessLandingFix(values["--mode"], before, values["--pushed"], after);
     process.stdout.write(JSON.stringify(result) + "\n");
     return 0;
   } catch (error) {

@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "abfe0c9a855865fad22ea346c4e4bb8fcbb61fc2f8b2f92be15cdd5d8888e61d"
+    "tsconfig.json": "888aaeccfff6029f9eaa60fd860b5c1757fb55fe0850aed28eecb3380016e711"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -33,8 +33,9 @@
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
     "bin/lib/issue-facts.ts": "78ba7488fa252fb1b9286a99611a491c6cbfe8ed951a42638fa3228acad42844",
     "bin/lib/judge-dispositions.ts": "e693efecbdd54dd88f0e5a08f106579474ae8b1131442b9a76d20d1d1ba5ab13",
-    "bin/lib/land-assess-fix.ts": "ba796f578a4c4cef0961de556d7f2f0da2c1c2802c8906942b9e833180f63a38",
-    "bin/lib/land.ts": "e78338b70779f99dd602ba6b2bb9c548c8d3a1bcc8f53120c5aa4fe74cf5c36a",
+    "bin/lib/land-assess-fix.ts": "d584c2c175a0ac7611b08ff0e73cbd83dd0729255317d856fc1341eeba55533c",
+    "bin/lib/land-fix-attempt.ts": "e54b372aae76971d2b802947ede682d9a0a62890cebbce4bb67f593cccbe2038",
+    "bin/lib/land.ts": "631526dd340b02525263ef49385f469dfdda7f61a49bc12c931d07cfa1476b14",
     "bin/lib/merge-authorize.ts": "159bd25af72d30d005a887cda7d8980f7d5030398022c0d9f8371a066c13bd61",
     "bin/lib/merge-delivery-receipt.ts": "44212d861e6d495c0b6167079880d1bfb666e1acb5ac759849df95ccf629fd7b",
     "bin/lib/next-prep-queue.ts": "84d3bd7987da28c40ae4d69e6218c09fad73d2e6a8782b215a53d7755af7adf0",
@@ -89,8 +90,9 @@
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
     "bin/lib/issue-facts.js": "92e9c33efbba3def4b8d2484c7d05741f98837ae23f64ed9ee467953fc102056",
     "bin/lib/judge-dispositions.js": "5dae168f0fb7e18d23a0092d045ff9927dca79556f1ffb0008b91ab0ac917316",
-    "bin/lib/land-assess-fix.js": "9fd9868c47e405912d1104b28e59507a8c778e92eb1f909c0b168e0f6cfe7602",
-    "bin/lib/land.js": "64fb3ee3123716fea265e218a0422017abdd7a9001e3e29072e68c9e63c9d186",
+    "bin/lib/land-assess-fix.js": "7712efb23f3674c58c3dcc4779e8610f13b67217e85c27c14820e3d5d5428d80",
+    "bin/lib/land-fix-attempt.js": "805071f0399ca6b2c317ba4e464d1be09c1caeab630e83f2d22d319cbfeba05f",
+    "bin/lib/land.js": "495ea83564e0d843b532f67f41965d261fad13996a7c20d9737bdc3d920c9861",
     "bin/lib/merge-authorize.js": "9b08489832b8d35e025e52f17fe94476bfb400210065048b29facd04d3db582f",
     "bin/lib/merge-delivery-receipt.js": "a7946efb13f1b4a5b1b9a162dad94becc948b741c61b002ac15d269c2a4eaefd",
     "bin/lib/next-prep-queue.js": "a164b5b661525fc7b2b0471e3a349eeedf9dde25e74962611780db7ec94c171c",
@@ -124,5 +126,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "400aab9523aa01ce077dbf5d600ad5ddc54f86bcc39ec916163bdcb2284029fe"
+  "output_digest": "08808c0d30ff65b1a58cc66b6250412aed46b0293b7679058b69b339c11471cc"
 }

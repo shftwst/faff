@@ -13,6 +13,7 @@
 // Every failed read lands on the refuse-biased value.
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
+const prd_select_ts_1 = require("./prd-select.js");
 const fs = require("node:fs");
 const path = require("node:path");
 const childProcess = require("node:child_process");
@@ -98,40 +99,23 @@ function realDeps() {
 }
 class TriggerUsageError extends Error {
 }
-// Steps 2–3. One PRD → it; zero → no-PRD; several → keep Active/Frozen: one survivor → it, zero →
-// no-PRD, several → ambiguous. A failed list is ambiguous (refuses), never a silent no-PRD drain.
+// A failed list or missing container remains ambiguous for the autonomous refusal ladder.
 function readPrd(call, exists, root, diagnostics) {
-    const none = { present: false, ambiguous: false, container: null, path: null };
     const listRun = call(["prd", "list", "--json", "--root", root]);
     const list = listRun.status === 0 ? parseJson(listRun.stdout) : undefined;
-    if (!Array.isArray(list)) {
-        diagnostics.push("prd-list-failed");
-        return { ...none, ambiguous: true };
+    const selected = (0, prd_select_ts_1.selectPrd)(list, container => {
+        const pathRun = call(["prd", "path", container, "--root", root]);
+        const prdPath = pathRun.status === 0 ? pathRun.stdout.trim() : "";
+        return prdPath && exists(prdPath) ? prdPath : null;
+    });
+    if (selected.action === "use") {
+        return { present: true, ambiguous: false, container: selected.container, path: selected.path };
     }
-    let candidates = list;
-    if (candidates.length > 1) {
-        candidates = candidates.filter((p) => {
-            const status = str(field(p, "status")) ?? "";
-            return /^(Active|Frozen)\b/.test(status);
-        });
-        if (candidates.length > 1)
-            return { ...none, ambiguous: true };
-    }
-    if (candidates.length === 0)
-        return none;
-    const container = str(field(candidates[0], "container"));
-    // A listed PRD with no container is malformed, not absent: refuse as ambiguous, never drain as no-PRD.
-    if (container === undefined || container === "") {
-        diagnostics.push("prd-container-missing");
-        return { ...none, ambiguous: true };
-    }
-    const pathRun = call(["prd", "path", container, "--root", root]);
-    const prdPath = pathRun.status === 0 ? pathRun.stdout.trim() : "";
-    if (prdPath === "" || !exists(prdPath)) {
-        diagnostics.push("prd-file-missing");
-        return none;
-    }
-    return { present: true, ambiguous: false, container, path: prdPath };
+    const reason = selected.action === "intake" ? selected.reason : null;
+    if (reason !== null && reason !== "no-prd")
+        diagnostics.push(reason);
+    const ambiguous = selected.action === "choose" || reason === "prd-list-failed" || reason === "prd-container-missing";
+    return { present: false, ambiguous, container: null, path: null };
 }
 // Step 7. Exactly one fenced block, piped to `faff contract prd-readiness`; the licence is the contract
 // verb's validated output, never the raw block.

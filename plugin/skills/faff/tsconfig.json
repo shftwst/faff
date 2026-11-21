@@ -68,6 +68,7 @@
     "bin/lib/park-finalize.ts",
     "bin/lib/ticket-template-fields.ts",
     "bin/lib/next-prep-queue.ts",
-    "bin/lib/run-entry-preflight.ts"
+    "bin/lib/run-entry-preflight.ts",
+    "bin/lib/prd-select.ts"
   ]
 }

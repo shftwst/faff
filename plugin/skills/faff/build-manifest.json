@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "5849f26b0f8e1c63136b6f2dcf28172dbdfed123276eb5924a4ceb15b06e7dfe"
+    "tsconfig.json": "f4870f8536b02cfa840a9f25fae6ac5e4d02a565d7082660bb0ba1390b518975"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -37,6 +37,7 @@
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/planning-graph.ts": "39d02bc552783d4d3b33473f2b355e94798d56eb90deb89d85330c6351e5d529",
     "bin/lib/pr-open.ts": "6ff01c874dabfa945febff26d629dd9b0af6b284e4d594f82bee71f2475baf76",
+    "bin/lib/prd-select.ts": "99ce451442e2f701828a17a4d882c70a75c8df15a0982f9fe8823d149a0a8c3b",
     "bin/lib/prep-attach.ts": "182ce12bf1d4a85771ff97261af5810e7e2a631ba3712a095faa22bc239c8c1f",
     "bin/lib/prep-context.ts": "58b0bf3519200acde3fb9076f508bc95d554b068181e4fe557e60aab917d45d3",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
@@ -50,7 +51,7 @@
     "bin/lib/run-open.ts": "ce538c68a6de316a5d5372c8fe9ec52ea6a25802cbcca2a0e06810569ae0a337",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
     "bin/lib/run-summary.ts": "44da1368fd3120e0781245fa80a5913b758b4d11bbb0445db5926a2392fe70d2",
-    "bin/lib/run-trigger.ts": "b7e36d37a44dcb213f7dfc3c520454a854238fc4801db30cc640acb562f419c7",
+    "bin/lib/run-trigger.ts": "d7810195ea6ed69e075295988d1270943b6c49679f1f0ef121e8105e4c3c4b74",
     "bin/lib/run.ts": "238bd6f0b32c052d657426c04cabd730f457943a477b9eead5cf7a0d85bc624f",
     "bin/lib/spec-commit.ts": "c158a7e3dee49d9dd77d9abe92998624aa4c5be984640e93f7e82aa0820b0bfa",
     "bin/lib/spec-review-hold.ts": "538479bf72ec1d3f63b6894fdaa462b7a40d0c07d44cb2d45a57a38cced91790",
@@ -85,6 +86,7 @@
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/planning-graph.js": "718b5eeb1e4eae6717136227905cde9663297f47a087398b593b2c3aa7ba70c1",
     "bin/lib/pr-open.js": "a8613b32ef23683d063ddd9e57e99718c4a8ca24ecba9bf6a4db50a63d42feb1",
+    "bin/lib/prd-select.js": "37514692786f35a4b87c5b603b6332b882c293414714b587494a4e2f9aa451d5",
     "bin/lib/prep-attach.js": "2b7dfec654c048fc72537ddc7bfd8264d6eaec63131ca7b3fafd58dc681c218b",
     "bin/lib/prep-context.js": "b609924254f54d1cbd693ae1db8df6fa4d3daa0036e59fb3f1e48171af1780ac",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
@@ -98,7 +100,7 @@
     "bin/lib/run-open.js": "68f9978aadb0cbaad1887be23443e2667ed1678b12c4403e9cd518c5686a553c",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
     "bin/lib/run-summary.js": "7aecd152564efaeb618eb4ea075462f940f65aab0554da2281f08fc911a186c0",
-    "bin/lib/run-trigger.js": "3b145b63d920241c7d76ee0eb096351517149afc1d0c1fe239f0ac992450cd77",
+    "bin/lib/run-trigger.js": "192f5952f1615633edad3dd934d6f4ea4782482ffc96ed3784395070afcfa7b6",
     "bin/lib/run.js": "ea95da11544ac282d9d18f917084f361979bf5a8df57146fe2cced4c22c28a0b",
     "bin/lib/spec-commit.js": "1b250425767b1ff8e87c43226b4dfbfcf4776052ca10e32508994166d2d026f7",
     "bin/lib/spec-review-hold.js": "1e3ab668ca1acbb249470c5dfd12f4d0d46c8b530a0fb9443bb79b26baa58f8d",
@@ -108,5 +110,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "a6942b4787a5c6d899a682b563452219c4aa78abc6cccdf6d3a9473b00be6500"
+  "output_digest": "205a2e00e75c5314577a32813807d9bb7ff0f89495af2a0824c72866d4802934"
 }

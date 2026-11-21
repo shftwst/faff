@@ -526,3 +526,72 @@ test("obligation 6: evidence return, the per-issue snapshot member and integrity
   assert.equal(fromReturn, hashed.stdout.trim());
   assert.equal(fromReturn, sha(AC_BODY));
 });
+
+function dispatchFixture(t, options) {
+  const f = fixture(t, options);
+  const baseline = runCli(["integrity-digest", "snapshot", "--run-dir", f.runDir, "--events"], { cwd: f.root });
+  assert.equal(baseline.code, 0, baseline.stderr);
+  function verify(claim, manifest = baseline.stdout, issue = ISSUE) {
+    return runCli(["dispatch", "verify-member", "--run-dir", f.runDir, "--issue", issue, "--return", claim], { cwd: f.root, input: manifest });
+  }
+  return { ...f, baseline: line(baseline), verifyMember: verify };
+}
+
+test("dispatch verify-member agrees with the independent member check and writes nothing on replay", (t) => {
+  const f = dispatchFixture(t);
+  const expected = line(f.verify(goodClaim())).evidence_persisted;
+  const before = snapshot(f.runDir);
+  for (let i = 0; i < 2; i++) {
+    const result = f.verifyMember(goodClaim());
+    assert.equal(result.code, 0, result.stderr);
+    assert.deepEqual(line(result), { scope: "member", issue: ISSUE, verdict: "agree", park_cause: null, tampered_paths: [], evidence_persisted: expected });
+  }
+  assert.deepEqual(snapshot(f.runDir), before);
+});
+
+test("a shared change stops before member path validation or parsing the claim", (t) => {
+  const f = dispatchFixture(t);
+  writeFileSync(join(f.runDir, "run-ledger.json"), '{"changed":true}');
+  const result = f.verifyMember("malformed", JSON.stringify(f.baseline), "../invalid-member");
+  assert.equal(result.code, 1);
+  assert.equal(line(result).scope, "run");
+  assert.equal(line(result).verdict, "tampered");
+  assert.match(line(result).tampered_paths.join(), /run-ledger.json/);
+  assert.equal(line(result).evidence_persisted, undefined);
+});
+
+test("a missing, incomplete or wrong-grain baseline is unavailable before member verification", (t) => {
+  const f = dispatchFixture(t);
+  for (const baseline of ["", "null", "{}", JSON.stringify({ ...f.baseline, grain: "per-issue" }), JSON.stringify({ ...f.baseline, members: {} })]) {
+    const result = f.verifyMember("malformed", baseline);
+    assert.equal(result.code, 2);
+    assert.equal(line(result).scope, "run");
+    assert.deepEqual(line(result).tampered_paths, []);
+  }
+});
+
+test("a clean shared baseline isolates all evidence failures to the dispatched member", (t) => {
+  const f = dispatchFixture(t);
+  for (const claim of ["not JSON", "{}", goodClaim().replace(ISSUE, "ISSUE-2"), "null"]) {
+    const result = f.verifyMember(claim);
+    const old = line(f.verify(claim));
+    assert.equal(result.code, 1);
+    assert.equal(line(result).scope, "member");
+    assert.equal(line(result).park_cause, old.park_cause);
+    assert.deepEqual(line(result).tampered_paths, old.tampered_paths);
+  }
+  const badPath = f.verifyMember("null", JSON.stringify(f.baseline), "../invalid-member");
+  assert.equal(badPath.code, 2);
+  assert.equal(line(badPath).scope, "member");
+  writeFileSync(join(f.issueDir, AC), "{}");
+  const mismatch = f.verifyMember(goodClaim());
+  assert.equal(mismatch.code, 1);
+  assert.deepEqual(line(mismatch).tampered_paths, [ISSUE + "/" + AC]);
+});
+
+test("a legitimately absent member return agrees without adding a ledger entry", (t) => {
+  const f = dispatchFixture(t, { files: {} });
+  const result = f.verifyMember("null");
+  assert.equal(result.code, 0);
+  assert.equal(line(result).evidence_persisted, null);
+});

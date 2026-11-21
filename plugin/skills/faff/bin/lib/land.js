@@ -18,6 +18,7 @@ const { runGh, ghJson, ghRepoSlug, headCheckRuns } = require("./merge-gate-gh");
 const { observeCi, readReviewVerdict } = require("./merge-gate-floor");
 const { runCiTriage, writeCiTriageVerdict } = require("./ci-triage");
 const land_assess_fix_1 = require("./land-assess-fix");
+const land_fix_attempt_1 = require("./land-fix-attempt");
 const { cmdHeartbeat } = require("./heartbeat");
 const DEADLINE_MS = 25 * 60 * 1000;
 const DEFAULT_SLICE_SECS = 480; // one call stays under the 10-minute tool cap
@@ -34,10 +35,10 @@ const LAND_SPEC = {
     flags: {
         "--pr": { arity: 1 }, "--issue": { arity: 1 }, "--run-dir": { arity: 1 },
         "--slice-secs": { arity: 1 }, "--fault-domain": { arity: 1 },
-        "--fix-checks": { arity: 0 }, "--dry-run": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
+        "--fix-checks": { arity: 0 }, "--expect-head": { arity: 1 }, "--dry-run": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
     },
 };
-const LAND_USAGE = "usage: faff land --pr N --issue ID --run-dir DIR [--slice-secs N] [--fault-domain code|infra] [--dry-run] [--json [--fix-checks]]";
+const LAND_USAGE = "usage: faff land --pr N --issue ID --run-dir DIR [--slice-secs N] [--fault-domain code|infra] [--dry-run] [--json [--fix-checks [--expect-head SHA]]]";
 // ---------------------------------------------------------------------------
 // Pure core.
 // ---------------------------------------------------------------------------
@@ -196,6 +197,8 @@ function runLand(opts, deps) {
         }
         const view = v.data;
         const head = view.headRefOid;
+        if (opts.expectHead && opts.expectHead !== head)
+            return out("superseded", { head_sha: head });
         if (st.probe && st.probe.head_sha !== head)
             st.probe = null;
         const ci = deps.observeCi(repo, pr, head);
@@ -277,6 +280,8 @@ function runLand(opts, deps) {
 function cmdLand(args) {
     if (args[0] === "assess-fix")
         return (0, land_assess_fix_1.cmdLandAssessFix)(args.slice(1));
+    if (args[0] === "fix-attempt")
+        return (0, land_fix_attempt_1.cmdLandFixAttempt)(args.slice(1));
     if (args.includes("--selftest"))
         return landSelftest();
     const { values, errors } = parseArgs(args, LAND_SPEC);
@@ -284,6 +289,10 @@ function cmdLand(args) {
         return usageError(errors, LAND_USAGE);
     if (values["--fix-checks"] && (!values["--json"] || values["--dry-run"]))
         return usageError([{ code: "bad-value", detail: "--fix-checks requires a live --json observation" }], LAND_USAGE);
+    const expectHead = values["--expect-head"];
+    if (expectHead !== undefined && (!values["--fix-checks"] || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(expectHead))) {
+        return usageError([{ code: "bad-value", detail: "--expect-head requires a full SHA and --fix-checks" }], LAND_USAGE);
+    }
     const pr = values["--pr"], issue = values["--issue"], runDir = values["--run-dir"];
     if (!pr || !issue || !runDir)
         return usageError([{ code: "missing-value", detail: "--pr, --issue and --run-dir are required" }], LAND_USAGE);
@@ -295,7 +304,7 @@ function cmdLand(args) {
     const slice = values["--slice-secs"] == null ? DEFAULT_SLICE_SECS : Number(values["--slice-secs"]);
     if (!Number.isFinite(slice) || slice <= 0)
         return usageError([{ code: "bad-value", flag: "--slice-secs", detail: "--slice-secs must be a positive number" }], LAND_USAGE);
-    const result = runLand({ pr, issue, runDir, sliceMs: slice * 1000, faultDomain: fd || null, fixChecks: !!values["--fix-checks"], dryRun: !!values["--dry-run"] }, defaultDeps(runDir, issue, !!values["--fix-checks"]));
+    const result = runLand({ pr, issue, runDir, sliceMs: slice * 1000, faultDomain: fd || null, fixChecks: !!values["--fix-checks"], expectHead, dryRun: !!values["--dry-run"] }, defaultDeps(runDir, issue, !!values["--fix-checks"]));
     const { exit, ...body } = result;
     if (values["--json"])
         console.log(JSON.stringify({ pr: Number(pr), issue, ...body }));

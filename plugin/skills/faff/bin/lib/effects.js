@@ -598,6 +598,11 @@ function landingProgressPath(runDir, issue) {
   return path.join(runDir, issue, "landing-progress.json");
 }
 
+function withLandingProgressLock(file, body) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  return require("./fs-lock").withFileLock(file + ".lock", body, { label: "landing progress lock" });
+}
+
 // Pure: fold one fix cycle into the record. Total over its inputs (null / {} / a valid record
 // all fold cleanly). fix_cycles is DERIVED from history.length (never a separately-incremented
 // integer), so the fix_cycles == length(history) invariant holds by construction and cannot
@@ -614,6 +619,7 @@ function landingProgressApplyFixCycle(existing, issue, kind, failingChecks, trie
     last_head_sha: headSha ?? base.last_head_sha ?? null,
     history,
     updated_at: nowIso,
+    ...(base.attempt ? { attempt: base.attempt } : {}),
   };
 }
 
@@ -640,9 +646,13 @@ function cmdLandingProgress(args) {
   }
 
   if (sub === "clear") {
-    // idempotent — absent file is a no-op success
-    if (fs.existsSync(file)) fs.rmSync(file);
-    return 0;
+    if (!fs.existsSync(path.dirname(file))) return 0;
+    try {
+      return withLandingProgressLock(file, () => { fs.rmSync(file, { force: true }); return 0; });
+    } catch (e) {
+      process.stderr.write(`landing-progress clear: ${e.message}\n`);
+      return 2;
+    }
   }
 
   // record-fix-cycle
@@ -654,13 +664,6 @@ function cmdLandingProgress(args) {
   const headSha = get("--head-sha");
   if (!headSha) {
     process.stderr.write("faff landing-progress record-fix-cycle requires --head-sha <sha>\n");
-    return 2;
-  }
-  const existing = readExisting();
-  // the caller (the future landing loop) is responsible for hard-parking at 3; this record
-  // must not paper over a caller bug by clamping a 4th write to 3 — loud exit 2, no write.
-  if (existing && existing.fix_cycles >= 3) {
-    process.stderr.write("landing-progress: fix_cycles already at 3 — caller must hard-park, never record a 4th\n");
     return 2;
   }
   const splitCsv = (v) => (v ? v.split(",").map((s) => s.trim()).filter((s) => s !== "") : []);
@@ -675,9 +678,24 @@ function cmdLandingProgress(args) {
     }
   }
   const tried = splitCsv(get("--tried"));
-  const nowIso = new Date().toISOString();
-  const rec = landingProgressApplyFixCycle(existing, issue, kind, failingChecks, tried, headSha, nowIso);
-  return writeRunState("landing-progress record-fix-cycle", "landing-progress.json", file, existing, rec);
+  try {
+    return withLandingProgressLock(file, () => {
+      const existing = readExisting();
+      if (existing?.attempt && !existing.attempt.outcome) {
+        process.stderr.write("landing-progress: an active fix must be recorded through land fix-attempt\n");
+        return 2;
+      }
+      if (existing && existing.fix_cycles >= 3) {
+        process.stderr.write("landing-progress: fix_cycles already at 3 — caller must hard-park, never record a 4th\n");
+        return 2;
+      }
+      const rec = landingProgressApplyFixCycle(existing, issue, kind, failingChecks, tried, headSha, new Date().toISOString());
+      return writeRunState("landing-progress record-fix-cycle", "landing-progress.json", file, existing, rec);
+    });
+  } catch (e) {
+    process.stderr.write(`landing-progress record-fix-cycle: ${e.message}\n`);
+    return 2;
+  }
 }
 
 function landingProgressSelftest() {
@@ -1171,4 +1189,4 @@ function effectsSelftest() {
 }
 
 
-module.exports = { writeBuildProgress, writeRunState, CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, declaredEffectViolations, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };
+module.exports = { writeBuildProgress, writeRunState, CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, declaredEffectViolations, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf, withLandingProgressLock };

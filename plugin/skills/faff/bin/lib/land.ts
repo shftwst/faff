@@ -16,9 +16,10 @@ const { runGh, ghJson, ghRepoSlug, headCheckRuns } = require("./merge-gate-gh");
 const { observeCi, readReviewVerdict } = require("./merge-gate-floor");
 const { runCiTriage, writeCiTriageVerdict } = require("./ci-triage");
 import { cmdLandAssessFix, observedFailingChecks } from "./land-assess-fix";
+import { cmdLandFixAttempt } from "./land-fix-attempt";
 const { cmdHeartbeat } = require("./heartbeat");
 
-export type LandToken = "ready" | "needs-fix" | "needs-judgement" | "leave-for-human" | "landing-resumable" | "pending" | "errored" | "dry-run";
+export type LandToken = "ready" | "needs-fix" | "needs-judgement" | "leave-for-human" | "landing-resumable" | "pending" | "superseded" | "errored" | "dry-run";
 export type Transience = "unknown" | "persistent" | "transient";
 
 // The persisted loop state, <run-dir>/<issue>/landing-loop.json.
@@ -66,7 +67,7 @@ export type LandExtras = {
 };
 export type LandResult = { token: LandToken; exit: number } & LandExtras;
 
-export type LandOptions = { fixChecks?: boolean | undefined; pr: string | number; issue: string; runDir: string; sliceMs: number; faultDomain: string | null; dryRun: boolean };
+export type LandOptions = { fixChecks?: boolean | undefined; expectHead?: string | undefined; pr: string | number; issue: string; runDir: string; sliceMs: number; faultDomain: string | null; dryRun: boolean };
 
 type GhResult<T> = { ok: boolean; data?: T | null | undefined; stderr?: string | undefined };
 
@@ -102,10 +103,10 @@ const LAND_SPEC = {
   flags: {
     "--pr": { arity: 1 }, "--issue": { arity: 1 }, "--run-dir": { arity: 1 },
     "--slice-secs": { arity: 1 }, "--fault-domain": { arity: 1 },
-    "--fix-checks": { arity: 0 }, "--dry-run": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
+    "--fix-checks": { arity: 0 }, "--expect-head": { arity: 1 }, "--dry-run": { arity: 0 }, "--json": { arity: 0 }, "--selftest": { arity: 0 },
   },
 };
-const LAND_USAGE = "usage: faff land --pr N --issue ID --run-dir DIR [--slice-secs N] [--fault-domain code|infra] [--dry-run] [--json [--fix-checks]]";
+const LAND_USAGE = "usage: faff land --pr N --issue ID --run-dir DIR [--slice-secs N] [--fault-domain code|infra] [--dry-run] [--json [--fix-checks [--expect-head SHA]]]";
 
 // ---------------------------------------------------------------------------
 // Pure core.
@@ -251,6 +252,7 @@ function runLand(opts: LandOptions, deps: LandDeps): LandResult {
     if (!v.ok || !v.data || !v.data.headRefOid) { if (dryRun) return { token: "dry-run", exit: 0, would: "wait", detail: `gh pr view failed: ${v.stderr}` }; deps.sleep(POLL_MS); continue; }
     const view = v.data;
     const head = view.headRefOid;
+    if (opts.expectHead && opts.expectHead !== head) return out("superseded", { head_sha: head });
     if (st.probe && st.probe.head_sha !== head) st.probe = null;
     const ci = deps.observeCi(repo, pr, head);
     if (ci.observation_error) return out("errored", { detail: ci.observation_error, head_sha: head });
@@ -318,10 +320,15 @@ function runLand(opts: LandOptions, deps: LandDeps): LandResult {
 
 function cmdLand(args: string[]): number {
   if (args[0] === "assess-fix") return cmdLandAssessFix(args.slice(1));
+  if (args[0] === "fix-attempt") return cmdLandFixAttempt(args.slice(1));
   if (args.includes("--selftest")) return landSelftest();
   const { values, errors } = parseArgs(args, LAND_SPEC);
   if (errors.length) return usageError(errors, LAND_USAGE);
   if (values["--fix-checks"] && (!values["--json"] || values["--dry-run"])) return usageError([{ code: "bad-value", detail: "--fix-checks requires a live --json observation" }], LAND_USAGE);
+  const expectHead = values["--expect-head"];
+  if (expectHead !== undefined && (!values["--fix-checks"] || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(expectHead))) {
+    return usageError([{ code: "bad-value", detail: "--expect-head requires a full SHA and --fix-checks" }], LAND_USAGE);
+  }
   const pr = values["--pr"], issue = values["--issue"], runDir = values["--run-dir"];
   if (!pr || !issue || !runDir) return usageError([{ code: "missing-value", detail: "--pr, --issue and --run-dir are required" }], LAND_USAGE);
   if (!/^\d+$/.test(pr)) return usageError([{ code: "bad-value", flag: "--pr", detail: "--pr must be a PR number" }], LAND_USAGE);
@@ -330,7 +337,7 @@ function cmdLand(args: string[]): number {
   const slice = values["--slice-secs"] == null ? DEFAULT_SLICE_SECS : Number(values["--slice-secs"]);
   if (!Number.isFinite(slice) || slice <= 0) return usageError([{ code: "bad-value", flag: "--slice-secs", detail: "--slice-secs must be a positive number" }], LAND_USAGE);
 
-  const result = runLand({ pr, issue, runDir, sliceMs: slice * 1000, faultDomain: fd || null, fixChecks: !!values["--fix-checks"], dryRun: !!values["--dry-run"] }, defaultDeps(runDir, issue, !!values["--fix-checks"]));
+  const result = runLand({ pr, issue, runDir, sliceMs: slice * 1000, faultDomain: fd || null, fixChecks: !!values["--fix-checks"], expectHead, dryRun: !!values["--dry-run"] }, defaultDeps(runDir, issue, !!values["--fix-checks"]));
   const { exit, ...body } = result;
   if (values["--json"]) console.log(JSON.stringify({ pr: Number(pr), issue, ...body }));
   else console.log(`land ${issue} #${pr}: ${body.token}${body.reason ? `:${body.reason}` : ""}${body.would ? ` (would ${body.would})` : ""}${body.detail ? ` — ${body.detail}` : ""}`);

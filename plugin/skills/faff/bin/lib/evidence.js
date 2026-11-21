@@ -1723,7 +1723,7 @@ function cmdEvidence(args) {
 }
 
 module.exports = {
-  CAPABILITIES, EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, acChecklistWriterViolations, announceSchemaUnavailable, anchoredAcChecklist,
+  claimFromStdin, verifyReturn, CAPABILITIES, EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, acChecklistWriterViolations, announceSchemaUnavailable, anchoredAcChecklist,
   anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evaluateRunDirEventsSchema, evidenceSelftest, exitCodeFor,
   recordReviewRound, writeCollatedReviewVerdict,
   guardWriterPaths, introducedViolations, logRecordChecker, evidenceDocumentFiles, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,

@@ -57,7 +57,7 @@ If the configured intake skill returns something that isn't a conformant discove
 
 ### 3. Shape into tickets — apply the `methodology` slot
 
-**Methodology transport.** jot's `methodology` calls — `ticket-shaping` for the brief and `prdr-author` for a new project — are **producer dispatches** (gateway → **Sibling-skill invocation → Producer dispatch**), resolving the `methodology` dispatch lane. Per gateway → **The `methodology` slot → Transport**, `ticket-shaping` is a **single dispatch per pass** and `prdr-author` dispatches **per project**; jot running inside a subagent falls back **in-context** (single-level nesting).
+**Methodology transport.** Request `ticket-shaping` for the brief and `prdr-author` for each new project. Follow **Transport (per-output dispatch grain)** in `faff/references/methodology.md`.
 
 Hand the discovery brief to the configured `methodology` skill's **`ticket-shaping`** output (resolve `faff config get slots.methodology`). The methodology decides workstreams/containers, ticket boundaries, sequencing and dependency links from the brief and live tracker graph. Follow the configured methodology: the thematic default shapes purely from the brief + graph; an opinionated methodology (`faffter-dark-methodology-agile-delivery`) additionally right-sizes, outcome-names workstreams, and sequences by value × risk.
 

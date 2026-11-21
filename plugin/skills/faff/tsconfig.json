@@ -59,6 +59,7 @@
     "bin/lib/prep-context.ts",
     "bin/lib/land-assess-fix.ts",
     "bin/lib/dispatch-prepare.ts",
+    "bin/lib/dispatch-producer.ts",
     "bin/lib/issue-facts.ts",
     "bin/lib/build-queue-partition.ts",
     "bin/lib/spec-review-prepare.ts",

@@ -38,7 +38,7 @@
     "bin/lib/park-finalize.ts": "72a906237ad66ae2f5661c1308f8a015408f409912603bbc741cedd6f073bfd3",
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/planning-graph.ts": "39d02bc552783d4d3b33473f2b355e94798d56eb90deb89d85330c6351e5d529",
-    "bin/lib/pr-open.ts": "6ff01c874dabfa945febff26d629dd9b0af6b284e4d594f82bee71f2475baf76",
+    "bin/lib/pr-open.ts": "00d9ce946e7a9a59c3c053e8dd15a6c2c843f03d0d473a4cca0e153cb155ef60",
     "bin/lib/prd-select.ts": "99ce451442e2f701828a17a4d882c70a75c8df15a0982f9fe8823d149a0a8c3b",
     "bin/lib/prep-attach.ts": "182ce12bf1d4a85771ff97261af5810e7e2a631ba3712a095faa22bc239c8c1f",
     "bin/lib/prep-context.ts": "58b0bf3519200acde3fb9076f508bc95d554b068181e4fe557e60aab917d45d3",
@@ -89,7 +89,7 @@
     "bin/lib/park-finalize.js": "8f0b5524416dc7ff7461effbf42d86643354b2d58e4d6255ff6e1938bc955bf0",
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/planning-graph.js": "718b5eeb1e4eae6717136227905cde9663297f47a087398b593b2c3aa7ba70c1",
-    "bin/lib/pr-open.js": "a8613b32ef23683d063ddd9e57e99718c4a8ca24ecba9bf6a4db50a63d42feb1",
+    "bin/lib/pr-open.js": "904526bbdd7c0c5cc84c8b2b233b58ef5b322fb4e22291f143aaeb0bab5d9954",
     "bin/lib/prd-select.js": "37514692786f35a4b87c5b603b6332b882c293414714b587494a4e2f9aa451d5",
     "bin/lib/prep-attach.js": "2b7dfec654c048fc72537ddc7bfd8264d6eaec63131ca7b3fafd58dc681c218b",
     "bin/lib/prep-context.js": "b609924254f54d1cbd693ae1db8df6fa4d3daa0036e59fb3f1e48171af1780ac",
@@ -114,5 +114,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "2708af536f15af4123e572587e4f238d2c452cb82fe77602e5e35ea1c8d48773"
+  "output_digest": "b8c919c39b5c395a872f794d0a7fa1fb534977bc9e53d51bc9b65f35113c0728"
 }

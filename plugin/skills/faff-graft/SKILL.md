@@ -471,25 +471,14 @@ It refuses unless the review verdict is `pass`, runs the governed-run check, wri
 | `refused` with cause `body-unsafe` | Fix the draft once and re-call; refused again → park |
 | any other `refused`, `needs-human`, `errored` | Shared park protocol naming `cause`. `anchor-no-events` / `anchor-genesis-invalid` is a provisioning fault (fix what minted the run dir, never the build); `anchor-floor-incomplete` is a build-evidence defect (fix what dropped the Step 8/9 file) |
 
-**In Review transition (after `faff pr open` returns `opened` or `already-open`, before Step 10).** Move the ticket forward to In Review, mirroring the Step 5 In Progress claim:
+**In Review transition (after PR opened or already open).** Re-read the live status and resolve the workflow's In Review-type state through tracker MCP. Pass `{live_status, review_state, tracker_transition}` to `faff pr plan-in-review --issue <ISSUE-XX>`, with the same `--run-dir` as PR open when available. Use the PR-open result's descriptor and the live destination ID (null when unavailable).
 
-```
-PROCEDURE transition_to_in_review(issue):
-  1. Re-read the issue's LIVE status in one fetch (per Re-ground before gate; mirrors Step 5).
-  2. IF the configured tracker's workflow has no In Review-type state -> no-op, proceed.
-     (Only Linear + git-only are covered today; git-only has no tracker at all.)
-  3. IF live status is already In Review or Done -> no-op (forward-rank monotonicity; a peer advanced it).
-  4. ELSE (live status is In Progress) -> agent-mediated tracker write (save_issue) moving status -> In Review.
-  5. NEVER fail the build for a missing state or a failed status write; the loop proceeds regardless.
-```
+On `write`:
+1. When the governed-run check reports governed and the planner returns `bracket`, apply the **Governed tracker-write record** rule. Run `faff effects declare` with its `args` and JSON `payload`.
+2. Use tracker MCP `save_issue` with the returned `state`, including after a declaration failure.
+3. With a bracket and confirmed MCP success, run `faff effects observe` with the same inputs.
 
-Use Step 5's live-status re-read and agent-mediated forward-rank `save_issue`, including dispatched lanes. Step 5 pairs its In Progress write with `faff-claimed`; add no In Review equivalent. Never revert a further-along issue.
-
-**Anti-patterns:** adding `faff status set` (status writes remain agent-mediated at Step 5, here and tidy's sweep; merge-time `→ Done` is forge-driven via PR `Closes`); failing the build for a missing In Review state (a no-op, never a merge precondition).
-
-_**Governed In Review tracker-write record (on a governed run).**_ When the governed-run check reports governed (the result's `tracker_transition.governed`), bracket the step-4 `save_issue` write, per the *Governed tracker-write record* rule: `faff effects declare --run "$(basename "$run_dir")" --issue <ISSUE-XX> --step tracker-write` piping `[<tracker_transition.effect>]` (`{kind:"tracker-write",target:"<ISSUE-XX>:In Progress->In Review",reversible:true}`) **before** the `save_issue` write, then `faff effects observe --run "$(basename "$run_dir")" --issue <ISSUE-XX> --step tracker-write` with the same payload **after** it succeeds. Fires only on the step-4 write branch, never on the step-2 or step-3 no-op branches. Record-only — DETECTED, never prevented: a non-zero exit from either is logged and the status write proceeds, never a precondition. Skip the whole bracket on an ungoverned run, and when there is no run substrate.
-
-Proceed to Step 10.
+Proceed to Step 10 on `noop` or after the attempt. Log planner, record and tracker failures and proceed.
 
 ### Discovered scope (record, never file)
 

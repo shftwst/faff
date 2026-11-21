@@ -25,7 +25,7 @@ const childProcess: ChildProcessApi = require("node:child_process");
 // --- Typed views of the modules this command composes (no casts: the annotation types `require`). ---
 
 interface FsApi {
-  readFileSync(file: string, encoding: "utf8"): string;
+  readFileSync(file: string | number, encoding: "utf8"): string;
   writeFileSync(file: string, data: string): void;
   unlinkSync(file: string): void;
   mkdtempSync(prefix: string): string;
@@ -549,11 +549,54 @@ function cmdPrOpen(args: string[]): number {
   return emit(json, runPrOpen(opts, defaultDeps(process.cwd())));
 }
 
-const PR_USAGE = PR_OPEN_USAGE;
+const PLAN_REVIEW_USAGE = "usage: faff pr plan-in-review --issue ID [--run-dir DIR] < facts.json";
+const PLAN_REVIEW_SPEC = {
+  flags: { "--issue": { arity: 1 }, "--run-dir": { arity: 1 } },
+  positionals: { min: 0, max: 0 },
+};
+
+function planInReview(facts: unknown, issue: string, runDir: string | null) {
+  if (!isRecord(facts)) throw new Error("expected tracker facts");
+  const state = str(facts["review_state"]);
+  if (facts["live_status"] !== "In Progress" || state === null || !state.trim()) return { action: "noop" };
+
+  const receipt = facts["tracker_transition"];
+  if (!isRecord(receipt) || typeof receipt["governed"] !== "boolean" || receipt["to"] !== "In Review") {
+    throw new Error("expected the PR-open tracker_transition");
+  }
+  const expected = transition(issue, receipt["governed"]);
+  const effect = receipt["effect"];
+  if (!isRecord(effect) || effect["target"] !== expected.effect.target ||
+      effect["kind"] !== expected.effect.kind || effect["reversible"] !== expected.effect.reversible) {
+    throw new Error("PR-open effect does not match the requested issue and transition");
+  }
+  const bracket = expected.governed && runDir !== null ? {
+    args: ["--run-dir", path.resolve(runDir), "--issue", issue, "--step", expected.effect.kind],
+    payload: [expected.effect],
+  } : null;
+  return { action: "write", state, bracket };
+}
+
+function cmdPlanInReview(args: string[]): number {
+  const parsed = argvApi.parseArgs(args, PLAN_REVIEW_SPEC);
+  if (parsed.errors.length) return argvApi.usageError(parsed.errors, PLAN_REVIEW_USAGE);
+  const issue = str(parsed.values["--issue"]);
+  if (issue === null) return argvApi.usageError([{ code: "missing-flag", detail: "--issue is required" }], PLAN_REVIEW_USAGE);
+  try {
+    const facts: unknown = JSON.parse(fs.readFileSync(0, "utf8"));
+    console.log(JSON.stringify(planInReview(facts, issue, str(parsed.values["--run-dir"]))));
+    return 0;
+  } catch (error) {
+    process.stderr.write("faff pr plan-in-review: " + (error instanceof Error ? error.message : String(error)) + "\n");
+    return 2;
+  }
+}
 
 function cmdPr(args: string[]): number {
-  if (args[0] !== "open") return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: open" }], PR_USAGE);
-  return cmdPrOpen(args.slice(1));
+  if (args[0] === "open") return cmdPrOpen(args.slice(1));
+  if (args[0] === "plan-in-review") return cmdPlanInReview(args.slice(1));
+  return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: open or plan-in-review" }],
+    PR_OPEN_USAGE + "\n" + PLAN_REVIEW_USAGE);
 }
 
 module.exports = { cmdPr, runPrOpen, defaultDeps };

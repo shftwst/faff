@@ -401,9 +401,23 @@ const SLOT_TYPES = {
   profile: { type: "producer-profile", slot: "profile" },
 };
 
+const PRODUCER_ARTIFACTS = {
+  "producer-spec": "spec-readiness",
+  "producer-review": "review-verdict",
+  "producer-spec-review": "spec-review-verdict",
+  "producer-architecture": "architecture-proposal",
+  "producer-env": "env-handle",
+  "producer-evaluator": "holdout-verdict",
+  "producer-prd": "prd-readiness",
+  "producer-ship": "delivery-outcome",
+  "producer-profile": "infra-profile",
+};
+
 function checksFor(meta, t) {
   const out = [];
   const has = (s) => t.includes(s);
+  const artifact = PRODUCER_ARTIFACTS[meta.type];
+  if (artifact) out.push([has(`faff-contract:${artifact}`), `emits its \`faff-contract:${artifact}\` artifact block`]);
   switch (meta.type) {
     case "adaptor":
       out.push([REFER_BACK.test(t), "refer-back: Read the sibling faff/SKILL.md when standalone"]);
@@ -453,7 +467,6 @@ function checksFor(meta, t) {
       // FAFF-109: conformance is artifact-emission (the spec_adaptor was retired) — the
       // producer self-declares its markers + confidence in a faff-contract:spec-readiness block
       // the consumer (faff-prep) parses and pipes to `faff contract spec-readiness` directly.
-      out.push([has("faff-contract:spec-readiness"), "emits its `faff-contract:spec-readiness` artifact block"]);
       out.push([t.toLowerCase().includes("confidence"), "emits a confidence self-rating"]);
       break;
     case "producer-intake":
@@ -469,31 +482,6 @@ function checksFor(meta, t) {
       out.push([t.toLowerCase().includes("confidence"), "emits an advisory confidence self-rating"]);
       out.push([!/faff-contract:/.test(t),
                 "carries NO faff-contract block (the ADR body is advisory, not gated pass/fail)"]);
-      break;
-    case "producer-review":
-      out.push([has("faff-contract:review-verdict"), "emits its `faff-contract:review-verdict` artifact block"]);
-      break;
-    case "producer-spec-review":
-      // FAFF-265/266: the spec-stage reviewer (FAFF-9 family) self-declares its verdict in a
-      // faff-contract:spec-review-verdict block the consumer (faff-prep) parses and pipes to
-      // `faff contract spec-review-verdict`. The default occupant is the L1–L3 single-pass
-      // four-lens reviewer (FAFF-266); L4 per-lens refuters (FAFF-267) swap in via the same slot.
-      out.push([has("faff-contract:spec-review-verdict"), "emits its `faff-contract:spec-review-verdict` artifact block"]);
-      break;
-    case "producer-architecture":
-      // FAFF-27: the architecture PROPOSER (the missing generative box; FAFF-9's architectural lens is
-      // the downstream CRITIC, they meet only through the spec artifact — ADR-0030). It self-declares its
-      // best-fit proposal in a faff-contract:architecture-proposal block the consumer parses and pipes to
-      // `faff contract architecture-proposal`. Default occupant: faffter-noon-architecture.
-      out.push([has("faff-contract:architecture-proposal"), "emits its `faff-contract:architecture-proposal` artifact block"]);
-      break;
-    case "producer-env":
-      // FAFF-30: the environment PROVISIONER (the provision box of the propose→provision→seed→evaluate
-      // pipeline). It self-declares a provisioned, health-checked env in a faff-contract:env-handle block the
-      // consumer (FAFF-34) parses and pipes to `faff contract env-handle` (gate: status:ready → exit 0). The
-      // handle is the interface; the provisioning mechanism (compose now, cloud later) is swappable behind it.
-      // Default occupant: faffter-noon-env-compose.
-      out.push([has("faff-contract:env-handle"), "emits its `faff-contract:env-handle` artifact block"]);
       break;
     case "producer-transport":
       // FAFF-817: the evaluator→SUT reachability resolver composed under `env`. Inline-return
@@ -516,28 +504,6 @@ function checksFor(meta, t) {
                 "documents the transport-constrained host publish (never a naive all-interfaces publish)"]);
       out.push([!/faff-contract:/.test(t),
                 "carries NO faff-contract block (the result is consumed inline by env, not gated)"]);
-      break;
-    case "producer-evaluator":
-      // FAFF-34: the code-blind holdout JUDGE (the evaluate box of propose→provision→seed→evaluate). It
-      // self-declares its per-criterion + aggregate verdict in a faff-contract:holdout-verdict block the
-      // consumer parses and pipes to `faff contract holdout-verdict` (gate: code_blind:true + aggregate
-      // matches derivation → exit 0). Default occupant: faffter-noon-evaluate.
-      out.push([has("faff-contract:holdout-verdict"), "emits its `faff-contract:holdout-verdict` artifact block"]);
-      break;
-    case "producer-prd":
-      // The code-blind PRD-admissibility producer (the LLM half of the L4 run-start PRD gate). It
-      // self-declares its verdict in a faff-contract:prd-readiness block the run-start caller parses and
-      // pipes to `faff contract prd-readiness` (the deterministic validator: admissible → admit the run;
-      // anything else → refuse, fail-safe). Default occupant: faffter-noon-prd.
-      out.push([has("faff-contract:prd-readiness"), "emits its `faff-contract:prd-readiness` artifact block"]);
-      break;
-    case "producer-ship":
-      out.push([has("faff-contract:delivery-outcome"), "emits its `faff-contract:delivery-outcome` artifact block"]);
-      break;
-    case "producer-profile":
-      // FAFF-231: an infra-profile acquirer (repo-miner or any other acquisition mode) conforms by
-      // emitting the FAFF-26 faff-contract:infra-profile block the orchestrator validates + stores.
-      out.push([has("faff-contract:infra-profile"), "emits its `faff-contract:infra-profile` artifact block"]);
       break;
   }
   return out;
@@ -1154,6 +1120,15 @@ function captureSameCommandUnwired(skillsDir, kernels, inProcessWired = new Set(
 }
 
 function cmdValidateAdapters(args) {
+  if (args[0] === "scaffold" || args[0] === "check") {
+    const profiles = Object.fromEntries(Object.entries(SLOT_TYPES).map(([slot, profile]) => [
+      slot, { ...profile, ...REGISTRY[DEFAULTS[`slots.${slot}`]] },
+    ]));
+    return require("./slot-authoring").cmdSlotAuthoring(args[0], args.slice(1), {
+      profiles, producerArtifacts: PRODUCER_ARTIFACTS, methodologyOutputs: REQUIRED_METHODOLOGY_OUTPUTS,
+      checksFor, readJudgementSeam, referBack: REFER_BACK, nonNormative: NON_NORMATIVE, resolveSkillsDir, locateSkill,
+    });
+  }
   if (args.includes("--is-bundled")) return cmdIsBundled(args);
   const { values, errors } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
   if (errors.length) return usageError(errors, "usage: faff validate-adapters [--configured] [--skills-dir DIR] [--root DIR] | --is-bundled <occupant> --slot <slot>");

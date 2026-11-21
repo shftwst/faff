@@ -74,6 +74,7 @@
     "bin/lib/discovered-scope-plan.ts",
     "bin/lib/merge-delivery-receipt.ts",
     "bin/lib/run-wave-mode.ts",
-    "bin/lib/adr-promotion.ts"
+    "bin/lib/adr-promotion.ts",
+    "bin/lib/slot-authoring.ts"
   ]
 }

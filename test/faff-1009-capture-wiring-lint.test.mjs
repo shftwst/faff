@@ -154,7 +154,7 @@ test("captureWiringUnwired reports nothing unwired on the shipped tree", () => {
   // FAFF-1434 / FAFF-1418: beep-boop's admission captures next and eligible through `faff graft admit`,
   // and §0a captures run-outward and run-start through `faff run trigger`, so only those four rely on the
   // in-process route; every other kernel still has its own driver.
-  assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels), ["eligible", "next", "run-outward", "run-start"]);
+  assert.deepEqual(va.captureWiringUnwired(SKILLS, kernels), ["eligible", "next", "queue-state", "run-done", "run-outward", "run-start"]);
 });
 
 // --- FAFF-1434: in-process capture through `faff graft admit` (operator decision, 2026-11-01) ---
@@ -264,6 +264,7 @@ test("the route's helpers: real invocations only, comments stripped, covers narr
   assert.deepEqual(va.deriveInProcessCapture(LIB).map((e) => [e.module, e.kernels, e.wires]), [
     ["graft-admit.js", ["claim-verdict", "eligible", "next"], ["eligible", "next"]],
     ["run-trigger.js", ["run-outward", "run-start"], ["run-outward", "run-start"]],
+    ["run-wave-consult.js", ["queue-state", "run-done"], ["queue-state", "run-done"]],
   ]);
 });
 

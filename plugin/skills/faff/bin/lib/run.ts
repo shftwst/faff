@@ -7,6 +7,8 @@
 
 import { cmdWaveMode } from "./run-wave-mode";
 
+import { cmdWaveConsult } from "./run-wave-consult";
+
 interface RunSummaryApi {
   cmdRunReconcile(args: string[]): number;
   cmdRunSummary(args: string[]): number;
@@ -41,6 +43,7 @@ const VERBS: { [verb: string]: (args: string[]) => number } = {
   "return-map": (args) => returnMap.cmdRunReturnMap(args),
   reconcile: (args) => runSummary.cmdRunReconcile(args),
   preflight: cmdRunEntryPreflight,
+  "wave-consult": cmdWaveConsult,
   "wave-mode": cmdWaveMode,
 };
 

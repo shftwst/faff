@@ -1,5 +1,52 @@
 # Changelog
 
+## [0.46.0](https://github.com/shftwst/faff/compare/faff--v0.45.0...faff--v0.46.0) (2026-11-21)
+
+
+### Features
+
+* **adr:** select the promotion input from the tracker or committed spec ([#1254](https://github.com/shftwst/faff/issues/1254)) ([9cd53ca](https://github.com/shftwst/faff/commit/9cd53cabffd694932ca0b89d77364c9b015889ff))
+* **dispatch:** prepare an ordered build worker handoff ([#1232](https://github.com/shftwst/faff/issues/1232)) ([a3fa544](https://github.com/shftwst/faff/commit/a3fa544641fde6ec9be48fae2bba3e43bf4cd8ea))
+* **dispatch:** verify shared custody and member returns in one command ([#1258](https://github.com/shftwst/faff/issues/1258)) ([70d4b6b](https://github.com/shftwst/faff/commit/70d4b6bc356c8750910a45e801f87febdb4278a7))
+* **eval:** a model-evaluation harness that scores a model, rolls it up by skill and stores the result (FAFF-1484) ([#1201](https://github.com/shftwst/faff/issues/1201)) ([831d5df](https://github.com/shftwst/faff/commit/831d5dff883595820fef57bb2446574a2d42a8aa))
+* **graft:** capture build checkpoints from the verified worktree head ([#1242](https://github.com/shftwst/faff/issues/1242)) ([b56f8f0](https://github.com/shftwst/faff/commit/b56f8f0b8bbf36760e8cc2f8e0b3053931b39c01))
+* **graft:** record build review rounds once and route follow-up ([#1261](https://github.com/shftwst/faff/issues/1261)) ([8f11979](https://github.com/shftwst/faff/commit/8f119797f1a2a129cd6ac13c6d2ed16b0b09e155))
+* **holdout:** project evaluator criteria and verify the stored receipt ([#1248](https://github.com/shftwst/faff/issues/1248)) ([b7d4f62](https://github.com/shftwst/faff/commit/b7d4f62ad6d0e95a06e53fd2602168083bfb6706))
+* **land:** assess graft fixes from observed heads and check runs ([#1231](https://github.com/shftwst/faff/issues/1231)) ([513b6e7](https://github.com/shftwst/faff/commit/513b6e7f7c93d9356a2e62571ef0ad77be2f7a4f))
+* **land:** bind failed fix accounting to a resumable attempt ([#1259](https://github.com/shftwst/faff/issues/1259)) ([1eca8f8](https://github.com/shftwst/faff/commit/1eca8f86e6f1dbc0a7a520570213affad9ba56c4))
+* **next:** batch the prep queue transition from observed facts ([#1245](https://github.com/shftwst/faff/issues/1245)) ([9e1be48](https://github.com/shftwst/faff/commit/9e1be48e06a715e24afd9ae172066ceeb724b37f))
+* **onboard:** preview the complete local overlay ([#1252](https://github.com/shftwst/faff/issues/1252)) ([b3917e1](https://github.com/shftwst/faff/commit/b3917e17fff2cd789903002a8d1a3e2739fde8ab))
+* **park:** finalize records from confirmed effects ([#1243](https://github.com/shftwst/faff/issues/1243)) ([3388c2f](https://github.com/shftwst/faff/commit/3388c2ff61348fb5d0c0b8225ea794596c75656d))
+* **planning:** share cycle membership and unlock counts across callers ([#1239](https://github.com/shftwst/faff/issues/1239)) ([74cb3f2](https://github.com/shftwst/faff/commit/74cb3f2817b9e98ad11250100101ac72722351ff))
+* **prd:** share selection with standalone plot ([#1247](https://github.com/shftwst/faff/issues/1247)) ([abbe917](https://github.com/shftwst/faff/commit/abbe917f539fc25165250d9331f20696efc31ddf))
+* **prep:** prepare local review context with one command ([#1219](https://github.com/shftwst/faff/issues/1219)) ([399084d](https://github.com/shftwst/faff/commit/399084de2fe335f63b8c252d6fbfb4071f71e691))
+* **prep:** resume the spec judge one proposition at a time ([#1260](https://github.com/shftwst/faff/issues/1260)) ([b56d182](https://github.com/shftwst/faff/commit/b56d182445767c084b4817bd16453996ea2b6422))
+* **pr:** plan the forward In Review transition ([#1250](https://github.com/shftwst/faff/issues/1250)) ([3184c70](https://github.com/shftwst/faff/commit/3184c70e7d9441e164cd59174cc1dfbb0bdd9920))
+* **queue:** partition admitted builds from supplied scope facts ([#1234](https://github.com/shftwst/faff/issues/1234)) ([6716b92](https://github.com/shftwst/faff/commit/6716b920bb64cbe22f4dbf7f904e8c7fa7533cd0))
+* **review:** resume the checkpoint bound to the captured diff ([#1240](https://github.com/shftwst/faff/issues/1240)) ([82a58cb](https://github.com/shftwst/faff/commit/82a58cbc39e879581626c360ab4e684e102d0a31))
+* **run:** assemble the run-end reconciliation gate from observed facts ([#1237](https://github.com/shftwst/faff/issues/1237)) ([f3d6e13](https://github.com/shftwst/faff/commit/f3d6e137fc980e90b6d7efe7429f9b5055a9eec0))
+* **run:** compose autonomous entry preflights ([#1246](https://github.com/shftwst/faff/issues/1246)) ([c67d7a0](https://github.com/shftwst/faff/commit/c67d7a0abdeefc0b03968ef2e52470a0f429fe12))
+* **run:** map reconciled build returns to ledger outcomes ([#1236](https://github.com/shftwst/faff/issues/1236)) ([5bdae81](https://github.com/shftwst/faff/commit/5bdae815a49ce73e8b569b2528e157fbb4384d69))
+* **run:** resolve convergence mode and the git-only termination consult ([#1253](https://github.com/shftwst/faff/issues/1253)) ([0d0907a](https://github.com/shftwst/faff/commit/0d0907adc14ed85e45238f8120ca75a3afe9e880))
+* **scope:** plan autonomous filing from supplied facts ([#1249](https://github.com/shftwst/faff/issues/1249)) ([5fd5ed1](https://github.com/shftwst/faff/commit/5fd5ed18756df137ed2e595fc247c4e7560949da))
+* **ship:** render delivery from the existing merge-gate receipt ([#1251](https://github.com/shftwst/faff/issues/1251)) ([78f103a](https://github.com/shftwst/faff/commit/78f103a1a12385b5ed2c0999fa59b6ca81321a65))
+* **slots:** scaffold and check an explicit slot skill ([#1255](https://github.com/shftwst/faff/issues/1255)) ([bbbbca6](https://github.com/shftwst/faff/commit/bbbbca6c6c6177d0cc3f59399787a1644d331a29))
+* **spec-review:** prepare lens requests for an L4 round ([#1235](https://github.com/shftwst/faff/issues/1235)) ([1960841](https://github.com/shftwst/faff/commit/1960841de3e46b3d5e9088a5a1c166e52a8dec7f))
+* **spec-review:** record L4 lens receipts and preserve partial retry decisions ([#1238](https://github.com/shftwst/faff/issues/1238)) ([2f20b14](https://github.com/shftwst/faff/commit/2f20b14ab32418374e83c05497d0d374b468605a))
+* **spec:** return compact author diagnostics ([#1241](https://github.com/shftwst/faff/issues/1241)) ([39c6cde](https://github.com/shftwst/faff/commit/39c6cde7ab61cbf653baaee2ab1b0fd19436c27a))
+* **templates:** resolve ticket fields from supplied native and local templates ([#1244](https://github.com/shftwst/faff/issues/1244)) ([fad8a41](https://github.com/shftwst/faff/commit/fad8a41a36689cf7f5fa6b4cf4b4a180930d75b7))
+* **tracker:** classify visibility and blockers from supplied facts ([#1233](https://github.com/shftwst/faff/issues/1233)) ([626f6a3](https://github.com/shftwst/faff/commit/626f6a3caf5f216975323cfdb9007e0b06a522a0))
+
+
+### Bug Fixes
+
+* **spec:** the confidence rubric rates any Punt the scanner does not mark eligible as medium (FAFF-1482) ([#1198](https://github.com/shftwst/faff/issues/1198)) ([31ca36e](https://github.com/shftwst/faff/commit/31ca36e7d3d55112edd7d8aab53c8e8864511fd6))
+
+
+### Performance Improvements
+
+* **onboard:** load tracker guidance when discovery starts ([#1220](https://github.com/shftwst/faff/issues/1220)) ([3fbb7c0](https://github.com/shftwst/faff/commit/3fbb7c0e2233e7c84457676ece57ff05bd9e5540))
+
 ## [0.45.0](https://github.com/shftwst/faff/compare/faff--v0.44.0...faff--v0.45.0) (2026-11-16)
 
 

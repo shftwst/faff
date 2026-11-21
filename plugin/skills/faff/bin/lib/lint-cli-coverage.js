@@ -37,6 +37,7 @@ const LINT_CLI_COVERAGE_SPEC = { flags: { "--root": { arity: 1 }, "--selftest": 
 // file, or an array of them when a command's coverage is split (FAFF-1414); each named
 // file must exist and exercise the command.
 const TEST_FILE_COVERAGE = {
+  "resume-store": "test/review-hold.test.mjs",
   "build-review-round": "test/build-review-round.test.mjs",
   park: "test/park-finalize.test.mjs",
   "prep-context": "test/prep-context.test.mjs",

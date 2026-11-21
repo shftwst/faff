@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "22d8bb183e04fe52e25c0b88c0a7c166937eff15b06c105ae856d87bbf850373"
+    "tsconfig.json": "b9827173ab40f54ceb89e7124b274eda7c51b9db60a30b95b1a793d1717686d8"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -50,6 +50,7 @@
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3",
+    "bin/lib/review-hold.ts": "abc8c91ca27cbd3206fffae3ea1daace0047e231b6f29761b0894bec051319f4",
     "bin/lib/review-progress-resume.ts": "8d18dc02c284ed100257a60de893d2a24d706ce4e6689f8ff59ffca21651b4e9",
     "bin/lib/rule-inventory.ts": "c4cb6d85b49519c4bca68d3b30b63a603eaf0590b8d31edbd7eaffe60dff4621",
     "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
@@ -109,6 +110,7 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/prose-size.js": "df29582b5c00b007ad6dd3f135859edae851c540c2f254b5e7cf869981d5c5a7",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e",
+    "bin/lib/review-hold.js": "6600cdba79cc804dc94e52cf00a438a1732d72c03a996c3ccc0918a2eb6c2979",
     "bin/lib/review-progress-resume.js": "e731d8670cb7a3fdfbaffa96b01c8fde7aa6967bb32239a3157439aabfde6315",
     "bin/lib/rule-inventory.js": "e4cc399a8b003fb062065d612f5b28b578fb14cc371611568f68b47150b9e69d",
     "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
@@ -130,5 +132,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "8251123b7c147736952e7fa3a401341eb80f06292f90ef26c0d5c6a2db8c98ae"
+  "output_digest": "035341bc6a7534736a829785943b0bd7bb8bbe621208d05c4e7f59ced6807da2"
 }

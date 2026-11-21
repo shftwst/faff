@@ -79,6 +79,7 @@
     "bin/lib/slot-authoring.ts",
     "bin/lib/dispatch-verify.ts",
     "bin/lib/land-fix-attempt.ts",
-    "bin/lib/spec-judge-sequence.ts"
+    "bin/lib/spec-judge-sequence.ts",
+    "bin/lib/review-hold.ts"
   ]
 }

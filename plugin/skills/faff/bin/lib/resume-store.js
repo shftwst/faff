@@ -23,6 +23,7 @@ const ISSUE_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const STALE_LOCK_MS = 10 * 60 * 1000;
 const HOLD_RECORD = "hold.json";
 const PREP_HOLD = "spec-review-hold.json";
+const HOLD_PARENT = ".review-hold-parent.json";
 const LOCK_FILE = ".lock";
 const CARRIED_DIRS = ["review-rounds", "build-review"];
 const JUDGE_LEDGER = path.join("build-review", "judge", "ledger.json");
@@ -36,6 +37,7 @@ const USAGE = [
   "                               [--fix-rounds-used N --rebuttal-rounds-used N] [--store-root <dir>]",
   "       faff resume-store restore --run-dir <dir> --issue <id> [--store-root <dir>]",
   "       faff resume-store read --issue <id> [--store-root <dir>]",
+  "       faff resume-store prepare-hold --run-dir <dir> --issue <id> --cause <cause> --mode <interactive|autonomous>",
   "       faff resume-store --selftest",
 ].join("\n");
 
@@ -128,7 +130,7 @@ function copyEntry(src, dst) {
 
 function carriedTopLevel(dir) {
   return fs.readdirSync(dir).sort().filter((name) => {
-    if (!name.endsWith(".json") || name === HOLD_RECORD || name === PREP_HOLD) return false;
+    if (!name.endsWith(".json") || name === HOLD_RECORD || name === PREP_HOLD || name === HOLD_PARENT) return false;
     const st = fs.lstatSync(path.join(dir, name));
     return st.isFile();
   });
@@ -168,6 +170,11 @@ function holdRecordProblem(rec, issue) {
   // A stage lives inside the dialogue object. One outside it would restore as a legacy dialogue hold
   // and skip the judge-ledger proof.
   if (rec.stage !== undefined) return "stage is outside the dialogue object";
+  if (rec.prepared !== undefined) {
+    const p = rec.prepared;
+    if (!p || typeof p !== "object" || !/^[0-9a-f]{64}$/.test(p.run_key) || !Number.isSafeInteger(p.limit) ||
+        !Number.isSafeInteger(p.number) || p.number < 1 || p.number > p.limit) return "invalid prepared hold receipt";
+  }
   if (rec.dialogue !== undefined) {
     const d = rec.dialogue;
     if (!d || typeof d !== "object") return "dialogue is not an object";
@@ -218,20 +225,36 @@ function underLock(storeRoot, issue, body) {
   }
 }
 
-function stash({ runDir, issue, cause, fixRoundsUsed, rebuttalRoundsUsed, storeRoot, beforePublish }) {
+function stash({ runDir, issue, cause, fixRoundsUsed, rebuttalRoundsUsed, storeRoot, beforePublish, prepare }) {
   const src = path.join(runDir, issue);
   const dst = path.join(storeRoot, issue);
-  if (!isDir(src)) fault(`no issue dir at ${src}`);
-  const n = isDir(path.join(src, "build-review")) ? nextRoundNumber(path.join(src, "build-review")) : 1;
-  if (cause === "build-review-dialogue" && n === 1) refuse("no dialogue rounds to resume");
-  if (n > 1 && (fixRoundsUsed == null || rebuttalRoundsUsed == null)) {
-    fault("build-review/ holds a round file, so --fix-rounds-used and --rebuttal-rounds-used are required");
-  }
   fs.mkdirSync(storeRoot, { recursive: true });
   return underLock(storeRoot, issue, (lock) => {
     const prior = readHoldRecord(dst, issue);
+    const plan = prepare?.({ prior, src, dst });
+    if (plan?.stop) {
+      if (plan.stop.action === "hold" && prior) {
+        proveRounds(dst, prior, "published");
+        proveStage(dst, prior, "published");
+      }
+      return { code: EXIT.ok, plan: plan.stop };
+    }
+    if (!isDir(src)) fault(`no issue dir at ${src}`);
+    const n = isDir(path.join(src, "build-review")) ? nextRoundNumber(path.join(src, "build-review")) : 1;
+    if (cause === "build-review-dialogue" && n === 1) refuse("no dialogue rounds to resume");
+    if (n > 1 && (fixRoundsUsed == null || rebuttalRoundsUsed == null)) {
+      fault("build-review/ holds a round file, so --fix-rounds-used and --rebuttal-rounds-used are required");
+    }
     const priorHolds = prior && prior.dialogue ? prior.dialogue.hold_count : 0;
     copyCarriedSet(src, lock.stage);
+    if (plan && lstatOrNull(path.join(lock.stage, "review-verdict.json"))) fault("review became terminal while the hold was staged");
+    if (plan?.reviewProgress) {
+      const staged = path.join(lock.stage, "review-progress.json");
+      if (JSON.stringify(JSON.parse(fs.readFileSync(staged, "utf8"))) !== JSON.stringify(plan.sourceReview)) {
+        fault("review progress changed while the hold was staged");
+      }
+      fs.writeFileSync(staged, JSON.stringify(plan.reviewProgress, null, 2) + "\n");
+    }
     if (lstatOrNull(path.join(dst, PREP_HOLD))) copyEntry(path.join(dst, PREP_HOLD), path.join(lock.stage, PREP_HOLD));
     const record = {
       schema_version: 1,
@@ -240,6 +263,7 @@ function stash({ runDir, issue, cause, fixRoundsUsed, rebuttalRoundsUsed, storeR
       stashed_at: new Date().toISOString(),
       carried: listFiles(lock.stage).filter((p) => p !== HOLD_RECORD && p !== LOCK_FILE),
     };
+    if (plan) record.prepared = plan.prepared;
     if (n > 1) {
       record.dialogue = {
         hold_count: priorHolds + (cause === "build-review-dialogue" ? 1 : 0),
@@ -315,6 +339,9 @@ function restore({ runDir, issue, storeRoot, afterStageCopy }) {
     fs.mkdirSync(rstage, { recursive: true });
     try {
       copyCarriedSet(src, rstage);
+      if (rec.prepared) {
+        fs.writeFileSync(path.join(rstage, HOLD_PARENT), JSON.stringify({ issue, run_key: rec.prepared.run_key }) + "\n", { mode: 0o600 });
+      }
       if (afterStageCopy) afterStageCopy(rstage);
       proveRounds(rstage, rec, "staged");
       proveStage(rstage, rec, "staged");
@@ -363,6 +390,7 @@ function runSubcommand(sub, values) {
 }
 
 function cmdResumeStore(args) {
+  if (args[0] === "prepare-hold") return require("./review-hold").cmdPrepareReviewHold(args.slice(1), stash, HOLD_PARENT);
   if (args.includes("--selftest")) return resumeStoreSelftest();
   const [sub, ...rest] = args;
   if (!SPECS[sub]) return usageError([{ code: "missing-value", detail: "subcommand must be stash, restore or read" }], USAGE);

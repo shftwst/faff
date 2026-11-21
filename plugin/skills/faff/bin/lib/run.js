@@ -7,6 +7,7 @@
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
 const run_wave_mode_1 = require("./run-wave-mode");
+const run_wave_consult_1 = require("./run-wave-consult");
 const runSummary = require("./run-summary");
 const runCheckpoint = require("./run-checkpoint");
 const runOpen = require("./run-open");
@@ -23,6 +24,7 @@ const VERBS = {
     "return-map": (args) => returnMap.cmdRunReturnMap(args),
     reconcile: (args) => runSummary.cmdRunReconcile(args),
     preflight: cmdRunEntryPreflight,
+    "wave-consult": run_wave_consult_1.cmdWaveConsult,
     "wave-mode": run_wave_mode_1.cmdWaveMode,
 };
 const RUN_USAGE = `usage: faff run <verb> [args...] — registered verbs: ${Object.keys(VERBS).join(", ")}`;

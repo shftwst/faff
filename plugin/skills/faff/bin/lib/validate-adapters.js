@@ -853,6 +853,7 @@ function deriveCaptureKernels(libDir) {
 const IN_PROCESS_CAPTURE = [
   { module: "graft-admit.js", verb: ["graft", "admit"], required: ["--mode", "--facts", "--run-dir"], stdin: ["--facts"], capture: /\.base\(\s*["']([^"']+)["']/g, covers: ["eligible", "next"] },
   { module: "run-trigger.js", verb: ["run", "trigger"], required: ["--run-dir"], capture: /\bsafeMint\(\s*["']([^"']+)["']/g, covers: ["run-outward", "run-start"] },
+  { module: "run-wave-consult.js", verb: ["run", "wave-consult"], required: ["--run-dir", "--wave"], capture: /\bcapture\(\s*["']([^"']+)["']/g, covers: ["queue-state", "run-done"] },
 ];
 
 const commandOf = (verb) => `faff ${verb.join(" ")}`;

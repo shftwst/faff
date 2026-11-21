@@ -5,6 +5,8 @@
 // into code. An unknown or missing verb exits 2 with the registered verbs.
 // ===========================================================================
 
+import { cmdWaveMode } from "./run-wave-mode";
+
 interface RunSummaryApi {
   cmdRunReconcile(args: string[]): number;
   cmdRunSummary(args: string[]): number;
@@ -39,6 +41,7 @@ const VERBS: { [verb: string]: (args: string[]) => number } = {
   "return-map": (args) => returnMap.cmdRunReturnMap(args),
   reconcile: (args) => runSummary.cmdRunReconcile(args),
   preflight: cmdRunEntryPreflight,
+  "wave-mode": cmdWaveMode,
 };
 
 const RUN_USAGE = `usage: faff run <verb> [args...] — registered verbs: ${Object.keys(VERBS).join(", ")}`;

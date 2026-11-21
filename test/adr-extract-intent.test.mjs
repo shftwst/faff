@@ -161,28 +161,12 @@ function extractStep4bBlock(md) {
   return md.slice(start, end);
 }
 
-test("wiring: Step 4b prose names `faff adr extract-intent` and reads from spec-docs-path on the no-tracker-comment branch", () => {
-  const md = readFileSync(SKILL_MD, "utf8");
-  const block = extractStep4bBlock(md);
-
-  // The primitive is literally named — a dropped call can't ship silently past a string match.
-  assert.match(block, /faff adr extract-intent --file/, "Step 4b must literally invoke `faff adr extract-intent --file`");
-
-  // The fallback source is spec-docs-path, and the exact committed-spec path template Step 4
-  // constructs — a wrong path (git-only's one real failure mode) fails this string match.
-  assert.match(block, /\$\(faff config spec-docs-path\)\/YYYY-MM-DD-<issue>-<slug>-design\.md/,
-    "Step 4b must read the committed spec at the exact path template Step 4 writes");
-
-  // The gate is comment-first: the tracker comment branch is named, and precedence is explicit —
-  // "comment-first" language must survive, and the no-tracker-comment case must be gated on
-  // absence of a comment (not an unconditional read of the spec body).
-  assert.match(block, /comment-first/i);
-  assert.match(block, /tracker comment always wins|tracker comment.*precedence|spec body is never consulted/i);
-
-  // The first conjunct — FAFF-969's seam — is untouched: still gated on `adr.mode` != off, still
-  // the literal phrase graft has always used.
-  assert.match(block, /If `faff config get adr\.mode` ≠ `off` \*\*and\*\*/,
-    "the first conjunct (adr.mode gate) must remain byte-identical — this is FAFF-969's seam");
+test("Step 4b selects the tracker comment or the spec path returned in Step 4", () => {
+  const block = extractStep4bBlock(readFileSync(SKILL_MD, "utf8"));
+  assert.match(block, /faff adr promotion-source --tracker-intent/);
+  assert.match(block, /--file <Step 4 committed spec path>/);
+  assert.match(block, /Before an additional tracker read, check that `adr.mode` is enabled/);
+  assert.match(block, /For `tracker`, use the original comment/);
 });
 
 test("wiring: all four Step 4b sub-steps (scaffold / author / 3b supersede / commit) are textually unchanged", () => {
@@ -197,9 +181,7 @@ test("wiring: all four Step 4b sub-steps (scaffold / author / 3b supersede / com
   assert.match(block, /3b\. \*\*Detect contradictions \+ offer\/admit supersession/);
   assert.match(block, /4\. \*\*Fill \+ commit\*\* the scaffold's three sections/);
 
-  // The trailing skip line: still gated on adr.mode: off, and now also names "No intent located"
-  // (the renamed absent-intent condition covering both channels) rather than only "no comment".
-  assert.match(md, /No intent located \(no tracker comment and no `## ADR promotion intent` section in the committed spec body, or the spec file was unreadable\), or `adr\.mode: off` → skip/);
+  assert.match(block, /`off` or `absent` skips this step/);
 });
 
 test("the edited SKILL.md passes the authoring gate", () => {

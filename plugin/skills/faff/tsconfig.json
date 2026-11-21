@@ -73,6 +73,7 @@
     "bin/lib/holdout-handoff.ts",
     "bin/lib/discovered-scope-plan.ts",
     "bin/lib/merge-delivery-receipt.ts",
-    "bin/lib/run-wave-mode.ts"
+    "bin/lib/run-wave-mode.ts",
+    "bin/lib/adr-promotion.ts"
   ]
 }

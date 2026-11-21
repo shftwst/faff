@@ -12,7 +12,7 @@ The top-down planner: recurse an **application-scale** discovery brief into a ro
 
 **Load the kernel first.** Entered directly or chained from `/faff-jot`; if `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references plot consumes: `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/create.md`, `faff/references/park.md`. plot leans on **Agent Lanes**, the `methodology` `ticket-shaping` contract (the `shape-level` input), and the `appetite` dial; its `intake` / `methodology` slots inherit the gateway ambiently.
 
-**Methodology transport.** plot's `methodology` calls — `ticket-shaping` down the altitudes and `prdr-author` per project — are **producer dispatches** (gateway → **Sibling-skill invocation → Producer dispatch**) resolving the `methodology` dispatch lane. Grain per gateway → **The `methodology` slot → Transport**: `ticket-shaping` batches **per altitude** (all confirmed nodes of a level in one dispatch; an `edit` → a follow-up node-scoped dispatch), `prdr-author` dispatches **per project**; a plot run nested in a subagent falls back **in-context** (single-level nesting).
+**Methodology transport.** Request `ticket-shaping` per altitude and `prdr-author` per project. A later edit gets its own node-scoped dispatch. Follow **Transport (per-output dispatch grain)** in `faff/references/methodology.md`.
 
 ## Rendering
 

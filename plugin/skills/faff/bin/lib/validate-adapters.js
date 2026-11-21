@@ -673,6 +673,12 @@ function validateConfigured(args, skillsDir) {
 // The --slot guard mirrors validateConfigured()'s own SLOT_TYPES[slot] lookup, so the predicate and
 // the --configured lint agree on what "the right skill for this slot" means, and the exemption never
 // widens to bare name-membership across every REGISTRY key.
+function bundledSlotStatus(name, slot) {
+  const reg = Object.hasOwn(REGISTRY, name) ? REGISTRY[name] : null;
+  if (!reg) return "foreign";
+  return reg.type === SLOT_TYPES[slot].type ? "bundled" : "wrong-slot";
+}
+
 function cmdIsBundled(args) {
   const { values, errors } = parseArgs(args, VALIDATE_ADAPTERS_SPEC);
   if (errors.length) return usageError(errors, "usage: faff validate-adapters --is-bundled <occupant> --slot <slot>");
@@ -687,13 +693,13 @@ function cmdIsBundled(args) {
     process.stderr.write(`validate-adapters --is-bundled: missing/unknown --slot (got "${slot || "<none>"}"; known: ${Object.keys(SLOT_TYPES).join(", ")})\n`);
     return 2;
   }
-  const reg = REGISTRY[name];
-  if (!reg) {
+  const status = bundledSlotStatus(name, slot);
+  if (status === "foreign") {
     console.log(`${name}: foreign (not in REGISTRY) — semantic Validate applies`);
     return 1;
   }
-  if (reg.type !== slotMeta.type) {
-    console.log(`${name}: bundled but wrong slot (registered ${reg.type}, occupies ${slot}:${slotMeta.type}) — semantic Validate applies`);
+  if (status === "wrong-slot") {
+    console.log(`${name}: bundled but wrong slot (registered ${REGISTRY[name].type}, occupies ${slot}:${slotMeta.type}) — semantic Validate applies`);
     return 1;
   }
   console.log(`${name}: bundled first-party for slot ${slot} — conformant by construction`);
@@ -1788,4 +1794,4 @@ function cmdValidateAdapters(args) {
 }
 
 
-module.exports = { ANCHOR_PHRASES, CAPTURE_WIRING_WINDOW, COMMISSAIRE_ISSUE_RE, DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, HANDREAD, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, balancedCallArg, c3CalibrationFloor, captureSameCommandUnwired, captureWiringUnwired, checkCalibrated, checkStep9bPrOpen, checksFor, cmdIsBundled, cmdValidateAdapters, deriveCaptureKernels, deriveInProcessCapture, inProcessWiredKernels, inProcessDriven, codeCommands, isInProcessInvocation, inProcessRoutes, maskSubstitutions, IN_PROCESS_CAPTURE, stripJsComments, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintCommissaireUnitId, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };
+module.exports = { ANCHOR_PHRASES, CAPTURE_WIRING_WINDOW, COMMISSAIRE_ISSUE_RE, DUP_BLOCK_WINDOW, DUP_SIG_MINLEN, HANDREAD, NON_NORMATIVE, PARA_WORD_CAP, REFER_BACK, REGISTRY, RENDERING_REF, REQUIRED_METHODOLOGY_OUTPUTS, SKILL_LINE_CAP, SKILL_LINE_BASELINE, KERNEL_LINE_BASELINE, SKIP, SLOT_TYPES, STRAY_RETRO, STRAY_TRANSCRIPT, balancedCallArg, c3CalibrationFloor, captureSameCommandUnwired, captureWiringUnwired, checkCalibrated, checkStep9bPrOpen, checksFor, bundledSlotStatus, cmdIsBundled, cmdValidateAdapters, deriveCaptureKernels, deriveInProcessCapture, inProcessWiredKernels, inProcessDriven, codeCommands, isInProcessInvocation, inProcessRoutes, maskSubstitutions, IN_PROCESS_CAPTURE, stripJsComments, extractVoicePathToken, hasUserInvocableFalse, inlineEnumLintSets, isProseLine, isParagraphLine, anchorResolves, normalizeHeading, lintCommissaireUnitId, lintGatewayManifest, lintInlineEnumRestatement, lintVoicePointer, loadSeamRegistryForLint, locateSkill, readJudgementSeam, reconcileSeam, resolveSkillsDir, validateConfigured };

@@ -102,7 +102,7 @@ For each, read the park reason from the tracker comment or `.faff/runs/<run-id>/
 
 ### 5. Structural diagnostics
 
-A separate pass that examines the **shape of the backlog itself**, not individual issues. This consumes the pass's single `backlog-diagnostics` result — requested **once** via the batched methodology dispatch (**Methodology transport** above; default `faffter-noon-methodology-thematic`), and shared with the surface-only pass (2a) below (one request, two consumers) — it detects the categories of structural problem and applies the mechanical fixes where the resolution is unambiguous. See that output for the full definitions and fix rules, and gateway → **Automation-routing verdict (fixed)** (the root-cause class enum) for the shared park-classification taxonomy it uses.
+Inspect backlog structure using the single `backlog-diagnostics` result from batched **Methodology transport** (default `faffter-noon-methodology-thematic`). Share it with surface-only pass 2a. Use its category definitions and fix rules, and the root-cause classes in gateway → **Automation-routing verdict (fixed)**. Apply only unambiguous mechanical fixes.
 
 Categories detected:
 
@@ -114,7 +114,7 @@ Categories detected:
 - **Orphaned + repeat-parked** — cross-reference of orphaned-by-cascade with repeat-park; the combination is a strong "is this still wanted?" signal.
 - **Resolved-elsewhere finding-tickets** — an open finding-ticket (one whose description carries a findings-log anchor, e.g. `.faff/logs/…-findings.md` + `finding F<n>`) whose fix appears to have already merged under a *different* ticket number. The pass: (1) assemble a **fix corpus** from the fetched Done/merged tickets + their linked PRs + committed specs under the spec-docs path, annotating each with its anchors, cited ticket-ids, and text; (2) pipe `{ finding_tickets, fix_corpus }` to **`faff findings-reconcile`** (the pure correlation CLI — anchor co-reference + tracker/citation relation, self-reference guard, `strong`/`weak` per the merged-deterministic rule; exit 2 → log the fault and skip this category for the pass, never a silent empty result); (3) for findings the helper did **not** mark `strong`, apply **symptom-similarity** (the LLM judgement — see the `#### Resolved-elsewhere` criteria below), which only ever yields `weak` advisory evidence.
 
-Also computes the **automation-routing verdict** (see gateway → **Automation-routing verdict (fixed)**) for every Todo+spec'd issue and writes it to `.faff/runs/<run-id>/automation-verdicts.md` (full pipeline) or `.faff/logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md` (standalone). Other sub-skills (`/faff-wtf`, `/faff-beep-boop`) read this file rather than recomputing within the same pass.
+For every Todo+spec'd issue, compute the verdict per gateway → **Automation-routing verdict (fixed)**. Write `.faff/runs/<run-id>/automation-verdicts.md` (full pipeline) or `.faff/logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md` (standalone). Within this pass, `/faff-wtf` and `/faff-beep-boop` read that file without recomputing.
 
 Level-2 mechanical fixes (auto-applied in autonomous; offered in interactive):
 

@@ -53,7 +53,7 @@ const TEST_FILE_COVERAGE = {
   "pr-body": "test/pr-body.test.mjs",
   // spec-judge-evidence — a shelling assembler with no standalone `--selftest`; its bundle
   // shape + degrade/fail-loud directions are exercised through the real CLI entrypoint here.
-  "spec-judge-evidence": "test/spec-judge-evidence.test.mjs",
+  "spec-judge-evidence": ["test/spec-judge-evidence.test.mjs", "test/spec-judge-sequence.test.mjs"],
   // prep (FAFF-1406): `faff prep attach` has no `--selftest`; its stage/confirm/park paths are
   // exercised through the real CLI entrypoint here.
   "prep": "test/prep-attach.test.mjs",

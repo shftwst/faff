@@ -10,7 +10,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import childProcess from "node:child_process";
 import { createRequire } from "node:module";
-import { mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, readdirSync } from "node:fs";
+import { appendFileSync, copyFileSync, mkdtempSync, writeFileSync, mkdirSync, rmSync, readFileSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname, basename, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -481,9 +481,8 @@ const DENYLIST = new Set([
   "contract-defs-run", "contract-defs-floor", "contract-defs-describe", "contract-defs-registry",
 ]);
 
-function libSourceSet(extra = []) {
-  const files = readdirSync(LIB).filter((f) => f.endsWith(".js")).map((f) => join(LIB, f));
-  return new Set([...files, ...extra]);
+function libSourceSet(dir = LIB) {
+  return new Set(readdirSync(dir).filter((f) => f.endsWith(".js")).map((f) => join(dir, f)));
 }
 
 function walk(seeds, sourceSet) {
@@ -517,16 +516,13 @@ test("the shipped emit never requires the test-only smol-toml library", () => {
 });
 
 test("the closure guard fires against a tainted ./config require (proves it is not vacuous)", () => {
-  // Write the taint into a temp SUBDIRECTORY of bin/lib, not the scanned top level: `faff regions
-  // check`'s live scan (regionSources) reads bin/lib non-recursively, so a subdir .js is invisible to
-  // a concurrent whole-suite run — while `require("../config")` still resolves to the real config.js
-  // so the walk visits it and the denylist proof stays non-vacuous.
-  const taintDir = mkdtempSync(join(LIB, "trusttaint-"));
-  const taint = join(taintDir, "taint.js");
+  const taintDir = mkdtempSync(join(tmpdir(), "trusttaint-"));
   try {
-    const body = readFileSync(MODULE_JS, "utf8") + '\nrequire("../config");\n';
-    writeFileSync(taint, body);
-    const { visited } = walk([taint], libSourceSet([taint]));
+    // Keep relative imports intact while other tests read the shipped plugin.
+    for (const src of libSourceSet()) copyFileSync(src, join(taintDir, basename(src)));
+    const taint = join(taintDir, basename(MODULE_JS));
+    appendFileSync(taint, '\nrequire("./config");\n');
+    const { visited } = walk([taint], libSourceSet(taintDir));
     const denyHits = [...visited].filter((f) => DENYLIST.has(basename(f, ".js")));
     assert.ok(denyHits.some((f) => basename(f) === "config.js"), "tainted fixture must trip the denylist on config.js");
   } finally {

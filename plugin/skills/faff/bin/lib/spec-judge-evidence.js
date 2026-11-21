@@ -154,6 +154,10 @@ const SPEC_JUDGE_EVIDENCE_SPEC = {
     "--admit": { arity: 0 },
     // FAFF-959 — per-proposition dispatch-time pre_ruling_* re-stamp mode.
     "--restamp": { arity: 0 },
+    "--sequence": { arity: 0 },
+    "--step": { arity: 0 },
+    "--backend": { arity: 1 },
+    "--park": { arity: 1 },
     "--pid": { arity: 1 },
     "--spec": { arity: 1 },
     "--out": { arity: 1 },
@@ -166,19 +170,26 @@ const SPEC_JUDGE_EVIDENCE_USAGE =
   "usage: faff spec-judge-evidence --dir <scratch> --window-start <N> --level <L1..L4> " +
   "--appetite <low|medium|high|full> --issue <ISSUE-XX> [--container <c>]\n" +
   "   or: faff spec-judge-evidence --assemble --dir <scratch> --window-start <N> --spec <file> " +
-  "--issue <ISSUE-XX> [--out <judge-dir>] [--repo-root <path>] [--run-id <id>] [--container <c>]\n" +
+  "--issue <ISSUE-XX> [--sequence] [--out <judge-dir>] [--repo-root <path>] [--run-id <id>] [--container <c>]\n" +
   "   or: faff spec-judge-evidence --admit --level <L3|L4> --out <judge-dir> --spec <file> " +
   "--dir <scratch> --window-start <N> [--run-dir <path>]\n" +
   "   or: faff spec-judge-evidence --restamp --pid <pid> --spec <file> " +
-  "[--out <judge-dir> | --dir <scratch>]";
+  "[--out <judge-dir> | --dir <scratch>]\n" +
+  "   or: faff spec-judge-evidence --step --dir <scratch> --window-start <N> --spec <file> [--out <judge-dir>] [--backend <provider|model|host>] [--park <pid>]";
 const LEVELS = ["L1", "L2", "L3", "L4"];
 
 function cmdSpecJudgeEvidence(args) {
   const { values, errors } = parseArgs(args, SPEC_JUDGE_EVIDENCE_SPEC);
   if (errors.length) return usageError(errors, SPEC_JUDGE_EVIDENCE_USAGE);
-  const modeCount = ["--assemble", "--admit", "--restamp"].filter((f) => values[f]).length;
-  if (modeCount > 1) {
-    return usageError([{ code: "invalid-value", detail: "--assemble, --admit, and --restamp are mutually exclusive" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  const modeCount = ["--assemble", "--admit", "--restamp", "--step"].filter((f) => values[f]).length;
+  if (modeCount > 1 || (values["--sequence"] && !values["--assemble"]) || ((values["--park"] || values["--backend"]) && !values["--step"])) {
+    return usageError([{ code: "invalid-value", detail: "choose one mode; --sequence requires --assemble and --park/--backend require --step" }], SPEC_JUDGE_EVIDENCE_USAGE);
+  }
+  if (values["--step"]) {
+    return require("./spec-judge-sequence").stepSequence(values, readStandingResidue, (container) => assembleRatifiedScope(container, []) || "").catch((e) => {
+      process.stderr.write(`faff spec-judge-evidence --step: ${e.message}\n`);
+      return 2;
+    });
   }
   if (values["--assemble"]) return cmdAssemble(values);
   if (values["--admit"]) return cmdAdmit(values);
@@ -447,13 +458,15 @@ function readStandingResidue(dir, windowStart) {
   catch { return { unreadable: true }; }
   let latest = null;
   let n = null;
+  const windowEvidence = [];
   for (const f of files) {
     const read = readRoundRecord(f.path);
     if (read.malformed || read.missing) return { malformed: true, path: f.path, why: read.malformed || "vanished" };
     latest = read.record || {};
     n = f.n;
+    windowEvidence.push([n, read.raw]);
   }
-  return { objections: latest && Array.isArray(latest.objections) ? latest.objections : [], n };
+  return { objections: latest && Array.isArray(latest.objections) ? latest.objections : [], n, window_rounds: files.map((f) => f.n), window_sha: casefile.sha256Text(JSON.stringify(windowEvidence)) };
 }
 
 // Resolve the serving backend identity + the reputation flagged[] list (best-effort; absence →
@@ -531,6 +544,25 @@ function cmdAssemble(values) {
   try { fs.mkdirSync(outDir, { recursive: true }); }
   catch (e) { process.stderr.write(`faff spec-judge-evidence --assemble: cannot create --out ${JSON.stringify(outDir)}: ${e.message}\n`); return 2; }
 
+  if (values["--sequence"]) {
+    try {
+      const sequence = require("./spec-judge-sequence");
+      const identity = sequence.sequenceIdentity(values, residue, runId, repoRoot);
+      const resumed = sequence.initialiseSequence(outDir, identity, ledger, caseFiles);
+      console.log(JSON.stringify({ assembled: ledger.order.length, out: outDir, resumed }));
+      return 0;
+    } catch (e) {
+      process.stderr.write(`faff spec-judge-evidence --assemble: ${e.message}\n`);
+      return 2;
+    }
+  }
+  let existing;
+  try { existing = JSON.parse(fs.readFileSync(path.join(outDir, "ledger.json"), "utf8")); }
+  catch { /* Legacy assembly may replace an unreadable or malformed ledger. */ }
+  if (existing?.sequence || fs.existsSync(path.join(outDir, "sequence.lock"))) {
+    process.stderr.write("faff spec-judge-evidence --assemble: sequenced ledger requires --sequence\n");
+    return 2;
+  }
   for (const pid of ledger.order) {
     fs.writeFileSync(path.join(outDir, `case-${pid}.json`), JSON.stringify(caseFiles[pid], null, 2) + "\n");
   }
@@ -564,6 +596,14 @@ function cmdAdmit(values) {
   let specText;
   try { specText = fs.readFileSync(specPath, "utf8"); }
   catch (e) { process.stderr.write(`faff spec-judge-evidence --admit: cannot read --spec ${JSON.stringify(specPath)}: ${e.message}\n`); return 2; }
+
+  if (ledger.sequence) {
+    try {
+      if (resolveRunId(values, ledger.sequence.run) !== ledger.sequence.run) throw new Error("run does not match the sequence");
+      require("./spec-judge-sequence").verifySequenceForAdmission(ledger, values, outDir, readStandingResidue);
+    }
+    catch (e) { process.stderr.write(`faff spec-judge-evidence --admit: ${e.message}\n`); return 2; }
+  }
 
   // Load rulings for every non-parked listed proposition (a missing ruling for a listed,
   // non-parked proposition is fail-loud).
@@ -651,6 +691,10 @@ function cmdRestamp(values) {
   catch (e) { process.stderr.write(`faff spec-judge-evidence --restamp: ledger.json unreadable/malformed in ${outDir}: ${e.message}\n`); return 2; }
   if (!ledger || !Array.isArray(ledger.order) || !ledger.entries) {
     process.stderr.write(`faff spec-judge-evidence --restamp: ledger.json in ${outDir} has no order[]/entries{}\n`); return 2;
+  }
+  if (ledger.sequence) {
+    process.stderr.write("faff spec-judge-evidence --restamp: sequenced ledger uses --step\n");
+    return 2;
   }
   if (!ledger.order.includes(pid) || !ledger.entries[pid]) {
     process.stderr.write(`faff spec-judge-evidence --restamp: ledger.json in ${outDir} lists no proposition "${pid}"\n`); return 2;

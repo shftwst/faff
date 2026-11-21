@@ -370,6 +370,7 @@ const REGION_MAP = {
   // source x gate_defect -> high|medium|low). Pure total function, same shape as eligible/
   // contain -> factory.
   "discovered-scope-priority": "factory",
+  "discovered-scope-plan": "factory",
   "claim-verdict": "factory",
   // park-verdict — FAFF-835: the stale-park validity function. Pure age-less
   // predicate (status + signals → verdict, no tracker/clock) — same shape as
@@ -734,6 +735,7 @@ const REGION_SELFTEST_ARGV = {
   "label": ["label", "--selftest"],
   "eligible": ["eligible", "--selftest"],
   "discovered-scope-priority": ["discovered-scope-priority", "--selftest"],
+  "discovered-scope-plan": null,
   "claim-verdict": ["claim-verdict", "--selftest"],
   "park-verdict": ["park-verdict", "--selftest"],
   "punt-scan": ["punt-scan", "--selftest"],

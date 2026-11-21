@@ -88,7 +88,7 @@ const CONTAIN_SPEC = {
   positionals: { min: 0, max: 1, name: "mandate" },
 };
 
-function cmdContain(args) {
+function cmdContain(args, printJson = console.log) {
   if (args.includes("--selftest")) return containSelftest();
   const usage = "faff contain: usage: faff contain <mandate> (--parent <id> | --root) --ancestry <json> [--record <run-id>] [--phase run|tidy|prep|build|plot] [--json]";
   const parsed = parseArgs(args, CONTAIN_SPEC);
@@ -192,7 +192,7 @@ function cmdContain(args) {
   }
 
   if (asJson) {
-    console.log(JSON.stringify(out, null, 2));
+    printJson(JSON.stringify(out, null, 2));
   } else if (verdict === "contained") {
     console.log(`contained: ${parentArg} ∈ subtree(${mandate}).`);
   } else {

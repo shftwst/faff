@@ -71,6 +71,7 @@
     "bin/lib/run-entry-preflight.ts",
     "bin/lib/prd-select.ts",
     "bin/lib/holdout-handoff.ts",
-    "bin/lib/discovered-scope-plan.ts"
+    "bin/lib/discovered-scope-plan.ts",
+    "bin/lib/merge-delivery-receipt.ts"
   ]
 }

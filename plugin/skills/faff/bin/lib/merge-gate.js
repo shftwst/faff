@@ -51,6 +51,7 @@ const { cmdPrCreate } = require("./merge-gate-pr-create");
 const { mergeGateSelftest } = require("./merge-gate-selftest");
 
 function cmdMergeGate(args) {
+  if (args[0] === "delivery-receipt") return require("./merge-delivery-receipt").cmdDeliveryReceipt(args.slice(1));
   if (args.includes("--selftest")) return mergeGateSelftest();
   const parsed = parseArgs(args, MERGE_GATE_SPEC);
   if (parsed.errors.length) return usageError(parsed.errors, "usage: faff merge-gate --pr N --issue ID --run-dir DIR [--level L] [--execute|--check-only] [--merge-args \"...\"] [--squash|--merge|--rebase] [--json]");
@@ -309,7 +310,8 @@ function cmdMergeGate(args) {
     // authoritative source) before concluding refuse; classifyPostMerge is the pure merged-vs-refuse
     // decision over (merge exit, re-read state).
     const sv = ghJson(["pr", "view", String(pr), "--json", "state"]);
-    const postState = (sv.ok && sv.data) ? sv.data.state : null;
+    const postState = (sv.ok && sv.data && typeof sv.data.state === "string") ? sv.data.state : null;
+    result.post_merge_state = postState;
     const pm = classifyPostMerge({ merge_ok: false, post_state: postState, merge_stderr: mergeStderr });
     if (pm.outcome === "merged") {
       result.merged = true;

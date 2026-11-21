@@ -128,7 +128,7 @@ const { parseArgs, usageError } = require("./argv");
 const { captureDecision } = require("./decision-capture");
 const RUN_DONE_SPEC = { flags: (() => {
   const f = {
-    "--selftest": { arity: 0 }, "--no-prd": { arity: 0 }, "--non-convergence": { arity: 0 },
+    "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--no-prd": { arity: 0 }, "--non-convergence": { arity: 0 },
     "--budget": { arity: 1 }, "--prd-coverage": { arity: 1 }, "--policy": { arity: 1 }, "--inflection": { arity: 1 },
   };
   for (const n of ["queue-empty", "all-parked", "ledger-clean"]) { f[`--${n}`] = { arity: 0 }; f[`--no-${n}`] = { arity: 0 }; }

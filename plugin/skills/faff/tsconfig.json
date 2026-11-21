@@ -80,6 +80,7 @@
     "bin/lib/dispatch-verify.ts",
     "bin/lib/land-fix-attempt.ts",
     "bin/lib/spec-judge-sequence.ts",
-    "bin/lib/run-wave-consult.ts"
+    "bin/lib/run-wave-consult.ts",
+    "bin/lib/review-hold.ts"
   ]
 }

@@ -164,16 +164,11 @@ const { parseArgs, usageError } = require("./argv");
 const { captureDecision } = require("./decision-capture");
 const QUEUE_STATE_SPEC = { flags: { "--selftest": { arity: 0 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 } }, positionals: { min: 0, max: 1, name: "verb" } };
 
-function cmdDerive(values) {
-  const get = (f) => (values[f] === undefined ? null : values[f]);
-  const root = get("--root") || findRoot();
-  const runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || latestRunDir(root) || null;
-
+function readQueueInputs(root, runDir) {
   const itemKeys = collectItemKeys(root);
   const { outcomes, malformed, error } = readOutcomes(runDir);
   if (malformed) {
-    process.stderr.write(`faff queue-state derive: run-ledger.json is present but unparseable at ${runDir}: ${error}\n`);
-    return 2;
+    throw new Error(`run-ledger.json is present but unparseable at ${runDir}: ${error}`);
   }
 
   // May throw GovernanceProfileError on a bad $FAFF_GOVERNANCE_PROFILE override —
@@ -183,7 +178,21 @@ function cmdDerive(values) {
   // terminal-states set, which would misclassify every item as pending forever.
   const terminalStates = activeProfile().terminal_states;
 
-  const inputs = { itemKeys, outcomes, terminalStates };
+  return { itemKeys, outcomes, terminalStates };
+}
+
+function cmdDerive(values) {
+  const get = (f) => (values[f] === undefined ? null : values[f]);
+  const root = get("--root") || findRoot();
+  const runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || latestRunDir(root) || null;
+
+  let inputs;
+  try { inputs = readQueueInputs(root, runDir); }
+  catch (e) {
+    if (e.faffGovernanceProfileError) throw e;
+    process.stderr.write(`faff queue-state derive: ${e.message}\n`);
+    return 2;
+  }
   const result = deriveQueueState(inputs);
   console.log(JSON.stringify(result));
   // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
@@ -320,6 +329,7 @@ module.exports = {
   cmdQueueState,
   collectIntakeKeys,
   collectItemKeys,
+  readQueueInputs,
   collectSpecKeys,
   deriveQueueState,
   mintKey,

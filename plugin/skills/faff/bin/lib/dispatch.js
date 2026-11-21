@@ -21,7 +21,7 @@ const DISPATCH_SPEC = {
   flags: { "--selftest": { arity: 0 }, "--tier": { arity: 1 }, "--confidence": { arity: 1 }, "--root": { arity: 1 } },
   positionals: { min: 0, max: 2, name: "verb lane" },
 };
-const DISPATCH_USAGE = "usage: faff dispatch resolve <lane> [--tier <tier>] [--confidence <conf>] [--root DIR]\n       faff dispatch prepare-build --executor sequential|parallel [--root DIR] < unit.json\n       faff dispatch verify-member --run-dir DIR --issue ID --return JSON|null < held-manifest";
+const DISPATCH_USAGE = "usage: faff dispatch resolve <lane> [--tier <tier>] [--confidence <conf>] [--root DIR]\n       faff dispatch prepare-build --executor sequential|parallel [--root DIR] < unit.json\n       faff dispatch verify-member --run-dir DIR --issue ID --return JSON|null < held-manifest\n       faff dispatch prepare-producer <lane> [--in-context] [--root DIR]";
 
 function isEmpty(v) {
   return v === null || v === undefined || v === "";
@@ -73,6 +73,7 @@ function resolveConfiguredDispatch(root, lane, tier, confidence) {
 // Exit 0 resolved / 2 usage, unknown lane or any invalid value in the dispatch tree or lane chain.
 function cmdDispatch(args) {
   if (args[0] === "verify-member") return require("./dispatch-verify").cmdVerifyMember(args.slice(1));
+  if (args[0] === "prepare-producer") return require("./dispatch-producer").cmdPrepareProducer(args.slice(1));
   if (args[0] === "prepare-build") {
     const { cmdPrepareBuild } = require("./dispatch-prepare");
     return cmdPrepareBuild(args.slice(1), (root, tier, confidence) =>

@@ -54,9 +54,17 @@ case "$1" in
     [ "$2" = "view" ] && { printf '{"nameWithOwner":"%s"}' "$STUB_REPO"; exit 0; } ;;
   pr)
     case "$2" in
-      view)   printf '{"headRefOid":"%s","headRefName":"%s","state":"%s","url":"https://example.test/pr/1"}' "$STUB_SHA" "\${STUB_HEAD_REF_NAME:-stub-head-branch}" "$STUB_PR_STATE"; exit 0 ;;
+      view)
+        if [ "$*" = "pr view 1 --json state" ] && [ -n "$STUB_POST_STATE" ]; then
+          [ "$STUB_POST_STATE" = "unavailable" ] && exit 1
+          printf '{"state":"%s"}' "$STUB_POST_STATE"; exit 0
+        fi
+        printf '{"headRefOid":"%s","headRefName":"%s","state":"%s","url":"https://example.test/pr/1"}' "$STUB_SHA" "\${STUB_HEAD_REF_NAME:-stub-head-branch}" "$STUB_PR_STATE"; exit 0 ;;
       checks) printf '[]'; exit 0 ;;
-      merge)  printf '%s' "$*" > "$STUB_MERGE_SENTINEL"; exit 0 ;;
+      merge)
+        printf '%s' "$*" > "$STUB_MERGE_SENTINEL"
+        if [ -n "$STUB_POST_STATE" ]; then printf 'squash disabled' >&2; exit 1; fi
+        exit 0 ;;
     esac ;;
   api)
     if [ "$2" = "-I" ]; then
@@ -211,6 +219,30 @@ test("execute on a merge-ok floor → exit 0, merged:true, merge sentinel PRESEN
   assert.equal(out.verdict, "merge-ok");
   assert.equal(out.merged, true);
   assert.equal(existsSync(sentinel), true, "execute on a passing floor must spawn gh pr merge");
+});
+
+test("delivery receipt preserves the observed state from the actual merge-gate retry read", () => {
+  const reason = "not-ready:precondition:merge-method — squash disabled; remedy: enable squash merging";
+  for (const [state, gateCode, expected] of [["OPEN", 1, "not-ready"], ["unavailable", 1, "failed"], ["MERGED", 0, "shipped"]]) {
+    const runDir = seedRunDir("merge-ok");
+    const { env, sentinel } = stubGhEnv();
+    env.STUB_POST_STATE = state;
+    const gate = runCli(baseArgs(runDir), { env, cwd: runDir });
+    assert.equal(gate.code, gateCode, gate.stderr);
+    const receipt = JSON.parse(gate.stdout);
+    assert.equal(receipt.post_merge_state, state === "unavailable" ? null : state);
+    if (state === "MERGED") assert.match(receipt.warnings.at(-1), /post-merge step failed/);
+    const mergeAction = readFileSync(sentinel, "utf8");
+    const formatterSentinel = `${sentinel}-formatter`;
+    const formatted = runCli(["merge-gate", "delivery-receipt", "--merge-exit", String(gate.code), "--precondition", reason], {
+      input: gate.stdout, env: { ...env, STUB_MERGE_SENTINEL: formatterSentinel }, cwd: runDir,
+    });
+    assert.equal(formatted.code, 0, formatted.stderr);
+    assert.deepEqual(JSON.parse(formatted.stdout.split("\n")[1]), receipt);
+    assert.equal(JSON.parse(formatted.stdout.split("\n")[3]).outcome, expected);
+    assert.equal(readFileSync(sentinel, "utf8"), mergeAction);
+    assert.equal(existsSync(formatterSentinel), false);
+  }
 });
 
 // --- FAFF-537: bare merge-method flag folds in; a missing method fails loud BEFORE gh ---

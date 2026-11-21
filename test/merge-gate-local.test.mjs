@@ -97,6 +97,10 @@ test("CLI: --local on a clean no-remote repo → exit 0, merge-ok, base ref adva
   assert.equal(record.head_sha, featureSha);
   assert.equal(record.pr, 0, "no PR in git-only mode — the null-coerced sentinel");
   assert.equal(record.merged, true);
+  const rendered = runCli(["merge-gate", "delivery-receipt", "--merge-exit", String(code)], { input: stdout, cwd: repo });
+  assert.equal(rendered.code, 0, rendered.stderr);
+  assert.deepEqual(JSON.parse(rendered.stdout.split("\n")[1]), out);
+  assert.deepEqual(JSON.parse(rendered.stdout.split("\n")[3]), { outcome: "shipped", reason: "", corroborated: true });
 });
 
 test("CLI: --local via --check-only never lands the merge (base ref unchanged)", () => {

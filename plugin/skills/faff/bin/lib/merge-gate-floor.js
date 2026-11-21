@@ -426,41 +426,30 @@ function holdoutIsFresh(holdoutMtimeMs, checkpointTimeMs) {
 //   - present + valid but NON-cage (e.g. container shared / repo present — a legitimate rung-0 declaration) → OFF.
 //   - present + malformed/unreadable → ratchet ON (a present-but-broken promise never relaxes to self-attestation).
 // PURE beyond the single-file read; never throws.
-function laneBoundaryPromisesCage(runDir) {
-  if (!runDir) return false;
+function readLaneBoundaryFacts(runDir) {
+  if (!runDir) return { dispatch: "absent", cage: false };
+  const indeterminate = { dispatch: "indeterminate", cage: true };
   let raw;
   try { raw = fs.readFileSync(path.join(runDir, "lane-boundary.json"), "utf8"); }
-  catch (e) { return e.code === "ENOENT" ? false : true; } // absent → legacy; unreadable → present-but-broken → arm
+  catch (e) { return e.code === "ENOENT" ? { dispatch: "absent", cage: false } : indeterminate; }
   let intent;
-  try { intent = JSON.parse(raw); } catch { return true; } // present-but-malformed → arm (never relax)
+  try { intent = JSON.parse(raw); } catch { return indeterminate; }
   const { contractData, failLoud } = computeLaneBoundary(intent);
-  if (failLoud || !contractData) return true; // structurally malformed present intent → arm
-  if (contractData.violations.length > 0) return true; // a present, invalid promise → arm
-  return contractData.lane === "evaluator" && contractData.container === "own" && contractData.accesses.repo === "absent";
+  if (failLoud || !contractData || contractData.violations.length > 0) return indeterminate;
+  return {
+    dispatch: "dispatched",
+    cage: contractData.lane === "evaluator" && contractData.container === "own" && contractData.accesses.repo === "absent",
+  };
 }
 
-// FAFF-784: derive whether THIS merge is under a dispatch cut from the SAME canonical
-// lane-boundary.json parser as laneBoundaryPromisesCage above — never a caller flag, never a
-// possibly-suspect run-ledger.json field (a ledger flag is exactly what a compromised same-uid lane
-// could set). "dispatched" ⇔ a present, structurally-valid lane-boundary.json (any lane value —
-// its mere validated presence is the structural declaration the spec's reference table names, not
-// specifically the evaluator-cage promise laneBoundaryPromisesCage keys its OWN narrower question
-// on). Absent (ENOENT) ⇒ "absent" — no dispatch cut, existing (interactive / no-dispatch-cut)
-// behaviour is untouched. Unreadable / unparseable / structurally malformed / any declared
-// violation ⇒ "indeterminate" — a present-but-broken declaration NEVER relaxes to "no cut" (that
-// would be the exact bypass the spec closes); the caller refuses unconditionally on indeterminate,
-// regardless of what custody flags were passed. PURE beyond the single-file read; never throws.
+function laneBoundaryPromisesCage(runDir) {
+  return readLaneBoundaryFacts(runDir).cage;
+}
+
+// FAFF-784: any valid boundary intent declares a dispatch cut. Its lane, container and access
+// shape only determine whether the narrower evaluator-cage promise applies.
 function laneBoundaryDispatchState(runDir) {
-  if (!runDir) return "absent";
-  let raw;
-  try { raw = fs.readFileSync(path.join(runDir, "lane-boundary.json"), "utf8"); }
-  catch (e) { return e.code === "ENOENT" ? "absent" : "indeterminate"; }
-  let intent;
-  try { intent = JSON.parse(raw); } catch { return "indeterminate"; }
-  const { contractData, failLoud } = computeLaneBoundary(intent);
-  if (failLoud || !contractData) return "indeterminate";
-  if (contractData.violations.length > 0) return "indeterminate";
-  return "dispatched";
+  return readLaneBoundaryFacts(runDir).dispatch;
 }
 
 // FAFF-784: the custody gate — { required, ok, reason? }. `required:false` ⇒ no dispatch cut (or no
@@ -624,4 +613,4 @@ function resolveHoldoutLeg(runDir, issue) {
   return { holdout, holdout_posture: posture, holdout_missing: missing, holdout_fault: fault };
 }
 
-module.exports = { gitRun, anchorHttpStatus, resolveAnchorLevel, readAnchoredBytes, anchorRefusal, alreadyMergedReconcile, observeCi, mergeRecordPath, writeMergeRecord, resolveIntegrity, resolveUnattended, readAcFloor, readAnchoredHumanOnly, buildMergeFloorDigestVerify, readAcComplete, readReviewVerdict, holdoutIsFresh, laneBoundaryPromisesCage, laneBoundaryDispatchState, evaluateCustody, readHoldout, readCanRun, readCaged, readLedgerSutEnvStood, resolveCanRun, resolveHoldoutLeg };
+module.exports = { gitRun, anchorHttpStatus, resolveAnchorLevel, readAnchoredBytes, anchorRefusal, alreadyMergedReconcile, observeCi, mergeRecordPath, writeMergeRecord, resolveIntegrity, resolveUnattended, readAcFloor, readAnchoredHumanOnly, buildMergeFloorDigestVerify, readAcComplete, readReviewVerdict, holdoutIsFresh, readLaneBoundaryFacts, laneBoundaryPromisesCage, laneBoundaryDispatchState, evaluateCustody, readHoldout, readCanRun, readCaged, readLedgerSutEnvStood, resolveCanRun, resolveHoldoutLeg };

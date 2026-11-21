@@ -231,7 +231,7 @@ Validate the spec's freshness against the current codebase. Then present a summa
 
 ```
 PROCEDURE holdout_offer(spec_path, run_dir, issue):   # full_spec := faff dod split --view full (tracker / git-only store, NOT the worktree builder-view); verif := faff verification resolve --json
-  IF `faff dod classify --spec <full_spec>` judged_count == 0 → marker {decision: skip}; RETURN   # nothing judged (an integration-tier-only spec included): no run will fire
+  IF `faff holdout criteria --spec <full_spec> --counts` judged_count == 0 → marker {decision: skip}; RETURN   # includes integration-only specs
   autonomous                    → marker {decision: verif.unattended ? auto : skip, attended:false}          # not-unattended ⇒ no human, fact false
   attended, verif.legs.holdout  → marker {decision: accept, attended:true}                                   # standing posture on — no prompt
   attended, else                → prompt "Run the code-blind holdout after build completes? (y/n)" → marker {decision: y?accept:decline, attended:true}
@@ -341,7 +341,7 @@ The Step-8b checkpoint now exists, so a fresh `holdout.json` (mtime > the checkp
 PROCEDURE holdout_run(spec_path, run_dir, issue, prdr_id):   # marker := <run-dir>/<issue>/holdout-offer.json (absent ⇒ skip); verif := faff verification resolve --json
   trigger := verif.unattended OR (marker.attended AND marker.decision == accept)   # unattended: the LIVE fact ALONE (a lost/forged marker never suppresses it); attended: marker, advisory
   IF NOT trigger: RETURN                                                           # decline/skip or autonomous-not-unattended ⇒ no run, no artifact
-  IF `faff dod classify --spec <full_spec>` judged_count == 0: RETURN   # SOLE skip gate — live, never the marker counts; an integration-tier-only spec skips too (full_spec := faff dod split --view full)
+  IF `faff holdout criteria --spec <full_spec> --counts` judged_count == 0: RETURN   # SOLE skip gate; never use marker counts (full_spec := faff dod split --view full)
   IF a fresh holdout.json exists (mtime > build-progress.json) AND its violations list is empty: RETURN   # idempotent on resume; a record carrying violations (writer refusal, refuse-to-attest, env never up) is retried
   holdout_step(full_spec, prdr_id, key=<issue>, run_dir)                           # SHARED engine (gateway → faff-beep-boop Per-run holdout phase) — `faff holdout record --spec <full_spec>` (inline) or the evaluate-call.mjs spawner (caged) writes .faff/holdout/<issue>.json AND <run-dir>/<issue>/holdout.json; env torn down on every exit
 ```

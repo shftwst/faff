@@ -266,7 +266,7 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
 | Dead weight | Archive/close merged/cancelled backlog issues as tracker supports. |
 | Obvious orphans | Parent Done/Cancelled/Archived: reparent to grandparent if present, else unlink parent. |
 
-**Stale `faff-parked`.** Use `faff label remove <issue> faff-parked` and descriptor write (gateway → **Control-label provisioning**) only on either basis below.
+**Stale `parked` label.** Remove its resolved name per **Control-label provisioning** only on either basis below.
 
 1. **State moved on: `faff park-verdict`, never status alone.** `strip-ok`: In Review/Done/Cancelled/Archived; `n/a`: below In Progress. For In Progress, fetch tracker facts:
    - `draft_pr`: linked open DRAFT PR, `present`/`absent`.
@@ -284,19 +284,19 @@ When invoked autonomously (e.g. by `/faff-beep-boop` in its default full-pipelin
 
 Every auto-removal: log issue id, original reason and specific invalidating rule to `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`; post tracker comment explaining removal and reason.
 
-**State-only label cleanup.** No reason parsing/no-longer-applies branch. Use descriptor write; log each removal. Preserve live In Progress claim provenance.
+**State-only label cleanup.** Use the state alone. Pass the role's exact manifest name to `faff label remove`, apply its descriptor and log each removal. Preserve live In Progress claims.
 
-| Label and removal command | Resolved states | Orphaned resume cleanup |
+| Role to remove | Resolved states | Orphaned resume cleanup |
 |---|---|---|
-| `faff label remove <issue> faff-awaiting-review` | In Review, Done, Cancelled | Remove `.faff/resume/<issue>/` if present. |
-| `faff label remove <issue> faff-awaiting-spec-review` | Off Backlog: Todo, In Progress, In Review, Done, Cancelled | Remove `.faff/resume/<issue>/spec-review-hold.json` if present, or whole `.faff/resume/<issue>/` only if otherwise empty; never `.faff/spec-review/<issue>/` convergence-window scratch. |
-| `faff label remove <issue> faff-claimed` | No longer In Progress: In Review, Done, Cancelled | None. Backstop graft's terminal/retry-later breadcrumb clear. |
+| `awaiting-review` | In Review, Done, Cancelled | Remove `.faff/resume/<issue>/` if present. |
+| `awaiting-spec-review` | Off Backlog: Todo, In Progress, In Review, Done, Cancelled | Remove `.faff/resume/<issue>/spec-review-hold.json` if present, or whole `.faff/resume/<issue>/` only if otherwise empty; never `.faff/spec-review/<issue>/` convergence-window scratch. |
+| `claimed` | No longer In Progress: In Review, Done, Cancelled | None. Backstop graft's terminal/retry-later breadcrumb clear. |
 
 **Stale claim reclaim.** Each active In Progress issue: tidy reads tracker facts; CLI decides liveness.
 
 1. `claimed_at`: latest transition into In Progress. Linear: latest matching `get_issue.stateHistory` entry's `startedAt`; GitHub: latest claim timeline event's `created_at`; Jira: latest claim-state changelog transition. Never Linear's issue-level `startedAt`: retry-later's In Progress → Todo → In Progress does not reset it. Connector no-capability: surface; log "stale-claim check unavailable on <connector>", continue; never guess/default age.
 2. Run `faff claim-verdict --claimed-at <claimed_at> --now <now> --ttl-hours $(faff config get claim_ttl_hours)`. `live`: do nothing. `stale` without `faff-claimed`: leave status untouched, log "stale claim, no `faff-claimed`, needs human"; human-set/unprovable claims are surface-only.
-3. Only `stale` + `faff-claimed`: re-read live status immediately before write; move In Progress → Todo, `faff label remove <issue> faff-claimed`, then `faff build-claim release-if-stale --issue <issue>` (best-effort, always exit 0). Lease-matched-delete `refs/faff/build-claims/<issue>` only if its holder is stale under machine-aware, heartbeat-only `buildClaimStaleAware`; live heartbeating builds retain the ref even with hours-stale tracker age. Never acquire a build claim. The ref, not rebase-before-merge, is the mutex: live peers still refuse Step-5 acquire; re-queue for next pass only.
+3. Only for `stale` with the resolved `claimed` label, re-read live status immediately before writing. Move In Progress → Todo, remove the label as above, then `faff build-claim release-if-stale --issue <issue>` (best-effort, always exit 0). Lease-matched-delete `refs/faff/build-claims/<issue>` only if its holder is stale under machine-aware, heartbeat-only `buildClaimStaleAware`; live heartbeating builds retain the ref even with hours-stale tracker age. Never acquire a build claim. The ref, not rebase-before-merge, is the mutex: live peers still refuse Step-5 acquire; re-queue for next pass only.
 4. After reclaim, post one tracker comment: "reclaimed a `faff-claimed` stale claim (age > `claim_ttl_hours`); released the build-claim ref; moved to Todo for re-queue". Log `{issue, age_secs, ttl_secs, ref_released, action: reclaimed}` using actual release result. **git-only mode:** tracker/label writes no-op, but `faff build-claim release-if-stale` still runs; the ref on `origin` is its only cross-host claim.
 
 **Claim capture:** same Tier-1 guards/best-effort/no-mint rules as park capture. Run `eval "$(faff decision-capture decide --run <run> --issue <issue> --kernel claim-verdict --export)" && faff claim-verdict …` in one command. After actual disposition, emit `faff decision-capture action --run <run> --issue <issue> --kernel claim-verdict --action live` (left the claim) or `--action stale` (reclaimed at step 3).

@@ -43,7 +43,7 @@ Distance is primary across classes within a band. With no map, skip composition 
 5. No false `**Assumes:**` entries (the assumption actually holds in current state)
 
 **Demote** when:
-- Repeat-parked: 3+ parks with same root-cause class in 21 days → demote to Backlog, tag `faff-parked` via the sanctioned op (`faff label add`)
+- Repeat-parked: 3+ parks with same root-cause class in 21 days → demote to Backlog, apply `faff label add` with the resolved `parked` name
 - Challenged spec: post-spec comment raises unresolved challenge → back to needs-prep
 - Stale spec: codebase drift invalidates approach → back to needs-refresh
 

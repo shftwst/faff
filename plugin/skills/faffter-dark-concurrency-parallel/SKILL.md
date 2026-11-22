@@ -58,7 +58,7 @@ Step 3's between-units checkpoint uses `faff sentry check`'s **member-resolved**
 1. **Confirm the member boundary first** — a member intervention acts ONLY when the member's subagent has returned (its slot is idle) or its liveness is genuinely dead per the verdict (`heartbeat.<issue>` AND its `build-start` baseline are both older than the stall window). **Never** interrupt a subagent that is actually still running — a live-but-slow member is left to keep polling; the verdict alone is not sufficient without this boundary confirm.
 2. **Commit worktree WIP** to the member's branch (park-protocol shape, never a force-reset). Stage **selectively** via the shared chokepoint — `faff stage-guard --worktree <member-worktree> --mode wip` (stages tracked changes + non-secret-class untracked paths, dropping any secret-class file so a stray `.env` is never swept into the WIP), then `git commit`. **Never `git add -A`** (the secret-leak vector).
 3. **Post the park comment** on the tracker issue citing the verdict's evidence (`heartbeat_age_secs`, `source`) — the same shape every other park uses.
-4. **Apply the park label** via the standard label op (`faff label add <issue> faff-parked`).
+4. Use `faff label add` with the resolved `parked` name and apply its descriptor.
 5. **Record the ledger outcome** `"parked"` for that member (the orchestrator's own write — a build subagent never writes the ledger).
 6. **Free the slot** — the next queued independent/group may now launch. A collision-chain's undispatched remainder parks per the existing "in-run blocker did not merge" rule (step 2 above) rather than building against a parked blocker.
 

@@ -37,6 +37,12 @@ const LINT_CLI_COVERAGE_SPEC = { flags: { "--root": { arity: 1 }, "--selftest": 
 // file, or an array of them when a command's coverage is split (FAFF-1414); each named
 // file must exist and exercise the command.
 const TEST_FILE_COVERAGE = {
+  "resume-store": "test/review-hold.test.mjs",
+  "build-review-round": "test/build-review-round.test.mjs",
+  park: "test/park-finalize.test.mjs",
+  "prep-context": "test/prep-context.test.mjs",
+  "build-queue-partition": "test/build-queue-partition.test.mjs",
+  "planning-graph": "test/planning-graph.test.mjs",
   "sync": "test/sync.test.mjs",
   "validate-adapters": "test/validate-adapters-prose-defaults.test.mjs",
   "labels": "test/claim-verdict.test.mjs",
@@ -49,7 +55,7 @@ const TEST_FILE_COVERAGE = {
   "pr-body": "test/pr-body.test.mjs",
   // spec-judge-evidence — a shelling assembler with no standalone `--selftest`; its bundle
   // shape + degrade/fail-loud directions are exercised through the real CLI entrypoint here.
-  "spec-judge-evidence": "test/spec-judge-evidence.test.mjs",
+  "spec-judge-evidence": ["test/spec-judge-evidence.test.mjs", "test/spec-judge-sequence.test.mjs"],
   // prep (FAFF-1406): `faff prep attach` has no `--selftest`; its stage/confirm/park paths are
   // exercised through the real CLI entrypoint here.
   "prep": "test/prep-attach.test.mjs",
@@ -59,12 +65,14 @@ const TEST_FILE_COVERAGE = {
   "graft": ["test/graft-admit.test.mjs", "test/graft-admit-replay-in-review.test.mjs", "test/graft-admit-replay.test.mjs"],
   // pr (FAFF-1416): `faff pr open` has no `--selftest`; its token table, call order and refusals are
   // exercised in-process with injected dependencies and through the real CLI entrypoint.
-  "pr": "test/pr-open.test.mjs",
+  "pr": ["test/pr-open.test.mjs", "test/graft-in-review-bracket.test.mjs"],
   // run (FAFF-1435, FAFF-1436): `faff run summary` and `faff run checkpoint` have no `--selftest`;
   // summary's sections, facts handling, forge and doctor paths, and checkpoint's decision table,
   // read faults and exit codes, are exercised through the real CLI entrypoint and in-process.
-  "run": ["test/run-summary.test.mjs", "test/run-checkpoint.test.mjs", "test/run-open.test.mjs", "test/run-close.test.mjs", "test/run-trigger.test.mjs"],
+  "run": ["test/run-summary.test.mjs", "test/run-return-map.test.mjs", "test/run-checkpoint.test.mjs", "test/run-open.test.mjs", "test/run-close.test.mjs", "test/run-trigger.test.mjs", "test/run-reconcile-input.test.mjs", "test/run-entry-preflight.test.mjs", "test/run-wave-mode.test.mjs"],
+  "discovered-scope-plan": "test/discovered-scope-plan.test.mjs",
   "worktree": "test/worktree-ensure.test.mjs",
+  "land": "test/land-fix-attempt.test.mjs",
   // prose-size (FAFF-1442): `faff prose-size baseline --lower` and `tally` have no `--selftest`; both, and
   // the validate-adapters byte ratchet, are exercised through the real CLI entrypoint and in-process.
   "prose-size": "test/prose-size.test.mjs",

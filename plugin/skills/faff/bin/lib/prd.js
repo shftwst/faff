@@ -13,6 +13,7 @@ const path = require("node:path");
 const os = require("node:os");
 const { acceptanceSection, classifyAcceptanceCriteria } = require("./admissibility");
 const { adrField } = require("./adr");
+const { selectPrd } = require("./prd-select");
 const { parseArgs, requireFlags, usageError } = require("./argv");
 const PRD_SPEC = { flags: {
   "--json": { arity: 0 }, "--selftest": { arity: 0 }, "--strict": { arity: 0 },
@@ -29,6 +30,7 @@ const PRD_SURFACE = {
     new: { required_flags: [] },
     link: { required_flags: ["--url"] },
     list: { required_flags: [] },
+    select: { required_flags: [] },
     validate: { required_flags: [] },
   },
 };
@@ -48,6 +50,8 @@ function prdSlug(name) {
 // lives here; scoping link-detection to the header avoids a false match on a body line that
 // happens to start "PRD:" (the `adrField`/hasLink regexes are otherwise document-wide).
 function prdHeader(text) { return text.split(/^##\s+/m)[0]; }
+
+function prdPath(dir, container) { return path.join(dir, prdSlug(container) + ".md"); }
 
 function listPrds(dir) {
   if (!fs.existsSync(dir)) return [];
@@ -162,12 +166,33 @@ function cmdPrd(args) {
   const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const action = args[0];
   const root = get("--root") || findRoot();
+  if (action === "select") {
+    if (parsed.positionals.length !== 1) {
+      process.stderr.write("usage: faff prd select [--json] [--root DIR]\n");
+      return 2;
+    }
+    let dir, listing;
+    try {
+      dir = prdDir(root);
+      listing = listPrds(dir);
+    } catch {
+      // Preserve discovery fallback even when listing or config resolution failed.
+    }
+    const result = selectPrd(listing, container => {
+      if (container.startsWith("--")) return null;
+      const file = prdPath(dir, container);
+      try { return fs.statSync(file).isFile() ? file : null; }
+      catch { return null; }
+    });
+    console.log(JSON.stringify(result));
+    return 0;
+  }
   const dir = prdDir(root);
   const container = (args[1] && !args[1].startsWith("--")) ? args[1] : null;
 
   if (action === "path") {
     if (!container) { process.stderr.write("faff prd path: <container> is required\n"); return 2; }
-    process.stdout.write(path.join(dir, prdSlug(container) + ".md") + "\n");
+    process.stdout.write(prdPath(dir, container) + "\n");
     return 0;
   }
 
@@ -227,7 +252,7 @@ function cmdPrd(args) {
     return 0;
   }
 
-  process.stderr.write("faff prd: expected one of: path | new | link | list | validate [--strict] (or --selftest)\n");
+  process.stderr.write("faff prd: expected one of: path | new | link | list | select | validate [--strict] (or --selftest)\n");
   return 2;
 }
 

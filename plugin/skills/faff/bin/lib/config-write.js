@@ -238,7 +238,7 @@ function mergeTrackingBlock(rawText, sets, force) {
   return { text: lines.join("\n"), conflicts, changed };
 }
 
-function cmdConfigInit(args, root) {
+function cmdConfigInit(args, root, { pinLocalBundle = false, expectedPreview } = {}) {
   // 1. Parse args.
   const sets = {};            // leafKey → rawValue
   const seen = {};            // leafKey → first rawValue seen (dup-with-conflict guard)
@@ -248,6 +248,14 @@ function cmdConfigInit(args, root) {
   // existing-file lookup it's resolved through. Everything else (merge core, round-trip
   // self-verify, conflict/legacy-name refusal) is unchanged.
   const local = args.includes("--local");
+  if (pinLocalBundle && (!local || force)) {
+    process.stderr.write("faff config init: --pin-local-bundle requires --local and refuses --force\n");
+    return 2;
+  }
+  if (expectedPreview !== undefined && (!pinLocalBundle || dryRun)) {
+    process.stderr.write("faff config init: --expect-preview applies only to a local bundle write\n");
+    return 2;
+  }
   for (let i = 0; i < args.length; i++) {
     if (args[i] !== "--set") continue;
     const token = args[++i];
@@ -315,10 +323,20 @@ function cmdConfigInit(args, root) {
       process.stderr.write("Re-run with --force to overwrite, or change the value.\n");
       return 2;
     }
-    if (!changed) {
+    if (!changed && !pinLocalBundle) {
       console.log("config init: no changes (all values already set).");
       return 0;
     }
+  }
+
+  if (pinLocalBundle) {
+    const bundle = mergeConfigPath(newText, ["bundle_store"], "local", false);
+    if (bundle.typeError || bundle.conflict) {
+      process.stderr.write("faff config init: existing bundle_store differs from local; no changes made\n");
+      return 2;
+    }
+    newText = bundle.text;
+    changed = changed || bundle.changed;
   }
 
   // 4. Round-trip self-verify against the real reader before committing the write.
@@ -334,9 +352,30 @@ function cmdConfigInit(args, root) {
     }
   }
 
+  if (pinLocalBundle && dig(parsed, "bundle_store") !== "local") {
+    process.stderr.write("faff config init: local bundle pin did not round-trip; no changes made\n");
+    return 2;
+  }
+  if (expectedPreview !== undefined) {
+    let expected;
+    try { expected = fs.readFileSync(expectedPreview); }
+    catch {
+      process.stderr.write("faff config init: cannot read confirmed preview; no changes made\n");
+      return 2;
+    }
+    if (!expected.equals(Buffer.from(newText))) {
+      process.stderr.write("faff config init: overlay differs from the confirmed preview; preview again\n");
+      return 2;
+    }
+  }
+
   // 5. Output.
   if (dryRun) {
-    process.stdout.write(newText.endsWith("\n") ? newText : newText + "\n");
+    process.stdout.write(pinLocalBundle || newText.endsWith("\n") ? newText : newText + "\n");
+    return 0;
+  }
+  if (!changed) {
+    console.log("config init: no changes (all values already set).");
     return 0;
   }
   writeConfigFile(canonicalPath, newText);

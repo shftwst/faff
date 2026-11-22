@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.fenceMask = fenceMask;
 // === region:factory — prep-attach — FAFF-1406: prep stages, confirms and parks its spec attach through one command ===
 // `faff prep attach` replaces the stamp, tier, marker and readiness ritual faff-prep used to perform in
 // prose. Stage writes the `.faff/prep/<ISSUE>.json` attach-state marker before any step that can fail,

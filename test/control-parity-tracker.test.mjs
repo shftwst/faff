@@ -2,7 +2,7 @@
 // observes model behaviour or real connector guarantees.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { canonicalHash, compareRuns, parseStrictJson, sha256, validateRegistry, validateTrace } from '../eval/control-parity/schema.mjs';
@@ -14,7 +14,8 @@ const fixtures = load('eval/control-parity/fixtures/review-comments.json');
 const expected = load('eval/control-parity/expected-outcomes.json');
 const registry = load('eval/control-parity/registry.json');
 // This registry describes the historical policy, not current runtime prose.
-const policy = readFileSync(new URL('./fixtures/review-comment/legacy-policy.md', import.meta.url));
+const policy = readFileSync(new URL('../verification/experiments/2026-11-14-controlled-skill-runs/review-comment-source.md', import.meta.url));
+const edgeCases = load('test/fixtures/review-comment-policy.json').scenarios;
 const H = c => c.repeat(64);
 const tmp = () => mkdtempSync(join(tmpdir(), 'cp-tracker-'));
 const fixture = id => fixtures.scenarios.find(s => s.id === id);
@@ -22,10 +23,10 @@ const entry = id => registry.scenarios.find(s => s.id === id);
 const SCRIPTED = { usage_complete: true, served_models: ['scripted-recorder-check'], requests: 0 };
 
 // The control replays the independently written expectation; decoys model plausible wrong readings.
-const control = id => async ({ ports, input }) => {
+const control = (id, outcome = expected.scenarios[id]) => async ({ ports, input }) => {
   await ports.list_comments({ issue_id: input.issue_id });
-  for (const e of expected.scenarios[id].effects) await ports[e.op](e.args);
-  await ports.finish(expected.scenarios[id].terminal);
+  for (const e of outcome.effects) await ports[e.op](e.args);
+  await ports.finish(outcome.terminal);
   return { accounting: SCRIPTED };
 };
 const capture = (id, driver, faults = []) => captureScenario({
@@ -53,11 +54,37 @@ test('fixtures are synthetic, model-visible inputs carry no expected outcomes, a
   for (const x of Object.values(expected.scenarios)) for (const e of x.effects) assert.ok(!visible.includes(JSON.stringify(e.args.body)), 'expected body leaked into visible input');
 });
 
-test('blocked coverage is listed explicitly and none of it has an expected outcome', () => {
-  const blocked = load('eval/control-parity/blocked-coverage.json');
-  assert.deepEqual(blocked.cases.map(c => c.id).sort(), ['author-preference', 'equal-or-missing-created-at', 'fenced-marker-text', 'indented-marker', 'line-ending-normalisation', 'nested-or-repeated-pairs']);
-  for (const c of blocked.cases) assert.ok(!registry.scenarios.some(s => s.id === c.id));
+test('all seven operator decisions refer to cases in the eleven-case offline suite', () => {
+  const policyCases = load('eval/control-parity/blocked-coverage.json');
+  const ids = [...registry.scenarios.map(s => s.id), ...edgeCases.map(c => c.input.id)];
+  assert.equal(ids.length, 11);
+  assert.equal(new Set(ids).size, ids.length);
+  assert.deepEqual(policyCases.cases, []);
+  assert.deepEqual(policyCases.decisions.map(d => d.id).sort(), [
+    'author-preference', 'equal-or-missing-created-at', 'fenced-marker-text', 'indented-marker',
+    'line-ending-normalisation', 'nested-or-repeated-pairs', 'splice-newline-framing',
+  ]);
+  for (const decision of policyCases.decisions) {
+    assert.ok(decision.covered_by.length && decision.covered_by.every(id => ids.includes(id)), decision.id);
+  }
+  for (const { input } of edgeCases) {
+    assert.ok(policyCases.decisions.some(d => d.covered_by.includes(input.id)), input.id);
+  }
 });
+
+for (const { input, input_sha256, expected: outcome } of edgeCases) {
+  test(`scripted policy fixture matches the recorded tracker state: ${input.id}`, async t => {
+    const directory = tmp();
+    t.after(() => rmSync(directory, { recursive: true, force: true }));
+    const scenario = { id: input.id, input_sha256, policy_sha256: sha256(policy), expected: outcome };
+    const trace = await captureScenario({
+      driver: control(input.id, outcome), fixture: input, registryEntry: scenario, directory,
+      policyBytes: policy, promptSha256: H('c'), runtimeSha256: H('d'),
+    });
+    const result = validateTrace(trace, scenario, registry);
+    assert.equal(result.status, 'pass', JSON.stringify(result));
+  });
+}
 
 test('the scripted control satisfies every independent obligation', async () => {
   for (const s of fixtures.scenarios) {

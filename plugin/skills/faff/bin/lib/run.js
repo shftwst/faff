@@ -3,21 +3,29 @@
 // === region:factory — run — FAFF-1435: the `faff run` verb dispatcher ===
 //
 // `faff run <verb>` groups the run-lifecycle commands that move beep-boop's run bracket from prose
-// into code. It registers `summary` (FAFF-1435), `checkpoint` (FAFF-1436), and `open` and `close`
-// (FAFF-1437) and `trigger` (FAFF-1418). An unknown or missing verb exits 2 with a usage line naming the registered verbs.
+// into code. An unknown or missing verb exits 2 with the registered verbs.
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
+const run_wave_mode_1 = require("./run-wave-mode");
+const run_wave_consult_1 = require("./run-wave-consult");
 const runSummary = require("./run-summary");
 const runCheckpoint = require("./run-checkpoint");
 const runOpen = require("./run-open");
 const runClose = require("./run-close");
 const runTrigger = require("./run-trigger");
+const returnMap = require("./run-return-map");
+const { cmdRunEntryPreflight } = require("./run-entry-preflight");
 const VERBS = {
     summary: (args) => runSummary.cmdRunSummary(args),
     checkpoint: (args) => runCheckpoint.cmdRunCheckpoint(args),
     open: (args) => runOpen.cmdRunOpen(args),
     close: (args) => runClose.cmdRunClose(args),
     trigger: (args) => runTrigger.cmdRunTrigger(args),
+    "return-map": (args) => returnMap.cmdRunReturnMap(args),
+    reconcile: (args) => runSummary.cmdRunReconcile(args),
+    preflight: cmdRunEntryPreflight,
+    "wave-consult": run_wave_consult_1.cmdWaveConsult,
+    "wave-mode": run_wave_mode_1.cmdWaveMode,
 };
 const RUN_USAGE = `usage: faff run <verb> [args...] — registered verbs: ${Object.keys(VERBS).join(", ")}`;
 function cmdRun(args) {

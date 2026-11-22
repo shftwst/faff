@@ -1,10 +1,5 @@
-// FAFF-1052 (Rev 6, QA-major-2) — closes the "occupant stops recording after round 1"
-// recurrence BEHAVIOURALLY, not only by a static prose match against faffter-dark-spec-
-// review/SKILL.md. This extracts the occupant's own fenced bash capture snippet VERBATIM
-// (the house idiom test/spec-review-dispatch-resolution.test.mjs already established for
-// occupant prose) and drives it through a real shell against the real `faff` binary, so a
-// future edit that reintroduces a conditional skip on round >= 2 fails THIS test even if
-// the static SKILL-wiring lint in test/spec-review-pin.test.mjs is somehow satisfied.
+// Run the occupant's documented record-results invocation through the shipped CLI.
+// The window depends on a served identity even after the first pin is established.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, mkdtempSync, writeFileSync, existsSync, rmSync } from "node:fs";
@@ -24,19 +19,19 @@ const BACKENDS = [
   { provider: "nvidia", model: "mB", host: "https://b/v1" },
 ];
 
-// Extract the occupant's own fenced ```bash ... ``` capture snippet (the block immediately
-// following the served/no-lens-served bullet list) VERBATIM — this is what makes the test a
-// real regression check on the SKILL's actual documented behaviour, not a re-implementation
-// that could silently drift from it.
-function extractCaptureSnippet() {
+function extractRecordCommand() {
   const body = readFileSync(OCCUPANT_SKILL, "utf8");
-  const marker = "The unconditional capture call";
-  const idx = body.indexOf(marker);
-  assert.ok(idx >= 0, "occupant SKILL still documents the unconditional capture call snippet");
-  const fenceStart = body.lastIndexOf("```bash", idx);
-  const fenceEnd = body.indexOf("```", idx);
-  assert.ok(fenceStart >= 0 && fenceEnd > fenceStart, "found the fenced bash block around the marker");
-  return body.slice(fenceStart + "```bash".length, fenceEnd);
+  const command = body.split("`").find(item => item.startsWith('"$faff" spec-review record-results '));
+  assert.ok(command, "occupant documents the actual record-results invocation");
+  return command;
+}
+
+function writeBatch(scratch, round, index) {
+  const { provider, model } = BACKENDS[index];
+  const file = join(scratch, `results-${round}.json`);
+  const stdout = `## Adversarial findings — ${provider}/${model} (chain[${index}], host: config)\n\n### observation: no findings\n`;
+  writeFileSync(file, JSON.stringify(["architectural", "infosec", "methodology", "QA"].map(lens => ({ lens, exit: 0, stdout, stderr: "", truncated: false }))));
+  return file;
 }
 
 function runSnippet(snippet, vars, scratch) {
@@ -46,16 +41,16 @@ function runSnippet(snippet, vars, scratch) {
   return r;
 }
 
-test("occupant dispatch (extracted verbatim from SKILL.md): round >= 2 idempotent no-op capture STILL writes served-<n>.json", () => {
+test("occupant record-results writes each served identity for the window even after pinning", () => {
   const scratch = mkdtempSync(join(tmpdir(), "faff-occ-dispatch-"));
-  const snippet = extractCaptureSnippet();
+  const snippet = extractRecordCommand();
   try {
     const backendsJson = join(scratch, "backends.json");
     writeFileSync(backendsJson, JSON.stringify(BACKENDS));
     const pinDir = join(scratch, "pin");
 
     // Round 1: served, winner_index 0 -> captures the pin.
-    const r1 = runSnippet(snippet, { pin_dir: pinDir, backends_json: backendsJson, winner_index: 0, n: 1, served_count: 1 }, scratch);
+    const r1 = runSnippet(snippet, { pin_dir: pinDir, backends_json: backendsJson, results_json: writeBatch(scratch, 1, 0), n: 1 }, scratch);
     assert.equal(r1.status, 0, `round 1 dispatch failed: ${r1.stderr}`);
     assert.ok(existsSync(join(pinDir, "pinned-reviewer.json")), "round 1 pinned the reviewer");
     assert.ok(existsSync(join(pinDir, "served-1.json")), "round 1 recorded its served identity");
@@ -63,7 +58,7 @@ test("occupant dispatch (extracted verbatim from SKILL.md): round >= 2 idempoten
     // Round 2: served by a DIFFERENT backend (winner_index 1) — the pin write is an
     // idempotent no-op (pin already exists), but this is the exact regression FAFF-996
     // exhibited: served-2.json must STILL be written so a later --govern can detect the swap.
-    const r2 = runSnippet(snippet, { pin_dir: pinDir, backends_json: backendsJson, winner_index: 1, n: 2, served_count: 1 }, scratch);
+    const r2 = runSnippet(snippet, { pin_dir: pinDir, backends_json: backendsJson, results_json: writeBatch(scratch, 2, 1), n: 2 }, scratch);
     assert.equal(r2.status, 0, `round 2 dispatch failed: ${r2.stderr}`);
     const pinAfter = JSON.parse(readFileSync(join(pinDir, "pinned-reviewer.json"), "utf8"));
     assert.deepEqual(pinAfter, BACKENDS[0], "the pin is unchanged (idempotent no-op) after round 2");
@@ -80,12 +75,12 @@ test("occupant dispatch (extracted verbatim from SKILL.md): round >= 2 idempoten
   } finally { rmSync(scratch, { recursive: true, force: true }); }
 });
 
-test("occupant dispatch (extracted verbatim from SKILL.md): the no-lens-served branch fires when served_count is 0", () => {
+test("occupant record-results captures an empty served set on missing fan-out", () => {
   const scratch = mkdtempSync(join(tmpdir(), "faff-occ-dispatch-nolens-"));
-  const snippet = extractCaptureSnippet();
+  const snippet = extractRecordCommand().replace('--results "$results_json" --backends-json "$backends_json"', "--no-results") + " --lenses QA --receipts-only";
   try {
     const pinDir = join(scratch, "pin");
-    const r = runSnippet(snippet, { pin_dir: pinDir, backends_json: "/nonexistent", winner_index: 0, n: 1, served_count: 0 }, scratch);
+    const r = runSnippet(snippet, { pin_dir: pinDir, n: 1 }, scratch);
     assert.equal(r.status, 0, `no-lens dispatch failed: ${r.stderr}`);
     assert.equal(existsSync(join(pinDir, "pinned-reviewer.json")), false, "no pin written on the empty exit-0 set");
     const cap = JSON.parse(readFileSync(join(pinDir, "pin-capture.json"), "utf8"));

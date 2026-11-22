@@ -447,3 +447,79 @@ test("FAFF-1477: over every committed spec the R2c refusals are exactly the pinn
   assert.deepEqual(otherRefusals, []);
   assert.deepEqual(refused, CORPUS_R2C_PIN);
 });
+
+test("author diagnostics deduplicate overlapping Scenarios findings without changing the gate", () => {
+  const spec = [
+    "## Scenarios",
+    "```holdout",
+    "Given test/health.test.mjs",
+    "When exercising the route",
+    "```",
+    "## DONE",
+    "- [ ] the route returns HTTP 200",
+  ].join("\n");
+  const author = run(["--author-diagnostics", "--spec", "-"], spec);
+  assert.equal(author.status, 0, author.stderr);
+  assert.deepEqual(verdict(author), {
+    major: [{ prose: ["scenarios:1"], test_file: ["scenarios:1"] }], notes: [],
+  });
+  const gate = run(["--lights-out", "--spec", "-", "--json"], spec);
+  assert.equal(gate.status, 0, gate.stdout);
+  assert.ok(verdict(gate).warnings.some(line => line.startsWith("scenarios-prose advisory:")));
+  assert.ok(verdict(gate).warnings.some(line => line.startsWith("scenarios-code-surface advisory:")));
+});
+
+test("author distinguishes R1 with a Scenarios unit from a legitimately absent section", () => {
+  const spec = "## Scenarios\n\nOnly narrative.\n\n## DONE\n- [ ] HTTP 200 is returned";
+  const author = run(["--author-diagnostics"], spec);
+  assert.equal(author.status, 0, author.stderr);
+  assert.deepEqual(verdict(author), { major: [{ r1: ["scenarios:1"], prose: ["scenarios:1"] }], notes: [] });
+  const empty = run(["--author-diagnostics"], "## DONE\n- [ ] HTTP 200 is returned");
+  assert.equal(empty.status, 0, empty.stderr);
+  assert.deepEqual(verdict(empty), { major: [], notes: ["R1.scenarios: no Scenarios units"] });
+  assert.equal(run(["--lights-out", "--json"], spec).status, 1);
+  assert.equal(run(["--lights-out", "--json"], "## DONE\n- [ ] HTTP 200 is returned").status, 1);
+  const ambiguous = run(["--author-diagnostics", "--lights-out"], spec);
+  assert.equal(ambiguous.status, 2);
+  assert.equal(ambiguous.stdout, "");
+});
+
+test("author diagnostics retain disjoint findings and leave a clean draft clear", () => {
+  const spec = [
+    "## Scenarios",
+    "```",
+    "Given the route exists",
+    "When exercising it",
+    "```",
+    "```",
+    "Given the route exists",
+    "When exercising it again",
+    "Then test/route.test.mjs MUST pass",
+    "```",
+    "## DONE",
+    "- [ ] the route returns HTTP 200",
+  ].join("\n");
+  const author = run(["--author-diagnostics"], spec);
+  assert.equal(author.status, 0, author.stderr);
+  assert.deepEqual(verdict(author), {
+    major: [{ prose: ["scenarios:1"] }, { test_file: ["scenarios:2"] }], notes: [],
+  });
+  const good = run(["--author-diagnostics"], GOOD);
+  assert.equal(good.status, 0, good.stderr);
+  assert.deepEqual(verdict(good), { major: [], notes: [] });
+});
+
+test("author reports the same DONE human-marker failures as the actual lights-out gate", () => {
+  for (const spec of [
+    s0Plus("manual confirmation of the layout", "needs-human:"),
+    specWith(["needs-human: manual inspection of keyboard order"]),
+  ]) {
+    const gate = run(["--lights-out", "--json"], spec);
+    assert.equal(gate.status, 1, gate.stdout);
+    const author = run(["--author-diagnostics"], spec);
+    assert.equal(author.status, 0, author.stderr);
+    const failing = verdict(gate).checks.filter(({ id, pass }) => !pass && /^R2[cde]\./.test(id));
+    assert.ok(failing.length > 0);
+    assert.deepEqual(verdict(author).major, failing.map(({ id, detail }) => ({ done_check: id, detail })));
+  }
+});

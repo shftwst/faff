@@ -7,7 +7,8 @@ const path = require("node:path");
 const { parseArgs, requireFlags, usageError } = require("./argv");
 const { findRoot, mainWorktreeRoot } = require("./shared-infra");
 const { buildHoldoutRecord, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord } = require("./holdout-record");
-const ADMISSIBLE_SPEC = { flags: { "--selftest": { arity: 0 }, "--lights-out": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
+const { HOLDOUT_CRITERIA_SPEC, HOLDOUT_RECEIPT_SPEC, cmdHoldoutCriteria, cmdHoldoutReceipt } = require("./holdout-handoff");
+const ADMISSIBLE_SPEC = { flags: { "--selftest": { arity: 0 }, "--lights-out": { arity: 0 }, "--author-diagnostics": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
 const DOD_CLASSIFY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 }, "--issue": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const DOD_SPLIT_SPEC = { flags: { "--view": { arity: 1 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const HOLDOUT_VERDICTS_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--require-spawner-attested": { arity: 0 }, "--association": { arity: 1 }, "--dir": { arity: 1 }, "--persist": { arity: 0 }, "--prdr-dir": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
@@ -27,11 +28,13 @@ const DOD_SURFACE = {
 };
 const HOLDOUT_SURFACE = {
   kind: "subcommand_dispatch",
-  spec: [HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, HOLDOUT_RECORD_SPEC],
+  spec: [HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, HOLDOUT_RECORD_SPEC, HOLDOUT_CRITERIA_SPEC, HOLDOUT_RECEIPT_SPEC],
   subcommands: {
     verdicts: { required_flags: ["--association"] },
     verdict: { required_flags: ["--issue"] },
     record: { required_flags: ["--issue", "--spec"] },
+    criteria: { required_flags: ["--spec"] },
+    receipt: { required_flags: ["--key", "--run-dir", "--writer-exit"] },
   },
 };
 const { SPEC_REVIEW_LENSES, computeHoldoutVerdict, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
@@ -770,10 +773,12 @@ function renderCodeSurfaceWarning(adv) {
 // Scenarios test-file unit stays running-stack (ADR-0140: no verifier other than the holdout receives
 // a Scenarios unit by id, so there is nowhere to retier it to). Reuses codeSurfaceSignal, never a
 // second pattern (FAFF-1360's TEST_FILE_TOKEN_RE stays the one detection home).
+const scenarioTestFile = (c) => c.source === "scenarios" && codeSurfaceSignal(c.text) === "test-file";
+
 function scenariosCodeSurfaceAdvisory(specText) {
   let classified;
   try { classified = dodClassify(specText); } catch (e) { return null; }
-  const items = classified.criteria.filter((c) => c.source === "scenarios" && codeSurfaceSignal(c.text) === "test-file");
+  const items = classified.criteria.filter(scenarioTestFile);
   if (items.length === 0) return null;
   return { count: items.length, items };
 }
@@ -789,10 +794,12 @@ function renderScenariosCodeSurfaceWarning(adv) {
 // checklist receives DONE items by id, never Scenarios units) and a holdout-marked one is also withheld
 // from the builder view, so it checks nothing. Reads dodClassify's class/holdout fields only — never a
 // second prose detector (classifyCriterion stays the one class rule). Advisory: never flips admissible.
+const scenarioProse = (c) => c.source === "scenarios" && c.class === "prose";
+
 function scenariosProseAdvisory(specText) {
   let classified;
   try { classified = dodClassify(specText); } catch (e) { return null; }
-  const items = classified.criteria.filter((c) => c.source === "scenarios" && c.class === "prose");
+  const items = classified.criteria.filter(scenarioProse);
   if (items.length === 0) return null;
   return { count: items.length, holdout: items.filter((c) => c.holdout === true).length, items };
 }
@@ -812,17 +819,30 @@ function renderOracleLessWarning(adv) {
   return `oracle-less-assertion advisory: ${adv.count} assertion(s) name no observable oracle (a MUST/comparator over internal code the holdout cannot exercise): ${items}`;
 }
 
+function humanDoneChecks(doneTexts) {
+  const marks = doneTexts.map((text) => parseHumanMarker(text));
+  const checks = [];
+  const trunc50 = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
+  const untaggedHuman = doneTexts.filter((t, i) => !marks[i].marked && matchesHumanJudgement(t));
+  checks.push({ id: "R2c.human-judgement-untagged", pass: untaggedHuman.length === 0, detail: untaggedHuman.length === 0 ? "0 untagged human-judgement DONE item(s)" : `${untaggedHuman.length} untagged DONE item(s) name a human-judgement phrase; tag each needs-human: <reason> or make it machine-checkable: ${untaggedHuman.map(trunc50).join(" | ")}` });
+  const notHumanOnly = marks.filter((m) => !m.human_only).length;
+  checks.push({ id: "R2d.not-all-human-only", pass: doneTexts.length === 0 || notHumanOnly > 0, detail: notHumanOnly > 0 || doneTexts.length === 0 ? `${notHumanOnly} DONE item(s) not tagged human-only (need at least 1)` : "every DONE item is tagged needs-human: with a reason, so no DONE item is left for the merge floor to verify (need at least one item that is not tagged human-only)" });
+  const emptyMarkers = doneTexts.filter((t, i) => marks[i].marked && !marks[i].human_only);
+  checks.push({ id: "R2e.human-marker-reason", pass: emptyMarkers.length === 0, detail: emptyMarkers.length === 0 ? "0 DONE item(s) begin needs-human: with no reason" : `${emptyMarkers.length} DONE item(s) begin needs-human: with no reason; give each a reason or remove the marker: ${emptyMarkers.map(trunc50).join(" | ")}` });
+  return checks;
+}
+
 // The pure verdict. Any parse exception coerces to inadmissible (fail-safe).
 function admissibleVerdict(specText, lightsOut) {
   if (!lightsOut) {
     return { admissible: true, reasons: [], checks: [{ id: "scope", pass: true, detail: "not lights-out — gate inactive" }], warnings: [] };
   }
-  let scenarios, doneItems, doneTexts, marks;
+  let scenarios, doneItems, humanChecks;
   try {
     scenarios = parseScenarios(specText);
     doneItems = parseDoneChecklist(specText);
-    doneTexts = doneItems.map((it) => parseLocalAcId(it).text);   // pure: the id-assigning helper would repeat dodClassify's stderr advisories
-    marks = doneTexts.map((t) => parseHumanMarker(t));
+    const doneTexts = doneItems.map((it) => parseLocalAcId(it).text);   // pure: the id-assigning helper would repeat dodClassify's stderr advisories
+    humanChecks = humanDoneChecks(doneTexts);
   } catch (e) {
     return { admissible: false, reasons: ["spec unparseable — fail-safe inadmissible"], checks: [], warnings: [] };
   }
@@ -831,13 +851,7 @@ function admissibleVerdict(specText, lightsOut) {
   checks.push({ id: "R2a.done-present", pass: doneItems.length >= 1, detail: `${doneItems.length} DONE checklist item(s) (need >=1)` });
   const vague = doneItems.filter((it) => matchesBannedVague(it));
   checks.push({ id: "R2b.done-concrete", pass: vague.length === 0, detail: `${vague.length} vague DONE item(s)${vague.length ? ": " + vague.map((v) => v.replace(/\s+/g, " ").slice(0, 50)).join(" | ") : ""}` });
-  const trunc50 = (s) => String(s).replace(/\s+/g, " ").trim().slice(0, 50);
-  const untaggedHuman = doneTexts.filter((t, i) => !marks[i].marked && matchesHumanJudgement(t));
-  checks.push({ id: "R2c.human-judgement-untagged", pass: untaggedHuman.length === 0, detail: untaggedHuman.length === 0 ? "0 untagged human-judgement DONE item(s)" : `${untaggedHuman.length} untagged DONE item(s) name a human-judgement phrase; tag each needs-human: <reason> or make it machine-checkable: ${untaggedHuman.map(trunc50).join(" | ")}` });
-  const notHumanOnly = marks.filter((m) => !m.human_only).length;
-  checks.push({ id: "R2d.not-all-human-only", pass: doneTexts.length === 0 || notHumanOnly > 0, detail: notHumanOnly > 0 || doneTexts.length === 0 ? `${notHumanOnly} DONE item(s) not tagged human-only (need at least 1)` : "every DONE item is tagged needs-human: with a reason, so no DONE item is left for the merge floor to verify (need at least one item that is not tagged human-only)" });
-  const emptyMarkers = doneTexts.filter((t, i) => marks[i].marked && !marks[i].human_only);
-  checks.push({ id: "R2e.human-marker-reason", pass: emptyMarkers.length === 0, detail: emptyMarkers.length === 0 ? "0 DONE item(s) begin needs-human: with no reason" : `${emptyMarkers.length} DONE item(s) begin needs-human: with no reason; give each a reason or remove the marker: ${emptyMarkers.map(trunc50).join(" | ")}` });
+  checks.push(...humanChecks);
   const warnings = detectRunnableCheck(specText) ? [] : ["R3 advisory: no runnable check command found (recommended for lights-out, not required)"];
   warnings.push(...doneScenariosLevelWarning(specText));   // FAFF-306: advisory only — never flips admissible
   const adv = proseDoneAdvisory(specText);                 // FAFF-304: predict the evaluator's prose-DONE punts
@@ -955,10 +969,42 @@ function admissibleSelftest() {
   return failed ? 1 : 0;
 }
 
+// Author feedback counts overlapping diagnostics as one finding. The lights-out gate keeps its own result.
+function authorDiagnosticsForDraft(specText) {
+  const units = dodClassify(specText).criteria.filter((c) => c.source === "scenarios");
+  const prose = units.filter(scenarioProse).map((c) => c.id);
+  const testFile = units.filter(scenarioTestFile).map((c) => c.id);
+  const refused = parseScenarios(specText) < 1;
+  const notes = refused && units.length === 0 ? ["R1.scenarios: no Scenarios units"] : [];
+  const major = [];
+  const proseIds = new Set(prose);
+  if (refused && units.length > 0) {
+    const finding = { r1: units.map((c) => c.id) };
+    if (prose.length > 0) finding.prose = prose;
+    if (testFile.length > 0) finding.test_file = testFile;
+    major.push(finding);
+  } else if (testFile.some((id) => proseIds.has(id))) {
+    major.push({ prose, test_file: testFile });
+  } else {
+    if (prose.length > 0) major.push({ prose });
+    if (testFile.length > 0) major.push({ test_file: testFile });
+  }
+  const doneTexts = parseDoneChecklist(specText).map((item) => parseLocalAcId(item).text);
+  for (const { id, pass, detail } of humanDoneChecks(doneTexts)) {
+    if (!pass) major.push({ done_check: id, detail });
+  }
+  return { major, notes };
+}
+
 function cmdAdmissible(args) {
   if (args.includes("--selftest")) return admissibleSelftest();
   const parsed = parseArgs(args, ADMISSIBLE_SPEC);
-  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff admissible --spec <path|-> [--lights-out] [--json]");
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff admissible --spec <path|-> [--lights-out|--author-diagnostics] [--json]");
+  const authorDiagnostics = !!parsed.values["--author-diagnostics"];
+  if (authorDiagnostics && parsed.values["--lights-out"]) {
+    process.stderr.write("faff admissible: --author-diagnostics is separate from the --lights-out gate\n");
+    return 2;
+  }
   const lightsOut = !!parsed.values["--lights-out"];
   const json = !!parsed.values["--json"];
   const specArg = parsed.values["--spec"] === undefined ? null : parsed.values["--spec"];
@@ -969,6 +1015,15 @@ function cmdAdmissible(args) {
   } catch (e) {
     process.stderr.write(`faff admissible: cannot read spec: ${e.message}\n`);
     return 2;
+  }
+  if (authorDiagnostics) {
+    try {
+      process.stdout.write(JSON.stringify(authorDiagnosticsForDraft(specText)) + "\n");
+      return 0;
+    } catch (e) {
+      process.stderr.write(`faff admissible: cannot diagnose draft: ${e.message}\n`);
+      return 2;
+    }
   }
   const v = admissibleVerdict(specText, lightsOut);
   if (json) {
@@ -1332,6 +1387,8 @@ function dodSelftest() {
 // `{prdr-id: value}` map keyed by the supplied issue→PRDR association. Pure: filesystem read of --dir +
 // args only (no tracker/network/LLM) — parity with `dod classify` / `prdr coverage`.
 function cmdHoldout(args) {
+  if (args[0] === "criteria") return cmdHoldoutCriteria(args.slice(1), dodClassify);
+  if (args[0] === "receipt") return cmdHoldoutReceipt(args.slice(1), holdoutRunDirContained, require("./merge-gate-floor").readLaneBoundaryFacts);
   if (args.includes("--selftest")) return holdoutVerdictsSelftest();
   const action = args.find((a) => !a.startsWith("--"));
   if (action === "verdict") return cmdHoldoutVerdict(args);   // FAFF-311: the singular per-issue graft gate

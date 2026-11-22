@@ -1,6 +1,6 @@
 ---
 name: faffter-noon-spec
-description: "Default `spec` producer — turns an issue plus explore findings into a buildable lite-nlspec spec (WHY-WHAT-HOW-DONE) with a confidence self-rating. The light default. Runs via faff-prep, not the user `/` menu."
+description: "Default spec producer via faff-prep: turn an issue and explore findings into lite-nlspec (WHY-WHAT-HOW-DONE) with a confidence self-rating."
 user-invocable: false
 judgement_seam: confidence, marker, specqual
 ---
@@ -30,7 +30,7 @@ The caller provides:
 
 ## Output
 
-A single markdown document following the four-phase arc below, ending with a confidence self-rating line. The caller (faff-prep) validates it via `faff contract spec-readiness`, then attaches it to the issue. This skill produces the body; it does not define the marker contract (that's the gateway _Spec readiness (fixed)_ section) and does not handle attachment or lifecycle (that's faff-prep).
+Emit one markdown document following the four-phase arc and ending with a confidence self-rating line. Faff-prep validates via `faff contract spec-readiness`, then attaches it and owns lifecycle. This producer owns only the body; the gateway _Spec readiness (fixed)_ section owns the marker contract.
 
 ## The lite nlspec arc
 
@@ -84,7 +84,7 @@ Motivation to verifiable done, in four phases. Every non-trivial decision carrie
 
 ## Self-review before returning (mandatory, all sizes)
 
-**Deterministic Scenarios check (first, before the reviewer pass).** Pipe the draft to `faff admissible --lights-out --spec - --json` and parse stdout. Treat every `warnings[]` line starting `scenarios-prose advisory:` or `scenarios-code-surface advisory:` as a `major` finding naming the listed unit ids. Read `admissible` and `reasons` too: an R1 refusal (`born-verifiable scenario(s)`) while the Scenarios section has at least one unit is a `major` format finding; with no Scenarios units, note it in the review record only, since a spec may legitimately have none. Rewrite each named unit before self-rating: give it an observable `Then` (or a `MUST` or comparator for a non-functional objective), and move a test-file check to its own DONE item. Re-run once; a warning that remains stays an open finding under the existing rating cap. A failed command (no JSON on stdout) is noted in the review record and never blocks the spec. Treat a refusal naming `R2c`, `R2d` or `R2e` as a `major` finding too: tag a person-only item `needs-human: <reason>`, rewrite any other item so a test or command can check it, keep at least one item that is not tagged, and give or drop an empty-reason marker.
+**Draft check before review.** Pipe the draft to `faff admissible --spec - --author-diagnostics`. Count each `major` entry once. Rewrite its named units with an observable Then, MUST or comparator. Move each `test_file` check into its own DONE item. For `done_check`, tag person-only items `needs-human: <reason>`, fix or remove empty markers, make other checks runnable and keep at least one untagged item. Recheck once and retain unresolved findings for the rating cap. Log `notes` or a command failure without blocking the spec.
 
 Before emitting the spec + self-rating, dispatch a **clean-context subagent** to check it against the codebase. Fresh context checks missed conventions, architectural fit, vague ACs, codebase-answerable `**Punt:**` items, false `**Assumes:**` and scope creep from the spec and codebase alone, as `/faff-graft` will. This is the default producer's delegated quality responsibility, mandatory for **every** fresh spec in both modes, regardless of size, in addition to marker conformance and self-rating. **When this producer is itself dispatched as a subagent** (gateway → **Sibling-skill invocation → Producer dispatch**), verify **in-context** in a fresh-reasoning pass with spec and codebase instead of nesting another subagent. Every claim still needs codebase verification before the spec is trusted.
 
@@ -103,7 +103,7 @@ Before emitting the spec + self-rating, dispatch a **clean-context subagent** to
 
 **Acting on findings.** `blocker` (spec is wrong about a codebase fact, false `**Assumes:**`, or a `**Chosen:**` that contradicts established convention) → revise: apply the fix, or convert the affected `**Chosen:**` to a `**Punt:**` noting the conflict; if it can't be fixed without architectural reframing, return a `low` rating with the blocker noted so the caller parks. `major` (vague AC, scope creep, a missed edge case the codebase shows is relevant) → fix where mechanical, else leave as `**Punt:**` with the reviewer's note. `minor` → fold where trivial, else note.
 
-**Self-rating downgrade rule.** If the review surfaces ≥1 `blocker` or ≥3 `major` findings, the spec **cannot** self-rate `high` regardless of how it felt pre-review — cap at `medium`. This stops rationalising past honest findings. Applies to every spec, regardless of size.
+**Self-rating downgrade rule.** ≥1 `blocker` or ≥3 `major` review findings cap the spec at `medium`, never `high`, regardless of its pre-review rating or size.
 
 **Return the review.** Emit the review's findings + the resolution decisions (what was applied, what was left as `**Punt:**`, what was dismissed and why) alongside the spec, so the caller can log the audit trail. A missing review record is a process failure.
 
@@ -119,22 +119,11 @@ confidence: high | medium | low
 
 The three levels and the gate each maps to are part of the **fixed spec-readiness contract** in the gateway (_Spec readiness (fixed)_), which also defines the line's format. Either way, this skill emits it, it does not define it. In short: `high` = every decision marked, no open questions, DONE mirrors the body; `medium` = an open `**Punt:**` item that `faff punt-scan` does not report `eligible`, or patchy explore findings; `low` = significant unknowns or possible split. Rate open decisions, not polish: a slip the builder can settle without making a new decision (a field missing from one example, an obvious unstated default) is fixed in the draft and does not lower the rating. A Punt is eligible only when it is tagged `(non-blocking)` **and** cross-referenced under OUT OF SCOPE; prose saying it does not block does not make it eligible. A spec whose only open items are eligible Punts can self-rate `high`. This is a mechanical read of the scanner, never a self-certification of the tag; tag honesty is the spec-review lens's call.
 
-This line is consumed by faff-prep for its autonomous gate decision (`high` → promote; `medium` → attach + flag for human review; `low` → park) and is **retained on the attached spec** — it is durable provenance and a re-spec signal, not stripped. `/faff-tidy`'s spec-health pass reads the retained rating and reconciles it against later comments and codebase drift; the routing verdict treats a retained `confidence: medium` as `needs-decision-first`. It is both a signal to the caller and a lasting property of the spec.
+Faff-prep consumes this line for its autonomous gate (`high` → promote; `medium` → attach + flag for human review; `low` → park). **Retain it on the attached spec** as durable provenance and a re-spec signal. `/faff-tidy` reconciles it against later comments/codebase drift in spec-health; routing treats retained `confidence: medium` as `needs-decision-first`.
 
 ## Contract artifact
 
-After the prose spec and the `confidence:` line, append **one** fenced code block — tagged `faff-contract:spec-readiness`, as the **last** thing in the output — declaring the markers you just wrote, so faff-prep (the consumer) parses them **deterministically** (no LLM re-read of your prose) and pipes them to `faff contract spec-readiness`. You authored the markers and the confidence token, so you declare them directly; the block mirrors the prose, it is not a second source of truth.
-
-````
-```faff-contract:spec-readiness
-{ "confidence": "<your confidence token: high|medium|low>",
-  "decisions": [ { "marker": "chosen" | "punt" | "assumes" | "none" }, ... one per non-trivial decision section, in document order ] }
-```
-````
-
-- **One** block, at the very end. `decisions` lists each non-trivial decision section's canonical marker in order (`chosen` / `punt` / `assumes`; `none` only if a multi-option section is missing one — a clean spec has none).
-- Do **not** include `provenance_present` — faff-prep computes that from the provenance stamp it adds at attach time.
-- The block is machine-only (a human reader can ignore it). **Always emit it** — it is the deterministic path; a present-but-malformed block fails loud downstream (producer breakage), so emit valid JSON matching the shape exactly. (Omitting it falls back to faff-prep reading your prose — the absent-block fallback.)
+Emit the final readiness block per gateway → **Spec readiness (fixed)**.
 
 ## Rules
 

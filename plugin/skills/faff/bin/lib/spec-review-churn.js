@@ -97,7 +97,7 @@ function readRoundRecord(p) {
     return { missing: true, error: e };
   }
   try {
-    return { record: JSON.parse(raw) };
+    return { record: JSON.parse(raw), raw };
   } catch (e) {
     return { malformed: e.message };
   }

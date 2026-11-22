@@ -58,6 +58,8 @@ const NATIVE_MAP_SPEC = {
     "--team": { arity: 1 },
     "--tracker": { arity: 1 },
     "--type": { arity: 1 },
+    "--local": { arity: 0 },
+    "--native-body": { arity: 1 },
     "--dry-run": { arity: 0 },
     "--force": { arity: 0 },
     "--json": { arity: 0 },
@@ -75,6 +77,7 @@ const NATIVE_MAP_SURFACE = {
   subcommands: {
     set: { required_flags: ["--team", "--tracker"] },
     get: { required_flags: [] },
+    fields: { required_flags: ["--type"] },
   },
 };
 
@@ -344,6 +347,18 @@ function emitNativeMapGetMiss(type, json) {
   return 0;
 }
 
+function readNativeMap(root, data) {
+  const mapRel = nativeMapReadRel(root, data);
+  const targetPath = path.join(root, mapRel);
+  let tree = null;
+  try {
+    if (fs.existsSync(targetPath)) tree = parseYamlSubset(fs.readFileSync(targetPath, "utf8"));
+  } catch {
+    tree = null; // unreadable → treated as absent, never a throw
+  }
+  return { tree, mapRel };
+}
+
 function cmdNativeMapGet(values, root) {
   const json = !!values["--json"];
   const type = values["--type"];
@@ -354,15 +369,7 @@ function cmdNativeMapGet(values, root) {
     );
   }
 
-  const [data] = loadConfig(root);
-  const mapRel = nativeMapReadRel(root, data);
-  const targetPath = path.join(root, mapRel);
-  let tree = null;
-  try {
-    if (fs.existsSync(targetPath)) tree = parseYamlSubset(fs.readFileSync(targetPath, "utf8"));
-  } catch {
-    tree = null; // unreadable → treated as absent, never a throw
-  }
+  const { tree, mapRel } = readNativeMap(root, loadConfig(root)[0]);
   if (tree === null || typeof tree !== "object" || Array.isArray(tree)) {
     return emitNativeMapGetMiss(type, json);
   }
@@ -478,10 +485,19 @@ function cmdNativeMap(args) {
 
   const root = gate.values["--root"] || findRoot();
   const verb = gate.positionals[0];
+  if (verb === "fields") {
+    if (!FAFF_TYPE_SET.has(gate.values["--type"]) || ["--force", "--team", "--tracker", "--dry-run"].some(flag => gate.values[flag] !== undefined)) {
+      return usageError([{code: "bad-value", detail: "fields requires a supported --type and read-only options"}], "usage: faff native-map fields --type TYPE [--local | --native-body FILE|-] [--root DIR]");
+    }
+    return require("./ticket-template-fields").cmdTicketFields(root, gate.values, readNativeMap);
+  }
+  if (gate.values["--local"] || gate.values["--native-body"] !== undefined) {
+    return usageError([{code: "bad-value", detail: "--local and --native-body belong to fields"}], NATIVE_MAP_GET_USAGE);
+  }
   if (verb === "set") return cmdNativeMapSet(gate.values, root);
   if (verb === "get") return cmdNativeMapGet(gate.values, root);
 
-  process.stderr.write("faff native-map: expected the subcommand 'set' or 'get' (or --selftest)\n");
+  process.stderr.write("faff native-map: expected the subcommand 'set' or 'get', or 'fields' (or --selftest)\n");
   return 2;
 }
 

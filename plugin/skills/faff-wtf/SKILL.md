@@ -1,6 +1,6 @@
 ---
 name: faff-wtf
-description: "Where to focus — what shipped, what's stuck, what to work on next, and what an overnight beep-boop run parked. Trigger for: 'wtf' / 'what should I work on' / 'catch me up' / 'what happened' / 'what's blocked' / 'what's next', 'Where to focus', 'what's happening', 'where are we', 'where we at', 'whats up', 'the 411', 'lowdown'."
+description: "Brief on what shipped, what is blocked, what to work on next and what an unattended run parked. Use for catch me up, current focus or what happened."
 ---
 
 # Faff — WTF (Where To Focus)
@@ -15,7 +15,7 @@ Pull current state from your issue tracker and git, figure out what matters, tel
 
 **Ordering is delegated.** Anywhere this skill suggests, ranks, or recommends work (Coming Up, Today's Focus, Ready to pick up, build-queue independents, parked-overnight triage), it renders the order the configured `methodology` slot's `pick-ordering` returns (gateway → **Ordering & judgement delegation**). `/faff-wtf` states no ordering of its own; the thematic default supplies priority + chainable unlock value when no methodology is set.
 
-**Methodology transport.** Each `methodology` output `/faff-wtf` requests (`pick-ordering`, `standup-digest`, and `backlog-diagnostics` when no tidy ran this pass) is dispatched as a **producer subagent** (gateway → **Sibling-skill invocation → Producer dispatch**) resolving the `methodology` dispatch lane. Per gateway → **The `methodology` slot → Transport** they share **one batched dispatch per render pass**; if `/faff-wtf` is ever itself a subagent, the call runs **in-context** (single-level nesting).
+**Methodology transport.** Batch `pick-ordering` and `standup-digest` per render pass. Include `backlog-diagnostics` only if no tidy ran this pass. Follow **Transport (per-output dispatch grain)** in `faff/references/methodology.md`.
 
 **Reflect newly unlocked potential.** In "Recently Completed", show what each shipped issue unblocked: blockers cleared within 24-48 hours, leaving dependents ready or closer to ready. Annotate these issues "just unlocked by …" as *just-realised* potential. Their placement in "Coming Up" / "Today's Focus" / "Ready to pick up" follows methodology `pick-ordering`, never wtf's judgement.
 

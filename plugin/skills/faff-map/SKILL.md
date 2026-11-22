@@ -1,6 +1,6 @@
 ---
 name: faff-map
-description: "Roadmap synthesis — outcome initiatives, the workstreams under them, the dependency chains between them, and whether the trigger gates can actually fire. The strategic view above /faff-wtf. Trigger for: 'roadmap', 'where are we going', 'explain the backlog', 'do these join up', 'workstream view', 'strategy view', 'what are the chains', 'big picture', 'walk me through the plan', 'is the plan coherent'."
+description: "Explain the strategic roadmap: outcome initiatives, workstreams, dependency chains and trigger gates. Use for big-picture plans, strategy or roadmap coherence."
 judgement_seam: roadmap
 ---
 
@@ -18,7 +18,7 @@ Pull the live tracker state, synthesise an outcome → workstream → chain → 
 
 **Resolve tracker availability first (gateway → Tracker availability resolution).** map reads the whole roadmap from the tracker, so before treating the tracker as absent it honours a `tracking.tracker` pin and discovers the connector — never inferring git-only from an immediately-invisible tool list under a deferred-tool harness — resolving the mode once for the pass.
 
-**Roadmap shape is deduced from the tracker.** faff does not read a project "methodology doc" and no `.faff/config.yaml` key points at one — config holds values, not prose, and a doc would drift from live state. The roadmap's shape is inferred from what the tracker actually holds: the initiatives/epics and how projects nest under them (initiative shape), project status + cycle membership + target dates (the Now / Next / Later horizons), initiative and project descriptions plus success-metric fields (the outcomes), and blocker links (the chains). The *normative* half — whether a success metric is healthy, whether a chain is coherent — is the `methodology` **slot's** job (see **Methodology lens** below), not a doc's.
+**Roadmap shape is deduced from the tracker.** Read no project "methodology doc"; no `.faff/config.yaml` key points at one (config holds values, not prose). Infer initiative shape from initiative/epic project nesting; Now / Next / Later horizons from project status + cycle membership + target dates; outcomes from initiative/project descriptions + success-metric fields; chains from blocker links. The `methodology` **slot**, not a doc, judges success-metric health and chain coherence (see **Methodology lens**).
 
 **Initiative shorthand.** Use the initiative's full name on first reference and as the heading (e.g. "Initiative — Audit-lite reliability"). A short tag like "Initiative A" / "Initiative B" is fine for cross-references in tables and ASCII diagrams, but **always restate the subject** on cross-reference in prose ("Initiative B (Platform readiness) has a hole" — never "Initiative B has a hole" alone). No ad-hoc grouping codes like "X2a" or "Wave 1.3" — those are invented label schemes, not real structure.
 
@@ -26,11 +26,11 @@ Pull the live tracker state, synthesise an outcome → workstream → chain → 
 
 **Methodology lens.** Phase 1 (Now/Next/Later) sequences inside each horizon via the configured `methodology` slot's `pick-ordering` (gateway → **Ordering & judgement delegation**) — map states no ordering of its own; the thematic default supplies priority + chainable unlock value, and an opinionated lens (e.g. `faffter-dark-methodology-agile-delivery`) supplies value × risk × dep-aware order. When an opinionated lens is configured (gateway → **The `methodology` slot**, display convention), Phase 7 (Risks) also gains its findings alongside the structural risks.
 
-**Methodology transport.** Map's `methodology` requests (`pick-ordering`, `horizon-assignment`, `backlog-diagnostics`) go through **producer dispatch** (gateway → **Sibling-skill invocation → Producer dispatch**), resolving the `methodology` dispatch lane. They ride **one batched dispatch per map pass** per gateway → **The `methodology` slot → Transport**; a map running inside a subagent falls back **in-context** (single-level nesting).
+**Methodology transport.** Batch `pick-ordering`, `horizon-assignment` and `backlog-diagnostics` once per map pass. Follow **Transport (per-output dispatch grain)** in `faff/references/methodology.md`.
 
 ## What it does
 
-**Always pull the whole roadmap fresh** per the shared **Always pull fresh** rule (gateway): every invocation re-fetches every initiative, every project under it, every issue, every blocker link and status field. A roadmap that mixes fresh and stale pieces is silently wrong, and the chain analysis (Phase 4) and gate analysis (Phase 5) then produce confidently incorrect findings on a document the reader trusts as one coherent snapshot. If the fetch budget is too high, scope to a single initiative, never to partial freshness.
+**Always pull the whole roadmap fresh** (gateway → **Always pull fresh**): re-fetch every initiative, child project, issue, blocker link and status field on every invocation. Mixed freshness invalidates the shared snapshot and its Phase 4 chain/Phase 5 gate findings. If fetch cost is too high, scope to one initiative, never partial freshness.
 
 Run through these phases in order:
 
@@ -39,7 +39,7 @@ Run through these phases in order:
 - Establish the roadmap's shape from the tracker itself (per **Roadmap shape is deduced from the tracker** above): what the top-level outcome containers are, how projects nest under them, and how the status / cycle / target-date fields map onto Now / Next / Later horizons. There is no methodology doc to read — don't look for one.
 - Re-fetch the tracker's top-level outcome containers (Linear: initiatives; GitHub Projects: projects; Jira: epics or initiatives — autodetect from the available MCP, don't hardcode). For each: name, status, success metric / description.
 - For each initiative, fetch its child projects with their status (started/planned/backlog or the tracker's equivalent), description, and target dates.
-- For each project, fetch its issues with status, priority, and blocker links (both directions — what blocks me, what I block). Drop satisfied edges before any downstream use (gateway → **Satisfied blockers — edges to terminal work**) — a blocker whose target has shipped is not live.
+- For each project, fetch its issues with status, priority, and blocker links (both directions — what blocks me, what I block). Use the gateway's **Ignore cancelled and archived** and **Satisfied blockers — edges to terminal work** batch for visibility and live edges.
 - Read `CLAUDE.md` for any consuming-project context that should weight initiatives (current workstream flag, paused initiatives, externally-imposed deadlines).
 - Pull recent git activity (last 7-14 days of commits on `main` and active branches, recent merged PRs) to ground "Now" projects against actual movement — a project marked "started" with no recent commits is a finding.
 
@@ -69,7 +69,7 @@ Next   [project name]            [planned]   ISSUE-AA, ISSUE-BB, ...
 Later  [project name]            [backlog]   ISSUE-MM, ISSUE-NN, ...
 ```
 
-Below each initiative's block, add one line of recent grounding: "ISSUE-XX (just merged) belongs here — [one-sentence why]" or "SHF-YY (just parked) sits here". This anchors the roadmap in this week's actual movement so the reader can see the structure is alive, not a frozen document.
+Below each initiative's block, ground it in this week's movement with one line: "ISSUE-XX (just merged) belongs here — [one-sentence why]" or "SHF-YY (just parked) sits here".
 
 If an initiative is missing a horizon (no Next, no Later) — call it out as **⚠ Structural gap**: `Next: (no project planned)`. Do not silently render an empty row; the gap is the finding. **Do not reference cancelled or deleted predecessor containers** — they don't exist for this skill (see Phase 1). The gap is "no project here", not "previous project was cancelled". (Phase 4 explores whether the gap is load-bearing.)
 
@@ -77,7 +77,7 @@ If an initiative is missing a horizon (no Next, no Later) — call it out as **�
 
 ### 4. Dependency chain — does everything join up?
 
-Draw an ASCII chain showing how initiatives feed each other. The chain answers: **if every Now project ships, do the Next gates fire? If every Next project ships, do the Later initiatives unblock?** Draw the chain over **live** blocker edges only — a satisfied edge (gateway → **Satisfied blockers — edges to terminal work**) is not a link and never breaks the join-up.
+Draw an ASCII chain showing how initiatives feed each other. The chain answers: **if every Now project ships, do the Next gates fire? If every Next project ships, do the Later initiatives unblock?** Draw the chain over the live edges from step 1.
 
 ```
           ┌─────────────────────────────────────────┐
@@ -94,11 +94,11 @@ Draw an ASCII chain showing how initiatives feed each other. The chain answers: 
 
 Where two initiatives feed a third, draw both inputs converging. Where an initiative has a structural gap (Phase 3), mark the gap inline so the chain visibly breaks at that point. The visual goal: a reader should be able to trace any leaf initiative back to the active work that gates it.
 
-After the diagram, write one summary line. It must stay consistent with the dependency cycles Phase 7 detects — read the **same** `dependency_cycles` result (the `backlog-diagnostics` call in Phase 7), never a separately-derived chain: if a detected cycle touches any issue on the rendered chain, the line is **"No — a dependency cycle breaks the chain: <member IDs>"** and **never** "joins up". Otherwise: **"Yes, the chain joins up"** / **"Yes, with N visible discontinuities"** / **"No — Initiative X has no path to its outcome"**.
+After the diagram, use Phase 7's `dependency_cycles`. If any `members` overlap the chain, write **"No, a dependency cycle breaks the chain: <member IDs>"**. Otherwise choose **"Yes, the chain joins up"**, **"Yes, with N visible discontinuities"** or **"No, Initiative X has no path to its outcome"**.
 
 ### 5. Trigger gates and whether they can fire
 
-For every "X → Y" transition implied by the chain, table whether the gate can actually fire. A gate is **fireable** if (a) all upstream work is in flight or shipped and (b) the downstream project actually exists in the tracker. A satisfied blocker edge (gateway → **Satisfied blockers — edges to terminal work**) never counts against fireability.
+For every "X → Y" transition implied by the chain, table whether the gate can actually fire. A gate is **fireable** if (a) all upstream work is in flight or shipped and (b) the downstream project actually exists in the tracker. Use only live edges.
 
 | Gate | Who fires it | Currently fireable? | Notes |
 |---|---|---|---|
@@ -132,13 +132,13 @@ Order via the configured methodology's `pick-ordering` (gateway → **Ordering &
 
 The output of Phases 1-6 surfaces risks that aren't visible from any single initiative or issue. Call them out explicitly.
 
-**Structural-graph risks come from `backlog-diagnostics`, every pass — never from whether tidy ran.** Request the `backlog-diagnostics` output from the configured `methodology` slot (default `faffter-noon-methodology-thematic`; it always resolves and its mandatory floor is dependency-graph cycle + ghost-project detection — gateway → **The `methodology` slot**). It operates on the active-issue graph already pulled in Phase 1 — **no new fetch**. Map is a declared caller of this always-fires output, so cycle + ghost coverage is present on every map pass whether or not `/faff-tidy` ran. Do **not** re-implement detection here, and do **not** gate it on a tidy log existing. Surface these categories:
+**Structural-graph risks come from `backlog-diagnostics`, every pass — never from whether tidy ran.** Request it from the configured `methodology` slot (default `faffter-noon-methodology-thematic`), which always resolves with mandatory dependency-cycle + ghost-project detection (gateway → **The `methodology` slot**). Use Phase 1's active-issue graph, **no new fetch**. Never re-implement detection or require an existing tidy log; map gets both categories every pass. Surface:
 
-- **Dependency cycle**: a cycle of any length in the active-issue blocker graph (A→B→A; A→B→C→A; longer), from `diag.dependency_cycles`. Name the member issue IDs in cycle order and recommend the concrete break action (which blocker edge to cut or re-sequence). A cycle is a real backlog defect even when it sits entirely off the rendered chain — surface it regardless; Phase 4 additionally forces its join-up line to "No" only when a cycle touches the chain it drew.
+- **Dependency cycle**: report each cycle's `witness` and any other `members` from `diag.dependency_cycles`, including off-chain cycles. Recommend the blocker edge to cut or re-sequence.
 - **Cross-project blocker within a value stream**: a blocker edge (A blocks B) whose endpoints sit in **different projects under the same initiative** — **value stream := the initiative** map reads as its top-level container in Phase 1. Name A, B, their projects, and the gate it threatens. *(Temporal anchor: project-as-deliverable has not landed; when it does, revisit whether the value-stream container should be the deliverable rather than the initiative — a forward refinement, not a blocker.)* An edge whose two projects sit under *different* initiatives is a cross-initiative gate, already handled by Phase 5 — not double-reported here.
 - **Ghost project**: an initiative description names a Next or Later project in prose, but no project actually exists in the tracker. The chain can't fire through a ghost. Combine map's own initiative-*description*-side scan with the *issue-side* `ghost_project_pointers` from `diag`, de-duplicated. State the gap as "the description names X, no project exists" — do not name or reconstruct any cancelled/deleted predecessor (per Phase 1).
 
-**Optional tidy-log enrichment (never the source).** If a `/faff-tidy` run produced a `### Structural diagnostics` block this pass (read the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`), import its findings as added colour and de-duplicate against map's own. This only enriches; map already has full cycle + ghost coverage from `backlog-diagnostics` above. With no tidy this pass, do **not** print "detection skipped"; at most note that issue-side ghost *enrichment* is thinner without a tidy run.
+**Optional tidy-log enrichment (never the source).** If tidy produced `### Structural diagnostics` this pass, read the most recent `.faff/logs/YYYY-MM-DD/HHMMSS-tidy.md`, import and de-duplicate its findings. Map already has full cycle + ghost coverage from `backlog-diagnostics`. Without tidy, never say "detection skipped"; at most note thinner issue-side ghost *enrichment*.
 
 **Methodology findings (when a `methodology` skill is configured).** Request the `horizon-assignment` output from the methodology skill; alongside the horizon ordering it returns roadmap-level findings. Surface those here in addition to the structural risk categories. Each finding renders its full diagnosis (what's there / why it's a problem / what to do) as the methodology returns it. Findings interleave with the existing structural risks, ordered by severity (impact × scope).
 - **Independence not verified**: a Now project has N issues that beep-boop is supposed to drain in parallel, but no one has confirmed they're actually independent. Recommend a `/faff-tidy` pass before queuing overnight runs.
@@ -150,7 +150,7 @@ For each risk: state the risk, name the load-bearing structural element, and rec
 
 ### 8. TL;DR
 
-Three to five sentences max. Lead with how many outcomes are in flight, whether the chain joins up end-to-end, and the single biggest concrete risk. The reader who only reads the TL;DR should know whether to dig into the full output or carry on.
+Three to five sentences max. Lead with the number of outcomes in flight, end-to-end chain coherence and the biggest concrete risk, so the TL;DR alone tells the reader whether to investigate or carry on.
 
 ## Output Format
 
@@ -216,7 +216,7 @@ When invoked autonomously (rare — this is primarily a human-facing strategic a
 
 **No tracker writes.** Even in autonomous mode, this skill never creates projects, never re-parents issues, never closes gaps. Findings go to the log; humans act on them.
 
-Log the full pass to `.faff/logs/YYYY-MM-DD/HHMMSS-map.md`. The log must include every MCP call made (initiatives fetched, projects per initiative, issues per project, comments scanned for structural-gap context) so the log alone reconstructs the roadmap. This narrative `HHMMSS-map.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`).
+Log the full pass to `.faff/logs/YYYY-MM-DD/HHMMSS-map.md`, including **every MCP call**: initiatives fetched, projects per initiative, issues per project and comments scanned for structural-gap context. The log alone must reconstruct the roadmap. This narrative `HHMMSS-map.md` obeys the gateway logging gate: skip it when `logging: essential`.
 
 ## Notes
 

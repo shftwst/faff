@@ -582,30 +582,10 @@ test("--selftest reports PASS in-process (both commands)", () => {
 
 // --- SKILL wiring: block-scoped occupant lint + prep scratch-dir/swap-reset prose ---
 
-test("occupant SKILL chain-assembly block calls `spec-review-pin --resolve`, NOT `adversarial-backends`", () => {
+test("occupant records the actual returned batch against the prepared chain", () => {
   const body = readFileSync(OCCUPANT_SKILL, "utf8");
-  // Locate the fenced ```bash block that assembles $backends_json (the chain-resolve step) and
-  // scope the presence/absence check to THAT block — mentions of `adversarial-backends` elsewhere
-  // in the SKILL (the outcome-table exit-3/2 prose) are expected and allowed.
-  const blocks = body.split("```").filter((b) => b.startsWith("bash") && b.includes("backends_json"));
-  assert.ok(blocks.length >= 1, "found the chain-assembly bash block");
-  const block = blocks.find((b) => b.includes("--resolve")) || blocks[0];
-  assert.match(block, /spec-review-pin --resolve --dir "\$pin_dir" --consumer spec_review/, "resolve step names spec-review-pin");
-  assert.doesNotMatch(block, /adversarial-backends/, "the chain-assembly block no longer calls adversarial-backends directly");
-});
-
-test("occupant SKILL documents UNCONDITIONAL round-1+ pin capture: served → --winner-index --round, empty → --no-lens-served --round", () => {
-  const body = readFileSync(OCCUPANT_SKILL, "utf8");
-  assert.match(body, /spec-review-pin --capture --dir "\$pin_dir" --backends-json "\$backends_json" --winner-index "\$winner_index" --round "\$n"/);
-  assert.match(body, /spec-review-pin --capture --no-lens-served --dir "\$pin_dir" --round "\$n"/, "the empty-set path calls --no-lens-served, never a bare skip");
-  assert.match(body, /min\(i\)|lowest chain index that served/);
-  assert.doesNotMatch(body, /skip capture \(nothing to pin;/, "the old unconditional-skip phrasing is gone");
-});
-
-test("occupant SKILL documents served-<n>.json is written on EVERY served round, not just round 1", () => {
-  const body = readFileSync(OCCUPANT_SKILL, "utf8");
-  assert.match(body, /served-<n>\.json.*every.*served round|writes.*served-<n>\.json.*on.*every.*served round/i);
-  assert.match(body, /round 1 and rounds ≥ 2 alike/);
+  assert.match(body, /spec-review record-results --dir "\$pin_dir" --round "\$n" --results "\$results_json" --backends-json "\$backends_json"/);
+  assert.match(body, /replace `--results` and `--backends-json` with `--no-results`/);
 });
 
 test("prep SKILL resolves the scratch dir via `spec-review-dir` and hands it to `spec-review round`", () => {

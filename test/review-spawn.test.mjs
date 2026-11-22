@@ -80,8 +80,6 @@ test("integration: a nonexistent target command -> SPAWN_FAILED(1), no unhandled
 test("integration: SIGTERM delivered to the wrapper kills the whole group and exits 130, leaving no orphan", async () => {
   const dir = mkdtempSync(join(tmpdir(), "faff-793-"));
   const marker = join(dir, "alive");
-  // The target writes a heartbeat file every 100ms so we can positively confirm it was
-  // running, then check it stops being touched once the wrapper is SIGTERM'd.
   const targetSrc = `
     const fs = require("fs");
     setInterval(() => fs.writeFileSync(${JSON.stringify(marker)}, String(Date.now())), 100);
@@ -91,13 +89,13 @@ test("integration: SIGTERM delivered to the wrapper kills the whole group and ex
   const child = spawn(process.execPath, [SCRIPT, "--deadline", "60", "--", process.execPath, "-e", targetSrc], { stdio: "ignore" });
   await new Promise((r) => setTimeout(r, 600));   // let the target establish its heartbeat
   assert.ok(readdirSync(dir).includes("alive"), "the target should have started heartbeating before we abort it");
-  const beforeKillMtime = readFileSync(marker, "utf8");
   child.kill("SIGTERM");
   const exitInfo = await new Promise((resolve) => child.on("exit", (code, signal) => resolve({ code, signal })));
-  assert.equal(exitInfo.code, 130, "SIGTERM to the wrapper must exit 130 (128+SIGTERM)");
+  assert.equal(exitInfo.code, 130, "SIGTERM to the wrapper must exit 130");
+  // A heartbeat can land between requesting SIGTERM and the wrapper killing the group.
+  const heartbeatAtExit = readFileSync(marker, "utf8");
   await new Promise((r) => setTimeout(r, 500));
-  const afterMtime = readFileSync(marker, "utf8");
-  assert.equal(afterMtime, beforeKillMtime, "the target must have stopped heartbeating — the group kill reached it, it did not survive the wrapper's own exit");
+  assert.equal(readFileSync(marker, "utf8"), heartbeatAtExit, "the target must have stopped heartbeating — the group kill reached it, it did not survive the wrapper's own exit");
 });
 
 test("FAFF-465 repro: a target that spawns a grandchild and exits immediately (the grandchild reparents to init but STAYS in the launched process group) — the whole group is reaped, no survivor", () => {

@@ -299,9 +299,9 @@ test("skill prose: graft's resume skip needs an empty violations list, and the c
   const beep = read("faff-beep-boop");
   assert.match(beep, /faff holdout record --issue <key> --spec </);
   assert.match(beep, /--store-out <abs repo root>\/\.faff\/holdout\/<key>\.json/);
-  assert.match(beep, /written by `faff holdout record` or the spawner's `--store-out`/);
+  assert.match(beep, /faff holdout receipt --key <key> --run-dir <run-dir> --writer-exit/);
   const evaluator = read("faffter-noon-evaluate");
   assert.doesNotMatch(evaluator, /persist the \*\*same\*\* block to `\.faff\/holdout/);
-  assert.match(evaluator, /you write no file/);
+  assert.match(evaluator, /The evaluator writes no file/);
   assert.match(evaluator, /Excerpt rule/);
 });

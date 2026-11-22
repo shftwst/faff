@@ -16,7 +16,7 @@ One skill, three entry points — **not** separate commands per item type:
 
 ## Configuration
 
-**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references jot consumes: `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/create.md`. jot leans on **Agent Lanes** and the `intake` / `methodology` slot contracts it delegates to.
+**Load the kernel first.** Read `faff/references/kernel.md` unless already in context this turn. Skip the bare routing gateway `faff/SKILL.md`. Read `faff/references/tracker.md`, `faff/references/autonomous.md` and `faff/references/methodology.md`. Also Read `faff/references/create.md` for every path except interactive inspection of an existing ticket through a resolved tracker. Load it before any new-work or git-only fallback. Follow **Agent Lanes** and the `intake` / `methodology` slot contracts.
 
 ## Rendering
 
@@ -57,7 +57,7 @@ If the configured intake skill returns something that isn't a conformant discove
 
 ### 3. Shape into tickets — apply the `methodology` slot
 
-**Methodology transport.** jot's `methodology` calls — `ticket-shaping` for the brief and `prdr-author` for a new project — are **producer dispatches** (gateway → **Sibling-skill invocation → Producer dispatch**), resolving the `methodology` dispatch lane. Per gateway → **The `methodology` slot → Transport**, `ticket-shaping` is a **single dispatch per pass** and `prdr-author` dispatches **per project**; jot running inside a subagent falls back **in-context** (single-level nesting).
+**Methodology transport.** Request `ticket-shaping` for the brief and `prdr-author` for each new project. Follow **Transport (per-output dispatch grain)** in `faff/references/methodology.md`.
 
 Hand the discovery brief to the configured `methodology` skill's **`ticket-shaping`** output (resolve `faff config get slots.methodology`). The methodology decides workstreams/containers, ticket boundaries, sequencing and dependency links from the brief and live tracker graph. Follow the configured methodology: the thematic default shapes purely from the brief + graph; an opinionated methodology (`faffter-dark-methodology-agile-delivery`) additionally right-sizes, outcome-names workstreams, and sequences by value × risk.
 
@@ -76,7 +76,7 @@ On confirm, invoke `faff-plot` via the Skill tool with the **discovery brief**, 
 Show the proposed structure (containers + tickets + relationships) and gate before writing:
 
 - **Interactive (default):** present the shaped tickets as a short tree and ask "Create these N tickets [under new project '<name>']? (yes / edit / no)". On `edit`, take the human's adjustments and re-shape or tweak directly. On `yes`, create them in the tracker via the configured MCP. On `no`, stop — the brief is logged so nothing is lost.
-- **Fill each ticket's description from its type template** (gateway → **Ticket templates**), after Step 3 shaping and before rendering/writing. Use the supplied `ticket-shaping` type, otherwise infer from title + description; resolve the template and fill from the brief. Unknown fields use `_To be determined during prep._`; never fabricate content or block creation for under-filled templates. A native mapping may require `get_template` at create time (tier 1); a miss falls through silently without blocking.
+- After shaping and before rendering, fill each description via gateway → **Ticket templates**.
 - **Resolve the create-target team.** After type determination, before `save_issue`, read `faff config get --json tracking.team_routing` keyed by the determined type. A match wins; otherwise use `faff config get tracking.default_team`. Unknown-taxonomy routing keys never match. With `tracking.teams` unset, use the one resolved legacy team unconditionally, with no routing branch. `/faff-plot` references this same procedure.
 - Create containers first (initiative/project), then tickets — each into its resolved create-target team — then the blocker/blocked-by links the methodology proposed. (Each ticket's open questions land in its template's `Open questions` field.)
 - **Idempotent create + link authoring** — apply the create/relink discipline in **Idempotent create + link authoring (the MCP-write seam)** below: re-query before retrying an ambiguous create, and author sibling references as markdown links, never raw-UUID embeds.
@@ -99,21 +99,19 @@ Title-matching is imperfect (Linear search isn't exact-string) — scope it to t
 
 ## Existing-ticket interactor (`/faff-jot ISSUE-XX`)
 
-With an issue-id, `/faff-jot` interactively inspects the existing ticket. It performs no new-work intake or mutation; re-scope, re-home and split/merge remain deferred in v1. Never invoke this interactor autonomously.
+An issue-id opens interactive inspection. Never invoke this interactor autonomously.
 
-**Remit — inspection now; shaping deferred.** Load/display only. Re-scope, re-home (re-parent), and split/merge intent remain deferred (see **Out of scope**). Existing operations keep their own skills:
+**Remit.** Load and display the ticket. Route other operations to their owners:
 
 - speccing → `/faff-prep`
 - grooming / diagnostics → `/faff-tidy`
 - building → `/faff-graft`
 
-Keep this interactor within inspection; it must not duplicate the three skills above.
-
 ### The flow
 
-1. **Load the ticket** — title, description, labels, status, spec comments. If the issue doesn't exist → error and stop. If it's **cancelled or archived** → refuse (shared **Ignore cancelled and archived** rule). This is a **load**, not a re-run of discovery — never re-interview the human about a ticket that already exists.
-2. **Display a short summary** — title, status, and whether a spec is attached. No prompt, no mutation: the shaping verbs are deferred, so there is nothing to decide here yet.
-3. **Log** per the gateway `.faff/logging` rule. No prompt, no write, no spec, no build, no re-discovery.
+1. **Load the ticket**: title, description, labels, status and spec comments. Missing → error and stop. Cancelled or archived → refuse (shared **Ignore cancelled and archived** rule). Never re-interview the human.
+2. **Display a short summary** with title, status and whether a spec is attached. No prompt or mutation.
+3. **Log** per the gateway `.faff/logging` rule.
 
 ### Out of scope (v1)
 
@@ -150,7 +148,7 @@ Per gateway `.faff/logging`, record detected mode, intake skill, discovery brief
 ## Rules
 
 - One skill for all new-work intake — never spawn per-type variants (`faff-new-bug`, `faff-new-feature`). Mode is a parameter, not a separate command. The existing-ticket interactor follows the same principle: it's selected by the issue-id **argument**, not a separate command.
-- The existing-ticket interactor (`/faff-jot ISSUE-XX`) is **inspection-only in v1** (shaping verbs deferred) and **interactive-only**. It never specs (→ `/faff-prep`), grooms (→ `/faff-tidy`), or builds (→ `/faff-graft`), never re-runs discovery on a ticket that already exists, and never edits the ticket's title/description/status in place.
+- `/faff-jot ISSUE-XX` follows the interactive-only **Existing-ticket interactor** above.
 - Discovery is delegated (`intake` slot), shaping is delegated (`methodology` slot). `/faff-jot` orchestrates: detect mode, route the brief, confirm, create, chain. It owns no ideation opinions and no structural opinions of its own.
 - Never write a spec here. A created ticket is a `Backlog` item with a seeded description and open questions — `/faff-prep` turns it into a buildable spec. (A description is never a spec — gateway shared rule.)
 - Ticket creation is gated on human confirmation except at `full` appetite for non-container tickets. Containers always confirm (except within the L4 accepted-root envelope).

@@ -370,6 +370,7 @@ const REGION_MAP = {
   // source x gate_defect -> high|medium|low). Pure total function, same shape as eligible/
   // contain -> factory.
   "discovered-scope-priority": "factory",
+  "discovered-scope-plan": "factory",
   "claim-verdict": "factory",
   // park-verdict — FAFF-835: the stale-park validity function. Pure age-less
   // predicate (status + signals → verdict, no tracker/clock) — same shape as
@@ -437,6 +438,7 @@ const REGION_MAP = {
   // structural diagnostics. Pure stdin→stdout computation, no local requires —
   // a pure computation command, sibling of next/contain → factory.
   "findings-reconcile": "factory",
+  park: "factory",
   "park-history": "factory",
   // FAFF-993: the git-only Unpark decision + write contract. Load-time requires
   // are queue-state/heartbeat/runcheck (ledger seams) + argv/shared-infra — a
@@ -622,6 +624,9 @@ const REGION_MAP = {
   // resolvers the faffter-dark-spec-review occupant + faff-prep shell out to. factory→factory is
   // a legal require edge (ADR-0042).
   "spec-review-pin": "factory",
+  "prep-context": "factory",
+  "build-queue-partition": "factory",
+  "planning-graph": "factory",
   "spec-review-dir": "factory",
   // FAFF-888: spec-review-reputation is the recompute-on-read per-backend reputation ledger
   // that strikes a candidate-degenerate spec_review reviewer at slot selection. Pure arithmetic
@@ -645,6 +650,7 @@ const REGION_MAP = {
   // shells the case-file assembler/roll-up + dispatches the two-phase judge — same family as
   // spec-judge-evidence → factory.
   "build-review-churn": "factory",
+  "build-review-round": "factory",
   "build-review-convergence": "factory",
   "build-judge-evidence": "factory",
   // FAFF-1276: review-prior lists the previous review round's findings by handle for the
@@ -731,6 +737,7 @@ const REGION_SELFTEST_ARGV = {
   "label": ["label", "--selftest"],
   "eligible": ["eligible", "--selftest"],
   "discovered-scope-priority": ["discovered-scope-priority", "--selftest"],
+  "discovered-scope-plan": null,
   "claim-verdict": ["claim-verdict", "--selftest"],
   "park-verdict": ["park-verdict", "--selftest"],
   "punt-scan": ["punt-scan", "--selftest"],
@@ -758,6 +765,7 @@ const REGION_SELFTEST_ARGV = {
   "queue-state": ["queue-state", "--selftest"],
   "drain-filter": null, // FAFF-1412: no selftest by design; covered by test/drain-filter.test.mjs (TEST_FILE_COVERAGE)
   "findings-reconcile": ["findings-reconcile", "--selftest"],
+  park: null,
   "park-history": ["park-history", "--selftest"],
   "park-reconsider": ["park-reconsider", "--selftest"], // FAFF-993: reason-table + confine fixtures (no operator unpark side effect)
   "gitignore-ensure": ["gitignore-ensure", "--selftest"], // FAFF-548: host-safe selftest (temp roots only)
@@ -836,6 +844,9 @@ const REGION_SELFTEST_ARGV = {
   "spec-review": ["spec-review", "--selftest"],
   "spec-review-convergence": ["spec-review-convergence", "--selftest"],
   "spec-review-pin": ["spec-review-pin", "--selftest"],
+  "prep-context": null,
+  "build-queue-partition": null,
+  "planning-graph": null,
   "spec-review-dir": ["spec-review-dir", "--selftest"],
   "spec-review-reputation": ["spec-review-reputation", "--selftest"],
   "spec-review-window": ["spec-review-window", "--selftest"],
@@ -847,6 +858,7 @@ const REGION_SELFTEST_ARGV = {
   // seam is exercised by test/spec-judge-accept-bar.test.mjs (lint-cli-coverage TEST_FILE_COVERAGE).
   "spec-judge-accept-bar": null,
   "build-review-churn": ["build-review-churn", "--selftest"],
+  "build-review-round": null,
   "build-review-convergence": ["build-review-convergence", "--selftest"],
   // build-judge-evidence has no standalone --selftest (--assemble/--admit only; its dispatch
   // loop + admit roll-up are exercised through the real CLI entrypoint by

@@ -670,7 +670,7 @@ function integrityDigestSelftest() {
 }
 
 module.exports = {
-  MANIFEST_VERSION, SHA256_CANDIDATES, resolveHasher, sha256, buildManifest, diffAgainstManifest, cmdIntegrityDigest, integrityDigestSelftest,
+  memberRels, MANIFEST_VERSION, SHA256_CANDIDATES, resolveHasher, sha256, buildManifest, diffAgainstManifest, cmdIntegrityDigest, integrityDigestSelftest,
   // FAFF-784
   atomicWriteVerdictBytes, custodyVerdictPath, verifyAndRecord, CUSTODY_MERGE_STATES,
   // FAFF-853

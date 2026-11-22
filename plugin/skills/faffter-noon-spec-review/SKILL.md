@@ -1,21 +1,27 @@
 ---
 name: faffter-noon-spec-review
-description: "Default `spec_review` slot occupant — the L1–L3 single-pass spec reviewer. Runs four lenses (architectural / infosec / methodology / QA) as one checklist pass over a freshly-rated spec and emits a founded `faff-contract:spec-review-verdict` block. Runs as a configured slot, not the user `/` menu."
+description: "Default L1-L3 spec_review slot: one architectural, infosec, methodology and QA checklist pass over a freshly rated spec; emit a founded spec-review verdict."
 judgement_seam: spec-verdict
 user-invocable: false
 ---
 
 # faffter-noon-spec-review
 
-The default occupant of the **`spec_review`** slot — the L1–L3 single-pass approach reviewer. It is the judgement layer of the spec stage: it challenges *the approach itself* (sound? safe? right-sized? verifiable?) while the work is still just a spec, before any code exists. faff-prep invokes it once after the spec is confidence-rated and before promote-to-Todo, then pipes its verdict through `faff contract spec-review-verdict` and routes on the result.
+The default L1-L3 `spec_review` reviewer: challenge approach soundness, safety,
+scope and verifiability before code exists. `faff-prep` invokes this single pass
+after confidence rating and before promotion to Todo, validates the emitted
+contract and routes its verdict.
 
 > When standalone, Read the sibling `faff/references/kernel.md` (the shared kernel) first, then `faff/references/autonomous.md` and `faff/references/methodology.md` (the lanes it consumes) — together they hold the shared rules and the fixed contracts. This recap is non-normative; the gateway kernel wins.
 
 ## What it does
 
-One LLM pass walks the **selected lenses** as a checklist over the spec, gathers `{lens, severity, claim, evidence, predicted_consequence}` objections, maps them to a single verdict, and emits one contract block. It is **not** an adversarial review — that costlier per-lens refuter form is a separate occupant. The consumer's lens-selection step (the change-surface cost-gate) chooses which of the four lenses fire; this pass runs exactly that set. **With no lens-set passed, all four fire** (the back-compatible default) — selection only ever *removes* a lens on a confidently-safe surface, and `infosec` + `QA` always fire at L1–L3.
+Walk exactly the selected lenses, collect objections and emit one founded verdict.
+Without a selected set, run all four. The consumer owns selection; `infosec` and
+`QA` always fire at L1-L3. This occupant does not launch adversarial refuters.
 
-The contract (`faff contract spec-review-verdict`) validates the verdict's **shape** only. This producer owns the **reasoning** — the lenses and the severity→verdict roll-up below. Do not re-validate shape here; emit a conformant block and let the consumer pipe it.
+This producer owns reasoning and the roll-up below. The consumer runs
+`faff contract spec-review-verdict` for shape validation; do not repeat it here.
 
 ## Inputs
 
@@ -68,30 +74,26 @@ Where a `reject-approach` routes (prep vs plot) is the **consumer's** concern, c
 
 ## Output (the contract artifact)
 
-Emit exactly one fenced block as the producer's output — the consumer (`faff-prep`) locates it, `JSON.parse`s it, and pipes it to `faff contract spec-review-verdict` (the sole source of contract data):
+Emit exactly one `faff-contract:spec-review-verdict` block. The consumer locates
+and JSON-parses it, then pipes it to `faff contract spec-review-verdict`, the sole
+source of contract data and validation. Canonical semantics:
+`faff contract spec-review-verdict --describe`.
 
 ```faff-contract:spec-review-verdict
 { "verdict": "approve", "objections": [] }
 ```
 
-Examples of a founded non-approve verdict:
+A founded non-approve example, including the enrichment fields:
 
 ```faff-contract:spec-review-verdict
 { "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker", "claim": "the loop cannot terminate", "evidence": "How, step 3", "predicted_consequence": "hangs on empty --dir", "spec_anchor": "the-gate-verdict-seam" } ] }
 ```
 
-```faff-contract:spec-review-verdict
-{ "verdict": "revise", "objections": [ { "lens": "QA", "severity": "major", "claim": "scenario X is unverifiable", "evidence": "DONE item 2", "predicted_consequence": "done cannot be decided for X" } ] }
-```
-
-The fixed verdict shape and its validation (canonical semantics: `faff contract spec-review-verdict --describe`) live in the gateway's contract-as-code surface. A swapped-in reviewer (e.g. an adversarial per-lens occupant) conforms by emitting the same block.
-
 ## Level gradient (the cost-stable boundary)
 
-Review depth scales by level, all mapping onto the one `spec-review-verdict` contract:
-
-- **L1–L3** — this skill: one single-pass 4-lens checklist, one founded verdict.
-- **L4** — independent per-lens adversarial refuters, each prompted to refute the spec from its angle, gated on majority/severity (a separate occupant in the same slot).
-- Depth/cost scales with **level + appetite + change-surface**; selective per-lens firing by change-surface is the consumer's cost-gate (it passes the lens-set this pass fires). v1 is additive-only: only the low-risk lenses are skippable, `infosec` + `QA` always fire at L1–L3, and an uncertain surface fires all four.
-
-This skill ships the L1–L3 form and leaves the L4 hook.
+- **L1-L3:** this occupant's one selected-lens checklist pass and founded verdict.
+- **L4:** a separate occupant uses independent per-lens adversarial refuters,
+  gated on majority/severity, and emits the same contract.
+- Depth/cost scales with level, appetite and change-surface. The consumer's
+  additive cost gate may skip only confidently safe, low-risk lenses; `infosec`
+  and `QA` always fire at L1-L3. An uncertain surface fires all four.

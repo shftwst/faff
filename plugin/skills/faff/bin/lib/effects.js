@@ -23,6 +23,8 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
+const { withFileLock } = require("./fs-lock");
+const { reviewResume } = require("./review-progress-resume");
 const { requireFlags } = require("./argv");
 const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
 const { HEX64_RE, RUNNER_IDENTITY_CREDENTIAL_SOURCES, appendRecordsUnderLock, sha256Hex, verifyEffectsChain, verifyExitCode } = require("./events");
@@ -265,6 +267,11 @@ function reviewProgressPath(runDir, issue) {
   return path.join(runDir, issue, "review-progress.json");
 }
 
+function carriedOutageRetries(checkpoint) {
+  return Number.isInteger(checkpoint.outage_retries) && checkpoint.outage_retries >= 0
+    ? { outage_retries: checkpoint.outage_retries } : {};
+}
+
 // Pure: fold a Phase-1 pass (+ the diff hash it was computed against) into the record. Phase-1 fail /
 // needs-human are already terminal (graft returns with no Phase-2), so the checkpoint is only ever written
 // on a `pass`. Seeds phase2 to `pending` when absent so a resume knows Phase-2 has not started.
@@ -279,7 +286,7 @@ function reviewProgressApplyPhase1(existing, issue, diffHash, nowIso) {
   const priorHash = base.phase1 && base.phase1.diff_hash;
   const phase2 = (base.phase2 && typeof base.phase2 === "object" && priorHash === hash)
     ? base.phase2 : { status: "pending", attempts: 0, findings_ref: null };
-  return { issue, phase1: { status: "done", verdict: "pass", diff_hash: hash }, phase2, updated_at: nowIso };
+  return { ...carriedOutageRetries(base), issue, phase1: { status: "done", verdict: "pass", diff_hash: hash }, phase2, updated_at: nowIso };
 }
 
 // Pure: fold a Phase-2 status transition into the record (preserving phase1). `findings` sets findings_ref
@@ -290,7 +297,7 @@ function reviewProgressApplyPhase2(existing, status, findings, attempts, nowIso)
   phase2.status = status;
   if (findings != null) phase2.findings_ref = String(findings);
   if (attempts != null) phase2.attempts = Number(attempts);
-  return { issue: base.issue, phase1: base.phase1 || null, phase2, updated_at: nowIso };
+  return { ...carriedOutageRetries(base), issue: base.issue, phase1: base.phase1 || null, phase2, updated_at: nowIso };
 }
 
 // FAFF-403: pure fold for the outage-retry counter. Increments the top-level `outage_retries` field
@@ -312,12 +319,21 @@ function cmdReviewProgress(args) {
   const sub = positional[0];
   const runDir = positional[1];
   const issue = positional[2];
-  if ((sub !== "read" && sub !== "write") || !runDir || !issue) {
-    process.stderr.write("usage: faff review-progress <read|write> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N] | --outage-retry]\n");
+  if (!["read", "write", "resume"].includes(sub) || !runDir || !issue) {
+    process.stderr.write("usage: faff review-progress <read|write|resume> <run-dir> <issue> [--phase1-pass --diff-hash H | --phase2 STATUS [--findings PATH] [--attempts N] | --outage-retry]\n");
     return 2;
   }
   const file = reviewProgressPath(runDir, issue);
   const readExisting = () => { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } };
+
+  if (sub === "resume") {
+    if (args.length !== 5 || args[3] !== "--diff-hash" || !args[4] || args[4].startsWith("-")) {
+      process.stderr.write("usage: faff review-progress resume <run-dir> <issue> --diff-hash <hash>\n");
+      return 2;
+    }
+    console.log(JSON.stringify(reviewResume(readExisting(), issue, args[4])));
+    return 0;
+  }
 
   if (sub === "read") {
     const rec = readExisting();
@@ -326,13 +342,23 @@ function cmdReviewProgress(args) {
     return 0;
   }
 
-  // write
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  return withFileLock(file + ".lock", () => writeReviewProgress(args, get, readExisting, file, issue));
+}
+
+function writeReviewProgress(args, get, readExisting, file, issue) {
   const nowIso = new Date().toISOString();
   // FAFF-403: --outage-retry is a standalone increment form — reject it combined with either write mode
   // explicitly (rather than silently letting the first-matching branch below win and dropping the
   // increment unflagged). A caller passing both gets a loud usage error, not a quietly-ignored flag.
   if (args.includes("--outage-retry") && (args.includes("--phase1-pass") || args.includes("--phase2"))) {
     process.stderr.write("faff review-progress write --outage-retry is not combinable with --phase1-pass or --phase2\n"); return 2;
+  }
+  const guarded = args.includes("--expect-diff");
+  const expected = get("--expect-diff");
+  if (guarded && (!expected || expected.startsWith("-") || !args.includes("--phase2") || args.includes("--phase1-pass"))) {
+    process.stderr.write("faff review-progress write --expect-diff requires a hash and a Phase-2 transition\n");
+    return 2;
   }
   let rec;
   if (args.includes("--phase1-pass")) {
@@ -345,6 +371,10 @@ function cmdReviewProgress(args) {
       process.stderr.write(`faff review-progress: invalid phase2 status "${status}" — one of: ${[...REVIEW_PHASE2_STATUSES].join(" | ")}\n`); return 2;
     }
     const existing = readExisting();
+    if (guarded && (existing?.issue !== issue || existing.phase1?.verdict !== "pass" || existing.phase1.diff_hash !== expected)) {
+      process.stderr.write("faff review-progress: checkpoint identity changed before Phase 2 was recorded\n");
+      return 3;
+    }
     // A Phase-2 transition only ever follows a recorded Phase-1 pass (the checkpoint is written on pass and
     // never earlier) — reject a phase2 write with no prior phase1, so no `phase1: null` checkpoint (an
     // unenumerated resume state) can ever be created.
@@ -371,7 +401,6 @@ function cmdReviewProgress(args) {
   } else {
     process.stderr.write("faff review-progress write: expected --phase1-pass or --phase2 <status> or --outage-retry\n"); return 2;
   }
-  fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = file + ".tmp";
   fs.writeFileSync(tmp, JSON.stringify(rec, null, 2) + "\n");
   fs.renameSync(tmp, file);
@@ -426,7 +455,7 @@ function reviewProgressSelftest() {
 // review — recreating the worktree from origin/<branch> and skipping the build — rather than rebuilding.
 // Lives beside review-progress.json at `<run-dir>/<issue>/build-progress.json`. PURE JSON read/write — no
 // tracker, no network, no git (the CLI determinism invariant); the diff_hash (which needs a git fetch/diff)
-// is computed in graft prose and passed in. It is a HINT the graft flow consults, never authoritative over
+// is supplied by the caller. It is a HINT the graft flow consults, never authoritative over
 // git truth (the diff-identity guard keeps it honest — the build is skipped only when the recorded diff_hash
 // still matches the remote three-dot diff of the pushed branch).
 
@@ -489,6 +518,18 @@ function writeRunState(cmd, anchorPath, file, existing, rec, diffBase, opts = {}
   return 0;
 }
 
+function readBuildProgress(runDir, issue) {
+  try { return JSON.parse(fs.readFileSync(buildProgressPath(runDir, issue), "utf8")); } catch { return null; }
+}
+
+function writeBuildProgress(runDir, issue, diffHash, branch, opts) {
+  const file = buildProgressPath(runDir, issue);
+  const existing = readBuildProgress(runDir, issue);
+  const rec = buildProgressApplyComplete(existing, issue, diffHash, branch, new Date().toISOString());
+  // The whole record comes from this write, so any violation refuses it.
+  return writeRunState("build-progress write", "build-progress.json", file, existing, rec, null, opts);
+}
+
 function cmdBuildProgress(args) {
   if (args.includes("--selftest")) return buildProgressSelftest();
   const get = (f) => { const i = args.indexOf(f); return i !== -1 ? args[i + 1] : null; };
@@ -500,11 +541,9 @@ function cmdBuildProgress(args) {
     process.stderr.write("usage: faff build-progress <read|write> <run-dir> <issue> [--build-complete --diff-hash H --branch B]\n");
     return 2;
   }
-  const file = buildProgressPath(runDir, issue);
-  const readExisting = () => { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return null; } };
 
   if (sub === "read") {
-    const rec = readExisting();
+    const rec = readBuildProgress(runDir, issue);
     if (!rec) return 3;   // no checkpoint yet — NOT an error ("nothing recorded"), just absent (mirrors review-progress)
     console.log(JSON.stringify(rec));
     return 0;
@@ -521,11 +560,7 @@ function cmdBuildProgress(args) {
   // tracker round-trip. A build-complete with either missing is a coverage lie — reject it.
   if (!diffHash) { process.stderr.write("faff build-progress write --build-complete requires --diff-hash <h>\n"); return 2; }
   if (!branch) { process.stderr.write("faff build-progress write --build-complete requires --branch <b>\n"); return 2; }
-  const nowIso = new Date().toISOString();
-  const existing = readExisting();
-  const rec = buildProgressApplyComplete(existing, issue, diffHash, branch, nowIso);
-  // build-progress replaces the whole record, so every path is this write's own: any violation refuses
-  return writeRunState("build-progress write", "build-progress.json", file, existing, rec, null);
+  return writeBuildProgress(runDir, issue, diffHash, branch);
 }
 
 function buildProgressSelftest() {
@@ -563,6 +598,11 @@ function landingProgressPath(runDir, issue) {
   return path.join(runDir, issue, "landing-progress.json");
 }
 
+function withLandingProgressLock(file, body) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  return require("./fs-lock").withFileLock(file + ".lock", body, { label: "landing progress lock" });
+}
+
 // Pure: fold one fix cycle into the record. Total over its inputs (null / {} / a valid record
 // all fold cleanly). fix_cycles is DERIVED from history.length (never a separately-incremented
 // integer), so the fix_cycles == length(history) invariant holds by construction and cannot
@@ -579,6 +619,7 @@ function landingProgressApplyFixCycle(existing, issue, kind, failingChecks, trie
     last_head_sha: headSha ?? base.last_head_sha ?? null,
     history,
     updated_at: nowIso,
+    ...(base.attempt ? { attempt: base.attempt } : {}),
   };
 }
 
@@ -605,9 +646,13 @@ function cmdLandingProgress(args) {
   }
 
   if (sub === "clear") {
-    // idempotent — absent file is a no-op success
-    if (fs.existsSync(file)) fs.rmSync(file);
-    return 0;
+    if (!fs.existsSync(path.dirname(file))) return 0;
+    try {
+      return withLandingProgressLock(file, () => { fs.rmSync(file, { force: true }); return 0; });
+    } catch (e) {
+      process.stderr.write(`landing-progress clear: ${e.message}\n`);
+      return 2;
+    }
   }
 
   // record-fix-cycle
@@ -621,19 +666,36 @@ function cmdLandingProgress(args) {
     process.stderr.write("faff landing-progress record-fix-cycle requires --head-sha <sha>\n");
     return 2;
   }
-  const existing = readExisting();
-  // the caller (the future landing loop) is responsible for hard-parking at 3; this record
-  // must not paper over a caller bug by clamping a 4th write to 3 — loud exit 2, no write.
-  if (existing && existing.fix_cycles >= 3) {
-    process.stderr.write("landing-progress: fix_cycles already at 3 — caller must hard-park, never record a 4th\n");
+  const splitCsv = (v) => (v ? v.split(",").map((s) => s.trim()).filter((s) => s !== "") : []);
+  let failingChecks = splitCsv(get("--failing-checks"));
+  if (args.includes("--failing-checks-json")) {
+    try {
+      failingChecks = JSON.parse(get("--failing-checks-json"));
+      if (args.includes("--failing-checks") || !Array.isArray(failingChecks) || !failingChecks.every(name => typeof name === "string" && name)) throw new Error();
+    } catch {
+      process.stderr.write("landing-progress: pass one failing-checks option; --failing-checks-json requires a JSON array of non-empty names\n");
+      return 2;
+    }
+  }
+  const tried = splitCsv(get("--tried"));
+  try {
+    return withLandingProgressLock(file, () => {
+      const existing = readExisting();
+      if (existing?.attempt && !existing.attempt.outcome) {
+        process.stderr.write("landing-progress: an active fix must be recorded through land fix-attempt\n");
+        return 2;
+      }
+      if (existing && existing.fix_cycles >= 3) {
+        process.stderr.write("landing-progress: fix_cycles already at 3 — caller must hard-park, never record a 4th\n");
+        return 2;
+      }
+      const rec = landingProgressApplyFixCycle(existing, issue, kind, failingChecks, tried, headSha, new Date().toISOString());
+      return writeRunState("landing-progress record-fix-cycle", "landing-progress.json", file, existing, rec);
+    });
+  } catch (e) {
+    process.stderr.write(`landing-progress record-fix-cycle: ${e.message}\n`);
     return 2;
   }
-  const splitCsv = (v) => (v ? v.split(",").map((s) => s.trim()).filter((s) => s !== "") : []);
-  const failingChecks = splitCsv(get("--failing-checks"));
-  const tried = splitCsv(get("--tried"));
-  const nowIso = new Date().toISOString();
-  const rec = landingProgressApplyFixCycle(existing, issue, kind, failingChecks, tried, headSha, nowIso);
-  return writeRunState("landing-progress record-fix-cycle", "landing-progress.json", file, existing, rec);
 }
 
 function landingProgressSelftest() {
@@ -1127,4 +1189,4 @@ function effectsSelftest() {
 }
 
 
-module.exports = { writeRunState, CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, declaredEffectViolations, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf };
+module.exports = { writeBuildProgress, writeRunState, CONCLUSION_KIND, EFFECT_KINDS, EFFECTS_SPEC, EFFECTS_SURFACE, LANDING_FIX_KINDS, LEGACY_CONCLUSION_KIND, PROTECTED_EFFECT_KINDS, REVIEW_PHASE2_STATUSES, appendEffectEntries, buildProgressApplyComplete, buildProgressPath, buildProgressSelftest, carriesBothUnitKeys, cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress, computeEscapes, conclusionKindOf, declaredEffectViolations, effectDescriptorViolations, effectTargetMatches, effectsSelftest, isProtectedKind, landingProgressApplyFixCycle, landingProgressPath, landingProgressSelftest, matchesUnit, normEffect, reviewProgressApplyOutageRetry, reviewProgressApplyPhase1, reviewProgressApplyPhase2, reviewProgressPath, reviewProgressSelftest, unitIdOf, withLandingProgressLock };

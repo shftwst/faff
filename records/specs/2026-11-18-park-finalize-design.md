@@ -1,0 +1,26 @@
+# Prepare and finalize park facts from observed effects
+
+The routing caller makes its existing judgment. The new local CLI prepares the stable record and reuses the park history writer for deduplication. Preparation fingerprints an operator-selected config file while the cause is current. A retry reuses that record and its timestamp. Finalization consumes observed outcomes and returns one next step. The tracker MCP remains the reader and writer, and the authorized caller owns the park log, prep marker, governed label declaration and actuation. The run orchestrator alone folds the accumulator and hands it to the existing run-summary renderer.
+
+For a fresh park, a conclusive missing-comment observation leads to the initiator's existing comment. A missing parked label after confirmation leads to the existing ordered label operation. The backstop may reconcile the label and verify the initiator's comment. An uncertain response leads to a fresh read and can remain unresolved. Terminal evidence for the same issue, class and stable timestamp outranks a later missing label for purposes of historical deduplication. A new park has a distinct transition instant. Remote transactions and concurrently initiated transitions remain subject to existing tracker and issue ownership behavior. The unpark readers and writers have their existing entry points.
+
+## Rule inventory
+
+| Prose rule | Command behaviour | Covering test | Disposition |
+|---|---|---|---|
+| `Post a comment on the tracker issue: cause, what was attempted, what is needed from a human` | The caller authors this through MCP on the comment route. Finalization gates that route on a conclusive observation. | test/park-finalize.test.mjs | changed: caller wording retained and the CLI selects the next effect |
+| `Append one record to the in-run park-record accumulator` | Calls the existing pure ordered dedup helper after required observations. | test/park-finalize.test.mjs | kept |
+| `Write to .faff/logs/… with the full context` | Existing log stores the returned stable fact alongside the original context. |  | changed: keep the stable fact with the log for recovery |
+| `The accumulator and render boundary (single shared locus)` | The orchestrator retains its sole accumulator and renderer; finalization reuses the established dedup key. | test/park-finalize.test.mjs, test/park-records.test.mjs | kept |
+| `Assign reconsider in the same classification step that assigns root_cause_class` | The caller still classifies; the local CLI validates the saved representation. | test/park-finalize.test.mjs | changed: caller assignment and mechanical normalization have explicit interfaces |
+| `a scope, taste, or architecture judgement call, or any cause the classifier cannot positively prove machine-checkable` | The caller still classifies these as human; legacy input is normalized to human. | test/park-finalize.test.mjs, test/park-records.test.mjs | changed: human ownership retained in shorter prose |
+| `only when the classifier can prove the cause machine-checkable and name the single external config file it cited` | Uses the established confined fingerprint helper; unsupported and unreadable inputs downgrade. | test/park-finalize.test.mjs, test/park-records.test.mjs | kept |
+| `Follow the shared park protocol (see the sibling faff/references/park.md)` | Prep invokes the shared protocol. |  | changed: single caller pointer and existing log path |
+| `Post a tracker comment with cause` | The shared protocol owns the rule for originating a comment. | test/park-finalize.test.mjs | changed: shared route |
+| `Tag the issue faff-parked via faff label add` | Use the existing configured single-select transition. | test/faff-1091-control-label-names.test.mjs | changed: legacy caller duplication now follows the canonical transition |
+| `Log to .faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md with the full reasoning` | Caller retains the log and grounds retries in the stable fact. |  | changed: condensed caller instruction preserves its path and shared instruction preserves full context |
+| `Beep-boop itself rarely parks` | Beep-boop retains its Step 4 initiator role and checks worker returns. |  | changed: expressed through the existing return and Step 4 routes |
+| `The tracker comment written by the sub-skill (or beep-boop itself) is present on the issue` | Backstop confirms the original effect; initiator owns comment creation. | test/park-finalize.test.mjs | kept |
+| `The issue carries the faff-parked tag (or tracker-equivalent label)` | Backstop reuses the canonical configured single-select operation when definitively missing. | test/faff-1091-control-label-names.test.mjs, test/park-finalize.test.mjs | changed: canonical transition, with reconciliation for an uncertain result |
+| `has the parked reason written to a top-level park.md` | Backstop retains its same log path and folds the returned fact. | test/park-finalize.test.mjs | changed: facts keyed by the originating transition |
+| `This is what /faff-wtf looks for to surface parked issues in the morning` | Existing tracker and history consumers retain the same inputs. | test/park-records.test.mjs | changed: consumers keep the established data, prompt drops the explanatory sentence |

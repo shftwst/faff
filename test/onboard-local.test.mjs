@@ -48,12 +48,13 @@ const settingsPath = (root) => join(root, ".claude", "settings.json");
 function readSettings(p) { return JSON.parse(readFileSync(p, "utf8")); }
 function stopCmds(s) { return (s.hooks?.Stop ?? []).flatMap((g) => (g.hooks ?? []).map((h) => h.command)); }
 
-// The exact local-mode mechanical sequence the SKILL.md prose drives (§4 the two-write
-// split, §5 the threaded ensurers): config init (tracking + label_prefix, --local),
-// config set (bundle_store, --local), gitignore-ensure --local, hooks-ensure --local.
+// Drive the exact local preview and apply sequence, then thread the mode into both ensurers.
 function localSequence(root, { teamKey = "SHF", labelPrefix = "SHF" } = {}) {
-  run(["config", "init", "--set", `tracking.team_key=${teamKey}`, "--set", `tracking.label_prefix=${labelPrefix}`, "--local"], root);
-  run(["config", "set", "bundle_store", "local", "--local"], root);
+  const args = ["config", "init", "--local", "--pin-local-bundle",
+    "--set", `tracking.team_key=${teamKey}`, "--set", `tracking.label_prefix=${labelPrefix}`];
+  const preview = join(root, "confirmed-local-preview.yaml");
+  writeFileSync(preview, run([...args, "--dry-run"], root).out);
+  run([...args, "--expect-preview", preview], root);
   run(["gitignore-ensure", "--local"], root);
   return JSON.parse(run(["hooks-ensure", "--local", "--json"], root).out);
 }
@@ -168,4 +169,52 @@ test("standard-mode sequence is unaffected: writes the base + shared targets, cr
     assert.doesNotMatch(base, /label_prefix/, "standard mode never sets tracking.label_prefix");
     assert.doesNotMatch(base, /bundle_store/, "standard mode never sets bundle_store");
   } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+const localPin = ["config", "init", "--local", "--pin-local-bundle", "--set", "tracking.team_key=SHF", "--set", "tracking.label_prefix=SHF"];
+
+test("onboard local preview is the exact combined overlay from the original two writes", (t) => {
+  const root = seedGitRepo();
+  const baseline = seedGitRepo();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  t.after(() => rmSync(baseline, { recursive: true, force: true }));
+  const preview = run([...localPin, "--dry-run"], root).out;
+  assert.equal(existsSync(overlayPath(root)), false);
+  assert.match(preview, /^bundle_store: local$/m);
+  assert.match(preview, /^  label_prefix: SHF$/m);
+  const expected = join(root, "confirmed-overlay.yaml");
+  writeFileSync(expected, preview);
+  run([...localPin, "--expect-preview", expected], root);
+  assert.equal(readFileSync(overlayPath(root), "utf8"), preview);
+  assert.equal(existsSync(basePath(root)), false);
+  run(["config", "init", "--set", "tracking.team_key=SHF", "--set", "tracking.label_prefix=SHF", "--local"], baseline);
+  run(["config", "set", "bundle_store", "local", "--local"], baseline);
+  assert.equal(readFileSync(overlayPath(baseline), "utf8"), preview);
+});
+
+test("a differing bundle pin or a changed overlay refuses without a partial write", (t) => {
+  const root = seedGitRepo();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const expected = join(root, "confirmed-overlay.yaml");
+  writeFileSync(expected, run([...localPin, "--dry-run"], root).out);
+  mkdirSync(join(root, ".faff"), { recursive: true });
+  for (const current of ["bundle_store: git-remote\n", "# concurrent edit\n"]) {
+    writeFileSync(overlayPath(root), current);
+    const applied = run([...localPin, "--expect-preview", expected], root, { allowFail: true });
+    assert.equal(applied.code, 2);
+    assert.equal(readFileSync(overlayPath(root), "utf8"), current);
+    assert.equal(existsSync(basePath(root)), false);
+  }
+});
+
+test("the bundle pin is scoped to local config init and rejects force", (t) => {
+  const root = seedGitRepo();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  for (const args of [
+    ["config", "init", "--pin-local-bundle", "--set", "tracking.team_key=SHF"],
+    [...localPin, "--force"],
+    ["config", "get", "bundle_store", "--pin-local-bundle"],
+  ]) assert.equal(run(args, root, { allowFail: true }).code, 2);
+  assert.equal(existsSync(overlayPath(root)), false);
+  assert.equal(existsSync(basePath(root)), false);
 });

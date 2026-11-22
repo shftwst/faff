@@ -1,6 +1,6 @@
 ---
 name: faffter-noon-env-code-interface
-description: "Default `env-code-interface` slot occupant — the code-interface reachability provisioner, composed under `env`. Given a code component and its Tier-1 binding manifest, it builds the component and stands up the Node reflection bridge (faff-bridge-node.mjs) as a health-checked compose service, returning the bridge socket the env occupant folds into its env-handle. Runs as a configured slot, not the user `/` menu."
+description: "Default env-code-interface slot under env: build a component from its Tier-1 binding manifest and provision a health-checked Node reflection bridge service."
 user-invocable: false
 judgement_seam: none
 ---

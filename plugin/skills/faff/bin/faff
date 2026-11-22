@@ -78,6 +78,7 @@ const { cmdEconomics } = lazy(() => require("./lib/economics"), ["cmdEconomics"]
 const { cmdBuildProgress, cmdEffects, cmdLandingProgress, cmdReviewProgress } = lazy(() => require("./lib/effects"), ["cmdBuildProgress", "cmdEffects", "cmdLandingProgress", "cmdReviewProgress"]);
 const { cmdEligible } = lazy(() => require("./lib/eligible"), ["cmdEligible"]);
 const { cmdDiscoveredScopePriority } = lazy(() => require("./lib/discovered-scope-priority"), ["cmdDiscoveredScopePriority"]);
+const { cmdDiscoveredScopePlan } = lazy(() => require("./lib/discovered-scope-plan"), ["cmdDiscoveredScopePlan"]);
 const { cmdEvidence } = lazy(() => require("./lib/evidence"), ["cmdEvidence"]);
 const { cmdEngine } = lazy(() => require("./lib/engine"), ["cmdEngine"]);
 const { cmdEnv } = lazy(() => require("./lib/env"), ["cmdEnv"]);
@@ -110,6 +111,7 @@ const { cmdMerge } = lazy(() => require("./lib/merge-authorize"), ["cmdMerge"]);
 const { cmdGithubTemplates } = lazy(() => require("./lib/github-templates"), ["cmdGithubTemplates"]);
 const { cmdNativeMap } = lazy(() => require("./lib/native-map"), ["cmdNativeMap"]);
 const { cmdNext } = lazy(() => require("./lib/next"), ["cmdNext"]);
+const { cmdPark } = lazy(() => require("./lib/park-finalize"), ["cmdPark"]);
 const { cmdParkHistory } = lazy(() => require("./lib/park-history"), ["cmdParkHistory"]);
 const { cmdParkReconsider } = lazy(() => require("./lib/park-reconsider"), ["cmdParkReconsider"]);
 const { cmdPostMergeCheck } = lazy(() => require("./lib/post-merge"), ["cmdPostMergeCheck"]);
@@ -147,10 +149,14 @@ const { cmdSentryPoller } = lazy(() => require("./lib/sentry-poller"), ["cmdSent
 const { cmdSentrycheck } = lazy(() => require("./lib/sentrycheck"), ["cmdSentrycheck"]);
 const { cmdSpecJudgeEvidence, cmdSpecJudgeAcceptBar } = lazy(() => require("./lib/spec-judge-evidence"), ["cmdSpecJudgeEvidence", "cmdSpecJudgeAcceptBar"]);
 const { cmdBuildReviewChurn } = lazy(() => require("./lib/build-review-churn"), ["cmdBuildReviewChurn"]);
+const { cmdBuildReviewRound } = lazy(() => require("./lib/build-review-round"), ["cmdBuildReviewRound"]);
 const { cmdReviewPrior } = lazy(() => require("./lib/review-prior"), ["cmdReviewPrior"]);
 const { cmdResumeStore } = lazy(() => require("./lib/resume-store"), ["cmdResumeStore"]);
 const { cmdBuildReviewConvergence } = lazy(() => require("./lib/build-review-convergence"), ["cmdBuildReviewConvergence"]);
 const { cmdBuildJudgeEvidence } = lazy(() => require("./lib/build-judge-evidence"), ["cmdBuildJudgeEvidence"]);
+const { cmdBuildQueuePartition } = lazy(() => require("./lib/build-queue-partition"), ["cmdBuildQueuePartition"]);
+const { cmdPlanningGraph } = lazy(() => require("./lib/planning-graph"), ["cmdPlanningGraph"]);
+const { cmdPrepContext } = lazy(() => require("./lib/prep-context"), ["cmdPrepContext"]);
 const { cmdSpecReview } = lazy(() => require("./lib/spec-review"), ["cmdSpecReview"]);
 const { cmdSpecReviewChurn } = lazy(() => require("./lib/spec-review-churn"), ["cmdSpecReviewChurn"]);
 const { cmdSpecReviewConvergence } = lazy(() => require("./lib/spec-review-convergence"), ["cmdSpecReviewConvergence"]);
@@ -218,6 +224,7 @@ const COMMANDS = {
   "label": cmdLabel,
   "eligible": cmdEligible,
   "discovered-scope-priority": cmdDiscoveredScopePriority,
+  "discovered-scope-plan": cmdDiscoveredScopePlan,
   "claim-verdict": cmdClaimVerdict,
   "park-verdict": cmdParkVerdict,
   "punt-scan": cmdPuntScan,
@@ -269,6 +276,7 @@ const COMMANDS = {
   "tracker": cmdTracker,
   "queue-state": cmdQueueState,
   "findings-reconcile": cmdFindingsReconcile,
+  park: cmdPark,
   "park-history": cmdParkHistory,
   "park-reconsider": cmdParkReconsider,
   "gitignore-ensure": cmdGitignoreEnsure,
@@ -294,6 +302,8 @@ const COMMANDS = {
   "effects": cmdEffects,
   "review-progress": cmdReviewProgress,
   "build-progress": cmdBuildProgress,
+  "build-queue-partition": cmdBuildQueuePartition,
+  "planning-graph": cmdPlanningGraph,
   "landing-progress": cmdLandingProgress,
   "resume-store": cmdResumeStore,
   "sentry": cmdSentry,
@@ -324,9 +334,11 @@ const COMMANDS = {
   "spec-judge-evidence": cmdSpecJudgeEvidence,
   "spec-judge-accept-bar": cmdSpecJudgeAcceptBar,
   "build-review-churn": cmdBuildReviewChurn,
+  "build-review-round": cmdBuildReviewRound,
   "review-prior": cmdReviewPrior,
   "build-review-convergence": cmdBuildReviewConvergence,
   "build-judge-evidence": cmdBuildJudgeEvidence,
+  "prep-context": cmdPrepContext,
   "spec-review": cmdSpecReview,
   "spec-review-churn": cmdSpecReviewChurn,
   "spec-review-convergence": cmdSpecReviewConvergence,

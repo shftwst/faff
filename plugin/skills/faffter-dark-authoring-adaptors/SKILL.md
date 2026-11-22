@@ -1,6 +1,6 @@
 ---
 name: faffter-dark-authoring-adaptors
-description: "Author or validate a faff slot skill. Scaffolds a new adaptor/producer/methodology so it carries the correct refer-back prose and maps onto the fixed gateway contract, and validates that an existing slot skill conforms. Use for 'write a new adaptor', 'author a spec/review/routing/rendering skill', 'check my adaptor conforms', 'validate this slot skill'."
+description: "Author or validate a slot skill: scaffold adaptors, producers or methodologies against the fixed gateway contract and check conformance."
 judgement_seam: none
 ---
 
@@ -23,7 +23,7 @@ Without refer-back prose, a delegated slot can inherit the contract yet fail sta
 ## Two faces
 
 - **Author** (scaffold): given a target slot and a description, produce the skeleton of a conformant slot skill — with the refer-back prose, the two-face structure, and the map-onto-fixed-contract section already in place. The author fills in the dialect. Write the prose **to the skill-authoring charter** (`docs/reference/skill-authoring.md`) — lean, deduplicated, skimmable — whose lintable subset `faff validate-adapters` enforces.
-- **Validate** (audit): given an existing slot skill (by name or path), check it against the conformance checklist below and return `pass` / `fail` + specific violations. Run it before adopting a third-party slot skill, in CI over the shipped ones, or **at runtime** — the pipeline **always** invokes this face on a configured **foreign** occupant (one not in `REGISTRY`; a bundled `faffter-*` occupant is exempt by the `--is-bundled` predicate) before first use and parks/surfaces on `fail` (gateway → _Slot conformance validation_).
+- **Validate** (audit): given an existing slot skill (by name or path), check conformance and return `pass` / `fail` with specific violations. Before first use of a configured foreign occupant, the pipeline invokes this face and parks or surfaces a failure. The `--is-bundled` predicate exempts bundled occupants (gateway → _Slot conformance validation_).
 
 ## The fixed contract each slot maps onto
 
@@ -40,42 +40,25 @@ A slot occupant never owns the contract — it owns its *dialect* and maps onto 
 
 `rendering_adaptor` is the one exception — it carries no refer-back because there is no fixed contract behind it; it is the source of truth for rendering. Every other slot refers back.
 
-## Conformance checklist (what Validate checks, what Author bakes in)
+## Conformance
 
-1. **Names its slot and contract.** The skill states which slot it occupies and which gateway contract section it maps onto (from the table above). A `rendering_adaptor` states it has none.
-2. **Carries refer-back prose.** A "How this contract reaches you" note that: (a) says the invoking consumer loads the gateway so the contract is ambient when run as a slot, and (b) instructs **Read the sibling `faff/references/kernel.md` → _<the named §>_ now** (or the lane reference that now holds the named section) when invoked standalone. (`rendering_adaptor` exempt.)
-3. **Recaps are non-normative.** Any restatement of the fixed vocabulary/classes/verdicts is explicitly marked non-normative with "gateway wins on any conflict." No copy is presented as authoritative.
-4. **Maps onto, never redefines.** The skill does not add, remove, narrow, or rename the fixed vocabulary/classes/verdicts/named-outputs. It only translates its native dialect onto them. (A reviewer needing a fourth verdict state, a spec format with a fourth decision class, a methodology dropping a required output → non-conformant.)
-5. **Has both faces / honours its obligations where the slot expects them.** Adaptors define + validate. Producers produce + **emit their `faff-contract:<name>` block** (or, if their native tool can't, are wrapped here so the wrapper emits it). A methodology answers the required named outputs (`pick-ordering`, `promotion-readiness`, `build-queue`, plus `backlog-diagnostics` which always fires) and degrades gracefully on the optional ones. A **mechanism** honours its action obligations (gateway → Mechanism slot): a `concurrency` occupant builds every partition issue, serialises + requires a dependency blocker to have merged, records every terminal outcome to the ledger, and never weakens the merge gate. A mechanism that skips/defers partition issues, weakens the gate, or shares a worktree across concurrent builds is non-conformant. (The `ship` producer is covered by the producer obligations above: it merges/deploys only gate-passed PRs and emits its `faff-contract:delivery-outcome` block, which the consumer parses onto the three fixed outcomes — never inventing a fourth.)
-6. **Respects appetite.** If the slot acts (methodology, producers that mutate), it reads the suite-wide `appetite` dial rather than inventing its own agency level.
-7. **Stays in its lane.** Adaptors translate/validate — they don't sequence, park, or write to the tracker. Producers do the work — they don't manage the backlog. The contract's *gate* and *sequencing* belong to the fixed consumer, not the slot.
-8. **Declares its judgement seam.** The skill carries a `judgement_seam:` frontmatter key — the grader `KIND`(s) its LLM-judgement seam owns (an alternate occupant mirrors its slot sibling's), or `none` if it is asserted-deterministic. A skill that introduces or changes a seam registers a grader `KIND` + ≥1 eval case + the seam-registry row in the same change (recording the baseline value is the one human step, never required by the lint). `faff validate-adapters` fails a registry surface that declares no seam, and a `covered` KIND with no case.
+Use the CLI for the existing structural profile, refer-back, recap marker and `judgement_seam`. Review the dialect for the rest:
+
+- Map native outputs onto the fixed vocabulary and required outputs. A new state or a missing obligation fails conformance. A producer wraps a native tool that cannot emit the required contract block. Adaptors define and validate. Methodology answers required outputs and degrades gracefully on optional ones.
+- Keep gates, tracker sequencing and parking with the consumer. A slot that acts uses the suite's appetite. A concurrency occupant builds every partition issue, requires dependency blockers to have merged, isolates worktrees, records terminal outcomes in the ledger and preserves the merge gate.
+- Mirror the primary slot's judgement seam. For a new or changed seam, add the grader KIND, an eval case and the seam-registry entry in the same change. A human records its baseline.
 
 ## Author face
 
-Given the target slot + a one-line description, emit a skeleton:
-
-```
-# <skill-name>
-
-<one-line: what this <adaptor|producer|methodology> does and which slot it fills>
-
-## Internal contract (fixed — see gateway)   ← omit for rendering_adaptor / producers; a mechanism points at Mechanism slots
-Maps onto gateway → <named §>. Fixed there, unaffected by this swap: <one-line recap, non-normative>.
-
-**How this contract reaches you.** Loaded by the invoking consumer when run as a slot; if invoked
-standalone, Read the sibling `faff/references/kernel.md` → <named §> now before applying. Gateway wins on any conflict.
-
-## <Dialect>           ← the markers / envelope / assignment rules / lens / execution strategy this skill owns
-## Validate            ← for adaptors: checks + the pass/fail envelope
-## Rules
-```
-
-Fill the dialect; leave the contract pointers exactly as scaffolded.
+Run `faff validate-adapters scaffold --slot <slot> --name <skill> --description <one-line description> --judgement-seam <KINDs or none> --path <dir>/SKILL.md`. Fill the dialect and preserve the contract pointers. The command refuses to replace a file.
 
 ## Validate face
 
-Given a slot skill (name or path), read it and run the checklist. Output:
+Run `faff validate-adapters check --slot <slot> --path <SKILL.md or skill dir>`. For an installed name use `--skill <name> [--skills-dir <dir>]` instead of `--path`. Report structural failures and unreadable files as violations. On a structural pass, apply the semantic checks above before reporting conformance.
+
+`faff validate-adapters` still lints bundled defaults, and `faff validate-adapters --configured` checks installed configured occupants. Neither replaces this semantic review.
+
+Return `signal: pass` only when both checks pass. Use the existing envelope:
 
 ```
 signal: pass | fail
@@ -84,10 +67,6 @@ signal: pass | fail
 ### [checklist item]: [where]
 [what's wrong] → [the fix]
 ```
-
-`pass` when no item fires. Missing refer-back (item 2), an authoritative recap (item 3) or redefined fixed vocabulary (item 4) is `fail`, never a warning.
-
-**Mechanical pre-check.** The bundled `faff validate-adapters` command (resolve the `faff` executable per gateway → **Resolver** if it isn't on `PATH`) is a fast, deterministic lint of the **shipped defaults** — it checks the *structural* half of this checklist (refer-back present, non-normative marker, methodology required-outputs named, mechanism points at its gateway contract) and exits non-zero on drift, so it's suitable for CI / pre-commit. Its `--configured` variant (`faff validate-adapters --configured`) runs the same structural checks against the occupants a user has actually configured in `.faff/config.yaml` — deriving each one's expected profile from the slot it fills — so it's the **pre-flight** for a swapped-in slot occupant: run it before trusting an unattended build, rather than discovering a structural fault as an overnight park. Neither variant replaces this Validate face: they can't judge the semantic items (4 "maps onto, never redefines", 7 "stays in its lane"). Run the script to catch structural drift cheaply; run this face for the judgement calls and for third-party occupants installed outside the skills dir.
 
 ## Rules
 

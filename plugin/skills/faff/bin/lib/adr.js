@@ -14,6 +14,7 @@ const path = require("node:path");
 const os = require("node:os");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, requireFlags, usageError } = require("./argv");
+const { cmdPromotionSource, promotionSourceSpec } = require("./adr-promotion");
 const ADR_SPEC = { flags: {
   "--json": { arity: 0 }, "--self": { arity: 0 }, "--selftest": { arity: 0 },
   "--actor": { arity: 1 }, "--by": { arity: 1 }, "--challenge": { arity: 1 }, "--date": { arity: 1 },
@@ -28,7 +29,7 @@ const ADR_SPEC = { flags: {
 // enum) stays ad-hoc in the handler (see FAFF-628 spec §2 OUT OF SCOPE).
 const ADR_SURFACE = {
   kind: "subcommand_dispatch",
-  spec: ADR_SPEC,
+  spec: [ADR_SPEC, promotionSourceSpec],
   subcommands: {
     "next-number": { required_flags: [] },
     list: { required_flags: [] },
@@ -40,6 +41,7 @@ const ADR_SURFACE = {
     admit: { required_flags: [] },
     renumber: { required_flags: ["--to"] },
     "extract-intent": { required_flags: [] },
+    "promotion-source": { required_flags: [] },
     format: { required_flags: [] },
   },
 };
@@ -668,9 +670,12 @@ function adrOfferRoute({ interactive, mode, contradicts, appetite }) {
 }
 
 function cmdAdr(args) {
+  if (args[0] === "promotion-source") {
+    return cmdPromotionSource(args.slice(1), extractAdrPromotionIntent);
+  }
   if (args.includes("--selftest")) return adrSelftest();
   const parsed = parseArgs(args, ADR_SPEC);
-  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff adr <new|list|validate|supersede|renumber|live-decisions|next-number|accept|extract-intent|format> [flags]");
+  if (parsed.errors.length) return usageError(parsed.errors, "usage: faff adr <new|list|validate|supersede|renumber|live-decisions|next-number|accept|extract-intent|promotion-source|format> [flags]");
   const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const action = args[0];
   const root = get("--root") || findRoot();
@@ -1465,4 +1470,4 @@ function adrSelftest() {
 }
 
 
-module.exports = { ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, extractAdrPromotionIntent, listAdrs, listAdrsAcross, nygardDefault, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo, resolveAdrFormat, supersededDir };
+module.exports = { extractLevel2Headings, ADR_FILE_RE, ADR_PROVENANCES, ADR_STATUSES, ADR_SPEC, ADR_SURFACE, adrAccept, adrAdvisories, adrDecisionBody, adrDir, adrField, adrGitTier, adrLiveDecisions, adrNextNumber, adrOfferRoute, adrRenumber, adrSelftest, adrSlug, adrSupersededBy, adrSupersedesSet, adrTemplate, adrValidate, cmdAdr, computeAdrAdvisories, extractAdrPromotionIntent, listAdrs, listAdrsAcross, nygardDefault, recordSupersede, recordSupersededBy, recordSupersedesSet, recordSupersessionProblems, renumberRefsTo, resolveAdrFormat, supersededDir };

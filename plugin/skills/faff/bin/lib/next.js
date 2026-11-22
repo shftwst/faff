@@ -150,6 +150,7 @@ function nextSelftest() {
 }
 
 function cmdNext(args) {
+  if (args[0] === "prep-queue") return require("./next-prep-queue").cmdPrepQueue(args.slice(1), nextStep);
   if (args.includes("--selftest")) return nextSelftest();
   const { values, errors } = parseArgs(args, NEXT_SPEC);
   if (errors.length) return usageError(errors, NEXT_USAGE);

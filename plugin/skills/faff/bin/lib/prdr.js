@@ -22,7 +22,7 @@ const PRDR_SPEC = { flags: {
   "--live": { arity: 0 }, "--local": { arity: 0 }, "--new-capability": { arity: 0 }, "--no-branch": { arity: 0 }, "--self": { arity: 0 },
   "--selftest": { arity: 0 }, "--serves-goal": { arity: 0 }, "--within-scope": { arity: 0 },
   "--actor": { arity: 1 }, "--admit-verdict": { arity: 1 }, "--base": { arity: 1 }, "--by": { arity: 1 }, "--challenge": { arity: 1 },
-  "--challenge-ground": { arity: 1 }, "--challenge-reason": { arity: 1 }, "--container": { arity: 1 }, "--date": { arity: 1 },
+  "--cited-goals": { arity: 1 }, "--challenge-ground": { arity: 1 }, "--challenge-reason": { arity: 1 }, "--container": { arity: 1 }, "--date": { arity: 1 },
   "--dod-covers": { arity: 1 }, "--dod-verdicts": { arity: 1 }, "--issue": { arity: 1 },
   "--lineage-supersessions": { arity: 1 }, "--live-prdrs": { arity: 1 }, "--lower": { arity: 1 },
   "--prd-goal": { arity: 1 }, "--prd-goals": { arity: 1 }, "--proposal": { arity: 1 }, "--proposal-reason": { arity: 1 },
@@ -542,6 +542,10 @@ function cmdPrdr(args) {
   if (parsed.errors.length) return usageError(parsed.errors, "usage: faff prdr <path|new|supersede|renumber|validate|list|admit|yagni|...> [selector] [flags]");
   const get = (f) => (parsed.values[f] === undefined ? null : parsed.values[f]);
   const action = args[0];
+  if (action !== "yagni" && get("--cited-goals") !== null) {
+    process.stderr.write("faff prdr: --cited-goals is only valid for yagni\n");
+    return 2;
+  }
   const root = get("--root") || findRoot();
   const dir = prdrDir(root);
 
@@ -692,6 +696,24 @@ function cmdPrdr(args) {
     // accepted for the human-readable echo; the verdict is a pure function of the flags. Emits 255's
     // `upper` shape (admit, reason) plus the audit trail; feed it to `faff prdr admit --upper`.
     const prdGoal = get("--prd-goal");
+    const citedRaw = get("--cited-goals");
+    let citedGoals;
+    if (citedRaw !== null) {
+      if (prdGoal !== null) {
+        process.stderr.write("faff prdr yagni: supply either --cited-goals or --prd-goal\n");
+        return 2;
+      }
+      try {
+        citedGoals = JSON.parse(citedRaw);
+      } catch (error) {
+        process.stderr.write(`faff prdr yagni: --cited-goals is not valid JSON: ${error.message}\n`);
+        return 2;
+      }
+      if (!Array.isArray(citedGoals) || !citedGoals.every(goal => typeof goal === "string" && goal.trim() !== "")) {
+        process.stderr.write("faff prdr yagni: --cited-goals must be a JSON array of nonempty goal strings\n");
+        return 2;
+      }
+    }
     let prdGoals = [];
     const goalsRaw = get("--prd-goals");
     if (goalsRaw != null) {
@@ -719,7 +741,7 @@ function cmdPrdr(args) {
       process.stderr.write(`faff prdr yagni: --challenge-ground must be one of ${PRDR_YAGNI_CHALLENGE_GROUNDS.join("|")}\n`); return 2;
     }
     const verdict = computePrdrYagniVerdict({
-      prdGoal, prdGoals, dodCovers, challengeGround,
+      prdGoal, citedGoals, prdGoals, dodCovers, challengeGround,
       proposalVerdict, proposalReason: get("--proposal-reason"),
       servesGoal: args.includes("--serves-goal"), withinScope: args.includes("--within-scope"),
       challenge, challengeReason: get("--challenge-reason"),

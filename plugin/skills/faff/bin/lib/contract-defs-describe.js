@@ -337,7 +337,7 @@ const CONTRACT_DESCRIBES = {
     values: [
       { field: "proposal.verdict", enum: PRDR_YAGNI_PROPOSAL_VERDICTS, semantics: { admit: "the methodology's Phase-1 proposal judged the PRDR warranted", reject: "the methodology's Phase-1 proposal judged the PRDR unwarranted or out of scope" } },
     ],
-    coercions: ["an out-of-enum proposal.verdict → fail-loud (exit 2) — no safe coerce target", "admit declared without trace_to_goal ∧ proposal.verdict==admit ∧ challenge.ran ∧ ¬challenge.overturns → conformant:false", "reject with an empty reason → conformant:false"],
+    coercions: ["an out-of-enum proposal.verdict → fail-loud (exit 2) — no safe coerce target", "admit requires a traced goal, an admitting proposal, a completed challenge and in-scope coverage. An overturn can admit only on the recorded over-scope ground with a qualifying under-citation.", "reject with an empty reason → conformant:false"],
     producer_notes: ["`grounding_present` is shape-checked but ADVISORY — never gate-decisive; its absence never blocks judgment"],
   },
   "prd-coverage": {

@@ -241,24 +241,18 @@ Two triggers stop descent while the pass **finishes forward** on its siblings (n
 
 ### Step 5b — author the Proposed PRDR
 
-For each created project: request the methodology's `prdr-author` DoD, then `faff prdr new --provenance loop --status Proposed`. This writes the loop-authored `Proposed` PRDR; **Step 5c** is what admits-or-parks it. (Interactive plot is unchanged — L3 surfaces the `Proposed` PRDR for a human `faff prdr accept`; only the `--autonomous` L4 harness runs 5c.)
+Request `prdr-author` once for each created project. It writes the loop's `Proposed` PRDR. Interactive L3 surfaces it for human acceptance. Autonomous L4 continues to Step 5c.
 
 ### Step 5c — admit or park the loop-PRDR
 
-The `--autonomous` harness uses an L4 run-ledger, self-minted standalone or inherited when nested (Ignition). For every Step-5b `Proposed` loop-PRDR, 5c **composes that existing gateway contract** (gateway → **Authored-PRDR level-scaling**, L4 bullet, + **Upper-gate (YAGNI) two-phase arbitration**): **no parallel admission path**, only a different actor; gate CLIs (`faff prdr yagni` / `admit` / `accept`) stay byte-unchanged. **5c is unconditional:** run it even if arbitration is unscored or coverage already satisfied (gateway → **Autonomous Mode Contract**, no-unscored-skip rule). No `deferred` disposition exists. Per project's `Proposed` loop-PRDR `authored`:
+Use the L4 run ledger (standalone or inherited). Adjudicate every proposed record, even when arbitration is unscored or coverage is already satisfied. Step 4 settled container creation. There is no parallel admission path for its DoD.
 
-1. **Upper-gate two-phase arbitration** (gateway → **Upper-gate (YAGNI) two-phase arbitration**): (1) deterministic **trace-to-goal** — `authored.prd_goals` must all be real PRD goals (`faff prdr yagni --prd-goal <g1,g2,…> --prd-goals <PRD goals JSON>`), else reject at the door before any model spend; (2) **Phase 1** — the `methodology` slot's `yagni-judge` proposes `{serves_goal, within_scope, verdict, reason}`; (3) **Phase 2** — invoke the `review` slot as a subagent (a different model, the Phase-2 pattern — see adversarial-review → **PRDR YAGNI Phase-2 challenge**; never the diff-shaped `refutation-code` transport) with `{ AuthoredPrdr, PRD goals, Phase-1 proposal }` → `survived` | `overturned` + `ground`, classifying its overturn ground (an inconclusive Phase 2 — provider down after its fallback chain — is **not** a survival: omit `--challenge` → park `phase2-inconclusive`). Then `faff prdr yagni --proposal <admit|reject> [--serves-goal] [--within-scope] [--challenge survived|overturned] [--challenge-ground over-scope|unserved|other] --prd-goal … --prd-goals … --dod-covers <goals the DoD covers, JSON>` arbitrates → the `{admit, reason}` upper verdict. Passing `--dod-covers` (V) and `--challenge-ground` lets the arbitration distinguish under-citation (`V⊆D`) from genuine over-scope (`V⊄D`) — a narrowly-cited functional MVP admits instead of dead-ending, gold-plating still rejects.
-2. **Admit** (content authority): feed the upper verdict (and the `--lower` coverage verdict, when in scope) to `faff prdr admit --actor loop --upper '<json>' [--lower '<json>'] --supersedes-provenance none` → the closed disposition (`faff contract prdr-admission --describe`). This composes **with**, not through, the L4 topology envelope — the container's create was already admitted at Step 4 (`container-create`); this is the DoD-content gate, no double-gate.
-3. **On the admitting disposition** → land via `faff prdr accept --actor loop --admit-verdict '<the admit verdict JSON>'` (sole-writer; loop may only accept an `admit`-disposition verdict) — commits the record to a `prdr/…` branch and opens its small PR. `Accepted ⟺ committed`, no drift.
-4. **On any refusal → PARK, never drop** (the load-bearing invariant — lost scope is forbidden at every appetite). Park via the shared **Park protocol** (gateway), the park comment carrying the **refusing phase's reason**:
-   - yagni trace-reject or Phase-1 `reject` → `yagni-reject`
-   - Phase-2 `overturned` → `yagni-overturned`
-   - Phase-2 inconclusive (challenge omitted; skeptic unreachable) → `phase2-inconclusive`
-   - `faff prdr admit` returns a non-admitting disposition (anything but the admit disposition — `faff contract prdr-admission --describe`) → `admit-refused`
-   - any gate fail-loud (malformed verdict / contract mismatch) → park, never an implicit admit
-   The `Proposed` PRDR is left in place (not superseded, not deleted) so the parked scope is recoverable; the pass finishes forward and surfaces the park set for `/faff-wtf`.
+1. Run the gateway's **Upper-gate (YAGNI) two-phase arbitration**. Use the validated `faff prdr yagni` result for the upper verdict. Read its `admit` field even when the independent review overturned the proposal.
+2. Run `faff prdr admit --actor loop --supersedes-provenance none --upper '<json>'`, passing the lower coverage verdict via `--lower` when applicable. Read `disposition` from stdout. Exit 0 alone permits no write.
+3. On `admit`, run `faff prdr accept <n> --actor loop --admit-verdict '<full verdict JSON>'` to land the record, then push the printed `prdr/…` branch and open its PR.
+4. On refusal, keep the record `Proposed` and follow the **Park protocol**. Cite the actual reason: a failed trace, missing/rejected proposal or other upper rejection (`yagni-reject`), a rejecting upper verdict that upheld an overturn (`yagni-overturned`), an inconclusive skeptic (`phase2-inconclusive`), or a non-admitting admission verdict after the upper passed (`admit-refused`). A malformed or nonconformant gate result parks with the command or contract error.
 
-**Every 5c PRDR terminates in exactly one of: admit-and-land, or a labelled park — no PRDR is silently dropped.** `deferred` / `deferred-recoverable` are nonexistent terminal states. Unscored arbitration or already-satisfied coverage never justifies leaving a `Proposed` PRDR unadjudicated. A labelled park must be one of step 4's five reasons, produced by actually running and being refused by arbitration; never relabel either excuse as a refusal the arbitration did not give.
+Finish the pass and surface parks for `/faff-wtf`. No PRDR is silently dropped or deferred.
 
 ### Integration smoke (acceptance)
 

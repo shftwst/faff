@@ -51,7 +51,7 @@
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",
     "bin/lib/result.ts": "9faed77603fd2095150b6b405444d9fe4c6783a0da9339e8dc6121cb1921c4a3",
-    "bin/lib/review-comment-mcp.ts": "e25d61ee371537dc502058efea5ef89d9b5788c4b132efccf5ba981689f5a6e6",
+    "bin/lib/review-comment-mcp.ts": "191c6ae2f6c9ba6537052a392e9097de63db52a85266c8432e280a456a6455e6",
     "bin/lib/review-comment-server.ts": "e291aa029472615ac83e758fd4c5ece31b1c8dad48c710738971e38d6d696e30",
     "bin/lib/review-comment-session.ts": "b9ac13ad5920ee62f3bee81d74ad96aed2de75a2ea5c992fe4dfc2a3a6337e3b",
     "bin/lib/review-comment.ts": "3c0ce7ead29bb26b3e463ed858236e3f4c92b265de1af13f7d6b278e35c2dc3d",
@@ -118,7 +118,7 @@
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/prose-size.js": "df29582b5c00b007ad6dd3f135859edae851c540c2f254b5e7cf869981d5c5a7",
     "bin/lib/result.js": "09f1ec919a2ff84a38e1fe1e8ac5ed983ddabb90f75bfa8647cfccce561ff03e",
-    "bin/lib/review-comment-mcp.js": "9d4d265499090fd342fe8b7e12c3aeeecec34de063e6391b35646abb8b84805e",
+    "bin/lib/review-comment-mcp.js": "a750b54e8efcde311a2643577469a66b32967da29f6241ad0986f64730772a33",
     "bin/lib/review-comment-server.js": "7efe2e1ec3f5662049df7f5ef246d19716a3c3a4a2c6955d5d8069bf318d62c4",
     "bin/lib/review-comment-session.js": "6cfad3f30c5543af805da09275d458412c4e80331b5a28ce84657aed5c5dda81",
     "bin/lib/review-comment.js": "bd6e002c683466364c5afb23b12f945abd982324d2fe9a0a496d23394a17ac5d",
@@ -146,5 +146,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "41477351d89f8ad79e626c8b9faf9fe110b58bb7e8120820e950a576e35f3975"
+  "output_digest": "0b18a97b33aefc108f4b9336bb72351f2d958441c3c2989431a003b3cab1463c"
 }

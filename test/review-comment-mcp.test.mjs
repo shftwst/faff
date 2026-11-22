@@ -179,3 +179,76 @@ test('tracker helper discovery is inert and explicit serving requires a director
   assert.notEqual(invalid.status, 0);
   assert.match(invalid.stderr, /--serve DIRECTORY/);
 });
+
+test('cursor listing finds a marker on page two and rechecks both pages before updating', async t => {
+  const trace = join(mkdtempSync(join(tmpdir(), 'faff-page-trace-')), 'events');
+  t.after(() => rmSync(resolve(trace, '..'), { recursive: true, force: true }));
+  const body = 'human\r\n' + open + '\nold\n' + close + '\nfooter';
+  const config = fake(t, `(() => {
+    const {name,arguments:a}=m.params;
+    require('node:fs').appendFileSync(${JSON.stringify(trace)},JSON.stringify([name,a])+'\\n');
+    if(name==='save_comment') return {structuredContent:{id:a.id,body:a.body}};
+    if(a.issueId!=='FAFF-42' || a.limit!==1) throw Error('unexpected arguments');
+    const page = a.cursor === undefined
+      ? {comments:[{id:'witness',body:'human',createdAt:null}],hasNextPage:true,cursor:'next'}
+      : {comments:[{id:'target',body:${JSON.stringify(body)},createdAt:'2026-11-22T00:00:00Z'}],hasNextPage:false};
+    return {content:[{type:'text',text:JSON.stringify(page)}]};
+  })()`);
+  const client = await connectReviewTracker({ ...config, tools: { list: 'list_comments', create: 'save_comment', update: 'save_comment' }, listing: 'cursor-comments', pageSize: 1 });
+  t.after(() => client.close());
+  const session = createReviewCommentSession(client.ports);
+  const prepared = await session.prepare({ issue_id: issue, faff_body: 'updated ✓' });
+  assert.equal(prepared.plan.action, 'update');
+  assert.equal(prepared.plan.comment_id, 'target');
+  assert.equal((await session.apply({ plan_ref: prepared.plan_ref })).status, 'acknowledged');
+  const events = readFileSync(trace, 'utf8').trimEnd().split('\n').map(row => JSON.parse(row));
+  assert.deepEqual(events.map(([name, a]) => [name, a.cursor ?? null]), [
+    ['list_comments', null], ['list_comments', 'next'], ['list_comments', null], ['list_comments', 'next'], ['save_comment', null],
+  ]);
+  assert.deepEqual(events[4][1], { id: 'target', body: 'human\r\n' + open + '\nupdated ✓\n' + close + '\nfooter' });
+});
+
+test('cursor listing refuses incomplete or inconsistent pages before issuing a plan', async t => {
+  const row = { id: 'x', body: 'witness' };
+  for (const scenario of [
+    { comments: [row], hasNextPage: true },
+    { comments: [row], hasNextPage: false, cursor: 'unexpected' },
+    { comments: [row], hasNextPage: false, truncated: true },
+    { comments: [row], hasNextPage: true, cursor: 'loop' },
+    { comments: [], hasNextPage: true, cursor: 'empty' },
+    { comments: [row,row], hasNextPage: false },
+    { comments: [row] },
+  ]) {
+    const config = fake(t, JSON.stringify({ structuredContent: scenario }));
+    const client = await connectReviewTracker({ ...config, listing: 'cursor-comments', pageSize: 1 });
+    try { await assert.rejects(createReviewCommentSession(client.ports).prepare({ issue_id: issue, faff_body: 'new' })); }
+    finally { client.close(); }
+  }
+});
+
+test('cursor listing enforces page and byte limits and detects cycles across distinct rows', async t => {
+  const cases = [
+    ["{comments:[{id,body:''}],hasNextPage:true,cursor:id}", /100 pages/],
+    ["{comments:[{id,body:'x'.repeat(600000)}],hasNextPage:true,cursor:id}", /1 MiB/],
+    ["{comments:[{id,body:''}],hasNextPage:true,cursor:'repeated'}", /repeated comment cursor/],
+    ["{comments:[{id:'same',body:''}],hasNextPage:true,cursor:id}", /duplicate comment/],
+  ];
+  for (const [page, error] of cases) {
+    const config = fake(t, `(() => {
+      const id = String(m.id);
+      return {structuredContent:${page}};
+    })()`);
+    const client = await connectReviewTracker({ ...config, listing: 'cursor-comments', pageSize: 1 });
+    try { await assert.rejects(client.ports.listComments(issue), error); }
+    finally { client.close(); }
+  }
+});
+
+test('cursor configuration requires a valid limit and a distinct issue argument', async t => {
+  const config = { ...fake(t, 'null'), listing: 'cursor-comments' };
+  for (const invalid of [{}, { pageSize: 0 }, { pageSize: 101 }, { pageSize: 1.5 },
+    { pageSize: 1, issueArgument: 'limit' }, { pageSize: 1, issueArgument: 'cursor' },
+    { pageSize: 1, listing: 'complete-comments' }]) {
+    await assert.rejects(connectReviewTracker({ ...config, ...invalid }), /configuration/);
+  }
+});

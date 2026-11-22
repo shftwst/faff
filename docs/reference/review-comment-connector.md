@@ -19,38 +19,44 @@ stdio MCP connector with an argument array, without a shell. Keep authentication
 in that upstream connector. The bridge neither reads another agent's token store
 nor accepts executable configuration through model tool arguments.
 
-Example configuration for a connector with the following tool contract:
+For hosted Linear, run `mcp-remote` once under the account that will run the
+connector and complete its OAuth prompt. Use the same executable and account in
+the configuration below. The stdio proxy maintains its own OAuth session.
+[Linear MCP setup](https://linear.app/docs/mcp).
 
 ```json
 {
   "schema": 1,
-  "command": "/absolute/path/to/tracker-mcp",
-  "args": [],
+  "command": "npx",
+  "args": ["--yes", "--package=mcp-remote@0.16.7", "mcp-remote", "https://mcp.linear.app/mcp"],
   "tools": {
     "list": "list_comments",
-    "create": "create_comment",
+    "create": "save_comment",
     "update": "save_comment"
   },
-  "issueArgument": "issue_id",
-  "timestampField": "created_at",
-  "listing": "complete-comments"
+  "issueArgument": "issueId",
+  "timestampField": "createdAt",
+  "listing": "cursor-comments",
+  "pageSize": 50
 }
 ```
 
 | Port | Required upstream contract |
 |---|---|
 | List | Takes the configured issue argument. Returns every comment in tracker order, with string `id`, exact string `body` and the configured creation timestamp field. Missing/null timestamp stays null |
-| Listing shape | `complete-comments` requires exactly `{ "comments": [...] }`; `complete-array` requires an array. These settings assert that the upstream returns the complete issue listing. Paginated, truncated or otherwise wrapped results are unsupported and must be aggregated by the upstream connector |
+| Single response | Use `complete-array` for an array or `complete-comments` for exactly `{"comments": [...]}`. Both require the upstream to return every comment in one response. Omit `pageSize` |
+| Cursor pagination | Use `cursor-comments` with a `pageSize` from 1 to 100. The bridge sends `limit` on every call and passes the returned `cursor` to the next call. Each page contains `comments` and a boolean `hasNextPage`. A nonfinal page must include a nonempty cursor. The final cursor must be absent or null |
 | Create | Takes the configured issue argument and `body`; returns a JSON object with the created `id` |
 | Update | Takes `id` and `body`; returns a JSON object with that same `id` |
 | Acknowledgement | A successful MCP tool result containing the expected ID. If it includes `body`, it must equal the sent body. This acknowledges the connector response; it does not prove durable remote storage |
 | Result encoding | `structuredContent`, or one JSON text content item. Tool errors, malformed results and lost acknowledgements after dispatch are uncertain writes |
 
-The bridge checks configured tool names at connection time and follows MCP
-`tools/list` pagination. Comment-list pagination is a separate tracker-specific
-contract and is deliberately not inferred from unknown response fields.
+The bridge discovers the configured tools through MCP `tools/list`. Both prepare
+and apply read the entire comment thread. With cursor pagination, an unknown
+page field, duplicate comment ID, repeated cursor, or a thread exceeding 100
+pages or one MiB causes the read to fail before a write.
 
-Register it in the client's MCP configuration, using absolute paths:
+Register the bridge in the client's MCP configuration with absolute paths.
 
 ```json
 {
@@ -69,14 +75,6 @@ Register it in the client's MCP configuration, using absolute paths:
 Existing tracker tools remain available for other workflow operations. Terminal
 review comments use only the connector's prepare/apply tools. Without this
 connection the review-comment operation reports blocked.
-
-Linear documents `mcp-remote https://mcp.linear.app/mcp` as a stdio connection
-option. That client can occupy `command`/`args` after its normal OAuth setup.
-Its authentication is separate from a Claude Code or Codex native HTTP connection.
-Confirm the live tool names, argument names, response shape and listing
-completeness before selecting bindings; the example above is a port contract,
-not a claim that a particular hosted Linear tool version has been qualified.
-[Linear MCP setup](https://linear.app/docs/mcp).
 
 ## Session and failure behaviour
 

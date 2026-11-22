@@ -5,7 +5,7 @@ import { type ReviewCommentPorts, type WriteOutcome } from './review-comment-ses
 
 const MAX_MESSAGE_BYTES = 8 * 1024 * 1024;
 const PROTOCOL = '2025-06-18';
-type Config = { command: string; args: string[]; tools: { list: string; create: string; update: string }; issueArgument: string; timestampField: string; listing: 'complete-array' | 'complete-comments' };
+type Config = { command: string; args: string[]; tools: { list: string; create: string; update: string }; issueArgument: string; timestampField: string; listing: 'complete-array' | 'complete-comments' | 'cursor-comments'; pageSize?: number };
 type Pending = { resolve(value: unknown): void; reject(error: Error): void; timer: ReturnType<typeof setTimeout> };
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -14,7 +14,12 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
 
 function configuration(value: unknown): Config {
   const invalid = (): never => { throw new Error('invalid review tracker configuration'); };
-  if (!isRecord(value) || Object.keys(value).sort().join(',') !== 'args,command,issueArgument,listing,schema,timestampField,tools' || value.schema !== 1) return invalid();
+  if (!isRecord(value) || value.schema !== 1) return invalid();
+  const listing = value.listing;
+  if (listing !== 'cursor-comments' && listing !== 'complete-array' && listing !== 'complete-comments') return invalid();
+  const paginated = listing === 'cursor-comments';
+  const keys = paginated ? 'args,command,issueArgument,listing,pageSize,schema,timestampField,tools' : 'args,command,issueArgument,listing,schema,timestampField,tools';
+  if (Object.keys(value).sort().join(',') !== keys) return invalid();
   if (typeof value.command !== 'string' || !value.command || /[\x00\r\n]/.test(value.command) || !Array.isArray(value.args) || !value.args.every((arg: unknown): arg is string => typeof arg === 'string' && !arg.includes('\0'))) return invalid();
   const { tools } = value;
   if (!isRecord(tools) || Object.keys(tools).sort().join(',') !== 'create,list,update') return invalid();
@@ -22,8 +27,13 @@ function configuration(value: unknown): Config {
   if (typeof list !== 'string' || !list || typeof create !== 'string' || !create || typeof update !== 'string' || !update) return invalid();
   if (typeof value.issueArgument !== 'string' || !/^[A-Za-z][A-Za-z0-9_]*$/.test(value.issueArgument) || value.issueArgument === 'body' || value.issueArgument === 'id') return invalid();
   if (typeof value.timestampField !== 'string' || !/^[A-Za-z][A-Za-z0-9_]*$/.test(value.timestampField) || value.timestampField === 'id' || value.timestampField === 'body') return invalid();
-  if (value.listing !== 'complete-array' && value.listing !== 'complete-comments') return invalid();
-  return { command: value.command, args: value.args, tools: { list, create, update }, issueArgument: value.issueArgument, timestampField: value.timestampField, listing: value.listing };
+  let paging: { pageSize?: number } = {};
+  if (paginated) {
+    if (typeof value.pageSize !== 'number' || !Number.isInteger(value.pageSize) || value.pageSize < 1 || value.pageSize > 100 ||
+        value.issueArgument === 'limit' || value.issueArgument === 'cursor') return invalid();
+    paging = { pageSize: value.pageSize };
+  }
+  return { command: value.command, args: value.args, tools: { list, create, update }, issueArgument: value.issueArgument, timestampField: value.timestampField, listing, ...paging };
 }
 
 export function readMcpMessages(input: Readable, receive: (message: unknown) => void, fail: (error: Error) => void): void {
@@ -115,6 +125,46 @@ function toolValue(result: unknown): unknown {
   return value;
 }
 
+function commentRow(value: unknown, timestampField: string) {
+  if (!isRecord(value) || typeof value.id !== 'string' || !value.id || typeof value.body !== 'string') throw new Error('invalid tracker comment');
+  return { id: value.id, body: value.body, created_at: value[timestampField] ?? null };
+}
+
+async function listCursorComments(
+  fetchPage: (cursor?: string) => Promise<unknown>, pageSize: number, timestampField: string,
+) {
+  const rows: ReturnType<typeof commentRow>[] = [];
+  const ids = new Set<string>();
+  const cursors = new Set<string>();
+  let cursor: string | undefined;
+  let bytes = 2; // JSON array brackets.
+  for (let page = 0; page < 100; page++) {
+    const result = await fetchPage(cursor);
+    if (!isRecord(result) || !Array.isArray(result.comments) || result.comments.length > pageSize ||
+        typeof result.hasNextPage !== 'boolean' || Object.keys(result).some(key => !['comments', 'hasNextPage', 'cursor'].includes(key))) {
+      throw new Error('invalid paginated comment listing');
+    }
+    for (const raw of result.comments) {
+      const row = commentRow(raw, timestampField);
+      if (ids.has(row.id)) throw new Error('duplicate comment in paginated listing');
+      bytes += Buffer.byteLength(JSON.stringify(row)) + (rows.length ? 1 : 0);
+      if (bytes > 1024 * 1024) throw new Error('comments exceed 1 MiB');
+      ids.add(row.id);
+      rows.push(row);
+    }
+    if (!result.hasNextPage) {
+      if (result.cursor != null) throw new Error('unexpected terminal comment cursor');
+      return rows;
+    }
+    if (!result.comments.length || typeof result.cursor !== 'string' || !result.cursor || cursors.has(result.cursor)) {
+      throw new Error('invalid or repeated comment cursor');
+    }
+    cursor = result.cursor;
+    cursors.add(cursor);
+  }
+  throw new Error('comment listing exceeds 100 pages');
+}
+
 export async function connectReviewTracker(value: unknown, options: { timeoutMs?: number } = {}): Promise<{ ports: ReviewCommentPorts; close(): void }> {
   const config = configuration(value);
   const timeoutMs = options.timeoutMs ?? 30_000;
@@ -143,18 +193,20 @@ export async function connectReviewTracker(value: unknown, options: { timeoutMs?
     for (const name of Object.values(config.tools)) if (!names.has(name)) throw new Error(`configured tracker tool unavailable: ${name}`);
   } catch (error) { client.close(); throw error; }
 
-  const call = async (name: string, args: Record<string, string>) => toolValue(await client.request('tools/call', { name, arguments: args }));
+  const call = async (name: string, args: Record<string, string | number>) => toolValue(await client.request('tools/call', { name, arguments: args }));
   return {
     close: client.close,
     ports: {
       async listComments(issueId: string) {
-        const value = await call(config.tools.list, { [config.issueArgument]: issueId });
+        const issue = { [config.issueArgument]: issueId };
+        const size = config.pageSize;
+        if (size !== undefined) {
+          return listCursorComments(cursor => call(config.tools.list, { ...issue, limit: size, ...(cursor ? { cursor } : {}) }), size, config.timestampField);
+        }
+        const value = await call(config.tools.list, issue);
         const comments = config.listing === 'complete-comments' && isRecord(value) && Object.keys(value).join(',') === 'comments' ? value.comments : config.listing === 'complete-array' ? value : null;
         if (!Array.isArray(comments)) throw new Error('tracker did not return the configured complete comment listing');
-        return comments.map((comment: unknown) => {
-          if (!isRecord(comment) || typeof comment.id !== 'string' || typeof comment.body !== 'string') throw new Error('invalid tracker comment');
-          return { id: comment.id, body: comment.body, created_at: comment[config.timestampField] ?? null };
-        });
+        return comments.map((comment: unknown) => commentRow(comment, config.timestampField));
       },
       async writeComment(issueId, plan): Promise<WriteOutcome> {
         try {

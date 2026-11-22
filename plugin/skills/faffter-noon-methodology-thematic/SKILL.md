@@ -232,11 +232,9 @@ The CLI applies its fixed safety floor first: `budget-escalate`, `undispatched-l
 3. **Author the fields** from `{outcome, child_specs}`, scaled to the target:
    - `definition_of_done` — **thin-MVP** target ⇒ the first-slice children + the outcome's minimal criterion; **finished** target ⇒ all children delivered + the outcome's full stated criteria. Structural, child-derived — no value judgement about *which* children matter.
    - `decision` + `scope` — the delegated end this container commits to, named from the outcome prose; scope = the container's child set.
-   - `prd_goals` — **cite every declared PRD goal the DoD covers** (the full comma-separated set, from the container's PRD link / ancestor), not just a single ancestor goal. Under-citing a functional MVP that discharges several declared goals is what the YAGNI gate mis-reads as over-scope.
+   - For `prd_goals`, cite each declared PRD goal the DoD covers, preserving complete goal names from the container's PRD or ancestor.
 4. **Confidence + fail-safe.** Thin outcome prose / no child specs ⇒ low confidence ⇒ emit a **thin DoD flagged needs-human**, never a vacuous one (the L4 caller must never self-define a vacuous DoD).
-5. **Emit** the `AuthoredPrdr` and write it via `faff prdr new --provenance loop --status Proposed --container <c> --prd-goal <g1,g2,…>` (the comma-separated cited set → the record's `PRD-goals:` field). The methodology **authors but never admits** — it does **not** call `faff prdr admit`, and **never writes the tracker**; the caller routes per its level (gateway → **Authored-PRDR level-scaling**).
-
-**Output:** `AuthoredPrdr {decision, definition_of_done, container, prd_goal, provenance: "loop", status: "Proposed"}` + a confidence note. Unanswered-equivalent (no container, or `--no-prdr`) ⇒ the caller proposes no PRDR and the human authors the DoD directly.
+5. Write one `Proposed` record with `faff prdr new "<decision>" --container <c> --prd-goals '<cited goals JSON array>' --provenance loop --status Proposed`. Return `AuthoredPrdr {decision, definition_of_done, container, prd_goal, provenance: "loop", status: "Proposed"}` and confidence. The saved record carries the full `prd_goals` array. The caller handles admission and tracker writes. Without a container or with `--no-prdr`, the human authors the DoD.
 
 **Appetite** changes ambition framing only: lower favours the thin end of the target band, higher the full end. Admission belongs to the caller's level; never self-Accept (L4 runner's gated act or human L3 ratification).
 

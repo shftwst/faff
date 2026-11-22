@@ -438,6 +438,42 @@ test("815 AC (WHY): cite all five, DoD covers all five, survived → admit, trac
   assert.equal(v.over_scope, false);
 });
 
+test("yagni: structured citations preserve a goal containing a comma through arbitration", () => {
+  const cited = ["draft, approve", "publish"];
+  const decide = (declared) => {
+    const result = yagni(["--cited-goals", JSON.stringify(cited), "--prd-goals", JSON.stringify(declared),
+      "--proposal", "admit", "--challenge", "survived", "--dod-covers", JSON.stringify(cited)]);
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout);
+  };
+  const matched = decide(cited);
+  assert.deepEqual(matched.cited_goals, cited);
+  assert.equal(matched.trace_to_goal, true);
+  assert.equal(matched.admit, true);
+  const split = decide(["draft", "approve", "publish"]);
+  assert.equal(split.trace_to_goal, false);
+  assert.equal(split.admit, false);
+});
+
+test("yagni: reject malformed or conflicting citation inputs before emitting a verdict", () => {
+  for (const args of [
+    ["--cited-goals", "invalid"],
+    ["--cited-goals", "{}"],
+    ["--cited-goals", '["ok", false]'],
+    ["--cited-goals", '["ok", " "]'],
+    ["--cited-goals", '["ok"]', "--prd-goal", "different"],
+  ]) {
+    const result = yagni(args);
+    assert.equal(result.status, 2, result.stderr);
+    assert.match(result.stderr, /--cited-goals/);
+    assert.equal(result.stdout, "");
+  }
+  const wrongVerb = run(["list", "--cited-goals", '["ok"]']);
+  assert.equal(wrongVerb.status, 2);
+  assert.match(wrongVerb.stderr, /only valid for yagni/);
+  assert.equal(yagniJson(["--cited-goals", "[]", "--prd-goals", '["ok"]']).trace_to_goal, false);
+});
+
 test("815 AC#1: under-citation + overturn(over-scope) → admit; cited_goals echoes the widened set", () => {
   const v = yagniJson(["--prd-goal", "g1", "--prd-goals", D5, "--proposal", "admit", "--challenge", "overturned", "--challenge-ground", "over-scope", "--dod-covers", D5]);
   assert.equal(v.admit, true);

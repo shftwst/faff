@@ -148,9 +148,13 @@ test("Step 5c prose documents the composed sequence and the park-reason vocabula
   assert.match(md, /### Step 5c — admit or park the loop-PRDR/, "Step 5c heading must exist");
   // Composes the existing gateway contract — no parallel admission path.
   assert.match(md, /no parallel admission path/i, "must state it introduces no parallel admission path");
-  // The three gates are named and invoked in order.
-  for (const cli of ["faff prdr yagni", "faff prdr admit --actor loop", "faff prdr accept --actor loop"]) {
-    assert.ok(md.includes(cli), `Step 5c must name \`${cli}\``);
+  // Validate the normal caller's sequence, including the positional record number accept requires.
+  const step = md.split("### Step 5c ")[1].split("\n### ")[0];
+  let cursor = -1;
+  for (const cli of ["faff prdr yagni", "faff prdr admit --actor loop", "faff prdr accept <n> --actor loop"]) {
+    const offset = step.indexOf(cli);
+    assert.ok(offset > cursor, `Step 5c must invoke ${cli} in sequence`);
+    cursor = offset;
   }
   // The refusing-phase park-reason vocabulary is spelled out (park, never drop).
   for (const reason of ["yagni-reject", "yagni-overturned", "phase2-inconclusive", "admit-refused"]) {
@@ -163,6 +167,7 @@ test("Step 5c prose documents the composed sequence and the park-reason vocabula
 const D5J = '["g1","g2","g3","g4","g5"]';
 
 test("815 e2e: five-goal PRDR cites all five, covers all five, survived → admit → accept → coverage covered:true", () => {
+  const declared = '["g1","g2","draft, approve","g4","g5"]';
   const root = mkdtempSync(join(tmpdir(), "faff-815-it-"));
   git(root, "init", "-q", "-b", "main");
   git(root, "config", "user.email", "t@t.test");
@@ -170,13 +175,15 @@ test("815 e2e: five-goal PRDR cites all five, covers all five, survived → admi
   mkdirSync(join(root, "docs", "prdr"), { recursive: true });
   // FAFF-856 — citing a five-goal set now goes through --prd-goals (a JSON array); a single
   // --prd-goal no longer splits on commas (that was the bug this ticket fixed).
-  prdr(["new", "P0 shorten and redirect", "--container", "link-shortener", "--prd-goals", D5J,
+  prdr(["new", "P0 shorten and redirect", "--container", "link-shortener", "--prd-goals", declared,
     "--provenance", "loop", "--status", "Proposed", "--root", root]);
   git(root, "add", "-A");
   git(root, "commit", "-q", "-m", "seed five-goal loop-PRDR");
   // yagni: Phase-1 admit, Phase-2 survived, DoD covers all five → admit, no over-scope.
-  const up = JSON.parse(prdr(["yagni", "--prd-goal", "g1,g2,g3,g4,g5", "--prd-goals", D5J, "--proposal", "admit",
-    "--serves-goal", "--within-scope", "--challenge", "survived", "--dod-covers", D5J, "--root", root], root).stdout);
+  const [record] = JSON.parse(prdr(["list", "--json", "--root", root], root).stdout);
+  assert.deepEqual(record.prd_goals, JSON.parse(declared));
+  const up = JSON.parse(prdr(["yagni", "--cited-goals", JSON.stringify(record.prd_goals), "--prd-goals", declared, "--proposal", "admit",
+    "--serves-goal", "--within-scope", "--challenge", "survived", "--dod-covers", declared, "--root", root], root).stdout);
   assert.equal(up.admit, true);
   assert.equal(up.over_scope, false);
   const adm = JSON.parse(prdr(["admit", "--actor", "loop", "--supersedes-provenance", "none",
@@ -186,7 +193,7 @@ test("815 e2e: five-goal PRDR cites all five, covers all five, survived → admi
   const acc = prdr(["accept", "1", "--actor", "loop", "--admit-verdict", JSON.stringify(adm), "--root", root], root);
   assert.equal(acc.status, 0, `accept exited non-zero: ${acc.stderr}`);
   // Coverage over the live set: the union of the accepted PRDR's five cited goals equals D → covered:true.
-  const cov = JSON.parse(prdr(["coverage", "--prd-goals", D5J, "--root", root], root).stdout);
+  const cov = JSON.parse(prdr(["coverage", "--prd-goals", declared, "--root", root], root).stdout);
   assert.equal(cov.covered, true, "coverage must flip covered:true — the build stage has work, no dead-end");
   assert.deepEqual(cov.uncovered_goals, []);
 });

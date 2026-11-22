@@ -38,7 +38,7 @@ const HOLDOUT_SURFACE = {
   },
 };
 const { SPEC_REVIEW_LENSES, computeHoldoutVerdict, computeHoldoutVerdictsMap, holdoutGateResult } = require("./contract-defs");
-const { loadConfig } = require("./config");
+const { DEFAULTS, loadConfig } = require("./config");
 const { assembleAdversarialBackends } = require("./adversarial-backends");
 const { ISSUE_ID_RE, parseLocalAcId, qualifyAcId } = require("./ac-id");
 
@@ -1920,26 +1920,21 @@ function cmdSpecReviewLenses(args) {
   const tagsArg = get("--tags");
   const tags = tagsArg ? tagsArg.split(",").map((s) => s.trim()).filter(Boolean) : [];
   const level = get("--level") || "L3";
-  const appetite = get("--appetite") || "high";
-
-  // FAFF-1343: resolve whether an adversarial spec_review chain is configured. An explicit
-  // --adversarial-configured wins (deterministic tests, and a caller that already resolved
-  // its own chain); otherwise read the repo config through the SAME predicate
-  // `faff spec-review-pin --resolve` uses, for the `spec_review` consumer, so the two verbs
-  // can never disagree about whether a chain exists.
+  const appetiteFlag = get("--appetite");
   const advFlag = get("--adversarial-configured");
-  let adversarialConfigured;
-  if (advFlag === "yes" || advFlag === "no") {
-    adversarialConfigured = advFlag === "yes";
-  } else if (advFlag != null) {
+  if (advFlag !== null && advFlag !== "yes" && advFlag !== "no") {
     return usageError(
       [{ code: "bad-value", detail: `--adversarial-configured must be yes|no (got ${JSON.stringify(advFlag)})` }],
       SPEC_REVIEW_LENSES_USAGE);
-  } else {
-    const root = get("--root") || findRoot();
-    const [cfg] = loadConfig(root);
-    adversarialConfigured = !assembleAdversarialBackends(cfg, "spec_review").error;
   }
+
+  const cfg = appetiteFlag === null || advFlag === null
+    ? loadConfig(get("--root") || findRoot())[0]
+    : {};
+  const appetite = appetiteFlag || cfg.appetite || DEFAULTS.appetite;
+  const adversarialConfigured = advFlag === null
+    ? !assembleAdversarialBackends(cfg, "spec_review").error
+    : advFlag === "yes";
 
   const selection = selectLenses({ tags, level, appetite, adversarialConfigured });
   if (selection.error === "bad-level") {

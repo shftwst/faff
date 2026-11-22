@@ -15,12 +15,14 @@
 // adversarial occupant gets per-lens refuters on an ordinary L3 drain instead of silently
 // getting the collapsed checklist. L4 keeps one level-specific rule and it is the opposite
 // of a degrade: with no configured chain it FAILS CLOSED (exit 3). Because configuredness is
-// now an input, every test below passes `--adversarial-configured` EXPLICITLY — a test that
+// now an input, tests against the ambient repo pass `--adversarial-configured` explicitly. A test that
 // let it resolve from the ambient repo config would assert on whatever `.faff/config.yaml`
 // happens to say and flip with it.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -36,6 +38,30 @@ const run = (args) =>
 const sel = (args) =>
   JSON.parse(run(args.some((a) => a === "--adversarial-configured") ? args : [...args, "--adversarial-configured", "no"]).stdout);
 const ALL = ["architectural", "infosec", "methodology", "QA"];
+
+test("lens selection resolves project appetite and local overrides unless explicitly supplied", (t) => {
+  const root = mkdtempSync(join(tmpdir(), "faff-lens-appetite-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const dir = join(root, ".faff");
+  mkdirSync(dir);
+  const args = ["--root", root, "--tags", "config", "--level", "L3"];
+  const lenses = (...flags) => {
+    const result = run([...args, ...flags]);
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout).lenses;
+  };
+
+  const narrow = ["infosec", "QA"];
+  assert.deepEqual(lenses(), narrow);
+  writeFileSync(join(dir, "config.yaml"), "appetite: low\n");
+  assert.deepEqual(lenses(), ALL);
+  assert.deepEqual(lenses("--adversarial-configured", "no"), ALL);
+  assert.deepEqual(lenses("--appetite", "high"), narrow);
+  writeFileSync(join(dir, "config.local.yaml"), "appetite: high\n");
+  assert.deepEqual(lenses(), narrow);
+  writeFileSync(join(dir, "config.local.yaml"), "appetite: medium\n");
+  assert.deepEqual(lenses(), ALL);
+});
 
 test("--selftest verdict table passes (exit 0) and names every spec'd branch", () => {
   const r = run(["--selftest"]);

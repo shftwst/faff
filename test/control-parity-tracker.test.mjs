@@ -6,15 +6,16 @@ import { mkdtempSync, readFileSync, existsSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { canonicalHash, compareRuns, parseStrictJson, sha256, validateRegistry, validateTrace } from '../eval/control-parity/schema.mjs';
-import { captureScenario, createFixtureTracker, finalStateHash, loadPolicyBytes } from '../eval/control-parity/tracker.mjs';
+import { captureScenario, createFixtureTracker, finalStateHash } from '../eval/control-parity/tracker.mjs';
 
 const ROOT = new URL('..', import.meta.url).pathname;
 const load = p => parseStrictJson(readFileSync(join(ROOT, p), 'utf8'));
 const fixtures = load('eval/control-parity/fixtures/review-comments.json');
 const expected = load('eval/control-parity/expected-outcomes.json');
 const registry = load('eval/control-parity/registry.json');
+// This registry describes the historical policy, not current runtime prose.
+const policy = readFileSync(new URL('../verification/experiments/2026-11-14-controlled-skill-runs/review-comment-source.md', import.meta.url));
 const edgeCases = load('test/fixtures/review-comment-policy.json').scenarios;
-const policy = loadPolicyBytes(ROOT);
 const H = c => c.repeat(64);
 const tmp = () => mkdtempSync(join(tmpdir(), 'cp-tracker-'));
 const fixture = id => fixtures.scenarios.find(s => s.id === id);
@@ -35,7 +36,7 @@ const capture = (id, driver, faults = []) => captureScenario({
 
 test('fixtures are synthetic, model-visible inputs carry no expected outcomes, and the registry binds their hashes', () => {
   validateRegistry(registry);
-  assert.equal(sha256(policy), sha256(readFileSync(join(ROOT, 'verification/experiments/2026-11-14-controlled-skill-runs/review-comment-source.md'))));
+  assert.equal(sha256(policy), '4d9d01e702294453cf16233feefe265e18ab5e376bf7d0f1eec40cb3f534edb6');
   assert.deepEqual(registry.scenarios.map(s => s.id), fixtures.scenarios.map(s => s.id));
   for (const s of fixtures.scenarios) {
     const r = entry(s.id);

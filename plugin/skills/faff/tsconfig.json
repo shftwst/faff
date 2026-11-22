@@ -83,6 +83,10 @@
     "bin/lib/land-fix-attempt.ts",
     "bin/lib/spec-judge-sequence.ts",
     "bin/lib/run-wave-consult.ts",
-    "bin/lib/review-hold.ts"
+    "bin/lib/review-hold.ts",
+    "bin/lib/review-comment.ts",
+    "bin/lib/review-comment-session.ts",
+    "bin/lib/review-comment-mcp.ts",
+    "bin/lib/review-comment-server.ts"
   ]
 }

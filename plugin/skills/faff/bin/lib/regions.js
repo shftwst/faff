@@ -581,6 +581,7 @@ const REGION_MAP = {
   "prose-size": "factory",
   // FAFF-1428: rule-inventory reads git trees and committed specs only; it imports prose-size's isCovered.
   "rule-inventory": "factory",
+  "review-comment": "factory",
   // FAFF-363: governance-check references the SAME factory identifiers merge-gate does
   // (readAcComplete/readReviewVerdict/readHoldout from merge-gate.js, which themselves
   // call contract-defs.js's computeReviewVerdict) — for the identical reason merge-gate
@@ -831,6 +832,7 @@ const REGION_SELFTEST_ARGV = {
   "prose-size": null,
   // FAFF-1428: no --selftest (tests live in test/ only); lint-cli-coverage's TEST_FILE_COVERAGE names them.
   "rule-inventory": null,
+  "review-comment": null,
   "governance-check": ["governance-check", "--selftest"],
   "evidence-readiness": ["evidence-readiness", "--selftest"],
   "landing-comment": ["landing-comment", "--selftest"],

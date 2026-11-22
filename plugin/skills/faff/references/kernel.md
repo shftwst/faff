@@ -242,30 +242,18 @@ Resolve a sibling's canonical name (directory / `name:`) against the live availa
 
 ## Chaining pattern
 
-When a faff skill's flow leads naturally into another faff skill, it offers the next step via a yes/no gate (or a short-choice prompt where there is a real branch like Build/Review/Reprep). On confirm, it invokes the next skill via the Skill tool in the same conversation, resolving the sibling by its canonical name per **Sibling-skill invocation** above. On deny, it stops cleanly.
+At L1/L2, surface the current skill's result first. For an issue, consult `faff next` with its fetched state (gateway → **Next-step transition**). For `prep` or `graft`, ask the human a standalone yes/no question about running `/faff-prep` or `/faff-graft` respectively, or ask them to choose among legal actions. For `skip-ineligible` or `needs-human`, surface the reason without proposing a skill.
 
-No faff skill uses passive "run `/faff-*` next" or "you should run" language. Every chain point is an explicit gate.
-
-**Which next step the gate offers comes from `faff next`** (gateway → **Next-step transition**), not from prose: when the agent suggests the next step for an issue, it consults `faff next` for that issue's fetched state and offers the matching skill (`prep`→`/faff-prep`, `graft`→`/faff-graft`, `skip-ineligible`/`needs-human`→surface, not offer). `faff next` chooses *what's legal next*; this chaining gate is still how the human *consents* to it — the two compose, neither replaces the other.
-
-**The gate is a dedicated, standalone decision (interactive).** It is presented on its own, *after* the current skill's work is produced and surfaced — never bundled into another choice. **Resolving a spec/approach/scope/name decision is not chain-consent:** the "short-choice Build/Review/Reprep" prompt above picks the *next action* only; combining an unrelated *resolution* (a Punt, a name, an approach) with "proceed to the next skill" in a single option is a **contract violation**. The **only** triggers to invoke the next skill are (a) an affirmative answer to that standalone gate, or (b) the user's explicit prior instruction (e.g. "prep then build it"). Implied consent from an unrelated choice never chains.
-
-**Chaining is interactive-only; autonomous sequencing belongs to the orchestrator.** A sub-skill **never auto-chains from within itself** in autonomous mode — it returns its disposition and `/faff-beep-boop` owns the sequencing (prep queue → build pass). So "auto-chain" is not a sub-skill behaviour at all: interactive **always** asks the standalone gate; autonomous is orchestrated.
-
-*Limit (honest):* this is a prose contract — whether a standalone gate was actually presented before the `Skill` tool fires is a runtime interaction, not statically lintable (cf. the deterministic-sequencing direction in `faff next`). The rule binds behaviour; it is not mechanically enforced.
+Keep the chaining decision separate. A decision about a Punt, scope, approach or name grants no consent to chain. On confirmation or an explicit prior instruction such as "prep then build it", resolve the sibling per **Sibling-skill invocation** and invoke it via the Skill tool in the same conversation. On refusal, stop.
 
 ## Interactive next-step offer (the forward-lean, in prose)
 
-The **Chaining pattern** gates decisions; this section governs continuation and next-step offers at phase boundaries and stops on every harness, preserving the autonomous no-prompt invariant.
+At each L1/L2 phase boundary, park or stall:
 
-**The interactive guarantee (L1/L2 only).** At every **phase boundary** (prep→graft, build→review, review-pass→open-PR, PR→merge, graft→next-ticket) **and** every park/stall, exactly one holds: **CONTINUE** — no operator decision is required → proceed to the next step *in the same turn* (a continuation instruction); or **OFFER** — the turn ends here (a real decision gate, a park/stall, or a clean handoff like a long CI wait) → the **last line** names the next step *and its exact command* (a **next-step offer**; at a park, the **recovery offer** from the Park protocol). Never end the turn silently with neither. The CONTINUE arm is not licence to strip a real decision gate (e.g. the graft "Merge now?" confirm) — decision gates are the OFFER arm.
+- If the next step needs no decision, take it in the same turn.
+- At a decision or handoff, including a long CI wait, end with the next action and its exact command. Ask for any required decision, including "Merge now?" before a gated merge. For a park, use the cause-specific recovery command from **Unpark protocol**.
 
-**The autonomous carve-out (L3/L4).** Emit **no** offer and **no** prompt: the **no-prompt invariant** (above) and the interactive-only **Chaining pattern** already bind this — the orchestrator sequences, the sub-skill runs foreground-to-terminal and returns its disposition. A *logged* next-step line is fine; a prompt is a contract violation ("it's helpful" is the banned rationalisation).
-
-**Where the offer's "what" comes from.** No new decision source: a chain step's next skill is `faff next`'s (gateway → **Next-step transition**); a recovery offer's exact re-invoke command is the **Unpark protocol**'s park-cause→skill mapping.
-
-*Limit (honest):* like the Chaining pattern's own limit, this binds behaviour but is not statically lintable — grep confirms the prose exists, not that the offer fired before a turn ended (the pre-fix Chaining prose was grep-green yet still stalled under Codex). The behavioural check under Codex is the acceptance floor; a future `validate-adapters` anchor-phrase lint is the durable drift floor, not a substitute.
-
+At L3/L4, sub-skills run foreground-to-terminal and return their disposition to the orchestrator, which sequences the next skill. A log may name the next step. Never prompt, offer or chain from the sub-skill.
 
 ## Core contracts and adaptor slots
 Contract states, vocabularies and classifications that the pipeline branches on, counts, gates on or admits to queues are fixed here. Swapping a skill never changes them. Adaptors translate a native dialect into the fixed contract and validate it; the default dialect is the house format. Format, parsing, presentation and producer-specific translation are swappable.

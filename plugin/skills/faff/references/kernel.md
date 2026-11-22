@@ -64,7 +64,7 @@ Never hand-write base or overlay except for the committed-base sequences `advers
 - `install.skill_targets` defaults to `~/.claude/skills` and `~/.agents/skills`. `worktree_root` defaults to `~/.faff/worktrees/<repo>`. `concurrency_max` defaults to 4 in parallel and is ignored in sequential mode.
 - `gates.fallback` with no declared gates: `fail-closed` (default) yields `needs-human`. Explicit `advisory` reports the gap and passes.
 - `logging` defaults to `full`. `essential` suppresses invocation narrative subject to the **Logging gate**. Both keep the machine-consumed records.
-- The tracker label `faff-automate` governs automation eligibility. There is no `automation_default`. Use `slots.methodology` for deprecated `mode: delivery-lead`.
+- Use `faff eligible` for the configured opt-in role. Use `slots.methodology` for deprecated `mode: delivery-lead`.
 
 ### Slots (optional delegation)
 
@@ -153,12 +153,9 @@ These rules apply to every faff sub-skill. Sub-skills point at this section rath
 
 ### Always pull fresh (never act on stale tracker state)
 
-Every read-and-synthesise pass re-fetches live tracker state on every invocation: issues, blocker links (both directions), status fields, **labels (in particular the eligibility label `faff-automate`)**, the comments a pass classifies on, milestones, parent/ancestor relationships. Never reuse a fetch from earlier in the same conversation, never trust a snapshot written into `.faff/config.yaml` or any static file, never read a prior `.faff/logs/` file as a substitute for live data. The one exception is the per-run `automation-verdicts.md` cache, read *within* a single pass and recomputed across passes (see **`.faff/` logging directory**).
+Fetch current issues, both directions of blocker links, status, labels, relevant comments, milestones and parent ancestry on each read-and-synthesise pass. Earlier conversation results, config snapshots and prior logs cannot supply live facts. Reuse `automation-verdicts.md` within its pass only.
 
-A pass that mixes fresh-now data with 30-minute-old data is **silently wrong**: the reader trusts the output as one coherent moment, so a status that changed, a PR that merged, or a blocker that resolved between partial fetches produces confidently incorrect output that a human or the queue then acts on. The failure escalates with how much the skill *acts*. A stale briefing misleads; a stale grooming pass (faff-tidy) or build-queue assembly (faff-beep-boop) mutates the tracker or ships code on bad data. Better slow-and-correct than fast-and-lying.
-
-If the fetch budget is genuinely too high, scope the run smaller along a **structural** axis (single project, single workstream) and announce that scope. Never use partial freshness across a wider scope, and never inherit a narrower scope from another skill's already-filtered surface (e.g. scoping tidy to "what wtf just surfaced").
-
+If the fetch budget is too small, announce a narrower project or workstream and fetch that scope fully. Choose it independently of another skill's filtered results.
 
 ### Untrusted input (no-execute floor)
 

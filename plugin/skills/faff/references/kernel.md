@@ -4,137 +4,115 @@
 
 ## Governing principles
 
-Four tenets steer every design call in faff. Each is a tension — *X, not Y* — and the named mechanism is where it already lives, not an aspiration. When a spec or build needs a tie-breaker, reach for these.
+Use these tie-breakers when specifying or building:
 
-- **Deterministic tools over prose.** Mechanical and contractual work belongs in testable, reproducible tools; the LLM is reserved for discovery, judgement, and insight — not for executing a contract run-to-run. Rule of thumb: same input must always give the same output ⇒ a tool; needs taste or understanding ⇒ the LLM. *Embodied by:* the `faff` CLI (`config` / `runcheck` / `validate-adapters`, see **Configuration**).
-- **Configurable, not opinionated.** Every behaviour is a swappable slot over a fixed contract — faff ships sensible defaults you can override, not opinions you must accept. *Embodied by:* the slots / adaptor model, `.faff/config.yaml`, and the appetite dial (see **Configuration** and **Core contracts and adaptor slots**).
-- **Adoptable, not all-encompassing.** faff integrates rather than owns — it works with your tracker (any MCP), your agents, and git-only mode, and you adopt as much of the L1→L4 ladder as you want. *Embodied by:* the levels table above, git-only mode, tracker autodetect, and slot delegation to third-party skills.
-- **Understandable, not unapproachable.** Output and behaviour are skimmable and low-cognitive-load, so the human can always follow what faff did and why — and trust it. *Embodied by:* the `rendering_adaptor` / synthesis gloss (see **Core contracts and adaptor slots**) and the human-readable `.faff/` logs.
+- Put repeatable mechanical decisions and contracts in tools such as `faff config`, `runcheck` and `validate-adapters`. Use models for discovery, insight and judgement.
+- Let projects choose slot occupants and appetite while consumers enforce fixed contracts.
+- Integrate with the project's tracker MCP, git-only workflow and chosen agents or third-party skills at its chosen L1–L4 level.
+- Make actions and reasons easy for humans to follow through the `rendering_adaptor`, synthesis gloss and readable logs.
 
-
-> **First run (pointer).** When config resolution finds no config file, an *interactive* entry offers first-run setup — invoke the `faff-onboard` skill (per **Sibling-skill invocation**). The full soft-offer + decline-stub machinery lives in `/faff-onboard` and the bare-`/faff` `faff/SKILL.md`; an autonomous run never offers and proceeds on defaults.
+**First run.** When no config file exists, offer `faff-onboard` interactively per **Sibling-skill invocation**. The bare gateway and onboard skill own the offer and decline stub. Autonomous runs proceed on defaults.
 
 ## Install health (doctor-at-entry)
 
-The same single gateway-load preamble — **after** the config check above — runs **`faff doctor`** once on entry, so a **stale copy-install** (the faff skills installed as real-dir copies instead of repo symlinks, where shipped changes silently don't go live) is surfaced and offered a repair instead of running stale prose. Like First run, this is **one gateway-level check, not a snippet copied into every sub-skill**.
+After resolving config presence, run `"$faff" doctor` once at gateway entry. Resolve the CLI per **Resolving the `faff` executable** below.
 
-Resolve the binary via **Resolving the `faff` executable** (never hardcode `~/.claude/skills/faff/bin/faff`), run `"$faff" doctor`, and branch on its exit code:
+| Exit | Action |
+|---|---|
+| 0 (live symlinks) or 2 (no skills found) | Continue silently. |
+| 1 (copy install, dangling/worktree link, missing skill in a scanned directory, or missing merge fence) | Interactive: offer once: `faff skills look out of date on this machine — some harnesses may not see them. Re-link now? (y/n)`. On acceptance run `"$faff" sync` via the CLI, then continue the original command. On decline continue without asking again this turn. Autonomous: log the finding under `.faff/logs/` for `/faff-wtf` and continue. Never prompt, sync or change `~/.claude` autonomously. |
 
-- **exit 0** (every faff skill is a live symlink in every scanned directory) → silent, continue.
-- **exit 2** (no faff skills found in *any* scanned directory) → silent, continue — not worth a prompt.
-- **exit 1** (any copy install, dangling link, worktree-sourced link, skill missing from a scanned directory — a **half-install** — or a missing merge fence) → act by mode:
-  - **Interactive** — a one-time **soft-offer** (mirrors the First-run offer; never a gate): `faff skills look out of date on this machine — some harnesses may not see them. Re-link now? (y/n)`. On **accept** → run **`"$faff" sync`** (the skill-owned repair — re-links the skill dirs + the CLI via `scripts/link-skills.sh --global --replace`), then continue the original command. On **decline** → continue on the stale install; do **not** nag again this turn.
-  - **Autonomous/beep-boop** — **never prompt, never run `faff sync`, never mutate `~/.claude`.** Re-linking deletes real dirs in the user's global skills dir — a **side-effect outside the PR flow** (gateway → **Autonomous Mode Contract**), which the autonomous lane never performs unattended. Log the stale-install finding to `.faff/logs/…` and surface it for `/faff-wtf`, then continue.
-
-`faff sync` is a **CLI subcommand** (a thin wrapper over the tested `link-skills.sh`), so it is invoked directly via the resolved binary — **not** through the Skill tool (unlike `faff-onboard`). The same preamble also runs **`faff config check`** (read-only) and treats its findings as **advisory** — never a block/gate/prompt: interactive surfaces **one** line when findings exist (never nagging twice a turn), autonomous/beep-boop **logs** them for `/faff-wtf` and continues (the container/branch-protection `warn` default). A config finding is never a run-stopper.
+`sync` runs `scripts/link-skills.sh --global --replace` and can replace global skill directories. At the same entry, run the read-only `faff config check`. Findings are advisory: surface one line once per turn interactively, or log them for `/faff-wtf` autonomously, then continue.
 
 ## Configuration (shared across all sub-skills)
 
-Resolve every configuration value through `faff config`. Never read configuration files directly, including through shell commands or the Read tool. `CLAUDE.md` supplies project context, never configuration.
-
-| Source | Resolution and posture |
-|---|---|
-| `.faff/config.yaml` | Shared base; recommend committing it. Store stable identifiers/preferences, not secrets. `api_key_env` names an environment variable; its value comes from the environment. |
-| `.faff/config.local.yaml` | Optional gitignored machine-local overlay. Deep-merge maps per leaf over the base and defaults; replace sequences wholesale; overlay scalars win. |
-| `.faffrc.yaml` / `.faffrc.local.yaml` | Deprecated fallback names. `config path` and `config check` report the move. |
-| `.faffrc`, `.faffrc.yml`, `.faffrc.local`, `.faffrc.local.yml` | Invalid legacy names: fail loudly, never substitute defaults. |
-| Names containing `.example` | Ignore; never load as configuration. |
-
-Absent, empty and comment-only bases are valid. Missing registered keys use built-in defaults; with no files, use defaults and offer interactive first-run setup as defined in **First run**. Never silently ignore a parse failure in either file. Meaningful base content that parses to empty or a non-map fails reads with the file and remedy on stderr.
-
-`FAFF_CONFIG_BASE_LENIENT=1` permits warn-and-default incident recovery; warnings continue on every read, and L4 lights-out minting refuses while it is set. Protective exceptions remain: `config check` reports a malformed base as an error finding (exit 1), and `sentry check` continues with default thresholds and `config_malformed: true`.
-
-**Resolver.** Use these commands on the resolved executable:
-
-| Command | Result |
-|---|---|
-| `config path` | Resolved paths, base first, one per line; exit 3 only if neither file exists. |
-| `config get <dotted.key> [-d DEFAULT]` | Resolved scalar or registered built-in default (exit 0). A missing non-registry key prints DEFAULT/empty and exits 3. |
-| `config spec-docs-path [--create]` | Spec directory with its default applied; `--create` makes it. |
-| `config resolved` | Non-default configuration, every explicitly set slot and both file paths for the run banner; expose overrides, overlays and dispatch values. |
-| `config check` | Read-only posture findings: base committed, overlay ignored, no secret-shaped values. Exit 0 clean, 1 findings, 2 unreadable. Advisory; run before committing the base, warn without blocking on posture findings. |
-
-**Resolving the `faff` executable (canonical; sub-skills reference this).** Prefer `faff` on PATH, normally linked at `~/.local/bin/faff`. Otherwise resolve the bundled executable; do not hardcode the development-linked location:
+**Resolving the `faff` executable.** Use `faff` on PATH (usually `~/.local/bin/faff`), then the bundled Node CLI:
 
 ```bash
 faff=$(command -v faff || echo "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faff/bin/faff")
 [ -x "$faff" ] || faff=$(find ~/.claude -path '*/skills/faff/bin/faff' -type f 2>/dev/null | head -1)
 ```
 
-Call `"$faff" config ...` and the other bundled commands (`runcheck`, `validate-adapters`, etc.). The CLI requires only Node and owns configuration resolution/parsing.
+**CLI-only config access.** Use `"$faff" config` for all values, including reasoning inputs. Never read config files directly through shell or Read. `CLAUDE.md` supplies project context only.
 
-**CLI-only config access.** This applies to slots, appetite, tracking and paths, including values used only for reasoning. `validate-adapters` rejects direct shell reads in skill prompts.
+| Source | Resolution |
+|---|---|
+| `.faff/config.yaml` | Shared base. Recommend committing stable project IDs, team keys, repo slugs, slot choices and preferences. Keep secrets in the environment, referenced by `api_key_env`. Refetch mutable tracker data each invocation. Keep milestones, dates, issue snapshots, progress and cycle notes out of config. |
+| `.faff/config.local.yaml` | Optional gitignored overlay. Merge maps per leaf over base and defaults, replace sequences, prefer overlay scalars. |
+| `.faffrc.yaml` / `.faffrc.local.yaml` | Deprecated fallbacks. `config path` and `config check` report migration. |
+| `.faffrc`, `.faffrc.yml`, `.faffrc.local`, `.faffrc.local.yml` | Fail loudly on these invalid legacy names. |
+| Names containing `.example` | Never load as configuration. |
 
-- **No hand-writing.** The rule runs both directions: no skill or agent hand-*writes* any rc file either (base or overlay). **`faff config init`** bootstraps the 9 flat `tracking.*` keys (the onboarding / create-from-scratch path, matching `/faff-onboard`'s existing rule); **`faff config set <dotted.key> <value>`** is the general writer for every OTHER scalar behaviour key, at any nesting depth — `appetite`, `dispatch.*`, `slots.*`, `backends.<name>.<field>`, and the rest. Both are surgical raw-text edits that round-trip through the real reader before committing — never a hand-written wholesale rewrite, which is exactly the silent-corruption failure the committed-base posture exists to catch. **The one named carve-out:** sequence-valued keys a `key value` grammar cannot express — `adversarial.refs` / `.fallbacks` / `.backends` — are refused by `config set` (by name, whatever form they're stored in) and stay a committed-base hand-edit; git is the drift alarm for that one class of keys. **`faff config unset <dotted.key> [--local]`** removes a leaf or map subtree and refuses list-valued keys like `config set`.
+Absent, empty and comment-only bases are valid. Missing registered keys use built-in defaults. On malformed input in either file, surface the error. Meaningful base content parsing to empty or a non-map fails reads with file and remedy on stderr. `FAFF_CONFIG_BASE_LENIENT=1` permits incident recovery: warn on every read and use defaults for a malformed base. L4 lights-out minting refuses while set. `config check` still flags a malformed base (exit 1). `sentry check` uses default thresholds and reports `config_malformed: true`.
 
-**Stable config only.** Store project IDs, team keys, repo slugs, slot choices and preferences. Refetch mutable tracker data on every invocation; never store milestones, dates, progress, issue snapshots or current-cycle notes in configuration.
+**Resolver.** Use the resolved executable:
 
-Configuration vocabulary, without duplicating the full example file:
+| `faff config` command | Behaviour |
+|---|---|
+| `path` | Print resolved paths one per line, base first. Exit 3 only when both are absent. |
+| `get <dotted.key> [-d DEFAULT]` | Resolved scalar or registered default: exit 0. Missing unregistered key: print DEFAULT or empty, exit 3. |
+| `spec-docs-path [--create]` | Resolve spec directory with default, optionally create it. |
+| `resolved` | Run banner: show both paths, non-default values, overrides/overlays, dispatch settings and all explicitly set slots. |
+| `check` | Before committing the base, check it is tracked, the overlay ignored and values free of secret-shaped data. Exit 0 clean, 1 findings, 2 unreadable. Findings are advisory. |
+| `init` / `set <dotted.key> <value>` | Bootstrap the nine flat `tracking.*` keys with `init`. Write other scalar behaviour keys at any depth with `set`. Both edit surgically and round-trip through the reader. |
+| `unset <dotted.key> [--local]` | Remove a leaf or map subtree. Like `set`, refuses list-valued keys. |
 
-- `tracking.*`: tracker selection, legacy single-team `team_key`, project/team ID, repo, GitHub host and document paths. `teams`, `default_team` and `team_routing` support multiple teams. Spec/PRD/PRDR/ADR/spike paths follow their shared location rules.
-- `install.skill_targets`: optional sequence; default targets are `~/.claude/skills` and `~/.agents/skills`.
-- `slots.*` selects occupants below; `dispatch.*` selects supported model/effort transports. Deprecated `mode: delivery-lead` is replaced by `slots.methodology`.
-- `gates.fallback`: no declared gates means `fail-closed` by default (`needs-human`); explicit `advisory` surfaces the gap and passes.
-- `concurrency_max`: default 4 for the parallel executor; ignored by the sequential executor. `worktree_root`: default `~/.faff/worktrees/<repo>`.
-- `logging`: `full` by default writes invocation narrative; `essential` suppresses it. Both retain the machine-consumed hard floor.
-- Automation eligibility is the tracker-owned `faff-automate` label, present or absent. There is no `automation_default` knob.
+Never hand-write base or overlay except for the committed-base sequences `adversarial.refs`, `adversarial.fallbacks` and `adversarial.backends`. `set` refuses those keys by name regardless of stored form.
 
-Faff auto-detects which issue tracker MCP servers are available and adapts accordingly — `tracking.tracker` only pins the choice when autodetection is ambiguous. It works with Linear, GitHub Issues, Jira, or any tracker exposed via MCP. Concluding "no tracker MCP → git-only mode" is valid **only after a discovery attempt, and never when a tracker is pinned** — "not in my immediately-visible tool list" is *not* evidence of absence (it silently mis-fires under a deferred-tool harness; see **Tracker availability resolution** below). Only once discovery has genuinely found no connector, and none is pinned, does faff fall back to git-only mode (commits, branches, PRs). `tracking.git_host` is a separate knob: GitHub is the only supported git host (the merge gate is GitHub-only), so there is no host to detect between — leave it unset, or pin it to `github` explicitly.
+- `tracking.*` selects tracker, team/project, repo, GitHub host and document paths. Follow shared spec/PRD/PRDR/ADR/spike location rules. Use `team_key` for legacy single-team config, `teams`, `default_team` and `team_routing` for multiple teams.
+- Discover the existing tracker MCP, including deferred tools, per **Tracker availability resolution**. `tracking.tracker` pins an ambiguous choice. Only an unpinned, unsuccessful discovery permits git-only (commits, branches, PRs). Linear, GitHub Issues, Jira and other tracker MCPs are supported. Git host is separate: leave `tracking.git_host` unset or pin `github`, the only supported merge-gate host.
+- `install.skill_targets` defaults to `~/.claude/skills` and `~/.agents/skills`. `worktree_root` defaults to `~/.faff/worktrees/<repo>`. `concurrency_max` defaults to 4 in parallel and is ignored in sequential mode.
+- `gates.fallback` with no declared gates: `fail-closed` (default) yields `needs-human`. Explicit `advisory` reports the gap and passes.
+- `logging` defaults to `full`. `essential` suppresses invocation narrative subject to the **Logging gate**. Both keep the machine-consumed records.
+- The tracker label `faff-automate` governs automation eligibility. There is no `automation_default`. Use `slots.methodology` for deprecated `mode: delivery-lead`.
 
 ### Slots (optional delegation)
 
-Resolve `slots.<name>` through the CLI. Unset slots use their built-in defaults; a missing slot is never a park reason. Each occupant owns its behaviour contract.
+Resolve `slots.<name>` via the CLI. Unset slots use the defaults below. A missing slot alone never parks work. Each occupant owns its behaviour within its contract.
 
-| Slot | Default | Role and boundary |
+| Slot | Default | Responsibility |
 |---|---|---|
-| `intake` | `faffter-noon-intake` | New-work discovery for jot; emits a discovery brief. |
-| `spec` | `faffter-noon-spec` | Spec producer; emits `spec-readiness`. |
-| `spec_review` | `faffter-noon-spec-review` | Spec-stage approach critique. |
-| `adr` | `faffter-noon-adr` | Sole ADR-body author at graft Step 4b: Nygard Context/Decision/Consequences from settled `Chosen:`, spec rationale and the configured log. Confidence is advisory; the body has no pass/fail gate. |
-| `architecture` | `faffter-noon-architecture` | Proposes one best-fit, build-biased production architecture from the brief/spec and `profile show`. For a new runnable surface, prep requests `architecture-proposal` (`chosen_architecture`, `rationale`, `adr_candidates[]`, `assumptions[]`, `recommendation`) plus an `## ADR promotion intent` section. Proposes, never commits: graft Step 4b materialises candidates. Attach the validated block verbatim to the spec; downstream consumers read it there, never out-of-band. The spec-review architectural lens is its downstream critic. |
-| `env` | `faffter-noon-env-compose` | Provisions a representative, health-checked stand-in from the proposal/profile, normally local compose plus synthetic seed. Emits `env-handle` with status, endpoint(s), health checks and teardown reference for the evaluator. A recommendation other than `build` provisions nothing and surfaces for a human; only `ready` passes the contract. The handle is fixed; provisioning mechanism is swappable. |
-| `transport` | `faffter-noon-transport-private-network` | Env's inline evaluator-to-SUT reachability resolver: base host, optional credentials and teardown handle for co-resident, nested-container or cross-machine context. No gated block or `dispatch.transport` lane. Default covers private networks; without a separated evaluator resolve `localhost`. |
-| `evaluator` | `faffter-noon-evaluate` | Code-blind evaluation from spec and running env, never source. Classify DoD with `dod classify`, exercise born-verifiable criteria, mark unjudgeable criteria `needs-human` with a cause `reason_code` (human-only or an environment gap), and emit `holdout-verdict` before teardown. CLI classification/validation and coercion are deterministic; exercising criteria is judgement. Non-blind or incoherent verdicts cannot pass. |
-| `prd` | `faffter-noon-prd` | Code/tracker-blind producer from the PRD alone: judges machine-verifiable stop conditions and implementation licence, emits `prd-readiness`. The L4 run-start consumer validates it; only `admissible` admits, otherwise refuse. |
-| `concurrency` | `faffter-noon-concurrency-sequential` | Executes beep-boop's conflict partition through graft, sequentially by default. The parallel occupant adds capped, isolated worktrees and rebase-before-merge. Mechanism slot, no paired adaptor. |
-| `review` | `faffter-noon-review` | Graft Step 9 pre-PR review; emits `review-verdict`. |
-| `gates` | Built-in graft step | Step 7.5 calls `gates run` for the repo's declared format/lint/type/static/unit checks, cheapest-first and fail-fast before review/PR/CI. Optional custom runner emits `quality-gates`; malformed signals become `needs-human`, never pass. |
-| `methodology` | `faffter-noon-methodology-thematic` | Backlog/build diagnostic lens answering named outputs. |
-| `grounding` | None | Optional domain-knowledge advisor; absence is a no-op. |
-| `routing_adaptor` | `faffidavit-routing` | Assigns/computes/displays the fixed six-verdict automation contract and root-cause taxonomy. Vocabulary and queue admission remain fixed. |
-| `rendering_adaptor` | `faffidavit-rendering` | Human-facing form, synthesis, density, token economy and issue glosses; normalises output. No internal contract. |
-| `ship` | `faffter-noon-ship` | Graft Step 10 delivery: readiness, merge/deploy and cleanup of what it created; emits `delivery-outcome`. Default is no-op readiness plus ordinary `gh pr merge`; a deploy-capable occupant supplies release mechanics. |
-| `profile` | Built-in `profile mine` | Read-only repo miner for committed CI, containers, infrastructure and language manifests. No network, installs or subprocesses. Emits `infra-profile`; the orchestrator runs `profile validate` before writing `.faff/infra-profile.json`. A custom acquirer must emit the same descriptor. |
+| `intake` | `faffter-noon-intake` | Discover new work for jot and emit a brief. |
+| `spec` | `faffter-noon-spec` | Produce spec and `spec-readiness`. |
+| `spec_review` | `faffter-noon-spec-review` | Critique the proposed approach at spec time. |
+| `adr` | `faffter-noon-adr` | Sole author of the Step 4b Nygard Context/Decision/Consequences body from settled `Chosen:`, spec rationale and configured log. Confidence is advisory. No pass/fail gate. |
+| `architecture` | `faffter-noon-architecture` | Use brief/spec and `profile show` to propose one best-fit, build-biased production design. For a new runnable surface prep requests `architecture-proposal` (`chosen_architecture`, `rationale`, `adr_candidates[]`, `assumptions[]`, `recommendation`) and `## ADR promotion intent`. Attach the validated block verbatim to the spec for downstream readers. Spec-review's architectural lens critiques it. Only graft Step 4b materialises candidates. |
+| `env` | `faffter-noon-env-compose` | For `build`, provision a representative, health-checked stand-in from proposal/profile (default: local compose and synthetic seed). Otherwise surface for a human without provisioning. The evaluator's fixed `env-handle` carries status, endpoints, checks and teardown reference. Only `ready` passes. |
+| `transport` | `faffter-noon-transport-private-network` | Env's inline evaluator-to-SUT reachability: base host, optional credentials, teardown handle for co-resident, nested-container or cross-machine use. Default private networks, `localhost` without a separated evaluator. No gated block or dispatch lane. |
+| `evaluator` | `faffter-noon-evaluate` | Evaluate from spec and running env, blind to source. Use `dod classify`, exercise born-verifiable criteria, mark unjudgeable ones `needs-human` with human-only or env-gap `reason_code`. Emit `holdout-verdict` before teardown. CLI classifies, validates and coerces. Non-blind or incoherent verdicts cannot pass. |
+| `prd` | `faffter-noon-prd` | Judge machine-verifiable stops and implementation licence from PRD alone, blind to code/tracker. L4 run-start validates `prd-readiness`. Only `admissible` admits. |
+| `concurrency` | `faffter-noon-concurrency-sequential` | Execute beep-boop's conflict partition through graft. Parallel adds capped isolated worktrees and rebase-before-merge. Mechanism slot without a paired adaptor. |
+| `review` | `faffter-noon-review` | Step 9 pre-PR review, emits `review-verdict`. |
+| `gates` | Built-in graft step | Step 7.5 runs `gates run` cheapest-first, fail-fast: format/lint/type/static/unit before review/PR/CI. A custom runner emits `quality-gates`. Malformed signal yields `needs-human`. |
+| `methodology` | `faffter-noon-methodology-thematic` | Answer named backlog/build diagnostic requests. |
+| `grounding` | None | Optional domain advice. Absence is a no-op. |
+| `routing_adaptor` | `faffidavit-routing` | Assign, compute and display six fixed automation verdicts and their root-cause taxonomy. Vocabulary and queue admission are fixed. |
+| `rendering_adaptor` | `faffidavit-rendering` | Normalise human-facing form, synthesis, density, token economy and issue glosses. No internal contract. |
+| `ship` | `faffter-noon-ship` | Step 10 readiness, merge/deploy and cleanup of its own artefacts. Default readiness is a no-op, followed by the governed merge via `faff merge-gate`. A deploy-capable occupant supplies release mechanics. Emits `delivery-outcome`. |
+| `profile` | Built-in `profile mine` | Mine committed CI, containers, infrastructure and language manifests read-only, without network, installs or subprocesses. Validate `infra-profile` via `profile validate` before writing `.faff/infra-profile.json`. Custom acquirers emit the same descriptor. |
 
-`spec`, `review`, `gates` and `ship` emit `faff-contract:<name>` blocks: `spec-readiness`, `review-verdict`, `quality-gates`, `delivery-outcome`. Consumers locate the block, JSON-parse it and pipe it directly to `faff contract <name>`. Custom producers or fused wrappers emit that same block; there are no `spec_adaptor`, `review_adaptor` or `ship_adaptor` extraction slots. `review` and `ship` are internal graft phases, not user slash commands.
+Spec, review, gates and ship (including custom producers or fused wrappers) emit their `faff-contract:<name>` blocks. Consumers extract the block, JSON-parse it and pipe it to `faff contract <name>` per **Producer contract consumption**. This includes `gates`/`quality-gates`. There are no paired `spec_adaptor`, `review_adaptor` or `ship_adaptor` slots. Review and ship are internal graft phases.
 
-**Descriptor blocks are distinct.** Trusted CLI emissions `infra-profile`, `intake-record` and `label-op` have no `faff contract` dispatcher entry. Their own command validates them when applicable (`profile validate` for `infra-profile`). Future descriptors follow that class rather than acquiring a `faff contract` validator. Producer contracts remain separately validated as above.
+**Descriptor blocks are distinct.** Trusted CLI descriptors (`infra-profile`, `intake-record`, `label-op` and future descriptors) use their own validator where applicable, outside `faff contract`.
 
 ### Model & effort selection (`dispatch:` — per-lane)
 
-Slots choose the skill; dispatch chooses model/effort only where a transport can carry it. A true Agent subagent, an out-of-session helper such as `review-call.mjs`, a spawned `claude -p`, or a direct `engine call` can select a model. Inline Skill invocation inherits the session model; a dispatch key cannot change it.
+Slots choose occupants. Model selection needs a capable transport: an Agent subagent, an out-of-session helper such as `review-call.mjs`, a spawned `claude -p` or a direct engine. Inline Skill calls inherit the session model.
 
 | Setting | Consumer |
 |---|---|
-| `dispatch.build` | Concurrency uses `dispatch prepare-build`. Graft Step 7 uses `dispatch resolve build`. |
-| `dispatch.prep_explore` | Prep exploration and clean-context verification subagents. |
-| `dispatch.spec`, `spec_review`, `methodology`, `intake`, `architecture`, `adr` | Interactive producer subagents in prep/jot/graft and tidy/plot/map/wtf. ADR is graft Step 4b. Only `methodology` and `intake` allow `model: engine:<name>` via the top-level `engines` map and `engine call`. |
-| `eval.model`, `eval.effort` | Separate eval settings, not a dispatch lane. The driver's `claude -p` model is pinned to `claude-sonnet-4-6` by default; `run-evals --model` explicitly overrides it. Record the resolved model in output and baseline metadata; never inherit the account default for bulk eval. |
+| `dispatch.build` | Concurrency's `dispatch prepare-build` or graft Step 7's `dispatch resolve build`. |
+| `dispatch.prep_explore` | Prep exploration and clean-context verification. |
+| `dispatch.spec`, `spec_review`, `methodology`, `intake`, `architecture`, `adr` | Interactive producers in prep/jot/graft and tidy/plot/map/wtf. ADR runs at graft Step 4b. Only methodology/intake can use `engine:<name>` from `engines` via `engine call`. |
+| `eval.model`, `eval.effort` | Independent eval settings. Pin the driver's `claude -p` to `claude-sonnet-4-6` by default, override via `run-evals --model`. Record resolved model in output and baseline metadata. Never inherit account defaults for bulk eval. |
 
-Graft's inline `review`/`ship` and beep-boop's direct methodology `build-queue`/`pick-ordering` requests remain session-pinned. A different model requires a real subagent/helper dispatch.
+Inline graft review/ship and beep-boop's direct methodology `build-queue`/`pick-ordering` stay session-pinned. Each dispatch command validates the whole tree. Unset model/effort inherit.
 
-Use the site's dispatch command. Each dispatch uses the same whole-tree validation. Unset model and effort resolve to `inherit`.
-
-| Build field | Precedence, most specific first |
-|---|---|
-| Model | `by_tier.<tier>` → `by_tier.default` → `by_confidence.<conf>` → `by_confidence.default` → `dispatch.build.model` → `inherit` |
-| Effort | `by_tier.<tier>` → `by_tier.default` → `dispatch.build.effort` → `inherit` |
-
-Never guess a tier. Without one, model skips all tier steps; effort may still use `by_tier.default`. Missing/unknown confidence uses `by_confidence.default`; only high/medium route, since low-confidence specs never reach build. There is no effort-by-confidence setting.
-
-Models use `sonnet`, `opus`, `haiku`, `fable` or `inherit`, plus the allowed engine references. Effort uses `inherit`, `low`, `medium`, `high`, `xhigh` or `max`. Invalid tokens anywhere in the tree, unknown lanes/fields, or old top-level `models`/`effort` blocks fail loudly with exit 2 and the correct dispatch key. Engine references also fail on unknown names, missing provider/model/host, Anthropic providers or non-allowlisted lanes. Unreachable or mis-served engines are named dispatch failures, never silent session fallback; there is no fallback chain.
-
-Apply effort only when supported by the transport: `engine call` applies it or refuses unsupported effort; Agent has no effort parameter, so record the resolved effort as not applied. `config resolved` exposes configured dispatch values in the banner. Dispatch does not replace adversarial engine settings (including judge tuning) or the eval driver's own settings; those remain independent consumers.
+- Build model precedence: `by_tier.<tier>`, `by_tier.default`, `by_confidence.<conf>`, `by_confidence.default`, `dispatch.build.model`, `inherit`. Without a known tier skip both tier steps. Only high/medium confidence route to build. Missing/unknown confidence uses its default.
+- Build effort precedence: `by_tier.<tier>`, `by_tier.default`, `dispatch.build.effort`, `inherit`. Even without a known tier, the tier default can apply. Confidence never selects effort.
+- Model tokens: `sonnet`, `opus`, `haiku`, `fable`, `inherit` or a permitted engine reference. Effort tokens: `inherit`, `low`, `medium`, `high`, `xhigh`, `max`. Invalid tokens anywhere, unknown lanes/fields or legacy top-level `models`/`effort` fail with exit 2 and the correct dispatch key.
+- Reject unknown engine names, missing required provider/model/host, Anthropic providers and disallowed lanes. Report unreachable or mis-served engines by name. No fallback chain or silent session fallback.
+- `engine call` applies effort or refuses unsupported effort. Agent has no effort parameter: record non-inherited effort as unapplied per **Dispatch rule**. `config resolved` exposes configured dispatch values. Adversarial backends (including judge tuning) and eval settings resolve independently.
 
 ## Agent Lanes
 
@@ -203,56 +181,20 @@ A command **string** sourced from an **untrusted** source — a description, the
 
 ### `.faff/` logging directory
 
-Every faff skill invocation writes a structured markdown log to the repo-local `.faff/` directory. Layout:
+**Logging gate.** Before each invocation narrative, resolve `faff config get logging`. Default `full` writes it to `.faff/logs/YYYY-MM-DD/HHMMSS-<skill>[-<context>].md`. With `essential`, skip that write for jot, prep, graft, map and wtf. Always write tidy's `HHMMSS-tidy.md`: wtf/map consume its same-pass backlog diagnostics, including after standalone tidy.
 
-```
-.faff/
-  logs/
-    YYYY-MM-DD/
-      HHMMSS-<skill>[-<context>].md         # one file per skill invocation
-      HHMMSS-tidy-verdicts.md               # standalone-tidy automation verdict cache
-  runs/
-    run-YYYYMMDD-HHMMSS-beepboop-<mode>/    # grouped per beep-boop run (canonical mint — legacy dirs coexist, tolerated by mtime-ordered resolution)
-      summary.md
-      run-ledger.json                       # admitted issues + terminal outcomes (audited by runcheck)
-      slot-validation.md                    # cached per-occupant conformance verdicts (non-default occupants)
-      automation-verdicts.md                # verdict cache for this run
-      conflict-analysis.md
-      ISSUE-XX/
-        prep.md
-        graft.md
-        resolve-attempt.md                  # if autonomous resolve-attempt ran
-        ac-verification.md
-        park.md                             # if parked
-      ...
-  calibration/                              # append-only; never authoritative
-    over-cautious-parks/
-      <ISSUE-ID>.md
-    wrong-inferences/
-      <ISSUE-ID>.md
-    post-merge-reverts/
-      <ISSUE-ID>.md
-    appetite-decisions/                     # high/full proceeded on medium confidence
-      <ISSUE-ID>.md
-    held-decisions/                         # low/medium held a medium-confidence spec for human
-      <ISSUE-ID>.md
-```
+Both modes retain the following under `.faff/`:
 
-The `calibration/` directory is **append-only** and **never authoritative for current decisions** — it captures evidence about autonomous decisions (over-cautious parks, wrong inferences, post-merge reverts, appetite-influenced proceeds, and medium-confidence holds) so resolve-attempt rules and verdict gates can evolve with data. See **Calibration log** (in `faff/references/methodology.md`) for capture rules and the synthesis-and-surface flow.
+| Location | Records |
+|---|---|
+| `runs/run-YYYYMMDD-HHMMSS-beepboop-<mode>/` | `run-ledger.json` (admissions and terminal outcomes audited by runcheck), `summary.md`, `conflict-analysis.md`, `slot-validation.md` (non-default occupants), `automation-verdicts.md`. Legacy directories still resolve by mtime. |
+| `runs/<id>/ISSUE-XX/` | Resume records: `prep.md`, `graft.md`, `ac-verification.md`, plus `resolve-attempt.md` when attempted and `park.md` when parked. |
+| `logs/YYYY-MM-DD/HHMMSS-tidy-verdicts.md` | Standalone equivalent of `automation-verdicts.md`. Reuse tidy's verdict within the same pass only. Recompute across passes. |
+| `calibration/<category>/<ISSUE-ID>.md` | Append-only evidence for tuning rules. Never use it to decide current work. Categories: `over-cautious-parks`, `wrong-inferences`, `post-merge-reverts`, `appetite-decisions` (high/full proceeded on medium confidence), `held-decisions` (low/medium held for human review). See **Calibration log** in `faff/references/methodology.md`. |
 
-The `automation-verdicts.md` per-run cache (and the standalone `HHMMSS-tidy-verdicts.md` equivalent) lets other sub-skills read the verdict computed by `/faff-tidy` without recomputing within a single pass. Across passes, always recompute — same "always pull fresh" rule that governs spec discovery.
+Write plain Markdown so another agent can resume from the log alone. Include arguments, mode, working directory, MCP tools with relevant inputs and outputs, expected/observed results, decisions and reasons, commit SHAs, PR URLs, branches, errors and park causes.
 
-**Logging gate (the single gate).** Before writing the per-invocation narrative `logs/YYYY-MM-DD/HHMMSS-<skill>.md`, resolve `faff config get logging` (the CLI applies the `full` default); when the value is `essential`, skip that Write entirely. The gate applies **only** to that narrative file. The hard floor — always written regardless of the knob — is: `run-ledger.json`; `automation-verdicts.md` + the standalone `HHMMSS-tidy-verdicts.md`; `calibration/*`; `slot-validation.md`; the per-issue `runs/<id>/ISSUE-XX/*.md` resume artifacts; `summary.md`; **and `HHMMSS-tidy.md`** (load-bearing within a pass — wtf/map read its backlog-diagnostics block same-pass; it stays floor even when tidy runs standalone). The silenced set is the narrative `HHMMSS-<skill>.md` for `<skill>` ∈ {jot, prep, graft, map, wtf} — every narrative writer **except** tidy's. Default `full` writes every narrative log as today.
-
-Each log entry captures:
-
-- Invocation context (args, mode — interactive or autonomous, working directory); MCP calls made (tool name, relevant inputs, key outputs)
-- Decisions with reasoning (what was expected, what was observed, what decision was taken, why)
-- Commit SHAs, PR URLs, branch names; errors, parks, and their causes
-
-Logs are plain markdown — agent-readable and human-readable. A log must contain enough context that a follow-up agent, given only the log file, can pick up intelligently without needing the original conversation.
-
-**Gitignore:** `faff gitignore-ensure` (idempotent, append-only) writes every rule to a committed `.faff/.gitignore` (`/*` plus carve-outs for the committed subtrees, the base config and the example template) and nothing to the project's root `.gitignore`. A root line such as `.faff/` blocks those rules; the command warns and names `.faff/*` as the fix, and `faff config check` reports that line, and an absent or uncommitted `.faff/.gitignore`, as advisory findings. The **overlay stays ignored** by the same `/*`, with no carve-out. An existing repo keeps any `.faffrc` lines it already has (the command never removes one); migrate deliberately when ready (`faff config check`'s posture finding names the steps).
+**Gitignore.** `faff gitignore-ensure` idempotently appends `/*` and exceptions for committed subtrees, base config and example template to the committed `.faff/.gitignore`. The overlay stays ignored. The command leaves the root ignore file and existing `.faffrc` lines alone. It warns when a root `.faff/` rule masks the exceptions: use `.faff/*`. `faff config check` flags that root rule or a missing/uncommitted `.faff/.gitignore` as advisory, and describes migration.
 
 **Run-artifact write authority (the single canonical rule; graft and the concurrency slots reference it).** Every `.faff/runs/<id>/` artifact carries one of two write-authority classes, and the classes bind actors relative to the orchestrator→lane dispatch cut. *Evidence class* — any artifact a downstream gate (merge floor, corrective, detection, reconcile) consumes as trust-bearing input, i.e. the `correctiveIntegrityDirs()` roster (`run-ledger.json`, `events.jsonl`, `corrective/`, `<issue>/ac-checklist.json` · `review-verdict.json` · `holdout.json` · `human-only-acs.json`) plus the merge-tail records `merge-record.json` / `post-merge-verification.json`, and the orchestrator-written run bookkeeping (`summary.md`, `conflict-analysis.md`, `automation-verdicts.md`, `slot-validation.md`, `lane-boundary.json`) — is **writable only from the trusted side of the active cut**: a dispatched (untrusted) lane *returns* the data in its terminal payload and the dispatcher digest-verifies then persists it (the judged party never writes its own verdict artifact — the spawner precedent, generalised). *Sensor/resume class* — narrative logs (`graft.md`/`prep.md`/`park.md`/`resolve-attempt.md`/`ac-verification.md`), `build-progress.json`, `review-progress.json`, `.faff/resume/<issue>/`, `heartbeat*`, `discovered-scope.json`, `merge-gate-override.json` — stays **lane-writable, single-writer per file**, because a dead subagent must leave it behind to resume from and a live one must tick it mid-flight for the sentry poller (mid-lane writes are the feature); it is treated as untrusted sensor input (reconcile-only when unasserted), never bare gate evidence. **The cut is the orchestrator→lane *dispatch*, so the classes bind only across an active cut: interactive top-level graft (L2) has no cut above it — the human-supervised session *is* the trusted side and legitimately writes every class directly, exactly as today; the evidence rule activates only for dispatched (autonomous-orchestration) lanes.** The full ruling, the mandated write-site relocations (still **follow-up**, not yet built), the `events.jsonl` prefix-preserving carve-out (Decision 5), and the interim run-grain bracket (Decision 6) live in the governing architecture-decision record.
 

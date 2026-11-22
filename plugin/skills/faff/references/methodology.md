@@ -4,43 +4,12 @@
 
 ### Automation eligibility
 
-Whether a ticket may be touched by the *autonomous* pipeline — auto-specced, auto-promoted, or auto-built — is its **automation eligibility**. The posture is **fail-safe opt-in**: nothing is automatable unless a human explicitly cranks it up, so a forgotten label means "left alone," never "picked up." A human steers the backlog with a single label; read/report skills are never gated by eligibility.
+Autonomous spec, refresh, promotion and build require a human opt-in on each ticket. Use the verdict from `faff eligible` with one `--label "<name>"` per observed issue label. Read stdout (`true` or `false`). Both verdicts exit 0. Only the configured `automate` role counts (default `faff-automate`). Status, other labels and legacy `automation_default` settings grant no permission. Git-only tickets without labels are ineligible and have no tracker status moves.
 
-**The one control label.**
-
-- `faff-automate` — the **sole eligibility signal**: present ⇒ this ticket may be picked up by the autonomous pipeline; absent ⇒ left alone. One opt-in model everywhere — tracker and git-only mode alike (FAFF-1097). There is no hard-exclude label, no `automation_default` knob, and no per-ticket exclude label; how an operator tracks a ticket's state before they consider it automatable is their own business (a local label of their own).
-
-Labels are *orthogonal to status* — they ride on whatever status the ticket has. The eligibility decision is the pure function `automation_eligible(labels, automation_default, tracker_present)` (the CLI's `faff eligible` / its `--selftest`); `automation_default` / `tracker_present` are retained args that no longer affect the verdict (the fixed 3-arg signature decision-capture's KERNEL_REGISTRY depends on):
-
-```
-faff-automate present → eligible       (the sole positive signal)
-faff-automate absent  → NOT eligible   (opt-in everywhere — tracker and git-only alike)
-```
-
-> **Control-label convention.** Every faff-owned control label is `faff-…`-prefixed (`faff-automate`, `faff-parked`, `faff-claimed`) — namespacing faff's control signals away from the consuming project's own labels. Any future faff control label follows the same prefix.
-
-**Two-tier, not invisible — the key difference from cancelled/archived.** Cancelled/archived items are invisible everywhere. Not-automation-eligible items are the opposite on the read side: they remain **fully visible** to read/report skills (`/faff-wtf`, `/faff-map`, counts, diagnostics) — they are only **skipped by autonomous action**.
-
-**Enforcement is by chokepoint, not by enumerating call-sites.** All autonomous spec/promote/build flows through three skills; each checks eligibility, so coverage is complete by construction:
-
-- **prep and tidy** are the only skills that autonomously spec or promote (`/faff-beep-boop` "does no tracker state moves of its own" — see its Wave re-entry). Neither auto-specs, auto-refreshes, nor promotes a **not-eligible** issue. Because the only path into the build queue is via `Todo`, and the only path into `Todo` is prep/tidy, **a not-eligible issue can never reach the build queue.**
-- **graft** is the only skill that autonomously builds. Autonomous graft refuses to build a not-eligible issue — the build backstop.
-- **Any queue-side filtering in `/faff-beep-boop`** (skipping not-eligible items at queue assembly / wave re-entry) is a non-load-bearing **efficiency early-exit** — it avoids wasting a prep/verdict invocation, but is not the guarantee. Items skipped here never enter the run-ledger `admitted` array, so `runcheck` is unaffected.
-
-Each chokepoint computes eligibility (resolve the issue's labels via `faff eligible`) and, when consulting `faff next` (gateway → **Next-step transition**), passes `--not-eligible` for a not-eligible issue. `faff next` returns `skip-ineligible`.
-
-**Interactive action is never blocked.** A human may deliberately `/faff-prep` or `/faff-graft` any ticket regardless of eligibility; those skills proceed (emitting a "not automation-eligible" note when relevant) and **never auto-crank-up** (they never add/remove `faff-automate`).
-
-**Release / crank-up is human-gated, tracker-only.** The eligibility-throttle label is **tracker-owned**: a human toggles `faff-automate` (crank up/down) **in the tracker UI** — the one-click control surface. faff's own label CLI **refuses to write it in either direction** (`faff label add|remove` exits non-zero and points the human at the tracker — see **Control-label provisioning**), so faff may only ever **offer/advise** a crank — naming the exact direction to toggle — and **never executes the write**, in any mode. This makes the guard mechanical, not prose: because no sanctioned faff path writes this label, `faff-automate` present ⟹ **a human set it directly in the tracker, by construction** (the read-side trust the runtime eligibility gate relies on). Interactive flows that surface the advice: `/faff-jot`'s existing-ticket interactor, `/faff-tidy`'s crank-up offers, `/faff-prep`'s Step-3 gate. Cranking up does not auto-promote to `Todo`; the issue simply rejoins normal eligibility on the next pass. *(Residual: a raw tracker-MCP write bypassing the faff CLI is still possible — a loud, off-script boundary, guardrail not cryptographic control.)*
-
-**Not-eligible ≠ parked.** `faff-parked` means automation *tried* and hit a blocker (and tidy may auto-clear it when the blocker resolves); ineligibility is a *pre-emptive human* posture with **no auto-clear**. They are independent (an issue may carry either, both, or neither) and are surfaced in separate buckets.
-
-**Surfacing (so held-back work doesn't rot).** `/faff-wtf` and `/faff-tidy` each render a distinct **On hold** section listing not-automation-eligible issues that a human may want to crank up (separate from *Parked work*). Interactive `/faff-tidy` offers to crank up/crank down; autonomous passes only list, never mutate the labels.
-
-**Migration (FAFF-1097).** Retiring the former hard-exclude label is behaviour-neutral: an existing held ticket was already not-eligible (no `faff-automate`) and stays not-eligible after removal — it simply loses an inert label (strip it by hand if you like). Retiring the `automation_default` opt-out changes behaviour only on a **git-only repo that had set `opt-out`**: git-only now defaults opt-in like a tracker, so such a repo must crank each ticket up with `faff-automate` (the same gesture tracker repos already use). Tracker-bound repos are unaffected — `opt-out` was already inert there.
-
-**Git-only mode (no tracker).** With no tracker there are no labels, so a git-only repo has no eligible tickets until a `faff-automate` label is applied — the same one opt-in model as a tracker (FAFF-1097). This is consistent with git-only's already-minimal autonomous surface (specs live in `.faff/specs/`; there are no `Backlog`→`Todo` tracker moves to gate).
-
+- In autonomous prep/tidy, skip spec, refresh and promotion on `false`. When consulting `faff next` directly, pass `--not-eligible` for its `skip-ineligible` route. Autonomous `faff graft admit` already checks eligibility before build. Beep-boop may filter early. Queue skips stay out of the ledger's `admitted` array.
+- Explicit interactive `/faff-prep` and `/faff-graft` proceed through the usual gates. Note when the ticket is ineligible and leave its opt-in unchanged.
+- **Release / crank-up.** Only a human toggles the label in the tracker UI. Interactive jot, tidy and prep may suggest adding or removing the exact name from `faff labels`. Never write it through tracker MCP. `faff label add` and `remove` refuse both directions for this role. Cranking up restores eligibility for the next pass without promoting the issue.
+- Keep active ineligible work visible in maps, counts and diagnostics. WTF and tidy list it under **On hold**. **Parked work** records a blocker hit on an attempt. The same issue can appear in both. Tidy may clear a resolved park. Eligibility stays human-controlled. Apply the usual cancelled/archived exclusion.
 
 ### Human curation is authoritative
 

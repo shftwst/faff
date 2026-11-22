@@ -50,15 +50,13 @@ Keep the interactive jot/prep chain-to-build gate. A legal `graft` route still r
 
 ### Re-ground before gate (gating inputs must be live)
 
-**Always pull fresh** governs every read-and-synthesise pass; this sharpens it for the higher-stakes case of a **gate** — a point where a skill *decides whether/how to act* on an issue (eligibility · automation-routing verdict · claim-before-admit). A gate is only as fresh as its inputs: the labels + status it consumes come from a read taken **at the gate**, never an earlier same-session tool-result — else a remembered read silently overrides a human who steered the tracker between turns. Three freshness members must be live at the gate: **status** (re-read per **Issue claim & status monotonicity**) · **verdict inputs** (post-spec comments, per **Live-thread reconciliation**) · **eligibility labels** (the `faff-automate` signal). **Co-location:** the eligibility-label + status re-read ride on the existing claim-before-admit fetch (one fetch) where it runs; a gate upstream of any claim-before-admit site (prep's pre-spec gate, beep-boop's queue assembly) takes its own at-the-gate read. **Honest limit:** a runtime discipline, prose-enforced — **not** statically lintable (`validate-adapters` cannot prove a caller passed a fresh read vs a snapshot), consistent with the claim-monotonicity and live-thread rules and the chaining gate. The chokepoints (beep-boop, tidy, prep, graft) refer back here rather than restate it.
+At each eligibility, routing or claim gate, take the current status and labels from one live issue read. Include post-spec comments when the verdict depends on them (**Live-thread reconciliation**). At claim-before-admit, use the claim fetch for both status and labels. Prep before spec and beep-boop queue assembly take their own gate read. A previous turn's snapshot cannot establish what the human permits now.
 
 ### Lean tracker reads (ask for only what the step consumes)
 
-Tracker responses remain in context, costing `size × turns-resident` as later `cache_read`s. Fetch only what the step consumes while obeying **Always pull fresh**. Call sites reference this shared rule. Lean reads reduce returned data but cannot evict prior tool results; eviction requires subagent isolation or an out-of-context CLI. With a known id, prefer one `get_issue` over `list_issues`.
+Use `get_issue` for one known ID. For lists, set an explicit limit sized to the step. When only recent rows matter, request newest first (`createdAt` descending). Request relations, releases or customer needs only when the step uses them. Continue paging when the decision needs more results.
 
-- **Pass an explicit `limit`** sized to what the step consumes (never the default 50), and **order newest-first when only recent rows matter** (`orderBy: createdAt` descending) — e.g. a post-spec comment scan wants the handful of comments after the spec, not fifty in default order.
-- **Never opt into an expansion you don't consume in the same step** — omit `includeRelations` / `includeReleases` / `includeCustomerNeeds` unless the expanded fields are read right there.
-
+Earlier tool responses remain in context across turns. For isolation, fetch in a subagent or out-of-context CLI and return what the caller needs.
 
 ### Tracker as the lights-out control plane
 

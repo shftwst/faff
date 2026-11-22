@@ -119,7 +119,7 @@ Fetch fresh (gateway → **Always-pull-fresh**): every issue that is **project-l
 
 ### R2. Dispatch `rehome-set`
 
-Dispatch per gateway → **Sibling-skill invocation → Producer dispatch**: resolve `slots.methodology` at dispatch (never hardcode), an Agent-tool subagent with `run_in_background: false`, the `methodology` dispatch lane, in-context fallback when plot is itself a subagent. Transport grain: **one batched dispatch per pass** (gateway → **The `methodology` slot → Transport**) — the whole loose set in, one proposal out; the per-grouping gate is at apply, not here.
+Use **Methodology transport** for one `rehome-set` request with the full loose set. Apply each proposed grouping only after its own confirmation.
 
 The proposal shape is the gateway `rehome-set` row (**The `methodology` slot**): proposed outcome-led containers (each `{container_name, outcome}`), a membership map, proposed coherence blocker edges (`{blocker, blocked}` — explicit, never written by the methodology), an explicit leave-loose set (each loose ticket with a one-line reason), and principle-keyed findings, ordered by which grouping unlocks sequencable value first. Every input loose ticket must appear exactly once across membership ∪ leave-loose; surface violations, never drop tickets. (If the shipped contract differs from this, the shipped row wins.)
 

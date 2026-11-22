@@ -49,19 +49,13 @@ When it's genuinely ambiguous (existing project, but the user is describing some
 
 ### 2. Discover — delegate to the `intake` slot
 
-**Dispatch the configured `intake` skill** (override with `superpowers:brainstorming`, `gstack:office-hours`, or any ideation skill) **as a producer subagent** (resolve the slot value + transport per gateway → **Sibling-skill invocation → Producer dispatch**, resolving the `intake` dispatch lane: a bundled default is a canonical name, an explicitly-namespaced override is used verbatim; an `engine:<name>` value forks the dispatch to `faff engine call` per that same gateway rule — a named non-zero exit surfaces loudly, never a session-model fallback). Pass it: the detected mode, the human's starting description, and — for single-item — the live workstream/container list + naming conventions + current-priority signal so it can place the item.
+Run `faff dispatch prepare-producer intake` (add `--in-context` if jot is itself a subagent). Follow gateway → **Producer dispatch** with the returned occupant, validation and transport. Pass the mode and human's description. For a single item include the live workstreams/containers, naming conventions and current priority.
 
-Intake returns a **discovery brief** (contract in `faffter-noon-intake`) to this orchestrator. `/faff-jot` owns the remaining flow. Third-party intake skills emit that shape and never touch the tracker.
-
-If the configured intake skill returns something that isn't a conformant discovery brief (missing required sections), normalise what you can and fill gaps from the conversation — don't bounce it back to the human. A missing `intake` override is never a blocker: `faff config get slots.intake` always resolves (the registry supplies the default); run the resolved skill inline.
+The producer returns the `faffter-noon-intake` discovery brief to jot and makes no tracker writes. Fill missing sections from the conversation. A transport failure stops dispatch.
 
 ### 3. Shape into tickets — apply the `methodology` slot
 
-**Methodology transport.** Request `ticket-shaping` for the brief and `prdr-author` for each new project. Follow **Transport (per-output dispatch grain)** in `faff/references/methodology.md`.
-
-Hand the discovery brief to the configured `methodology` skill's **`ticket-shaping`** output (resolve `faff config get slots.methodology`). The methodology decides workstreams/containers, ticket boundaries, sequencing and dependency links from the brief and live tracker graph. Follow the configured methodology: the thematic default shapes purely from the brief + graph; an opinionated methodology (`faffter-dark-methodology-agile-delivery`) additionally right-sizes, outcome-names workstreams, and sequences by value × risk.
-
-`/faff-jot` owns no ticket-structure judgement; use the methodology's shape consistently with the rest of the backlog.
+Follow **Transport (per-output dispatch grain)** in `faff/references/methodology.md`. Request `ticket-shaping` once with the brief and live tracker graph. Use the methodology's workstreams, containers, ticket boundaries, sequence and dependencies. Request `prdr-author` separately for each new project.
 
 ### 4. Confirm and create
 

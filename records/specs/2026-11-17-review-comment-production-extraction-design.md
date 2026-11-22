@@ -1,12 +1,12 @@
 # Review comment stored handoff extraction
 
-Status: draft production extraction. Local deterministic checks pass; hosted connector qualification and fresh model validation remain outstanding. The source is ported from the existing review-comment implementation onto main. No experiment runner or recorded model output is a production dependency.
+The hosted Linear connector passed qualification on 2026-11-22 at `8e1cc8a6`. The experiment runner and its transcripts stay on the prototype branch.
 
 ## Boundary and activation
 
 The pure TypeScript planner selects and splices a terminal review comment. The session stores its immutable target and body; the MCP bridge reads complete comments and applies only the stored body after a fresh snapshot comparison. The caller supplies new findings and a plan reference, never copies existing human text into a write. Verdict judgement, per-pass logging and issue claims remain with the caller.
 
-Activation requires an operator-owned upstream executable, authentication and tool bindings whose complete-list and acknowledgement contracts have been verified. Until then the comment operation is blocked without changing the review verdict. There is no planner-only write fallback. The example configuration is not a qualified hosted deployment.
+Activation requires an operator-owned upstream executable, authentication and tool bindings whose complete-list and acknowledgement contracts have been verified. Until then the comment operation is blocked without changing the review verdict. There is no planner-only write fallback. The [connector setup guide](../../docs/reference/review-comment-connector.md) documents the tested Linear tool bindings. Each installation needs its own authenticated connection.
 
 ## Policy decisions retained
 
@@ -30,7 +30,9 @@ References expire after five minutes, are process-local and single use, and are 
 
 The focused planner, session and MCP tests cover eleven fixed oracle scenarios, exact bytes through the subprocess path, stale/expired/consumed references, override rejection, concurrency and uncertain outcomes. Two hand-authored fixture JSON files and a narrow stdio tracker double live under test/. No evaluation runner is imported. Build emit, factory direction and CLI coverage are checked separately.
 
-Prior planner-only model failures remain failures. Local tests establish neither a hosted tracker's contract nor full workflow/cost/latency improvement. Root review and the existing diagnostic route remain separate gates.
+On a disposable hosted Linear issue, the connector created a comment and updated the same ID. A fresh read matched all 212 expected bytes, including both CRLF line endings. A separate edit on a later page invalidated an earlier plan. The target stayed intact after the refusal, and both other comments matched after the final update. The run used one comment per page to exercise three pages.
+
+A guided Claude Code run on a three-page fixture preserved all 230 expected bytes in one write after the caller corrected how it read the client response. Earlier planner-only failures remain recorded. End-to-end workflow cost and latency remain unmeasured. [PR #1216](https://github.com/shftwst/faff/pull/1216)
 
 ## Rule inventory
 

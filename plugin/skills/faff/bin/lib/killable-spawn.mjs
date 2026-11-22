@@ -167,13 +167,14 @@ export function runKillable({ deadlineSec, graceSec, target }, {
       settle({ status: "exited", innerExit: code, signal });
     });
 
+    // A null deadline supervises cancellation only.
     // The hard-kill backstop. Strictly LATER than the target's own graceful --deadline
     // (review-call.mjs self-exits 8 well before this fires on the healthy path) — this
     // only fires when the target is still alive at deadline+grace, the pathological
     // wedged / slipped-fence case. (In the rare ENOENT race window before the 'error'
     // event above has fired, pgid may still be undefined; killGroup tolerates a bad pgid
     // exactly like any other kill fault — logged and swallowed, never thrown.)
-    timer = setTimeoutFn(() => {
+    if (deadlineSec !== null) timer = setTimeoutFn(() => {
       log(`killable-spawn: HARD-KILL BACKSTOP firing — group ${pgid} still alive at deadline(${deadlineSec}s)+grace(${graceSec}s); killing the whole process group`);
       killGroup(killFn, pgid, "SIGKILL", log);
       settle({ status: "killed-deadline", innerExit: null, signal: "SIGKILL" });

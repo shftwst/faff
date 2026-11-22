@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.cacheAdvisory = cacheAdvisory;
 exports.cmdRecordResults = cmdRecordResults;
 // === region:factory — record an already-returned batch of spec-review lens results ===
 const node_fs_1 = require("node:fs");
@@ -8,13 +9,13 @@ const { parseArgs, usageError } = require("./argv");
 const { withFileLock } = require("./fs-lock");
 const { SPEC_REVIEW_LENSES } = require("./review-vocab");
 const { captureNoLensServed, capturePin, captureReadFailure } = require("./spec-review-pin");
-const usage = "usage: faff spec-review record-results --dir DIR --round N [--lenses CSV] [--receipts-only] (--results FILE --backends-json FILE | --no-results)";
+const usage = "usage: faff spec-review record-results --dir DIR --round N [--lenses CSV] [--receipts-only] [--strategy NAME] (--results FILE --backends-json FILE | --no-results)";
 const argumentSpec = {
     positionals: { min: 0, max: 0 },
     flags: {
         "--dir": { arity: 1 }, "--round": { arity: 1 }, "--lenses": { arity: 1 },
         "--results": { arity: 1 }, "--backends-json": { arity: 1 }, "--no-results": { arity: 0 },
-        "--receipts-only": { arity: 0 },
+        "--receipts-only": { arity: 0 }, "--strategy": { arity: 1 },
     },
 };
 function record(value) {
@@ -24,6 +25,18 @@ function isLensResult(value) {
     return record(value) && typeof value.lens === "string" && typeof value.exit === "number" &&
         Number.isInteger(value.exit) && value.exit >= 0 &&
         typeof value.stdout === "string" && typeof value.stderr === "string" && typeof value.truncated === "boolean";
+}
+function cacheAdvisory(strategy, timings) {
+    if (strategy !== "prime-then-parallel")
+        return null;
+    const times = timings.map(row => row.ttftMs);
+    if (times.length < 2 || !times.every((n) => typeof n === "number" && Number.isFinite(n) && n >= 0) || !times[0]) {
+        return "prefill-cache: not-computed";
+    }
+    const ratio = Math.max(...times.slice(1)) / times[0];
+    return ratio >= 1 / 5
+        ? `prime-then-parallel showed no prefill-cache benefit on this backend (post-prime/prime TTFT ratio ≥ 1/5); consider adversarial.spec_review.dispatch_strategy: parallel (ratio ${ratio})`
+        : null;
 }
 function readBatch(file, lenses) {
     const rows = JSON.parse((0, node_fs_1.readFileSync)(file, "utf8"));
@@ -72,7 +85,7 @@ function captureServed(dir, round, rows, file, tools) {
     if (capture.error)
         throw new Error(capture.detail);
 }
-function cmdRecordResults(argv, tools) {
+function cmdRecordResults(argv, tools, retainVotes) {
     const { values, errors } = parseArgs(argv, argumentSpec);
     if (errors.length)
         return usageError(errors, usage);
@@ -101,7 +114,8 @@ function cmdRecordResults(argv, tools) {
             ? tools.classifyRefutation(row.stdout, row.lens, row.truncated)
             : { entry: unavailable(row.lens, [5, 8, 12].includes(row.exit) ? "infra-configured" : "config-fault") });
         const entries = noResults ? lenses.map(lens => unavailable(lens)) : refutations.map(item => item.entry);
-        const output = receiptsOnly ? JSON.stringify(entries) + "\n" : tools.renderBlock(tools.aggregate(entries, lenses.length));
+        const verdict = receiptsOnly ? undefined : tools.aggregate(entries, lenses.length);
+        const output = receiptsOnly ? JSON.stringify(entries) + "\n" : tools.renderBlock(verdict);
         const served = results.filter(row => row.exit === 0);
         (0, node_fs_1.mkdirSync)(dir, { recursive: true });
         for (const [index, row] of results.entries()) {
@@ -124,6 +138,14 @@ function cmdRecordResults(argv, tools) {
                 }
             }
         });
+        if (retainVotes && record(verdict) && verdict.verdict === "unavailable")
+            retainVotes(entries);
+        if (values["--strategy"] !== undefined) {
+            const message = cacheAdvisory(values["--strategy"], results);
+            if (message)
+                process.stderr.write(message + "\n");
+            process.stderr.write("spec-review: served " + served.length + "/" + lenses.length + " lenses\n");
+        }
         process.stdout.write(output);
         return 0;
     }

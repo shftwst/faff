@@ -121,15 +121,12 @@ export function renderBlock(result) {
 
 // ---- CLI ----------------------------------------------------------------
 // Input (stdin or --refutations FILE) is JSON: either a bare array of Refutations, or an object
-// { refutations: [...], enabled_lenses: [...] }. --n N overrides the enabled-lens count.
+// { refutations: [...], enabled_lenses: [...] }. A supplied --n must agree with the batch.
 function readInput(args) {
   const fi = args.indexOf("--refutations");
   const raw = fi !== -1 ? readFileSync(args[fi + 1], "utf8") : readFileSync(0, "utf8");
   const parsed = JSON.parse(raw);
-  if (Array.isArray(parsed)) return { refutations: parsed, nEnabled: undefined };
-  const refutations = Array.isArray(parsed.refutations) ? parsed.refutations : [];
-  const nEnabled = Array.isArray(parsed.enabled_lenses) ? parsed.enabled_lenses.length : undefined;
-  return { refutations, nEnabled };
+  return Array.isArray(parsed) ? { refutations: parsed } : parsed;
 }
 
 function selftest() {
@@ -263,22 +260,34 @@ function main(argv) {
     process.stderr.write(`aggregate: cannot read refutations JSON — ${e.message}\n`);
     return 2;
   }
+  const { refutations, enabled_lenses: enabled } = input ?? {};
+  if (!Array.isArray(refutations) || refutations.length === 0) {
+    process.stderr.write("aggregate: no refutations supplied\n");
+    return 3;
+  }
   const ni = args.indexOf("--n");
-  const nEnabled = ni !== -1 ? parseInt(args[ni + 1], 10) : input.nEnabled;
-  // Fail-SAFE input-adequacy guard (the L4 "a down refuter never silently approves" discipline,
-  // applied to the aggregation boundary). The pure aggregate() computes the gate over a CONSISTENT
-  // set (one entry per enabled lens); the CLI refuses to vote on an absent or inconsistent set rather
-  // than fabricate an `approve` from it. A non-zero exit here is treated upstream as `needs-human`,
-  // exactly as a non-zero review-call.mjs exit is — never a silent pass.
-  if (input.refutations.length === 0) {
-    process.stderr.write("aggregate: no refutations supplied — refusing to vote (an empty set would silently approve; treat as needs-human)\n");
+  if (ni !== -1) {
+    const raw = args[ni + 1];
+    if (!/^[1-9]\d*$/.test(raw) || !Number.isSafeInteger(Number(raw))) {
+      process.stderr.write("aggregate: --n requires a positive integer\n");
+      return 2;
+    }
+    if (Number(raw) !== refutations.length) {
+      process.stderr.write("aggregate: refutation count differs from enabled-lens count\n");
+      return 3;
+    }
+  }
+  const voted = refutations.map(entry => entry?.lens);
+  if (voted.some(lens => typeof lens !== "string" || !lens.trim()) || new Set(voted).size !== voted.length) {
+    process.stderr.write("aggregate: each vote must name a distinct lens\n");
     return 3;
   }
-  if (Number.isInteger(nEnabled) && nEnabled > 0 && input.refutations.length !== nEnabled) {
-    process.stderr.write(`aggregate: refutation count (${input.refutations.length}) != enabled-lens count (${nEnabled}) — refusing to vote on an inconsistent set (treat as needs-human)\n`);
+  if (enabled !== undefined && (!Array.isArray(enabled) || enabled.length !== voted.length ||
+      voted.some(lens => !enabled.includes(lens)))) {
+    process.stderr.write("aggregate: votes do not match the enabled lenses\n");
     return 3;
   }
-  const result = aggregate(input.refutations, nEnabled);
+  const result = aggregate(refutations, voted.length);
   process.stdout.write(renderBlock(result));
   return 0;
 }

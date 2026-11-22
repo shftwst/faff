@@ -208,6 +208,45 @@ test("aggregate.mjs CLI fail-safe: empty/inconsistent input exits non-zero (neve
   assert.notEqual(res.status, 0);
 });
 
+test("aggregate requires one vote per selected lens, in any order", () => {
+  const enabled_lenses = ["architectural", "infosec", "QA"];
+  const run = (refutations, roster = enabled_lenses, args = []) => spawnSync(process.execPath, [AGG, ...args], {
+    input: JSON.stringify({ enabled_lenses: roster, refutations }), encoding: "utf8",
+  });
+  const valid = [r("QA", "critical"), clear("architectural"), clear("infosec")];
+  const result = run(valid);
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout.split("\n")[1]).verdict, "reject-approach");
+  for (const invalid of [
+    run([clear("QA"), clear("architectural"), clear("QA")]),
+    run([clear("QA"), clear("architectural"), clear("methodology")]),
+    run(valid, ["QA", "QA", "infosec"]),
+    run(valid, null),
+    run(valid, ["QA", "architectural"], ["--n", "3"]),
+    run([clear("QA"), clear("architectural"), {}]),
+  ]) {
+    assert.equal(invalid.status, 3, invalid.stdout);
+    assert.equal(invalid.stdout, "");
+  }
+});
+
+test("legacy count-only batches keep distinct votes and reject a duplicate or invalid count", () => {
+  const run = (votes, ...args) => spawnSync(process.execPath, [AGG, ...args], {
+    input: JSON.stringify(votes), encoding: "utf8",
+  });
+  const votes = [clear("QA"), clear("architectural")];
+  assert.equal(run(votes).status, 0);
+  assert.equal(run(votes, "--n", "2").status, 0);
+  const duplicate = run([clear("QA"), clear("QA")], "--n", "2");
+  assert.equal(duplicate.status, 3);
+  assert.equal(duplicate.stdout, "");
+  for (const args of [["--n"], ["--n", "junk"], ["--n", "0"], ["--n", "2abc"]]) {
+    const invalid = run(votes, ...args);
+    assert.equal(invalid.status, 2);
+    assert.equal(invalid.stdout, "");
+  }
+});
+
 test("aggregate.mjs CLI-entrypoint guard fires from a URL-special-char path (FAFF-464)", () => {
   // Regression: the guard once compared import.meta.url (percent-encoded) against a hand-built
   // `file://${process.argv[1]}` (raw path). From a dir whose path holds a URL-special char (`×`),

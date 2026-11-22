@@ -4,31 +4,21 @@
 
 ### Tracker availability resolution
 
-**The single canonical rule for deciding tracker-vs-git-only, for the whole suite.** faff-prep, faff-graft, faff-jot, faff-tidy, faff-wtf, faff-beep-boop and faff-map reference this rule; divergence is a bug, not a local override. Absence from immediately visible tools does not prove unavailability: deferred-tool harnesses such as Codex require discovery before connected tracker tools appear.
+On skill entry, run `faff tracker probe --json`. It returns `{pin, resolution}` from `tracking.tracker`. The harness supplies live connector discovery.
 
-1. **Honour the config pin first (deterministic).** Read `tracking.tracker` via `faff tracker probe` (`pinned` | `unpinned` | `git-only`; `--json` → `{pin, resolution}`) and branch on the resolution before anything else:
-   - **`pinned`** — the operator's **assertion the connector exists**: a skill **MUST NOT** downgrade to git-only merely because the tool isn't in its immediately-visible set — it discovers the connector (step 2) or fails loud (step 4).
-   - **`git-only`** — the reserved `none`/`git-only` sentinel on `tracking.tracker`, the **symmetric inverse** of a connector pin: the operator asserts the repo has no tracker relationship. Resolve git-only **immediately, short-circuiting steps 2 and 4** — no discovery attempt, and a skill **MUST NOT** upgrade to tracker-mode even if a tracker MCP is visible this session. No skill creates, claims, or updates a tracker issue under this pin. All seven consuming skills inherit this outcome by reference, not a per-skill edit.
-   - **`unpinned`** — neither assertion; proceed to step 2.
+| Resolution | Action |
+|---|---|
+| `git-only` (configured `none` or `git-only`) | Use git-only immediately. Skip discovery and all tracker operations, even when a connector is visible. |
+| `pinned` | Discover the named connector. If unavailable, surface the fault below. |
+| `unpinned` | Discover a tracker connector. Use git-only only when discovery finds none. |
 
-   The CLI is MCP-blind, so `probe` reports only this pin half; it never asserts reachability.
-2. **Discover before concluding absence.** On `unpinned`, attempt to *discover* the tracker connector via the harness's tool-discovery mechanism **before** concluding git-only. The mechanism is harness-specific — Codex exposes a tool-search / catalogue step (search for the tracker's tools, e.g. `list_comments` / `get_issue`, then use them); Claude Code already lists them up front, so discovery is a no-op there. "Not immediately listed" stops being evidence of absence: git-only is concluded only when discovery genuinely finds no connector.
-3. **Resolve once per entry — don't re-infer per skill, and don't cache across sessions.** Resolve mode on skill entry and reuse it for that run. Beep-boop resolves both tracker availability and the structural git-only signal once per run, never per wave. Never persist a cross-session mode marker: harness switching can stale it; rediscover on each entry.
-4. **Unreachable ≠ git-only, and ≠ "no spec".** If a tracker is pinned or configured but the connector cannot be reached this session (discovery found nothing under a pin, or a read failed), that is a **loud fault** — surface "tracker configured/pinned but connector not reachable this session" — **not** a silent drop to git-only, and **not** a false "no spec" (see faff-graft's prep-gate, which enforces this distinction).
+Use visible connector tools or search the harness catalogue for deferred issue/comment tools. A failed tracker read, or failure to find the configured connector, raises the fault "tracker configured/pinned but connector not reachable this session". Stop the affected lookup. Reuse the resolution for this run. Beep-boop resolves both tracker availability and its structural git-only signal once across all waves. Resolve afresh on the next entry.
 
 ### Spec docs location
 
-When `/faff-graft` starts a build it commits the spec into the repo so it ships in the same PR as the code (see **Spec discovery** below and the faff-prep / faff-graft artifact lifecycle). The in-repo directory is configurable via `tracking.spec_docs_path`.
+Use `faff config spec-docs-path` for the repository-relative spec directory. Add `--create` when it must exist. `tracking.spec_docs_path` accepts a trailing slash. The default is `docs/specs/`, or `doc/specs/` when only `doc/` exists. Graft commits `YYYY-MM-DD-<issue-id>-<slug>-design.md` on the feature branch so the spec ships with the code.
 
-- **Default when unset:** `docs/specs/` when `docs/` exists, otherwise `doc/specs/` when `doc/` exists, otherwise create and use `docs/specs/`.
-- The value is a directory **relative to the repo root**. A trailing slash is optional.
-- The filename within it is unchanged: `YYYY-MM-DD-<issue-id>-<slug>-design.md`.
-- This only relocates the spec **within the same repo** — the spec still lands on the feature branch and ships with the PR. It is not a pointer to a separate repository.
-
-Every faff sub-skill that reads or writes the committed spec resolves the directory from this key, falling back to the default-resolution rule above when it's absent. The `faff config spec-docs-path [--create]` resolver applies this exact rule — sub-skills call it rather than re-deriving the path. References below to a default of `docs/specs/` are shorthand for that rule (i.e. `doc/specs/` when only `doc/` exists). Spec discovery globs `<spec-docs-path>/*-<issue-id>-*.md`.
-
-PRDs, PRDRs, ADRs, and spikes follow the same rule through `tracking.prd_docs_path`, `tracking.prdr_docs_path`, `tracking.adr_docs_path`, and `tracking.spike_docs_path`. Their resolver commands are `faff config prd-docs-path`, `prdr-docs-path`, `adr-docs-path`, and `spike-docs-path`. The default locations remain `docs/prd/`, `docs/prdr/`, `docs/adr/`, and `docs/spikes/`; a repository can opt into another structure without changing SuperDomestique's defaults for everyone else. A sixth key, `tracking.adr_superseded_docs_path` (resolver `faff config adr-superseded-docs-path`), sets where a superseded ADR lands; unset it defaults to the ADR directory itself (nothing relocates), and setting it to another directory is what moves a superseded ADR there.
-
+For PRDs, PRDRs, ADRs and spikes use the matching `faff config` resolver (`prd-docs-path`, `prdr-docs-path`, `adr-docs-path`, `spike-docs-path`). Each honours its `tracking.<kind>_docs_path` override and the same `docs/` or `doc/` rule, with subdirectories `prd/`, `prdr/`, `adr/` and `spikes/` respectively. `adr-superseded-docs-path` uses the resolved ADR directory unless `tracking.adr_superseded_docs_path` overrides it.
 
 ### Ignore cancelled and archived
 
@@ -93,18 +83,12 @@ During unattended runs (`/faff-beep-boop`) the **tracker is the complete human-l
 
 ### Spec discovery (where to look for an existing spec)
 
-**This section is the single canonical definition of spec discovery for the whole suite.** Sub-skills (faff-tidy, faff-prep, faff-graft, faff-wtf, faff-map, the methodology's `promotion-readiness`) reference it rather than restating the rule; where one mentions "a real spec per the shared Spec discovery rule", it means exactly the checks below (locations 1–3 with a tracker; location 4 the git-only fallback). Any divergence in a sub-skill is a bug, not a local override.
+Resolve tracker mode first. With a tracker, check all three sources in order:
 
-Any faff sub-skill that asks "does this issue have a spec?" must check **all** of the following, in order, and treat a hit in any of them as the spec:
+1. Fetch issue comments through the discovered connector's list-comments tool. Prep normally attaches the spec here. Follow pagination as needed before declaring it absent.
+2. Check the issue body for a formal spec with context, approach and acceptance criteria. Plain requirements, notes or a detailed brief still need `/faff-prep` before building.
+3. Check committed files matching `<spec-docs-path>/*-<issue-id>-*.md`, including a spec already committed on the feature branch.
 
-1. **Issue tracker comments** — **the default and most common location**. faff-prep writes the spec as a comment on the issue during Phase 1 (pre-build). **Most specs live here**, not in the description.
-2. **Issue tracker main description / body** — counts **only** when the body holds an actual formalised spec (the structured artefact faff-prep produces: context, approach, acceptance criteria), e.g. someone authored or pasted a real spec into the ticket body instead of a comment. A plain description — requirements, context, or notes, **however clear or well-defined** — is **not** a spec and does **not** count here.
-3. **Committed docs** in the repo — under the configured **spec-docs path** (default `docs/specs/`; see **Spec docs location**), e.g. `<spec-docs-path>/YYYY-MM-DD-<issue-id>-*.md`. This is where faff-graft commits the spec on build, and where it lives post-merge. If a feature branch already has a spec committed under this path (matching the issue id), treat that as the spec even if no tracker comment exists.
-4. **Git-only spec store** — `.faff/specs/<issue-id>.md`. The **tracker-less fallback**: when no tracker MCP is available, faff-prep writes the spec here (there's no issue to comment on) and faff-graft reads it from here, then commits it to the feature branch under the spec-docs path as usual. Gitignored, so it stays out of the repo until graft commits it — the spec still ships with the PR. Check this location only in git-only mode — where "git-only" is concluded **per Tracker availability resolution** (a discovery attempt found no connector *and* none is pinned), **never** from the immediately-visible tool list alone. When a tracker is configured or pinned, locations 1–3 are authoritative, and a failure to read them is a loud "tracker unreachable this session" fault (see faff-graft's prep-gate), not a fall-through to this location. **In git-only mode the `<issue-id>` filename slot here is filled by the item's stable gitkey** — `/faff-plot` and `/faff-jot` mint it via `faff queue-state new-key` at creation time, so `faff queue-state derive` can diff it against the run-ledger with no other change to this rule.
+When multiple sources contain specs, use the most recently modified one and log the discrepancy. Report "no spec" only after every applicable check succeeds. On a failed read, surface the fault under **Tracker availability resolution**.
 
-**Comments are not optional.** Specs are stored in comments by default, so description-only spec discovery is invalid. Before classifying or reporting "no spec / almost ready / needs prep", fetch comments through the configured tracker's list-comments tool, autodetected from available MCP rather than hardcoded. "Comments not checked" is unacceptable: re-fetch and finish before reporting.
-
-Never assume "no spec attached" without checking all three. Finding a spec in any location is a positive. When multiple sources exist, prefer the most recently modified one and note the discrepancy in the log.
-
-**A description is never a spec — no exceptions.** Before any build, formalise even clear, detailed requirements through `/faff-prep` into a durable reviewable spec. No sub-skill may offer a direct description-to-build path or skip prep because the requirements are clear.
-
+In git-only mode check committed specs and the gitignored `.faff/specs/<gitkey>.md` store. Jot and plot mint the stable key with `faff queue-state new-key`. Prep writes the local spec there and graft commits it under the resolved spec directory. Reserve the local store for git-only mode.

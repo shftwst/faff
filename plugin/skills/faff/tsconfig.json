@@ -41,6 +41,7 @@
     "bin/lib/graft-admit.ts",
     "bin/lib/gates-progress.ts",
     "bin/lib/land.ts",
+    "bin/lib/land-watch.ts",
     "bin/lib/spec-commit.ts",
     "bin/lib/run-summary.ts",
     "bin/lib/run.ts",

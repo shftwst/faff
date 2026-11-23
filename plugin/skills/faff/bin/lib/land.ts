@@ -16,6 +16,7 @@ const { runGh, ghJson, ghRepoSlug, headCheckRuns } = require("./merge-gate-gh");
 const { observeCi, readReviewVerdict } = require("./merge-gate-floor");
 const { runCiTriage, writeCiTriageVerdict } = require("./ci-triage");
 import { cmdLandAssessFix, observedFailingChecks } from "./land-assess-fix";
+import { cmdLandWatch } from "./land-watch";
 import { cmdLandFixAttempt } from "./land-fix-attempt";
 const { cmdHeartbeat } = require("./heartbeat");
 
@@ -318,7 +319,8 @@ function runLand(opts: LandOptions, deps: LandDeps): LandResult {
   }
 }
 
-function cmdLand(args: string[]): number {
+function cmdLand(args: string[]): number | Promise<number> {
+  if (args[0] === "watch") return cmdLandWatch(args.slice(1));
   if (args[0] === "assess-fix") return cmdLandAssessFix(args.slice(1));
   if (args[0] === "fix-attempt") return cmdLandFixAttempt(args.slice(1));
   if (args.includes("--selftest")) return landSelftest();

@@ -323,17 +323,22 @@ test("an exhausted ruling attempt cannot hide a corrupt reconstruction on resume
 });
 
 test("a bounded retry reuses the first phase and moves past a parked proposition", async (t) => {
-  const f = await fixture(t, { retry: 1, answer: (req, requests) => {
+  const f = await fixture(t, { retry: 1, answer: (req) => {
     if (!prompt(req).includes('"argument_A"')) return RECONSTRUCTION;
-    if (requests.length === 2) return false;
-    return requests.length === 3 ? block("p-99") : block("p-02");
+    const entries = f.ledger().entries;
+    if (entries["p-02"].step) return block("p-02");
+    // The transport can retry HTTP inside one judge step. Fail that whole first attempt.
+    return entries["p-01"].step.attempts[1] === 1 ? false : block("p-99");
   } });
   value(await f.assemble());
   const parked = [{ pid: "p-01", reason: "verdict-proposition-mismatch" }];
   assert.deepEqual(value(await f.step(ampleBudget), "done").parked, parked);
   assert.deepEqual(value(await f.step(ampleBudget), "done").parked, parked);
-  assert.equal(f.requests.length, 5);
-  assert.deepEqual(comparableRequest(f.requests[1]), comparableRequest(f.requests[2]));
+  const rulings = f.requests.filter(req => prompt(req).includes('"argument_A"'));
+  assert.equal(f.requests.length - rulings.length, 2);
+  const firstCase = rulings.slice(0, -1);
+  assert.ok(firstCase.length >= 2);
+  for (const request of firstCase) assert.deepEqual(comparableRequest(request), comparableRequest(firstCase[0]));
   const entries = f.ledger().entries;
   assert.deepEqual(entries["p-01"].step.attempts, [1, 2]);
   assert.deepEqual(entries["p-02"].step.attempts, [1, 1]);

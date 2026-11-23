@@ -12,7 +12,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -379,6 +379,27 @@ test("prepcheck --issue: owner_matches_run true/false/null against --run-dir", (
 
     const omitted = run(["prepcheck", "--issue", "FAFF-506", "--json", "--root", root]);
     assert.equal(JSON.parse(omitted.out.trim()).owner_matches_run, null, "null when --run-dir is omitted");
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test("the prep return check passes the owned run and supports standalone and legacy markers", () => {
+  const skill = readFileSync(join(dirname(CLI), "..", "..", "faff-prep", "SKILL.md"), "utf8");
+  const recipe = skill.match(/Before returning `refreshed`[^\n]+?run `([^`]+)`/)[1];
+  const owner = "/runs/owned run";
+  const root = rootWith({
+    "EX-1": { issue: "EX-1", spec_produced: true, attached: true, owner: { run_dir: owner } },
+    "EX-2": { issue: "EX-2", spec_produced: true, attached: true },
+  });
+  try {
+    for (const [issue, runDir, expected] of [["EX-1", owner, true], ["EX-1", "/runs/other", false], ["EX-1", "", null], ["EX-2", owner, null]]) {
+      const result = spawnSync("bash", ["-c", recipe], {
+        cwd: root, encoding: "utf8", env: { ...process.env, faff: CLI, issue, FAFF_RUN_DIR: runDir },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      const marker = JSON.parse(result.stdout);
+      assert.equal(marker.state, "attached");
+      assert.equal(marker.owner_matches_run, expected);
+    }
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 

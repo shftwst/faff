@@ -34,7 +34,7 @@ type Step = {
   finished?: boolean;
 };
 type Entry = {
-  pre_ruling_spec_sha: string; pre_ruling_spec_content: string; resolution: string;
+  pre_ruling_spec_sha: string; pre_ruling_spec_content: string; resolution: string; park_reason?: string;
   step?: Step;
 };
 type Ledger = { sequence: Start; order: string[]; entries: Record<string, Entry>; governing_requirements: string; owner?: number };
@@ -59,7 +59,7 @@ function privateWrite(target: string, value: unknown): void {
 }
 
 type StepResult =
-  | { action: "done" }
+  | { action: "done"; parked?: { pid: string; reason: string | null }[] }
   | { action: "continue"; pid: string }
   | { action: "parked"; pid: string; reason: string }
   | { action: "retry"; pid: string; phase: number; exit: number }
@@ -232,7 +232,7 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
   const budget = positive(rawBudget);
   if (rawBudget !== undefined && (!budget || budget * 1000 > 2147483647)) throw new Error("--budget-secs requires a positive integer within the timer range");
   const expires = budget === undefined ? Infinity : performance.now() + budget * 1000;
-  const runDir = budget === undefined ? undefined : values["--run-dir"];
+  const runDir = values["--run-dir"];
   const out = values["--out"] || join(dir, "judge");
   const ledgerPath = join(out, "ledger.json");
   const lock = join(out, "sequence.lock");
@@ -254,13 +254,18 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
   async function oneStep(parkPid: string | undefined): Promise<StepResult> {
     const residue = verifySequence(ledger, values, readResidue);
     const pid = ledger.order.find((id) => !entryFor(ledger, id).step?.finished);
-    if (!pid) return { action: "done" };
+    if (!pid) {
+      const parked = budget === undefined ? [] : ledger.order.filter(id => entryFor(ledger, id).resolution === "parked")
+        .map(id => ({ pid: id, reason: entryFor(ledger, id).park_reason ?? null }));
+      return parked.length ? { action: "done", parked } : { action: "done" };
+    }
     const entry = entryFor(ledger, pid);
     const spec = readFileSync(specPath, "utf8");
     const park = (reason: string): StepResult => {
       if (!entry.step) throw new Error("unbound park");
       entry.step.finished = true;
       entry.resolution = "parked";
+      entry.park_reason = reason;
       save(ledger);
       return { action: "parked", pid, reason };
     };
@@ -297,20 +302,28 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
     const blinded = freshCase(ledger, residue, pid, spec);
     const binding = digest(spec, blinded);
     if (entry.step && entry.step.binding !== binding) throw new Error("current spec, case evidence or judge settings changed during dispatch");
-    // A short caller window must not bind an unstarted case or charge a provider attempt.
-    const attemptMs = settings && reviewCallSpawnOptions(settings.deadline).timeout;
-    if (budget !== undefined && attemptMs && performance.now() + attemptMs > expires) {
-      return { action: "budget", steps, attempt_secs: attemptMs / 1000 };
+    const step: Step = entry.step ?? { binding, attempts: [0, 0] };
+    function bindStep(): void {
+      if (!entry.step) {
+        entry.pre_ruling_spec_sha = sha256Text(spec);
+        entry.pre_ruling_spec_content = spec;
+        entry.step = step;
+      }
     }
-    if (!entry.step) {
-      entry.pre_ruling_spec_sha = sha256Text(spec);
-      entry.pre_ruling_spec_content = spec;
-      entry.step = { binding, attempts: [0, 0] };
-      save(ledger);
+    if (!settings) {
+      bindStep();
+      return park("no independent spec judge backend available");
     }
-    const step = entry.step;
-    if (!settings) return park("no independent spec judge backend available");
-    privateWrite(join(out, `case-${pid}.json`), blinded);
+
+    const reconstruction = step.reconstruction;
+    if (reconstruction && (!validateReconstruction(reconstruction.body).ok
+      || reconstruction.sha !== sha256Text(JSON.stringify([binding, reconstruction.body])))) {
+      throw new Error("stored reconstruction is invalid or unbound");
+    }
+    const phase = reconstruction ? 1 : 0;
+    if (step.attempts[phase] >= settings.retryLimit + 1) {
+      return park(`phase ${phase + 1} retry budget exhausted`);
+    }
 
     const scratch = mkdtempSync(join(tmpdir(), "faff-spec-judge-"));
     try {
@@ -319,12 +332,6 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
       const context = join(scratch, "context.json");
       writeFileSync(snapshot, spec, { mode: 0o600 });
       privateWrite(backendPath, settings.chain.map((backend: object) => ({ ...backend, reasoning_off: false })));
-      const phase = step.reconstruction ? 1 : 0;
-      const reconstruction = step.reconstruction;
-      if (reconstruction && (!validateReconstruction(reconstruction.body).ok
-        || reconstruction.sha !== sha256Text(JSON.stringify([binding, reconstruction.body])))) {
-        throw new Error("stored reconstruction is invalid or unbound");
-      }
       privateWrite(context, reconstruction ? {
         proposition_id: pid,
         proposition: blinded.reconstruction_context.proposition,
@@ -335,15 +342,21 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
       if (budget !== undefined && performance.now() + attemptMs > expires) {
         return { action: "budget", steps, attempt_secs: attemptMs / 1000 };
       }
+      // Only bind a new case and charge the attempt once its full transport can start.
+      privateWrite(join(out, `case-${pid}.json`), blinded);
+      bindStep();
       const attempts = ++step.attempts[phase];
-      if (attempts > settings.retryLimit + 1) return park(`phase ${phase + 1} retry budget exhausted`);
       save(ledger);
-      const transport = runDir ? realRunReviewCallAsync : realRunReviewCall;
-      const result: Transport = await transport([
+      const args = [
         "--system", join(PROMPTS, PHASE_PROMPTS[phase]), "--diff", snapshot, "--diff-kind", "prose", "--context", context,
         "--backends-json", backendPath, "--expect", "contract", "--max-tokens", String(settings.cap),
         "--timeout", String(settings.timeout), "--deadline", String(settings.deadline),
-      ], { deadlineSecs: settings.deadline });
+      ];
+      const options = { deadlineSecs: settings.deadline };
+      const result: Transport = runDir
+        ? await withReviewHeartbeat(runDir, Math.min(attemptMs, expires - performance.now()) / 1000,
+          () => realRunReviewCallAsync(args, options))
+        : realRunReviewCall(args, options);
       const liveResidue = verifySequence(ledger, values, readResidue);
       const liveSpec = readFileSync(specPath, "utf8");
       if (!scopeMatches() || digest(liveSpec, freshCase(ledger, liveResidue, pid, liveSpec)) !== binding) {
@@ -398,7 +411,7 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
   }
 
   try {
-    return runDir && budget ? await withReviewHeartbeat(runDir, budget, advance) : await advance();
+    return await advance();
   } finally {
     withFileLock(lock, () => {
       delete ledger.owner;

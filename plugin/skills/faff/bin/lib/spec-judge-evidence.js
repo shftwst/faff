@@ -171,12 +171,12 @@ const SPEC_JUDGE_EVIDENCE_USAGE =
   "usage: faff spec-judge-evidence --dir <scratch> --window-start <N> --level <L1..L4> " +
   "--appetite <low|medium|high|full> --issue <ISSUE-XX> [--container <c>]\n" +
   "   or: faff spec-judge-evidence --assemble --dir <scratch> --window-start <N> --spec <file> " +
-  "--issue <ISSUE-XX> [--sequence] [--out <judge-dir>] [--repo-root <path>] [--run-id <id>] [--container <c>]\n" +
+  "--issue <ISSUE-XX> [--sequence] [--out <judge-dir>] [--repo-root <path>] [--run-id <id>] [--run-dir <path>] [--container <c>]\n" +
   "   or: faff spec-judge-evidence --admit --level <L3|L4> --out <judge-dir> --spec <file> " +
   "--dir <scratch> --window-start <N> [--run-dir <path>]\n" +
   "   or: faff spec-judge-evidence --restamp --pid <pid> --spec <file> " +
   "[--out <judge-dir> | --dir <scratch>]\n" +
-  "   or: faff spec-judge-evidence --step --dir <scratch> --window-start <N> --spec <file> [--out <judge-dir>] [--backend <provider|model|host>] [--park <pid>] [--budget-secs N [--run-dir DIR]]";
+  "   or: faff spec-judge-evidence --step --dir <scratch> --window-start <N> --spec <file> [--out <judge-dir>] [--backend <provider|model|host>] [--park <pid>] [--budget-secs N] [--run-dir DIR]";
 const LEVELS = ["L1", "L2", "L3", "L4"];
 
 function cmdSpecJudgeEvidence(args) {

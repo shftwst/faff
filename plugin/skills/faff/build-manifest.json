@@ -68,7 +68,7 @@
     "bin/lib/run.ts": "43e47a2c4e6f82028f8843a51e2e97323ccf38ac22d7102b15ec53fc9a3158fe",
     "bin/lib/slot-authoring.ts": "8204bcc6316d905fbc58c595862cd2247ce01fe1152a3edeb271c33e3adec95e",
     "bin/lib/spec-commit.ts": "c9a9877a24818cd488bb8e2955394c1293e1e7929eb4ac85e92244326be8c30d",
-    "bin/lib/spec-judge-sequence.ts": "041a6f7c90e04809040a899672a534097d13db22bbe85b672d21b6aa4f59a6c4",
+    "bin/lib/spec-judge-sequence.ts": "aa4ab94142bef27d14d0a37fa6197a11aa58490044a7d468e88423afdb7a51e6",
     "bin/lib/spec-review-dispatch.ts": "cc2c402dd47f729c5a4778ccb8a690b5317554f2748680492576d7c26721a614",
     "bin/lib/spec-review-hold.ts": "538479bf72ec1d3f63b6894fdaa462b7a40d0c07d44cb2d45a57a38cced91790",
     "bin/lib/spec-review-prepare.ts": "b3eef5b06dbbd7a6c6eefbbd7f7f49a0489f222326bd3ac842b2e3e4c4bb19a3",
@@ -133,7 +133,7 @@
     "bin/lib/run.js": "c67e9c8037e1e069770370270f5f717ed5caab3720a76455d5e110f9d6854e55",
     "bin/lib/slot-authoring.js": "d977e73afef4a74bcb5c67d16ea081bb894c51331e548f6717525c5fc857eee5",
     "bin/lib/spec-commit.js": "fcb58edcc73bd29adfa7478f674417530105521d7019455113ccc05739d633af",
-    "bin/lib/spec-judge-sequence.js": "749485316e675e72db401f5c7c944923daed4b819298398127cf79364bf3a27e",
+    "bin/lib/spec-judge-sequence.js": "9568699a5403e775775c09e88ed1d673b5873759d04b62417cb53c0783451063",
     "bin/lib/spec-review-dispatch.js": "11c6aad2ba9d4a0b52e37338c7954ddeb348a29b3fef861616e39f237139fd81",
     "bin/lib/spec-review-hold.js": "1e3ab668ca1acbb249470c5dfd12f4d0d46c8b530a0fb9443bb79b26baa58f8d",
     "bin/lib/spec-review-prepare.js": "7013c578aad0620b4c0a82e07126fbadc804fa002db5166e7a24b6d3918c9416",
@@ -142,5 +142,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "6df0799c8e47a9f9df0247171998110044ab0dc1e4a17e4f963d6d9fbaf21b2c"
   },
-  "output_digest": "3e3c5bbce8a1211992907149ce241d829ecdae9f87d1d0ea85afe76148023c35"
+  "output_digest": "ff5d2ee72d0edfa91812b70e19c25c63cbe4fc6c07c7194a8f6688f003ffd609"
 }

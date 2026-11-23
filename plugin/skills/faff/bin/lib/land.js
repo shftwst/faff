@@ -18,6 +18,7 @@ const { runGh, ghJson, ghRepoSlug, headCheckRuns } = require("./merge-gate-gh");
 const { observeCi, readReviewVerdict } = require("./merge-gate-floor");
 const { runCiTriage, writeCiTriageVerdict } = require("./ci-triage");
 const land_assess_fix_1 = require("./land-assess-fix");
+const land_watch_1 = require("./land-watch");
 const land_fix_attempt_1 = require("./land-fix-attempt");
 const { cmdHeartbeat } = require("./heartbeat");
 const DEADLINE_MS = 25 * 60 * 1000;
@@ -278,6 +279,8 @@ function runLand(opts, deps) {
     }
 }
 function cmdLand(args) {
+    if (args[0] === "watch")
+        return (0, land_watch_1.cmdLandWatch)(args.slice(1));
     if (args[0] === "assess-fix")
         return (0, land_assess_fix_1.cmdLandAssessFix)(args.slice(1));
     if (args[0] === "fix-attempt")

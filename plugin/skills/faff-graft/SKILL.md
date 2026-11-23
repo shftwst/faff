@@ -330,9 +330,7 @@ Never key the unattended run on `verif.legs.holdout` — hard-zeroed unattended 
 
 Runs after AC verification, before PR open (Step 9b) and the merge-confidence gate. **Review runs pre-PR in both modes — no PR exists yet** (gateway → `faffter-noon-review` "Why pre-PR"). Review the **branch/diff** (`git diff <remote-base>...HEAD`) captured against the fetched remote default by **Remote-backed review diff**, never local `main`. Open the PR only on `pass`, so review-fix iterations spend no CI. **This step is non-negotiable and runs in both interactive and autonomous modes.** Never skip it because the user may review manually, the build "felt clean", or tests passed: it catches scope creep, spec misreadings and human-judgement items tests cannot, and supplies the interactive merge decision's review comment. Step 0 requires its todo; 9b opens only on `pass`; Step 10 blocks merge without it; Step 11 checks it before prompting.
 
-Before dispatch, retain the round ordinal for any Phase-2 critical. Use 1 for a fresh dialogue or the saved `next_round` on resume.
-
-Invoke the `review` slot via the Skill tool (resolve `faff config get slots.review` per gateway → **Sibling-skill invocation**; a bundled default is a canonical name), passing the captured diff file (produced by the **Remote-backed review diff** block below — one `git diff <remote-base>...HEAD` capture the review consumes and the review-progress hash is taken from, byte-identical), the spec, the test results, and the Step 8 AC checklist. **Also forward two orthogonal signals — `autonomous` and `lights_out`:**
+Retain the round ordinal for any Phase-2 critical (1 on fresh dialogue, saved `next_round` on resume). Resolve `faff config get slots.review` per gateway → **Sibling-skill invocation** and invoke it via the Skill tool. Forward the captured diff file, hash, `$base` as `remote_base`, explicit run directory, issue, spec, test results and Step 8 AC checklist. **Also forward two orthogonal signals — `autonomous` and `lights_out`:**
 
 - **`autonomous`** comes from graft's invocation mode. Forward true for any autonomous graft (including every beep-boop-dispatched L3/L4 build), false interactively or if unresolvable. On `autonomous:true`, the adversarial reviewer escalates a Phase-2 `critical` to `needs-human` and loudly annotates a full-chain outage. Both are advisory interactively.
 - **`lights_out`** is the same `$lights_out` (`level:"L4"`) resolved for Step 10's holdout gate, default false. Forward it for L4-specific review (`autonomous ∧ lights_out`). The adversarial helper derives mandatory chain-outage `--lights-out` from `$run_dir`'s `run-ledger.json` (`level:"L4"`). Never translate the forwarded signal into that flag.
@@ -353,23 +351,23 @@ Only an attended run reads `verification.*`. An unattended L3 or L4 run resolves
 
 **Acting invariant.** An interactive floor result is *reported*, never acted on: the merge-gate auto-merge interlock and the autonomous auto-park stay gated on the unattended signal, unchanged. Enabling a leg never mints or escalates a ledger, so appetite, eligibility, and the four autonomous parks are untouched.
 
-**Remote-backed review diff.** Capture **once** against the fetched remote default, never local `main`. The review slot consumes that one `git diff` file and review-progress `cur_hash` hashes those exact bytes, preventing approval of a different diff. `remote-diff-base.sh`, bundled beside `setup-worktree.sh` in `$graft_skill_dir` from Step 3's `faff worktree ensure`, prints fetched `origin/<default>` (git-only: local default). Unresolvable/unfetchable remote defaults fail non-zero, never use a stale base. Set `$diff_file` to a fresh temp path first.
-
-```bash
-base=$(bash "$graft_skill_dir/remote-diff-base.sh") || exit 1   # fetched remote default (git-only: local); fail-loud
-git diff "$base...HEAD" > "$diff_file"                          # the ONE captured diff the review consumes
-cur_hash=$(sha256sum "$diff_file" | cut -d' ' -f1)             # hash those exact bytes — never a second git diff
-```
-
 **Heartbeat ticks (autonomous only).** Review's different, slower adversarial LLM can run for minutes without ledger writes. Tick **`faff heartbeat "$run_dir" --unit <issue>`** at review **entry**, **between** adversarial Phase-1/Phase-2 calls, and **after** the verdict; tick **before and after** an L4 holdout eval. This sanctioned path is a soft no-op outside a run. Pass the `BuildDispatch`'s explicit `$run_dir`, never "latest run"; every mode passes the current `--unit <issue>` as in Step 7.5. Each tick resets age to ~0, bounding it by one blocking adversarial phase, well under 900s.
 
-**Autonomous review resume.** From the worktree, run `faff review-progress resume "$run_dir" <ISSUE> --diff-hash "$cur_hash"` using the single captured diff above. Reconcile the hint with observed git, PR and worktree state. Interactive review skips checkpoints.
+**Remote-backed review diff.** From the worktree, capture one diff to a fresh `$diff_file`. Step 3's resolver fetches the remote default (local default in git-only mode). Set `autonomous=true` or `false` from the invocation mode. Run the capture and checkpoint lookup together. Stop before dispatch on failure.
+
+```bash
+base=$(bash "$graft_skill_dir/remote-diff-base.sh") || exit 1
+git diff "$base...HEAD" > "$diff_file" || exit 1
+cur_hash=$(node -e 'process.stdin.pipe(require("node:crypto").createHash("sha256").setEncoding("hex")).pipe(process.stdout)' < "$diff_file") || exit 1
+printf 'remote_base=%s\ndiff_file=%s\ndiff_hash=%s\n' "$base" "$diff_file" "$cur_hash"
+if [ "$autonomous" = true ]; then "$faff" review-progress resume "$run_dir" "$issue" --diff-hash "$cur_hash" || exit 1; fi
+```
+
+**Autonomous review resume.** Reconcile the returned hint with observed git, PR and worktree state. Interactive review skips checkpoints.
 
 - `fresh` runs the review from Phase 1. `phase2` forwards the trusted skip-Phase-1 hint for bounded Phase 2.
 - `dispose-findings` reads `findings_ref` and resumes disposition and the usual merge gate.
 - `reconcile-skip` reconciles the named advisory skip with the original verdict and run context. Preserve the deadline/outage distinction. A skip supplies no review opinion.
-
-Forward the explicit run directory, issue, diff hash and `$base` as `remote_base` to the reviewer for its own checkpoints.
 
 The review returns one of four signals. The verdict vocabulary, their semantics, and the revert test below are the **fixed review-verdict contract** in the gateway. **faff-graft is the consumer:** it submits the reviewer's single complete `faff-contract:review-verdict` fence or its JSON to `faff contract review-verdict`, the sole source of contract data. A malformed or unknown signal takes the `needs-human` path. A `pass` requires exit 0. A reviewer that emits no block falls back to reading its native `signal:` / `## Findings` prose into the same extraction JSON. faff-graft branches on the verdict; it does not redefine it. **This extends to the underlying exit code an adversarial reviewer's Phase-2 chain resolves to: that disposition is CLI-computed (deterministically, inside `review-call.mjs`), consumed verbatim, and never hand-adjusted by graft-time agent judgement — there is no sanctioned discretion to reclassify a `needs-human` exit into a `chain-outage-skipped` pass, or vice versa, because the build agent "felt" the outage was transient.** Below:
 

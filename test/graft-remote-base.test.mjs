@@ -174,6 +174,45 @@ test("review, worktree checkpoint, and worktree ensure share one remote-based di
   }
 });
 
+test("the captured bytes select the autonomous resume action and interactive review skips the lookup", () => {
+  const fx = setupFixture("trunk");
+  try {
+    const env = { faff: FAFF_BIN, issue: "EX-9", run_dir: fx.parent, diff_file: path.join(fx.parent, "review.diff"), autonomous: "true" };
+    const capture = () => runBlock(REVIEW_BLOCK, fx.work, "cur_hash", env);
+    const first = capture();
+    assert.match(first.stdout, /"action":"fresh"/);
+    assert.match(first.stdout, /remote_base=origin\/trunk/);
+    assert.ok(first.stdout.includes("diff_file=" + env.diff_file));
+    assert.equal(first.value, createHash("sha256").update(readFileSync(env.diff_file)).digest("hex"));
+    const recorded = runFaff(fx, ["review-progress", "write", env.run_dir, env.issue, "--phase1-pass", "--diff-hash", first.value]);
+    assert.equal(recorded.status, 0, recorded.stderr);
+    assert.match(capture().stdout, /"action":"phase2"/);
+    commitFile(fx.work, "change.txt", "new diff", "change reviewed bytes");
+    assert.match(capture().stdout, /"action":"fresh"/);
+    env.autonomous = "false";
+    env.faff = "/missing-checkpoint-command";
+    assert.doesNotMatch(capture().stdout, /"action":/);
+  } finally {
+    rmParent(fx.parent);
+  }
+});
+
+test("a diff with no merge base stops before producing a review handoff", () => {
+  const fx = setupFixture("trunk");
+  try {
+    git(fx.work, "checkout", "-q", "--orphan", "unrelated");
+    commitFile(fx.work, "unrelated.txt", "different history", "unrelated root");
+    const res = spawnSync("bash", ["-c", REVIEW_BLOCK], { cwd: fx.work, encoding: "utf8", env: {
+      ...process.env, graft_skill_dir: GRAFT_SKILL_DIR, diff_file: path.join(fx.parent, "review.diff"),
+      autonomous: "true", faff: FAFF_BIN, issue: "EX-9", run_dir: fx.parent, GIT_TERMINAL_PROMPT: "0",
+    } });
+    assert.notEqual(res.status, 0);
+    assert.doesNotMatch(res.stdout, /diff_hash=|"action":/);
+  } finally {
+    rmParent(fx.parent);
+  }
+});
+
 // Direct coverage of the shared base resolver.
 const HELPER = path.join(GRAFT_SKILL_DIR, "remote-diff-base.sh");
 

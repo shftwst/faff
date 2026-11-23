@@ -241,13 +241,7 @@ Faff-prep consumes the line for its gate (autonomous: `high` → promote; `mediu
 
 ## Quality bar — self-review before returning
 
-Before emitting the spec and confidence line, run sibling `faffter-noon-spec/SKILL.md` → _Self-review before returning_ **in full, exactly as written**. This inherits the `spec` slot's quality bar, never defines a second one.
-
-- **What's inherited.** The reviewer brief, the `blocker`/`major`/`minor` severities, the acting-on-findings rules, the return-the-review requirement, and the narrowing-only-refresh exemption all carry over unchanged — this section adds nothing to that checklist and drops nothing from it.
-- **In-context clause.** This skill only ever runs as a dispatched producer subagent, never at the gateway's top level, so the inherited review always takes its in-context form here: a fresh-reasoning pass performed inside this same subagent against the drafted spec and the codebase, rather than a further clean-context subagent dispatch.
-- Nesting stays single-level: this producer never takes the inherited top-level dispatch branch. The review still checks every claim against the codebase before trusting the spec.
-- **Rating cap.** The inherited downgrade rule binds this producer exactly as written: landing on ≥1 `blocker` finding, or ≥3 `major` findings, forecloses a `high` self-rating regardless of how settled the draft felt going in.
-- Cap the self-rating at `medium` when that threshold is hit, and read the confidence self-rating section immediately above as subject to this cap rather than as an independent judgement call.
+Follow sibling `faffter-noon-spec/SKILL.md` → _Self-review before returning_ in full, including the narrowing-only refresh exemption. This producer always runs as a dispatched subagent, so verify every claim against the codebase in a fresh-reasoning pass in context. Return the findings and resolutions, and copy the severities to `self_review` as specified there.
 
 ## Contract artifact
 

@@ -179,9 +179,9 @@ test("prep logs the worker review without printing it or continuing from missing
   const review = join(root, "self review.md");
   const prep_log = join(root, "prep log.md");
   const skill = readFileSync(join(repoRoot, "plugin/skills/faff-prep/SKILL.md"), "utf8");
-  const [, record] = skill.match(/`(test -s "\$spec"[^`]+)` into stage with `&&`/);
-  const run = () => spawnSync("bash", ["-c", record + " && printf staged"], {
-    encoding: "utf8", env: { ...process.env, spec, review, prep_log },
+  const [, record] = skill.match(/`(test -s "\$spec"[^`]+)` before staging/);
+  const run = (logPath = prep_log) => spawnSync("bash", ["-c", record + " && printf staged"], {
+    encoding: "utf8", env: { ...process.env, spec, review, prep_log: logPath },
   });
   writeFileSync(spec, "# Draft\n");
   writeFileSync(prep_log, "Prior log\n");
@@ -194,4 +194,11 @@ test("prep logs the worker review without printing it or continuing from missing
   assert.equal(ready.status, 0);
   assert.equal(ready.stdout, "staged");
   assert.equal(readFileSync(prep_log, "utf8"), "Prior log\nOne finding and its resolution.\n");
+  const essential = run("");
+  assert.equal(essential.status, 0);
+  assert.equal(essential.stdout, "staged");
+  assert.equal(readFileSync(prep_log, "utf8"), "Prior log\nOne finding and its resolution.\n");
+  writeFileSync(spec, "");
+  assert.notEqual(run("").status, 0);
+  assert.notEqual(run().status, 0);
 });

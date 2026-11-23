@@ -257,7 +257,7 @@ The producer verifies fresh specs against the codebase. Both bundled producers r
 What prep still owns around the producer's output:
 
 - **Marker validation** via the consumer-fold (`faff prep attach` stage, see _Spec contract_) before attach (autonomous failure → park; interactive → add the missing marker).
-- **Logging.** Append the producer's returned review findings + resolutions to the prep log (`.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` or `.faff/runs/<run-id>/ISSUE-XX/prep.md`) alongside prep's own decisions. A missing review record from the producer is a process failure — prep notes it. The narrative `HHMMSS-prep-ISSUE-XX.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`); the `runs/<run-id>/ISSUE-XX/prep.md` resume artifact is hard floor and written regardless.
+- **Logging.** Record each producer's findings and resolutions once, alongside prep's decisions. A missing review record is a process failure. Set `prep_log` to the run's `.faff/runs/<run-id>/ISSUE-XX/prep.md` whenever in a run. Outside a run, use `.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` for narrative logging or an empty value for `logging: essential`.
 - **The confidence gate** uses the staged rating: high promotes, medium attaches for review, low parks.
 
 **Refresh exemption.** On the stale-refresh path (Path 1 in autonomous), prep refreshes an already-vetted spec itself rather than re-invoking the producer — a scoped, annotated change, not a whole-cloth redraft — so the producer's self-review does not re-fire. If a refresh would require a whole-cloth redraft, prep re-invokes the producer (which self-reviews) instead — and because a redraft is fresh spec production, the conditional **Architecture proposal step** (below) runs first, exactly as on the fresh-spec paths (the superseded spec's own proposal block is what is being redrafted, so it does not count as the trigger's existing sibling proposal).
@@ -338,9 +338,9 @@ After the PR merges, the spec lives in the repo as a record of what was built an
 
 Run `faff dispatch prepare-producer spec`, adding `--shared-spec-files` when a writable Agent shares prep's filesystem. Pass the issue, explore findings and spec contract through gateway → **Producer dispatch**.
 
-Pass the `output_files` paths. Write the complete spec to `spec` and findings with resolutions, clean review or authorised exemption to `review`. Return only `{"status":"written"}` or `{"status":"blocked","reason":"..."}`. For `written`, chain `test -s "$spec" && test -s "$review" && cat -- "$review" >> "$prep_log"` into stage with `&&`. Read the spec for the premise check. Consult the review only to resolve a finding. Stop on any failure. Remove both files and their directory after use.
+Pass the `output_files` paths. Write the complete spec to `spec` and findings with resolutions, clean review or authorised exemption to `review`. Return only `{"status":"written"}` or `{"status":"blocked","reason":"..."}`. On each new `written` receipt run `test -s "$spec" && test -s "$review" && (test -z "$prep_log" || cat -- "$review" >> "$prep_log")` before staging. Read the spec for the premise check. Consult the review only to resolve a finding. Stop on any failure. Remove both files and their directory after use.
 
-Without shared files, stage the occupant's returned file or body and log its review findings.
+Without shared files, log the returned findings when `prep_log` is set and stage the occupant's file or body.
 
 ## Scenarios
 
@@ -379,7 +379,7 @@ Carry the findings into the Step-2 spec on narrow or proceed. Use the same share
 
 **Step 2: Spec** (delegated to the `spec` slot)
 
-Use **Delegated skill output handling**. Stage with `--mode interactive --fresh` before rendering and use the returned confidence. Fix missing markers on `invalid` and stage again. Log the self-review, post `body_path` as the issue comment, then confirm.
+Use **Delegated skill output handling**. Stage with `--mode interactive --fresh` before rendering and use the returned confidence. Fix missing markers on `invalid` and stage again. Post `body_path` as the issue comment, then confirm.
 
 **→ Run the Spec-review gate** (the approach-critique consumer-fold above) on the attached spec, **after** confidence rating and **before** promotion. Surface the verdict + any lensed objections to the user (canonical semantics: `faff contract spec-review-verdict --describe`); the approving verdict proceeds to the steps below, the fixable-in-place verdict or a prep-destined reject-approach loops in place (bounded by the gate's cap), a plot-destined reject-approach surfaces the slice for `/faff-plot`, and the human-judgement verdict (or a contract failure) parks. Only an `approve` — composed with the confidence gate — promotes:
 - If the spec surfaced that the issue should be split, recommend the split
@@ -541,7 +541,7 @@ Always delegated to the `spec` slot (default `faffter-noon-spec`) — autonomous
 
 **Step 2 — run the shared already-shipped scan + premise-superseded gate** (above) on the just-produced spec: **Park** (substantially delivered) exits Path 2 immediately, citing Done ticket IDs in the park comment; **Proceed** (premise holds) continues to Step 3; **Narrow** (partially delivered) is handled per the subroutine — for Path 2 that means re-invoking the producer on the narrowed scope (its self-review fires). Continue to Step 3.
 
-**Step 3: validate and gate the spec.** Stage with `--mode autonomous --fresh` before rendering. Log the returned review findings. Use stage's confidence for the gate below, confirm each successful attach, and run `--park` on a park.
+**Step 3: validate and gate the spec.** Stage with `--mode autonomous --fresh` before rendering. Use stage's confidence for the gate below, confirm each successful attach, and run `--park` on a park.
 
 - `high`: each non-trivial decision has a reasoned `**Chosen:**`, no `**Punt:**` escalates a genuine product or architecture question, and the ACs are concrete and testable.
 - `medium` — mostly clean but 1–2 substantive `**Punt:**` markers, thin rationale a human would want to weigh in on, or a self-review that forced a downgrade.

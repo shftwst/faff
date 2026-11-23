@@ -94,7 +94,11 @@ function captureServed(dir: string, round: number, rows: LensResult[], file: str
   if (capture.error) throw new Error(capture.detail);
 }
 
-export function cmdRecordResults(argv: string[], tools: Tools, retainVotes?: (entries: unknown[]) => void): number {
+export function validLensSet(lenses: string[]): boolean {
+  return lenses.length > 0 && new Set(lenses).size === lenses.length && lenses.every(lens => SPEC_REVIEW_LENSES.includes(lens));
+}
+
+export function cmdRecordResults(argv: string[], tools: Tools, retainVotes?: (entries: unknown[]) => void, enabledLenses?: string[]): number {
   const { values, errors } = parseArgs(argv, argumentSpec);
   if (errors.length) return usageError(errors, usage);
   const dir: string | undefined = values["--dir"];
@@ -107,14 +111,15 @@ export function cmdRecordResults(argv: string[], tools: Tools, retainVotes?: (en
       (noResults ? (resultsFile || chainFile) : (!resultsFile || !chainFile))) {
     return usageError([{ code: "missing-value", detail: "a round, directory and exactly one batch source are required" }], usage);
   }
-  const lenses: string[] = values["--lenses"] === undefined
+  const lenses: string[] = enabledLenses ?? (values["--lenses"] === undefined
     ? SPEC_REVIEW_LENSES
-    : values["--lenses"].split(",").map((lens: string) => lens.trim()).filter(Boolean);
-  if (!lenses.length || new Set(lenses).size !== lenses.length || lenses.some(lens => !SPEC_REVIEW_LENSES.includes(lens))) {
+    : values["--lenses"].split(",").map((lens: string) => lens.trim()).filter(Boolean));
+  if (!validLensSet(lenses)) {
     return usageError([{ code: "bad-value", detail: "--lenses must list distinct enabled lenses" }], usage);
   }
 
-  if (lenses.length !== SPEC_REVIEW_LENSES.length && !receiptsOnly) {
+  // Only dispatch owns the full upstream selection. A standalone subset may be a retry.
+  if (!enabledLenses && lenses.length !== SPEC_REVIEW_LENSES.length && !receiptsOnly) {
     return usageError([{ code: "bad-value", detail: "partial lens sets require --receipts-only" }], usage);
   }
 

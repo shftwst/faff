@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cacheAdvisory = cacheAdvisory;
+exports.validLensSet = validLensSet;
 exports.cmdRecordResults = cmdRecordResults;
 // === region:factory — record an already-returned batch of spec-review lens results ===
 const node_fs_1 = require("node:fs");
@@ -85,7 +86,10 @@ function captureServed(dir, round, rows, file, tools) {
     if (capture.error)
         throw new Error(capture.detail);
 }
-function cmdRecordResults(argv, tools, retainVotes) {
+function validLensSet(lenses) {
+    return lenses.length > 0 && new Set(lenses).size === lenses.length && lenses.every(lens => SPEC_REVIEW_LENSES.includes(lens));
+}
+function cmdRecordResults(argv, tools, retainVotes, enabledLenses) {
     const { values, errors } = parseArgs(argv, argumentSpec);
     if (errors.length)
         return usageError(errors, usage);
@@ -99,13 +103,14 @@ function cmdRecordResults(argv, tools, retainVotes) {
         (noResults ? (resultsFile || chainFile) : (!resultsFile || !chainFile))) {
         return usageError([{ code: "missing-value", detail: "a round, directory and exactly one batch source are required" }], usage);
     }
-    const lenses = values["--lenses"] === undefined
+    const lenses = enabledLenses ?? (values["--lenses"] === undefined
         ? SPEC_REVIEW_LENSES
-        : values["--lenses"].split(",").map((lens) => lens.trim()).filter(Boolean);
-    if (!lenses.length || new Set(lenses).size !== lenses.length || lenses.some(lens => !SPEC_REVIEW_LENSES.includes(lens))) {
+        : values["--lenses"].split(",").map((lens) => lens.trim()).filter(Boolean));
+    if (!validLensSet(lenses)) {
         return usageError([{ code: "bad-value", detail: "--lenses must list distinct enabled lenses" }], usage);
     }
-    if (lenses.length !== SPEC_REVIEW_LENSES.length && !receiptsOnly) {
+    // Only dispatch owns the full upstream selection. A standalone subset may be a retry.
+    if (!enabledLenses && lenses.length !== SPEC_REVIEW_LENSES.length && !receiptsOnly) {
         return usageError([{ code: "bad-value", detail: "partial lens sets require --receipts-only" }], usage);
     }
     try {

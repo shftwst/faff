@@ -16,12 +16,13 @@ test("cache advisory uses the maximum post-prime TTFT and includes the threshold
   for (const strategy of ["serial", "parallel"]) assert.equal(check([1000, 1000], strategy), null);
 });
 
-test("dispatch records configuration faults and refuses partial inputs or invalid budgets before transport", t => {
+test("dispatch records configuration faults and refuses invalid selections, partial retry inputs or invalid budgets before transport", t => {
   const root = mkdtempSync(join(tmpdir(), "faff-dispatch-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const dir = join(root, "pin");
   const call = (...flags) => runCli(["spec-review", "dispatch", "--dir", dir, "--spec", "draft.md", "--root", root, ...flags], { cwd: root });
-  for (const flags of [["--lenses", "QA"], ["--turn-budget-secs", "0"], ["--turn-budget-secs", "Infinity"]]) {
+  for (const flags of [["--enabled-lenses", "QA,QA"], ["--enabled-lenses", "QA,absent"], ["--enabled-lenses", ""],
+    ["--enabled-lenses", ",QA"], ["--lenses", "QA"], ["--turn-budget-secs", "0"], ["--turn-budget-secs", "Infinity"]]) {
     assert.equal(call(...flags).code, 2);
     assert.equal(existsSync(dir), false);
   }
@@ -31,4 +32,10 @@ test("dispatch records configuration faults and refuses partial inputs or invali
   assert.equal(JSON.parse(outcome.stdout.split("\n")[1]).verdict, "needs-human");
   assert.equal(JSON.parse(readFileSync(join(dir, "pin-capture.json"))).state, "skipped-no-lens");
   assert.equal(existsSync(join(dir, "round-1.json")), false);
+  const selected = call("--enabled-lenses", "QA");
+  assert.equal(selected.code, 0, selected.stderr);
+  assert.match(selected.stderr, /served 0\/1 lenses/);
+  assert.deepEqual(JSON.parse(selected.stdout.split("\n")[1]), {
+    verdict: "needs-human", objections: [{ lens: "QA", severity: "blocker" }],
+  });
 });

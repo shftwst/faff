@@ -212,7 +212,7 @@ function cmdSpecReview(args) {
     const refutations = import(pathToFileURL(path.join(skillDir, "parse-refutation.mjs")).href);
     const aggregate = import(pathToFileURL(path.join(skillDir, "aggregate.mjs")).href);
     return Promise.all([refutations, aggregate]).then(async ([parser, fold]) => {
-      const record = (argv, retainVotes) => require("./spec-review-results").cmdRecordResults(argv, { ...parser, ...fold }, retainVotes);
+      const record = (argv, enabledLenses, retainVotes) => require("./spec-review-results").cmdRecordResults(argv, { ...parser, ...fold }, retainVotes, enabledLenses);
       if (args[0] === "record-results") return record(args.slice(1));
       const { runKillable } = await import(pathToFileURL(path.join(__dirname, "killable-spawn.mjs")).href);
       const fanOut = path.resolve(skillDir, "../faffter-dark-adversarial-review/fan-out.mjs");

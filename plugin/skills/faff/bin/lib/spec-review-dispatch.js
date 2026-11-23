@@ -5,12 +5,14 @@ exports.cmdDispatch = cmdDispatch;
 const node_child_process_1 = require("node:child_process");
 const node_fs_1 = require("node:fs");
 const node_path_1 = require("node:path");
+const spec_review_results_ts_1 = require("./spec-review-results.js");
 const { parseArgs, usageError } = require("./argv");
+const { SPEC_REVIEW_LENSES } = require("./review-vocab");
 const { nextRoundNumber } = require("./spec-review-window");
-const usage = "usage: faff spec-review dispatch --dir DIR --spec FILE [--context FILE]... [--root DIR] [--turn-budget-secs SECONDS]";
+const usage = "usage: faff spec-review dispatch --dir DIR --spec FILE [--enabled-lenses CSV] [--context FILE]... [--root DIR] [--turn-budget-secs SECONDS]";
 const flags = {
     "--dir": { arity: 1 }, "--spec": { arity: 1 }, "--context": { arity: 1, repeatable: true },
-    "--root": { arity: 1 }, "--turn-budget-secs": { arity: 1 },
+    "--enabled-lenses": { arity: 1 }, "--root": { arity: 1 }, "--turn-budget-secs": { arity: 1 },
 };
 async function runFanOut(args, out, seconds, supervise) {
     const stdio = ["ignore", out, "inherit"];
@@ -36,7 +38,11 @@ async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
     if (!dir || !spec || (seconds !== undefined && (!Number.isFinite(seconds) || seconds <= 0 || seconds * 1000 > 2147483647))) {
         return usageError([{ code: "bad-value", detail: "provide a directory, spec, and a valid positive budget when supplied" }], usage);
     }
-    const args = ["--dir", dir, "--spec", spec];
+    const lenses = values["--enabled-lenses"]?.split(",").map((lens) => lens.trim()) ?? SPEC_REVIEW_LENSES;
+    if (!(0, spec_review_results_ts_1.validLensSet)(lenses)) {
+        return usageError([{ code: "bad-value", detail: "--enabled-lenses must name a nonempty, distinct set of review lenses" }], usage);
+    }
+    const args = ["--dir", dir, "--spec", spec, "--lenses", lenses.join(",")];
     for (const file of values["--context"] ?? [])
         args.push("--context", file);
     if (values["--root"])
@@ -54,9 +60,9 @@ async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
     const round = Number.isSafeInteger(descriptor?.round) && descriptor.round > 0 ? descriptor.round : nextRoundNumber(dir);
     const recordArgs = ["--dir", dir, "--round", String(round)];
     const noResults = () => {
-        const code = recorder([...recordArgs, "--no-results"]);
+        const code = recorder([...recordArgs, "--no-results"], lenses);
         if (!code)
-            process.stderr.write("spec-review: served 0/4 lenses\n");
+            process.stderr.write(`spec-review: served 0/${lenses.length} lenses\n`);
         return code;
     };
     if (prepared.status !== 0 || typeof descriptor?.requests_path !== "string" ||
@@ -83,7 +89,7 @@ async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
         const complete = outcome.status === "exited" && outcome.innerExit === 0;
         if (complete && (0, node_fs_1.readFileSync)(results, "utf8").trim().length > 0) {
             let savedVotes = false;
-            const status = recorder([...recordArgs, "--results", results, "--backends-json", descriptor.backends_path, "--strategy", descriptor.strategy], entries => {
+            const status = recorder([...recordArgs, "--results", results, "--backends-json", descriptor.backends_path, "--strategy", descriptor.strategy], lenses, entries => {
                 const votes = (0, node_path_1.join)(scratch, "retry-entries.json");
                 (0, node_fs_1.writeFileSync)(votes, JSON.stringify(entries) + "\n", { flag: "wx", mode: 0o600 });
                 savedVotes = true;

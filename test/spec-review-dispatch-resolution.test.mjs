@@ -11,6 +11,8 @@ const BODY = readFileSync(SKILL_MD, "utf8");
 
 test("complete and partial spec-review callers keep their separate dispatch and recording paths", () => {
   assert.match(BODY, /spec-review dispatch --dir "\$pin_dir" --spec "\$spec_file"/);
+  assert.match(BODY, /complete selection as `--enabled-lenses <ordered CSV>`/);
+  assert.match(BODY, /Outage retry.+only the requested lenses/);
   assert.match(BODY, /--turn-budget-secs/);
   assert.match(BODY, /spec-review prepare-requests --dir "\$pin_dir" --spec "\$spec_file"/);
   assert.match(BODY, /node "\$FANOUT" --requests "\$requests_json" --strategy "\$strategy"/);

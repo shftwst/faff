@@ -54,15 +54,15 @@ Each enabled lens is a single isolated pass with its own "break this spec" syste
 
 Each refuter pass is made by the bundled adversarial-review transport, **`review-call.mjs`** (model preflight, think-suppression, streaming, token budget, the fallback chain, and the exit-code→outcome discipline). It is **reused verbatim** — never fork it, and never hand-roll an API call in its place. Backend configuration (provider/model/host/auth) and the transport call itself have one home: the sibling `faffter-dark-adversarial-review` skill's **LLM provider integration** section — this skill only *reuses* that call, it never restates the recipe. The spec-altitude review and the product-altitude PRDR review share exactly this transport plus the "a different model challenges; the loop never self-grades" discipline — nothing above it (artifact, lens count, arbiter, contract) is shared.
 
-**Complete four-lens pass.** Use for a fresh pass over architectural, infosec, methodology and QA in that order, including when supplied explicitly. Resolve `$faff` per the shared executable rule. Run `"$faff" spec-review dispatch --dir "$pin_dir" --spec "$spec_file"`. Pass each named file as a separate `--context <path>` in its original spelling and order. Under prep, pass its `--turn-budget-secs <seconds>`. Exit 124 returns control to prep's turn-budget hand-back. An interrupted pass supplies no verdict. Surface other errors as needs-human and forward stderr diagnostics, including served counts and the advisory. A recording error is needs-human. Surface the retained files for inspection and stop.
+**Fresh pass.** Run `"$faff" spec-review dispatch --dir "$pin_dir" --spec "$spec_file"` with the complete selection as `--enabled-lenses <ordered CSV>`. Omit it only for the default four lenses. Pass each named file as a separate `--context <path>` in its original spelling and order. Pass prep's `--turn-budget-secs <seconds>`. Exit 124 hands back to prep. An interruption supplies no verdict. Other errors are needs-human. Report retained files. Forward stderr diagnostics, served counts and the advisory.
 
 **Wire shape.** Each lens gets its own brief after the byte-identical shared spec and context, including ratified scope when present. Under the default `prime-then-parallel` strategy the priming lens populates the cache before the others start. The transport also supports serial and parallel dispatch. Configure a refuter structurally different from the author. The existing fan-out preserves raw responses by lens, backend and round. The recorder pins the actual serving backend and writes retry-safe lens transcripts.
 
-**Other lens orders, subsets and retries.** Preserve the caller's ordered list, including on re-dispatch. Use the lower-level commands so prep can combine carried votes.
+**Outage retry.** Re-dispatch only the requested lenses, in order. Carry forward the other votes.
 
 1. Run `"$faff" spec-review prepare-requests --dir "$pin_dir" --spec "$spec_file"` with `--lenses <ordered CSV>` and the same ordered context flags. On success retain the returned round, strategy, requests and backend paths. Run `node "$FANOUT" --requests "$requests_json" --strategy "$strategy"` with `$FANOUT` set to the sibling adversarial-review skill's `fan-out.mjs` and prep's transport deadline. Save its stdout as the results file. A deadline hands back to prep.
 2. Run `"$faff" spec-review record-results --dir "$pin_dir" --round "$n" --results "$results_json" --backends-json "$backends_json"` with the same lenses and `--strategy "$strategy"`. On a preparation fault (exit 2 or 3, missing or malformed descriptor) or absent fan-out results, replace `--results` and `--backends-json` with `--no-results`. Use the returned round, or `faff spec-review-window --next-round --dir "$pin_dir"` when unavailable.
-3. For partial batches pass `--receipts-only`. Use the reported `retry-entries.json` from an unavailable complete pass as the original votes. Replace only re-dispatched lenses. Combine returned entries with earlier votes, one per enabled lens, and pass the complete array to `aggregate.mjs --n <enabled-lens count>`. An incomplete or inconsistent set is needs-human. Keep the caller's prep round record separate.
+3. Pass `--receipts-only`. Replace only the retried votes in the unavailable pass's `retry-entries.json`. Carry the combined entries into any further retry. Pipe `{enabled_lenses, refutations}` to `aggregate.mjs` with the original enabled lens names and the combined votes. A nonzero exit is needs-human. Forward a successful verdict unchanged, including `unavailable` for prep to retry. Keep prep's round record separate.
 
 A taste-level objection without a separately stated consequence uses `predicted_consequence: "not separately stated"`. Each lens's prompt states the anchor rule as this exact bullet:
 
@@ -70,7 +70,7 @@ A taste-level objection without a separately stated consequence uses `predicted_
 
 ## Output (the contract artifact)
 
-Forward the single fenced block from dispatch, complete-set recording or the caller's aggregate unchanged. The consumer pipes its JSON to `faff contract spec-review-verdict`.
+Forward the single fenced block from dispatch or the retry aggregate unchanged. The consumer pipes its JSON to `faff contract spec-review-verdict`.
 
 ```faff-contract:spec-review-verdict
 { "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker" } ] }

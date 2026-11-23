@@ -121,7 +121,7 @@ Prep stages the effective rating for routing and later spec-health checks. When 
 
 ## Contract artifact
 
-Emit the final readiness block per gateway → **Spec readiness (fixed)**.
+Emit the gateway's **Spec readiness (fixed)** example shape. In the JSON, `decisions` is an array of marker objects and `self_review` an array of severities.
 
 ## Rules
 

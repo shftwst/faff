@@ -245,7 +245,7 @@ Follow sibling `faffter-noon-spec/SKILL.md` → _Self-review before returning_ i
 
 ## Contract artifact
 
-Emit the final readiness block per gateway → **Spec readiness (fixed)**.
+Emit the gateway's **Spec readiness (fixed)** JSON shape, including `decisions` as marker objects in an array and `self_review` as severity strings in an array.
 
 ## Rules
 

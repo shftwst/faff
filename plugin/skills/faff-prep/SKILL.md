@@ -52,7 +52,7 @@ The agile-delivery lens checks sizing (split independent concerns or merge insep
 
 ## Spec contract
 
-Every produced or refreshed spec must satisfy the **fixed spec-readiness contract in the gateway** (_Spec readiness (fixed)_): canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), marker rules, skimmable-not-coded style, confidence and provenance stamp. Pass the contract to the producer and **validate against it before attach via the consumer-fold below**. The retired `spec_adaptor` is replaced by producer-emitted, consumer-parsed conformance. Elsewhere, "_spec contract_" means this gateway contract.
+Every produced or refreshed spec must satisfy the **fixed spec-readiness contract in the gateway** (_Spec readiness (fixed)_): canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), marker rules, skimmable-not-coded style, confidence and provenance stamp. Pass the gateway's JSON example with the contract. Stage the result before attaching it. The retired `spec_adaptor` is replaced by producer-emitted, consumer-parsed conformance. Elsewhere, "_spec contract_" means this gateway contract.
 
 **Validation — the consumer-fold.** faff-prep is the consumer of the producer's `faff-contract:spec-readiness` block. `faff prep attach` runs the fold at stage: it locates the single block, parses it, adds `provenance_present` from the stamp it has just written, and runs the spec-readiness contract, the sole source of contract data. A producer that emitted no block yields `needs-judgement:no-readiness-block`: read the markers and confidence from the spec prose into extraction JSON (`{ confidence, decisions }`, the only surviving LLM seam), write it to a file, and stage again with `--extraction <file>`. Autonomous `invalid` → park; interactive `invalid` → add the missing markers and stage again.
 
@@ -383,11 +383,7 @@ Carry the findings into the Step-2 spec on narrow or proceed. Use the same share
 
 **Step 2: Spec** (delegated to the `spec` slot)
 
-Run `faff dispatch prepare-producer spec` and follow gateway → **Producer dispatch** with the issue context and explore findings. The producer self-reviews in context when it is a subagent. Stage the returned spec with `--fresh` and use its staged confidence. Post the staged body, log the review findings and clean up the producer's local file after confirmation.
-
-**Stage the spec the instant the producer returns**, before rendering (_Stage and attach_ above, `--mode interactive`). Fix an `invalid` spec's missing markers and stage again. Log the producer's returned review findings + resolutions to the prep log.
-
-**→ Immediately attach the spec:** post `body_path` as a comment on the issue, then confirm (_Stage and attach_ above).
+Run `faff dispatch prepare-producer spec` and follow gateway → **Producer dispatch** with the issue context, explore findings and spec contract. The dispatched producer self-reviews in context. Before rendering its output, run the shared stage command with `--mode interactive --fresh` and use the returned confidence. Fix missing markers on `invalid` and stage again. Log findings and resolutions, post `body_path` as the issue comment, confirm, then clean up the producer's local file.
 
 **→ Run the Spec-review gate** (the approach-critique consumer-fold above) on the attached spec, **after** confidence rating and **before** promotion. Surface the verdict + any lensed objections to the user (canonical semantics: `faff contract spec-review-verdict --describe`); the approving verdict proceeds to the steps below, the fixable-in-place verdict or a prep-destined reject-approach loops in place (bounded by the gate's cap), a plot-destined reject-approach surfaces the slice for `/faff-plot`, and the human-judgement verdict (or a contract failure) parks. Only an `approve` — composed with the confidence gate — promotes:
 - If the spec surfaced that the issue should be split, recommend the split

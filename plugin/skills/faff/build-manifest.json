@@ -67,10 +67,10 @@
     "bin/lib/slot-authoring.ts": "8204bcc6316d905fbc58c595862cd2247ce01fe1152a3edeb271c33e3adec95e",
     "bin/lib/spec-commit.ts": "c158a7e3dee49d9dd77d9abe92998624aa4c5be984640e93f7e82aa0820b0bfa",
     "bin/lib/spec-judge-sequence.ts": "1976d793e31d7e75e00923783a142620e71fb64c90df504802139aedfacfd951",
-    "bin/lib/spec-review-dispatch.ts": "9d25ad047b80b2db5f9feb7e70bc866df7514e4ef173654da9564d7c2315aca8",
+    "bin/lib/spec-review-dispatch.ts": "94730544927b478dd87f0da566e7c1cc744210e2cc3fafaea5ef88c3b658d7e2",
     "bin/lib/spec-review-hold.ts": "538479bf72ec1d3f63b6894fdaa462b7a40d0c07d44cb2d45a57a38cced91790",
     "bin/lib/spec-review-prepare.ts": "b3eef5b06dbbd7a6c6eefbbd7f7f49a0489f222326bd3ac842b2e3e4c4bb19a3",
-    "bin/lib/spec-review-results.ts": "3642969dfbc7b947e17c1785fcc1cecda555ea9bca07135b1f2b8dfe2d44cf0b",
+    "bin/lib/spec-review-results.ts": "f8aca9d6878b9acf1039a3f7d41b8d6ee3d66b6f7eb88465c1ed5d779f927db5",
     "bin/lib/spec-review-round.ts": "f1b34213ddd655e0c5a6c0df3ad07ced73534e91536b179b66e3ea383be7c856",
     "bin/lib/ticket-template-fields.ts": "941c59ca966d83726037a38173615b34d2da2b1d249b784f576e7c25faf9caa6",
     "bin/lib/worktree-ensure.ts": "0df6ad5b132a47eb5d029fbf4b5f554e54f4d1108334c5d0f50308434cdf9646"
@@ -130,13 +130,13 @@
     "bin/lib/slot-authoring.js": "d977e73afef4a74bcb5c67d16ea081bb894c51331e548f6717525c5fc857eee5",
     "bin/lib/spec-commit.js": "1b250425767b1ff8e87c43226b4dfbfcf4776052ca10e32508994166d2d026f7",
     "bin/lib/spec-judge-sequence.js": "b99dde658d16840995f8acbe30eee109625ab282e323382f45bbfdd3f2623b16",
-    "bin/lib/spec-review-dispatch.js": "40a5e2fa0cbbf8e51b0ca8d052125aa796c8796b9740ba442c1d3537079ff720",
+    "bin/lib/spec-review-dispatch.js": "54085ace0c627405b336a746479818fb949f839f7669fdfb1c2cf3a41d77f71d",
     "bin/lib/spec-review-hold.js": "1e3ab668ca1acbb249470c5dfd12f4d0d46c8b530a0fb9443bb79b26baa58f8d",
     "bin/lib/spec-review-prepare.js": "7013c578aad0620b4c0a82e07126fbadc804fa002db5166e7a24b6d3918c9416",
-    "bin/lib/spec-review-results.js": "5ba4e39b543ec18e81ff0ab608a6bd6f95fee85036c417035bcb3db2fba5c798",
+    "bin/lib/spec-review-results.js": "0a60ca72bb3a0d701fc20b7f9bad6016796581c47db30bce38ece9be3093e3da",
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "68b90984ae3ad760dd9dcdf282678d6e91a594161e0176ef0ee51aba2c36514a"
+  "output_digest": "76f13fdd1f874afbb1c5ed14701967aa44989d0547b4cbeda3bfcdd671920a19"
 }

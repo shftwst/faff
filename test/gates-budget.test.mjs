@@ -51,6 +51,13 @@ function gates(dir, args, extraEnv) {
   return { status: r.status, stdout: r.stdout, stderr: r.stderr, json };
 }
 
+function ownedRun(dir, name = "active", status = "running") {
+  const runDir = join(dir, ".faff", "runs", name);
+  mkdirSync(runDir, { recursive: true });
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ owner: { status } }));
+  return runDir;
+}
+
 const contractBlock = (stdout) => (stdout.match(/```faff-contract:quality-gates\n([^\n]*)\n```/) || [])[1];
 const progressFile = (dir) => join(dir, ".faff", "gates", "run-progress.json");
 const readProgress = (dir) => JSON.parse(readFileSync(progressFile(dir), "utf8"));
@@ -79,6 +86,64 @@ for (const [name, files, signal, gateExit, contractExit] of [
     }
   });
 }
+
+test("bounded gates tick the explicit run and unit before work and on either terminal outcome", (t) => {
+  const dir = repo({
+    ...pkg({ test: "node probe.cjs" }),
+    "probe.cjs": [
+      'const fs = require("node:fs");',
+      'const run = ".faff/runs/active";',
+      'const first = fs.readFileSync(run + "/heartbeat", "utf8");',
+      'if (first !== fs.readFileSync(run + "/heartbeat.ABC-1", "utf8")) process.exit(2);',
+      'fs.writeFileSync(run + "/probe", first);',
+      'fs.unlinkSync(run + "/heartbeat");',
+      'fs.unlinkSync(run + "/heartbeat.ABC-1");',
+      'process.exit(Number(process.env.PROBE_EXIT));',
+    ].join("\n"),
+  });
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const active = ownedRun(dir);
+  const peer = ownedRun(dir, "peer");
+  for (const exit of [0, 1]) {
+    rmSync(join(active, "probe"), { force: true });
+    const result = gates(dir, ["--resume", "--json", "--run-dir", active, "--unit", "ABC-1"], {
+      PROBE_EXIT: String(exit), FAFF_RUN_DIR: peer,
+    });
+    assert.equal(result.status, exit, result.stderr);
+    assert.equal(result.json.receipt.signal, exit === 0 ? "pass" : "fail");
+    const atEntry = readFileSync(join(active, "probe"), "utf8");
+    const atExit = readFileSync(join(active, "heartbeat"), "utf8");
+    assert.ok(Date.parse(atExit.trim()) >= Date.parse(atEntry.trim()));
+    assert.equal(readFileSync(join(active, "heartbeat.ABC-1"), "utf8"), atExit);
+    assert.equal(existsSync(join(peer, "heartbeat")), false);
+  }
+});
+
+test("only an explicit, valid heartbeat target on a bounded run can refresh liveness", (t) => {
+  const dir = repo(pkg({ test: "true" }));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const active = ownedRun(dir);
+  const closed = ownedRun(dir, "closed", "done");
+  const ambient = { FAFF_RUN_DIR: active };
+  assert.equal(gates(dir, ["--resume", "--json"], ambient).status, 0);
+  assert.equal(gates(dir, ["--resume", "--json", "--run-dir", closed, "--unit", "ABC-1"], ambient).status, 0);
+  for (const args of [
+    ["--run-dir", active, "--unit", "ABC-1"],
+    ["--resume", "--run-dir", active],
+    ["--resume", "--unit", "ABC-1"],
+    ["--resume", "--run-dir", "", "--unit", "ABC-1"],
+    ["--resume", "--run-dir", active, "--unit", "../other"],
+    ["--resume", "--run-dir", join(dir, "missing"), "--unit", "ABC-1"],
+    ["--clear-progress", "--run-dir", active, "--unit", "ABC-1"],
+    ["--budget-secs", "0", "--run-dir", active, "--unit", "ABC-1"],
+  ]) {
+    assert.equal(gates(dir, args, ambient).status, 2, JSON.stringify(args));
+  }
+  for (const run of [active, closed]) {
+    assert.equal(existsSync(join(run, "heartbeat")), false);
+    assert.equal(existsSync(join(run, "heartbeat.ABC-1")), false);
+  }
+});
 
 test("a contradictory pass keeps its raw contract and produces a needs-human receipt", (t) => {
   const { printOutcome } = require(join(dirname(CLI), "lib", "gates-cli.js"));
@@ -111,7 +176,10 @@ test("an unavailable quality-gates schema withholds a passing receipt", async (t
 
 test("an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract", () => {
   const dir = repo(pkg({ lint: "sleep 1", test: "sleep 6" }));
-  const first = gates(dir, ["--json", "--budget-secs", "5"]);
+  const run = ownedRun(dir);
+  const target = ["--run-dir", run, "--unit", "ABC-1"];
+  const first = gates(dir, ["--json", "--budget-secs", "5", ...target]);
+  const firstTick = readFileSync(join(run, "heartbeat.ABC-1"), "utf8");
   assert.equal(first.status, 3, first.stderr);
   assert.equal(first.json.status, "incomplete");
   assert.equal(first.json.units_done, 1);
@@ -122,7 +190,8 @@ test("an incomplete call exits 3 with no contract block, and --resume finishes w
   // A budget cut is discarded: only the finished lint unit is in progress.
   assert.deepEqual(readProgress(dir).done.map((u) => [u.rung_index, u.unit, u.status]), [[0, "whole", "pass"]]);
 
-  const second = gates(dir, ["--json", "--resume", "--budget-secs", "5"]);
+  const second = gates(dir, ["--json", "--resume", "--budget-secs", "5", ...target]);
+  assert.ok(Date.parse(readFileSync(join(run, "heartbeat.ABC-1"), "utf8").trim()) > Date.parse(firstTick.trim()));
   assert.equal(second.status, 0, second.stderr);
   assert.equal(second.json.resumed.calls, 2);
   assert.deepEqual(second.json.receipt, { signal: "pass", violations: [] });

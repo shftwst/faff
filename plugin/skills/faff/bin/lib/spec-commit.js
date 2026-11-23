@@ -317,7 +317,12 @@ function runSpecVerify(opts, deps) {
         differs.push("head");
     if (!working || !working.equals(expected))
         differs.push("working-tree");
-    return differs.length ? result(issue, "mismatch", { path: rel, differs }) : result(issue, "verified", { path: rel });
+    if (differs.length)
+        return result(issue, "mismatch", { path: rel, differs });
+    if (!opts.includeCriteria)
+        return result(issue, "verified", { path: rel });
+    const { criteria } = dodClassify(expected.toString("utf8"), { issue });
+    return result(issue, "verified", { path: rel, criteria: criteria.filter((row) => row.source === "done") });
 }
 // ---------------------------------------------------------------------------
 // CLI.

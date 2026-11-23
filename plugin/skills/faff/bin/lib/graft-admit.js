@@ -392,10 +392,12 @@ function cmdGraftAdmit(args) {
     }
     return 0;
 }
-const GRAFT_USAGE = ADMIT_USAGE;
 function cmdGraft(args) {
-    if (args[0] !== "admit")
-        return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: admit" }], GRAFT_USAGE);
-    return cmdGraftAdmit(args.slice(1));
+    if (args[0] === "admit")
+        return cmdGraftAdmit(args.slice(1));
+    const { cmdGraftVerifyBuild, VERIFY_BUILD_USAGE } = require("./graft-verify-build");
+    if (args[0] === "verify-build")
+        return cmdGraftVerifyBuild(args.slice(1));
+    return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: admit or verify-build" }], ADMIT_USAGE + "\n" + VERIFY_BUILD_USAGE);
 }
 module.exports = { cmdGraft, admit, validateFacts, AdmitFailure };

@@ -319,7 +319,8 @@ test("near misses, duplicates and mixed ids fall back to done:N with an advisory
 test("graft Step 8 takes ids from dod classify, renders the block and drops the hand-written template", () => {
   const skill = readFileSync(join(PLUGIN, "faff-graft", "SKILL.md"), "utf8");
   const step8 = skill.slice(skill.indexOf("**Step 8: AC verification"), skill.indexOf("**Step 8b:"));
-  assert.match(step8, /faff dod classify --spec <spec> --issue <ISSUE> --json/);
+  assert.match(step8, /verified builder spec and DONE criteria supplied by `verify-criteria`/);
+  assert.match(step8, /faff dod classify --spec <verified worktree path> --issue <ISSUE> --json/);
   assert.match(step8, /faff evidence write ac-checklist/);
   assert.match(step8, /faff evidence render ac-checklist --run-dir "\$run_dir" --issue <ISSUE>/);
   assert.match(step8, /one line saying the checklist was refused/);

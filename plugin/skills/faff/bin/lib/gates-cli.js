@@ -91,7 +91,6 @@ function gateHeartbeat(runDir, unit) {
 }
 
 async function runConfiguredLadder(root, budgetSecs, resume, renewUntil) {
-  if (!isGitWorkTree(root)) throw new GatesProgressError("not-a-git-work-tree", "--budget-secs and --resume need a git work tree");
   if (budgetSecs === null) {
     const cfg = readGatesConfig(root);
     budgetSecs = cfg.run_budget_secs;
@@ -170,6 +169,7 @@ async function runBudgeted(root, values, json) {
     }
     budgetSecs = n;
   }
+  if (!isGitWorkTree(root)) return fail("not-a-git-work-tree", "--budget-secs and --resume need a git work tree");
   const resume = !!values["--resume"];
   let res;
   try {

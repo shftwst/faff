@@ -204,6 +204,11 @@ test("only an explicit, valid heartbeat target on a bounded run can refresh live
   ]) {
     assert.equal(gates(dir, args, ambient).status, 2, JSON.stringify(args));
   }
+  const outsideGit = mkdtempSync(join(tmpdir(), "faff-gates-nonrepo-"));
+  t.after(() => rmSync(outsideGit, { recursive: true, force: true }));
+  const invalidRoot = gates(outsideGit, ["--resume", "--json", "--run-dir", active, "--unit", "ABC-1"], ambient);
+  assert.equal(invalidRoot.status, 2);
+  assert.match(invalidRoot.stderr, /not-a-git-work-tree/);
   for (const run of [active, closed]) {
     assert.equal(existsSync(join(run, "heartbeat")), false);
     assert.equal(existsSync(join(run, "heartbeat.ABC-1")), false);

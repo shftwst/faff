@@ -55,6 +55,60 @@ const contractBlock = (stdout) => (stdout.match(/```faff-contract:quality-gates\
 const progressFile = (dir) => join(dir, ".faff", "gates", "run-progress.json");
 const readProgress = (dir) => JSON.parse(readFileSync(progressFile(dir), "utf8"));
 
+for (const [name, files, signal, gateExit, contractExit] of [
+  ["passing", pkg({ test: "true" }), "pass", 0, 0],
+  ["failing", pkg({ lint: "false", test: "true" }), "fail", 1, 0],
+  ["errored", pkg({ test: "exit 127" }), "needs-human", 1, 0],
+  ["undiscovered", { "README.md": "empty ladder" }, "needs-human", 1, 1],
+  ["advisory", { ".faffrc.yaml": "gates:\n  fallback: advisory\n" }, "pass", 0, 0],
+]) {
+  test(`a finished ${name} ladder reports the quality-gates decision`, (t) => {
+    const dir = repo(files);
+    t.after(() => rmSync(dir, { recursive: true, force: true }));
+    for (const flags of [[], ["--resume"]]) {
+      const result = gates(dir, ["--json", ...flags]);
+      assert.equal(result.status, gateExit, result.stderr);
+      assert.equal(result.json.signal, signal);
+      const validated = spawnSync(process.execPath, [CLI, "contract", "quality-gates"], {
+        input: JSON.stringify(result.json.contract), encoding: "utf8", env: env(),
+      });
+      assert.equal(validated.status, contractExit, validated.stderr);
+      const { signal: validatedSignal, violations } = JSON.parse(validated.stdout);
+      assert.deepEqual(result.json.receipt, { signal: validatedSignal, violations });
+      assert.equal(result.json.receipt.signal, signal);
+    }
+  });
+}
+
+test("a contradictory pass keeps its raw contract and produces a needs-human receipt", (t) => {
+  const { printOutcome } = require(join(dirname(CLI), "lib", "gates-cli.js"));
+  const output = t.mock.method(console, "log", () => {});
+  const outcome = { signal: "pass", rungs: [{ kind: "LINT", status: "fail" }] };
+  assert.equal(printOutcome(outcome, true), 1);
+  const result = JSON.parse(output.mock.calls[0].arguments[0]);
+  assert.deepEqual(result.contract, outcome);
+  assert.deepEqual(result.receipt, {
+    signal: "needs-human", violations: ["pass signal but a rung has status fail"],
+  });
+});
+
+test("an unavailable quality-gates schema withholds a passing receipt", async (t) => {
+  const dir = repo({ ".faffrc.yaml": "gates:\n  fallback: advisory\n" });
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const { cmdGates } = require(join(dirname(CLI), "lib", "gates-cli.js"));
+  const fs = require("node:fs");
+  const read = fs.readFileSync;
+  t.mock.method(fs, "readFileSync", (path, ...args) => {
+    if (String(path).endsWith("quality-gates.schema.json")) throw new Error("unreadable schema");
+    return read(path, ...args);
+  });
+  const output = t.mock.method(console, "log", () => {});
+  const error = t.mock.method(process.stderr, "write", () => true);
+  assert.equal(await cmdGates(["run", "--root", dir, "--json"]), 2);
+  assert.equal(output.mock.callCount(), 0);
+  assert.match(error.mock.calls[0].arguments[0], /quality-gates validation failed:.*unreadable schema/);
+});
+
 test("an incomplete call exits 3 with no contract block, and --resume finishes with the uninterrupted contract", () => {
   const dir = repo(pkg({ lint: "sleep 1", test: "sleep 6" }));
   const first = gates(dir, ["--json", "--budget-secs", "5"]);
@@ -63,6 +117,7 @@ test("an incomplete call exits 3 with no contract block, and --resume finishes w
   assert.equal(first.json.units_done, 1);
   assert.equal(first.json.units_total, 2);
   assert.equal("contract" in first.json, false);
+  assert.equal("receipt" in first.json, false);
   assert.equal("signal" in first.json, false);
   // A budget cut is discarded: only the finished lint unit is in progress.
   assert.deepEqual(readProgress(dir).done.map((u) => [u.rung_index, u.unit, u.status]), [[0, "whole", "pass"]]);
@@ -70,6 +125,7 @@ test("an incomplete call exits 3 with no contract block, and --resume finishes w
   const second = gates(dir, ["--json", "--resume", "--budget-secs", "5"]);
   assert.equal(second.status, 0, second.stderr);
   assert.equal(second.json.resumed.calls, 2);
+  assert.deepEqual(second.json.receipt, { signal: "pass", violations: [] });
   assert.equal("discarded" in second.json.resumed, false);
   assert.equal(existsSync(progressFile(dir)), false);
 

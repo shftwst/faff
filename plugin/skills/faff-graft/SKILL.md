@@ -448,13 +448,13 @@ This step runs in **both** interactive and autonomous modes.
 
 Reached **only** when Step 9 returned `pass`: the single PR-creation point, the same in both modes. **Git-only mode: no-op** — no remote to open a PR against, so this step composes no PR body and runs nothing; proceed straight to Step 10.
 
-1. **Spec-review evidence.** Save the issue's newest comment whose body begins `## Spec-review evidence` (see `faff-prep/SKILL.md` → _Persist + carry the spec-review evidence_), else the Step 4 committed spec, to a file. None is fine: a clean first-round approve carries none.
-2. **Draft and title.** Compose the complete PR body — every generated section, including the Step 8 AC checklist — into a draft file. Resolve the title from the build change with `pr_title=$("$faff" conventions get pr_title)` and always pass it: the head will be the anchor chore, and `gh` derives no title in an agent session.
-3. **Open with one call**, then delete the draft:
+1. **Evidence.** Save the newest issue comment beginning `## Spec-review evidence`, else the Step 4 committed spec, at an absolute `$evidence` path. Leave it unset if neither exists.
+2. **Draft and title.** Write the complete body, including the Step 8 AC checklist, to an absolute `$draft` path. Resolve `$pr_title` using `faff conventions get pr_title` and the build change; the anchor chore is the eventual head.
+3. **Open from the feature worktree**, then delete the draft:
 
 ```bash
-"$faff" pr open --run-dir "$run_dir" --issue <ISSUE-XX> --base <base> --title "<resolved from pr_title>" \
-  --body-file <draft> [--spec-review-evidence <evidence file>] --json
+(cd -- "$wt" && "$faff" pr open --run-dir "$run_dir" --issue "$issue" --base "$base" --title "$pr_title" \
+  --body-file "$draft" ${evidence:+--spec-review-evidence "$evidence"} --json)
 ```
 
 It refuses unless the review verdict is `pass`, runs the governed-run check, writes `spec-review-verdict.json`, sanitizes and checks the body (Linear auto-transitions every tracker identifier a PR body carries, so only the target keeps one), then mints, commits and pushes the anchor, publishes the recovery bundle, drives the governed pr-create grant and opens a regular PR through the `pr-create` chokepoint. The anchor precedes the PR, so a crash never strands a review-passed PR whose head lacks it, and CI fires first at PR open. Route on `token`: (the same call writes `human-only-acs.json` from the captured spec, the set an unattended merge may skip)

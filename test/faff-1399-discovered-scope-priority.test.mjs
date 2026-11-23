@@ -118,9 +118,9 @@ test("FAFF-1399: --selftest exercises the full table and reports PASS", () => {
 // fallback or convention trips the guard rather than silently diverging from the spec's DONE.
 
 test("FAFF-1399: an absent `priority` (vague, or a legacy pre-feature entry) files with no tracker priority and no comment — documented at every filing call site that reads a stored priority", () => {
-  const graft = readFileSync(GRAFT_SKILL, "utf8");
+  const landing = readFileSync(join(REPO, "plugin", "skills", "faff-graft", "references", "landing.md"), "utf8");
   const beepboop = readFileSync(BEEPBOOP_SKILL, "utf8");
-  assert.match(graft, /priority.*is.*absent.*files exactly as before/s, "Step 12 must document the absent-priority fallback");
+  assert.match(landing.split("**Step 12: Post graft checks**")[1], /priority.*is.*absent.*files exactly as before/s, "Step 12 must document the absent-priority fallback");
   assert.match(beepboop, /priority.*is.*absent.*files exactly as before/s, "beep-boop §10 sub-step 5 must document the absent-priority fallback");
 });
 

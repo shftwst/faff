@@ -64,3 +64,12 @@ test("step 4 checks the issue key and replaces the spec file before every call",
   assert.ok(STEP4.includes("`admit-errored:issue-key`"), "issue-key route-out");
   assert.match(STEP4, /Delete the previous `admit-spec\.md`/);
 });
+
+test("cross-executor landing requires the shared store before restoring a ledger", () => {
+  const endgame = STEP4.slice(STEP4.indexOf("**Endgame-only admission"));
+  const store = endgame.indexOf("faff config get bundle_store");
+  const recover = endgame.indexOf("faff bundle-recover --issue");
+  const claim = endgame.indexOf("faff landing-claim acquire");
+  assert.ok(store >= 0 && store < recover && recover < claim);
+  assert.match(endgame.slice(store, recover), /successful `git-remote`.*?Otherwise skip as `claimed-by-peer`/);
+});

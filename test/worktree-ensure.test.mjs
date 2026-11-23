@@ -1374,9 +1374,9 @@ writeFileSync(1, Buffer.from([0, 13, 10]));
   } finally { cleanup(fx); }
 });
 
-function startup(fx, sha, extra = []) {
+function startup(fx, sha, labels = []) {
   return faffCli(["graft", "start-build", "--issue", ISSUE, "--title", "Demo", "--slug", "demo",
-    "--mode", "autonomous", "--labels", "[]", "--claim-sha", sha, "--run-dir", fx.runDir, "--root", fx.repo, ...extra], fx.repo, fx.env);
+    "--mode", "autonomous", "--labels", JSON.stringify(labels), ...(sha ? ["--claim-sha", sha] : []), "--run-dir", fx.runDir, "--root", fx.repo], fx.repo, fx.env);
 }
 
 function acquire(fx) {
@@ -1392,8 +1392,7 @@ test("graft startup commits a builder view once, verifies reuse, and stops on a 
     mkdirSync(captureDir, { recursive: true });
     const captured = path.join(captureDir, "captured-spec.md");
     writeFileSync(captured, "# Demo\n\n## Scenarios\n\n```holdout\nGiven a withheld example\nWhen it runs\nThen it passes\n```\n\n## 7. DONE\n\n- [ ] Keeps the existing rows\n");
-    const sha = acquire(fx);
-    const run = () => startup(fx, sha);
+    const run = () => startup(fx);
     const first = run();
     assert.equal(first.status, 0, first.stderr + first.stdout);
     const a = JSON.parse(first.stdout);
@@ -1424,6 +1423,89 @@ test("graft startup refuses an unconfirmed claim before provisioning", () => {
     const r = startup(fx, "1".repeat(40));
     assert.equal(r.status, 1, r.stderr + r.stdout);
     assert.equal(JSON.parse(r.stdout).cause, "claim-not-confirmed");
+    assert.deepEqual(readdirSync(fx.wtroot), []);
+  } finally { cleanup(fx); }
+});
+
+function readStartupClaim(fx) {
+  const result = faffCli(["build-claim", "read", "--issue", ISSUE, "--json"], fx.repo, fx.env);
+  return JSON.parse(result.stdout);
+}
+
+test("a held issue or failed fresh spec releases only a claim acquired by this startup", () => {
+  const fx = fixture();
+  try {
+    const held = startup(fx, undefined, ["faff-awaiting-review"]);
+    assert.equal(JSON.parse(held.stdout).cause, "store-missing");
+    assert.equal(readStartupClaim(fx).status, "missing");
+    const failed = startup(fx);
+    const result = JSON.parse(failed.stdout);
+    assert.equal(result.cause, "spec-not-ready");
+    assert.equal(readStartupClaim(fx).status, "missing");
+    const base = git(result.wt, "rev-parse", "HEAD");
+    const capture = path.join(fx.repo, ".faff", "graft", ISSUE);
+    mkdirSync(capture, { recursive: true });
+    writeFileSync(path.join(capture, "captured-spec.md"), "# Fixed capture\n");
+    const retry = startup(fx);
+    assert.equal(JSON.parse(retry.stdout).spec.reason, "no-committed-spec");
+    assert.equal(git(result.wt, "rev-parse", "HEAD"), base);
+    fx.env.FAFF_SESSION_ID = "fixture";
+    const prior = acquire(fx);
+    assert.equal(startup(fx).status, 2);
+    assert.equal(readStartupClaim(fx).sha, prior);
+  } finally { cleanup(fx); }
+});
+
+test("startup resumes an existing review checkpoint with the original head and claim", () => {
+  const fx = fixture();
+  try {
+    const { tip, hash } = pushedBranch(fx);
+    stash(fx, "review-outage", "FAFF-9-demo", hash);
+    const result = startup(fx, undefined, ["faff-awaiting-review"]);
+    const out = JSON.parse(result.stdout);
+    assert.equal(out.resume_at, "gate", result.stdout + result.stderr);
+    assert.equal(out.spec, undefined);
+    assert.equal(git(out.wt, "rev-parse", "HEAD"), tip);
+    assert.equal(readStartupClaim(fx).sha, out.claim_sha);
+  } finally { cleanup(fx); }
+});
+
+test("startup stops before a first spec commit if another owner takes the claim during placement", (t) => {
+  const fx = fixture();
+  try {
+    const original = acquire(fx);
+    let confirmations = 0;
+    const { d } = deps(fx, { faff: (args) => {
+      if (args[0] === "build-claim" && args[1] === "confirm" && ++confirmations === 2) {
+        faffCli(["build-claim", "release", "--issue", ISSUE, "--sha", original, "--json"], fx.repo, fx.env);
+        const next = faffCli(["build-claim", "acquire", "--issue", ISSUE, "--session-id", "successor", "--json"], fx.repo, fx.env);
+        assert.equal(next.status, 0);
+      }
+    } });
+    const output = t.mock.method(process.stdout, "write", () => true);
+    const status = we.cmdWorktreeEnsure(["--issue", ISSUE, "--title", "Demo", "--claim-sha", original, "--mode", "autonomous",
+      "--slug", "demo", "--root", fx.repo, "--run-dir", fx.runDir, "--labels", "[]"], d, true);
+    const result = JSON.parse(output.mock.calls[0].arguments[0]);
+    output.mock.restore();
+    assert.equal(status, 1);
+    assert.equal(result.cause, "claim-not-confirmed");
+    assert.equal(git(result.wt, "rev-parse", "HEAD"), git(fx.repo, "rev-parse", "HEAD"));
+    assert.notEqual(readStartupClaim(fx).sha, original);
+  } finally { cleanup(fx); }
+});
+
+test("startup refuses malformed governance output before acquiring or provisioning", (t) => {
+  const fx = fixture();
+  try {
+    const { d, calls } = deps(fx, { faff: (args) => args[0] === "commissaire" ? reply(0, '{"governed":false}extra', "private detail") : undefined });
+    const output = t.mock.method(process.stdout, "write", () => true);
+    const code = we.cmdWorktreeEnsure(["--issue", ISSUE, "--title", "Demo", "--mode", "interactive", "--slug", "demo",
+      "--root", fx.repo, "--run-dir", fx.runDir], d, true);
+    const result = JSON.parse(output.mock.calls[0].arguments[0]);
+    output.mock.restore();
+    assert.equal(code, 3);
+    assert.deepEqual(result.detail, { reason: "unparseable output" });
+    assert.equal(faffCalls(calls, "build-claim").length, 0);
     assert.deepEqual(readdirSync(fx.wtroot), []);
   } finally { cleanup(fx); }
 });

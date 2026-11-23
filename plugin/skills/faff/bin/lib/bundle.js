@@ -2463,7 +2463,7 @@ function cmdBuildClaim(args) {
         ? { acquired: true, sha: rc.sha, claim: rc.claim, reclaimed: true }
         : { acquired: false, reason: rc.reason, holder: rc.holder, sha: rc.sha, detail: rc.detail };
     }
-    const obj = { action: "acquire", issue, acquired: !!r.acquired, reason: r.reason || null, sha: r.sha || null, reclaimed: !!r.reclaimed, epoch: r.claim ? r.claim.claim_epoch : null, holder: r.holder || null, detail: r.detail || null, summary: r.acquired ? `build-claim acquired ${issue} (sha ${String(r.sha).slice(0, 12)}, epoch ${r.claim ? r.claim.claim_epoch : "?"}${r.reclaimed ? ", reclaimed" : ""})` : `build-claim REFUSED ${issue}: ${r.reason}${r.detail ? " — " + r.detail : ""}` };
+    const obj = { action: "acquire", issue, acquired: !!r.acquired, idempotent: !!r.idempotent, reason: r.reason || null, sha: r.sha || null, reclaimed: !!r.reclaimed, epoch: r.claim ? r.claim.claim_epoch : null, holder: r.holder || null, detail: r.detail || null, summary: r.acquired ? `build-claim acquired ${issue} (sha ${String(r.sha).slice(0, 12)}, epoch ${r.claim ? r.claim.claim_epoch : "?"}${r.reclaimed ? ", reclaimed" : ""})` : `build-claim REFUSED ${issue}: ${r.reason}${r.detail ? " — " + r.detail : ""}` };
     return out(obj, r.acquired ? 0 : 1);
   }
 

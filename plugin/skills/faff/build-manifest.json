@@ -30,7 +30,7 @@
     "bin/lib/governor-install.ts": "964bcf08fbe828afbe96da644db691aebfaa8c31c9b2d4ccde36ecce1be7e7d7",
     "bin/lib/governor.ts": "bb31286dd65cd94f7a0d551f570edffe90c102b83418fe7012cfc5a0800cc153",
     "bin/lib/graft-admit.ts": "ca8d48e79df07cdcb63817873c2362e77fcbe47082066a6b65f4435c41ca5ba9",
-    "bin/lib/graft-start-build.ts": "c3b3de078480a94e31220ef0fb5c4348c45b7842f596a80ef696cf1033338a4b",
+    "bin/lib/graft-start-build.ts": "51fb6224d61ce6d27a3ad23ea846353eef042ba4501d2f3cb2c67149b63119f9",
     "bin/lib/graft-verify-build.ts": "aa4bc8970fc7fd1dcf2e58aaa51e1580997ebe694d61ea32d9d28449add849fe",
     "bin/lib/holdout-handoff.ts": "88291638304c069bb602219f53cc882c0e83287486ad33c0c813654f0692d87e",
     "bin/lib/human-only-acs.ts": "a133dd350629f28fc564768c589dd56099fd3a80e4e6335c9b2f44700859e990",
@@ -76,7 +76,7 @@
     "bin/lib/spec-review-results.ts": "f8aca9d6878b9acf1039a3f7d41b8d6ee3d66b6f7eb88465c1ed5d779f927db5",
     "bin/lib/spec-review-round.ts": "f1b34213ddd655e0c5a6c0df3ad07ced73534e91536b179b66e3ea383be7c856",
     "bin/lib/ticket-template-fields.ts": "941c59ca966d83726037a38173615b34d2da2b1d249b784f576e7c25faf9caa6",
-    "bin/lib/worktree-ensure.ts": "909cfa03f24cbf30b69068cd9bd7e958626ee393c522dff209b2f7d066ffd1f3"
+    "bin/lib/worktree-ensure.ts": "a003d9300110aa01fbe2a50027744c03a915ac359d23366ddecabf15c5e43be7"
   },
   "outputs": {
     "bin/lib/adr-promotion.js": "453e6ab3a018e2f2e72a8170dac761985dda2726864c20529d2fce2d62c9c8d4",
@@ -96,7 +96,7 @@
     "bin/lib/governor-install.js": "3798f447ba92c5660b89a7e90c2cfff0043257159b2a5023bb5b002328a8a12c",
     "bin/lib/governor.js": "d542bac2eda6dc17ec66d586a96b6e7a957d93d5a1f53f4b3e1bcd171599d78c",
     "bin/lib/graft-admit.js": "05cbcde61b0faf2c8310a55f912e76484ac996072b21553c2de88884f64b15ec",
-    "bin/lib/graft-start-build.js": "1366116bb7179a80a3cbc1656465ca323d5a159cd7fcb8c424578033abd55e76",
+    "bin/lib/graft-start-build.js": "2ed872aab3c390d652771f19621cfa97be19a84b39425ddbaed5fd6123951425",
     "bin/lib/graft-verify-build.js": "1d87e4a793a0e30a2d3f66daaa17b9d39d9f0d98c586e3118fc0e25f22dc4ab2",
     "bin/lib/holdout-handoff.js": "9b6c0d6b5a15c92c24bb60bdf4c1194fd2b6533ae93bc71d171d9a5b89b50b49",
     "bin/lib/human-only-acs.js": "3972c683d4f34c9c9da60aff42ec903e64216fe05c8cc882b781cd3764b8c622",
@@ -142,7 +142,7 @@
     "bin/lib/spec-review-results.js": "0a60ca72bb3a0d701fc20b7f9bad6016796581c47db30bce38ece9be3093e3da",
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
-    "bin/lib/worktree-ensure.js": "aae2724a0c5d987b7e1f51fecdb18a1610aaf28ad8a0ecc67fca14e584d870ca"
+    "bin/lib/worktree-ensure.js": "3cfa62ac767923829c16a97d75546c9b023b44bc3c75b2b86e59c8ee069720d2"
   },
-  "output_digest": "e6a712734e6f7c6fe974a340e5494c860d8b2331ca11e76a252dd5d77ec3493e"
+  "output_digest": "35fb63c6286bebd08fc8da1c3100dc9b4c1c797b802704cfc5ab056462994152"
 }

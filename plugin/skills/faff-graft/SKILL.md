@@ -124,24 +124,24 @@ PROCEDURE build_time_premise_superseded_gate(spec, issue, run_dir, mode):
 **Run directory.** Dispatched lanes inherit the orchestrator's exact run directory. For standalone interactive graft without one, after Step 2 passes run `run_dir=$("$faff" run-ledger init-interactive --issue <ISSUE-XX>)`, then export `FAFF_RUN_DIR="$run_dir"` and `FAFF_SESSION_ID="$(basename "$run_dir")"`. This mints the L2 ledger and genesis events for the later anchor. It refuses an active L3/L4 run (exit 3). Stop on refusal; never mint for dispatched work or pick a run by recency.
 - **Admit this run to Commissaire (governed producer half, right after the mint above; standalone/top-level interactive only — a dispatched lane inherits its orchestrator's admission).** So this run's merge is born governed and its merge chokepoint fails closed. **Skip** when the governed-run check reports governed (a resume / inherited-L4 / re-entry): never re-admit, never `--force` (that mints a fresh keypair and orphans the trail). Else `"$faff" commissaire contract admit --run-dir "$run_dir" --producer "$(basename "$run_dir")" --contract-revision faff-runner-v1 --scope merge,branch-delete,pr-create,push,label-write,file-write,tracker-write` — `producer_id` (the run-id) and `contract_revision` are single-valued per run. A non-zero exit is logged and the run **proceeds ungoverned** (the merge floor stays `not-applicable` → pass, exactly as today) — governance is additive, never a new wedge.
 
-**Prepare the worktree and builder spec.** Use the SHA from your successful Step 5 acquisition. Read autonomous labels afresh for the resume-store hold check. The command checks governance, confirms ownership before setup and again before a fresh spec commit, and returns the builder path. Inspect only that view.
+**Prepare the worktree and builder spec.** Read live status and eligibility labels per Step 5. Pass fresh autonomous labels for the resume-store hold check. The command checks governance, acquires the build claim, confirms ownership before placement and a fresh spec commit, and returns the builder path. Inspect only that view.
 
 ```bash
-"$faff" graft start-build --issue <ISSUE-XX> --title "<issue title>" --claim-sha "$claim_sha" --mode <interactive|autonomous> --slug <kebab-case slug of the title> \
+"$faff" graft start-build --issue <ISSUE-XX> --title "<issue title>" --mode <interactive|autonomous> --slug <kebab-case slug of the title> \
   [--tracker-branch <Step 1's gitBranchName>] [--labels '<fresh labels as a JSON array>'] \
   --run-dir "$run_dir" --root "$repo_root"
 ```
 
-Set `wt := .wt` and `graft_skill_dir := .graft_skill_dir`; every later step uses `$wt` with absolute paths. Surface every `warnings` entry. On `mode: rebased` in autonomous mode, log the stale note (`wt`, `base_ref`, `behind`) to `graft.md`. Route on `disposition`:
+On `ready`, retain `claim_sha`, `wt` and `graft_skill_dir`; every later step uses `$wt` with absolute paths. Surface every `warnings` entry. On `mode: rebased` in autonomous mode, log the stale note (`wt`, `base_ref`, `behind`) to `graft.md`. Route on `disposition`:
 
 | `disposition` | Action |
 |---|---|
 | `ready` | Continue by `resume_at` (below) |
 | `hand-over` | Surface `cause`, `wt` and `detail`, then stop |
-| `parked`, `needs-human` | Park protocol citing `cause`, logged to `.faff/runs/<run-id>/ISSUE-XX/graft.md` |
-| `claimed-by-peer` | Return `claimed-by-peer` |
-| `needs-human` with `spec-not-ready` | Stop before Step 5. Route on the returned `spec` at Step 4. |
-| another non-zero exit | Park autonomously or surface the error interactively. On `commissaire-status-failed`, report only `detail.reason`. |
+| `needs-human` with `spec-not-ready` | Stop before Step 5 and apply Step 4's failure handling. |
+| Other `parked` or `needs-human` | Park citing `cause` in the run's issue log. For `commissaire-status-failed`, surface only `detail.reason`. |
+| `claimed-by-peer` | Surface the cause interactively or return `claimed-by-peer` autonomously. |
+| another non-zero exit | Park autonomously or surface the error interactively. |
 
 On cause `setup-refused` with `detail.reason` `remote branch exists`, the surfaced message names `detail.branch`.
 
@@ -167,7 +167,7 @@ On `mode: resumed-from-store`, log "resumed from store" to `graft.md`; `resume` 
 | `needs-judgement` (`committed-spec-differs`, `uncommitted-file-at-path`) | Autonomous: park needs-human naming `path`. Interactive: surface the path(s). |
 | `errored` (exit 2) | Refuse the build and log `reason`. Never commit the full spec instead. |
 
-Log `source_check` to `graft.md` as advisory. A mismatch on existing work stops before Step 5 with `spec.differs` or `spec.reason`. To retry a failed fresh spec commit in its returned worktree, run `faff spec commit --issue <ISSUE> --title "<issue title>" --spec "$repo_root/.faff/graft/<ISSUE>/captured-spec.md" --worktree "$wt" --run-dir "$run_dir" --json` after fixing the reported cause.
+Log `source_check` to `graft.md` as advisory. A mismatch on existing work stops before Step 5 with `spec.differs` or `spec.reason`. To retry a failed fresh spec commit in its returned worktree, run `faff spec commit --issue <ISSUE> --title "<issue title>" --spec "$repo_root/.faff/graft/<ISSUE>/captured-spec.md" --worktree "$wt" --run-dir "$run_dir" --json` after fixing the cause and acquiring and confirming the issue claim.
 
 **Step 4b: Materialise ADR promotions.** Use the tracker `## ADR promotion intent` comment when present. Before an additional tracker read, check that `adr.mode` is enabled. Run `faff adr promotion-source --tracker-intent` for a known comment or `--file <Step 4 committed spec path>` when absent or git-only. `off` or `absent` skips this step; log a missing/unreadable intent or diagnostic. For `tracker`, use the original comment. For `spec`, use the returned section. Keep `adr_docs_path` for all git path operations and materialise each listed decision on this feature branch:
 
@@ -201,11 +201,10 @@ _**Governed ADR/decisions file-write record (on a governed run).**_ When the gov
 
 **Step 5: Claim the issue (the build-claim ref is the mutex; In Progress + faff-claimed are breadcrumbs) + status-monotonicity guard**
 
-Read live status and eligibility labels together per **Re-ground before gate**. Acquire before Step 3 and retain the SHA through Step 5. **Issue claim & status monotonicity** defines the scope of the configured build-claim store.
+Step 3 acquires the configured build claim, including in git-only mode. **Issue claim & status monotonicity** defines its scope.
 
-- **Acquire once** with `faff build-claim acquire --issue <issue> --json`, including in git-only mode. Keep the SHA on `acquired:true`. The CLI handles same-session retries and stale reclamation. Lights-out uses the holder heartbeat, bare graft the configured TTL. On `acquired:false` (exit 1 for `exists`, `held` or `store_unavailable`), stop before building. Interactive graft reports the reason. Autonomous graft skips as `claimed-by-peer`.
 - **Corroborate + write the breadcrumbs** — also stop if the live status is already `In Progress`/`In Review`/`Done` or the PR is merged (the breadcrumb corroborates a lost ref, never overrides a won one). On a win, write the breadcrumbs (no longer the mutex): transition `→ In Progress`, then apply `faff-claimed` via the single-select state-group verb `faff label transition <issue> claimed --present-label <each state label currently on the issue>` (+ its descriptor's write, gateway → **Control-label provisioning**) — it clears any other state-group label before adding `claimed`, never a loose `faff label add faff-claimed` — same cadence as the status write. `faff-claimed` stays the provenance that lets `/faff-tidy` auto-reclaim a stale claim; a claim without it is human-set — only surfaced, never reverted. (git-only: these tracker writes no-op while the ref carries the mutex.)
-- **Head-confirm before the first irreversible side effect** — immediately before the first worktree write / first commit, `faff build-claim confirm --issue <issue> --sha <sha>`; a non-zero exit (`superseded`) means a reclaimer took over → **founded refuse, do not build** (the ref head, not any timer, is the final arbiter). Keep `sha` for the terminal / retry-later release.
+- **Ownership.** Step 3 confirms the acquired ref before placement and again before a fresh commit. Keep its `claim_sha` for the terminal or retry-later release.
 
 **Status-monotonicity guard** (gateway → **Issue claim & status monotonicity**, which binds every status write from here on): only move status **forward by rank** (`Backlog < Todo < In Progress < In Review < Done`); **never** move an issue out of `Done` / `In Review` back to `In Progress`. The claim advances forward to `In Review` / `Done`, never reverts. Best-effort; a tight race costs at most a duplicate build, caught at merge by rebase-before-merge.
 

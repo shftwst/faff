@@ -1,10 +1,9 @@
-// === region:factory — graft-start-build — check the owned run, place the worktree and prepare its builder spec ===
 import type { Deps, EnsureArgs, EnsureResult } from "./worktree-ensure";
 import type { CommitOptions, SpecDeps, SpecResult, VerifyOptions } from "./spec-commit";
 import type { Spawned } from "./pr-open";
+// === region:factory — graft-start-build — check the owned run, place the worktree and prepare its builder spec ===
 const path: typeof import("node:path") = require("node:path");
-const { spawnSync }: typeof import("node:child_process") = require("node:child_process");
-const { ensure }: { ensure(args: EnsureArgs, deps: Deps): EnsureResult } = require("./worktree-ensure");
+type Place = (args: EnsureArgs, deps: Deps) => EnsureResult;
 const spec: {
   ISSUE_RE: RegExp; collapseTitle(input: string | undefined): string; defaultDeps(): SpecDeps;
   runSpecCommit(opts: CommitOptions, deps: SpecDeps): SpecResult; runSpecVerify(opts: VerifyOptions, deps: SpecDeps): SpecResult;
@@ -27,37 +26,72 @@ function confirmClaim(args: EnsureArgs, sha: string, deps: Deps): boolean {
   } catch { return false; }
 }
 
-export function startGraftBuild(args: EnsureArgs, rawTitle: string | undefined, claimSha: string | undefined, deps: Deps): number {
+const SHA = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/;
+
+export function startGraftBuild(args: EnsureArgs, rawTitle: string | undefined, ownedSha: string | undefined, deps: Deps, place: Place): number {
   const { issue, runDir, root } = args;
   const title = spec.collapseTitle(rawTitle);
-  if (!title || !claimSha || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(claimSha) || !spec.ISSUE_RE.test(issue) || !runDir || !deps.isDir(runDir)) {
-    process.stderr.write("faff graft start-build: a tracker issue ID, nonempty title, acquired claim SHA and an existing run directory are required\n");
+  if (!title || (ownedSha !== undefined && !SHA.test(ownedSha)) || !spec.ISSUE_RE.test(issue) || !runDir || !deps.isDir(runDir)) {
+    process.stderr.write("faff graft start-build: invalid issue, title, claim SHA or run directory\n");
     return 2;
   }
-  const probe = spawnSync(process.execPath, [path.join(__dirname, "..", "faff"), "commissaire", "contract", "status", "--run-dir", runDir], {
-    cwd: root, env: deps.env, encoding: "utf8", timeout: STATUS_TIMEOUT_MS, killSignal: "SIGKILL",
-  });
-  const status = governedCheck({ status: probe.status, stdout: probe.stdout ?? "", stderr: "", timedOut: probe.error?.message.includes("ETIMEDOUT") === true });
+  const probe = deps.faff(["commissaire", "contract", "status", "--run-dir", runDir], root, { timeout: STATUS_TIMEOUT_MS });
+  const status = governedCheck({ ...probe, timedOut: probe.error?.message.includes("ETIMEDOUT") === true });
   if ("fault" in status) return write({ issue, disposition: "needs-human", cause: "commissaire-status-failed", detail: { reason: status.fault } }, 3);
 
-  if (!confirmClaim(args, claimSha, deps)) return write({ issue, disposition: "claimed-by-peer", cause: "claim-not-confirmed" }, 1);
-  const worktree = ensure(args, deps);
-  const result = { ...worktree, governed: status.governed };
-  if (worktree.disposition !== "ready" || !worktree.wt || (worktree.resume_at !== "start" && worktree.resume_at !== "existing")) return write(result);
+  let claimSha = ownedSha;
+  let newlyAcquired = false;
+  if (claimSha === undefined) {
+    const attempt = deps.faff(["build-claim", "acquire", "--issue", issue, "--json"], root, { runDir });
+    let receipt;
+    try { receipt = JSON.parse(attempt.stdout); } catch { /* invalid receipt */ }
+    if (receipt?.action !== "acquire" || receipt.issue !== issue || typeof receipt.acquired !== "boolean") {
+      return write({ issue, disposition: "needs-human", cause: "build-claim-read-failed" }, 2);
+    }
+    if (!receipt.acquired) return write({ issue, disposition: "claimed-by-peer", cause: receipt.reason, detail: receipt.detail }, 1);
+    if (attempt.status !== 0 || typeof receipt.sha !== "string" || !SHA.test(receipt.sha) || typeof receipt.idempotent !== "boolean") {
+      return write({ issue, disposition: "needs-human", cause: "build-claim-read-failed" }, 2);
+    }
+    claimSha = String(receipt.sha);
+    newlyAcquired = !receipt.idempotent;
+  }
 
-  if (worktree.resume_at === "start" && !confirmClaim(args, claimSha, deps)) {
-    return write({ ...result, disposition: "claimed-by-peer", cause: "claim-not-confirmed" }, 1);
-  }
-  const inputs = { issue, runDir, worktree: worktree.wt, specPath: path.join(root, ".faff", "graft", issue, "captured-spec.md") };
-  const specDeps = spec.defaultDeps();
-  let prepared: SpecResult;
+  let ready = false;
   try {
-    prepared = worktree.resume_at === "start"
-      ? spec.runSpecCommit({ ...inputs, title }, specDeps)
-      : spec.runSpecVerify(inputs, specDeps);
-  } catch (error) {
-    prepared = { issue, token: "errored", reason: error instanceof Error ? error.message : String(error) };
+    if (!confirmClaim(args, claimSha, deps)) return write({ issue, disposition: "claimed-by-peer", cause: "claim-not-confirmed" }, 1);
+    const worktree = place(args, deps);
+    const result = { ...worktree, governed: status.governed, claim_sha: claimSha };
+    if (worktree.disposition !== "ready") return write(result);
+    if (worktree.resume_at === "gate" || worktree.resume_at === "review") {
+      ready = true;
+      return write(result);
+    }
+    if (!worktree.wt) throw new Error("ready worktree has no path");
+    if (worktree.resume_at === "start" && !confirmClaim(args, claimSha, deps)) {
+      return write({ ...result, disposition: "claimed-by-peer", cause: "claim-not-confirmed" }, 1);
+    }
+    const inputs = { issue, runDir, worktree: worktree.wt, specPath: path.join(root, ".faff", "graft", issue, "captured-spec.md") };
+    const specDeps = spec.defaultDeps();
+    let prepared: SpecResult;
+    try {
+      prepared = worktree.resume_at === "start"
+        ? spec.runSpecCommit({ ...inputs, title }, specDeps)
+        : spec.runSpecVerify(inputs, specDeps);
+    } catch (error) {
+      prepared = { issue, token: "errored", reason: error instanceof Error ? error.message : String(error) };
+    }
+    ready = ["committed", "already-committed", "verified"].includes(prepared.token);
+    if (ready) return write({ ...result, spec: prepared });
+    return write({ ...result, disposition: "needs-human", cause: "spec-not-ready", spec: prepared }, prepared.token === "errored" ? 2 : 1);
+  } finally {
+    if (newlyAcquired && !ready) {
+      // Release by the acquired SHA. An inherited lease or a successor's ref belongs to its holder.
+      const release = deps.faff(["build-claim", "release", "--issue", issue, "--sha", claimSha, "--json"], root);
+      let receipt;
+      try { receipt = JSON.parse(release.stdout); } catch { /* report failed housekeeping below */ }
+      if (release.status !== 0 || (!receipt?.released && !["superseded", "absent", "missing"].includes(receipt?.reason))) {
+        process.stderr.write("faff graft start-build: could not confirm release of the new build claim\n");
+      }
+    }
   }
-  if (["committed", "already-committed", "verified"].includes(prepared.token)) return write({ ...result, spec: prepared });
-  return write({ ...result, disposition: "needs-human", cause: "spec-not-ready", spec: prepared }, prepared.token === "errored" ? 2 : 1);
 }

@@ -390,4 +390,4 @@ function specReviewSelftest() {
   return fail ? 1 : 0;
 }
 
-module.exports = { routeRejectApproach, extractSpecReviewEvidence, cmdSpecReview, specReviewSelftest, makePathExists };
+module.exports = { writeEvidenceFrom, routeRejectApproach, extractSpecReviewEvidence, cmdSpecReview, specReviewSelftest, makePathExists };

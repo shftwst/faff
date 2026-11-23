@@ -505,3 +505,65 @@ test("smoke: recorded rounds collate into an anchor that validates and a floor t
   assert.equal(JSON.parse(readFileSync(join(root, dest, "review-verdict.json"), "utf8")).round_history, "recorded");
   assert.equal(readReviewVerdict(runDir, "ISSUE-1"), "pass");
 });
+
+test("an entire review-verdict fence records the same findings, floor and evidence return as JSON", (t) => {
+  const raw = fixture(t);
+  const fenced = fixture(t);
+  const block = { signal: "pass", findings: [finding("retained note", "engine.ts:31", {
+    disposition: "accepted-risk", disposition_rationale: "The queue already has an independent hard limit.",
+  })] };
+  for (const f of [raw, fenced]) {
+    const prior = f.record({ signal: "fail", findings: [A] });
+    assert.equal(prior.code, 0, prior.stderr);
+  }
+  const compact = JSON.stringify(block);
+  const document = "```faff-contract:review-verdict\r\n" + compact + "\r\n```\r\n";
+  const original = raw.cli(["contract", "review-verdict"], compact);
+  const checked = fenced.cli(["contract", "review-verdict"], document);
+  assert.equal(checked.code, 0, checked.stderr);
+  assert.equal(checked.stdout, original.stdout);
+  const jsonResult = raw.record(compact);
+  assert.equal(jsonResult.code, 0, jsonResult.stderr);
+  const fencedResult = fenced.record(document);
+  assert.equal(fencedResult.code, 0, fencedResult.stderr);
+  const returned = [];
+  for (const f of [raw, fenced]) {
+    const floor = f.write();
+    assert.equal(floor.code, 0, floor.stderr);
+    assert.equal(f.verdict().rounds_total, 2);
+    const receipt = f.cli(["evidence", "return", "--run-dir", f.runDir, "--issue", ISSUE]);
+    assert.equal(receipt.code, 0, receipt.stderr);
+    returned.push(receipt.stdout);
+  }
+  assert.deepEqual(fenced.round(2), raw.round(2));
+  assert.equal(readFileSync(fenced.verdictPath, "utf8"), readFileSync(raw.verdictPath, "utf8"));
+  assert.equal(returned[0], returned[1]);
+});
+
+test("ambiguous, foreign and unavailable fenced returns cannot record a round", (t) => {
+  const f = fixture(t);
+  const pass = "```faff-contract:review-verdict\n" + JSON.stringify({ signal: "pass", findings: [] }) + "\n```";
+  for (const input of [
+    pass + "\n" + pass, pass.replace("review-verdict", "spec-review-verdict"), pass.slice(0, -3),
+    "Quoted example:\n" + pass, pass + "\nAn unrelated result", pass.replace('"pass"', '"unavailable"'),
+    pass.replace('"pass"', '"unknown"'), pass.replace('"findings":[]', '"findings":"bad"'),
+  ]) {
+    assert.equal(f.record(input).code, 1);
+    assert.equal(existsSync(join(f.issueDir, "review-rounds", "round-1.json")), false);
+  }
+  assert.equal(existsSync(f.verdictPath), false);
+});
+
+test("the review contract refuses a nonconformant fenced pass before recording its evidence", (t) => {
+  const f = fixture(t);
+  const malformed = { signal: "pass", findings: [{ title: "reviewed item", action_present: false, location_present: true }] };
+  const raw = JSON.stringify(malformed);
+  const fence = "```faff-contract:review-verdict\n" + raw + "\n```";
+  const baseline = f.cli(["contract", "review-verdict"], raw);
+  const checked = f.cli(["contract", "review-verdict"], fence);
+  assert.equal(checked.code, 1);
+  assert.equal(checked.stdout, baseline.stdout);
+  assert.equal(JSON.parse(checked.stdout).conformant, false);
+  assert.equal(existsSync(f.verdictPath), false);
+  assert.notEqual(f.cli(["contract", "spec-review-verdict"], fence).code, 0);
+});

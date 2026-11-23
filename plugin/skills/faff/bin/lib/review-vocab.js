@@ -16,4 +16,10 @@ const REVIEW_DISPOSITIONS = ["fixed", "refuted", "accepted-risk", "open"];
 const REVIEW_SEVERITIES = ["critical", "major", "minor", "observation"];
 const REVIEW_FINDING_SOURCES = ["standard", "adversarial"];
 
-module.exports = { REVIEW_DISPOSITIONS, REVIEW_FINDING_SOURCES, REVIEW_SEVERITIES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS };
+// The contract and evidence recorder accept the same sealed input. Prose or extra fences stay invalid JSON.
+function reviewVerdictInput(text) {
+  const fence = /^```faff-contract:review-verdict[ \t]*\r?\n([\s\S]*?)\r?\n```$/.exec(text.trim());
+  return fence ? fence[1] : text;
+}
+
+module.exports = { reviewVerdictInput, REVIEW_DISPOSITIONS, REVIEW_FINDING_SOURCES, REVIEW_SEVERITIES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS };

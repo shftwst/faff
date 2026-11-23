@@ -47,12 +47,12 @@ function provisionerPath(pathEnv) {
     return [path.dirname(ENTRYPOINT), ...(pathEnv ?? "").split(path.delimiter)].filter((e) => e !== "").join(path.delimiter);
 }
 function realDeps(env = process.env) {
-    const run = (cmd, args, cwd) => {
-        const r = childProcess.spawnSync(cmd, args, { cwd, env, encoding: "utf8" });
+    const run = (cmd, args, cwd, opts = {}) => {
+        const r = childProcess.spawnSync(cmd, args, { cwd, env, encoding: "utf8", ...opts });
         return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
     };
     return {
-        faff: (args, cwd) => run(process.execPath, [ENTRYPOINT, ...args], cwd),
+        faff: (args, cwd, opts) => run(process.execPath, [ENTRYPOINT, ...args], cwd, opts),
         git: (args, cwd) => run("git", args, cwd),
         gitNet: (args, cwd) => {
             const r = childProcess.spawnSync("git", args, { cwd, env: netEnv(env), encoding: "utf8", timeout: netTimeoutSecs(env) * 1000, killSignal: "SIGKILL" });
@@ -583,9 +583,10 @@ const CHECKPOINT_SPEC = {
         "--issue": { arity: 1 },
         "--branch": { arity: 1 },
         "--head": { arity: 1 },
+        "--build-complete": { arity: 1, enum: ["push", "git-only"] },
     },
 };
-const CHECKPOINT_USAGE = "usage: faff worktree checkpoint --run-dir DIR --issue ID --branch NAME --head SHA (run from the build worktree)";
+const CHECKPOINT_USAGE = "usage: faff worktree checkpoint --run-dir DIR --issue ID --branch NAME (--head SHA | --build-complete push|git-only [--head SHA]) (run from the build worktree)";
 function toMode(v) {
     return v === "interactive" || v === "autonomous" ? v : null;
 }
@@ -661,29 +662,87 @@ function cmdWorktreeCheckpoint(argv, deps = realDeps()) {
     const runDir = str(values["--run-dir"]);
     const issue = str(values["--issue"]);
     const branch = str(values["--branch"]);
-    const head = str(values["--head"]);
+    const requestedHead = str(values["--head"]);
+    const mode = str(values["--build-complete"]);
+    const push = mode === "push";
     if (!runDir || !deps.isDir(runDir))
         return fail("--run-dir must name an existing directory", 2);
     if (!issue || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) || issue.includes(".."))
         return fail("--issue must be a valid issue identifier", 2);
-    if (!head || !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(head))
+    if (!branch)
+        return fail("--branch must name the checked-out branch", 2);
+    if (requestedHead === undefined && mode === undefined)
+        return fail("--head must be a full Git commit id", 2);
+    if (requestedHead !== undefined && !/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/.test(requestedHead))
         return fail("--head must be a full Git commit id", 2);
     const cwd = process.cwd();
     const gitText = (args) => {
         const r = deps.git(args, cwd);
         return r.status === 0 ? r.stdout.trim() : "";
     };
-    if (!branch || !gitText(["check-ref-format", "--normalize", `refs/heads/${branch}`]) ||
+    if (mode !== undefined) {
+        const worktree = gitText(["rev-parse", "--show-toplevel"]);
+        if (!worktree)
+            return fail("could not resolve the build worktree");
+        try {
+            const main = sharedInfra.probeMainWorktree(worktree) ?? worktree;
+            for (const root of new Set([main, worktree])) {
+                const [config] = configApi.loadConfig(root);
+                const enabled = field(field(config, "graft"), "push_at_build_complete");
+                if (enabled === false || enabled === "false") {
+                    process.stdout.write('{"checkpoint":"deferred"}\n');
+                    return 0;
+                }
+            }
+        }
+        catch (e) {
+            return fail(`could not read graft.push_at_build_complete: ${e instanceof Error ? e.message : String(e)}`);
+        }
+    }
+    if (!gitText(["check-ref-format", "--normalize", `refs/heads/${branch}`]) ||
         gitText(["symbolic-ref", "--quiet", "HEAD"]) !== `refs/heads/${branch}`) {
         return fail("--branch must name the checked-out branch");
     }
     const tip = (ref) => gitText(["rev-parse", "--verify", "--quiet", `${ref}^{commit}`]);
-    if (tip("HEAD") !== head)
+    const head = tip("HEAD");
+    if (!head || (requestedHead !== undefined && head !== requestedHead))
         return fail("checked-out head differs from --head");
+    if (push) {
+        const advertised = deps.gitNet(["ls-remote", "--symref", "origin", "HEAD"], cwd);
+        const remoteHead = advertised.stdout.match(/^ref: refs\/heads\/(.+)\tHEAD$/m)?.[1];
+        if (advertised.status !== 0 || !remoteHead)
+            return fail("could not resolve the default branch on origin");
+        if (branch === remoteHead)
+            return fail("refusing to push the default branch");
+        const status = deps.faff(["commissaire", "contract", "status", "--run-dir", runDir], cwd, { timeout: 30000 });
+        const governed = field(parseJson(status.stdout), "governed");
+        if (status.status !== 0 || typeof governed !== "boolean") {
+            const reason = status.status === null ? "timeout" : status.status !== 0 ? `exit ${status.status}` : "unparseable output";
+            return fail(`commissaire-status-failed: ${reason}`, 3);
+        }
+        const recordPush = (action) => {
+            if (!governed)
+                return;
+            const input = JSON.stringify([{ kind: "push", target: branch, reversible: true }]);
+            const record = deps.faff(["effects", action, "--run-dir", runDir, "--issue", issue, "--step", "push"], cwd, { input });
+            if (record.status !== 0)
+                process.stderr.write(`faff effects ${action} (push) failed: ${firstLine(record.stderr)}\n`);
+        };
+        if (tip("HEAD") !== head || gitText(["symbolic-ref", "--quiet", "HEAD"]) !== `refs/heads/${branch}`) {
+            return fail("checkout changed before push");
+        }
+        recordPush("declare");
+        const sent = deps.git(["push", "--no-follow-tags", "origin", `${head}:refs/heads/${branch}`], cwd);
+        if (sent.status !== 0)
+            return fail(`push failed: ${sent.stderr.trim()}`);
+        recordPush("observe");
+    }
     const baseRun = deps.bash(path.join(deps.graftSkillDir, "remote-diff-base.sh"), ["--feature", branch], cwd);
     const base = baseRun.status === 0 ? baseRun.stdout.trim() : "";
     if (!base)
         return fail(`could not resolve checkpoint refs: ${firstLine(baseRun.stderr)}`);
+    if (push && !base.startsWith("origin/"))
+        return fail("origin is missing after push");
     const featureRef = base.startsWith("origin/") ? `refs/remotes/origin/${branch}` : `refs/heads/${branch}`;
     if (tip(featureRef) !== head)
         return fail("durable branch differs from --head");
@@ -712,4 +771,4 @@ function cmdWorktree(args) {
         return cmdWorktreeCheckpoint(args.slice(1));
     return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: ensure or checkpoint" }], `${ENSURE_USAGE}\n${CHECKPOINT_USAGE}`);
 }
-module.exports = { cmdWorktree, cmdWorktreeEnsure, ensure, realDeps, provisionerPath, ENSURE_USAGE, GRAFT_SKILL_DIR };
+module.exports = { cmdWorktree, cmdWorktreeEnsure, cmdWorktreeCheckpoint, ensure, realDeps, provisionerPath, ENSURE_USAGE, GRAFT_SKILL_DIR };

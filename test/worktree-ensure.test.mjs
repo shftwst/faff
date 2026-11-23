@@ -967,7 +967,8 @@ test("the command makes no tracker call and spawns only the composed primitives"
     const subs = new Set(calls.filter((c) => c.kind === "faff").map((c) => c.args[0]));
     for (const s of subs) assert.ok(["conventions", "worktree-check", "worktree-heal", "build-progress", "resume-store"].includes(s), s);
     const src = readFileSync(path.join(HERE, "..", "plugin", "skills", "faff", "bin", "lib", "worktree-ensure.ts"), "utf8");
-    assert.doesNotMatch(src, /linear|get_issue|tracker probe|commissaire/i);
+    assert.doesNotMatch(src, /linear|get_issue|tracker probe/i);
+    assert.doesNotMatch(src.split("function cmdWorktreeCheckpoint(")[0], /commissaire/i);
   } finally { cleanup(fx); }
 });
 
@@ -1240,6 +1241,149 @@ for (const gitOnly of [false, true]) {
     } finally { cleanup(fx); }
   });
 }
+
+function buildComplete(fx, branch, mode = "push", cwd = fx.repo) {
+  return faffCli(["worktree", "checkpoint", "--build-complete", mode, "--run-dir", fx.runDir, "--issue", ISSUE, "--branch", branch], cwd, fx.env);
+}
+
+for (const governed of [false, true]) {
+  test(`build completion publishes the checked-out tip and seals the same diff (governed: ${governed})`, () => {
+    const fx = fixture();
+    try {
+      const branch = "team/build";
+      git(fx.repo, "checkout", "-qb", branch);
+      writeFileSync(path.join(fx.repo, "built"), "evidence\n");
+      git(fx.repo, "add", "built");
+      git(fx.repo, "commit", "-qm", "feature");
+      const ledger = path.join(fx.runDir, "declared-effects.jsonl");
+      if (governed) {
+        const admit = faffCli(["commissaire", "contract", "admit", "--run-dir", fx.runDir, "--producer", "builder", "--contract-revision", "r1", "--scope", "push"], fx.repo, fx.env);
+        assert.equal(admit.status, 0, admit.stderr);
+        // The remote must see the declaration before accepting the update.
+        const hook = path.join(fx.origin, "hooks", "pre-receive");
+        writeFileSync(hook, `#!${process.execPath}\nconst rows = require("node:fs").readFileSync(${JSON.stringify(ledger)}, "utf8").trim().split("\\n").map(JSON.parse); process.exit(rows.at(-1).kind_of_entry === "declare" ? 0 : 1);\n`, { mode: 0o755 });
+      }
+      const published = buildComplete(fx, branch);
+      assert.equal(published.status, 0, published.stderr);
+      assert.deepEqual(JSON.parse(published.stdout), { checkpoint: "written" });
+      assert.equal(git(fx.repo, "--git-dir", fx.origin, "rev-parse", branch), git(fx.repo, "rev-parse", "HEAD"));
+      const diff = spawnSync("git", ["diff", `origin/main...origin/${branch}`], { cwd: fx.repo }).stdout;
+      const file = path.join(fx.runDir, ISSUE, "build-progress.json");
+      const previous = readFileSync(file);
+      assert.equal(JSON.parse(previous).build.diff_hash, createHash("sha256").update(diff).digest("hex"));
+      if (governed) {
+        const rows = readFileSync(ledger, "utf8").trim().split("\n").map(JSON.parse).filter(record => record.step === "push");
+        assert.deepEqual(rows.map(r => [r.kind_of_entry, r.issue, r.step, r.effect]), ["declare", "observe"].map(kind => [kind, ISSUE, "push", { kind: "push", target: branch, reversible: true }]));
+      } else assert.equal(existsSync(ledger), false);
+
+      git(fx.repo, "commit", "-qm", "next build", "--allow-empty");
+      writeFileSync(path.join(fx.origin, "hooks", "pre-receive"), "#!/bin/sh\nexit 1\n", { mode: 0o755 });
+      const refused = buildComplete(fx, branch);
+      assert.notEqual(refused.status, 0);
+      assert.match(refused.stderr, /push failed/);
+      assert.deepEqual(readFileSync(file), previous);
+      if (governed) assert.deepEqual(readFileSync(ledger, "utf8").trim().split("\n").map(JSON.parse).filter(row => row.step === "push").map(row => row.kind_of_entry), ["declare", "observe", "declare"]);
+    } finally { cleanup(fx); }
+  });
+}
+
+test("a remote that moves after accepting the push cannot replace the previous checkpoint", () => {
+  const fx = fixture();
+  try {
+    const branch = "moved";
+    git(fx.repo, "checkout", "-qb", branch);
+    const start = buildComplete(fx, branch);
+    assert.equal(start.status, 0, start.stderr);
+    const file = path.join(fx.runDir, ISSUE, "build-progress.json");
+    const previous = readFileSync(file);
+    git(fx.repo, "commit", "--allow-empty", "-qm", "built");
+    writeFileSync(path.join(fx.origin, "hooks", "post-receive"), "#!/bin/sh\ngit update-ref refs/heads/moved refs/heads/main\n", { mode: 0o755 });
+    const moved = buildComplete(fx, branch);
+    assert.notEqual(moved.status, 0);
+    assert.match(moved.stderr, /durable branch differs/);
+    assert.deepEqual(readFileSync(file), previous);
+  } finally { cleanup(fx); }
+});
+
+test("build completion honours an opt-out in either checkout from a linked worktree", () => {
+  const fx = fixture();
+  try {
+    const branch = "team/build";
+    const wt = path.join(fx.wtroot, "build");
+    git(fx.repo, "worktree", "add", "-qb", branch, wt);
+    for (const [disabled, enabled] of [[fx.repo, wt], [wt, fx.repo]]) {
+      writeFileSync(path.join(disabled, ".faffrc.yaml"), "graft:\n  push_at_build_complete: false\n");
+      writeFileSync(path.join(enabled, ".faffrc.yaml"), "graft:\n  push_at_build_complete: true\n");
+      for (const mode of ["push", "git-only"]) {
+        const deferred = buildComplete(fx, branch, mode, wt);
+        assert.equal(deferred.status, 0, deferred.stderr);
+        assert.deepEqual(JSON.parse(deferred.stdout), { checkpoint: "deferred" });
+      }
+    }
+    assert.equal(git(wt, "ls-remote", "--heads", "origin", branch), "");
+    assert.equal(existsSync(path.join(fx.runDir, ISSUE)), false);
+  } finally { cleanup(fx); }
+});
+
+test("unknown governance stops publication, and a recording failure only warns", () => {
+  const fx = fixture();
+  const previousCwd = process.cwd();
+  try {
+    const branch = "team/build";
+    git(fx.repo, "checkout", "-qb", branch);
+    process.chdir(fx.repo);
+    const args = ["--build-complete", "push", "--branch", branch, "--issue", ISSUE, "--run-dir", fx.runDir];
+    for (const status of [reply(null), reply(2), reply(0, '{"governed":"false"}'), reply(0, '{} {}')]) {
+      const probe = deps(fx, { faff: a => a[0] === "commissaire" ? status : undefined });
+      assert.equal(we.cmdWorktreeCheckpoint(args, probe.d), 3);
+      assert.equal(probe.calls.some(c => c.kind === "git" && c.args[0] === "push"), false);
+      assert.equal(existsSync(path.join(fx.runDir, ISSUE)), false);
+    }
+    const moving = deps(fx, { faff: a => {
+      if (a[0] !== "commissaire") return undefined;
+      git(fx.repo, "commit", "--allow-empty", "-qm", "moved before publication");
+      return reply(0, '{"governed":false}');
+    } });
+    assert.equal(we.cmdWorktreeCheckpoint(args, moving.d), 1);
+    assert.equal(moving.calls.some(c => c.kind === "git" && c.args[0] === "push"), false);
+    const warn = deps(fx, { faff: a => a[0] === "commissaire" ? reply(0, '{"governed":true}') : a[0] === "effects" ? reply(1, "", "unwritable ledger") : undefined });
+    assert.equal(we.cmdWorktreeCheckpoint(args, warn.d), 0);
+    assert.deepEqual(faffCalls(warn.calls, "effects").map(call => call.args[1]), ["declare", "observe"]);
+    assert.equal(git(fx.repo, "--git-dir", fx.origin, "rev-parse", branch), git(fx.repo, "rev-parse", "HEAD"));
+  } finally { process.chdir(previousCwd); cleanup(fx); }
+});
+
+test("build completion refuses the wrong checkout or default branch before it publishes", () => {
+  const fx = fixture();
+  try {
+    git(fx.repo, "commit", "-qm", "local only", "--allow-empty");
+    assert.match(buildComplete(fx, "other").stderr, /checked-out branch/);
+    assert.match(buildComplete(fx, "main").stderr, /default branch/);
+    assert.notEqual(git(fx.repo, "rev-parse", "HEAD"), git(fx.repo, "--git-dir", fx.origin, "rev-parse", "main"));
+    assert.equal(existsSync(path.join(fx.runDir, ISSUE)), false);
+  } finally { cleanup(fx); }
+});
+
+test("git-only build completion writes a local checkpoint and never publishes with an origin configured", () => {
+  const fx = fixture({ gitOnly: true });
+  try {
+    const branch = "isolated";
+    git(fx.repo, "checkout", "-qb", branch);
+    const local = buildComplete(fx, branch, "git-only");
+    assert.equal(local.status, 0, local.stderr);
+    assert.deepEqual(JSON.parse(local.stdout), { checkpoint: "written" });
+    const file = path.join(fx.runDir, ISSUE, "build-progress.json");
+    const previous = readFileSync(file);
+    git(fx.parent, "init", "-q", "--bare", fx.origin);
+    git(fx.repo, "remote", "add", "origin", fx.origin);
+    git(fx.repo, "push", "-q", "origin", "main");
+    git(fx.repo, "--git-dir", fx.origin, "symbolic-ref", "HEAD", "refs/heads/main");
+    const stale = buildComplete(fx, branch, "git-only");
+    assert.notEqual(stale.status, 0);
+    assert.equal(git(fx.repo, "ls-remote", "--heads", "origin", branch), "");
+    assert.deepEqual(readFileSync(file), previous);
+  } finally { cleanup(fx); }
+});
 
 test("checkpoint refuses absent or stale remote tips and preserves a previously sealed checkpoint", () => {
   const fx = fixture();

@@ -75,7 +75,7 @@
     "bin/lib/spec-review-results.ts": "f8aca9d6878b9acf1039a3f7d41b8d6ee3d66b6f7eb88465c1ed5d779f927db5",
     "bin/lib/spec-review-round.ts": "f1b34213ddd655e0c5a6c0df3ad07ced73534e91536b179b66e3ea383be7c856",
     "bin/lib/ticket-template-fields.ts": "941c59ca966d83726037a38173615b34d2da2b1d249b784f576e7c25faf9caa6",
-    "bin/lib/worktree-ensure.ts": "0df6ad5b132a47eb5d029fbf4b5f554e54f4d1108334c5d0f50308434cdf9646"
+    "bin/lib/worktree-ensure.ts": "d2708fc15737e5b4a09e000f6167b41d6385c5d4213ba5d3aeaac73f0de494dc"
   },
   "outputs": {
     "bin/lib/adr-promotion.js": "453e6ab3a018e2f2e72a8170dac761985dda2726864c20529d2fce2d62c9c8d4",
@@ -140,7 +140,7 @@
     "bin/lib/spec-review-results.js": "0a60ca72bb3a0d701fc20b7f9bad6016796581c47db30bce38ece9be3093e3da",
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
-    "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
+    "bin/lib/worktree-ensure.js": "6df0799c8e47a9f9df0247171998110044ab0dc1e4a17e4f963d6d9fbaf21b2c"
   },
-  "output_digest": "d15c2b3787c6d2fa7ef041842aebaeb417046f24fb9a793961bcc85068793f86"
+  "output_digest": "d3570f52758ee5d6172fdb8f299539acd0c079a2be8967e10dc3f24aaa66e5af"
 }

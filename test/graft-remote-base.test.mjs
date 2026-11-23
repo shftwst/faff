@@ -148,7 +148,8 @@ test("review, worktree checkpoint, and worktree ensure share one remote-based di
     assert.equal(review.value, expected, "cur_hash must be the sha256 of the captured diff file");
 
     const step8b = MD.slice(MD.indexOf("**Step 8b:"), MD.indexOf("**Step 8c:"));
-    assert.match(step8b, /git push origin <branch>[\s\S]*faff worktree checkpoint [^`]*--head "\$build_head"/);
+    assert.match(step8b, /cd -- "\$wt" && "\$faff" worktree checkpoint --build-complete "\$publish" [^`]*--branch "\$branch"/);
+    assert.match(step8b, /publish=git-only/);
     const runDir = mkdtempSync(path.join(fx.parent, "run-"));
     const checkpoint = runFaff(fx, ["worktree", "checkpoint", "--run-dir", runDir, "--issue", "FAFF-9", "--branch", fx.branch, "--head", fx.shaC]);
     assert.equal(checkpoint.status, 0, checkpoint.stderr);

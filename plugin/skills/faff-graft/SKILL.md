@@ -307,12 +307,9 @@ This step runs in **both** interactive and autonomous modes.
 
 **Step 8b: Push branch at build-complete + build-progress checkpoint (both modes)**
 
-After gates + AC pass, run in the build worktree. If `faff config get graft.push_at_build_complete -d true` is false, skip this step and defer the push to Step 9b.
+After gates and AC pass, set `publish=push` for a remote-backed run or `publish=git-only` in git-only mode. Run `(cd -- "$wt" && "$faff" worktree checkpoint --build-complete "$publish" --run-dir "$run_dir" --issue "$issue" --branch "$branch")`.
 
-1. Save `build_head=$(git rev-parse --verify HEAD)`. Push with `git push origin <branch>` (skip the push in git-only mode). A failed push writes no checkpoint. Surface it and expect to rebuild on the next run. This step opens no PR and never merges.
-2. Run `faff worktree checkpoint --run-dir "$run_dir" --issue <ISSUE> --branch <branch> --head "$build_head"`. It verifies the saved head against the durable branch and records its three-dot diff for Step 3 resume. A non-zero exit leaves any prior checkpoint intact and surfaces the cause. Build-progress is a resume artifact outside the merge floor.
-
-_**Governed push record (on a governed run).**_ When the governed-run check reports governed, bracket the item-1 push: `faff effects declare --run "$(basename "$run_dir")" --issue <ISSUE> --step push` piping `[{kind:"push",target:"<branch>",reversible:true}]` **before** `git push`, then the same with `observe` **after** it succeeds. Record-only — the push is DETECTED, never prevented: a non-zero exit from either is logged and the push proceeds regardless. Skip the whole bracket on an ungoverned run (push byte-for-byte today's).
+When `graft.push_at_build_complete` is false, `deferred` skips the step until Step 9b. Otherwise the command records a governed push around publication and verifies the durable branch before saving its three-dot diff for Step 3 resume. Recording failures warn. Park as needs-human on `commissaire-status-failed`. Surface other failures and retain the previous checkpoint. This resume record is outside the merge floor.
 
 **Step 8c: Run the code-blind holdout (post-checkpoint — the RUN)**
 

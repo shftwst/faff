@@ -119,6 +119,52 @@ test("bounded gates tick the explicit run and unit before work and on either ter
   }
 });
 
+test("a quiet gate stays fresh past the owner's stall window and stops renewing when it returns", async (t) => {
+  const owner = repo({ ".faffrc.yaml": "sentry:\n  stall_window_secs: 1\n" });
+  const run = ownedRun(owner);
+  const dir = repo({
+    ...pkg({ test: "node pause.cjs" }),
+    "pause.cjs": [
+      'const fs = require("node:fs");',
+      'const path = require("node:path");',
+      'const file = (name) => path.join(process.env.PROBE_RUN, name);',
+      'const read = (name) => fs.readFileSync(file(name), "utf8").trim();',
+      'const entry = read("heartbeat");',
+      'setTimeout(() => {',
+      '  const observation = { entry, run: read("heartbeat"), unit: read("heartbeat.ABC-1"), now: Date.now() };',
+      '  fs.writeFileSync(file("in-gate.json"), JSON.stringify(observation));',
+      '}, 2500);',
+    ].join("\n"),
+  });
+  t.after(() => {
+    rmSync(dir, { recursive: true, force: true });
+    rmSync(owner, { recursive: true, force: true });
+  });
+  const { cmdGates } = require(join(dirname(CLI), "lib/gates-cli.js"));
+  const { evalWallClock, evalMemberStall, sentryThresholds } = require(join(dirname(CLI), "lib/sentry.js"));
+  t.mock.method(console, "log", () => {});
+  const oldProbe = process.env.PROBE_RUN;
+  process.env.PROBE_RUN = run;
+  t.after(() => {
+    if (oldProbe === undefined) delete process.env.PROBE_RUN;
+    else process.env.PROBE_RUN = oldProbe;
+  });
+  assert.equal(await cmdGates(["run", "--root", dir, "--resume", "--run-dir", run, "--unit", "ABC-1"]), 0);
+  const sample = JSON.parse(readFileSync(join(run, "in-gate.json"), "utf8"));
+  const thresholds = sentryThresholds({ sentry: { stall_window_secs: 1 } });
+  const classifyRun = (timestamp) => evalWallClock({ owner: { status: "running", last_heartbeat: timestamp } }, sample.now, thresholds);
+  const classifyMember = (timestamp) => evalMemberStall([{ issue: "ABC-1" }], { "ABC-1": timestamp }, sample.now, thresholds);
+  assert.equal(classifyRun(sample.entry).evidence.tripped_on, "heartbeat-staleness");
+  assert.equal(classifyMember(sample.entry).length, 1);
+  assert.equal(classifyRun(sample.run), null);
+  assert.deepEqual(classifyMember(sample.unit), []);
+
+  const finalTick = readFileSync(join(run, "heartbeat"), "utf8");
+  await new Promise((resolve) => setTimeout(resolve, 750));
+  assert.equal(readFileSync(join(run, "heartbeat"), "utf8"), finalTick);
+  assert.equal(readFileSync(join(run, "heartbeat.ABC-1"), "utf8"), finalTick);
+});
+
 test("only an explicit, valid heartbeat target on a bounded run can refresh liveness", (t) => {
   const dir = repo(pkg({ test: "true" }));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -249,8 +295,9 @@ test("changing gates.run_budget_secs does not change the plan", () => {
 
 test("a unit that cannot finish by the ceiling is recorded errored, the run ends needs-human, and a higher ceiling retries it", () => {
   const dir = repo(pkg({ lint: "sleep 4", test: "true" }));
+  const run = ownedRun(dir);
   const t0 = Date.now();
-  const first = gates(dir, ["--json", "--resume", "--budget-secs", "1"]);   // ceiling 2 s
+  const first = gates(dir, ["--json", "--resume", "--budget-secs", "1", "--run-dir", run, "--unit", "ABC-1"], { FAFF_RUN_HEARTBEAT_STALE_SECS: "1" });   // ceiling 2 s
   assert.ok(Date.now() - t0 < 4000, "the call stopped at the ceiling, not when the unit finished");
   assert.equal(first.status, 3);
   assert.equal(first.json.units_done, 1);

@@ -76,6 +76,19 @@ async function cmdGates(args) {
   return 2;
 }
 
+function gateHeartbeat(runDir, unit) {
+  const { readGovernanceConfig } = require("./budget");
+  const { heartbeatStaleSecs } = require("./runcheck");
+  const { sentryThresholds } = require("./sentry");
+  const { DEFAULT_RENEWAL_SECS } = require("./supervisor");
+  const thresholds = sentryThresholds(readGovernanceConfig(findRoot(runDir)));
+  const windowSecs = Math.min(thresholds.stall_window_secs, heartbeatStaleSecs());
+  return {
+    intervalMs: Math.max(1, Math.floor(1000 * Math.min(DEFAULT_RENEWAL_SECS, windowSecs / 3))),
+    tick: () => cmdHeartbeat([runDir, "--unit", unit]),
+  };
+}
+
 // FAFF-1405: `faff gates run --budget-secs N` / `--resume` / `--clear-progress`. Exit 3 means the
 // budget ran out with units still to run: the progress is saved and the caller re-invokes with
 // --resume. An incomplete call prints no contract block, so nothing can read it as a verdict.
@@ -108,16 +121,16 @@ async function runBudgeted(root, values, json) {
       process.stderr.write(`faff gates run: gates.run_budget_secs ${cfg.run_budget_secs_raw} is above ${MAX_BUDGET_SECS}; clamped to ${MAX_BUDGET_SECS}\n`);
     }
   }
-  const heartbeatArgs = values["--run-dir"] ? [values["--run-dir"], "--unit", values["--unit"]] : null;
-  if (heartbeatArgs && cmdHeartbeat(heartbeatArgs) !== 0) return 2;
+  const heartbeat = values["--run-dir"] ? gateHeartbeat(values["--run-dir"], values["--unit"]) : null;
+  if (heartbeat && heartbeat.tick() !== 0) return 2;
   let res;
   try {
-    res = await runLadder(root, { budgetSecs, resume: !!values["--resume"] });
+    res = await runLadder(root, { budgetSecs, resume: !!values["--resume"], heartbeat });
   } catch (e) {
     if (e instanceof GatesProgressError) return fail(e.reason, e.detail);
     throw e;
   } finally {
-    if (heartbeatArgs) cmdHeartbeat(heartbeatArgs);
+    if (heartbeat) heartbeat.tick();
   }
   if (res.incomplete) {
     const { incomplete, ...rest } = res;

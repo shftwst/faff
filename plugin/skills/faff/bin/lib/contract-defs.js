@@ -14,7 +14,7 @@
 const fs = require("node:fs");
 const { exitFor } = require("./contract-engine");
 const { parseArgs, usageError } = require("./argv");
-const { REVIEW_DISPOSITIONS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS } = require("./review-vocab");
+const { REVIEW_DISPOSITIONS, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, SPEC_REVIEW_VERDICTS, reviewVerdictInput } = require("./review-vocab");
 const { deriveHoldoutAggregate } = require("./holdout-record");   // FAFF-1291: factory -> governance is the legal direction
 const { RUN_TRIGGER_REASONS, RUN_TRIGGER_VERDICTS } = require("./run-start");
 const { ARCHITECTURE_RECOMMENDATIONS, BUILD_JUDGE_OUTCOMES, MARKER_CLASS, SPEC_JUDGE_OUTCOMES, computeArchitectureProposal, computeBuildJudgeVerdict, computeReviewVerdict, computeSpecJudgeVerdict, computeSpecReadiness, computeSpecReviewVerdict, contractArchitectureProposal, contractBuildJudgeVerdict, contractReviewVerdict, contractSpecJudgeVerdict, contractSpecReadiness, contractSpecReviewVerdict } = require("./contract-defs-review");
@@ -80,7 +80,7 @@ function cmdContract(args) {
   try { rawIn = inFile !== undefined ? fs.readFileSync(inFile, "utf8") : fs.readFileSync(0, "utf8"); }
   catch (e) { process.stderr.write(`faff contract: cannot read input: ${e.message}\n`); return 2; }
   let extraction;
-  try { extraction = JSON.parse(rawIn); }
+  try { extraction = JSON.parse(name === "review-verdict" ? reviewVerdictInput(rawIn) : rawIn); }
   catch (e) { process.stderr.write(`faff contract ${name}: extraction is not valid JSON: ${e.message}\n`); return 2; }
   // FAFF-384: `--require-spawner-attested` arms the holdout-verdict spawner-attestation ratchet (caller-
   // resolved from the run's lane-boundary cage promise). Ignored by every other contract's run fn.

@@ -28,7 +28,7 @@ const { appendEventRecord, eventViolations, splitPhysicalLines } = require("./ev
 const { declaredEffectViolations } = require("./effects");
 const { HERE, findRoot, mainWorktreeRoot } = require("./shared-infra");
 const { DELIVERY_PROFILE, activeProfile } = require("./governance-profile");
-const { REVIEW_DISPOSITIONS, REVIEW_FINDING_SOURCES, REVIEW_SEVERITIES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES } = require("./review-vocab");
+const { REVIEW_DISPOSITIONS, REVIEW_FINDING_SOURCES, REVIEW_SEVERITIES, SPEC_REVIEW_LENSES, SPEC_REVIEW_SEVERITIES, reviewVerdictInput } = require("./review-vocab");
 const { EvidenceRefusal, collateReviewRounds, parseSpecReviewComment, resolvedRoundIds } = require("./evidence-collate");
 const { redactKnownSecrets, resolveKnownSecretValues } = require("./redact");
 const { isDeepStrictEqual } = require("node:util");
@@ -1438,7 +1438,7 @@ function cmdRecordReviewRound(values) {
     process.stderr.write(`${label}: ${flag} applies to write review-verdict only\n`);
     return 2;
   }
-  return runWriter(label, values, (secrets) => recordReviewRound(values["--run-dir"], values["--issue"], readStdin(), secrets, values["--prior-dir"]));
+  return runWriter(label, values, (secrets) => recordReviewRound(values["--run-dir"], values["--issue"], reviewVerdictInput(readStdin()), secrets, values["--prior-dir"]));
 }
 
 function cmdEvidenceRender(values, name) {
@@ -1695,7 +1695,7 @@ function evidenceSelftest() {
 // flag exits 2 just as schema-unavailable does, so probing flags could not tell the two apart.
 const CAPABILITIES = { validate: ["require-evidence-schema", "candidate-schemas", "holdout-binding"] };
 
-const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one review-verdict block on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence write human-only-acs --run-dir <dir> --issue <id>   ({issue, level, unattended, human_only} on stdin; appends the human-only-acs-stamp event)\n       faff evidence return --run-dir <dir> --issue <id>   (prints the EvidenceReturn digest line for a dispatched lane to return)\n       faff evidence verify-return [--against-ledger] --run-dir <dir> --issue <id>   (verifies the returned digests on stdin, or the ledger entry, against the files on disk)\n       faff evidence --selftest\n";
+const USAGE = "usage: faff evidence validate <anchor-dir> [--require-evidence-schema] [--json] [--candidate-schemas <dir>]\n       faff evidence capabilities --json\n       faff evidence write spec-review-verdict --run-dir <dir> --issue <id>   (comment or spec text on stdin)\n       faff evidence write ac-checklist --run-dir <dir> --issue <id>   ({all_verified, criteria?: [{ac, verified, passed, ac_id, verifications?}]} on stdin)\n       faff evidence render ac-checklist --run-dir <dir> --issue <id>   (prints the PR-body Acceptance Criteria block)\n       faff evidence record-review-round --run-dir <dir> --issue <id> [--prior-dir <dir>]   (one JSON object or standalone faff-contract:review-verdict fence on stdin)\n       faff evidence write review-verdict --run-dir <dir> --issue <id> [--park needs-human|unavailable | --judge-admitted]   (collates review-rounds/)\n       faff evidence write review-verdict --terminal-only --run-dir <dir> --issue <id>   (terminal review-verdict block on stdin; manual recovery)\n       faff evidence write human-only-acs --run-dir <dir> --issue <id>   ({issue, level, unattended, human_only} on stdin; appends the human-only-acs-stamp event)\n       faff evidence return --run-dir <dir> --issue <id>   (prints the EvidenceReturn digest line for a dispatched lane to return)\n       faff evidence verify-return [--against-ledger] --run-dir <dir> --issue <id>   (verifies the returned digests on stdin, or the ledger entry, against the files on disk)\n       faff evidence --selftest\n";
 
 function cmdEvidence(args) {
   const parsed = parseArgs(args, EVIDENCE_SPEC);

@@ -1373,3 +1373,57 @@ writeFileSync(1, Buffer.from([0, 13, 10]));
     assert.deepEqual(readdirSync(scratch), []);
   } finally { cleanup(fx); }
 });
+
+function startup(fx, sha, extra = []) {
+  return faffCli(["graft", "start-build", "--issue", ISSUE, "--title", "Demo", "--slug", "demo",
+    "--mode", "autonomous", "--labels", "[]", "--claim-sha", sha, "--run-dir", fx.runDir, "--root", fx.repo, ...extra], fx.repo, fx.env);
+}
+
+function acquire(fx) {
+  const r = faffCli(["build-claim", "acquire", "--issue", ISSUE, "--session-id", "fixture", "--root", fx.repo, "--json"], fx.repo, fx.env);
+  assert.equal(r.status, 0, r.stderr);
+  return JSON.parse(r.stdout).sha;
+}
+
+test("graft startup commits a builder view once, verifies reuse, and stops on a changed spec", () => {
+  const fx = fixture();
+  try {
+    const captureDir = path.join(fx.repo, ".faff", "graft", ISSUE);
+    mkdirSync(captureDir, { recursive: true });
+    const captured = path.join(captureDir, "captured-spec.md");
+    writeFileSync(captured, "# Demo\n\n## Scenarios\n\n```holdout\nGiven a withheld example\nWhen it runs\nThen it passes\n```\n\n## 7. DONE\n\n- [ ] Keeps the existing rows\n");
+    const sha = acquire(fx);
+    const run = () => startup(fx, sha);
+    const first = run();
+    assert.equal(first.status, 0, first.stderr + first.stdout);
+    const a = JSON.parse(first.stdout);
+    assert.equal(a.disposition, "ready");
+    assert.equal(a.resume_at, "start");
+    assert.equal(a.governed, false);
+    assert.equal(a.spec.token, "committed");
+    const head = git(a.wt, "rev-parse", "HEAD");
+    assert.doesNotMatch(readFileSync(path.join(a.wt, a.spec.path), "utf8"), /withheld example/);
+    assert.ok(existsSync(path.join(fx.runDir, ISSUE, "spec-commit.json")));
+    const retry = run();
+    assert.equal(retry.status, 0, retry.stderr + retry.stdout);
+    const b = JSON.parse(retry.stdout);
+    assert.equal(b.resume_at, "existing");
+    assert.equal(b.spec.token, "verified");
+    assert.equal(git(a.wt, "rev-parse", "HEAD"), head);
+    writeFileSync(captured, "# Changed intent\n");
+    const changed = run();
+    assert.equal(changed.status, 1);
+    assert.equal(JSON.parse(changed.stdout).spec.token, "mismatch");
+    assert.equal(git(a.wt, "rev-parse", "HEAD"), head);
+  } finally { cleanup(fx); }
+});
+
+test("graft startup refuses an unconfirmed claim before provisioning", () => {
+  const fx = fixture();
+  try {
+    const r = startup(fx, "1".repeat(40));
+    assert.equal(r.status, 1, r.stderr + r.stdout);
+    assert.equal(JSON.parse(r.stdout).cause, "claim-not-confirmed");
+    assert.deepEqual(readdirSync(fx.wtroot), []);
+  } finally { cleanup(fx); }
+});

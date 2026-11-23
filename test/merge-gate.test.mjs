@@ -206,10 +206,25 @@ test("merge-gate: --human-override + --accept-review-unavailable together → ex
   assert.match(stderr, /mutually exclusive/);
 });
 
+test("graft routes the merge locus and endgame entry to the landing procedure", () => {
+  const dir = path.join(repoRoot, "plugin", "skills", "faff-graft");
+  const entry = readFileSync(path.join(dir, "SKILL.md"), "utf8");
+  const step = entry.indexOf("**Step 10: Merge-confidence gate**");
+  const link = entry.indexOf("](references/landing.md)");
+  assert.ok(step !== -1 && link > step && link < entry.indexOf("**Endgame-only entry", step));
+  assert.match(entry.slice(step), /returns `pr-ready` and `EvidenceReturn`/);
+  const landing = readFileSync(path.join(dir, "references", "landing.md"), "utf8");
+  for (const heading of ["**The bounded landing loop", "### The staged fix cycle", "**Step 11: Post-PR checks", "**Step 12: Post graft checks"]) {
+    assert.ok(landing.includes(heading), heading);
+    assert.ok(!entry.includes(heading), heading);
+  }
+});
+
 // --- the sole-sanctioned-path property: graft + default ship carry no raw `gh pr merge` command ---
 test("graft Step 10 + default ship producer contain no direct `gh pr merge` command (routes through merge-gate)", () => {
   const files = [
     path.join(repoRoot, "plugin", "skills", "faff-graft", "SKILL.md"),
+    path.join(repoRoot, "plugin", "skills", "faff-graft", "references", "landing.md"),
     path.join(repoRoot, "plugin", "skills", "faffter-noon-ship", "SKILL.md"),
   ];
   for (const f of files) {

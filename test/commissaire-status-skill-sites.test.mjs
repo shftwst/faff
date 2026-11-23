@@ -27,7 +27,10 @@ const FORBIDDEN = ["governor.json", "governor material", "commissaire-status-fau
 
 const FALLBACK = /proceed|fall ?back|ungoverned|treat(ed)? (it )?as (governed|not governed)|run the (bracket|step) anyway/i;
 const count = (hay, needle) => hay.split(needle).length - 1;
-const skillText = (name) => readFileSync(join(SKILLS, name, "SKILL.md"), "utf8");
+function skillText(name) {
+  const files = name === "faff-graft" ? ["SKILL.md", "references/landing.md"] : ["SKILL.md"];
+  return files.map(file => readFileSync(join(SKILLS, name, file), "utf8")).join("\n");
+}
 
 for (const [name, sites] of Object.entries(SITES)) {
   test(`${name}: one governed-run check sentence, ${sites} site(s) refer to it, and no file-path check survives`, () => {

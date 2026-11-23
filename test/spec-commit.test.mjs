@@ -570,12 +570,16 @@ test("pure core: the scheme is resolved once per call, and not at all when the r
 });
 
 test("graft Steps 4c and 10 read commit_subject_scheme from spec-commit.json, and the stale scheme phrases are gone", () => {
-  const skill = readFileSync(join(REPO, "plugin", "skills", "faff-graft", "SKILL.md"), "utf8");
-  assert.ok(!skill.includes("Step 4 already resolved, never re-mined"));
-  assert.ok(!skill.includes("scheme resolved at Step 4"));
+  const dir = join(REPO, "plugin", "skills", "faff-graft");
+  const skill = readFileSync(join(dir, "SKILL.md"), "utf8");
+  const landing = readFileSync(join(dir, "references", "landing.md"), "utf8");
+  for (const text of [skill, landing]) {
+    assert.ok(!text.includes("Step 4 already resolved, never re-mined"));
+    assert.ok(!text.includes("scheme resolved at Step 4"));
+  }
   const step4c = skill.slice(skill.indexOf("**Step 4c:"), skill.indexOf("**Step 5:"));
   assert.ok(step4c.length > 0 && step4c.includes("`commit_subject_scheme`") && step4c.includes("spec-commit.json") && step4c.includes("faff conventions get commit_subject"));
-  const renumber = skill.slice(skill.indexOf("Stage the specific renumbered ADR file(s)"));
+  const renumber = landing.slice(landing.indexOf("Stage the specific renumbered ADR file(s)"));
   const renumberStep = renumber.slice(0, renumber.indexOf("\n"));
   assert.ok(renumberStep.includes("`commit_subject_scheme`") && renumberStep.includes("spec-commit.json") && renumberStep.includes("faff conventions get commit_subject"));
 });

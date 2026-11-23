@@ -60,7 +60,7 @@ test("FAFF-1363: Step 8c holdout_run — the SOLE live skip gate — skips on ju
 });
 
 test("FAFF-1363: Step 10's absent-verdict prose no longer implies an integration-tier criterion blocks the skip", () => {
-  const text = readFileSync(SKILL, "utf8");
+  const text = readFileSync(join(REPO, "plugin", "skills", "faff-graft", "references", "landing.md"), "utf8");
   assert.doesNotMatch(text, /nothing judged and no integration-tier criterion/, "the stale Step 10 phrasing must be corrected");
   assert.match(text, /nothing judged.*integration-tier-only spec/, "Step 10 must name an integration-tier-only spec as a legitimate skip cause");
 });

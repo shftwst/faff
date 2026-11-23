@@ -12,7 +12,7 @@ const scope: {
 } = require('./ratified-scope.js');
 const pin: { specReviewDir(issue: string, runDir: string | null): string } = require('./spec-review-pin.js');
 type Input = { root: string; issue: string; runDir: string | null; resolutionsText: string };
-type Result = { status: 'ready' | 'absent' | 'needs-human' | 'failed'; assembly_exit: number | null; file: string | null; sha256: string | null; warnings: string[]; diagnostic: string | null };
+type Result = { status: 'ready' | 'absent' | 'needs-human' | 'failed'; assembly_exit: number | null; scratch_dir?: string; file: string | null; sha256: string | null; warnings: string[]; diagnostic: string | null };
 
 export function prepareContext(input: Input): Result {
   const warnings: string[] = [];
@@ -23,7 +23,8 @@ export function prepareContext(input: Input): Result {
   }
   const root = path.resolve(input.root);
   const runDir = input.runDir ? path.resolve(root, input.runDir) : null;
-  const scratch = path.resolve(root, pin.specReviewDir(input.issue, runDir));
+  const named = pin.specReviewDir(input.issue, input.runDir);
+  const scratch = path.resolve(root, named);
   const file = path.join(scratch, 'ratified-scope.md');
   const stderr = path.join(scratch, 'ratified-scope.stderr');
   try {
@@ -78,6 +79,8 @@ export function prepareContext(input: Input): Result {
       result.sha256 = createHash('sha256').update(fs.readFileSync(file)).digest('hex');
       result.status = 'ready';
     } else result.status = 'absent';
+    // Preserve the directory spelling in lens prompts when called from the project.
+    result.scratch_dir = path.resolve(named) === scratch ? named : scratch;
   } catch (error) {
     result.diagnostic = error instanceof Error ? error.message : 'context preparation failed';
   }

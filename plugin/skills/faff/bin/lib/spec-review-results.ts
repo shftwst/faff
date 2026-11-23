@@ -98,7 +98,9 @@ export function validLensSet(lenses: string[]): boolean {
   return lenses.length > 0 && new Set(lenses).size === lenses.length && lenses.every(lens => SPEC_REVIEW_LENSES.includes(lens));
 }
 
-export function cmdRecordResults(argv: string[], tools: Tools, retainVotes?: (entries: unknown[]) => void, enabledLenses?: string[]): number {
+export type ReviewOutput = (text: string, served: number) => void;
+
+export function cmdRecordResults(argv: string[], tools: Tools, retainVotes?: (entries: unknown[]) => void, enabledLenses?: string[], consume?: ReviewOutput): number {
   const { values, errors } = parseArgs(argv, argumentSpec);
   if (errors.length) return usageError(errors, usage);
   const dir: string | undefined = values["--dir"];
@@ -157,7 +159,8 @@ export function cmdRecordResults(argv: string[], tools: Tools, retainVotes?: (en
       if (message) process.stderr.write(message + "\n");
       process.stderr.write("spec-review: served " + served.length + "/" + lenses.length + " lenses\n");
     }
-    process.stdout.write(output);
+    if (consume) consume(output, served.length);
+    else process.stdout.write(output);
     return 0;
   } catch (error) {
     process.stderr.write("faff spec-review record-results: " + (error instanceof Error ? error.message : String(error)) + "\n");

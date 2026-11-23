@@ -257,3 +257,83 @@ test("cancelling the caller without a turn budget stops a live fan-out", async t
   assert.equal(f.requests.length, 1);
   assert.equal(existsSync(join(f.root, "pin/pin-capture.json")), false);
 });
+
+test("a fresh decision matches ordinary dispatch and round, including served-but-unavailable votes", async t => {
+  const f = await fixture(t, false, brief => brief.includes("**QA** spec refuter")
+    ? "### major: Missing claim" : "### observation: no findings");
+  delete f.env.FAFF_RUN_DIR;
+  const issue = "ABC-1";
+  f.pinDir = join(f.root, ".faff", "spec-review", issue);
+  const flags = ["--enabled-lenses", "QA,architectural", "--turn-budget-secs", "20"];
+  const split = await f.call(...flags);
+  assert.equal(split.code, 0, split.stderr);
+  const out = join(f.root, "returned.md");
+  writeFileSync(out, split.stdout);
+  const decision = runCli(["spec-review", "round", "--issue", issue, "--dir", f.pinDir, "--root", f.root,
+    "--mode", "autonomous", "--occupant", "adversarial", "--served", "any", "--verdict-file", out, "--json"], { cwd: f.root, env: f.env });
+  assert.equal(decision.code, 0, decision.stderr);
+  const before = join(f.root, "before");
+  renameSync(f.pinDir, before);
+  const combined = await f.call(...flags, "--record-round", "autonomous", "--issue", issue);
+  assert.equal(combined.code, 0, combined.stderr);
+  const { retry_entries, ...actual } = JSON.parse(combined.stdout);
+  assert.deepEqual(actual, JSON.parse(decision.stdout));
+  assert.equal(actual.action, "retry-outage");
+  assert.deepEqual(actual.outaged_lenses, ["QA"]);
+  assert.deepEqual(JSON.parse(readFileSync(retry_entries)).map(row => [row.lens, row.outcome]),
+    [["QA", "unavailable"], ["architectural", "clear"]]);
+  assert.deepEqual(JSON.parse(readFileSync(join(f.pinDir, "decision-1.json"))), JSON.parse(combined.stdout));
+  for (const name of ["round-1.json", "round-1-QA.md", "round-1-architectural.md"]) {
+    assert.equal(readFileSync(join(f.pinDir, name), "utf8"), readFileSync(join(before, name), "utf8"), name);
+  }
+  assert.deepEqual(f.bodies.slice(2), f.bodies.slice(0, 2));
+});
+
+test("a recorded review scopes its marker to the explicit parent and hands a deadline back without a decision", async t => {
+  const f = await fixture(t, true);
+  const parent = ownedRun(f, "owner"), peer = ownedRun(f, "peer");
+  f.env.FAFF_RUN_DIR = peer;
+  const issue = "ABC-1";
+  f.pinDir = join(parent, issue, "spec-review");
+  const marker = (runDir, ...args) => runCli(["inflightcheck", ...args, "--root", f.root],
+    { cwd: f.root, env: { ...f.env, FAFF_RUN_DIR: runDir } });
+  assert.equal(marker(parent, "--open", "--key", issue, "--describe", "prep").code, 0);
+  appendFileSync(join(f.root, ".faffrc.yaml"), "prep:\n  spec_review_turn_budget_secs: 2\n");
+  const waiting = f.call("--record-round", "autonomous", "--issue", issue, "--enabled-lenses", "QA", "--run-dir", parent);
+  const until = Date.now() + 10000;
+  while (!f.requests.length && Date.now() < until) await delay(20);
+  assert.equal(f.requests.length, 1);
+  const active = JSON.parse(marker(parent, "--json").stdout).open;
+  assert.equal(active.length, 2);
+  assert.ok(active.includes(issue));
+  assert.ok(active.some(k => k.startsWith("spec-review.ABC-1.")));
+  assert.deepEqual(JSON.parse(marker(peer, "--json").stdout).open, []);
+  const result = await waiting;
+  assert.equal(result.code, 124, result.stderr);
+  assert.equal(result.stdout, "");
+  assert.ok(existsSync(join(parent, "heartbeat")));
+  assert.ok(!existsSync(join(peer, "heartbeat")));
+  assert.deepEqual(JSON.parse(marker(parent, "--json").stdout).open, [issue]);
+  for (const name of ["round-1.json", "decision-1.json", "served-1.json"]) assert.ok(!existsSync(join(f.pinDir, name)));
+});
+
+test("overlapping fresh dispatches cannot attach the losing batch to another round", async t => {
+  let release;
+  const quiet = new Promise(resolve => { release = resolve; });
+  const f = await fixture(t, false, async () => { await quiet; return "### observation: no findings"; });
+  delete f.env.FAFF_RUN_DIR;
+  f.pinDir = join(f.root, ".faff", "spec-review", "ABC-1");
+  const args = ["--record-round", "interactive", "--issue", "ABC-1", "--enabled-lenses", "QA", "--turn-budget-secs", "20"];
+  const both = Promise.all([f.call(...args), f.call(...args)]);
+  try {
+    const until = Date.now() + 10000;
+    while (f.requests.length < 2 && Date.now() < until) await delay(20);
+    assert.equal(f.requests.length, 2);
+  } finally { release(); }
+  const results = await both;
+  assert.deepEqual(results.map(r => r.code).sort(), [0, 2]);
+  assert.equal(JSON.parse(results.find(r => r.code === 0).stdout).action, "approve");
+  assert.match(results.find(r => r.code === 2).stderr, /another caller advanced round 1/);
+  assert.ok(!existsSync(join(f.pinDir, "decision-2.json")));
+  assert.ok(!existsSync(join(f.pinDir, "round-1-QA.retry-1.md")));
+});

@@ -246,7 +246,7 @@ function markerPath(root, scope, key) {
   return path.join(root, ".faff", "inflight", scope, `${key}.json`);
 }
 
-function cmdInflightcheck(args) {
+function cmdInflightcheck(args, env = process.env) {
   if (args.includes("--selftest")) return inflightcheckSelftest();
   const { values, errors } = parseArgs(args, INFLIGHTCHECK_SPEC);
   if (errors.length) return usageError(errors, "usage: faff inflightcheck (--open --key K [--describe T] | --close --key K | --hook | --json) [--recover] [--root DIR]");
@@ -257,14 +257,14 @@ function cmdInflightcheck(args) {
   // --open: write the per-dispatch marker under this session's owner-scope.
   if (values["--open"]) {
     if (!isValidKey(key)) { process.stderr.write(`faff inflightcheck --open: --key must match ${INFLIGHT_KEY_RE} (no path separator, no leading dot)\n`); return 2; }
-    const scope = resolveOwnerScope(process.env);
+    const scope = resolveOwnerScope(env);
     const owner = {};
-    if (process.env.FAFF_RUN_DIR) owner.run_dir = process.env.FAFF_RUN_DIR;
+    if (env.FAFF_RUN_DIR) owner.run_dir = env.FAFF_RUN_DIR;
     // owner.session_id is attribution/forensics only — the ownership DECISION stays
     // path-derived (the scope subdir), so the body is never trusted for a block. Stamp
     // FAFF_SESSION_ID first, else CLAUDE_CODE_SESSION_ID (FAFF-1096); omit when neither
     // is set rather than writing an empty string (legacy-tolerant, mirrors prepcheck).
-    const sessionId = process.env.FAFF_SESSION_ID || process.env.CLAUDE_CODE_SESSION_ID;
+    const sessionId = env.FAFF_SESSION_ID || env.CLAUDE_CODE_SESSION_ID;
     if (sessionId) owner.session_id = sessionId;
     const marker = { key, describe: get("--describe") || key, opened_at: new Date().toISOString(), owner };
     const dir = path.join(root, ".faff", "inflight", scope);
@@ -276,7 +276,7 @@ function cmdInflightcheck(args) {
   // --close: remove THIS session's marker for the key (idempotent — absent = success).
   if (values["--close"]) {
     if (!isValidKey(key)) { process.stderr.write(`faff inflightcheck --close: --key must match ${INFLIGHT_KEY_RE} (no path separator, no leading dot)\n`); return 2; }
-    const scope = resolveOwnerScope(process.env);
+    const scope = resolveOwnerScope(env);
     try { fs.rmSync(markerPath(root, scope, key)); } catch { /* ENOENT / already gone → idempotent success */ }
     return 0;
   }

@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "a72617f321a2959a727f1851e58ad7118c577c1c347f92934896fe94460a6625"
+    "tsconfig.json": "002ba7cca60ad9f0f77d52a3aa38132dac663bddefe2f8504fa2cf2b88a4e70a"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -29,7 +29,8 @@
     "bin/lib/governor-admin.ts": "e8acab0a5166c8138265c9cd514f86269ca932a80be746e963588e863946bc02",
     "bin/lib/governor-install.ts": "964bcf08fbe828afbe96da644db691aebfaa8c31c9b2d4ccde36ecce1be7e7d7",
     "bin/lib/governor.ts": "bb31286dd65cd94f7a0d551f570edffe90c102b83418fe7012cfc5a0800cc153",
-    "bin/lib/graft-admit.ts": "3a25e33b3aa506a08414e0c7f2f3b91a8ba29749f87d36a2c848d1dca23495e3",
+    "bin/lib/graft-admit.ts": "ca8d48e79df07cdcb63817873c2362e77fcbe47082066a6b65f4435c41ca5ba9",
+    "bin/lib/graft-start-build.ts": "51fb6224d61ce6d27a3ad23ea846353eef042ba4501d2f3cb2c67149b63119f9",
     "bin/lib/graft-verify-build.ts": "aa4bc8970fc7fd1dcf2e58aaa51e1580997ebe694d61ea32d9d28449add849fe",
     "bin/lib/holdout-handoff.ts": "88291638304c069bb602219f53cc882c0e83287486ad33c0c813654f0692d87e",
     "bin/lib/human-only-acs.ts": "a133dd350629f28fc564768c589dd56099fd3a80e4e6335c9b2f44700859e990",
@@ -46,7 +47,7 @@
     "bin/lib/park-finalize.ts": "72a906237ad66ae2f5661c1308f8a015408f409912603bbc741cedd6f073bfd3",
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/planning-graph.ts": "39d02bc552783d4d3b33473f2b355e94798d56eb90deb89d85330c6351e5d529",
-    "bin/lib/pr-open.ts": "00d9ce946e7a9a59c3c053e8dd15a6c2c843f03d0d473a4cca0e153cb155ef60",
+    "bin/lib/pr-open.ts": "1f12af3dd83949e3cd088132f95721f3c9a4cdfce979e33133c01dd16f3ba21d",
     "bin/lib/prd-select.ts": "99ce451442e2f701828a17a4d882c70a75c8df15a0982f9fe8823d149a0a8c3b",
     "bin/lib/prep-attach.ts": "b2bb0528017835c92cd1e55623e42e68a91ea6d234b672a009ad8dbf9375b5bc",
     "bin/lib/prep-context.ts": "58b0bf3519200acde3fb9076f508bc95d554b068181e4fe557e60aab917d45d3",
@@ -75,7 +76,7 @@
     "bin/lib/spec-review-results.ts": "f8aca9d6878b9acf1039a3f7d41b8d6ee3d66b6f7eb88465c1ed5d779f927db5",
     "bin/lib/spec-review-round.ts": "f1b34213ddd655e0c5a6c0df3ad07ced73534e91536b179b66e3ea383be7c856",
     "bin/lib/ticket-template-fields.ts": "941c59ca966d83726037a38173615b34d2da2b1d249b784f576e7c25faf9caa6",
-    "bin/lib/worktree-ensure.ts": "0df6ad5b132a47eb5d029fbf4b5f554e54f4d1108334c5d0f50308434cdf9646"
+    "bin/lib/worktree-ensure.ts": "a003d9300110aa01fbe2a50027744c03a915ac359d23366ddecabf15c5e43be7"
   },
   "outputs": {
     "bin/lib/adr-promotion.js": "453e6ab3a018e2f2e72a8170dac761985dda2726864c20529d2fce2d62c9c8d4",
@@ -94,7 +95,8 @@
     "bin/lib/governor-admin.js": "fc92a97038713648e89fba10f9a33545c218c85353cc571905bc472c346160ee",
     "bin/lib/governor-install.js": "3798f447ba92c5660b89a7e90c2cfff0043257159b2a5023bb5b002328a8a12c",
     "bin/lib/governor.js": "d542bac2eda6dc17ec66d586a96b6e7a957d93d5a1f53f4b3e1bcd171599d78c",
-    "bin/lib/graft-admit.js": "e2b7906c6ad716ea59e5190aa3154b76170b25c5acc6b12ef2e0d79dfc07087a",
+    "bin/lib/graft-admit.js": "05cbcde61b0faf2c8310a55f912e76484ac996072b21553c2de88884f64b15ec",
+    "bin/lib/graft-start-build.js": "2ed872aab3c390d652771f19621cfa97be19a84b39425ddbaed5fd6123951425",
     "bin/lib/graft-verify-build.js": "1d87e4a793a0e30a2d3f66daaa17b9d39d9f0d98c586e3118fc0e25f22dc4ab2",
     "bin/lib/holdout-handoff.js": "9b6c0d6b5a15c92c24bb60bdf4c1194fd2b6533ae93bc71d171d9a5b89b50b49",
     "bin/lib/human-only-acs.js": "3972c683d4f34c9c9da60aff42ec903e64216fe05c8cc882b781cd3764b8c622",
@@ -111,7 +113,7 @@
     "bin/lib/park-finalize.js": "8f0b5524416dc7ff7461effbf42d86643354b2d58e4d6255ff6e1938bc955bf0",
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/planning-graph.js": "718b5eeb1e4eae6717136227905cde9663297f47a087398b593b2c3aa7ba70c1",
-    "bin/lib/pr-open.js": "904526bbdd7c0c5cc84c8b2b233b58ef5b322fb4e22291f143aaeb0bab5d9954",
+    "bin/lib/pr-open.js": "75a78ef9aced0c1c23ef075fdc60185815e683bf11beb77ad3ebf49bd0492790",
     "bin/lib/prd-select.js": "37514692786f35a4b87c5b603b6332b882c293414714b587494a4e2f9aa451d5",
     "bin/lib/prep-attach.js": "6920bec1b0436eefe604016eb82a9f86a5823c57e25eec9f5f0a78d34e15222e",
     "bin/lib/prep-context.js": "b609924254f54d1cbd693ae1db8df6fa4d3daa0036e59fb3f1e48171af1780ac",
@@ -140,7 +142,7 @@
     "bin/lib/spec-review-results.js": "0a60ca72bb3a0d701fc20b7f9bad6016796581c47db30bce38ece9be3093e3da",
     "bin/lib/spec-review-round.js": "b02ecc242ee01d37719f7660252f2ba273abc334b79a6d64d2c40e66cb5bc678",
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
-    "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
+    "bin/lib/worktree-ensure.js": "3cfa62ac767923829c16a97d75546c9b023b44bc3c75b2b86e59c8ee069720d2"
   },
-  "output_digest": "e86514dfd94ac3499fe4801ab54527a2dcf20e55c0ceebd10248c860fe172306"
+  "output_digest": "35fb63c6286bebd08fc8da1c3100dc9b4c1c797b802704cfc5ab056462994152"
 }

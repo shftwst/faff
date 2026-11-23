@@ -118,7 +118,7 @@ export interface EnsureArgs {
 
 // Child processes and file probes, injectable so tests drive every branch.
 export interface Deps {
-  faff(args: string[], cwd: string): StringSpawn;
+  faff(args: string[], cwd: string, options?: { runDir?: string; timeout?: number }): StringSpawn;
   git(args: string[], cwd: string): StringSpawn;
   gitNet(args: string[], cwd: string): StringSpawn;
   gitDiffHash(base: string, feature: string, cwd: string): string | null;
@@ -158,7 +158,14 @@ function realDeps(env: NodeJS.ProcessEnv = process.env): Deps {
     return { status: r.status, stdout: r.stdout ?? "", stderr: r.stderr ?? "" };
   };
   return {
-    faff: (args, cwd) => run(process.execPath, [ENTRYPOINT, ...args], cwd),
+    faff: (args, cwd, options = {}) => {
+      const deadline: Partial<SpawnTimeout> = options.timeout ? { timeout: options.timeout, killSignal: "SIGKILL" } : {};
+      const result = childProcess.spawnSync(process.execPath, [ENTRYPOINT, ...args], {
+        cwd, env: options.runDir ? { ...env, FAFF_RUN_DIR: options.runDir } : env, encoding: "utf8",
+        ...deadline,
+      });
+      return { status: result.status, stdout: result.stdout ?? "", stderr: result.stderr ?? "", ...(result.error ? { error: result.error } : {}) };
+    },
     git: (args, cwd) => run("git", args, cwd),
     gitNet: (args, cwd) => {
       const r = childProcess.spawnSync("git", args, { cwd, env: netEnv(env), encoding: "utf8", timeout: netTimeoutSecs(env) * 1000, killSignal: "SIGKILL" });
@@ -679,26 +686,36 @@ function resolveRepoRoot(flag: string | undefined, deps: Deps): string {
   }
 }
 
-function cmdWorktreeEnsure(argv: string[], deps: Deps = realDeps()): number {
-  const { values, errors } = argvApi.parseArgs(argv, ENSURE_SPEC);
-  if (errors.length) return argvApi.usageError(errors, ENSURE_USAGE);
-  const missing = (flag: string, what: string): number => argvApi.usageError([{ code: "missing-value", flag, detail: `${flag} ${what} is required` }], ENSURE_USAGE);
+const START_BUILD_SPEC = { flags: { ...ENSURE_SPEC.flags, "--title": { arity: 1 }, "--claim-sha": { arity: 1 } }, positionals: { max: 0 } };
+const START_BUILD_USAGE = "usage: faff graft start-build --issue ID --title TITLE [--claim-sha SHA] --mode interactive|autonomous --slug SLUG --run-dir DIR [--tracker-branch NAME] [--labels JSON] [--root DIR]";
+
+function cmdWorktreeEnsure(argv: string[], deps: Deps = realDeps(), startBuild = false): number {
+  const usage = startBuild ? START_BUILD_USAGE : ENSURE_USAGE;
+  const { values, errors } = argvApi.parseArgs(argv, startBuild ? START_BUILD_SPEC : ENSURE_SPEC);
+  if (errors.length) return argvApi.usageError(errors, usage);
+  const missing = (flag: string, what: string): number => argvApi.usageError([{ code: "missing-value", flag, detail: `${flag} ${what} is required` }], usage);
   const issue = str(values["--issue"]);
   if (issue === undefined || issue === "") return missing("--issue", "ID");
   const mode = toMode(values["--mode"]);
   if (mode === null) return missing("--mode", "interactive|autonomous");
   const slug = str(values["--slug"]);
   if (slug === undefined || slug === "") return missing("--slug", "SLUG");
-  if (!SLUG_RE.test(slug)) return argvApi.usageError([{ code: "bad-value", flag: "--slug", detail: `--slug must match ${SLUG_RE.source}, got ${JSON.stringify(slug)}` }], ENSURE_USAGE);
+  if (!SLUG_RE.test(slug)) return argvApi.usageError([{ code: "bad-value", flag: "--slug", detail: `--slug must match ${SLUG_RE.source}, got ${JSON.stringify(slug)}` }], usage);
   const envRunDir = str(deps.env.FAFF_RUN_DIR);
   const runDir = str(values["--run-dir"]) ?? (envRunDir !== undefined && envRunDir !== "" ? envRunDir : null);
+  if (startBuild && !runDir?.trim()) return missing("--run-dir", "DIR");
   if (mode === "autonomous" && runDir === null) return missing("--run-dir", "DIR (or $FAFF_RUN_DIR) in autonomous mode");
   let out: EnsureResult;
   try {
     const root = resolveRepoRoot(str(values["--root"]), deps);
-    out = ensure({ issue, mode, slug, trackerBranch: str(values["--tracker-branch"]) ?? null, labels: str(values["--labels"]) ?? null, runDir: runDir === null ? null : path.resolve(runDir), root }, deps);
+    const args: EnsureArgs = { issue, mode, slug, trackerBranch: str(values["--tracker-branch"]) ?? null, labels: str(values["--labels"]) ?? null, runDir: runDir === null ? null : path.resolve(runDir), root };
+    if (startBuild) {
+      const { startGraftBuild } = require("./graft-start-build");
+      return startGraftBuild(args, str(values["--title"]), str(values["--claim-sha"]), deps, ensure);
+    }
+    out = ensure(args, deps);
   } catch (e) {
-    if (e instanceof EnsureUsageError) { process.stderr.write(`faff worktree ensure: ${e.message}\n`); return 2; }
+    if (e instanceof EnsureUsageError) { process.stderr.write(`faff ${startBuild ? "graft start-build" : "worktree ensure"}: ${e.message}\n`); return 2; }
     throw e;
   }
   if (values["--json"] === true) process.stdout.write(`${JSON.stringify(out)}\n`);

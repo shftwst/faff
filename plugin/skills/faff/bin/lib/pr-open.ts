@@ -599,4 +599,4 @@ function cmdPr(args: string[]): number {
     PR_OPEN_USAGE + "\n" + PLAN_REVIEW_USAGE);
 }
 
-module.exports = { cmdPr, runPrOpen, defaultDeps };
+module.exports = { cmdPr, runPrOpen, defaultDeps, governedCheck, STATUS_TIMEOUT_MS };

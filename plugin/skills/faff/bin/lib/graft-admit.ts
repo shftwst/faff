@@ -464,9 +464,10 @@ function cmdGraftAdmit(args: string[]): number {
 
 function cmdGraft(args: string[]): number | Promise<number> {
   if (args[0] === "admit") return cmdGraftAdmit(args.slice(1));
+  if (args[0] === "start-build") return require("./worktree-ensure").cmdWorktreeEnsure(args.slice(1), undefined, true);
   const { cmdGraftVerifyBuild, VERIFY_BUILD_USAGE } = require("./graft-verify-build");
   if (args[0] === "verify-build") return cmdGraftVerifyBuild(args.slice(1));
-  return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: admit or verify-build" }], ADMIT_USAGE + "\n" + VERIFY_BUILD_USAGE);
+  return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: admit, start-build or verify-build" }], ADMIT_USAGE + "\n" + VERIFY_BUILD_USAGE);
 }
 
 module.exports = { cmdGraft, admit, validateFacts, AdmitFailure };

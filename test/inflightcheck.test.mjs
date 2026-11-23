@@ -53,6 +53,37 @@ const S2 = { FAFF_SESSION_ID: "sess-two" };
 const CCA = { CLAUDE_CODE_SESSION_ID: "cc-A" };
 const CCB = { CLAUDE_CODE_SESSION_ID: "cc-B" };
 
+test("--list reports the same owned keys, counts and exit status as --json", () => {
+  const root = freshRoot();
+  const invoke = (args, env = S1) => run(["inflightcheck", "--root", root, ...args], env);
+  for (const [name, env] of [["foreign", S2], ["z", S1], ["a", S1]]) {
+    assert.equal(invoke(["--open", "--key", name], env).code, 0);
+    const report = invoke(["--json"]);
+    assert.deepEqual(invoke(["--list"]), report);
+    assert.deepEqual(invoke(["--list", "--json"]), report);
+    const result = JSON.parse(report.out);
+    if (name === "foreign") {
+      assert.deepEqual(result.open, []);
+      assert.equal(report.code, 0);
+    } else if (name === "a") {
+      assert.deepEqual(result.open, ["a", "z"]);
+      assert.equal(result.scanned, 3);
+      assert.equal(report.code, 3);
+    }
+  }
+});
+
+test("--list refuses operations and filters before touching a marker", () => {
+  const root = freshRoot();
+  const invoke = args => run(["inflightcheck", "--root", root, ...args], S1);
+  assert.equal(invoke(["--open", "--key", "mine"]).code, 0);
+  const before = invoke(["--json"]);
+  for (const args of [["--open", "--key", "new"], ["--close", "--key", "mine"], ["--hook"], ["--recover"], ["--selftest"], ["--key", "mine"], ["mine"]]) {
+    assert.equal(invoke(["--list", ...args]).code, 2, args.join(" "));
+    assert.deepEqual(invoke(["--json"]), before);
+  }
+});
+
 test("open → hook blocks the owning session; close → hook is silent (the strand shape)", () => {
   const root = freshRoot();
   assert.equal(run(["inflightcheck", "--open", "--key", "FAFF-1", "--describe", "spec-review", "--root", root], S1).code, 0);

@@ -238,7 +238,7 @@ function inflightHookDecision(markers, nowMs, env, opts) {
 
 const { parseArgs, usageError } = require("./argv");
 const INFLIGHTCHECK_SPEC = { flags: {
-  "--selftest": { arity: 0 }, "--hook": { arity: 0 }, "--json": { arity: 0 }, "--recover": { arity: 0 },
+  "--selftest": { arity: 0 }, "--hook": { arity: 0 }, "--list": { arity: 0 }, "--json": { arity: 0 }, "--recover": { arity: 0 },
   "--root": { arity: 1 }, "--open": { arity: 0 }, "--close": { arity: 0 }, "--key": { arity: 1 }, "--describe": { arity: 1 },
 } };
 
@@ -247,9 +247,13 @@ function markerPath(root, scope, key) {
 }
 
 function cmdInflightcheck(args) {
-  if (args.includes("--selftest")) return inflightcheckSelftest();
-  const { values, errors } = parseArgs(args, INFLIGHTCHECK_SPEC);
-  if (errors.length) return usageError(errors, "usage: faff inflightcheck (--open --key K [--describe T] | --close --key K | --hook | --json) [--recover] [--root DIR]");
+  if (args.includes("--selftest") && !args.includes("--list")) return inflightcheckSelftest();
+  const { values, errors, positionals } = parseArgs(args, INFLIGHTCHECK_SPEC);
+  if (values["--list"]) {
+    const other = Object.keys(values).find(flag => !["--list", "--json", "--root"].includes(flag));
+    if (other || positionals.length) errors.push({ code: "bad-value", detail: "--list accepts only --root DIR and --json" });
+  }
+  if (errors.length) return usageError(errors, "usage: faff inflightcheck (--open --key K [--describe T] | --close --key K | --hook | --list | --json) [--recover] [--root DIR]");
   const get = (f) => (values[f] === undefined ? null : values[f]);
   const root = get("--root") || findRoot();
   const key = get("--key");
@@ -306,7 +310,7 @@ function cmdInflightcheck(args) {
   // marker THIS session owns that is still open, mirroring runcheck/prepcheck's CLI mode.
   const thisScope = resolveOwnerScope(process.env);
   const openOwned = [...new Set(markers.filter((m) => m.scope === thisScope).map((m) => m.key))].sort();
-  if (values["--json"]) {
+  if (values["--json"] || values["--list"]) {
     console.log(JSON.stringify({ scope: thisScope, open: openOwned, scanned: markers.length }, null, 2));
   } else if (openOwned.length) {
     console.log(`OPEN (${openOwned.length}) under scope ${thisScope}: ${openOwned.join(", ")}`);

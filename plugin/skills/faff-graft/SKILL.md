@@ -351,19 +351,17 @@ Only an attended run reads `verification.*`. An unattended L3 or L4 run resolves
 
 **Acting invariant.** An interactive floor result is *reported*, never acted on: the merge-gate auto-merge interlock and the autonomous auto-park stay gated on the unattended signal, unchanged. Enabling a leg never mints or escalates a ledger, so appetite, eligibility, and the four autonomous parks are untouched.
 
-**Heartbeat ticks (autonomous only).** Review's different, slower adversarial LLM can run for minutes without ledger writes. Tick **`faff heartbeat "$run_dir" --unit <issue>`** at review **entry**, **between** adversarial Phase-1/Phase-2 calls, and **after** the verdict; tick **before and after** an L4 holdout eval. This sanctioned path is a soft no-op outside a run. Pass the `BuildDispatch`'s explicit `$run_dir`, never "latest run"; every mode passes the current `--unit <issue>` as in Step 7.5. Each tick resets age to ~0, bounding it by one blocking adversarial phase, well under 900s.
-
-**Remote-backed review diff.** From the worktree, capture one diff to a fresh `$diff_file`. Step 3's resolver fetches the remote default (local default in git-only mode). Set `autonomous=true` or `false` from the invocation mode. Run the capture and checkpoint lookup together. Stop before dispatch on failure.
+**Remote-backed review diff.** In the worktree, capture one diff to a fresh `$diff_file`. Step 3's resolver fetches the remote default (local default in git-only mode). Stop before dispatch if capture or hashing fails.
 
 ```bash
 base=$(bash "$graft_skill_dir/remote-diff-base.sh") || exit 1
 git diff "$base...HEAD" > "$diff_file" || exit 1
 cur_hash=$(node -e 'process.stdin.pipe(require("node:crypto").createHash("sha256").setEncoding("hex")).pipe(process.stdout)' < "$diff_file") || exit 1
-printf 'remote_base=%s\ndiff_file=%s\ndiff_hash=%s\n' "$base" "$diff_file" "$cur_hash"
-if [ "$autonomous" = true ]; then "$faff" review-progress resume "$run_dir" "$issue" --diff-hash "$cur_hash" || exit 1; fi
 ```
 
-**Autonomous review resume.** Reconcile the returned hint with observed git, PR and worktree state. Interactive review skips checkpoints.
+**Heartbeat ticks (autonomous only).** Review's different, slower adversarial LLM can run for minutes without ledger writes. Tick **`faff heartbeat "$run_dir" --unit <issue>`** at review **entry**, **between** adversarial Phase-1/Phase-2 calls, and **after** the verdict; tick **before and after** an L4 holdout eval. This sanctioned path is a soft no-op outside a run. Pass the `BuildDispatch`'s explicit `$run_dir`, never "latest run"; every mode passes the current `--unit <issue>` as in Step 7.5. Each tick resets age to ~0, bounding it by one blocking adversarial phase, well under 900s.
+
+**Autonomous review resume.** Run `faff review-progress resume "$run_dir" <ISSUE> --diff-hash "$cur_hash"` from the worktree. Reconcile its hint with observed git, PR and worktree state. Interactive review skips checkpoints.
 
 - `fresh` runs the review from Phase 1. `phase2` forwards the trusted skip-Phase-1 hint for bounded Phase 2.
 - `dispose-findings` reads `findings_ref` and resumes disposition and the usual merge gate.

@@ -119,7 +119,7 @@ test("bounded gates tick the explicit run and unit before work and on either ter
   }
 });
 
-test("a quiet gate stays fresh past the owner's stall window and stops renewing when it returns", async (t) => {
+test("slow setup and a quiet gate stay fresh past the owner's stall window and stop renewing on return", async (t) => {
   const owner = repo({ ".faffrc.yaml": "sentry:\n  stall_window_secs: 1\n" });
   const run = ownedRun(owner);
   const dir = repo({
@@ -132,7 +132,7 @@ test("a quiet gate stays fresh past the owner's stall window and stops renewing 
       'const entry = read("heartbeat");',
       'setTimeout(() => {',
       '  const observation = { entry, run: read("heartbeat"), unit: read("heartbeat.ABC-1"), now: Date.now() };',
-      '  fs.writeFileSync(file("in-gate.json"), JSON.stringify(observation));',
+      '  fs.writeFileSync(file(process.argv[2] || "in-gate.json"), JSON.stringify(observation));',
       '}, 2500);',
     ].join("\n"),
   });
@@ -143,6 +143,23 @@ test("a quiet gate stays fresh past the owner's stall window and stops renewing 
   const { cmdGates } = require(join(dirname(CLI), "lib/gates-cli.js"));
   const { evalWallClock, evalMemberStall, sentryThresholds } = require(join(dirname(CLI), "lib/sentry.js"));
   t.mock.method(console, "log", () => {});
+  const realGit = spawnSync("sh", ["-c", "command -v git"], { encoding: "utf8" }).stdout.trim();
+  const binDir = join(owner, "bin");
+  mkdirSync(binDir);
+  writeFileSync(join(binDir, "git"), [
+    "#!/bin/sh",
+    'if [ "$1" = "--no-optional-locks" ] && [ "$2" = "status" ]; then node pause.cjs in-setup.json || exit 1; fi',
+    'exec "$PROBE_GIT" "$@"',
+  ].join("\n"), { mode: 0o755 });
+  const oldPath = process.env.PATH;
+  const oldGit = process.env.PROBE_GIT;
+  process.env.PATH = binDir + ":" + oldPath;
+  process.env.PROBE_GIT = realGit;
+  t.after(() => {
+    process.env.PATH = oldPath;
+    if (oldGit === undefined) delete process.env.PROBE_GIT;
+    else process.env.PROBE_GIT = oldGit;
+  });
   const oldProbe = process.env.PROBE_RUN;
   process.env.PROBE_RUN = run;
   t.after(() => {
@@ -150,14 +167,16 @@ test("a quiet gate stays fresh past the owner's stall window and stops renewing 
     else process.env.PROBE_RUN = oldProbe;
   });
   assert.equal(await cmdGates(["run", "--root", dir, "--resume", "--run-dir", run, "--unit", "ABC-1"]), 0);
-  const sample = JSON.parse(readFileSync(join(run, "in-gate.json"), "utf8"));
   const thresholds = sentryThresholds({ sentry: { stall_window_secs: 1 } });
-  const classifyRun = (timestamp) => evalWallClock({ owner: { status: "running", last_heartbeat: timestamp } }, sample.now, thresholds);
-  const classifyMember = (timestamp) => evalMemberStall([{ issue: "ABC-1" }], { "ABC-1": timestamp }, sample.now, thresholds);
-  assert.equal(classifyRun(sample.entry).evidence.tripped_on, "heartbeat-staleness");
-  assert.equal(classifyMember(sample.entry).length, 1);
-  assert.equal(classifyRun(sample.run), null);
-  assert.deepEqual(classifyMember(sample.unit), []);
+  for (const observation of ["in-setup.json", "in-gate.json"]) {
+    const sample = JSON.parse(readFileSync(join(run, observation), "utf8"));
+    const classifyRun = (timestamp) => evalWallClock({ owner: { status: "running", last_heartbeat: timestamp } }, sample.now, thresholds);
+    const classifyMember = (timestamp) => evalMemberStall([{ issue: "ABC-1" }], { "ABC-1": timestamp }, sample.now, thresholds);
+    assert.equal(classifyRun(sample.entry).evidence.tripped_on, "heartbeat-staleness");
+    assert.equal(classifyMember(sample.entry).length, 1);
+    assert.equal(classifyRun(sample.run), null, observation);
+    assert.deepEqual(classifyMember(sample.unit), [], observation);
+  }
 
   const finalTick = readFileSync(join(run, "heartbeat"), "utf8");
   await new Promise((resolve) => setTimeout(resolve, 750));
@@ -348,9 +367,12 @@ test("a symlinked .faff/gates exits 2 progress-dir-unsafe and writes nothing thr
   const target = mkdtempSync(join(tmpdir(), "faff-gates-target-"));
   mkdirSync(join(dir, ".faff"));
   symlinkSync(target, join(dir, ".faff", "gates"));
-  const r = gates(dir, ["--budget-secs", "3"]);
-  assert.equal(r.status, 2);
-  assert.match(r.stderr, /progress-dir-unsafe/);
+  const active = ownedRun(dir);
+  for (const targetFlags of [[], ["--run-dir", active, "--unit", "ABC-1"]]) {
+    const r = gates(dir, ["--budget-secs", "3", ...targetFlags]);
+    assert.equal(r.status, 2);
+    assert.match(r.stderr, /progress-dir-unsafe/);
+  }
   assert.equal(existsSync(join(target, "run-progress.json")), false);
   assert.equal(existsSync(join(target, ".gitignore")), false);
 });

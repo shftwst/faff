@@ -319,22 +319,12 @@ async function runBudgetedLadder(root, opts) {
   let ceilingHit = false;
   const inflight = new Set();
   const timers = [];
-  let renewal;
   const cutAll = () => {
-    clearInterval(renewal);
+    if (opts.renewUntil) opts.renewUntil(0);
     for (const h of inflight) if (h.cut) h.cut();
   };
   const armTimers = () => {
-    if (opts.heartbeat) {
-      const { intervalMs, tick } = opts.heartbeat;
-      const deadline = performance.now() + ceilingMs;
-      if (clockStart - callStart >= intervalMs) tick();
-      renewal = setInterval(() => {
-        if (performance.now() < deadline) tick();
-        else clearInterval(renewal);
-      }, intervalMs);
-      renewal.unref();
-    }
+    if (opts.renewUntil) opts.renewUntil(performance.now() + ceilingMs);
     timers.push(setTimeout(() => {
       expired = true;
       if (newRecords > 0) { cutAll(); return; }
@@ -409,7 +399,6 @@ async function runBudgetedLadder(root, opts) {
     cutAll();                                                           // a write failure stops the call; nothing keeps running
     throw e;
   } finally {
-    clearInterval(renewal);
     for (const t of timers) clearTimeout(t);
   }
   const setup_ms = (clockStart === null ? now() : clockStart) - callStart;

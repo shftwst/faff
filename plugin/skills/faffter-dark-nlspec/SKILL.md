@@ -241,7 +241,7 @@ Faff-prep consumes the line for its gate (autonomous: `high` → promote; `mediu
 
 ## Quality bar — self-review before returning
 
-Follow sibling `faffter-noon-spec/SKILL.md` → _Self-review before returning_ in full, including the narrowing-only refresh exemption. This producer always runs as a dispatched subagent, so verify every claim against the codebase in a fresh-reasoning pass in context. Return the findings and resolutions, and copy the severities to `self_review` as specified there.
+Follow sibling `faffter-noon-spec/SKILL.md` → _Self-review before returning_ **in full**, including the narrowing-only refresh exemption. This producer always runs as a dispatched subagent, so verify every claim against the codebase in a fresh-reasoning pass in context. Return the findings and resolutions, and copy the severities to `self_review` as specified there.
 
 ## Contract artifact
 

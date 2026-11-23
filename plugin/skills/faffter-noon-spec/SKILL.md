@@ -103,7 +103,7 @@ Before emitting the spec + self-rating, dispatch a **clean-context subagent** to
 
 **Acting on findings.** `blocker` (spec is wrong about a codebase fact, false `**Assumes:**`, or a `**Chosen:**` that contradicts established convention) → revise: apply the fix, or convert the affected `**Chosen:**` to a `**Punt:**` noting the conflict; if it can't be fixed without architectural reframing, return a `low` rating with the blocker noted so the caller parks. `major` (vague AC, scope creep, a missed edge case the codebase shows is relevant) → fix where mechanical, else leave as `**Punt:**` with the reviewer's note. `minor` → fold where trivial, else note.
 
-**Return the review.** Include each original finding's severity in the readiness block's `self_review` array, including fixed or dismissed findings. Include each unresolved draft-check major once. Use `[]` only after a completed review found none. Return findings and resolutions alongside the spec for the prep log. Missing review evidence is a process failure.
+**Return the review.** Include each original finding's severity in the readiness block's `self_review` array, including fixed or dismissed findings. Append one `"major"` per entry in the recheck's `major` array, even when an entry names several units. Use `[]` only after a completed review found none. Return findings and resolutions alongside the spec for the prep log. Missing review evidence is a process failure.
 
 **When NOT to run.** Only when the caller signals a **narrowing-only refresh** — the original spec was already vetted and is being scoped down to a remaining delta, not redrafted whole-cloth. The caller owns that signal; absent it, the review runs.
 

@@ -142,50 +142,23 @@ Use the lens selection's `mode` as `--occupant`. The command governs the window,
 
 ### Ratify a design-lens objection in place (interactive only)
 
-Interactive **ratify** lets a present human keep a decision instead of revising or parking on the cap ceiling. Offer it **only** for a `major`/`minor` design-lens objection naming a specific already-`**Chosen:**` decision **and** passing the scope test below, and **only** in interactive mode. The human, never the producer, settles that call.
+A present human may ratify a `major` or `minor` design-lens objection to a specific existing `**Chosen:**` decision. Read its `claim` to judge scope. The `spec_anchor` identifies only the section.
 
-**The decision-vs-implementation scope test (runs before the offer fires).** An objection's `spec_anchor` names a section, not a decision, so naming a `**Chosen:**` line is necessary but not sufficient. Classify from the objection's own `claim`: does it argue against *the choice*, or against *a mechanism or detail of carrying the choice out*? Only a **decision-level** objection is ratifiable. One that is ambiguous between the two, or mixes both, is **not** offered ratify — it routes through `revise`/park exactly as an unclassifiable objection does today, because ratifying it risks silently suppressing the implementation half the design lenses promise to keep critiquing at full severity. These worked examples calibrate the test's two ends and its fail-safe middle; they do not replace it:
+| Claim about the chosen Postgres store | Offer ratify? |
+|---|---|
+| “Use the file-based register instead.” | Yes. It disputes the choice. |
+| “The migration has no rollback.” | No. It disputes implementation. |
+| “Postgres is fine, but the schema will lock the table.” | No. Mixed or ambiguous claims stay in review. |
 
-| Classification | Example claim | Ratifiable |
-|---|---|---|
-| Decision-level | "Postgres is the wrong store for this — use the file-based register instead" (attacks the choice itself) | yes |
-| Implementation-level | "The chosen Postgres migration has no rollback path" (accepts the choice, attacks its execution) | no |
-| Ambiguous / mixed | "Postgres is fine, but this schema will lock the table under load" (decision-adjacent implementation critique) | no — fail-safe |
+Show all three choices to the human for every qualifying claim, even below the cap. Ask "Revise the spec, park as needs-human if the round cap is reached, or ratify this named choice?" Keep ordinary revision/park routing for critical, implementation-level or unclear objections. Methodology `reject-approach` follows the plot route. Autonomous prep never offers ratify or adds a tag.
 
-This is LLM classification, not deterministic parsing like the `spec_anchor` heading-slug rule. **Ambiguous resolves to no ratify, never the reverse**: keep the non-`critical` objection in the loop rather than ship an unexamined defect. The occupant's `eval/in-spec-ratification/` fixtures cover implementation-level and ambiguous cases.
+Only an explicit human ratification authorises these steps:
 
-```
-PROCEDURE surface_design_lens_objection(objection, decision_line):
-  1. severity == "critical" -> present as today (revise or park), no ratify
-     offer; the severity floor is unconditional.
-  2. ELSE IF the scope test cannot cleanly classify it as decision-level
-     (ambiguous, or mixing decision and implementation) -> as today, no offer.
-  3. ELSE (major | minor, cleanly decision-level), interactive only -> present
-     three choices, not two: revise (loop the producer), park/needs-human (on
-     the cap ceiling), ratify ("keep <decision_line> as chosen; it is settled").
-  4. ON an explicit human "ratify" reply (never inferred from silence, never
-     from the agent's own read of the conversation):
-     a. append "(ratified: human)" to decision_line's Chosen marker, within
-        the re-attach this round already performs;
-     b. log the neutralised, capped quote of the reply into the tracker
-        comment that re-attach already posts — never bare "tag added";
-     c. run the Decisions-register capture step's tradeoff-shaped offer;
-     d. drop this objection from the round's must-fix set; when every
-        objection of the round was ratified, run `faff spec-review round
-        --mark-ratified <n> --comment-id <re-attach comment id> --dir $scratch
-        --mode interactive` so the round consumes no cap iteration;
-     e. continue the round for any other unresolved objections as today.
-  5. Autonomous mode: never fires (no human to answer); an autonomous
-     revise/reject-approach proceeds exactly as today.
-```
+1. In the round's existing re-attach, append `(ratified: human)` to the chosen decision. Quote the human beside the tag in the existing tracker comment. First apply the same neutralisation function as `faff ratified-scope --fold-resolutions` (collapse newlines, redact secrets, scrub directives). From the result quote the shortest sentence stating the decision, capped at 200 characters including a final `…` if truncated.
+2. Run the **Decisions-register capture** tradeoff offer. Remove only this ratified objection from the must-fix set. Continue reviewing outstanding objections.
+3. If **every** objection in round `<n>` was ratified, run `faff spec-review round --mark-ratified <n> --comment-id <re-attach comment id> --dir "$scratch" --mode interactive` so it consumes no cap iteration.
 
-**Audit the utterance, not just its result.** The tracker comment the re-attach already posts carries the human's own words beside the resulting tag, so the tag's provenance is checkable against the thread rather than resting on trust in prep's mechanical-edit claim. The quote is **neutralised before it is written, never raw**: run it through the same structural-neutralisation transform `faff ratified-scope --fold-resolutions` applies to tracker values (newline collapse, secret-shaped-value redaction, imperative-sentence scrub — the identical function, reused, never reimplemented), then extract the shortest sentence that states the decision — never the full multi-paragraph turn — and hard-cap it at **200 characters**, truncating with `…` if that sentence is longer. The reconcile step's in-context judgement re-reads this quote later, so it must land there as inert, bounded DATA.
-
-**The tag survives the loop, and an autonomous refresh, by carry-forward.** A `revise` re-invocation uses the current spec, including every `(ratified: human)` tag verbatim, as its base; never request a scratch redraft mid-loop. An **autonomous stale-refresh** preserves inherited tags: "never added on an autonomous dispatch" forbids new tags, not existing ones. Both are scoped revisions; neither rule governs a later separate prep session's full redraft.
-
-**Anti-pattern:** offering ratify for a methodology-lens objection. A methodology `reject-approach` is a scope/sizing call routed to `/faff-plot`, never a loop-in-place revision — there is no single named `**Chosen:**` line to ratify against.
-
-**Anti-pattern:** offering ratify on the strength of `spec_anchor` alone. It names the attacked *section*, not whether the attack is decision- or implementation-level; an implementation objection anchored to the same section as its decision would pass a naive "names a Chosen line" test and must not be ratifiable.
+Revise from the current spec and carry each existing tag verbatim, including on autonomous stale-refresh. A separate prep session's full redraft has its own scope.
 
 **Carried design-lens objections (plot-destined `reject-approach` with design-lens objections).** The park record (L1–L3) or the re-slice handoff log (L4) — whichever this pass took — additionally lists the CLI's `carried_design_objections` verbatim, one `{lens, severity}` per line, under a labelled "Carried design-lens objections" block. No second store: the round record `round` writes already persists the full verdict verbatim, so this is the human/plot-readable copy, not a new write path. A re-sliced epic re-enters through plot's normal create path and is re-prepped from scratch — its own spec-review gate run is what re-raises a design-lens objection that still applies; the carried block is the audit trail proving it wasn't silently dropped, not a live constraint plot consumes (plot has no objection-intake seam — out of scope here).
 

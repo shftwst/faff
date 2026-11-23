@@ -20,14 +20,12 @@ Faff-prep is an **orchestrator**: it owns tracker lifecycle and codebase explora
 
 ### Spec slot (always delegated)
 
-Spec production is **always** delegated to the `spec` slot. The slot defaults to `faffter-noon-spec` (the lite nlspec arc) when `.faff/config.yaml` doesn't set one:
+Delegate spec production to `slots.spec` (default `faffter-noon-spec`). Example override:
 
 ```yaml
 slots:
   spec: superpowers:brainstorming   # optional override; unset → faffter-noon-spec
 ```
-
-Faff-prep passes issue context and explore findings to the configured/default `spec` skill, captures its output and manages tracker attachment. There is no inline spec fallback; the default producer always exists.
 
 **Producer requirements (the slot contract relies on):** the `spec` skill must return a final confidence self-rating (`confidence: high|medium|low`), use the gateway Spec-readiness decision markers, and discharge its own quality bar. For `faffter-noon-spec`, that includes clean-context self-review (its `SKILL.md` → _Self-review before returning_). Prep gates on confidence; downstream `/faff-graft` and `/faff-beep-boop` distinguish closed decisions from open punts by the markers. A producer unable to self-rate is usable interactively, never autonomously; configure one that can (the default does).
 
@@ -338,13 +336,11 @@ After the PR merges, the spec lives in the repo as a record of what was built an
 
 ### Delegated skill output handling
 
-When a delegated spec skill produces output, it may write files to its default location. Faff-prep:
-1. Lets the skill write to its default location
-2. Reads the produced file content
-3. Attaches the content to the issue as a comment
-4. Deletes the local file (it lives on the issue tracker until implementation)
+Run `faff dispatch prepare-producer spec`, adding `--shared-spec-files` when a writable Agent shares prep's filesystem. Pass the issue, explore findings and spec contract through gateway → **Producer dispatch**.
 
-This keeps the delegated skill unchanged — it doesn't need to know about faff.
+Pass the exact `output_files` paths when present. The producer writes the complete spec to `spec` and findings with resolutions, clean review or authorised exemption to `review`. Return only `{"status":"written"}` or `{"status":"blocked","reason":"..."}`. On `written`, check both files with `test -s` and append the review file to the prep log. Chain these with `&&` into staging the prepared spec. Surface any failure before attachment. Remove the prepared files and directory after their last use.
+
+Without shared files, stage the occupant's returned file or body and log its review findings.
 
 ## Scenarios
 
@@ -383,7 +379,7 @@ Carry the findings into the Step-2 spec on narrow or proceed. Use the same share
 
 **Step 2: Spec** (delegated to the `spec` slot)
 
-Run `faff dispatch prepare-producer spec` and follow gateway → **Producer dispatch** with the issue context, explore findings and spec contract. The dispatched producer self-reviews in context. Before rendering its output, run the shared stage command with `--mode interactive --fresh` and use the returned confidence. Fix missing markers on `invalid` and stage again. Log findings and resolutions, post `body_path` as the issue comment, confirm, then clean up the producer's local file.
+Use **Delegated skill output handling**. Stage with `--mode interactive --fresh` before rendering and use the returned confidence. Fix missing markers on `invalid` and stage again. Log the self-review, post `body_path` as the issue comment, then confirm.
 
 **→ Run the Spec-review gate** (the approach-critique consumer-fold above) on the attached spec, **after** confidence rating and **before** promotion. Surface the verdict + any lensed objections to the user (canonical semantics: `faff contract spec-review-verdict --describe`); the approving verdict proceeds to the steps below, the fixable-in-place verdict or a prep-destined reject-approach loops in place (bounded by the gate's cap), a plot-destined reject-approach surfaces the slice for `/faff-plot`, and the human-judgement verdict (or a contract failure) parks. Only an `approve` — composed with the confidence gate — promotes:
 - If the spec surfaced that the issue should be split, recommend the split
@@ -541,7 +537,7 @@ Always delegated to the `spec` slot (default `faffter-noon-spec`) — autonomous
 
 **Step 0 — architecture proposal (conditional).** Run the shared **Architecture proposal step** (above) on the issue + explore findings, immediately before spec production. The autonomous path is the one that feeds the holdout consumers, so this invocation is load-bearing — a fired trigger's validated proposal block becomes spec-producer input carried verbatim into the spec; a failed dispatch/fold degrades loud and never parks.
 
-**Step 1 — produce the spec.** Invoke the `spec` slot, passing the _spec contract_ in the instructions. The producer runs its own clean-context self-review and returns the spec body, the review findings + resolutions, and a `confidence:` self-rating at the end of its output. (Both rules live in `faffter-noon-spec/SKILL.md` → _Self-review before returning_.)
+**Step 1 — produce the spec.** Use **Delegated skill output handling** for each fresh or narrowed spec. The producer self-reviews and retains its confidence line in the spec.
 
 **Step 2 — run the shared already-shipped scan + premise-superseded gate** (above) on the just-produced spec: **Park** (substantially delivered) exits Path 2 immediately, citing Done ticket IDs in the park comment; **Proceed** (premise holds) continues to Step 3; **Narrow** (partially delivered) is handled per the subroutine — for Path 2 that means re-invoking the producer on the narrowed scope (its self-review fires). Continue to Step 3.
 

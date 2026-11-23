@@ -95,6 +95,7 @@ const CONTRACT_DESCRIBES = {
       "confidence missing or outside {high,medium,low} → fail-loud (exit 2) — no safe coerce target (FAFF-76 Decision 3)",
       "a decision with no canonical marker → not fail-loud; recorded as a well-formed verdict with markers_valid:false (exit 1)",
       "provenance_present:false → markers_valid:false (exit 1), not fail-loud",
+      "self_review, when present, lists the original finding severities (blocker, major, minor). One blocker or three majors caps high at medium. Invalid evidence exits 2.",
     ],
     producer_notes: [],
   },

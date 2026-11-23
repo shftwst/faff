@@ -36,10 +36,10 @@ function spec({ h1 = true, block = READY, confidence = "confidence: high", body 
   ].join("\n");
 }
 
-function fixture({ tracker = "linear", text = spec(), git = false } = {}) {
+function fixture({ tracker = "linear", producer = "faffter-dark-nlspec", text = spec(), git = false } = {}) {
   const root = mkdtempSync(join(tmpdir(), "faff-prep-attach-"));
   mkdirSync(join(root, ".faff"));
-  writeFileSync(join(root, ".faff", "config.yaml"), `tracking:\n  tracker: ${tracker}\nslots:\n  spec: faffter-dark-nlspec\n`);
+  writeFileSync(join(root, ".faff", "config.yaml"), `tracking:\n  tracker: ${tracker}\nslots:\n  spec: ${producer}\n`);
   if (git) {
     execFileSync("git", ["-C", root, "init", "-q"]);
     execFileSync("git", ["-C", root, "config", "user.email", "t@example.com"]);
@@ -86,6 +86,79 @@ test("stage: ready-to-post, marker open with spec_sha256 and body_path, stamp an
   assert.match(lines[2], /^> Spec: faffter-dark-nlspec · \d{4}-\d{2}-\d{2} · interactive · [^ ]+\/[^ ]+ · faff [^ ]+ · confidence: high\. Full spec on Linear EX-1\.$/);
   assert.equal(lines.filter((l) => l.startsWith("build-tier:")).length, 1);
   assert.equal(prepcheckState(f), "open");
+});
+
+function reviewedBlock(confidence, selfReview) {
+  return ["```faff-contract:spec-readiness", JSON.stringify({ confidence, decisions: [{ marker: "chosen" }], self_review: selfReview }), "```"].join("\n");
+}
+
+test("readiness contract caps only high at one blocker or three majors", () => {
+  const { computeSpecReadiness } = require("../plugin/skills/faff/bin/lib/contract-defs-review.js");
+  for (const proposed of ["low", "medium", "high"]) {
+    for (const [findings, cap] of [
+      [[], false], [["minor", "minor", "minor"], false], [["major", "minor", "major"], false],
+      [["major", "major", "major"], true], [["blocker"], true], [["minor", "blocker", "major"], true],
+    ]) {
+      const actual = computeSpecReadiness({ confidence: proposed, decisions: [], self_review: findings });
+      assert.equal(actual.failLoud, null);
+      assert.equal(actual.contractData.confidence, proposed === "high" && cap ? "medium" : proposed);
+    }
+  }
+  for (const bad of [null, "major", {}, 0, ["Major"], [null], [{ severity: "major" }]]) {
+    assert.ok(computeSpecReadiness({ confidence: "high", decisions: [], self_review: bad }).failLoud);
+  }
+});
+
+test("both bundled producers stage the same capped rating in every retained copy", () => {
+  for (const producer of ["faffter-noon-spec", "faffter-dark-nlspec"]) {
+    const block = reviewedBlock("high", ["major", "minor", "major", "major"]);
+    const example = ["````markdown", "confidence: high", block, "````"].join("\n");
+    const f = fixture({ producer, text: spec({ block, body: [example] }) });
+    const out = stage(f, ["--fresh", "--git-only"]).json();
+    assert.deepEqual([out.token, out.confidence], ["attached", "medium"]);
+    const staged = readFileSync(f.specFile, "utf8");
+    assert.ok(staged.includes(example));
+    assert.match(staged, /· confidence: medium\./);
+    assert.equal(prepAttach.stampConfidence(staged), "medium");
+    const ready = JSON.parse(prepAttach.readinessBlocks(staged)[0]);
+    assert.deepEqual([ready.confidence, ready.self_review], ["medium", ["major", "minor", "major", "major"]]);
+    assert.equal(readFileSync(join(f.root, ".faff", "specs", "EX-1.md"), "utf8"), staged);
+    assert.equal(stage(f, ["--fresh", "--git-only"]).json().spec_sha256, out.spec_sha256);
+  }
+});
+
+test("fresh bundled review requires evidence, while older, narrowed and custom specs retain their rating", () => {
+  for (const producer of ["faffter-noon-spec", "faffter-dark-nlspec"]) {
+    const f = fixture({ producer });
+    const r = stage(f, ["--fresh"]);
+    assert.equal(r.status, 2);
+    assert.match(r.json().reason, /requires self_review/);
+    assert.equal(existsSync(join(f.root, ".faff", "specs", "EX-1.md")), false);
+    assert.equal(readJson(f.marker()).attached, false);
+    assert.equal(stage(f).json().confidence, "high");
+  }
+  const custom = fixture({ producer: "custom:spec" });
+  const out = stage(custom, ["--fresh"]).json();
+  assert.deepEqual([out.token, out.confidence], ["ready-to-post", "high"]);
+  const low = fixture({ text: spec({ confidence: "confidence: low", block: reviewedBlock("low", ["blocker"]) }) });
+  assert.equal(stage(low, ["--fresh"]).json().confidence, "low");
+});
+
+test("missing, malformed, conflicting or overridden evidence cannot stage a fresh high rating", () => {
+  for (const text of [
+    spec({ block: null }), spec({ block: reviewedBlock("high", null) }),
+    spec({ confidence: "confidence: low", block: reviewedBlock("high", []) }),
+    spec({ body: ["confidence: low"], block: reviewedBlock("high", []) }),
+  ]) {
+    const f = fixture({ text });
+    assert.equal(stage(f, ["--fresh"]).status, 2);
+    assert.equal(readJson(f.marker()).attached, false);
+  }
+  const f = fixture({ text: spec({ block: reviewedBlock("high", ["blocker"]) }) });
+  const file = join(f.root, "override.json");
+  writeFileSync(file, JSON.stringify({ confidence: "high", decisions: [] }));
+  assert.equal(stage(f, ["--fresh", "--extraction", file]).status, 2);
+  assert.equal(readJson(f.marker()).attached, false);
 });
 
 test("stage: owner carries FAFF_SESSION_ID and FAFF_RUN_DIR when set", () => {

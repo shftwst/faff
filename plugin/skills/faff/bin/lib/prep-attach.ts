@@ -15,6 +15,7 @@ const { findRoot, dig } = require("./shared-infra");
 const { loadConfig, DEFAULTS } = require("./config-core");
 const { extractSpecFeatures, tier, DEFAULT_PREP_PARAMS } = require("./tier");
 const { computeSpecReadiness } = require("./contract-defs-review");
+const { bundledSlotStatus } = require("./validate-adapters");
 const { resolveFaffVersion } = require("./faff-version");
 const { harnessIdentify } = require("./harness");
 const { admissibleVerdict, dodClassify, parseScenarios } = require("./admissibility");
@@ -71,7 +72,7 @@ type PrepDeps = {
 
 type StageOpts = {
   issue: string; specPath: string; mode: string; gitOnly: boolean; gateHistory: number | null;
-  extractionPath: string | null; root: string;
+  extractionPath: string | null; fresh?: boolean; root: string;
 };
 
 const ISSUE_RE = /^[A-Za-z][A-Za-z0-9]*-[0-9]+$/;
@@ -83,13 +84,13 @@ const TRACKER_NAMES: { [k: string]: string } = { linear: "Linear", github: "GitH
 const ATTACH_SPEC = {
   flags: {
     "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--mode": { arity: 1 }, "--git-only": { arity: 0 },
-    "--gate-history": { arity: 1 }, "--extraction": { arity: 1 }, "--confirm": { arity: 0 },
+    "--fresh": { arity: 0 }, "--gate-history": { arity: 1 }, "--extraction": { arity: 1 }, "--confirm": { arity: 0 },
     "--comment-id": { arity: 1 }, "--park": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 },
   },
   positionals: { min: 0, max: 0 },
 };
 const ATTACH_USAGE = [
-  "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--git-only] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
+  "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--git-only] [--fresh] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
   "       faff prep attach --issue ID --confirm --comment-id ID [--root DIR] [--json]",
   "       faff prep attach --issue ID --park [--root DIR] [--json]",
 ].join("\n");
@@ -260,26 +261,32 @@ function applyAdmissibility(text: string, impl: AdmissibilityImpl = DEFAULT_ADMI
 }
 
 // The bodies of every `faff-contract:spec-readiness` fence outside other fences.
-function readinessBlocks(text: string): string[] {
+function readinessFences(text: string): { body: string; start: number; end: number }[] {
   const lines = text.split("\n");
-  const blocks: string[] = [];
+  const blocks: { body: string; start: number; end: number }[] = [];
+  let start = 0;
   let open: string | null = null;
   let body: string[] | null = null;
-  for (const line of lines) {
+  for (const [i, line] of lines.entries()) {
     const m = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
     const fence = m ? m[1] : undefined; // both groups always participate in a match
     const info = m ? m[2] : undefined;
     if (open) {
       if (fence !== undefined && fence[0] === open[0] && fence.length >= open.length && (info ?? "").trim() === "") {
-        if (body) blocks.push(body.join("\n"));
+        if (body) blocks.push({ body: body.join("\n"), start, end: i });
         open = null; body = null;
       } else if (body) body.push(line);
     } else if (fence !== undefined) {
       open = fence;
       body = (info ?? "").trim() === READINESS_INFO ? [] : null;
+      start = i + 1;
     }
   }
   return blocks;
+}
+
+function readinessBlocks(text: string): string[] {
+  return readinessFences(text).map((fence) => fence.body);
 }
 
 // ---------------------------------------------------------------------------
@@ -310,7 +317,35 @@ function stage(opts: StageOpts, deps: PrepDeps): PrepResult {
 
   let cfg: { producer: string; tracker: string };
   try { cfg = deps.config(); } catch (e) { return errored(issue, `config-unreadable: ${prop(e, "message")}`); }
-  const confidence = stampConfidence(source);
+  const blocks = readinessFences(source);
+  const block = blocks[0];
+  let embedded: unknown;
+  if (blocks.length === 1 && block) {
+    try { embedded = JSON.parse(block.body); } catch { /* handled by the readiness fold below */ }
+  }
+  const reviewed = isRecord(embedded) && Object.hasOwn(embedded, "self_review") ? embedded : null;
+  if (opts.fresh && bundledSlotStatus(cfg.producer, "spec") === "bundled" && !reviewed) {
+    return errored(issue, "fresh bundled spec requires self_review in a single valid readiness block");
+  }
+  let confidence = stampConfidence(source);
+  if (reviewed && block) {
+    if (extractionPath) return errored(issue, "cannot override a reviewed readiness block with --extraction");
+    const fold = computeSpecReadiness(reviewed);
+    if (fold.failLoud) return errored(issue, `readiness-fail-loud: ${fold.failLoud}`);
+    const lines = source.split("\n");
+    const mask = fenceMask(lines);
+    const ratingLines = lines.filter((line, index) => !mask[index] && /^confidence:/i.test(line));
+    if (ratingLines.length !== 1 || confidence !== reviewed.confidence) {
+      return errored(issue, "expected one confidence line matching the reviewed readiness block");
+    }
+    if (confidence !== fold.contractData.confidence) {
+      confidence = fold.contractData.confidence;
+      embedded = { ...reviewed, confidence };
+      lines[confidenceLineIndex(lines, mask)] = `confidence: ${confidence}`;
+      lines.splice(block.start, block.end - block.start, JSON.stringify(embedded));
+      source = lines.join("\n");
+    }
+  }
   const line = stampLine({
     producer: cfg.producer, date: deps.today(), mode, harness: id.harness, model: id.model, version,
     confidence, tracker: cfg.tracker, issue, gitOnly,
@@ -326,19 +361,18 @@ function stage(opts: StageOpts, deps: PrepDeps): PrepResult {
   const success = { ...common, admissibility: adm.admissibility, admissibility_line: adm.line };
   const writeBack = (): void => deps.writeText(specPath, text);
 
-  let extraction: unknown;
-  const blocks = readinessBlocks(text);
   if (blocks.length > 1) return errored(issue, "multiple-readiness-blocks", common);
+  let extraction = embedded;
   if (extractionPath) {
     try { extraction = JSON.parse(deps.readText(extractionPath)); } catch { return errored(issue, "extraction-unparseable", common); }
-  } else {
-    if (blocks.length === 0) {
-      try { writeBack(); } catch (e) { return errored(issue, `spec-unwritable: ${prop(e, "code") || prop(e, "message")}`, common); }
-      return result(issue, "needs-judgement", { reason: "no-readiness-block", ...common });
-    }
-    try { extraction = JSON.parse(blocks[0] ?? ""); } catch { return errored(issue, "readiness-block-unparseable", common); }
+    if (isRecord(extraction) && Object.hasOwn(extraction, "self_review")) return errored(issue, "self_review belongs in the producer readiness block", common);
+  } else if (!block) {
+    try { writeBack(); } catch (e) { return errored(issue, `spec-unwritable: ${prop(e, "code") || prop(e, "message")}`, common); }
+    return result(issue, "needs-judgement", { reason: "no-readiness-block", ...common });
+  } else if (embedded === undefined) {
+    return errored(issue, "readiness-block-unparseable", common);
   }
-  if (extraction === null || typeof extraction !== "object" || Array.isArray(extraction)) return errored(issue, "readiness-extraction-not-an-object", common);
+  if (!isRecord(extraction)) return errored(issue, "readiness-extraction-not-an-object", common);
   const fold = computeSpecReadiness({ ...extraction, provenance_present: /^> Spec:/m.test(text) });
   if (fold.failLoud) return errored(issue, `readiness-fail-loud: ${fold.failLoud}`, common);
   const violations: string[] = [...fold.contractData.violations];
@@ -444,7 +478,7 @@ function cmdPrep(args: string[], depsOverride?: PrepDeps): number {
   if (!ISSUE_RE.test(issue)) return bad(`--issue must match ${ISSUE_RE.source}`, "--issue");
   const modes = ["--spec", "--confirm", "--park"].filter((f) => values[f] !== undefined);
   if (modes.length !== 1) return bad("exactly one of --spec, --confirm and --park is required");
-  const stageOnly = ["--mode", "--git-only", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
+  const stageOnly = ["--mode", "--git-only", "--fresh", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
   if (modes[0] !== "--spec" && stageOnly.length) return bad(`${stageOnly.join(", ")} only apply with --spec`);
   if (modes[0] !== "--confirm" && values["--comment-id"] !== undefined) return bad("--comment-id only applies with --confirm", "--comment-id");
 
@@ -463,7 +497,7 @@ function cmdPrep(args: string[], depsOverride?: PrepDeps): number {
   let res: PrepResult;
   try {
     if (modes[0] === "--spec") {
-      res = stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
+      res = stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], fresh: !!values["--fresh"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
     } else if (modes[0] === "--confirm") res = confirm({ issue, commentId: values["--comment-id"], root }, deps);
     else res = park({ issue, root }, deps);
   } catch (e) { res = errored(issue, `unexpected: ${e && prop(e, "message") ? prop(e, "message") : e}`); }

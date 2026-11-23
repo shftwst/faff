@@ -103,9 +103,7 @@ Before emitting the spec + self-rating, dispatch a **clean-context subagent** to
 
 **Acting on findings.** `blocker` (spec is wrong about a codebase fact, false `**Assumes:**`, or a `**Chosen:**` that contradicts established convention) → revise: apply the fix, or convert the affected `**Chosen:**` to a `**Punt:**` noting the conflict; if it can't be fixed without architectural reframing, return a `low` rating with the blocker noted so the caller parks. `major` (vague AC, scope creep, a missed edge case the codebase shows is relevant) → fix where mechanical, else leave as `**Punt:**` with the reviewer's note. `minor` → fold where trivial, else note.
 
-**Self-rating downgrade rule.** ≥1 `blocker` or ≥3 `major` review findings cap the spec at `medium`, never `high`, regardless of its pre-review rating or size.
-
-**Return the review.** Emit the review's findings + the resolution decisions (what was applied, what was left as `**Punt:**`, what was dismissed and why) alongside the spec, so the caller can log the audit trail. A missing review record is a process failure.
+**Return the review.** Include each original finding's severity in the readiness block's `self_review` array, including fixed or dismissed findings. Append one `"major"` per entry in the recheck's `major` array, even when an entry names several units. Use `[]` only after a completed review found none. Return findings and resolutions alongside the spec for the prep log. Missing review evidence is a process failure.
 
 **When NOT to run.** Only when the caller signals a **narrowing-only refresh** — the original spec was already vetted and is being scoped down to a remaining delta, not redrafted whole-cloth. The caller owns that signal; absent it, the review runs.
 
@@ -119,11 +117,11 @@ confidence: high | medium | low
 
 The three levels and the gate each maps to are part of the **fixed spec-readiness contract** in the gateway (_Spec readiness (fixed)_), which also defines the line's format. Either way, this skill emits it, it does not define it. In short: `high` = every decision marked, no open questions, DONE mirrors the body; `medium` = an open `**Punt:**` item that `faff punt-scan` does not report `eligible`, or patchy explore findings; `low` = significant unknowns or possible split. Rate open decisions, not polish: a slip the builder can settle without making a new decision (a field missing from one example, an obvious unstated default) is fixed in the draft and does not lower the rating. A Punt is eligible only when it is tagged `(non-blocking)` **and** cross-referenced under OUT OF SCOPE; prose saying it does not block does not make it eligible. A spec whose only open items are eligible Punts can self-rate `high`. This is a mechanical read of the scanner, never a self-certification of the tag; tag honesty is the spec-review lens's call.
 
-Faff-prep consumes this line for its autonomous gate (`high` → promote; `medium` → attach + flag for human review; `low` → park). **Retain it on the attached spec** as durable provenance and a re-spec signal. `/faff-tidy` reconciles it against later comments/codebase drift in spec-health; routing treats retained `confidence: medium` as `needs-decision-first`.
+Prep stages the effective rating for routing and later spec-health checks. When returning a fresh spec outside prep, apply `faff contract spec-readiness` to its block and retain the returned confidence in both the line and block.
 
 ## Contract artifact
 
-Emit the final readiness block per gateway → **Spec readiness (fixed)**.
+Emit the gateway's **Spec readiness (fixed)** example shape. In the JSON, `decisions` is an array of marker objects and `self_review` an array of severities.
 
 ## Rules
 

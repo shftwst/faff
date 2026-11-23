@@ -29,6 +29,16 @@ function computeSpecReadiness(extraction) {
   if (!["high", "medium", "low"].includes(extraction.confidence)) {
     return { contractData: null, failLoud: `confidence ${JSON.stringify(extraction.confidence)} not in {high,medium,low}` };
   }
+  let confidence = extraction.confidence;
+  if (Object.hasOwn(extraction, "self_review")) {
+    const findings = extraction.self_review;
+    if (!Array.isArray(findings) || !findings.every((severity) => ["blocker", "major", "minor"].includes(severity))) {
+      return { contractData: null, failLoud: "self_review must be an array of blocker, major or minor severities" };
+    }
+    if (confidence === "high" && (findings.includes("blocker") || findings.filter((s) => s === "major").length >= 3)) {
+      confidence = "medium";
+    }
+  }
   const violations = [];
   const decisions = extraction.decisions.map((d, i) => {
     const classification = MARKER_CLASS[d && d.marker];
@@ -37,7 +47,7 @@ function computeSpecReadiness(extraction) {
   }).filter((d) => d.classification);
   if (extraction.provenance_present === false) violations.push("provenance stamp missing");
   return {
-    contractData: { confidence: extraction.confidence, decisions, markers_valid: violations.length === 0, violations },
+    contractData: { confidence, decisions, markers_valid: violations.length === 0, violations },
     failLoud: null,
   };
 }

@@ -52,7 +52,7 @@ The agile-delivery lens checks sizing (split independent concerns or merge insep
 
 ## Spec contract
 
-Every produced or refreshed spec must satisfy the **fixed spec-readiness contract in the gateway** (_Spec readiness (fixed)_): canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), marker rules, skimmable-not-coded style, confidence and provenance stamp. Pass the contract to the producer and **validate against it before attach via the consumer-fold below**. The retired `spec_adaptor` is replaced by producer-emitted, consumer-parsed conformance. Elsewhere, "_spec contract_" means this gateway contract.
+Every produced or refreshed spec must satisfy the **fixed spec-readiness contract in the gateway** (_Spec readiness (fixed)_): canonical decision markers (`**Chosen:**` / `**Punt:**` / `**Assumes:**`), marker rules, skimmable-not-coded style, confidence and provenance stamp. Pass the gateway's JSON example with the contract. Stage the result before attaching it. The retired `spec_adaptor` is replaced by producer-emitted, consumer-parsed conformance. Elsewhere, "_spec contract_" means this gateway contract.
 
 **Validation — the consumer-fold.** faff-prep is the consumer of the producer's `faff-contract:spec-readiness` block. `faff prep attach` runs the fold at stage: it locates the single block, parses it, adds `provenance_present` from the stamp it has just written, and runs the spec-readiness contract, the sole source of contract data. A producer that emitted no block yields `needs-judgement:no-readiness-block`: read the markers and confidence from the spec prose into extraction JSON (`{ confidence, decisions }`, the only surviving LLM seam), write it to a file, and stage again with `--extraction <file>`. Autonomous `invalid` → park; interactive `invalid` → add the missing markers and stage again.
 
@@ -61,7 +61,7 @@ Every produced or refreshed spec must satisfy the **fixed spec-readiness contrac
 Same-turn attach is a **mechanical guarantee**: `faff prepcheck --hook` blocks session end on a produced-but-not-attached spec, reading the `.faff/prep/<ISSUE>.json` marker that `faff prep attach` writes before any step that can fail. The command also writes the provenance stamp the gateway's _Spec readiness (fixed)_ defines, the retained `build-tier:` line, the retained advisory `admissibility:` line (the `faff admissible --lights-out` result, which never changes the token) and the marker's `spec_sha256`, which graft's `faff spec commit` checks against the posted spec.
 
 - **When.** Stage the instant the `spec` slot returns, before rendering the spec into the conversation, on every attach path: Scenario A, Scenario B refresh or iterate, autonomous Path 1 and Path 2. Stage again before every re-post (a revise round, the retained `spec-review:` line, the methodology critique, a refresh). Stage replaces the stamp and tier lines; it never duplicates them.
-- **Stage.** `faff prep attach --issue <ISSUE> --spec <spec-file> --mode interactive|autonomous [--git-only] [--gate-history N] --json`. `--mode` is `autonomous` under the autonomous-mode signal, else `interactive`; `N` is the issue's prior park or needs-human count when prep has it to hand.
+- **Stage.** `faff prep attach --issue <ISSUE> --spec <spec-file> --mode interactive|autonomous [--fresh] [--git-only] [--gate-history N] --json`. Pass `--fresh` on each fresh production or redraft, including Path 2's narrowed re-dispatch. Omit it on an already-vetted narrowing-only refresh. Use the returned confidence for routing. `N` is the prior park or needs-human count when known.
 - **Confirm.** After `save_comment` returns, `faff prep attach --issue <ISSUE> --confirm --comment-id <returned id> --json`. Confirm re-hashes the staged file and refuses if it changed since stage.
 - **Park.** On a by-design park, `faff prep attach --issue <ISSUE> --park --json` records `disposition:"parked"`, so `prepcheck` does not false-block a legitimate non-attach.
 - **Promote (interactive).** Before any move to Todo, a human accept included, read `.faff/prep/<ISSUE>.json`: promote only when it reads `attached: true` with an `admissibility` object (otherwise stage, post and confirm again), print its `admissibility`, and when it is refused or names prose scenarios offer revise the scenarios (recommended), promote anyway, or leave in Backlog. The human may promote an inadmissible spec; the retained line records it. Autonomous prep does not act on it.
@@ -254,13 +254,13 @@ When the deadline fires with no verdict and no outage, interactive prep surfaces
 
 ## Spec quality bar (owned by the producer)
 
-The **producer** owns fresh-spec clean-context review: a fresh-context subagent checks every claim against the codebase before trust. The default producer's _Self-review before returning_ (`faffter-noon-spec/SKILL.md`) runs for every fresh spec regardless of size, uses `blocker`/`major`/`minor`, and forbids self-rated `high` with ≥1 blocker or ≥3 major. Prep trusts the returned self-rating and markers, applies its own gates and never repeats that review.
+The producer verifies fresh specs against the codebase. Both bundled producers return the self-review severities in their readiness block. Stage requires them on fresh production and retains the confidence returned by the readiness contract. Custom producers may supply the same evidence.
 
 What prep still owns around the producer's output:
 
 - **Marker validation** via the consumer-fold (`faff prep attach` stage, see _Spec contract_) before attach (autonomous failure → park; interactive → add the missing marker).
 - **Logging.** Append the producer's returned review findings + resolutions to the prep log (`.faff/logs/YYYY-MM-DD/HHMMSS-prep-ISSUE-XX.md` or `.faff/runs/<run-id>/ISSUE-XX/prep.md`) alongside prep's own decisions. A missing review record from the producer is a process failure — prep notes it. The narrative `HHMMSS-prep-ISSUE-XX.md` write is subject to the gateway logging gate (skip the narrative write when `logging: essential`); the `runs/<run-id>/ISSUE-XX/prep.md` resume artifact is hard floor and written regardless.
-- **The confidence gate** (`high` → promote; `medium` → attach + retain; `low` → park), applied to whatever rating the producer returns.
+- **The confidence gate** uses the staged rating: high promotes, medium attaches for review, low parks.
 
 **Refresh exemption.** On the stale-refresh path (Path 1 in autonomous), prep refreshes an already-vetted spec itself rather than re-invoking the producer — a scoped, annotated change, not a whole-cloth redraft — so the producer's self-review does not re-fire. If a refresh would require a whole-cloth redraft, prep re-invokes the producer (which self-reviews) instead — and because a redraft is fresh spec production, the conditional **Architecture proposal step** (below) runs first, exactly as on the fresh-spec paths (the superseded spec's own proposal block is what is being redrafted, so it does not count as the trigger's existing sibling proposal).
 
@@ -383,11 +383,7 @@ Carry the findings into the Step-2 spec on narrow or proceed. Use the same share
 
 **Step 2: Spec** (delegated to the `spec` slot)
 
-Run `faff dispatch prepare-producer spec` and follow gateway → **Producer dispatch** with the issue context and explore findings. The producer self-reviews in context when it is a subagent. Its tool result contains the spec, review findings and `confidence:` rating. Attach the content as an issue comment and clean up the producer's local file, if any.
-
-**Stage the spec the instant the producer returns**, before rendering (_Stage and attach_ above, `--mode interactive`). Fix an `invalid` spec's missing markers and stage again. Log the producer's returned review findings + resolutions to the prep log.
-
-**→ Immediately attach the spec:** post `body_path` as a comment on the issue, then confirm (_Stage and attach_ above).
+Run `faff dispatch prepare-producer spec` and follow gateway → **Producer dispatch** with the issue context, explore findings and spec contract. The dispatched producer self-reviews in context. Before rendering its output, run the shared stage command with `--mode interactive --fresh` and use the returned confidence. Fix missing markers on `invalid` and stage again. Log findings and resolutions, post `body_path` as the issue comment, confirm, then clean up the producer's local file.
 
 **→ Run the Spec-review gate** (the approach-critique consumer-fold above) on the attached spec, **after** confidence rating and **before** promotion. Surface the verdict + any lensed objections to the user (canonical semantics: `faff contract spec-review-verdict --describe`); the approving verdict proceeds to the steps below, the fixable-in-place verdict or a prep-destined reject-approach loops in place (bounded by the gate's cap), a plot-destined reject-approach surfaces the slice for `/faff-plot`, and the human-judgement verdict (or a contract failure) parks. Only an `approve` — composed with the confidence gate — promotes:
 - If the spec surfaced that the issue should be split, recommend the split
@@ -549,9 +545,9 @@ Always delegated to the `spec` slot (default `faffter-noon-spec`) — autonomous
 
 **Step 2 — run the shared already-shipped scan + premise-superseded gate** (above) on the just-produced spec: **Park** (substantially delivered) exits Path 2 immediately, citing Done ticket IDs in the park comment; **Proceed** (premise holds) continues to Step 3; **Narrow** (partially delivered) is handled per the subroutine — for Path 2 that means re-invoking the producer on the narrowed scope (its self-review fires). Continue to Step 3.
 
-**Step 3 — validate and gate the spec.** **Stage the spec the instant the producer returned**, before any rendering (_Stage and attach_ above, `--mode autonomous`). (Confirm after each successful attach below; on either `park` outcome, `--park`.) The producer already ran its clean-context self-review and returned a `confidence:` self-rating in Step 1 — prep does **not** re-review; it trusts the producer's rating and logs the returned review findings. The rating means:
+**Step 3: validate and gate the spec.** Stage with `--mode autonomous --fresh` before rendering. Log the returned review findings. Use stage's confidence for the gate below, confirm each successful attach, and run `--park` on a park.
 
-- `high` — every non-trivial decision has a `**Chosen:**` marker with rationale, no `**Punt:**` escalates a genuine product/architecture question, the ACs are concrete and testable, and the self-review surfaced no `blocker` / fewer than 3 `major`.
+- `high`: each non-trivial decision has a reasoned `**Chosen:**`, no `**Punt:**` escalates a genuine product or architecture question, and the ACs are concrete and testable.
 - `medium` — mostly clean but 1–2 substantive `**Punt:**` markers, thin rationale a human would want to weigh in on, or a self-review that forced a downgrade.
 - `low` — multiple `**Punt:**` markers, intent the explore couldn't pin down, or a self-review `blocker` that needed architectural reframing.
 

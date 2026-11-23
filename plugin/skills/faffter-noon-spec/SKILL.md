@@ -75,7 +75,7 @@ Motivation to verifiable done, in four phases. Every non-trivial decision carrie
 
 ### 4. DONE — Definition of Done (closed-loop)
 
-- A testable checklist mirroring the body sections 1:1. Every WHY/WHAT/HOW requirement gets a matching DONE item. Missing DONE items reveal untestable requirements; orphaned DONE items reveal ungrounded ones.
+- Write `- [ ]` checkboxes. Each WHY/WHAT/HOW requirement has a testable DONE item, and each item maps back to a requirement.
 - Each item concrete enough to write a test against. "Works correctly" is not a DONE item; "returns 401 with body `{ error: \"session_expired\" }`" is.
 - Put a check the running system cannot show (a repository test file passing, a symbol being exported) in its own DONE item, apart from any CLI or HTTP behaviour. `faff dod classify` sends such an item to the review/merge test floor, so behaviour stated in the same item is not judged by the holdout.
 - Tag a done-item only a person can check with `needs-human: <reason>`, after any `[ac-N]` id. Every other done-item must be machine-checkable.
@@ -84,7 +84,7 @@ Motivation to verifiable done, in four phases. Every non-trivial decision carrie
 
 ## Self-review before returning (mandatory, all sizes)
 
-**Draft check before review.** Pipe the draft to `faff admissible --spec - --author-diagnostics`. Count each `major` entry once. Rewrite its named units with an observable Then, MUST or comparator. Move each `test_file` check into its own DONE item. For `done_check`, tag person-only items `needs-human: <reason>`, fix or remove empty markers, make other checks runnable and keep at least one untagged item. Recheck once and retain unresolved findings for the rating cap. Log `notes` or a command failure without blocking the spec.
+**Draft check before review.** Pipe the draft to `faff admissible --spec - --author-diagnostics`. Count each `major` entry once. Rewrite its named units with an observable Then, MUST or comparator. Move each `test_file` check into its own DONE item. For `R2a.done-present`, write the required DONE checkboxes. For human-marker findings, tag person-only items `needs-human: <reason>`, fix or remove empty markers, make other checks runnable and keep at least one untagged item. Recheck once and retain unresolved findings for the rating cap. Log `notes` or a command failure without blocking the spec.
 
 Before emitting the spec + self-rating, dispatch a **clean-context subagent** to check it against the codebase. Fresh context checks missed conventions, architectural fit, vague ACs, codebase-answerable `**Punt:**` items, false `**Assumes:**` and scope creep from the spec and codebase alone, as `/faff-graft` will. This is the default producer's delegated quality responsibility, mandatory for **every** fresh spec in both modes, regardless of size, in addition to marker conformance and self-rating. **When this producer is itself dispatched as a subagent** (gateway → **Sibling-skill invocation → Producer dispatch**), verify **in-context** in a fresh-reasoning pass with spec and codebase instead of nesting another subagent. Every claim still needs codebase verification before the spec is trusted.
 
@@ -109,7 +109,7 @@ Before emitting the spec + self-rating, dispatch a **clean-context subagent** to
 
 ## Confidence self-rating
 
-End the output with a confidence line on its own:
+End the spec with its confidence line:
 
 ```
 confidence: high | medium | low

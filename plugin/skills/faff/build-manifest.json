@@ -23,7 +23,7 @@
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
     "bin/lib/discovered-scope-plan.ts": "d35a35defe898fdabdc65275209fdbe2e1e139e1ddb96c3aea9f2c934ff8cb05",
     "bin/lib/dispatch-prepare.ts": "bbdcd2d5a8b085c6119dcdc878d61bee29b6542141142fee46e00d23e1d943a0",
-    "bin/lib/dispatch-producer.ts": "7d95f15e30fa1c092813720036d3e6fb056ce4fd5e0c0210d9426153f03f3a1a",
+    "bin/lib/dispatch-producer.ts": "eb3a3ecb99348e185db77e8796ca202c0ef312006f7478294a1a03a4347c446c",
     "bin/lib/dispatch-verify.ts": "d2034ebec5743352f7f598ff1e2467e151ba69111052bbd019f1e06abcd08cf1",
     "bin/lib/gates-progress.ts": "1b6a6a24ee5c19de679f18d85defef0871e8dcaef0a140f854e19a2001fc8394",
     "bin/lib/governor-admin.ts": "e8acab0a5166c8138265c9cd514f86269ca932a80be746e963588e863946bc02",
@@ -88,7 +88,7 @@
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
     "bin/lib/discovered-scope-plan.js": "6ea08ef35853a48c80d6759cd42b85a3cd0711224bd4ef4831abfc78d5e74523",
     "bin/lib/dispatch-prepare.js": "b698c1bdb0b55e0a894e054d08097271d6bdc49facd6303474bd94659717a121",
-    "bin/lib/dispatch-producer.js": "2b2f9532878467728c6c33a24cf04776620c4b24972d386f38f8cc138bcfb77d",
+    "bin/lib/dispatch-producer.js": "23271a7a337197852dff686ad32880e08634ca4458316f00cb3745b8e2c8eb93",
     "bin/lib/dispatch-verify.js": "566d1bd51d73263b02ae6f0c163795e1e7231723d96923f6cc5011a7d9f1e336",
     "bin/lib/gates-progress.js": "403f7af8db98e136131c60f71d9321156ab240e08556e1961d51bd52d34a3ba9",
     "bin/lib/governor-admin.js": "fc92a97038713648e89fba10f9a33545c218c85353cc571905bc472c346160ee",
@@ -142,5 +142,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "e86514dfd94ac3499fe4801ab54527a2dcf20e55c0ceebd10248c860fe172306"
+  "output_digest": "d15c2b3787c6d2fa7ef041842aebaeb417046f24fb9a793961bcc85068793f86"
 }

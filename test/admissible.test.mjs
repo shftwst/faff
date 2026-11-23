@@ -37,8 +37,7 @@ test("--selftest verdict table passes (exit 0)", () => {
   const r = run(["--selftest"]);
   assert.equal(r.status, 0, r.stdout + r.stderr);
   assert.match(r.stdout, /RESULT: PASS/);
-  // every spec'd branch is named in the table
-  for (const name of ["admissible", "R1-fail", "R2a-fail", "R2b-fail", "R3-advisory-warn", "unparseable-failsafe", "scope-inactive"]) {
+  for (const name of ["admissible", "R1-fail", "R2b-fail", "R3-advisory-warn", "unparseable-failsafe", "scope-inactive"]) {
     assert.match(r.stdout, new RegExp(name));
   }
 });
@@ -70,6 +69,9 @@ test("R2a-fail: empty DONE checklist → exit 1, inadmissible, reason cites DONE
   const v = verdict(r);
   assert.equal(v.admissible, false);
   assert.ok(v.reasons.some((x) => /DONE checklist/i.test(x)));
+  const author = run(["--author-diagnostics"], bad);
+  assert.equal(author.status, 0, author.stderr);
+  assert.ok(verdict(author).major.some(finding => finding.done_check === "R2a.done-present"));
 });
 
 test("R2b-fail: a vague DONE item ('works correctly') → exit 1, inadmissible, reason cites vague DONE", () => {
@@ -507,6 +509,20 @@ test("author diagnostics retain disjoint findings and leave a clean draft clear"
   const good = run(["--author-diagnostics"], GOOD);
   assert.equal(good.status, 0, good.stderr);
   assert.deepEqual(verdict(good), { major: [], notes: [] });
+});
+
+test("author catches plain DONE bullets with the same finding as build admission", () => {
+  const plain = GOOD.replaceAll("- [ ] ", "- ");
+  const gate = run(["--lights-out", "--json"], plain);
+  assert.equal(gate.status, 1);
+  const missing = verdict(gate).checks.find(check => check.id === "R2a.done-present");
+  assert.equal(missing.pass, false);
+
+  const author = run(["--author-diagnostics"], plain);
+  assert.equal(author.status, 0, author.stderr);
+  assert.deepEqual(verdict(author).major, [{ done_check: missing.id, detail: missing.detail }]);
+  assert.deepEqual(verdict(run(["--author-diagnostics"], GOOD)).major, []);
+  assert.equal(run(["--lights-out", "--json"], GOOD).status, 0);
 });
 
 test("author reports the same DONE human-marker failures as the actual lights-out gate", () => {

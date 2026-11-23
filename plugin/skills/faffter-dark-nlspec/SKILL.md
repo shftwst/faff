@@ -225,7 +225,7 @@ Only include appendices when the body would become unreadable without extracting
 
 ## Confidence self-rating
 
-End the output with a confidence line on its own:
+End the spec with its confidence line:
 
 ```
 confidence: high | medium | low

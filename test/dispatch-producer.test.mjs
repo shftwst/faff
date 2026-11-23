@@ -1,8 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { repoRoot, runCli } from "./helpers/run-cli.mjs";
 
 function project(t, base = "", overlay) {
@@ -118,4 +119,86 @@ test("prep uses producer handoffs for spec, review and conditional architecture"
     assert.ok(prep.includes("faff dispatch prepare-producer " + lane + "`"));
   }
   assert.match(prep, /prepare-producer architecture` \(add `--in-context` when prep is a subagent\)/);
+});
+
+test("shared spec handoffs allocate private distinct paths for both bundled Agent writers", t => {
+  const scratch = project(t);
+  const env = { ...process.env, TMPDIR: scratch, TEMP: scratch, TMP: scratch };
+  const seen = new Set();
+  for (const occupant of ["faffter-noon-spec", "faffter-dark-nlspec", "faffter-dark-nlspec"]) {
+    const root = project(t, "slots:\n  spec: " + occupant + "\n");
+    const handoff = JSON.parse(output(runCli(["dispatch", "prepare-producer", "spec", "--shared-spec-files"], { cwd: root, env })));
+    assert.equal(handoff.occupant, occupant);
+    assert.equal(handoff.transport, "agent");
+    const { spec, review } = handoff.output_files;
+    const dir = dirname(spec);
+    assert.equal(dirname(review), dir);
+    assert.equal(dirname(dir), scratch);
+    assert.equal(seen.has(dir), false);
+    seen.add(dir);
+    assert.deepEqual(readdirSync(dir), []);
+    assert.equal(statSync(dir).mode & 0o077, 0);
+    const body = "# A change\n\n**Chosen:** Preserve rows.\n\nconfidence: high\n\n```faff-contract:spec-readiness\n" +
+      JSON.stringify({ confidence: "high", decisions: [{ marker: "chosen" }], self_review: [] }) + "\n```\n";
+    writeFileSync(spec, body);
+    writeFileSync(review, "Reviewed; no findings.\n");
+    const staged = JSON.parse(output(runCli(["prep", "attach", "--issue", "EX-17", "--spec", spec, "--mode", "autonomous", "--fresh", "--git-only", "--json"], { cwd: root, env })));
+    assert.equal(staged.token, "attached");
+    assert.equal(staged.confidence, "high");
+    const attached = readFileSync(join(root, ".faff", "specs", "EX-17.md"), "utf8");
+    assert.match(attached, /Preserve rows/);
+    assert.doesNotMatch(attached, /no findings/);
+  }
+});
+
+test("custom specs keep their transport and unsupported engines or invalid file requests allocate nothing", t => {
+  const scratch = project(t);
+  const env = { ...process.env, TMPDIR: scratch, TEMP: scratch, TMP: scratch };
+  const before = readdirSync(scratch);
+  const custom = project(t, "slots:\n  spec: team:spec\n");
+  const remote = project(t, "engines:\n  local:\n    provider: vllm\n    model: m1\n    host: http://h.test:8000\ndispatch:\n  spec:\n    model: engine:local\n");
+  for (const root of [custom, remote]) {
+    const ordinary = runCli(["dispatch", "prepare-producer", "spec"], { cwd: root, env });
+    const files = runCli(["dispatch", "prepare-producer", "spec", "--shared-spec-files"], { cwd: root, env });
+    assert.deepEqual(files, ordinary);
+    if (root === custom) assert.equal(JSON.parse(output(files)).validation, "validate");
+    else assert.equal(files.code, 2);
+  }
+  for (const args of [["methodology"], ["spec", "--in-context"], ["spec", "--fresh-adversarial"]]) {
+    const result = runCli(["dispatch", "prepare-producer", ...args, "--shared-spec-files"], { cwd: custom, env });
+    assert.equal(result.code, 2);
+    assert.equal(result.stdout, "");
+  }
+  assert.deepEqual(readdirSync(scratch), before);
+});
+
+
+test("prep logs the worker review without printing it or continuing from missing evidence", t => {
+  const root = project(t);
+  const spec = join(root, "prepared spec.md");
+  const review = join(root, "self review.md");
+  const prep_log = join(root, "prep log.md");
+  const skill = readFileSync(join(repoRoot, "plugin/skills/faff-prep/SKILL.md"), "utf8");
+  const [, record] = skill.match(/`(test -s "\$spec"[^`]+)` before staging/);
+  const run = (logPath = prep_log) => spawnSync("bash", ["-c", record + " && printf staged"], {
+    encoding: "utf8", env: { ...process.env, spec, review, prep_log: logPath },
+  });
+  writeFileSync(spec, "# Draft\n");
+  writeFileSync(prep_log, "Prior log\n");
+  assert.notEqual(run().status, 0);
+  writeFileSync(review, "");
+  assert.notEqual(run().status, 0);
+  assert.equal(readFileSync(prep_log, "utf8"), "Prior log\n");
+  writeFileSync(review, "One finding and its resolution.\n");
+  const ready = run();
+  assert.equal(ready.status, 0);
+  assert.equal(ready.stdout, "staged");
+  assert.equal(readFileSync(prep_log, "utf8"), "Prior log\nOne finding and its resolution.\n");
+  const essential = run("");
+  assert.equal(essential.status, 0);
+  assert.equal(essential.stdout, "staged");
+  assert.equal(readFileSync(prep_log, "utf8"), "Prior log\nOne finding and its resolution.\n");
+  writeFileSync(spec, "");
+  assert.notEqual(run("").status, 0);
+  assert.notEqual(run().status, 0);
 });

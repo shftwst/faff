@@ -109,7 +109,7 @@ Before emitting the spec + self-rating, dispatch a **clean-context subagent** to
 
 ## Confidence self-rating
 
-End the output with a confidence line on its own:
+End the spec with its confidence line:
 
 ```
 confidence: high | medium | low

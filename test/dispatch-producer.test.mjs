@@ -62,6 +62,30 @@ test("engine producers retain the engine, effort and first-use check", t => {
   assert.equal(compare(root, "intake", true).transport, "in-context");
 });
 
+test("only a ready fresh handoff to the bundled adversarial reviewer can use the CLI", t => {
+  const dark = "slots:\n  spec_review: faffter-dark-spec-review\n";
+  for (const [base, overlay, wanted] of [
+    [dark, "", "spec-review-cli"],
+    [dark, "dispatch:\n  spec_review:\n    model: opus\n", "agent"],
+    [dark, "dispatch:\n  spec_review:\n    effort: high\n", "agent"],
+    [dark, "slots:\n  spec_review: team:reviewer\n", "agent"],
+    ["", "", "agent"],
+  ]) {
+    const root = project(t, base, overlay);
+    const args = ["dispatch", "prepare-producer", "spec_review", "--root", root];
+    const ordinary = JSON.parse(output(runCli(args)));
+    assert.equal(ordinary.transport, "agent");
+    const fresh = JSON.parse(output(runCli([...args, "--fresh-adversarial"])));
+    assert.deepEqual(fresh, { ...ordinary, transport: wanted });
+  }
+  const bad = project(t, dark + "dispatch:\n  spec_review:\n    effort: typo\n");
+  for (const flags of [["spec_review", "--in-context"], ["architecture"], ["spec_review"]]) {
+    const result = runCli(["dispatch", "prepare-producer", ...flags, "--fresh-adversarial", "--root", bad]);
+    assert.equal(result.code, 2);
+    assert.equal(result.stdout, "");
+  }
+});
+
 test("an in-context invocation still validates the occupant and inherits the existing session", t => {
   const root = project(t, "slots:\n  architecture: foreign:architecture\ndispatch:\n  spec:\n    effort: bogus\n");
   assert.deepEqual(compare(root, "architecture", true), {

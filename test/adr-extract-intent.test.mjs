@@ -170,8 +170,12 @@ test("Step 4b selects the tracker comment or the spec path returned in Step 4", 
 });
 
 test("wiring: all four Step 4b sub-steps (scaffold / author / 3b supersede / commit) are textually unchanged", () => {
-  const md = readFileSync(SKILL_MD, "utf8");
-  const block = extractStep4bBlock(md);
+  const entry = extractStep4bBlock(readFileSync(SKILL_MD, "utf8"));
+  const target = "references/materialise-decisions.md";
+  assert.match(entry, /`off` or `absent` skips this step/);
+  assert.ok(entry.indexOf(target + "#adr-promotions") > entry.indexOf("`off` or `absent` skips"));
+  const reference = readFileSync(join(dirname(SKILL_MD), target), "utf8");
+  const block = reference.split("## ADR promotions")[1].split("## Decisions-register entries")[0];
 
   // Spot-check load-bearing fragments from each unchanged sub-step — a change to any of these
   // (FAFF-969's territory or an accidental edit) fails this test rather than shipping silently.
@@ -181,7 +185,6 @@ test("wiring: all four Step 4b sub-steps (scaffold / author / 3b supersede / com
   assert.match(block, /3b\. \*\*Detect contradictions \+ offer\/admit supersession/);
   assert.match(block, /4\. \*\*Fill \+ commit\*\* the scaffold's three sections/);
 
-  assert.match(block, /`off` or `absent` skips this step/);
 });
 
 test("the edited SKILL.md passes the authoring gate", () => {

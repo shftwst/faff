@@ -319,8 +319,12 @@ async function runBudgetedLadder(root, opts) {
   let ceilingHit = false;
   const inflight = new Set();
   const timers = [];
-  const cutAll = () => { for (const h of inflight) if (h.cut) h.cut(); };
+  const cutAll = () => {
+    if (opts.renewUntil) opts.renewUntil(0);
+    for (const h of inflight) if (h.cut) h.cut();
+  };
   const armTimers = () => {
+    if (opts.renewUntil) opts.renewUntil(performance.now() + ceilingMs);
     timers.push(setTimeout(() => {
       expired = true;
       if (newRecords > 0) { cutAll(); return; }

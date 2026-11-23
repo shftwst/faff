@@ -6,18 +6,20 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
+const { Worker, isMainThread, parentPort, workerData } = require("node:worker_threads");
 const { parseArgs, usageError } = require("./argv");
 const { contractQualityGates } = require("./contract-defs");
+const { cmdHeartbeat, isValidIssueId } = require("./heartbeat");
 const { findRoot } = require("./shared-infra");
 const { defaultShardConcurrency, readGatesConfig, safeAvailableParallelism } = require("./gates-config");
 const { CI_COST_PENALTY, GATE_COST, ciRunnerKind, discoverCiWorkflows, discoverRungs, extractRunCommands, runnerKindForName } = require("./gates-discover");
 const { discoverRungsReporting, extractRunCommandsWithContext, reportKind } = require("./gates-report");
 const { aggregateShardResults, globToRegExp, runRung, runShardedRung, rungCwd, shardCapable } = require("./gates-exec");
 const { aggregateSelftest, applyPartialPolicy, capPerKind, exclusionReason, runLadder, selectRunnableRungs } = require("./gates-select");
-const { GatesProgressError, MAX_BUDGET_SECS, clearProgress, isGitWorkTree } = require("./gates-progress");
+const { GatesProgressError, MAX_BUDGET_SECS, graceSecs, clearProgress, isGitWorkTree } = require("./gates-progress");
 
-const GATES_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--budget-secs": { arity: 1 }, "--resume": { arity: 0 }, "--clear-progress": { arity: 0 } }, positionals: { min: 0, max: 1, name: "action" } };
-const GATES_USAGE = "usage: faff gates <discover|run> [--json] [--root DIR] [--budget-secs N] [--resume]\n       faff gates run --clear-progress [--root DIR]";
+const GATES_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--root": { arity: 1 }, "--budget-secs": { arity: 1 }, "--resume": { arity: 0 }, "--run-dir": { arity: 1 }, "--unit": { arity: 1 }, "--clear-progress": { arity: 0 } }, positionals: { min: 0, max: 1, name: "action" } };
+const GATES_USAGE = "usage: faff gates <discover|run> [--json] [--root DIR] [--budget-secs N] [--resume]\n       faff gates run (--resume | --budget-secs N) [--run-dir DIR --unit ISSUE] [--json] [--root DIR]\n       faff gates run --clear-progress [--root DIR]";
 // FAFF-628 — declared grammar. Neither `discover` nor `run` unconditionally requires a flag
 // today (both default from --root/findRoot()).
 const GATES_SURFACE = {
@@ -42,6 +44,13 @@ async function cmdGates(args) {
   const json = !!values["--json"];
   const root = values["--root"] || findRoot();
 
+  const bounded = values["--budget-secs"] !== undefined || values["--resume"];
+  if (values["--run-dir"] !== undefined || values["--unit"] !== undefined) {
+    if (action !== "run" || !bounded || values["--clear-progress"] || !values["--run-dir"] || !isValidIssueId(values["--unit"])) {
+      return usageError([{ code: "invalid-value", detail: "heartbeat requires a bounded gates run and both --run-dir DIR and --unit ISSUE" }], GATES_USAGE);
+    }
+  }
+
   if (action === "discover") {
     // FAFF-848 (639a): `discover` renders the REPORTING resolver (discoverRungsReporting) — the
     // wider recognition (invariant lints) + two-tier dedup + Coverage/partial classification.
@@ -56,7 +65,7 @@ async function cmdGates(args) {
     return 0;
   }
 
-  if (action === "run" && (values["--budget-secs"] !== undefined || values["--resume"] || values["--clear-progress"])) {
+  if (action === "run" && (bounded || values["--clear-progress"])) {
     return runBudgeted(root, values, json);
   }
 
@@ -66,6 +75,74 @@ async function cmdGates(args) {
 
   process.stderr.write("faff gates: expected one of: discover | run (or --selftest)\n");
   return 2;
+}
+
+function gateHeartbeat(runDir, unit) {
+  const { readGovernanceConfig } = require("./budget");
+  const { heartbeatStaleSecs } = require("./runcheck");
+  const { sentryThresholds } = require("./sentry");
+  const { DEFAULT_RENEWAL_SECS } = require("./supervisor");
+  const thresholds = sentryThresholds(readGovernanceConfig(findRoot(runDir)));
+  const windowSecs = Math.min(thresholds.stall_window_secs, heartbeatStaleSecs());
+  return {
+    intervalMs: Math.max(1, Math.floor(1000 * Math.min(DEFAULT_RENEWAL_SECS, windowSecs / 3))),
+    tick: () => cmdHeartbeat([runDir, "--unit", unit]),
+  };
+}
+
+async function runConfiguredLadder(root, budgetSecs, resume, renewUntil) {
+  if (budgetSecs === null) {
+    const cfg = readGatesConfig(root);
+    budgetSecs = cfg.run_budget_secs;
+    if (cfg.run_budget_secs_raw !== null && cfg.run_budget_secs_raw > MAX_BUDGET_SECS) {
+      process.stderr.write(`faff gates run: gates.run_budget_secs ${cfg.run_budget_secs_raw} is above ${MAX_BUDGET_SECS}; clamped to ${MAX_BUDGET_SECS}\n`);
+    }
+  }
+  return runLadder(root, { budgetSecs, resume, renewUntil });
+}
+
+// Gate discovery and fingerprinting use synchronous Git. Keep them off the thread
+// that owns liveness. Only starting execution establishes a new, bounded deadline.
+async function runTrackedGate(root, budgetSecs, resume, runDir, unit) {
+  const heartbeat = gateHeartbeat(runDir, unit);
+  if (heartbeat.tick() !== 0) throw new GatesProgressError("heartbeat-target", "cannot track the requested run and unit");
+  let deadline = performance.now() + (MAX_BUDGET_SECS + graceSecs(MAX_BUDGET_SECS)) * 1000;
+  let renewal;
+  try {
+    const worker = new Worker(__filename, { workerData: { root, budgetSecs, resume } });
+    renewal = setInterval(() => {
+      if (performance.now() < deadline) heartbeat.tick();
+    }, heartbeat.intervalMs);
+    renewal.unref();
+    return await new Promise((resolve, reject) => {
+      let completed;
+      worker.on("message", (message) => {
+        if (message.deadline !== undefined) deadline = message.deadline;
+        else if (message.failure) reject(new GatesProgressError(message.failure.reason, message.failure.detail));
+        else completed = message.result;
+      });
+      worker.once("error", reject);
+      worker.once("exit", (code) => {
+        if (code === 0 && completed) resolve(completed);
+        else reject(new Error("gate worker exited without a result (exit " + code + ")"));
+      });
+    });
+  } finally {
+    clearInterval(renewal);
+    heartbeat.tick();
+  }
+}
+
+if (!isMainThread && require.main === module) {
+  const { root, budgetSecs, resume } = workerData;
+  const renewUntil = (deadline) => parentPort.postMessage({ deadline });
+  runConfiguredLadder(root, budgetSecs, resume, renewUntil).then(
+    (result) => parentPort.postMessage({ result }),
+    (error) => {
+      if (!(error instanceof GatesProgressError)) throw error;
+      parentPort.postMessage({ failure: { reason: error.reason, detail: error.detail } });
+    },
+  );
 }
 
 // FAFF-1405: `faff gates run --budget-secs N` / `--resume` / `--clear-progress`. Exit 3 means the
@@ -93,16 +170,12 @@ async function runBudgeted(root, values, json) {
     budgetSecs = n;
   }
   if (!isGitWorkTree(root)) return fail("not-a-git-work-tree", "--budget-secs and --resume need a git work tree");
-  if (budgetSecs === null) {
-    const cfg = readGatesConfig(root);
-    budgetSecs = cfg.run_budget_secs;
-    if (cfg.run_budget_secs_raw !== null && cfg.run_budget_secs_raw > MAX_BUDGET_SECS) {
-      process.stderr.write(`faff gates run: gates.run_budget_secs ${cfg.run_budget_secs_raw} is above ${MAX_BUDGET_SECS}; clamped to ${MAX_BUDGET_SECS}\n`);
-    }
-  }
+  const resume = !!values["--resume"];
   let res;
   try {
-    res = await runLadder(root, { budgetSecs, resume: !!values["--resume"] });
+    res = values["--run-dir"]
+      ? await runTrackedGate(root, budgetSecs, resume, values["--run-dir"], values["--unit"])
+      : await runConfiguredLadder(root, budgetSecs, resume);
   } catch (e) {
     if (e instanceof GatesProgressError) return fail(e.reason, e.detail);
     throw e;

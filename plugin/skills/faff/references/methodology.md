@@ -73,26 +73,19 @@ The `methodology` slot answers named questions about backlog and build state. Th
 
 ### Transport (per-output dispatch grain)
 
-Every `methodology` named-output request is a **producer dispatch** (see **Sibling-skill invocation → Producer dispatch**). Resolve the `methodology` dispatch lane and use the grain below. All batches share this envelope:
+Run `faff dispatch prepare-producer methodology` for each dispatch below. When the caller is itself a subagent, add `--in-context` and invoke the occupant in the current context. Follow gateway → **Producer dispatch** for validation and transport.
 
-```
-BATCH REQUEST (the dispatch prompt): requests = ordered [ { output, input: that output's contract-row payload } ]
-BATCH RESPONSE (the tool result): one "## <output-name>" section per request, in request order;
-  an unanswered optional output returns its section marked "unanswered" (caller applies that output's degradation rule).
-```
+Send an ordered `requests` array of `{output, input}` using each contract row's payload. Expect one `## <output-name>` section per request, in order. An optional output can return its section marked `unanswered`. Apply that row's fallback.
 
-| Output(s) | Grain |
+| Request | Dispatch when |
 |---|---|
-| `pick-ordering`, `backlog-diagnostics`, `crank-up-set`, `standup-digest`, `horizon-assignment` — and any read-skill-pass output by default | **Batched-per-pass** — one dispatch after the pass's fetch + graph analysis: one snapshot, N answers, ordering + diagnostics kept mutually consistent |
-| `ticket-shaping` in `/faff-plot` | **Batch-per-altitude** — one dispatch per descent level carrying all confirmed nodes' sub-briefs (levels are sequentially gated; nodes at one altitude shape independently); an `edit` triggers a follow-up node-scoped dispatch |
-| `ticket-shaping` in `/faff-jot` | **Single dispatch** — the degenerate batch; jot shapes once per pass |
-| `prdr-author` (tidy / plot / jot) | **Dispatch-per-request**, per container — each proposal is separately human-gated and arises after a gate; the `faff prdr new` write stays methodology-owned |
-| `rehome-set` (`/faff-plot`) | **Single dispatch per rehome pass** — the caller assembles the whole project-less Backlog set and makes one batched request/response; each proposed grouping is then separately human-gated at apply time (the apply surface, not this dispatch) |
-| Any output, when the calling skill is itself a subagent | **In-context** — the single-level-nesting fallback; the lanes do not apply in-session |
+| Read-skill outputs, including `pick-ordering`, `backlog-diagnostics`, `crank-up-set`, `standup-digest` and `horizon-assignment` | Batch once per pass after fetch and graph analysis. All answers use one snapshot. |
+| Plot `ticket-shaping` | Batch confirmed nodes at each altitude. Finish its human gate before descending. An edit gets a node-scoped follow-up. |
+| Jot `ticket-shaping` | Once per pass. |
+| `prdr-author` | Once per container when its separate gate is reached. The methodology writes with `faff prdr new`. |
+| Plot `rehome-set` | Once for the entire project-less Backlog set. Confirm each grouping at apply time. |
 
-**Follow-up dispatch.** If a request arises after a batch closes, dispatch it separately on the same terms. This includes late conditions, a plot `edit` and a per-project `prdr-author` offer.
-
-**Loud degradation.** On a failed or garbled dispatch, apply each output's unanswered rule and surface **"methodology unavailable this pass"**. Never present a clean result or label a missing `backlog-diagnostics` structural floor `clean ✓`. Interactive may retry once. Autonomous logs and continues.
+A request arising after its batch closes gets a separate dispatch. On a failed or garbled dispatch, surface **“methodology unavailable this pass”** and apply each output's unanswered rule. Never report a missing structural diagnostic as clean. Interactive callers may retry once. Autonomous callers log and continue.
 
 ### Calibration log
 

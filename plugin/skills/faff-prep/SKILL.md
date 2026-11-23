@@ -46,11 +46,9 @@ The spec is high-level design, not step-by-step code changes, TDD cycles or exac
 
 **Methodology critique block (rendered only when a `methodology` skill is configured).**
 
-After the main spec body, **request the `issue-critique` output from the configured methodology** by dispatching it as a producer subagent (gateway → **Sibling-skill invocation → Producer dispatch**, resolving the `methodology` dispatch lane; an `engine:<name>` value forks the dispatch to `faff engine call` per that same gateway rule — a named non-zero exit omits the block and surfaces the failure, never a session-model re-dispatch; the named output is defined at gateway → **The `methodology` slot**) — pass the issue + its spec, and render what the lens returns. faff-prep does not impose the critique's shape; the configured methodology decides what it cares about. If the methodology doesn't answer `issue-critique` (e.g. the thematic default), **omit the block**.
+After the main spec body, request `issue-critique` with the issue and its spec per gateway → **The `methodology` slot** → **Transport (per-output dispatch grain)**. Render the configured lens's answer in its own shape. Omit an unanswered block. On engine failure, surface the failure and omit the block without retrying on the session model.
 
-For reference, the agile-delivery lens answers `issue-critique` along these axes — right-sized? (principle 4: single 1–3 day unit, or two independent concerns → split; always-ships-together sibling → merge), workstream fit? (principles 1+5: outcome-named and cohesive), deps surfaced? (principle 6: implicit dep with no blocker link), risk profile? (principle 7: novel-integration/external-dep risk → de-risking spike) — each rendered as a full what's-there / why / what-to-do diagnosis when there's something to surface, "No issues" when the check passes. A different methodology returns its own axes.
-
-In autonomous prep (e.g. driven by `/faff-beep-boop`'s prep queue), the critique block is written to the spec but does **not** block confidence-high promotion. It surfaces in the next `/faff-wtf` for the human.
+The agile-delivery lens checks sizing (split independent concerns or merge inseparable work), workstream fit, implicit blockers and integration risk. Preserve its diagnosis and suggested action or “No issues”. In autonomous prep, attach the critique for `/faff-wtf`. It never blocks high-confidence promotion.
 
 ## Spec contract
 

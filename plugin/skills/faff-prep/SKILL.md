@@ -478,7 +478,7 @@ Everything else is unchanged: the producer still runs, marker validation and the
 
 When invoked autonomously (by `/faff-beep-boop` during a prep queue drain, or by `/faff-graft` mid-build for respec), follow the shared autonomous contract (see the sibling `faff/references/autonomous.md`) and these specifics:
 
-**Automation-eligibility gate (runs first).** For either autonomous path, pass the fresh entry read's labels to `faff eligible`. If refresh spans turns, fetch them again at the gate (gateway → **Re-ground before gate**). On `false`, return `ineligible` before the already-shipped scan, spec, refresh or promotion. Leave labels and ledger untouched.
+**Automation-eligibility gate (first on either path).** Run `faff eligible` with one `--label "$name"` per fresh entry label. Re-read the labels if refresh spans turns (gateway → **Re-ground before gate**). On stdout `false`, return `ineligible` before the already-shipped scan, spec, refresh or promotion. Leave labels and ledger untouched.
 
 Two allowed auto-spec paths. Both invoke the shared subroutine documented immediately below at the points named in their respective sections.
 

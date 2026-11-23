@@ -509,6 +509,20 @@ test("author diagnostics retain disjoint findings and leave a clean draft clear"
   assert.deepEqual(verdict(good), { major: [], notes: [] });
 });
 
+test("author catches plain DONE bullets with the same finding as build admission", () => {
+  const plain = GOOD.replaceAll("- [ ] ", "- ");
+  const gate = run(["--lights-out", "--json"], plain);
+  assert.equal(gate.status, 1);
+  const missing = verdict(gate).checks.find(check => check.id === "R2a.done-present");
+  assert.equal(missing.pass, false);
+
+  const author = run(["--author-diagnostics"], plain);
+  assert.equal(author.status, 0, author.stderr);
+  assert.deepEqual(verdict(author).major, [{ done_check: missing.id, detail: missing.detail }]);
+  assert.deepEqual(verdict(run(["--author-diagnostics"], GOOD)).major, []);
+  assert.equal(run(["--lights-out", "--json"], GOOD).status, 0);
+});
+
 test("author reports the same DONE human-marker failures as the actual lights-out gate", () => {
   for (const spec of [
     s0Plus("manual confirmation of the layout", "needs-human:"),

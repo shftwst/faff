@@ -819,6 +819,10 @@ function renderOracleLessWarning(adv) {
   return `oracle-less-assertion advisory: ${adv.count} assertion(s) name no observable oracle (a MUST/comparator over internal code the holdout cannot exercise): ${items}`;
 }
 
+function donePresenceCheck(count) {
+  return { id: "R2a.done-present", pass: count >= 1, detail: `${count} DONE checklist item(s) (need >=1)` };
+}
+
 function humanDoneChecks(doneTexts) {
   const marks = doneTexts.map((text) => parseHumanMarker(text));
   const checks = [];
@@ -848,7 +852,7 @@ function admissibleVerdict(specText, lightsOut) {
   }
   const checks = [];
   checks.push({ id: "R1.scenarios", pass: scenarios >= 1, detail: `${scenarios} born-verifiable scenario(s) (need >=1)` });
-  checks.push({ id: "R2a.done-present", pass: doneItems.length >= 1, detail: `${doneItems.length} DONE checklist item(s) (need >=1)` });
+  checks.push(donePresenceCheck(doneItems.length));
   const vague = doneItems.filter((it) => matchesBannedVague(it));
   checks.push({ id: "R2b.done-concrete", pass: vague.length === 0, detail: `${vague.length} vague DONE item(s)${vague.length ? ": " + vague.map((v) => v.replace(/\s+/g, " ").slice(0, 50)).join(" | ") : ""}` });
   checks.push(...humanChecks);
@@ -990,7 +994,7 @@ function authorDiagnosticsForDraft(specText) {
     if (testFile.length > 0) major.push({ test_file: testFile });
   }
   const doneTexts = parseDoneChecklist(specText).map((item) => parseLocalAcId(item).text);
-  for (const { id, pass, detail } of humanDoneChecks(doneTexts)) {
+  for (const { id, pass, detail } of [donePresenceCheck(doneTexts.length), ...humanDoneChecks(doneTexts)]) {
     if (!pass) major.push({ done_check: id, detail });
   }
   return { major, notes };

@@ -38,13 +38,13 @@ const TRACKER_NAMES = { linear: "Linear", github: "GitHub", jira: "Jira" };
 const ATTACH_SPEC = {
     flags: {
         "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--mode": { arity: 1 }, "--git-only": { arity: 0 },
-        "--fresh": { arity: 0 }, "--gate-history": { arity: 1 }, "--extraction": { arity: 1 }, "--confirm": { arity: 0 },
+        "--reviewed": { arity: 0 }, "--fresh": { arity: 0 }, "--gate-history": { arity: 1 }, "--extraction": { arity: 1 }, "--confirm": { arity: 0 },
         "--comment-id": { arity: 1 }, "--park": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 },
     },
     positionals: { min: 0, max: 0 },
 };
 const ATTACH_USAGE = [
-    "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--git-only] [--fresh] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
+    "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--git-only] [--reviewed] [--fresh] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
     "       faff prep attach --issue ID --confirm --comment-id ID [--root DIR] [--json]",
     "       faff prep attach --issue ID --park [--root DIR] [--json]",
 ].join("\n");
@@ -269,6 +269,19 @@ function stage(opts, deps) {
     }
     const mp = markerPath(root, issue);
     const existing = deps.readJson(mp);
+    if (opts.reviewed) {
+        try {
+            const { checkReviewedStage } = require("./reviewed-attachment");
+            const next = checkReviewedStage(root, issue, specPath, source, gitOnly, existing, deps.env.FAFF_SESSION_ID || "", deps.env.FAFF_RUN_DIR);
+            if (next === "attached")
+                return result(issue, "attached", { spec_sha256: sha256(source) });
+            if (next === "reconcile")
+                return result(issue, "needs-judgement", { reason: "reconcile-tracker-post", body_path: path.resolve(specPath), spec_sha256: sha256(source) });
+        }
+        catch (e) {
+            return errored(issue, "stale-reviewed-attachment: " + (e instanceof Error ? e.message : String(e)));
+        }
+    }
     if (gitOnly && existing && prop(existing, "disposition") === "parked")
         return result(issue, "needs-judgement", { reason: "git-only-marker-parked" });
     const id = deps.identity();
@@ -534,7 +547,7 @@ function cmdPrep(args, depsOverride) {
     const modes = ["--spec", "--confirm", "--park"].filter((f) => values[f] !== undefined);
     if (modes.length !== 1)
         return bad("exactly one of --spec, --confirm and --park is required");
-    const stageOnly = ["--mode", "--git-only", "--fresh", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
+    const stageOnly = ["--mode", "--git-only", "--reviewed", "--fresh", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
     if (modes[0] !== "--spec" && stageOnly.length)
         return bad(`${stageOnly.join(", ")} only apply with --spec`);
     if (modes[0] !== "--confirm" && values["--comment-id"] !== undefined)
@@ -556,7 +569,7 @@ function cmdPrep(args, depsOverride) {
     let res;
     try {
         if (modes[0] === "--spec") {
-            res = stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], fresh: !!values["--fresh"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
+            res = stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], fresh: !!values["--fresh"], reviewed: !!values["--reviewed"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
         }
         else if (modes[0] === "--confirm")
             res = confirm({ issue, commentId: values["--comment-id"], root }, deps);

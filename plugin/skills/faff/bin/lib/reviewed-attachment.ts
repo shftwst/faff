@@ -14,12 +14,32 @@ const { applyDispositions, collateSpecReviewRounds, renderSpecReviewComment } = 
 type Round = { action: string; round: number; verdict: string | null; window_start: number; retain: string | null };
 type Context = { issue: string; dir: string; root: string; runDir: string | null };
 export type Attachment =
-  | { status: "prepared"; spec_path: string; comment_path: string | null; evidence_path: string | null; warning?: string }
+  | { status: "prepared"; spec_path: string; comment_path: string | null; evidence_path: string | null; warning?: string;
+      source_path: string; source_sha256: string; session_id: string; mode: string; spec_sha256: string; comment_sha256: string | null }
   | { status: "manual" | "stale"; reason: string };
+
+const sha256 = (bytes: string | Buffer): string => createHash("sha256").update(bytes).digest("hex");
+
+function specialHistory(name: string): boolean {
+  return /^ratified-\d+\.json$/.test(name) || name === "cap-reset.json" || name === "judge";
+}
+
+function record(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function ownedStage(m: unknown, issue: string, session: string, runDir: string | null | undefined): m is Record<string, unknown> {
+  if (!record(m) || m.issue !== issue || m.spec_produced !== true || m.disposition === "parked" || !record(m.owner)) return false;
+  const ownerRun = m.owner.run_dir;
+  if (ownerRun !== undefined && typeof ownerRun !== "string") return false;
+  return (m.owner.session_id ?? "") === session &&
+    (ownerRun ? realpathSync(ownerRun) : null) === (runDir ? realpathSync(runDir) : null);
+}
 
 function retainReview(text: string, retain: string): string | undefined {
   const lines = text.split("\n");
-  const mask = fenceMask(lines);
+  const mask = fenceMask([...lines, ""]);
+  if (mask.at(-1)) return;
   const ratings = lines.flatMap((line, i) => !mask[i] && /^confidence:/i.test(line) ? [i] : []);
   const idx = ratings[0];
   if (ratings.length !== 1 || idx === undefined || !/^confidence:\s*(high|medium|low)\s*$/i.test(lines[idx] ?? "")) return;
@@ -31,8 +51,7 @@ function retainReview(text: string, retain: string): string | undefined {
 
 // A human ratification, a new window or a judge can settle objections for different reasons.
 function reviewerCleared(dir: string, latest: Round, rounds: { n: number }[], records: Map<number, unknown>): boolean {
-  if (rounds.length !== latest.round || readdirSync(dir).some(name =>
-    /^ratified-\d+\.json$/.test(name) || name === "cap-reset.json" || name === "judge")) return false;
+  if (rounds.length !== latest.round || readdirSync(dir).some(specialHistory)) return false;
   return rounds.every(({ n }, i) => {
     const record = records.get(n);
     const verdict = record && typeof record === "object" && "verdict" in record ? record.verdict : undefined;
@@ -57,14 +76,13 @@ export function prepareApprovedAttachment(ctx: Context, latest: Round, digest: s
       return { status: "stale", reason: "review directory does not belong to this issue and run" };
     }
     const m = JSON.parse(readFileSync(markerPath(root, issue), "utf8"));
-    if (m?.issue !== issue || m.spec_produced !== true || m.disposition === "parked" ||
-        !["tracker", "git-only"].includes(m.mode) || m.spec_sha256 !== digest || typeof m.body_path !== "string" ||
-        (m.owner?.run_dir ? realpathSync(m.owner.run_dir) : null) !== (runDir ? realpathSync(runDir) : null) ||
-        (m.owner?.session_id ?? "") !== (process.env.FAFF_SESSION_ID || "")) {
+    const session = process.env.FAFF_SESSION_ID || "";
+    if (!ownedStage(m, issue, session, runDir) || (m.mode !== "tracker" && m.mode !== "git-only") ||
+        m.spec_sha256 !== digest || typeof m.body_path !== "string") {
       return { status: "stale", reason: "pre-review stage no longer matches the issue, owner or digest" };
     }
     const bytes = readFileSync(m.body_path);
-    if (createHash("sha256").update(bytes).digest("hex") !== digest) {
+    if (sha256(bytes) !== digest) {
       return { status: "stale", reason: "spec changed since the reviewed stage" };
     }
     if (m.mode === "git-only" && (m.attached !== true || !bytes.equals(readFileSync(join(root, ".faff", "specs", issue + ".md"))))) {
@@ -94,7 +112,11 @@ export function prepareApprovedAttachment(ctx: Context, latest: Round, digest: s
     const body = comment && m.mode === "git-only" ? spec + (spec.endsWith("\n") ? "\n" : "\n\n") + comment : spec;
     writeFileSync(specPath, body, { mode: 0o600 });
     const written = comment ? writeEvidenceFrom(dir, comment, secrets) : null;
-    const result: Attachment = { status: "prepared", spec_path: specPath, comment_path: commentPath, evidence_path: written?.written ?? null };
+    const result: Attachment = {
+      status: "prepared", spec_path: specPath, comment_path: commentPath, evidence_path: written?.written ?? null,
+      source_path: m.body_path, source_sha256: digest, mode: m.mode, session_id: session,
+      spec_sha256: sha256(body), comment_sha256: commentPath ? sha256(comment) : null,
+    };
     if (written && !written.written) result.warning = "spec-review evidence not written: " +
       (written.refused?.join("; ") || written.fault) + (written.stale ? " (" + written.stale + ")" : "");
     return result;
@@ -102,4 +124,31 @@ export function prepareApprovedAttachment(ctx: Context, latest: Round, digest: s
     if (work && existsSync(work)) rmSync(work, { recursive: true, force: true });
     return { status: sourceVerified ? "manual" : "stale", reason: error instanceof Error ? error.message : "could not prepare review attachment" };
   }
+}
+
+// Stage already holds the spec bytes and marker. Refuse a stale handoff before stage writes either.
+export function checkReviewedStage(root: string, issue: string, file: string, body: string, gitOnly: boolean,
+    marker: unknown, session: string, runDir: string | undefined): "stage" | "attached" | "reconcile" {
+  const dir = resolve(root, specReviewDir(issue, runDir));
+  const names = readdirSync(dir);
+  const latest = names.reduce((n, name) => Math.max(n, Number(/^(?:round|decision)-(\d+)\.json$/.exec(name)?.[1] || 0)), 0);
+  if (!latest || names.some(specialHistory)) throw new Error("review history changed");
+  const d = JSON.parse(readFileSync(join(dir, "decision-" + latest + ".json"), "utf8"));
+  const r = JSON.parse(readFileSync(join(dir, "round-" + latest + ".json"), "utf8"));
+  const a = d.attachment;
+  const path = resolve(file);
+  const mode = gitOnly ? "git-only" : "tracker";
+  if (d.round !== latest || d.action !== "approve" || r.verdict !== "approve" || a?.status !== "prepared" ||
+      a.spec_path !== path || a.session_id !== session || a.mode !== mode) throw new Error("no matching reviewed attachment");
+  if (a.comment_path && sha256(readFileSync(a.comment_path)) !== a.comment_sha256) throw new Error("review comment changed");
+  if (!ownedStage(marker, issue, session, runDir) || marker.mode !== mode) throw new Error("reviewed stage marker or owner changed");
+  const attached = marker.attached === true;
+  if (gitOnly && (!attached || sha256(readFileSync(join(root, ".faff", "specs", issue + ".md"))) !== marker.spec_sha256)) {
+    throw new Error("git-only attachment changed");
+  }
+  const preparedSha = sha256(body);
+  if (marker.body_path === path && marker.spec_sha256 === preparedSha) return attached ? "attached" : "reconcile";
+  if (marker.body_path !== a.source_path || marker.spec_sha256 !== a.source_sha256 ||
+      sha256(readFileSync(a.source_path)) !== a.source_sha256 || preparedSha !== a.spec_sha256) throw new Error("reviewed bytes changed");
+  return "stage";
 }

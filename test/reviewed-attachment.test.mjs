@@ -20,7 +20,7 @@ const objections = [{ lens: "architectural", severity: "minor", claim: "Keep sta
 const digest = b => createHash("sha256").update(b).digest("hex");
 const json = p => JSON.parse(readFileSync(p, "utf8"));
 
-function fixture(t, { gitOnly = false, owned = false, body = spec } = {}) {
+function fixture(t, { gitOnly = false, owned = false, confirmed = true, body = spec } = {}) {
   const root = mkdtempSync(join(tmpdir(), "faff-attachment-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const run = owned ? join(root, ".faff", "runs", "parent") : "";
@@ -43,6 +43,7 @@ function fixture(t, { gitOnly = false, owned = false, body = spec } = {}) {
     return ok(["prep", "attach", "--issue", issue, "--spec", path, "--mode", "autonomous", "--json", ...opts, ...(gitOnly ? ["--git-only"] : [])]);
   }
   const staged = stage(file);
+  if (!gitOnly && confirmed) ok(["prep", "attach", "--issue", issue, "--confirm", "--comment-id", "original-spec", "--json"]);
   function round(body = approve, extra = [], extraEnv) {
     return ok(["spec-review", "round", "--issue", issue, "--dir", dir, "--mode", "autonomous", "--verdict-file", "-",
       "--occupant", "single-pass", "--json", ...extra], body, extraEnv);
@@ -91,11 +92,17 @@ for (const gitOnly of [true, false]) for (const revised of [true, false]) {
     else {
       assert.equal(json(f.marker).attached, false);
       assert.equal(f.stage(a.spec_path, "--reviewed").reason, "reconcile-tracker-post");
-      const confirmed = f.ok(["prep", "attach", "--issue", issue, "--confirm", "--comment-id", "fixture-comment", "--json"]);
+      const confirm = ["prep", "attach", "--issue", issue, "--confirm", "--comment-id", "fixture-comment", "--reviewed-spec", a.spec_path, "--json"];
+      const confirmed = f.ok(confirm);
+      const markerAfter = readFileSync(f.marker);
+      assert.equal(f.ok(confirm).token, "attached");
+      assert.deepEqual(readFileSync(f.marker), markerAfter);
       assert.equal(confirmed.token, "attached");
     }
     const finalMarker = readFileSync(f.marker);
-    assert.equal(f.stage(a.spec_path, "--reviewed").token, "attached");
+    const retry = f.stage(a.spec_path, "--reviewed");
+    assert.equal(retry.token, "attached");
+    for (const key of ["confidence", "build_tier", "admissibility", "spec_sha256"]) assert.deepEqual(retry[key], staged[key]);
     assert.deepEqual(readFileSync(f.marker), finalMarker);
     assert.equal(json(f.marker).attached, true);
     assert.equal(json(f.marker).spec_sha256, digest(readFileSync(a.spec_path)));
@@ -170,4 +177,54 @@ for (const change of ["new approval", "later park", "edited source", "edited pre
 test("unterminated example fence preserves manual evidence handling", t => {
   const f = fixture(t, { body: spec + "\n```text\nexample" });
   assert.equal(f.round(approve, f.flag).attachment.status, "manual");
+});
+
+test("an unconfirmed tracker post cannot supply the approved spec", t => {
+  const f = fixture(t, { confirmed: false });
+  const marker = readFileSync(f.marker);
+  assert.equal(f.round(approve, f.flag).attachment.status, "stale");
+  assert.deepEqual(readFileSync(f.marker), marker);
+});
+
+for (const gitOnly of [true, false]) test("a plain restage cannot establish reviewed provenance in " + (gitOnly ? "git-only" : "tracker"), t => {
+  const f = fixture(t, { gitOnly });
+  const a = f.round(approve, f.flag).attachment;
+  f.stage(a.spec_path, "--reviewed");
+  writeFileSync(a.spec_path, readFileSync(a.spec_path, "utf8").replace("Keep both entries.", "Use only one entry."));
+  f.stage(a.spec_path);
+  const m = readFileSync(f.marker);
+  const r = f.cli(["prep", "attach", "--issue", issue, "--spec", a.spec_path, "--mode", "autonomous", "--reviewed", "--json", ...(gitOnly ? ["--git-only"] : [])]);
+  assert.equal(r.status, 2);
+  assert.match(JSON.parse(r.stdout).reason, /descend/);
+  assert.deepEqual(readFileSync(f.marker), m);
+});
+
+test("a superseding stage or a different session cannot receive the reviewed tracker comment ID", t => {
+  const f = fixture(t);
+  const a = f.round(approve, f.flag).attachment;
+  f.stage(a.spec_path, "--reviewed");
+  const confirm = ["prep", "attach", "--issue", issue, "--confirm", "--comment-id", "reviewed-post", "--json"];
+  const withProof = [...confirm, "--reviewed-spec", a.spec_path];
+  const pending = readFileSync(f.marker);
+  assert.equal(f.cli(confirm).status, 2);
+  assert.equal(f.cli(withProof, "", { FAFF_SESSION_ID: "someone-else" }).status, 2);
+  assert.deepEqual(readFileSync(f.marker), pending);
+  f.stage(f.file);
+  const superseding = readFileSync(f.marker);
+  assert.equal(f.cli(withProof).status, 2);
+  assert.deepEqual(readFileSync(f.marker), superseding);
+});
+
+for (const owned of [true, false]) test("explicit root can write review evidence from another cwd, owned=" + owned, t => {
+  const f = fixture(t, { gitOnly: true, owned });
+  f.round(receipt("revise", objections));
+  const args = ["spec-review", "round", "--issue", issue, "--dir", f.dir, "--verdict-file", "-", "--mode", "autonomous",
+    "--occupant", "single-pass", "--root", f.root, "--json", ...f.flag];
+  const run = owned ? join(f.root, ".faff", "runs", "parent") : "";
+  const r = spawnSync(process.execPath, [faffBin, ...args], { cwd: tmpdir(), input: approve, encoding: "utf8",
+    env: { ...process.env, FAFF_SESSION_ID: "test-session", FAFF_RUN_DIR: run } });
+  assert.equal(r.status, 0, r.stderr);
+  const a = JSON.parse(r.stdout).attachment;
+  assert.equal(a.status, "prepared", JSON.stringify(a));
+  assert.ok(existsSync(a.evidence_path));
 });

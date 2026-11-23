@@ -156,12 +156,12 @@ function cmdCollateEvidence(values) {
 // canonical path: a refusal removes it, a fault moves it aside to spec-review-verdict.stale.json (a failed
 // move names the stale path in `stale`). Only WriterFault and SchemaUnavailable are downgraded; anything
 // else propagates. `placed` reports whether placement succeeded.
-function writeEvidenceFrom(dir, text, secrets) {
+function writeEvidenceFrom(dir, text, secrets, root) {
   const { placeSpecReviewEvidence, writeSpecReviewVerdictTo, WriterFault, SchemaUnavailable } = require("./evidence");
   let target = null;
   const canonical = () => path.join(target, "spec-review-verdict.json");
   try {
-    target = placeSpecReviewEvidence(dir).target_dir;
+    target = placeSpecReviewEvidence(dir, root).target_dir;
     const r = writeSpecReviewVerdictTo(target, text, secrets);
     if (!r.refused) return { written: r.written };
     let stale;

@@ -72,7 +72,7 @@ export function prepareApprovedAttachment(ctx: Context, latest: Round, digest: s
       return { status: "stale", reason: "expected an approved issue" };
     }
     const expected = resolve(root, specReviewDir(issue, runDir));
-    if (realpathSync(dir) !== realpathSync(expected) || placeSpecReviewEvidence(dir).issue !== issue) {
+    if (realpathSync(dir) !== realpathSync(expected) || placeSpecReviewEvidence(dir, root).issue !== issue) {
       return { status: "stale", reason: "review directory does not belong to this issue and run" };
     }
     const m = JSON.parse(readFileSync(markerPath(root, issue), "utf8"));
@@ -81,11 +81,14 @@ export function prepareApprovedAttachment(ctx: Context, latest: Round, digest: s
         m.spec_sha256 !== digest || typeof m.body_path !== "string") {
       return { status: "stale", reason: "pre-review stage no longer matches the issue, owner or digest" };
     }
+    if (m.attached !== true || (m.mode === "tracker" && (typeof m.comment_id !== "string" || !m.comment_id.trim()))) {
+      return { status: "stale", reason: "reviewed source attachment has not been confirmed" };
+    }
     const bytes = readFileSync(m.body_path);
     if (sha256(bytes) !== digest) {
       return { status: "stale", reason: "spec changed since the reviewed stage" };
     }
-    if (m.mode === "git-only" && (m.attached !== true || !bytes.equals(readFileSync(join(root, ".faff", "specs", issue + ".md"))))) {
+    if (m.mode === "git-only" && !bytes.equals(readFileSync(join(root, ".faff", "specs", issue + ".md")))) {
       return { status: "stale", reason: "git-only attachment changed since the reviewed stage" };
     }
     sourceVerified = true;
@@ -111,7 +114,7 @@ export function prepareApprovedAttachment(ctx: Context, latest: Round, digest: s
     if (commentPath) writeFileSync(commentPath, comment, { mode: 0o600 });
     const body = comment && m.mode === "git-only" ? spec + (spec.endsWith("\n") ? "\n" : "\n\n") + comment : spec;
     writeFileSync(specPath, body, { mode: 0o600 });
-    const written = comment ? writeEvidenceFrom(dir, comment, secrets) : null;
+    const written = comment ? writeEvidenceFrom(dir, comment, secrets, root) : null;
     const result: Attachment = {
       status: "prepared", spec_path: specPath, comment_path: commentPath, evidence_path: written?.written ?? null,
       source_path: m.body_path, source_sha256: digest, mode: m.mode, session_id: session,
@@ -128,7 +131,7 @@ export function prepareApprovedAttachment(ctx: Context, latest: Round, digest: s
 
 // Stage already holds the spec bytes and marker. Refuse a stale handoff before stage writes either.
 export function checkReviewedStage(root: string, issue: string, file: string, body: string, gitOnly: boolean,
-    marker: unknown, session: string, runDir: string | undefined): "stage" | "attached" | "reconcile" {
+    marker: unknown, session: string, runDir: string | undefined): { action: "stage" | "attached" | "reconcile"; details?: Record<string, unknown> } {
   const dir = resolve(root, specReviewDir(issue, runDir));
   const names = readdirSync(dir);
   const latest = names.reduce((n, name) => Math.max(n, Number(/^(?:round|decision)-(\d+)\.json$/.exec(name)?.[1] || 0)), 0);
@@ -147,8 +150,17 @@ export function checkReviewedStage(root: string, issue: string, file: string, bo
     throw new Error("git-only attachment changed");
   }
   const preparedSha = sha256(body);
-  if (marker.body_path === path && marker.spec_sha256 === preparedSha) return attached ? "attached" : "reconcile";
+  if (marker.body_path === path) {
+    const proof = marker.reviewed_attachment;
+    if (!record(proof) || proof.prepared_sha256 !== a.spec_sha256 || proof.staged_sha256 !== preparedSha ||
+        marker.spec_sha256 !== preparedSha) throw new Error("staged body does not descend from this approval");
+    return {
+      action: attached ? "attached" : "reconcile",
+      details: { confidence: proof.confidence, build_tier: proof.build_tier, admissibility: marker.admissibility, admissibility_line: proof.admissibility_line },
+    };
+  }
+  if (!attached || (!gitOnly && (typeof marker.comment_id !== "string" || !marker.comment_id.trim()))) throw new Error("source attachment is unconfirmed");
   if (marker.body_path !== a.source_path || marker.spec_sha256 !== a.source_sha256 ||
       sha256(readFileSync(a.source_path)) !== a.source_sha256 || preparedSha !== a.spec_sha256) throw new Error("reviewed bytes changed");
-  return "stage";
+  return { action: "stage" };
 }

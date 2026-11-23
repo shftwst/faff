@@ -39,13 +39,13 @@ const ATTACH_SPEC = {
     flags: {
         "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--mode": { arity: 1 }, "--git-only": { arity: 0 },
         "--reviewed": { arity: 0 }, "--fresh": { arity: 0 }, "--gate-history": { arity: 1 }, "--extraction": { arity: 1 }, "--confirm": { arity: 0 },
-        "--comment-id": { arity: 1 }, "--park": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 },
+        "--reviewed-spec": { arity: 1 }, "--comment-id": { arity: 1 }, "--park": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 },
     },
     positionals: { min: 0, max: 0 },
 };
 const ATTACH_USAGE = [
     "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--git-only] [--reviewed] [--fresh] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
-    "       faff prep attach --issue ID --confirm --comment-id ID [--root DIR] [--json]",
+    "       faff prep attach --issue ID --confirm --comment-id ID [--reviewed-spec FILE] [--root DIR] [--json]",
     "       faff prep attach --issue ID --park [--root DIR] [--json]",
 ].join("\n");
 // ---------------------------------------------------------------------------
@@ -269,14 +269,15 @@ function stage(opts, deps) {
     }
     const mp = markerPath(root, issue);
     const existing = deps.readJson(mp);
+    const preparedSha = opts.reviewed ? sha256(source) : null;
     if (opts.reviewed) {
         try {
             const { checkReviewedStage } = require("./reviewed-attachment");
             const next = checkReviewedStage(root, issue, specPath, source, gitOnly, existing, deps.env.FAFF_SESSION_ID || "", deps.env.FAFF_RUN_DIR);
-            if (next === "attached")
-                return result(issue, "attached", { spec_sha256: sha256(source) });
-            if (next === "reconcile")
-                return result(issue, "needs-judgement", { reason: "reconcile-tracker-post", body_path: path.resolve(specPath), spec_sha256: sha256(source) });
+            if (next.action === "attached")
+                return result(issue, "attached", { ...next.details, spec_sha256: sha256(source) });
+            if (next.action === "reconcile")
+                return result(issue, "needs-judgement", { ...next.details, reason: "reconcile-tracker-post", body_path: path.resolve(specPath), spec_sha256: sha256(source) });
         }
         catch (e) {
             return errored(issue, "stale-reviewed-attachment: " + (e instanceof Error ? e.message : String(e)));
@@ -409,6 +410,8 @@ function stage(opts, deps) {
     const digest = sha256(Buffer.from(text, "utf8"));
     const bodyPath = path.resolve(specPath);
     marker.spec_sha256 = digest;
+    if (preparedSha)
+        marker.reviewed_attachment = { prepared_sha256: preparedSha, staged_sha256: digest, ...common, admissibility_line: adm.line };
     marker.body_path = bodyPath;
     marker.admissibility = adm.admissibility;
     if (gitOnly) {
@@ -449,6 +452,21 @@ function confirm(opts, deps) {
     }
     if (!body || typeof m.spec_sha256 !== "string" || sha256(body) !== m.spec_sha256)
         return errored(issue, "spec-changed-since-stage");
+    if (opts.reviewedPath || m.reviewed_attachment) {
+        if (!opts.reviewedPath || path.resolve(opts.reviewedPath) !== m.body_path || m.mode !== "tracker")
+            return errored(issue, "stale-reviewed-attachment: expected tracker body");
+        try {
+            const { checkReviewedStage } = require("./reviewed-attachment");
+            const state = checkReviewedStage(root, issue, opts.reviewedPath, body.toString("utf8"), false, m, deps.env.FAFF_SESSION_ID || "", deps.env.FAFF_RUN_DIR);
+            if (state.action === "attached" && m.comment_id === commentId)
+                return result(issue, "attached", { spec_sha256: m.spec_sha256 });
+            if (state.action !== "reconcile")
+                return errored(issue, "stale-reviewed-attachment: expected pending tracker post");
+        }
+        catch (e) {
+            return errored(issue, "stale-reviewed-attachment: " + (e instanceof Error ? e.message : String(e)));
+        }
+    }
     const next = { ...m, attached: true, comment_id: commentId, attached_at: deps.now() };
     try {
         deps.writeJsonAtomic(markerPath(root, issue), next);
@@ -482,6 +500,11 @@ function atomicWrite(p, data) {
 }
 function defaultDeps(root) {
     return {
+        withMarkerLock: (issue, work) => {
+            const file = markerPath(root, issue);
+            fs.mkdirSync(path.dirname(file), { recursive: true });
+            return require("./fs-lock").withFileLock(file + ".lock", work);
+        },
         readText: (p) => fs.readFileSync(p, "utf8"),
         readBytes: (p) => fs.readFileSync(p),
         writeText: (p, t) => fs.writeFileSync(p, t),
@@ -550,6 +573,8 @@ function cmdPrep(args, depsOverride) {
     const stageOnly = ["--mode", "--git-only", "--reviewed", "--fresh", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
     if (modes[0] !== "--spec" && stageOnly.length)
         return bad(`${stageOnly.join(", ")} only apply with --spec`);
+    if (values["--reviewed-spec"] !== undefined && (modes[0] !== "--confirm" || !values["--reviewed-spec"]))
+        return bad("--reviewed-spec FILE requires --confirm", "--reviewed-spec");
     if (modes[0] !== "--confirm" && values["--comment-id"] !== undefined)
         return bad("--comment-id only applies with --confirm", "--comment-id");
     let gateHistory = null;
@@ -566,15 +591,17 @@ function cmdPrep(args, depsOverride) {
         return usageError([{ code: "missing-value", flag: "--comment-id", detail: "--confirm requires --comment-id" }], ATTACH_USAGE);
     const root = path.resolve(values["--root"] || findRoot());
     const deps = depsOverride || defaultDeps(root);
+    const apply = () => {
+        if (modes[0] === "--spec") {
+            return stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], fresh: !!values["--fresh"], reviewed: !!values["--reviewed"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
+        }
+        if (modes[0] === "--confirm")
+            return confirm({ issue, commentId: values["--comment-id"], reviewedPath: values["--reviewed-spec"], root }, deps);
+        return park({ issue, root }, deps);
+    };
     let res;
     try {
-        if (modes[0] === "--spec") {
-            res = stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], fresh: !!values["--fresh"], reviewed: !!values["--reviewed"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
-        }
-        else if (modes[0] === "--confirm")
-            res = confirm({ issue, commentId: values["--comment-id"], root }, deps);
-        else
-            res = park({ issue, root }, deps);
+        res = deps.withMarkerLock ? deps.withMarkerLock(issue, apply) : apply();
     }
     catch (e) {
         res = errored(issue, `unexpected: ${e && prop(e, "message") ? prop(e, "message") : e}`);

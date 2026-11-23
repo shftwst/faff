@@ -61,25 +61,7 @@ async function cmdGates(args) {
   }
 
   if (action === "run") {
-    const outcome = await runLadder(root);
-    const extraction = gatesContractExtraction(outcome);
-    // Emit the contract block in the SAME fenced-code-block form every faff producer uses
-    // (```faff-contract:<name> … ```), so Step 7.5's "locate that block" matches the identical
-    // pattern as review-verdict/spec-readiness/delivery-outcome — not a divergent XML envelope.
-    const block = "```faff-contract:quality-gates\n" + JSON.stringify(extraction) + "\n```";
-    if (json) {
-      console.log(JSON.stringify({ ...outcome, contract: extraction }, null, 2));
-    } else {
-      console.log(`gate ladder: signal=${outcome.signal} discovery=${outcome.discovery}`);
-      for (const r of outcome.rungs) console.log(`  ${r.status.padEnd(8)} ${r.kind.padEnd(16)} ${r.command}  (${r.duration_ms}ms)`);
-      if (outcome.discovery === "none") console.log("  no declared engineering gates found; ran none");
-      for (const ex of outcome.exclusions || []) console.log(`  excluded (${ex.reason}): ${ex.command}`);
-      if (outcome.coverage) console.log(`  runnable coverage: recognised ${outcome.coverage.recognised_steps} / eligible ${outcome.coverage.eligible_steps} steps (${outcome.coverage.ratio.toFixed(2)})`);
-      if (outcome.partialWarning) console.log(`  [warn] partial coverage: runnable coverage below gates.partial_threshold; ran the recognised subset (gates.partial: warn)`);
-      console.log(block);
-    }
-    // exit 0 all-pass / 1 >=1 fail / 2 usage (mirrors the spec). needs-human exits 1 (non-green).
-    return outcome.signal === "pass" ? 0 : 1;
+    return printOutcome(await runLadder(root), json);
   }
 
   process.stderr.write("faff gates: expected one of: discover | run (or --selftest)\n");
@@ -139,22 +121,30 @@ async function runBudgeted(root, values, json) {
   return printOutcome(res.outcome, json);
 }
 
-// Print a finished GatesOutcome and its contract block; exit 0 pass, 1 otherwise.
+// Only a finished JSON run publishes a validated receipt.
 function printOutcome(outcome, json) {
   const extraction = gatesContractExtraction(outcome);
-  const block = "```faff-contract:quality-gates\n" + JSON.stringify(extraction) + "\n```";
   if (json) {
-    console.log(JSON.stringify({ ...outcome, contract: extraction }, null, 2));
-  } else {
-    console.log(`gate ladder: signal=${outcome.signal} discovery=${outcome.discovery}`);
-    for (const r of outcome.rungs) console.log(`  ${r.status.padEnd(8)} ${r.kind.padEnd(16)} ${r.command}  (${r.duration_ms}ms)`);
-    if (outcome.discovery === "none") console.log("  no declared engineering gates found; ran none");
-    for (const ex of outcome.exclusions || []) console.log(`  excluded (${ex.reason}): ${ex.command}`);
-    if (outcome.coverage) console.log(`  runnable coverage: recognised ${outcome.coverage.recognised_steps} / eligible ${outcome.coverage.eligible_steps} steps (${outcome.coverage.ratio.toFixed(2)})`);
-    if (outcome.partialWarning) console.log(`  [warn] partial coverage: runnable coverage below gates.partial_threshold; ran the recognised subset (gates.partial: warn)`);
-    if (outcome.resumed) console.log(`  resumed: ${outcome.resumed.calls} call${outcome.resumed.calls === 1 ? "" : "s"}${outcome.resumed.discarded ? `, progress discarded: ${outcome.resumed.discarded}` : ""}`);
-    console.log(block);
+    const { contractData, failLoud } = contractQualityGates(extraction);
+    if (failLoud) {
+      process.stderr.write(`faff gates run: quality-gates validation failed: ${failLoud}\n`);
+      return 2;
+    }
+    const receipt = {
+      signal: contractData.conformant ? contractData.signal : "needs-human",
+      violations: contractData.violations,
+    };
+    console.log(JSON.stringify({ ...outcome, contract: extraction, receipt }, null, 2));
+    return receipt.signal === "pass" ? 0 : 1;
   }
+  console.log(`gate ladder: signal=${outcome.signal} discovery=${outcome.discovery}`);
+  for (const r of outcome.rungs) console.log(`  ${r.status.padEnd(8)} ${r.kind.padEnd(16)} ${r.command}  (${r.duration_ms}ms)`);
+  if (outcome.discovery === "none") console.log("  no declared engineering gates found; ran none");
+  for (const ex of outcome.exclusions || []) console.log(`  excluded (${ex.reason}): ${ex.command}`);
+  if (outcome.coverage) console.log(`  runnable coverage: recognised ${outcome.coverage.recognised_steps} / eligible ${outcome.coverage.eligible_steps} steps (${outcome.coverage.ratio.toFixed(2)})`);
+  if (outcome.partialWarning) console.log(`  [warn] partial coverage: runnable coverage below gates.partial_threshold; ran the recognised subset (gates.partial: warn)`);
+  if (outcome.resumed) console.log(`  resumed: ${outcome.resumed.calls} call${outcome.resumed.calls === 1 ? "" : "s"}${outcome.resumed.discarded ? `, progress discarded: ${outcome.resumed.discarded}` : ""}`);
+  console.log("```faff-contract:quality-gates\n" + JSON.stringify(extraction) + "\n```");
   return outcome.signal === "pass" ? 0 : 1;
 }
 
@@ -407,11 +397,6 @@ async function gatesSelftest() {
   const dDup = mk("dup", { "package.json": JSON.stringify({ scripts: { lint: "true" } }), "Makefile": "lint:\n\ttrue\n" });
   const dis7 = discoverRungs(dDup);
   cases.push(["dedup: one LINT rung when both pkg+makefile declare it", dis7.rungs.filter((r) => r.kind === "LINT").length === 1]);
-
-  // 8. contract extraction shape pipes cleanly through the quality-gates contract.
-  const ext = gatesContractExtraction(out2);
-  const c = contractQualityGates(ext);
-  cases.push(["contract: pass outcome conforms", !c.failLoud && c.contractData.conformant === true]);
 
   // 9. pre-commit: only recognised-kind hooks are swept in; an unknown heavy hook is dropped,
   //    never run as a required gate (the "slow target labelled cheap" failure mode).
@@ -820,4 +805,4 @@ async function runnerFileSelftestCases(cases, mk, tmp) {
   cases.push(["runner ladder: a runner exiting 1 → fail", (await runLadder(dFail)).signal === "fail"]);
 }
 
-module.exports = { GATES_SPEC, GATES_SURFACE, cmdGates, gatesContractExtraction, gatesSelftest };
+module.exports = { GATES_SPEC, GATES_SURFACE, cmdGates, gatesContractExtraction, gatesSelftest, printOutcome };

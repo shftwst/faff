@@ -49,6 +49,7 @@ const GATE_FAMILY_PATTERNS = [
   // `./scripts/gates run-smoke-tests`) — "gates run" is two common English words,
   // a much higher collision risk than merge-fence's near-unique `gh pr merge`.
   /(^|[^\w])\S*faff\S*\s+gates\s+run\b/i,
+  /(^|[^\w])\S*faff\S*\s+graft\s+verify-build\b/i,
   // node --test
   /(^|[^\w])node\b[^\n]*(^|\s)--test(\s|=|$)/,
   // npm test / npm run test*

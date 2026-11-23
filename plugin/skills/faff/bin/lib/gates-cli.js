@@ -36,7 +36,7 @@ function gatesContractExtraction(outcome) {
   return { signal: outcome.signal, rungs: outcome.rungs.map((r) => ({ kind: r.kind, status: r.status })) };
 }
 
-async function cmdGates(args) {
+async function cmdGates(args, onReceipt) {
   if (args.includes("--selftest")) return gatesSelftest();
   const { values, positionals, errors } = parseArgs(args, GATES_SPEC);
   if (errors.length) return usageError(errors, GATES_USAGE);
@@ -66,7 +66,7 @@ async function cmdGates(args) {
   }
 
   if (action === "run" && (bounded || values["--clear-progress"])) {
-    return runBudgeted(root, values, json);
+    return runBudgeted(root, values, json, onReceipt);
   }
 
   if (action === "run") {
@@ -148,7 +148,7 @@ if (!isMainThread && require.main === module) {
 // FAFF-1405: `faff gates run --budget-secs N` / `--resume` / `--clear-progress`. Exit 3 means the
 // budget ran out with units still to run: the progress is saved and the caller re-invokes with
 // --resume. An incomplete call prints no contract block, so nothing can read it as a verdict.
-async function runBudgeted(root, values, json) {
+async function runBudgeted(root, values, json, onReceipt) {
   const fail = (reason, detail) => { process.stderr.write(`faff gates run: ${reason}: ${detail}\n`); return 2; };
   if (values["--clear-progress"]) {
     if (values["--budget-secs"] !== undefined || values["--resume"] || json) {
@@ -191,11 +191,11 @@ async function runBudgeted(root, values, json) {
     }
     return 3;
   }
-  return printOutcome(res.outcome, json);
+  return printOutcome(res.outcome, json, onReceipt);
 }
 
 // Only a finished JSON run publishes a validated receipt.
-function printOutcome(outcome, json) {
+function printOutcome(outcome, json, onReceipt) {
   const extraction = gatesContractExtraction(outcome);
   if (json) {
     const { contractData, failLoud } = contractQualityGates(extraction);
@@ -207,7 +207,9 @@ function printOutcome(outcome, json) {
       signal: contractData.conformant ? contractData.signal : "needs-human",
       violations: contractData.violations,
     };
-    console.log(JSON.stringify({ ...outcome, contract: extraction, receipt }, null, 2));
+    const report = { ...outcome, contract: extraction, receipt };
+    if (onReceipt) return onReceipt(report);
+    console.log(JSON.stringify(report, null, 2));
     return receipt.signal === "pass" ? 0 : 1;
   }
   console.log(`gate ladder: signal=${outcome.signal} discovery=${outcome.discovery}`);

@@ -38,6 +38,14 @@ test("denies the ladder's quoted-variable form ('\"$faff\" gates run'), backgrou
   assert.equal(r.code, 2);
 });
 
+test("the bundled graft verification runs only in the foreground", () => {
+  const command = '"$faff" graft verify-build --worktree . --issue EX-3 --spec spec.md';
+  for (const tool_name of ["Bash", "Monitor"]) {
+    assert.equal(runHook({ tool_name, tool_input: { command, run_in_background: true } }).code, 2);
+  }
+  assert.equal(runHook({ tool_name: "Bash", tool_input: { command } }).code, 0);
+});
+
 test("denies npm test / npx vitest / pytest / cargo test / go test, backgrounded", () => {
   for (const command of ["npm test", "npx vitest run", "pytest -x", "cargo test", "go test ./..."]) {
     const r = runHook({ tool_name: "Bash", tool_input: { command, run_in_background: true } });

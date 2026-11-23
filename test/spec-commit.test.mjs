@@ -609,3 +609,90 @@ test("graft Step 4's intro says Step 4c and the merge-time ADR renumber read com
   assert.ok(scheme.length > 0, "no Step 4 intro sentence names `commit_subject_scheme`");
   assert.ok(scheme.some((x) => x.includes("Step 4c") && x.includes("merge-time ADR renumber")), scheme.join(" | "));
 });
+
+function verifyBuild(f, withRun = false) {
+  return cli(["graft", "verify-build", "--issue", "EX-3", "--spec", f.specFile, "--worktree", f.wt,
+    ...(withRun ? ["--run-dir", f.rd] : [])]);
+}
+
+function gateRunner(f, code = 0) {
+  mkdirSync(join(f.wt, "scripts"), { recursive: true });
+  const file = join(f.wt, "scripts", "test");
+  writeFileSync(file, "#!/bin/sh\nexit " + code + "\n");
+  chmodSync(file, 0o755);
+}
+
+test("graft verifies and classifies exactly the committed builder bytes after a passing gate", () => {
+  const f = fixture({ spec: SPEC.replace("second item must hold", "needs-human: operator approves the display") });
+  const rel = commit(f).json().path;
+  gateRunner(f);
+  writeFileSync(join(f.rd, "run-ledger.json"), JSON.stringify({ run_id: "test", admitted: ["EX-3"], outcomes: {}, owner: { status: "running" } }));
+  const r = verifyBuild(f, true);
+  assert.equal(r.status, 0, r.stderr);
+  const { action, gate, spec } = r.json();
+  assert.equal(action, "verify-criteria");
+  assert.equal(gate.receipt.signal, "pass");
+  assert.equal(spec.token, "verified");
+  assert.equal(spec.path, rel);
+  const classified = cli(["dod", "classify", "--issue", "EX-3", "--spec", join(f.wt, rel), "--json"]);
+  assert.deepEqual(spec.criteria, classified.json().criteria.filter(row => row.source === "done"));
+  assert.deepEqual(spec.criteria.map(row => row.human_only), [false, true]);
+  assert.doesNotMatch(r.stdout, /withheld scenario/);
+  assert.ok(existsSync(join(f.rd, "heartbeat.EX-3")));
+  assert.equal(verify(f).json().criteria, undefined);
+});
+
+test("graft stops at the first failed gate, even if the captured spec is gone", () => {
+  const f = fixture();
+  gateRunner(f, 1);
+  const r = verifyBuild({ ...f, specFile: join(f.root, "missing") });
+  assert.equal(r.status, 1, r.stderr);
+  assert.equal(r.json().action, "fix-gates");
+  assert.equal(r.json().gate.receipt.signal, "fail");
+  assert.equal(r.json().spec, undefined);
+});
+
+test("graft refuses a changed spec and preserves mismatch and missing-runner priority", () => {
+  const f = fixture({ config: "gates:\n  fallback: advisory\n" });
+  const rel = commit(f).json().path;
+  const empty = verifyBuild(f);
+  assert.equal(empty.status, 1, empty.stderr);
+  assert.equal(empty.json().reason, "no-ac-runner");
+  assert.equal(empty.json().spec.token, "verified");
+  assert.equal(empty.json().spec.criteria, undefined);
+  writeFileSync(join(f.wt, rel), "rewritten\n");
+  for (const withRunner of [false, true]) {
+    if (withRunner) gateRunner(f);
+    const mismatch = verifyBuild(f);
+    assert.equal(mismatch.status, 1, mismatch.stderr);
+    assert.equal(mismatch.json().action, "refuse-spec");
+    assert.deepEqual(mismatch.json().spec, verify(f).json());
+    assert.equal(mismatch.json().spec.criteria, undefined);
+  }
+});
+
+test("graft returns no grading input on invalid arguments or an unreadable spec", () => {
+  const f = fixture();
+  gateRunner(f);
+  const missing = verifyBuild({ ...f, specFile: join(f.root, "missing") });
+  assert.equal(missing.status, 2, missing.stderr);
+  assert.equal(missing.json().action, "refuse-spec");
+  assert.equal(missing.json().spec.token, "errored");
+  for (const args of [[], ["--issue", "../EX-3", "--worktree", f.wt, "--spec", f.specFile],
+    ["--issue", "EX-3", "--worktree", f.wt, "--spec", f.specFile, "--run-dir", ""], ["unexpected"]]) {
+    const r = cli(["graft", "verify-build", ...args]);
+    assert.equal(r.status, 2);
+    assert.equal(r.stdout, "");
+  }
+});
+
+test("a bounded graft handoff returns partial progress without verifying or classifying", () => {
+  const f = fixture({ config: "gates:\n  run_budget_secs: 1\n" });
+  writeFileSync(join(f.wt, "package.json"), JSON.stringify({ scripts: { lint: "node -v", test: "sleep 3" } }));
+  const r = verifyBuild({ ...f, specFile: join(f.root, "missing") });
+  assert.equal(r.status, 3, r.stderr);
+  assert.equal(r.json().status, "incomplete");
+  assert.equal(r.json().units_done, 1);
+  assert.equal(r.json().action, undefined);
+  assert.equal(r.json().spec, undefined);
+});

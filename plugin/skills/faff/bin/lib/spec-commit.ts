@@ -30,6 +30,7 @@ export type SpecResult = {
   commit?: string | undefined;
   source_check?: string | undefined;
   differs?: string[] | undefined;
+  criteria?: unknown[];
   warnings?: string[] | undefined;
   commit_subject_scheme?: string | undefined;
 };
@@ -70,7 +71,7 @@ export type SpecDeps = {
 };
 
 export type CommitOptions = { issue: string; title: string | null; specPath: string; worktree: string; runDir: string; prepRoot?: string | null | undefined };
-export type VerifyOptions = { issue: string; specPath: string; worktree: string; runDir: string | null };
+export type VerifyOptions = { includeCriteria?: boolean; issue: string; specPath: string; worktree: string; runDir: string | null };
 
 function get(v: unknown, k: string): unknown {
   return Reflect.get(Object(v), k);
@@ -330,7 +331,10 @@ function runSpecVerify(opts: VerifyOptions, deps: SpecDeps): SpecResult {
   const differs = [];
   if (!head || !head.equals(expected)) differs.push("head");
   if (!working || !working.equals(expected)) differs.push("working-tree");
-  return differs.length ? result(issue, "mismatch", { path: rel, differs }) : result(issue, "verified", { path: rel });
+  if (differs.length) return result(issue, "mismatch", { path: rel, differs });
+  if (!opts.includeCriteria) return result(issue, "verified", { path: rel });
+  const { criteria } = dodClassify(expected.toString("utf8"), { issue });
+  return result(issue, "verified", { path: rel, criteria: criteria.filter((row: { source: string }) => row.source === "done") });
 }
 
 // ---------------------------------------------------------------------------

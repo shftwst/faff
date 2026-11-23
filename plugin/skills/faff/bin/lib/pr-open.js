@@ -555,10 +555,12 @@ function cmdPlanInReview(args) {
     }
 }
 function cmdPr(args) {
+    if (args[0] === "preflight")
+        return require("./pr-preflight").cmdPrPreflight(args.slice(1));
     if (args[0] === "open")
         return cmdPrOpen(args.slice(1));
     if (args[0] === "plan-in-review")
         return cmdPlanInReview(args.slice(1));
-    return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: open or plan-in-review" }], PR_OPEN_USAGE + "\n" + PLAN_REVIEW_USAGE);
+    return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: open, preflight or plan-in-review" }], PR_OPEN_USAGE + "\n" + PLAN_REVIEW_USAGE);
 }
 module.exports = { cmdPr, runPrOpen, defaultDeps };

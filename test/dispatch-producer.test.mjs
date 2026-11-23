@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -169,4 +170,28 @@ test("custom specs keep their transport and unsupported engines or invalid file 
     assert.equal(result.stdout, "");
   }
   assert.deepEqual(readdirSync(scratch), before);
+});
+
+
+test("prep logs the worker review without printing it or continuing from missing evidence", t => {
+  const root = project(t);
+  const spec = join(root, "prepared spec.md");
+  const review = join(root, "self review.md");
+  const prep_log = join(root, "prep log.md");
+  const skill = readFileSync(join(repoRoot, "plugin/skills/faff-prep/SKILL.md"), "utf8");
+  const [, record] = skill.match(/`(test -s "\$spec"[^`]+)` into stage with `&&`/);
+  const run = () => spawnSync("bash", ["-c", record + " && printf staged"], {
+    encoding: "utf8", env: { ...process.env, spec, review, prep_log },
+  });
+  writeFileSync(spec, "# Draft\n");
+  writeFileSync(prep_log, "Prior log\n");
+  assert.notEqual(run().status, 0);
+  writeFileSync(review, "");
+  assert.notEqual(run().status, 0);
+  assert.equal(readFileSync(prep_log, "utf8"), "Prior log\n");
+  writeFileSync(review, "One finding and its resolution.\n");
+  const ready = run();
+  assert.equal(ready.status, 0);
+  assert.equal(ready.stdout, "staged");
+  assert.equal(readFileSync(prep_log, "utf8"), "Prior log\nOne finding and its resolution.\n");
 });

@@ -338,7 +338,7 @@ After the PR merges, the spec lives in the repo as a record of what was built an
 
 Run `faff dispatch prepare-producer spec`, adding `--shared-spec-files` when a writable Agent shares prep's filesystem. Pass the issue, explore findings and spec contract through gateway → **Producer dispatch**.
 
-Pass the exact `output_files` paths when present. The producer writes the complete spec to `spec` and findings with resolutions, clean review or authorised exemption to `review`. Return only `{"status":"written"}` or `{"status":"blocked","reason":"..."}`. On `written`, check both files with `test -s` and append the review file to the prep log. Chain these with `&&` into staging the prepared spec. Surface any failure before attachment. Remove the prepared files and directory after their last use.
+Pass the `output_files` paths. Write the complete spec to `spec` and findings with resolutions, clean review or authorised exemption to `review`. Return only `{"status":"written"}` or `{"status":"blocked","reason":"..."}`. For `written`, chain `test -s "$spec" && test -s "$review" && cat -- "$review" >> "$prep_log"` into stage with `&&`. Read the spec for the premise check. Consult the review only to resolve a finding. Stop on any failure. Remove both files and their directory after use.
 
 Without shared files, stage the occupant's returned file or body and log its review findings.
 

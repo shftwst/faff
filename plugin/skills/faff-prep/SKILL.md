@@ -128,7 +128,7 @@ The command collapses newlines and scrubs secrets/directive sentences from track
   --occupant <adversarial|single-pass> [--served any|none] [--run-dir "$FAFF_RUN_DIR"] --json
 ```
 
-With either transport, act on the returned `action` from `decision-<n>.json`. Copy every `warnings` line into `prep.md`. The round validates the contract, routes the verdict and checks churn against the previous round in the window. A governance fault or missing `governance-<n>.json` uses `window_start := n` for convergence.
+With either transport, act on the returned `action` from `decision-<n>.json`. Copy every `warnings` line into `prep.md`. The round checks churn against the previous round in the window, counts the appetite cap from disk and applies the convergence yield. **Anti-pattern:** running `spec-review route`, `spec-review-churn` or `spec-review-convergence` beside it. A governance fault or missing `governance-<n>.json` uses `window_start := n` for convergence.
 
 | `action` | Autonomous | Interactive |
 |---|---|---|

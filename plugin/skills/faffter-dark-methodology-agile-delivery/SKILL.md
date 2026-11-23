@@ -18,7 +18,7 @@ slots:
 
 ## Outputs
 
-Answer the gateway's fixed named-output set (gateway → **The `methodology` slot**) through the seven principles: `ticket-shaping`, `pick-ordering`, `promotion-readiness`, `backlog-diagnostics`, `standup-digest`, `horizon-assignment` and `build-queue`. The gateway fixes required outputs, caller mapping and standard envelope. Also answer optional `issue-critique` (per-issue lens for `/faff-prep`), `crank-up-set` (ranked not-eligible unlock batches for `/faff-wtf` + `/faff-tidy`), `prdr-author` (target-scaled project DoD for `/faff-plot` + `/faff-jot` + lights-out runner), `yagni-judge` (upper/YAGNI gate Phase 1) and `rehome-set` (outcome-led loose-Backlog grouping proposals for `/faff-plot`). Return the named answer plus principle-grounded findings; this skill neither knows nor describes its callers.
+Answer each named output in the table below. The gateway's **The `methodology` slot** defines required outputs and the standard envelope. Return the requested answer and principle-grounded findings.
 
 Every request supplies relevant issues, state, sequencing, workstream grouping and dependency graph. Return structured findings `(principle violated, diagnosis, recommended action)` and banner `Methodology: faffter-dark-methodology-agile-delivery` for the caller to display. The envelope's `Methodology: <name>` uses this skill's name, never a nickname.
 
@@ -157,33 +157,23 @@ Each principle gives its rule, rationale, tracker violation shape and a diagnosi
 
 ### Principle 1: Outcome-named workstreams, not activity-named
 
-**Rule.** Workstreams (initiatives, projects, milestones, epics — whatever the tracker calls them) are named by the user-facing or business outcome they produce. "Alerting overhaul." "Auth hardening." "Onboarding speed-up." Not by activity type — "Bugs", "Refactors", "Tech debt", "Q2 sprint 3".
-
-**Why.** Activity-named workstreams hide priority (every bug is in "Bugs", so which matters?), conflate unrelated work (a critical auth bug and a typo fix in the same bucket), and break sequencing (you can't sequence "Refactors" — there's no shared outcome to optimise toward).
-
-**Violation shape.** A workstream's name is a category, a sprint, a quarter, a team, or a technology layer rather than a deliverable.
+Name initiatives, projects, milestones and epics for their user or business outcome, such as faster onboarding. Categories, activities, sprints, quarters, teams and technology layers mix unrelated priorities and give tickets no common outcome to sequence.
 
 **Diagnosis template.** _"Workstream '[name]' is activity-named. This makes sequencing inside it meaningless — there's no shared outcome these tickets share. Consider regrouping them by outcome: which user-facing change does each one belong to?"_
 
 ### Principle 2: Sequence by value x risk, not by ticket order
 
-**Rule.** Build order is determined by value created per unit of work, weighted by risk and dependency chains. Not by ticket creation order, not by who shouted loudest, not by priority alone. Sharpen this to **incremental end-user value**: sequence to light up each observable increment of user-facing value as early as possible, crossing structural slices *within* an increment rather than finishing one slice at a time. When a value stream's completion is gated by work outside it, that gating chain is part of the increment — re-home it into the stream's order (see **Re-homing gating chains into the stream they gate**).
+Order by value per unit of work, risk and dependencies. Ship the earliest observable end-user increment across layers. A stream's external prerequisites belong in its order (see **Re-homing gating chains into the stream they gate**).
 
-**Why.** Tracker priority is noisy and stakeholder-influenced; optimise value shipped per week and de-risk unknown work early.
+Flag a cleanup ahead of a value-unlocking chain, a risky integration left until last or a quick win buried under months of prep when this materially changes delivery order. Noisy tracker priority, stakeholder pressure and ticket age do not establish the value order.
 
 **PRD-distance composition (`pick-ordering` / `build-queue`).** When the caller supplies the optional `prd-distance` map (an L4 drain under a resolved target PRD — gateway → **Standard envelope → Optional input `prd-distance`**), the agile lens folds PRD-completion distance into this value×risk sequencing as a **within-band** signal: among same-priority-band independents, weight `class_rank` (nearer the parent PRD = sooner) *alongside* value×risk×unlock, so a drain heads for the sibling PRDR closest to a `met` DoD rather than taking queue order. An issue whose container slug-matches no entry, or matches only `met` (rank 0), is neutral — its value×risk position stands. **Two floor rules bind (never negotiable):** distance never reorders across a human-priority band, and **input absent ⇒ ordering byte-identical** to the map-unaware lens (no PRD in scope → nothing to fold). Distance composes with the re-home fold (**Re-homing gating chains into the stream they gate**), never replaces it.
-
-**Violation shape.** Current sequencing order is materially different from a value x risk x dep-aware order. Specifically: an issue that unlocks N value-shipping tickets is sitting behind an isolated cleanup; or a high-risk integration is sequenced last; or a quick value win is buried below months of prep work.
 
 **Diagnosis template.** _"Current sequencing would ship value at week N. Value-aware sequencing (ISSUE-A -> ISSUE-B -> ISSUE-C first) would ship value at week M. The blocker is that ISSUE-X (currently first) creates no shipped value on its own — it unlocks the same downstream as ISSUE-A, but ISSUE-A also ships standalone value."_
 
 ### Principle 3: WIP cap (humans only — autonomous work is unbounded)
 
-**Rule.** Human in-flight work (issues a person is actively building) is capped at 3. Autonomous work (e.g. `/faff-beep-boop` runs) is **not WIP-capped** — the whole point of automating is to remove human-flow constraints from machine throughput.
-
-**Why.** Too much human in-flight breaks flow — context-switching eats throughput, a finished item ships value, a half-finished one doesn't. None of that applies to autonomous runs: each task runs in an isolated context with no cognitive cost. A PR awaiting human review is queued for human attention but does not count against the human's in-flight WIP.
-
-**Violation shape.** Human-driven in-flight count > 3 — or any new pull recommendation surfaced to a human when their count is already at 3.
+Cap each human at three issues they are actively building. Flag more than three, or a new pull at three. Context switching slows delivery. A PR awaiting review is queued for attention and excluded from the builder's WIP. Autonomous work runs in isolated contexts and has no WIP cap.
 
 **Diagnosis template.** _"WIP at N (cap 3). Flow > throughput. Finish ISSUE-X or ISSUE-Y before pulling new work. Recommending [next item] only after one in-flight item ships."_
 
@@ -191,31 +181,19 @@ Surfaced by `/faff-wtf`. Never surfaced by `/faff-beep-boop`.
 
 ### Principle 4: Right-sized tickets
 
-**Rule.** A ticket is a 1-3 day unit of work. Larger units split. Smaller units merge if they always ship together.
-
-**Why.** Tickets that fit a day or three give honest sequencing and accurate burn-down. Ticket-as-epic hides progress (it sits "In Progress" for two weeks signalling nothing); ticket-as-micro fragments the picture.
-
-**Violation shape.** A ticket whose spec covers two structurally independent concerns (each a valid 1-3 day unit) — split candidate. A ticket whose spec is one sentence with no clear deliverable — vague candidate. A pair of always-ship-together tickets — merge candidate.
+Size a ticket for one to three days of work. Split larger tickets, including those with two independent concerns each viable at that size. Flag a one-sentence spec with no deliverable as vague. Merge smaller tickets only if they always ship together. Right-sizing exposes progress and makes sequencing and burn-down meaningful.
 
 **Diagnosis template.** _"ISSUE-X looks too big — its spec covers [concern A] and [concern B], which are independent. Splitting into two tickets gives honest sequencing and lets [concern A] ship without waiting on [concern B]."_
 
 ### Principle 5: Cohesive workstreams
 
-**Rule.** A workstream encodes one outcome. Mixed-purpose workstreams (multiple outcomes bundled, or one outcome plus a catch-all) are smell.
-
-**Why.** Two outcomes give a workstream competing sequencing orders and no single definition of done.
-
-**Violation shape.** Tickets within a single workstream describe two or more distinct outcomes; or a single workstream has a clear primary outcome plus several "while we're at it" tickets.
+A workstream has one outcome. Flag mixed outcomes or catch-all extras around a primary outcome. They create competing sequencing orders and completion criteria.
 
 **Diagnosis template.** _"Workstream '[name]' contains [outcome A] and [outcome B]. These have different sequencing inside the workstream and different completion criteria. Consider splitting."_
 
 ### Principle 6: Surface dependencies
 
-**Rule.** Every load-bearing dependency between tickets is named explicitly via the tracker's blocker/blockedBy relationship. Implicit deps (assumed by humans, not encoded in the tracker) are unfinished thinking.
-
-**Why.** Implicit deps cause silent regression — a ticket gets pulled "ready" when it actually needs another ticket's output. Automation routing relies on the blocker graph being honest.
-
-**Violation shape.** A spec references work in another ticket (by ID or by clear paraphrase) without that other ticket being a declared blocker. Or a workstream's tickets clearly depend on a non-workstream ticket without a link.
+Record load-bearing dependencies as tracker blocker links. Flag an unlinked spec reference to another ticket by ID or paraphrase, including an external workstream dependency. Without the edge, automation can pull an issue before its prerequisite is ready.
 
 **Diagnosis template.** _"ISSUE-X's spec references ISSUE-Y's output but there's no blocker link. If the dep is real, link it (so automation can sequence honestly); if not, the reference in the spec should go away."_
 
@@ -223,11 +201,7 @@ Surfaced by `/faff-wtf`. Never surfaced by `/faff-beep-boop`.
 
 ### Principle 7: Risk-aware sequencing
 
-**Rule.** Higher-risk work — novel integrations, unproven approaches, dependencies on external teams — is sequenced early or de-risked separately. The unknown does not all land at the end.
-
-**Why.** Late risk undermines estimates; early de-risking allows correction before commitment.
-
-**Violation shape.** The work most likely to surprise (large new integration, unfamiliar territory, external dep) is sequenced near the end of an initiative. Or no risk de-risking work exists — everything assumes the plan holds.
+Sequence novel integrations, unfamiliar approaches and external dependencies early or put a spike first. Flag the risks left late and plans with no de-risking work. Identifying uncertainty early gives time to correct estimates before committing.
 
 **Diagnosis template.** _"Initiative '[name]' sequences ISSUE-Z (a new [integration / approach / external dep]) last. If ISSUE-Z surprises, the surprise lands at the worst time. Consider pulling it forward, or splitting a small de-risking spike before committing to the full ISSUE-Z scope."_
 

@@ -46,7 +46,7 @@
 const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
-const { execFileSync } = require("node:child_process");
+const { execFile, execFileSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
 const { readRoundRecord } = require("./spec-review-churn");
 const { roundFilesInDir } = require("./spec-review-convergence");
@@ -212,6 +212,23 @@ function realRunReviewCall(args, opts = {}) {
       stderr: e.stderr != null ? String(e.stderr) : "",
     };
   }
+}
+
+// The asynchronous transport leaves the foreground run's heartbeat timer live.
+function realRunReviewCallAsync(args, opts) {
+  return new Promise((resolve) => {
+    const options = reviewCallSpawnOptions(opts.deadlineSecs);
+    execFile("node", [REVIEW_CALL_MJS, ...args], options, (error, stdout, stderr) => {
+      let code = 0;
+      if (error) {
+        // execFile reports a timeout as a parent-issued kill. A maxBuffer overflow
+        // also kills the child, but remains a transport fault just as in execFileSync.
+        const timedOut = error.killed && error.signal === "SIGKILL" && error.code === null;
+        code = timedOut ? REVIEW_CALL_DEADLINE_EXIT : reviewCallExitFromError({ status: error.code, code: error.code });
+      }
+      resolve({ code, stdout, stderr });
+    });
+  });
 }
 
 // realResolveAdversarialBackends() -> { chain } | { error: "unset"|"malformed", detail? } — resolves
@@ -987,6 +1004,7 @@ module.exports = {
   bindingMatches,
   readBoundRuling,
   realRunReviewCall,
+  realRunReviewCallAsync,
   realJudgeDispatchDisposition,
   realResolveAdversarialBackends,
   realResolveBuildJudgeClock,

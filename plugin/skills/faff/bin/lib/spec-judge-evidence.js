@@ -156,6 +156,7 @@ const SPEC_JUDGE_EVIDENCE_SPEC = {
     "--restamp": { arity: 0 },
     "--sequence": { arity: 0 },
     "--step": { arity: 0 },
+    "--budget-secs": { arity: 1 },
     "--backend": { arity: 1 },
     "--park": { arity: 1 },
     "--pid": { arity: 1 },
@@ -175,7 +176,7 @@ const SPEC_JUDGE_EVIDENCE_USAGE =
   "--dir <scratch> --window-start <N> [--run-dir <path>]\n" +
   "   or: faff spec-judge-evidence --restamp --pid <pid> --spec <file> " +
   "[--out <judge-dir> | --dir <scratch>]\n" +
-  "   or: faff spec-judge-evidence --step --dir <scratch> --window-start <N> --spec <file> [--out <judge-dir>] [--backend <provider|model|host>] [--park <pid>]";
+  "   or: faff spec-judge-evidence --step --dir <scratch> --window-start <N> --spec <file> [--out <judge-dir>] [--backend <provider|model|host>] [--park <pid>] [--budget-secs N [--run-dir DIR]]";
 const LEVELS = ["L1", "L2", "L3", "L4"];
 
 function cmdSpecJudgeEvidence(args) {
@@ -185,6 +186,7 @@ function cmdSpecJudgeEvidence(args) {
   if (modeCount > 1 || (values["--sequence"] && !values["--assemble"]) || ((values["--park"] || values["--backend"]) && !values["--step"])) {
     return usageError([{ code: "invalid-value", detail: "choose one mode; --sequence requires --assemble and --park/--backend require --step" }], SPEC_JUDGE_EVIDENCE_USAGE);
   }
+  if (values["--budget-secs"] !== undefined && !values["--step"]) return usageError([{ code: "invalid-value", detail: "--budget-secs requires --step" }], SPEC_JUDGE_EVIDENCE_USAGE);
   if (values["--step"]) {
     return require("./spec-judge-sequence").stepSequence(values, readStandingResidue, (container) => assembleRatifiedScope(container, []) || "").catch((e) => {
       process.stderr.write(`faff spec-judge-evidence --step: ${e.message}\n`);

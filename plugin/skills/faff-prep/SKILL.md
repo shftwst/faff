@@ -280,26 +280,11 @@ Run at each finalisation seam below, **after** finalising the spec (re-attached 
 
 `/faff-graft` requires a spec to exist on the issue before implementation can start. That's the only gate — one artifact.
 
-## Artifact Lifecycle
+## Artifact lifecycle
 
-### Phase 1: Prep (issue tracker only)
+Attach each spec as soon as it is produced or revised. In tracker mode its comment is the source of truth until build. In git-only mode use the gitignored spec store below. Prep commits nothing.
 
-During prep, the spec lives **only on the issue tracker** as a comment; commit nothing to the repo. This allows:
-- No noisy commits, PRs, or CI runs for planning work
-- The spec can be revised and replaced freely
-- If the session crashes, the spec is preserved on the issue
-- Attached **as soon as it's produced**, not batched
-
-### Phase 2: Build (committed to repo)
-
-When `/faff-graft` starts implementation, it pulls the spec from the issue and commits it to the feature branch as the first commit:
-- Spec → `<spec-docs-path>/YYYY-MM-DD-<issue>-<name>-design.md` — `<spec-docs-path>` is the configured **Spec docs path** (default `docs/specs/`; see the gateway's **Spec docs location**)
-
-It ships with the PR alongside the code it describes.
-
-### Phase 3: Merged (living documentation)
-
-After the PR merges, the spec lives in the repo as a record of what was built and why.
+Graft's first feature-branch commit places the spec at `<spec-docs-path>/YYYY-MM-DD-<issue>-<name>-design.md` (default directory `docs/specs/`, gateway → **Spec docs location**). It ships with the PR and remains on main as the design record.
 
 ### Delegated skill output handling
 
@@ -424,16 +409,6 @@ At any point, the user (or `/faff-graft` mid-build) can say "reprep this" or "up
 - Add a note: "Revised on [date] — [brief reason]"
 - If the issue was already in Todo, it stays in Todo
 - If revising closes an architecture / scope / taste decision — including unparking a `needs-human` — the gateway's **Interactive park resolution (surface, don't settle)** rule governs: surface the call and a recommendation, let the human author the `**Chosen:**`. The correctness carve-out still lets prep close a fact-not-taste item (a genuine bug, a rule already written down) itself. **Git-only unpark:** when a re-invoke on a `disposition:"parked"` git-only marker is gated open by the human's authored `**Chosen:**` closing the cited cause (or an explicit unpark), run the kernel's **git-only Unpark contract** — clear the marker's `disposition`/`park` and log the `park-reconsidered` record to this prep log (`via:"interactive-reprep"`), the inverse of the inline park write; recompute the cited config-file fingerprint and warn if it is byte-identical to park time. Write **only** the marker + this log — never an earlier dispatched run's ledger/events (Evidence class): read that run (via the marker's `owner.run_dir`) only to branch, and **refuse** — park left standing — if it is still live or its ledger is malformed. No authored resolution ⇒ the park honestly stands.
-
-## Where Artifacts Live
-
-| Phase | Location | Purpose |
-|-------|----------|---------|
-| Prep | Issue tracker (comments) | Persistent, survives across sessions. Source of truth until build begins. |
-| Build | Feature branch, under the configured **Spec docs path** (default `docs/specs/`) | Committed by `/faff-graft` as first commit. Ships with the PR. |
-| Merged | Main branch, under the configured **Spec docs path** (default `docs/specs/`) | Living documentation of design intent. |
-
-The spec is **never** committed during prep. It only enters the repo when building begins.
 
 ## Tracker-less (git-only) mode
 

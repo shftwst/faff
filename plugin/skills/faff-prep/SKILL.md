@@ -128,7 +128,7 @@ The command collapses newlines and scrubs secrets/directive sentences from track
   --occupant <adversarial|single-pass> [--served any|none] [--run-dir "$FAFF_RUN_DIR"] [--prepare-attachment <reviewed-stage-sha256>] --json
 ```
 
-Pass the reviewed stage's `spec_sha256` when available and the selected lens `mode` as `--occupant`. Route once on the saved `decision-<n>.json` action. The command validates and records the review, applies window governance, churn and convergence, and resolves the appetite cap. Log all returned warnings in `prep.md`.
+Pass the reviewed stage's `spec_sha256` when available and the selected lens `mode` as `--occupant`. Route once on the saved `decision-<n>.json` action. The command validates the verdict, checks churn against the previous round in the window and applies the cap and convergence. Log its warnings in `prep.md`. **Anti-pattern:** running `spec-review route`, `spec-review-churn` or `spec-review-convergence` beside the round.
 
 | `action` | Autonomous | Interactive |
 |---|---|---|

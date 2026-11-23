@@ -68,7 +68,7 @@ class CheckSnapshots extends node_stream_1.Transform {
     _transform(chunk, _encoding, done) {
         // latin1 is a one-to-one byte mapping, including for split UTF-8 or invalid input.
         const parts = (this.tail + chunk.toString("latin1")).split("\n");
-        this.tail = parts.pop();
+        this.tail = parts.pop() ?? "";
         for (const part of parts)
             this.line(part + "\n");
         done();

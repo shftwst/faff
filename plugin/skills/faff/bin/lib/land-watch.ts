@@ -60,7 +60,7 @@ export class CheckSnapshots extends Transform {
   override _transform(chunk: Buffer, _encoding: BufferEncoding, done: TransformCallback): void {
     // latin1 is a one-to-one byte mapping, including for split UTF-8 or invalid input.
     const parts = (this.tail + chunk.toString("latin1")).split("\n");
-    this.tail = parts.pop()!;
+    this.tail = parts.pop() ?? "";
     for (const part of parts) this.line(part + "\n");
     done();
   }
@@ -86,7 +86,7 @@ async function watch(pr: string): Promise<number> {
     stdio: ["inherit", "pipe", "inherit"],
   });
   const forward = (signal: NodeJS.Signals) => child.kill(signal);
-  const signals = ["SIGHUP", "SIGINT", "SIGTERM", "SIGQUIT"] as const;
+  const signals: NodeJS.Signals[] = ["SIGHUP", "SIGINT", "SIGTERM", "SIGQUIT"];
   for (const signal of signals) process.on(signal, forward);
   let spawnError: NodeJS.ErrnoException | undefined;
   child.on("error", (err) => { spawnError = err; });

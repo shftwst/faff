@@ -37,7 +37,7 @@
     "bin/lib/judge-dispositions.ts": "e693efecbdd54dd88f0e5a08f106579474ae8b1131442b9a76d20d1d1ba5ab13",
     "bin/lib/land-assess-fix.ts": "d584c2c175a0ac7611b08ff0e73cbd83dd0729255317d856fc1341eeba55533c",
     "bin/lib/land-fix-attempt.ts": "e54b372aae76971d2b802947ede682d9a0a62890cebbce4bb67f593cccbe2038",
-    "bin/lib/land-watch.ts": "bed4f9d6b2675139300faf46869dc9a112048baaabfe6879b024be3aa77f7238",
+    "bin/lib/land-watch.ts": "28847c32635a3b58b8a91f0fc50282606ca19a389cf9f17b0e64804cdc5172b8",
     "bin/lib/land.ts": "b4c79d62812ac0013ba6c774b720fa4448451b712b8828a66c154616e71f5fa5",
     "bin/lib/merge-authorize.ts": "159bd25af72d30d005a887cda7d8980f7d5030398022c0d9f8371a066c13bd61",
     "bin/lib/merge-delivery-receipt.ts": "44212d861e6d495c0b6167079880d1bfb666e1acb5ac759849df95ccf629fd7b",
@@ -101,7 +101,7 @@
     "bin/lib/judge-dispositions.js": "5dae168f0fb7e18d23a0092d045ff9927dca79556f1ffb0008b91ab0ac917316",
     "bin/lib/land-assess-fix.js": "7712efb23f3674c58c3dcc4779e8610f13b67217e85c27c14820e3d5d5428d80",
     "bin/lib/land-fix-attempt.js": "805071f0399ca6b2c317ba4e464d1be09c1caeab630e83f2d22d319cbfeba05f",
-    "bin/lib/land-watch.js": "b4b1a1e927fc9ad92d2e97145a6cc397f6a84060085645001ffb530423b3db4b",
+    "bin/lib/land-watch.js": "2d48e934e77a719a29a1807c8a52e679771cace75b80735364fb02bdb3a88ca5",
     "bin/lib/land.js": "6722f3b6b1cc15cccdd58ca3555c59846604c950351ab96944cc7f340868226c",
     "bin/lib/merge-authorize.js": "9b08489832b8d35e025e52f17fe94476bfb400210065048b29facd04d3db582f",
     "bin/lib/merge-delivery-receipt.js": "a7946efb13f1b4a5b1b9a162dad94becc948b741c61b002ac15d269c2a4eaefd",
@@ -140,5 +140,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "b9fe09c75ac8cdb1c4ce13f50fe6ba00ae2aa8eca9e3cd9218942ef216d348c8"
+  "output_digest": "34b4a6f0d6c8775687e0a4289644c10d350aaa2a5f6ca46e1d6450fcfaea73c1"
 }

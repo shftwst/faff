@@ -1,89 +1,84 @@
-// Run the occupant's documented record-results invocation through the shipped CLI.
-// The window depends on a served identity even after the first pin is established.
+// Exercise the serving identity that the spec-review window reads after a retry.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, mkdtempSync, writeFileSync, existsSync, rmSync } from "node:fs";
-import { spawnSync } from "node:child_process";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { once } from "node:events";
+import { createServer } from "node:http";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
+import { promisify } from "node:util";
+import { faffBin } from "./helpers/run-cli.mjs";
 import { backendIdentity } from "../plugin/skills/faff/bin/lib/spec-review-pin.js";
 
-const HERE = dirname(fileURLToPath(import.meta.url));
-const REPO = join(HERE, "..");
-const OCCUPANT_SKILL = join(REPO, "plugin", "skills", "faffter-dark-spec-review", "SKILL.md");
-const FAFF_BIN = join(REPO, "plugin", "skills", "faff", "bin", "faff");
+const exec = promisify(execFile);
+const json = file => JSON.parse(readFileSync(file, "utf8"));
 
-const BACKENDS = [
-  { provider: "openai", model: "mA", host: "https://a/v1" },
-  { provider: "nvidia", model: "mB", host: "https://b/v1" },
-];
-
-function extractRecordCommand() {
-  const body = readFileSync(OCCUPANT_SKILL, "utf8");
-  const command = body.split("`").find(item => item.startsWith('"$faff" spec-review record-results '));
-  assert.ok(command, "occupant documents the actual record-results invocation");
-  return command;
+function fixture(t) {
+  const root = mkdtempSync(join(tmpdir(), "faff-occupant-dispatch-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const config = join(root, ".faff", "config.yaml");
+  mkdirSync(join(root, ".faff"));
+  writeFileSync(config, "{}\n");
+  writeFileSync(join(root, "spec.md"), "Keep every row.\n");
+  const cli = async (...args) => (await exec(process.execPath, [faffBin, ...args], {
+    cwd: root, env: { ...process.env, TMPDIR: root },
+  })).stdout;
+  const dir = join(root, "pin");
+  const dispatch = (...selection) => cli("spec-review", "dispatch", "--dir", dir, "--root", root,
+    "--spec", "spec.md", "--turn-budget-secs", "20", ...selection);
+  return { root, dir, config, cli, dispatch };
 }
 
-function writeBatch(scratch, round, index) {
-  const { provider, model } = BACKENDS[index];
-  const file = join(scratch, `results-${round}.json`);
-  const stdout = `## Adversarial findings — ${provider}/${model} (chain[${index}], host: config)\n\n### observation: no findings\n`;
-  writeFileSync(file, JSON.stringify(["architectural", "infosec", "methodology", "QA"].map(lens => ({ lens, exit: 0, stdout, stderr: "", truncated: false }))));
-  return file;
-}
+test("the retry records its actual serving backend and leaves the original pin intact", async t => {
+  const f = fixture(t);
+  let available = "primary";
+  const calls = [];
+  const server = createServer(async (req, res) => {
+    if (req.method === "GET") return res.end(JSON.stringify({ data: [{ id: available }] }));
+    const chunks = [];
+    for await (const chunk of req) chunks.push(chunk);
+    const request = JSON.parse(Buffer.concat(chunks));
+    calls.push(request.model);
+    const content = request.model === "primary" ? "### major: Missing claim" : "### observation: no findings";
+    res.writeHead(200, { "content-type": "text/event-stream" });
+    res.end("data: " + JSON.stringify({ choices: [{ delta: { content }, finish_reason: "stop" }] }) + "\n\ndata: [DONE]\n\n");
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => { server.closeAllConnections(); server.close(); });
+  const host = "http://127.0.0.1:" + server.address().port + "/v1";
+  const backends = ["primary", "fallback"].map(model => ({ provider: "openai", model, host }));
+  const rows = backends.map(({ model }) => "    - provider: openai\n      model: " + model + "\n      host: " + host);
+  writeFileSync(f.config, ["adversarial:", "  backends:", ...rows, ""].join("\n"));
 
-function runSnippet(snippet, vars, scratch) {
-  const preamble = Object.entries(vars).map(([k, v]) => `${k}=${JSON.stringify(String(v))}`).join("\n");
-  const script = `set -e\nfaff="${FAFF_BIN}"\n${preamble}\n${snippet}\n`;
-  const r = spawnSync("/bin/sh", ["-c", script], { encoding: "utf8", cwd: scratch });
-  return r;
-}
+  const fresh = await f.dispatch("--enabled-lenses", "QA");
+  assert.equal(JSON.parse(fresh.split("\n")[1]).verdict, "unavailable");
+  const pinned = join(f.dir, "pinned-reviewer.json");
+  assert.equal(backendIdentity(json(pinned)), backendIdentity(backends[0]));
+  assert.equal(json(join(f.dir, "served-1.json")).served_identity, backendIdentity(backends[0]));
+  writeFileSync(join(f.root, "verdict.md"), fresh);
+  const decision = await f.cli("spec-review", "round", "--issue", "TEST-1", "--dir", f.dir, "--root", f.root,
+    "--verdict-file", "verdict.md", "--mode", "autonomous", "--occupant", "adversarial", "--served", "any", "--json");
+  assert.equal(JSON.parse(decision).action, "retry-outage");
 
-test("occupant record-results writes each served identity for the window even after pinning", () => {
-  const scratch = mkdtempSync(join(tmpdir(), "faff-occ-dispatch-"));
-  const snippet = extractRecordCommand();
-  try {
-    const backendsJson = join(scratch, "backends.json");
-    writeFileSync(backendsJson, JSON.stringify(BACKENDS));
-    const pinDir = join(scratch, "pin");
-
-    // Round 1: served, winner_index 0 -> captures the pin.
-    const r1 = runSnippet(snippet, { pin_dir: pinDir, backends_json: backendsJson, results_json: writeBatch(scratch, 1, 0), n: 1 }, scratch);
-    assert.equal(r1.status, 0, `round 1 dispatch failed: ${r1.stderr}`);
-    assert.ok(existsSync(join(pinDir, "pinned-reviewer.json")), "round 1 pinned the reviewer");
-    assert.ok(existsSync(join(pinDir, "served-1.json")), "round 1 recorded its served identity");
-
-    // Round 2: served by a DIFFERENT backend (winner_index 1) — the pin write is an
-    // idempotent no-op (pin already exists), but this is the exact regression FAFF-996
-    // exhibited: served-2.json must STILL be written so a later --govern can detect the swap.
-    const r2 = runSnippet(snippet, { pin_dir: pinDir, backends_json: backendsJson, results_json: writeBatch(scratch, 2, 1), n: 2 }, scratch);
-    assert.equal(r2.status, 0, `round 2 dispatch failed: ${r2.stderr}`);
-    const pinAfter = JSON.parse(readFileSync(join(pinDir, "pinned-reviewer.json"), "utf8"));
-    assert.deepEqual(pinAfter, BACKENDS[0], "the pin is unchanged (idempotent no-op) after round 2");
-    assert.ok(existsSync(join(pinDir, "served-2.json")), "round 2 STILL recorded served-2.json despite the idempotent pin no-op");
-    const served2 = JSON.parse(readFileSync(join(pinDir, "served-2.json"), "utf8"));
-    assert.equal(served2.served_identity, backendIdentity(BACKENDS[1]), "served-2.json names round 2's ACTUAL served backend");
-
-    // And a later --govern reads a served identity for round 2 rather than falling into the
-    // pin-present-no-served-identity exit-2 / unpinnable fail-safe.
-    const gov = spawnSync(FAFF_BIN, ["spec-review-window", "--govern", "--dir", pinDir, "--round", "2", "--any-served"], { encoding: "utf8" });
-    assert.equal(gov.status, 0, `--govern should succeed once served-2.json exists: ${gov.stderr}`);
-    const result = JSON.parse(gov.stdout);
-    assert.equal(result.action, "swap-reset", "the swap is detected because served-2.json diverges from the pin");
-  } finally { rmSync(scratch, { recursive: true, force: true }); }
+  available = "fallback";
+  const retry = await f.dispatch("--retry-lenses", "QA");
+  assert.deepEqual(JSON.parse(retry), [{ lens: "QA", outcome: "clear", objections: [], model: "openai/fallback" }]);
+  assert.deepEqual(calls, ["primary", "fallback"]);
+  assert.equal(backendIdentity(json(pinned)), backendIdentity(backends[0]));
+  assert.equal(json(join(f.dir, "served-2.json")).served_identity, backendIdentity(backends[1]));
+  const governed = await f.cli("spec-review-window", "--govern", "--dir", f.dir, "--round", "2", "--any-served");
+  assert.equal(JSON.parse(governed).action, "swap-reset");
 });
 
-test("occupant record-results captures an empty served set on missing fan-out", () => {
-  const scratch = mkdtempSync(join(tmpdir(), "faff-occ-dispatch-nolens-"));
-  const snippet = extractRecordCommand().replace('--results "$results_json" --backends-json "$backends_json"', "--no-results") + " --lenses QA --receipts-only";
-  try {
-    const pinDir = join(scratch, "pin");
-    const r = runSnippet(snippet, { pin_dir: pinDir, n: 1 }, scratch);
-    assert.equal(r.status, 0, `no-lens dispatch failed: ${r.stderr}`);
-    assert.equal(existsSync(join(pinDir, "pinned-reviewer.json")), false, "no pin written on the empty exit-0 set");
-    const cap = JSON.parse(readFileSync(join(pinDir, "pin-capture.json"), "utf8"));
-    assert.equal(cap.state, "skipped-no-lens");
-  } finally { rmSync(scratch, { recursive: true, force: true }); }
+test("an unconfigured retry returns unavailable receipts without pinning a reviewer", async t => {
+  const f = fixture(t);
+  const retry = JSON.parse(await f.dispatch("--retry-lenses", "QA"));
+  assert.equal(retry.length, 1);
+  assert.equal(retry[0].lens, "QA");
+  assert.equal(retry[0].outcome, "unavailable");
+  assert.equal(retry[0].kind, "config-fault");
+  assert.equal(existsSync(join(f.dir, "pinned-reviewer.json")), false);
+  assert.equal(json(join(f.dir, "pin-capture.json")).state, "skipped-no-lens");
 });

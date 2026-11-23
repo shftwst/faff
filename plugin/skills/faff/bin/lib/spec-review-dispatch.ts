@@ -1,16 +1,22 @@
 // === region:factory — run a complete bundled spec-review lens batch ===
 import { spawn, spawnSync } from "node:child_process";
-import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { closeSync, existsSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, resolve } from "node:path";
 import { validLensSet } from "./spec-review-results.ts";
 
 const { parseArgs, usageError } = require("./argv");
 const { SPEC_REVIEW_LENSES } = require("./review-vocab");
 const { nextRoundNumber } = require("./spec-review-window");
-const usage = "usage: faff spec-review dispatch --dir DIR --spec FILE [--enabled-lenses CSV] [--context FILE]... [--root DIR] [--turn-budget-secs SECONDS]";
+const { readGovernanceConfig } = require("./budget");
+const { heartbeatStaleSecs } = require("./runcheck");
+const { sentryThresholds } = require("./sentry");
+const { findRoot } = require("./shared-infra");
+const { specReviewDir } = require("./spec-review-pin");
+const { DEFAULT_RENEWAL_SECS, defaultHeartbeatTick, makeLease, withHeartbeatRenewal } = require("./supervisor");
+const usage = "usage: faff spec-review dispatch --dir DIR --spec FILE [--enabled-lenses CSV | --retry-lenses CSV] [--context FILE]... [--root DIR] [--turn-budget-secs SECONDS] [--run-dir DIR]";
 const flags = {
   "--dir": { arity: 1 }, "--spec": { arity: 1 }, "--context": { arity: 1, repeatable: true },
-  "--enabled-lenses": { arity: 1 }, "--root": { arity: 1 }, "--turn-budget-secs": { arity: 1 },
+  "--enabled-lenses": { arity: 1 }, "--retry-lenses": { arity: 1 }, "--run-dir": { arity: 1 }, "--root": { arity: 1 }, "--turn-budget-secs": { arity: 1 },
 };
 
 type Outcome = { status: string; innerExit: number | null; signal: string | null };
@@ -20,14 +26,23 @@ type RunKillable = (target: Target, deps: {
   onSignal: (sig: NodeJS.Signals, handler: () => void) => void;
 }) => Promise<Outcome>;
 
-async function runFanOut(args: string[], out: number, seconds: number | undefined, supervise: RunKillable): Promise<Outcome> {
+async function runFanOut(args: string[], out: number, seconds: number | undefined, runDir: string | undefined, supervise: RunKillable): Promise<Outcome> {
   const stdio: ["ignore", number, "inherit"] = ["ignore", out, "inherit"];
   const handlers = new Map<NodeJS.Signals, () => void>();
   try {
-    return await supervise({ deadlineSec: seconds ?? null, graceSec: 0, target: [process.execPath, ...args] }, {
+    const wait = () => supervise({ deadlineSec: seconds ?? null, graceSec: 0, target: [process.execPath, ...args] }, {
       spawnFn: (cmd, argv, options) => spawn(cmd, argv, { ...options, stdio }),
       onSignal: (sig, handler) => { handlers.set(sig, handler); process.on(sig, handler); },
     });
+    if (!runDir || seconds === undefined) return await wait();
+    const config = readGovernanceConfig(findRoot(runDir));
+    const stall = sentryThresholds(config).stall_window_secs;
+    const producerMax = Number(config.producer_tick_max_secs);
+    const renewalSecs = Math.min(DEFAULT_RENEWAL_SECS, stall / 3, heartbeatStaleSecs() / 3,
+      producerMax > 0 ? producerMax : DEFAULT_RENEWAL_SECS);
+    const lease = makeLease({ name: "spec-review", run_dir: runDir, deadline_secs: seconds });
+    defaultHeartbeatTick(runDir);
+    return await withHeartbeatRenewal(lease, wait, { renewalSecs });
   } finally {
     for (const [signal, handler] of handlers) process.off(signal, handler);
   }
@@ -44,9 +59,18 @@ export async function cmdDispatch(argv: string[], faff: string, fanOut: string, 
   if (!dir || !spec || (seconds !== undefined && (!Number.isFinite(seconds) || seconds <= 0 || seconds * 1000 > 2147483647))) {
     return usageError([{ code: "bad-value", detail: "provide a directory, spec, and a valid positive budget when supplied" }], usage);
   }
-  const lenses: string[] = values["--enabled-lenses"]?.split(",").map((lens: string) => lens.trim()) ?? SPEC_REVIEW_LENSES;
+  const runDir: string | undefined = values["--run-dir"];
+  if (runDir !== undefined && (!runDir || seconds === undefined || !existsSync(join(runDir, "run-ledger.json")) ||
+      resolve(dir) !== resolve(specReviewDir(basename(dirname(resolve(dir))), runDir)))) {
+    return usageError([{ code: "bad-value", detail: "--run-dir requires its own issue/spec-review directory, run ledger and a turn budget" }], usage);
+  }
+  const retry: string | undefined = values["--retry-lenses"];
+  if (retry !== undefined && values["--enabled-lenses"] !== undefined) {
+    return usageError([{ code: "bad-value", detail: "choose a fresh selection or a retry subset" }], usage);
+  }
+  const lenses: string[] = (retry ?? values["--enabled-lenses"])?.split(",").map((lens: string) => lens.trim()) ?? SPEC_REVIEW_LENSES;
   if (!validLensSet(lenses)) {
-    return usageError([{ code: "bad-value", detail: "--enabled-lenses must name a nonempty, distinct set of review lenses" }], usage);
+    return usageError([{ code: "bad-value", detail: "select a nonempty, distinct set of review lenses" }], usage);
   }
   const args = ["--dir", dir, "--spec", spec, "--lenses", lenses.join(",")];
   for (const file of values["--context"] ?? []) args.push("--context", file);
@@ -59,6 +83,7 @@ export async function cmdDispatch(argv: string[], faff: string, fanOut: string, 
   try { descriptor = JSON.parse(prepared.stdout); } catch { /* Use the ordinary no-results path. */ }
   const round = Number.isSafeInteger(descriptor?.round) && descriptor.round > 0 ? descriptor.round : nextRoundNumber(dir);
   const recordArgs = ["--dir", dir, "--round", String(round)];
+  if (retry !== undefined) recordArgs.push("--receipts-only");
   const noResults = () => {
     const code = recorder([...recordArgs, "--no-results"], lenses);
     if (!code) process.stderr.write(`spec-review: served 0/${lenses.length} lenses\n`);
@@ -76,7 +101,7 @@ export async function cmdDispatch(argv: string[], faff: string, fanOut: string, 
     const fd = openSync(results, "wx", 0o600);
     let outcome;
     try {
-      outcome = await runFanOut([fanOut, "--requests", descriptor.requests_path, "--strategy", descriptor.strategy], fd, seconds, supervise);
+      outcome = await runFanOut([fanOut, "--requests", descriptor.requests_path, "--strategy", descriptor.strategy], fd, seconds, runDir, supervise);
     } finally { closeSync(fd); }
     if (outcome.status === "killed-deadline" || outcome.status === "killed-abort" || outcome.signal) {
       keep = false;

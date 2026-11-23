@@ -9,15 +9,13 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const SKILL_MD = join(HERE, "..", "plugin", "skills", "faffter-dark-spec-review", "SKILL.md");
 const BODY = readFileSync(SKILL_MD, "utf8");
 
-test("complete and partial spec-review callers keep their separate dispatch and recording paths", () => {
-  assert.match(BODY, /spec-review dispatch --dir "\$pin_dir" --spec "\$spec_file"/);
-  assert.match(BODY, /complete selection as `--enabled-lenses <ordered CSV>`/);
-  assert.match(BODY, /Outage retry.+only the requested lenses/);
-  assert.match(BODY, /--turn-budget-secs/);
-  assert.match(BODY, /spec-review prepare-requests --dir "\$pin_dir" --spec "\$spec_file"/);
-  assert.match(BODY, /node "\$FANOUT" --requests "\$requests_json" --strategy "\$strategy"/);
-  assert.match(BODY, /--no-results/);
-  assert.match(BODY, /--receipts-only/);
+test("the occupant uses bounded dispatch for the selected lenses and for outage retries", () => {
+  const backend = BODY.split("## Backend call")[1].split("## Output")[0];
+  assert.match(backend, /spec-review dispatch/);
+  for (const flag of ["--enabled-lenses", "--retry-lenses", "--turn-budget-secs", "--run-dir"]) {
+    assert.ok(backend.includes(flag), flag);
+  }
+  assert.doesNotMatch(backend, /spec-review (?:prepare-requests|record-results)\b|node "\$FANOUT"/);
 });
 
 test("FAFF-1054: the wire-shape note ties 'lens 1 populates the cache' to the prime-then-parallel default, not an unconditional claim", () => {

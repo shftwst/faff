@@ -68,7 +68,7 @@
     "bin/lib/slot-authoring.ts": "8204bcc6316d905fbc58c595862cd2247ce01fe1152a3edeb271c33e3adec95e",
     "bin/lib/spec-commit.ts": "c158a7e3dee49d9dd77d9abe92998624aa4c5be984640e93f7e82aa0820b0bfa",
     "bin/lib/spec-judge-sequence.ts": "1976d793e31d7e75e00923783a142620e71fb64c90df504802139aedfacfd951",
-    "bin/lib/spec-review-dispatch.ts": "94730544927b478dd87f0da566e7c1cc744210e2cc3fafaea5ef88c3b658d7e2",
+    "bin/lib/spec-review-dispatch.ts": "cfed30e042fdbd3d95ddab276d7d9e4b42aa6253e5b0155c9bfeff27e26393cb",
     "bin/lib/spec-review-hold.ts": "538479bf72ec1d3f63b6894fdaa462b7a40d0c07d44cb2d45a57a38cced91790",
     "bin/lib/spec-review-prepare.ts": "b3eef5b06dbbd7a6c6eefbbd7f7f49a0489f222326bd3ac842b2e3e4c4bb19a3",
     "bin/lib/spec-review-results.ts": "f8aca9d6878b9acf1039a3f7d41b8d6ee3d66b6f7eb88465c1ed5d779f927db5",
@@ -132,7 +132,7 @@
     "bin/lib/slot-authoring.js": "d977e73afef4a74bcb5c67d16ea081bb894c51331e548f6717525c5fc857eee5",
     "bin/lib/spec-commit.js": "1b250425767b1ff8e87c43226b4dfbfcf4776052ca10e32508994166d2d026f7",
     "bin/lib/spec-judge-sequence.js": "b99dde658d16840995f8acbe30eee109625ab282e323382f45bbfdd3f2623b16",
-    "bin/lib/spec-review-dispatch.js": "54085ace0c627405b336a746479818fb949f839f7669fdfb1c2cf3a41d77f71d",
+    "bin/lib/spec-review-dispatch.js": "704ab362039a31c7fd410190b936c3834d01150a342dff6ca5ef4bd2d7966abc",
     "bin/lib/spec-review-hold.js": "1e3ab668ca1acbb249470c5dfd12f4d0d46c8b530a0fb9443bb79b26baa58f8d",
     "bin/lib/spec-review-prepare.js": "7013c578aad0620b4c0a82e07126fbadc804fa002db5166e7a24b6d3918c9416",
     "bin/lib/spec-review-results.js": "0a60ca72bb3a0d701fc20b7f9bad6016796581c47db30bce38ece9be3093e3da",
@@ -140,5 +140,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "7ad0bc66a0b9fc4a6265eb403252d71ae18bbef7dce2c400d74e97781a9639c4"
   },
-  "output_digest": "392732d03f76a6cdf6f48c6190b6da4e0a6d6623119a2d3df6a0bf12674ea35e"
+  "output_digest": "332cb1c2e1caca8a64f819eb1126b1c73320e7377992d4d2a18c4083e6ae151a"
 }

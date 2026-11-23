@@ -1,14 +1,15 @@
 import assert from "node:assert/strict";
 import { execFile, spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { appendFileSync, existsSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import http from "node:http";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
 import { aggregate } from "../../plugin/skills/faffter-dark-spec-review/aggregate.mjs";
 import { test } from "node:test";
-import { faffBin } from "../helpers/run-cli.mjs";
+import { faffBin, runCli } from "../helpers/run-cli.mjs";
 
 async function fixture(t, slow, reply = () => "### observation: no findings") {
   const root = mkdtempSync(join(tmpdir(), "faff-dispatch-wire-"));
@@ -24,7 +25,7 @@ async function fixture(t, slow, reply = () => "### observation: no findings") {
     requests.push(request);
     if (slow) return;
     res.writeHead(200, { "content-type": "text/event-stream" });
-    const choices = [{ delta: { content: reply(request.messages[1].content) }, finish_reason: "stop" }];
+    const choices = [{ delta: { content: await reply(request.messages[1].content) }, finish_reason: "stop" }];
     res.end("data: " + JSON.stringify({ choices }) + "\n\ndata: [DONE]\n\n");
   });
   server.listen(0, "127.0.0.1");
@@ -34,9 +35,10 @@ async function fixture(t, slow, reply = () => "### observation: no findings") {
   writeFileSync(join(root, "spec.md"), "Keep all rows.\n");
   writeFileSync(join(root, "context.md"), "A named file.\n");
   let proc;
-  return { root, requests, bodies, resume() { slow = false; }, cancel() { proc.kill("SIGTERM"); }, async call(...extra) {
+  const env = { ...process.env, TMPDIR: root };
+  return { root, requests, bodies, env, pinDir: "pin", cancel() { proc.kill("SIGTERM"); }, async call(...extra) {
     const child = spawn(process.execPath, [faffBin, "spec-review", "dispatch", "--spec", "spec.md", "--context", "./context.md",
-      "--dir", "pin", "--root", root, ...extra], { cwd: root, env: { ...process.env, TMPDIR: root } });
+      "--dir", this.pinDir, "--root", root, ...extra], { cwd: root, env });
     proc = child;
     let stdout = "", stderr = "";
     child.stdout.on("data", chunk => { stdout += chunk; });
@@ -120,24 +122,109 @@ for (const [lenses, expected] of [
 }
 
 test("healthy slow transport hands back without a verdict or pin, then resumes on the same round", async t => {
-  const f = await fixture(t, true);
-  const blocked = await f.call("--turn-budget-secs", "1");
+  const f = await fixture(t, false, async () => {
+    await delay(1600);
+    return "### major: Missing acceptance check\n- claim: Completion has no pass condition.";
+  });
+  const selection = ["--enabled-lenses", "QA"];
+  const blocked = await f.call(...selection, "--turn-budget-secs", "1");
   assert.equal(blocked.code, 124, blocked.stderr);
   assert.equal(blocked.stdout, "");
   assert.equal(f.requests.length, 1);
   for (const name of ["served-1.json", "pin-capture.json", "round-1.json"]) assert.equal(existsSync(join(f.root, "pin", name)), false);
-  f.resume();
-  const resumed = await f.call();
+  const resumed = await f.call(...selection, "--turn-budget-secs", "15");
   assert.equal(resumed.code, 0, resumed.stderr);
-  assert.equal(JSON.parse(resumed.stdout.split("\n")[1]).verdict, "approve");
+  assert.equal(JSON.parse(resumed.stdout.split("\n")[1]).verdict, "reject-approach");
+  assert.equal(f.requests.length, 2);
+  assert.deepEqual(f.bodies[0], f.bodies[1]);
   assert.equal(JSON.parse(readFileSync(join(f.root, "pin/served-1.json"))).round, 1);
+});
+
+function ownedRun(f, name) {
+  const dir = join(f.root, ".faff", "runs", name);
+  mkdirSync(dir, { recursive: true });
+  const old = new Date(Date.now() - 60000).toISOString();
+  writeFileSync(join(dir, "run-ledger.json"), JSON.stringify({
+    run_id: name, admitted: [], outcomes: {}, owner: { status: "running", started_at: old, last_heartbeat: old },
+  }));
+  return dir;
+}
+
+function checkStall(f, dir) {
+  const check = runCli(["sentry", "check", "--root", f.root, "--run-dir", dir, "--json"], { cwd: f.root, env: f.env });
+  assert.equal(check.code, 0, check.stderr);
+  return JSON.parse(check.stdout).verdicts.find(v => v.signal === "wall-clock-runaway")?.evidence.tripped_on;
+}
+
+for (const retry of [false, true]) {
+  test(`a quiet ${retry ? "retry" : "fresh review"} keeps its exact parent live across the stall window`, async t => {
+    let release;
+    const quiet = new Promise(resolve => { release = resolve; });
+    const f = await fixture(t, false, async () => { await quiet; return "### observation: clear"; });
+    appendFileSync(join(f.root, ".faffrc.yaml"), "sentry:\n  stall_window_secs: 1\n");
+    const parent = ownedRun(f, "owner"), peer = ownedRun(f, "peer");
+    f.env.FAFF_RUN_DIR = peer;
+    f.pinDir = join(parent, "ABC-1", "spec-review");
+    assert.equal(checkStall(f, parent), "heartbeat-staleness");
+    const flags = [retry ? "--retry-lenses" : "--enabled-lenses", "QA"];
+    const waiting = f.call(...flags, "--turn-budget-secs", "30", "--run-dir", parent);
+    try {
+      const deadline = Date.now() + 10000;
+      while (!f.requests.length && Date.now() < deadline) await delay(20);
+      assert.equal(f.requests.length, 1);
+      const initial = readFileSync(join(parent, "heartbeat"), "utf8");
+      await delay(1600);
+      assert.notEqual(readFileSync(join(parent, "heartbeat"), "utf8"), initial);
+      assert.equal(checkStall(f, parent), undefined);
+      assert.equal(checkStall(f, peer), "heartbeat-staleness");
+    } finally { release(); }
+    const result = await waiting;
+    assert.equal(result.code, 0, result.stderr);
+    if (retry) assert.deepEqual(JSON.parse(result.stdout).map(v => [v.lens, v.outcome]), [["QA", "clear"]]);
+    else assert.deepEqual(JSON.parse(result.stdout.split("\n")[1]), { verdict: "approve", objections: [] });
+    assert.equal(f.requests.length, 1);
+    assert.equal(existsSync(join(parent, "heartbeat.ABC-1")), false);
+    assert.equal(existsSync(join(peer, "heartbeat")), false);
+    assert.equal(existsSync(join(parent, "events.ndjson")), false);
+    const final = readFileSync(join(parent, "heartbeat"), "utf8");
+    await delay(1500);
+    assert.equal(readFileSync(join(parent, "heartbeat"), "utf8"), final);
+    assert.equal(checkStall(f, parent), "heartbeat-staleness");
+  });
+}
+
+test("standalone reviews ignore ambient runs and a terminal owner cannot be revived", async t => {
+  const f = await fixture(t, false);
+  const parent = ownedRun(f, "owner");
+  f.env.FAFF_RUN_DIR = parent;
+  const standalone = await f.call("--enabled-lenses", "QA", "--turn-budget-secs", "15");
+  assert.equal(standalone.code, 0, standalone.stderr);
+  assert.equal(existsSync(join(parent, "heartbeat")), false);
+  writeFileSync(join(parent, "run-ledger.json"), JSON.stringify({ owner: { status: "done" } }));
+  f.pinDir = join(parent, "ABC-1", "spec-review");
+  const finished = await f.call("--retry-lenses", "QA", "--turn-budget-secs", "15", "--run-dir", parent);
+  assert.equal(finished.code, 0, finished.stderr);
+  assert.equal(existsSync(join(parent, "heartbeat")), false);
+});
+
+test("the outer budget expires even with a fresh heartbeat during a quiet retry", async t => {
+  const f = await fixture(t, true);
+  const parent = ownedRun(f, "owner");
+  f.pinDir = join(parent, "ABC-1", "spec-review");
+  const outcome = await f.call("--retry-lenses", "QA", "--turn-budget-secs", "2", "--run-dir", parent);
+  assert.equal(outcome.code, 124, outcome.stderr);
+  assert.equal(outcome.stdout, "");
+  assert.equal(f.requests.length, 1);
+  assert.ok(existsSync(join(parent, "heartbeat")));
+  for (const name of ["served-1.json", "round-1.json", "pin-capture.json"]) assert.equal(existsSync(join(f.pinDir, name)), false);
 });
 
 for (const selected of [null, ["architectural", "QA", "infosec"]]) {
   test(`a partial retry retains the dissent and replaces only QA for ${selected?.join(",") ?? "the default lenses"}`, async t => {
+    let qaRecovered = false;
     const f = await fixture(t, false, brief => {
       if (brief.includes("**architectural** spec refuter")) return "### major: Missing acceptance check\n- claim: Completion has no pass condition.";
-      if (brief.includes("**QA** spec refuter")) return "### major: Missing claim";
+      if (!qaRecovered && brief.includes("**QA** spec refuter")) return "### major: Missing claim";
       return "### observation: no findings";
     });
     const outcome = await f.call(...(selected ? ["--enabled-lenses", selected.join(",")] : []));
@@ -148,17 +235,15 @@ for (const selected of [null, ["architectural", "QA", "infosec"]]) {
     const votes = JSON.parse(readFileSync(path));
     assert.deepEqual(votes.map(v => v.lens), selected ?? ["architectural", "infosec", "methodology", "QA"]);
     assert.equal(votes.find(v => v.lens === "QA").outcome, "unavailable");
-    const dir = join(f.root, "pin");
-    const chain = join(f.root, "chain.json"), results = join(f.root, "retry.json");
-    writeFileSync(chain, JSON.stringify([JSON.parse(readFileSync(join(dir, "pinned-reviewer.json")))]));
-    writeFileSync(results, JSON.stringify([{ lens: "QA", exit: 0, stdout: "## Adversarial findings — openai/fixture (chain[0], host: config)\n\n### observation: no findings\n", stderr: "", truncated: false }]));
-    const retry = spawnSync(process.execPath, [faffBin, "spec-review", "record-results", "--dir", dir, "--round", "1", "--lenses", "QA",
-      "--results", results, "--backends-json", chain, "--receipts-only"], { cwd: f.root, encoding: "utf8" });
-    assert.equal(retry.status, 0, retry.stderr);
+    qaRecovered = true;
+    const retry = await f.call("--retry-lenses", "QA", "--turn-budget-secs", "20");
+    assert.equal(retry.code, 0, retry.stderr);
     const final = aggregate(votes.map(v => v.lens === "QA" ? JSON.parse(retry.stdout)[0] : v), votes.length);
     assert.equal(final.verdict, "revise");
     assert.deepEqual(final.objections.map(o => o.lens), ["architectural"]);
-    assert.equal(f.requests.length, votes.length);
+    assert.equal(f.requests.length, votes.length + 1);
+    const originalQA = f.requests.findIndex(r => r.messages[1].content.includes("**QA** spec refuter"));
+    assert.deepEqual(f.bodies.at(-1), f.bodies[originalQA]);
   });
 }
 

@@ -3,7 +3,7 @@
 // converging spec read as churn. Covers the pure resolve/capture/dir functions, the prefer-
 // with-fallback pin-first chain + de-dup, the fail-loud/fail-safe directions, the CLI seam
 // (bare-array default == adversarial-backends, --json wrap, exit codes, flag-wins-over-env),
-// and the SKILL wiring (block-scoped occupant lint + prep's scratch-dir / swap-reset prose).
+// and prep's scratch-dir / swap-reset wiring.
 //
 // FAFF-1052 — round-1 pin capture can silently not run, leaving rounds 2+ with no swap
 // detection: capture is now unconditional (served -> --winner-index, empty -> new
@@ -37,7 +37,6 @@ import { detectSpecReviewConvergence } from "../plugin/skills/faff/bin/lib/spec-
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const REPO = join(HERE, "..");
-const OCCUPANT_SKILL = join(REPO, "plugin", "skills", "faffter-dark-spec-review", "SKILL.md");
 const PREP_SKILL = join(REPO, "plugin", "skills", "faff-prep", "SKILL.md");
 
 const CFG = {
@@ -580,13 +579,7 @@ test("--selftest reports PASS in-process (both commands)", () => {
   assert.equal(specReviewDirSelftest(), 0);
 });
 
-// --- SKILL wiring: block-scoped occupant lint + prep scratch-dir/swap-reset prose ---
-
-test("occupant records the actual returned batch against the prepared chain", () => {
-  const body = readFileSync(OCCUPANT_SKILL, "utf8");
-  assert.match(body, /spec-review record-results --dir "\$pin_dir" --round "\$n" --results "\$results_json" --backends-json "\$backends_json"/);
-  assert.match(body, /replace `--results` and `--backends-json` with `--no-results`/);
-});
+// --- Prep scratch directory and swap-reset wiring. ---
 
 test("prep SKILL resolves the scratch dir via `spec-review-dir` and hands it to `spec-review round`", () => {
   const body = readFileSync(PREP_SKILL, "utf8");

@@ -22,7 +22,8 @@ test("dispatch records configuration faults and refuses invalid selections, part
   const dir = join(root, "pin");
   const call = (...flags) => runCli(["spec-review", "dispatch", "--dir", dir, "--spec", "draft.md", "--root", root, ...flags], { cwd: root });
   for (const flags of [["--enabled-lenses", "QA,QA"], ["--enabled-lenses", "QA,absent"], ["--enabled-lenses", ""],
-    ["--enabled-lenses", ",QA"], ["--lenses", "QA"], ["--turn-budget-secs", "0"], ["--turn-budget-secs", "Infinity"]]) {
+    ["--enabled-lenses", ",QA"], ["--enabled-lenses", "QA", "--retry-lenses", "infosec"],
+    ["--retry-lenses", "QA,QA"], ["--run-dir", root], ["--run-dir", root, "--turn-budget-secs", "1"], ["--lenses", "QA"], ["--turn-budget-secs", "0"], ["--turn-budget-secs", "Infinity"]]) {
     assert.equal(call(...flags).code, 2);
     assert.equal(existsSync(dir), false);
   }

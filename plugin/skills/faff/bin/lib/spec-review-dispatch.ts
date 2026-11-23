@@ -2,13 +2,15 @@
 import { spawn, spawnSync } from "node:child_process";
 import { closeSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { validLensSet } from "./spec-review-results.ts";
 
 const { parseArgs, usageError } = require("./argv");
+const { SPEC_REVIEW_LENSES } = require("./review-vocab");
 const { nextRoundNumber } = require("./spec-review-window");
-const usage = "usage: faff spec-review dispatch --dir DIR --spec FILE [--context FILE]... [--root DIR] [--turn-budget-secs SECONDS]";
+const usage = "usage: faff spec-review dispatch --dir DIR --spec FILE [--enabled-lenses CSV] [--context FILE]... [--root DIR] [--turn-budget-secs SECONDS]";
 const flags = {
   "--dir": { arity: 1 }, "--spec": { arity: 1 }, "--context": { arity: 1, repeatable: true },
-  "--root": { arity: 1 }, "--turn-budget-secs": { arity: 1 },
+  "--enabled-lenses": { arity: 1 }, "--root": { arity: 1 }, "--turn-budget-secs": { arity: 1 },
 };
 
 type Outcome = { status: string; innerExit: number | null; signal: string | null };
@@ -31,7 +33,7 @@ async function runFanOut(args: string[], out: number, seconds: number | undefine
   }
 }
 
-type Recorder = (args: string[], retainVotes?: (entries: unknown[]) => void) => number;
+type Recorder = (args: string[], enabledLenses: string[], retainVotes?: (entries: unknown[]) => void) => number;
 
 export async function cmdDispatch(argv: string[], faff: string, fanOut: string, supervise: RunKillable, recorder: Recorder): Promise<number> {
   const { values, errors } = parseArgs(argv, { flags, positionals: { min: 0, max: 0 } });
@@ -42,7 +44,11 @@ export async function cmdDispatch(argv: string[], faff: string, fanOut: string, 
   if (!dir || !spec || (seconds !== undefined && (!Number.isFinite(seconds) || seconds <= 0 || seconds * 1000 > 2147483647))) {
     return usageError([{ code: "bad-value", detail: "provide a directory, spec, and a valid positive budget when supplied" }], usage);
   }
-  const args = ["--dir", dir, "--spec", spec];
+  const lenses: string[] = values["--enabled-lenses"]?.split(",").map((lens: string) => lens.trim()) ?? SPEC_REVIEW_LENSES;
+  if (!validLensSet(lenses)) {
+    return usageError([{ code: "bad-value", detail: "--enabled-lenses must name a nonempty, distinct set of review lenses" }], usage);
+  }
+  const args = ["--dir", dir, "--spec", spec, "--lenses", lenses.join(",")];
   for (const file of values["--context"] ?? []) args.push("--context", file);
   if (values["--root"]) args.push("--root", values["--root"]);
   const prepared = spawnSync(process.execPath, [faff, "spec-review", "prepare-requests", ...args], {
@@ -54,8 +60,8 @@ export async function cmdDispatch(argv: string[], faff: string, fanOut: string, 
   const round = Number.isSafeInteger(descriptor?.round) && descriptor.round > 0 ? descriptor.round : nextRoundNumber(dir);
   const recordArgs = ["--dir", dir, "--round", String(round)];
   const noResults = () => {
-    const code = recorder([...recordArgs, "--no-results"]);
-    if (!code) process.stderr.write("spec-review: served 0/4 lenses\n");
+    const code = recorder([...recordArgs, "--no-results"], lenses);
+    if (!code) process.stderr.write(`spec-review: served 0/${lenses.length} lenses\n`);
     return code;
   };
   if (prepared.status !== 0 || typeof descriptor?.requests_path !== "string" ||
@@ -79,7 +85,7 @@ export async function cmdDispatch(argv: string[], faff: string, fanOut: string, 
     const complete = outcome.status === "exited" && outcome.innerExit === 0;
     if (complete && readFileSync(results, "utf8").trim().length > 0) {
       let savedVotes = false;
-      const status = recorder([...recordArgs, "--results", results, "--backends-json", descriptor.backends_path, "--strategy", descriptor.strategy], entries => {
+      const status = recorder([...recordArgs, "--results", results, "--backends-json", descriptor.backends_path, "--strategy", descriptor.strategy], lenses, entries => {
         const votes = join(scratch, "retry-entries.json");
         writeFileSync(votes, JSON.stringify(entries) + "\n", { flag: "wx", mode: 0o600 });
         savedVotes = true;

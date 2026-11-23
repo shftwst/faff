@@ -1,4 +1,5 @@
-// === region:factory — spec-judge-sequence — one blinded proposition per call ===
+// === region:factory — spec-judge-sequence — resumable blinded proposition review ===
+import { performance } from "node:perf_hooks";
 import { randomUUID } from "node:crypto";
 import { mkdtempSync, readFileSync, readdirSync, realpathSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -8,8 +9,9 @@ const { withFileLock } = require("./fs-lock");
 const { loadConfig } = require("./config");
 const { findRoot, dig } = require("./shared-infra");
 const { assembleAdversarialBackends } = require("./adversarial-backends");
-const { backendIdentity, isWellFormedIdentity, readServedIdentity, resolvePinChain } = require("./spec-review-pin");
-const { realRunReviewCall, realJudgeDispatchDisposition } = require("./build-judge-evidence");
+const { backendIdentity, isWellFormedIdentity, readServedIdentity, resolvePinChain, specReviewDir } = require("./spec-review-pin");
+const { realRunReviewCall, realRunReviewCallAsync, realJudgeDispatchDisposition, reviewCallSpawnOptions } = require("./build-judge-evidence");
+const { withReviewHeartbeat } = require("./spec-review-dispatch");
 const { readWindowStart } = require("./spec-review-window");
 const { headingSlug } = require("./heading-slug");
 const { contractSpecJudgeVerdict } = require("./contract-defs-review");
@@ -32,7 +34,7 @@ type Step = {
   finished?: boolean;
 };
 type Entry = {
-  pre_ruling_spec_sha: string; pre_ruling_spec_content: string; resolution: string;
+  pre_ruling_spec_sha: string; pre_ruling_spec_content: string; resolution: string; park_reason?: string;
   step?: Step;
 };
 type Ledger = { sequence: Start; order: string[]; entries: Record<string, Entry>; governing_requirements: string; owner?: number };
@@ -56,10 +58,13 @@ function privateWrite(target: string, value: unknown): void {
   }
 }
 
-function emit(payload: object): 0 {
-  console.log(JSON.stringify(payload));
-  return 0;
-}
+type StepResult =
+  | { action: "done"; parked?: { pid: string; reason: string | null }[] }
+  | { action: "continue"; pid: string }
+  | { action: "parked"; pid: string; reason: string }
+  | { action: "retry"; pid: string; phase: number; exit: number }
+  | { action: "apply-correction"; pid: string; correction: NonNullable<Ruling["correction"]> }
+  | { action: "budget"; steps: number; attempt_secs: number };
 
 function same(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
@@ -219,10 +224,15 @@ export function verifySequenceForAdmission(
 }
 
 export async function stepSequence(values: Flags, readResidue: ReadResidue, readScope: ReadScope): Promise<number> {
-  const dir = values["--dir"], specPath = values["--spec"], window = values["--window-start"];
+  const dir = values["--dir"], specPath = values["--spec"] || "", window = values["--window-start"];
   if (!dir || !specPath || !/^\d+$/.test(window || "") || !positive(window)) {
     throw new Error("--step requires --dir, --spec and a positive --window-start");
   }
+  const rawBudget = values["--budget-secs"];
+  const budget = positive(rawBudget);
+  if (rawBudget !== undefined && (!budget || budget * 1000 > 2147483647)) throw new Error("--budget-secs requires a positive integer within the timer range");
+  const expires = budget === undefined ? Infinity : performance.now() + budget * 1000;
+  const runDir = values["--run-dir"];
   const out = values["--out"] || join(dir, "judge");
   const ledgerPath = join(out, "ledger.json");
   const lock = join(out, "sequence.lock");
@@ -230,24 +240,34 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
   const ledger: Ledger = withFileLock(lock, () => {
     const stored = JSON.parse(readFileSync(ledgerPath, "utf8"));
     verifySequence(stored, values, readResidue);
+    if (runDir !== undefined && (!runDir || realpathSync(specReviewDir(stored.sequence.issue, runDir)) !== stored.sequence.directory ||
+      JSON.parse(readFileSync(join(runDir, "run-ledger.json"), "utf8")).run_id !== stored.sequence.run)) {
+      throw new Error("--run-dir must own this issue's sequenced review directory");
+    }
     if (active(stored.owner)) throw new Error(IN_PROGRESS);
     stored.owner = process.pid;
     save(stored);
     return stored;
   });
 
-  try {
+  let steps = 0;
+  async function oneStep(parkPid: string | undefined): Promise<StepResult> {
     const residue = verifySequence(ledger, values, readResidue);
     const pid = ledger.order.find((id) => !entryFor(ledger, id).step?.finished);
-    if (!pid) return emit({ action: "done" });
+    if (!pid) {
+      const parked = budget === undefined ? [] : ledger.order.filter(id => entryFor(ledger, id).resolution === "parked")
+        .map(id => ({ pid: id, reason: entryFor(ledger, id).park_reason ?? null }));
+      return parked.length ? { action: "done", parked } : { action: "done" };
+    }
     const entry = entryFor(ledger, pid);
     const spec = readFileSync(specPath, "utf8");
-    const park = (reason: string) => {
+    const park = (reason: string): StepResult => {
       if (!entry.step) throw new Error("unbound park");
       entry.step.finished = true;
       entry.resolution = "parked";
+      entry.park_reason = reason;
       save(ledger);
-      return emit({ action: "parked", pid, reason });
+      return { action: "parked", pid, reason };
     };
 
     const settings = transportSettings(ledger.sequence, residue.window_rounds, values["--backend"]);
@@ -265,32 +285,45 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
       if (digest(before, freshCase(ledger, residue, pid, before)) !== step.binding) {
         throw new Error("case evidence or judge settings changed before the correction handoff");
       }
-      if (values["--park"]) {
-        if (values["--park"] !== pid || !ruling.correction) throw new Error("park must name the active correction");
+      if (parkPid) {
+        if (parkPid !== pid || !ruling.correction) throw new Error("park must name the active correction");
         return park("author could not apply correction");
       }
       if (ruling.correction && !correctionApplied(entry, ruling, spec).applied) {
-        return emit({ action: "apply-correction", pid, correction: ruling.correction });
+        return { action: "apply-correction", pid, correction: ruling.correction };
       }
       privateWrite(rulingFile(out, pid), ruling);
       step.finished = true;
       save(ledger);
-      return emit({ action: "continue", pid });
+      return { action: "continue", pid };
     }
-    if (values["--park"]) throw new Error("--park requires an active correction");
+    if (parkPid) throw new Error("--park requires an active correction");
 
     const blinded = freshCase(ledger, residue, pid, spec);
     const binding = digest(spec, blinded);
     if (entry.step && entry.step.binding !== binding) throw new Error("current spec, case evidence or judge settings changed during dispatch");
-    if (!entry.step) {
-      entry.pre_ruling_spec_sha = sha256Text(spec);
-      entry.pre_ruling_spec_content = spec;
-      entry.step = { binding, attempts: [0, 0] };
-      save(ledger);
+    const step: Step = entry.step ?? { binding, attempts: [0, 0] };
+    function bindStep(): void {
+      if (!entry.step) {
+        entry.pre_ruling_spec_sha = sha256Text(spec);
+        entry.pre_ruling_spec_content = spec;
+        entry.step = step;
+      }
     }
-    const step = entry.step;
-    if (!settings) return park("no independent spec judge backend available");
-    privateWrite(join(out, `case-${pid}.json`), blinded);
+    if (!settings) {
+      bindStep();
+      return park("no independent spec judge backend available");
+    }
+
+    const reconstruction = step.reconstruction;
+    if (reconstruction && (!validateReconstruction(reconstruction.body).ok
+      || reconstruction.sha !== sha256Text(JSON.stringify([binding, reconstruction.body])))) {
+      throw new Error("stored reconstruction is invalid or unbound");
+    }
+    const phase = reconstruction ? 1 : 0;
+    if (step.attempts[phase] >= settings.retryLimit + 1) {
+      return park(`phase ${phase + 1} retry budget exhausted`);
+    }
 
     const scratch = mkdtempSync(join(tmpdir(), "faff-spec-judge-"));
     try {
@@ -299,26 +332,31 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
       const context = join(scratch, "context.json");
       writeFileSync(snapshot, spec, { mode: 0o600 });
       privateWrite(backendPath, settings.chain.map((backend: object) => ({ ...backend, reasoning_off: false })));
-      const phase = step.reconstruction ? 1 : 0;
-      const reconstruction = step.reconstruction;
-      if (reconstruction && (!validateReconstruction(reconstruction.body).ok
-        || reconstruction.sha !== sha256Text(JSON.stringify([binding, reconstruction.body])))) {
-        throw new Error("stored reconstruction is invalid or unbound");
-      }
       privateWrite(context, reconstruction ? {
         proposition_id: pid,
         proposition: blinded.reconstruction_context.proposition,
         reconstruction: secretRedact(imperativeScrub(reconstruction.body)),
         ...blinded.arguments,
       } : blinded.reconstruction_context);
+      const attemptMs = reviewCallSpawnOptions(settings.deadline).timeout;
+      if (budget !== undefined && performance.now() + attemptMs > expires) {
+        return { action: "budget", steps, attempt_secs: attemptMs / 1000 };
+      }
+      // Only bind a new case and charge the attempt once its full transport can start.
+      privateWrite(join(out, `case-${pid}.json`), blinded);
+      bindStep();
       const attempts = ++step.attempts[phase];
-      if (attempts > settings.retryLimit + 1) return park(`phase ${phase + 1} retry budget exhausted`);
       save(ledger);
-      const result: Transport = realRunReviewCall([
+      const args = [
         "--system", join(PROMPTS, PHASE_PROMPTS[phase]), "--diff", snapshot, "--diff-kind", "prose", "--context", context,
         "--backends-json", backendPath, "--expect", "contract", "--max-tokens", String(settings.cap),
         "--timeout", String(settings.timeout), "--deadline", String(settings.deadline),
-      ], { deadlineSecs: settings.deadline });
+      ];
+      const options = { deadlineSecs: settings.deadline };
+      const result: Transport = runDir
+        ? await withReviewHeartbeat(runDir, Math.min(attemptMs, expires - performance.now()) / 1000,
+          () => realRunReviewCallAsync(args, options))
+        : realRunReviewCall(args, options);
       const liveResidue = verifySequence(ledger, values, readResidue);
       const liveSpec = readFileSync(specPath, "utf8");
       if (!scopeMatches() || digest(liveSpec, freshCase(ledger, liveResidue, pid, liveSpec)) !== binding) {
@@ -326,7 +364,7 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
       }
       const disposition = await realJudgeDispatchDisposition(result.code);
       if (disposition === "retry" && attempts <= settings.retryLimit) {
-        return emit({ action: "retry", pid, phase: phase + 1, exit: result.code });
+        return { action: "retry", pid, phase: phase + 1, exit: result.code };
       }
       if (disposition !== "ruling") {
         const cause = phase === 0 ? "reconstruction empty/failed" : "ruling dispatch failed";
@@ -336,7 +374,7 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
         if (!validateReconstruction(result.stdout).ok) return park("reconstruction empty/failed");
         step.reconstruction = { body: result.stdout, sha: sha256Text(JSON.stringify([binding, result.stdout])) };
         save(ledger);
-        return emit({ action: "continue", pid });
+        return { action: "continue", pid };
       }
       const parsed = parseVerdictBlock(result.stdout);
       if (!parsed.ok) return park(parsed.cause);
@@ -345,14 +383,35 @@ export async function stepSequence(values: Flags, readResidue: ReadResidue, read
       if (checked.contractData.proposition_id !== pid) return park("verdict-proposition-mismatch");
       step.ruling = checked.contractData;
       save(ledger);
-      if (step.ruling?.correction) return emit({ action: "apply-correction", pid, correction: step.ruling.correction });
+      if (step.ruling?.correction) return { action: "apply-correction", pid, correction: step.ruling.correction };
       privateWrite(rulingFile(out, pid), step.ruling);
       step.finished = true;
       save(ledger);
-      return emit({ action: "continue", pid });
+      return { action: "continue", pid };
     } finally {
       rmSync(scratch, { recursive: true, force: true });
     }
+  }
+
+  async function advance(): Promise<number> {
+    let parkPid = values["--park"];
+    for (;;) {
+      const result = await oneStep(parkPid);
+      parkPid = undefined;
+      if (budget === undefined || result.action === "apply-correction" || result.action === "done" || result.action === "budget") {
+        console.log(JSON.stringify(result));
+        return result.action === "budget" ? 3 : 0;
+      }
+      steps++;
+      if (performance.now() >= expires) {
+        console.log(JSON.stringify({ action: "budget", steps }));
+        return 3;
+      }
+    }
+  }
+
+  try {
+    return await advance();
   } finally {
     withFileLock(lock, () => {
       delete ledger.owner;

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.withReviewHeartbeat = withReviewHeartbeat;
 exports.cmdDispatch = cmdDispatch;
 // === region:factory — run a complete bundled spec-review lens batch ===
 const node_child_process_1 = require("node:child_process");
@@ -20,6 +21,18 @@ const flags = {
     "--dir": { arity: 1 }, "--spec": { arity: 1 }, "--context": { arity: 1, repeatable: true },
     "--enabled-lenses": { arity: 1 }, "--retry-lenses": { arity: 1 }, "--run-dir": { arity: 1 }, "--root": { arity: 1 }, "--turn-budget-secs": { arity: 1 },
 };
+async function withReviewHeartbeat(runDir, seconds, wait) {
+    const config = readGovernanceConfig(findRoot(runDir));
+    const stall = sentryThresholds(config).stall_window_secs;
+    const producerMax = Number(config.producer_tick_max_secs);
+    const renewalSecs = Math.min(DEFAULT_RENEWAL_SECS, stall / 3, heartbeatStaleSecs() / 3, producerMax > 0 ? producerMax : DEFAULT_RENEWAL_SECS);
+    const lease = makeLease({ name: "spec-review", run_dir: runDir, deadline_secs: seconds });
+    defaultHeartbeatTick(runDir);
+    return await withHeartbeatRenewal(lease, wait, { renewalSecs, heartbeatTick: () => {
+            if (Date.now() < lease.expires_at)
+                defaultHeartbeatTick(runDir);
+        } });
+}
 async function runFanOut(args, out, seconds, runDir, supervise) {
     const stdio = ["ignore", out, "inherit"];
     const handlers = new Map();
@@ -30,13 +43,7 @@ async function runFanOut(args, out, seconds, runDir, supervise) {
         });
         if (!runDir || seconds === undefined)
             return await wait();
-        const config = readGovernanceConfig(findRoot(runDir));
-        const stall = sentryThresholds(config).stall_window_secs;
-        const producerMax = Number(config.producer_tick_max_secs);
-        const renewalSecs = Math.min(DEFAULT_RENEWAL_SECS, stall / 3, heartbeatStaleSecs() / 3, producerMax > 0 ? producerMax : DEFAULT_RENEWAL_SECS);
-        const lease = makeLease({ name: "spec-review", run_dir: runDir, deadline_secs: seconds });
-        defaultHeartbeatTick(runDir);
-        return await withHeartbeatRenewal(lease, wait, { renewalSecs });
+        return await withReviewHeartbeat(runDir, seconds, wait);
     }
     finally {
         for (const [signal, handler] of handlers)

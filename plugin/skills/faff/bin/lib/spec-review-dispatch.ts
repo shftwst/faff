@@ -26,6 +26,19 @@ type RunKillable = (target: Target, deps: {
   onSignal: (sig: NodeJS.Signals, handler: () => void) => void;
 }) => Promise<Outcome>;
 
+export async function withReviewHeartbeat<T>(runDir: string, seconds: number, wait: () => Promise<T>): Promise<T> {
+  const config = readGovernanceConfig(findRoot(runDir));
+  const stall = sentryThresholds(config).stall_window_secs;
+  const producerMax = Number(config.producer_tick_max_secs);
+  const renewalSecs = Math.min(DEFAULT_RENEWAL_SECS, stall / 3, heartbeatStaleSecs() / 3,
+    producerMax > 0 ? producerMax : DEFAULT_RENEWAL_SECS);
+  const lease = makeLease({ name: "spec-review", run_dir: runDir, deadline_secs: seconds });
+  defaultHeartbeatTick(runDir);
+  return await withHeartbeatRenewal(lease, wait, { renewalSecs, heartbeatTick: () => {
+    if (Date.now() < lease.expires_at) defaultHeartbeatTick(runDir);
+  } });
+}
+
 async function runFanOut(args: string[], out: number, seconds: number | undefined, runDir: string | undefined, supervise: RunKillable): Promise<Outcome> {
   const stdio: ["ignore", number, "inherit"] = ["ignore", out, "inherit"];
   const handlers = new Map<NodeJS.Signals, () => void>();
@@ -35,14 +48,7 @@ async function runFanOut(args: string[], out: number, seconds: number | undefine
       onSignal: (sig, handler) => { handlers.set(sig, handler); process.on(sig, handler); },
     });
     if (!runDir || seconds === undefined) return await wait();
-    const config = readGovernanceConfig(findRoot(runDir));
-    const stall = sentryThresholds(config).stall_window_secs;
-    const producerMax = Number(config.producer_tick_max_secs);
-    const renewalSecs = Math.min(DEFAULT_RENEWAL_SECS, stall / 3, heartbeatStaleSecs() / 3,
-      producerMax > 0 ? producerMax : DEFAULT_RENEWAL_SECS);
-    const lease = makeLease({ name: "spec-review", run_dir: runDir, deadline_secs: seconds });
-    defaultHeartbeatTick(runDir);
-    return await withHeartbeatRenewal(lease, wait, { renewalSecs });
+    return await withReviewHeartbeat(runDir, seconds, wait);
   } finally {
     for (const [signal, handler] of handlers) process.off(signal, handler);
   }

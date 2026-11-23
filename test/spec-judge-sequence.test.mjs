@@ -2,9 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { faffBin } from "./helpers/run-cli.mjs";
 
 const BEFORE = "# Spec\n\n## First decision\n\n**Chosen:** Keep the stable first path.\n\n## Second decision\n\n**Chosen:** Use the initial ordering.\n";
@@ -21,7 +22,7 @@ function block(pid, outcome = "AFFIRM_SPEC") {
   return "```faff-contract:spec-judge-verdict\n" + JSON.stringify({ proposition_id: pid, outcome, rationale: "Grounded in the ordered replay requirement.", correction }) + "\n```";
 }
 
-async function fixture(t, { objections = 2, retry = 2, answer } = {}) {
+async function fixture(t, { objections = 2, retry = 2, timeout = 1, deadline = 2, answer } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "faff-spec-judge-sequence-test-"));
   const scratch = join(dir, "scratch");
   const out = join(scratch, "judge");
@@ -38,7 +39,7 @@ async function fixture(t, { objections = 2, retry = 2, answer } = {}) {
     for await (const chunk of req) body += chunk;
     const request = JSON.parse(body);
     requests.push(request);
-    const content = answer?.(request, requests) ?? RECONSTRUCTION;
+    const content = (await answer?.(request, requests)) ?? RECONSTRUCTION;
     if (content === false) return;
     res.setHeader("content-type", "text/event-stream");
     res.end("data: " + JSON.stringify({ choices: [{ delta: { content }, finish_reason: "stop" }] }) + "\n\ndata: [DONE]\n\n");
@@ -61,8 +62,8 @@ async function fixture(t, { objections = 2, retry = 2, answer } = {}) {
     model: refuter
     host: ${host}
 adversarial:
-  deadline: 2
-  timeout: 1
+  deadline: ${deadline}
+  timeout: ${timeout}
   spec_review:
     refs:
       - refuter
@@ -218,3 +219,253 @@ test("only the active correction can be parked and a pre-existing literal cannot
   assert.equal(value(await f.step(["--park", "p-01"]), "parked").pid, "p-01");
   assert.equal(value(await f.step(), "continue").pid, "p-02");
 });
+
+const ampleBudget = ["--budget-secs", "240"];
+const admitL3 = (f) => f.cli("--admit", ["--level", "L3"]);
+
+// review-call includes the per-attempt mkdtemp suffix in one XML path label.
+function comparableRequest(request) {
+  return { ...request, messages: request.messages.map((message) => ({
+    ...message,
+    content: message.content.replace(/(<file path="[^"\n]*\/faff-spec-judge-)[A-Za-z0-9]{6}(\/context\.json">)/g, "$1TEMP$2"),
+  })) };
+}
+
+test("bounded and single steps send identical ordered requests and persist the same admission after a correction", async (t) => {
+  const f = await fixture(t, { answer: (request, requests) => {
+    if (!prompt(request).includes('"argument_A"')) return RECONSTRUCTION;
+    return requests.length === 2 ? block("p-01", "UPHOLD_REVIEW") : block("p-02");
+  } });
+  const revised = BEFORE.replace("Use the initial ordering.", VERIFY + ".");
+  async function run(bounded) {
+    const args = bounded ? ampleBudget : [];
+    value(await f.assemble());
+    if (!bounded) value(await f.step(), "continue");
+    const correction = value(await f.step(args), "apply-correction");
+    assert.equal(correction.pid, "p-01");
+    assert.equal(correction.correction.verification, VERIFY);
+    assert.deepEqual(value(await f.step(args)), correction);
+    assert.equal(f.requests.length, 2);
+    assert.equal((await admitL3(f)).code, 2);
+    writeFileSync(f.spec, revised);
+    if (!bounded) {
+      assert.equal(value(await f.step(), "continue").pid, "p-01");
+      assert.equal(value(await f.step(), "continue").pid, "p-02");
+      assert.equal(value(await f.step(), "continue").pid, "p-02");
+    }
+    value(await f.step(args), "done");
+    value(await f.step(args), "done");
+    assert.equal(f.requests.length, 4);
+    assert.match(prompt(f.requests[2]), new RegExp(VERIFY));
+    const admit = value(await admitL3(f));
+    assert.equal(admit.admit, true);
+    assert.deepEqual(admit.resolved, ["p-01", "p-02"]);
+    return {
+      requests: f.requests.splice(0).map(comparableRequest),
+      admission: readFileSync(join(f.out, "admit-result.json"), "utf8"),
+      rulings: ["p-01", "p-02"].map((pid) => readFileSync(join(f.out, `ruling-${pid}.json`), "utf8")),
+    };
+  }
+  const single = await run(false);
+  rmSync(f.out, { recursive: true });
+  writeFileSync(f.spec, BEFORE);
+  assert.deepEqual(await run(true), single);
+});
+
+test("an insufficient budget leaves the case unbound until the judge can start", async (t) => {
+  const f = await fixture(t, { objections: 1, answer: (req) => prompt(req).includes('"argument_A"') ? block("p-01") : RECONSTRUCTION });
+  value(await f.assemble());
+  for (const invalid of ["0", "1.5", "3x"]) {
+    assert.equal((await f.step(["--budget-secs", invalid])).code, 2);
+  }
+  const stop = await f.step(["--budget-secs", "1"]);
+  assert.equal(stop.code, 3, stop.stderr);
+  assert.deepEqual(JSON.parse(stop.stdout), { action: "budget", steps: 0, attempt_secs: 32 });
+  assert.equal(f.requests.length, 0);
+  assert.equal(f.ledger().entries["p-01"].step, undefined);
+  writeFileSync(f.spec, BEFORE.replace("Keep the stable first path", "Retain the revised first path"));
+  value(await f.step(ampleBudget), "done");
+  assert.match(prompt(f.requests[0]), /Retain the revised first path/);
+  assert.equal(value(await admitL3(f)).admit, true);
+  assert.deepEqual(f.ledger().entries["p-01"].step.attempts, [1, 1]);
+  assert.equal(f.requests.length, 2);
+});
+
+test("a short resume settles a spent attempt without calling the judge", async (t) => {
+  const f = await fixture(t, { objections: 1, retry: 0 });
+  value(await f.assemble());
+  value(await f.step(), "continue");
+  const ledger = f.ledger();
+  // A killed caller charged its last phase-two attempt before receiving a ruling.
+  ledger.entries["p-01"].step.attempts[1] = 1;
+  writeFileSync(join(f.out, "ledger.json"), JSON.stringify(ledger));
+  const done = value(await f.step(["--budget-secs", "1"]), "done");
+  assert.deepEqual(done.parked, [{ pid: "p-01", reason: "phase 2 retry budget exhausted" }]);
+  assert.deepEqual(f.ledger().entries["p-01"].step.attempts, [1, 1]);
+  assert.equal(f.requests.length, 1);
+});
+
+test("an exhausted ruling attempt cannot hide a corrupt reconstruction on resume", async (t) => {
+  const f = await fixture(t, { objections: 1, retry: 0 });
+  value(await f.assemble());
+  value(await f.step(), "continue");
+  const ledger = f.ledger();
+  const step = ledger.entries["p-01"].step;
+  step.attempts[1] = 1;
+  step.reconstruction.sha = "unbound";
+  writeFileSync(join(f.out, "ledger.json"), JSON.stringify(ledger));
+  const resumed = await f.step(["--budget-secs", "1"]);
+  assert.equal(resumed.code, 2);
+  assert.match(resumed.stderr, /stored reconstruction is invalid or unbound/);
+  assert.equal(f.ledger().entries["p-01"].step.finished, undefined);
+  assert.equal((await admitL3(f)).code, 2);
+  assert.equal(f.requests.length, 1);
+});
+
+test("a bounded retry reuses the first phase and moves past a parked proposition", async (t) => {
+  const f = await fixture(t, { retry: 1, answer: (req, requests) => {
+    if (!prompt(req).includes('"argument_A"')) return RECONSTRUCTION;
+    if (requests.length === 2) return false;
+    return requests.length === 3 ? block("p-99") : block("p-02");
+  } });
+  value(await f.assemble());
+  const parked = [{ pid: "p-01", reason: "verdict-proposition-mismatch" }];
+  assert.deepEqual(value(await f.step(ampleBudget), "done").parked, parked);
+  assert.deepEqual(value(await f.step(ampleBudget), "done").parked, parked);
+  assert.equal(f.requests.length, 5);
+  assert.deepEqual(comparableRequest(f.requests[1]), comparableRequest(f.requests[2]));
+  const entries = f.ledger().entries;
+  assert.deepEqual(entries["p-01"].step.attempts, [1, 2]);
+  assert.deepEqual(entries["p-02"].step.attempts, [1, 1]);
+  const result = value(await admitL3(f));
+  assert.deepEqual(result.parked, ["p-01"]);
+  assert.deepEqual(result.resolved, ["p-02"]);
+});
+
+test("a bounded step with only a refuter parks every case without a provider call", async (t) => {
+  const f = await fixture(t);
+  value(await f.assemble());
+  value(await f.cli("--step", ["--backend", `openai|refuter|${f.host}`, ...ampleBudget]), "done");
+  assert.deepEqual(value(await admitL3(f)).parked, ["p-01", "p-02"]);
+  for (const entry of Object.values(f.ledger().entries)) assert.deepEqual(entry.step.attempts, [0, 0]);
+  assert.equal(f.requests.length, 0);
+});
+
+test("a budget reached after reconstruction leaves only the ruling to dispatch on resume", async (t) => {
+  const f = await fixture(t, { objections: 1, timeout: 2, answer: async (request) => {
+    if (prompt(request).includes('"argument_A"')) return block("p-01");
+    await delay(1250);
+    return RECONSTRUCTION;
+  } });
+  value(await f.assemble());
+  const stop = await f.step(["--budget-secs", "33"]);
+  assert.equal(stop.code, 3, stop.stderr);
+  assert.deepEqual(JSON.parse(stop.stdout), { action: "budget", steps: 1, attempt_secs: 32 });
+  assert.equal(f.requests.length, 1);
+  assert.deepEqual(f.ledger().entries["p-01"].step.attempts, [1, 0]);
+  assert.equal((await admitL3(f)).code, 2);
+  value(await f.step(ampleBudget), "done");
+  assert.equal(f.requests.length, 2);
+  assert.match(prompt(f.requests[1]), /"argument_A"/);
+  assert.equal(value(await admitL3(f)).admit, true);
+});
+
+test("a second caller cannot claim a proposition while the bounded caller awaits its ruling", async (t) => {
+  let notifyRuling, releaseRuling;
+  const started = new Promise((resolve) => { notifyRuling = resolve; });
+  const release = new Promise((resolve) => { releaseRuling = resolve; });
+  const f = await fixture(t, { objections: 1, deadline: 12, timeout: 10, answer: async (request) => {
+    if (!prompt(request).includes('"argument_A"')) return RECONSTRUCTION;
+    notifyRuling();
+    await release;
+    return block("p-01");
+  } });
+  value(await f.assemble());
+  const owner = f.step(ampleBudget);
+  try {
+    const earlyExit = await Promise.race([started, owner]);
+    assert.equal(earlyExit, undefined, JSON.stringify(earlyExit));
+    const rival = await f.step();
+    assert.equal(rival.code, 2);
+    assert.match(rival.stderr, /spec judge step already running/);
+  } finally {
+    releaseRuling();
+  }
+  value(await owner, "done");
+  assert.equal(f.requests.length, 2);
+  assert.equal(value(await admitL3(f)).admit, true);
+});
+
+test("parking an active correction once lets a bounded caller advance to the next proposition", async (t) => {
+  const f = await fixture(t, { answer: (request, list) => {
+    if (!prompt(request).includes('"argument_A"')) return RECONSTRUCTION;
+    return list.length === 2 ? block("p-01", "UPHOLD_REVIEW") : block("p-02");
+  } });
+  value(await f.assemble());
+  assert.equal(value(await f.step(ampleBudget), "apply-correction").pid, "p-01");
+  assert.equal((await f.step(["--park", "p-02", ...ampleBudget])).code, 2);
+  assert.equal(f.requests.length, 2);
+  value(await f.step(["--park", "p-01", ...ampleBudget]), "done");
+  const result = value(await admitL3(f));
+  assert.deepEqual(result.parked, ["p-01"]);
+  assert.deepEqual(result.resolved, ["p-02"]);
+  assert.equal(f.requests.length, 4);
+});
+
+async function exerciseHeartbeat(t, args) {
+  let atDispatch, beforeReturn;
+  const f = await fixture(t, { objections: 1, timeout: 6, deadline: 8, answer: async (request) => {
+    if (prompt(request).includes('"argument_A"')) return block("p-01");
+    atDispatch = existsSync(heartbeat) ? readFileSync(heartbeat, "utf8").trim() : "";
+    await delay(1300);
+    beforeReturn = existsSync(heartbeat) ? readFileSync(heartbeat, "utf8").trim() : "";
+    return RECONSTRUCTION;
+  } });
+  appendFileSync(join(f.dir, ".faffrc.yaml"), "sentry:\n  stall_window_secs: 1\n");
+  const runs = join(f.dir, ".faff", "runs");
+  function makeRun(name) {
+    const run = join(runs, name);
+    const old = new Date(Date.now() - 60000).toISOString();
+    mkdirSync(join(run, "TEST-1", "spec-review"), { recursive: true });
+    writeFileSync(join(run, "run-ledger.json"), JSON.stringify({
+      run_id: name, admitted: [], outcomes: {}, owner: { status: "running", started_at: old, last_heartbeat: old },
+    }));
+    return run;
+  }
+  const owner = makeRun("owner");
+  const other = makeRun("other");
+  const heartbeat = join(owner, "heartbeat");
+  const review = join(owner, "TEST-1", "spec-review");
+  writeFileSync(join(review, "round-1.json"), JSON.stringify(f.round));
+  const base = ["--dir", review, "--window-start", "1", "--spec", f.spec];
+  value(await f.cli("--assemble", ["--sequence", "--run-dir", owner, "--issue", "TEST-1", "--repo-root", f.dir], base));
+  function advance(run) {
+    return f.cli("--step", ["--run-dir", run, "--backend", `openai|judge|${f.host}`, ...args], base);
+  }
+  const refused = await advance(other);
+  assert.equal(refused.code, 2);
+  assert.match(refused.stderr, /--run-dir must own/);
+  const ledgerPath = join(owner, "run-ledger.json");
+  const savedLedger = readFileSync(ledgerPath, "utf8");
+  writeFileSync(ledgerPath, JSON.stringify({ ...JSON.parse(savedLedger), run_id: "replacement" }));
+  assert.equal((await advance(owner)).code, 2);
+  writeFileSync(ledgerPath, savedLedger);
+  assert.equal(f.requests.length, 0);
+  assert.equal(existsSync(heartbeat), false);
+  if (!args.length) {
+    value(await advance(owner), "continue");
+    value(await advance(owner), "continue");
+  }
+  value(await advance(owner), "done");
+  assert.ok(Date.parse(beforeReturn) > Date.parse(atDispatch), "heartbeat did not advance during the single pending request");
+  assert.equal(f.requests.length, 2);
+  assert.equal(value(await f.cli("--admit", ["--level", "L3", "--run-dir", owner], base)).admit, true);
+  const final = readFileSync(heartbeat, "utf8");
+  await delay(1100);
+  assert.equal(readFileSync(heartbeat, "utf8"), final);
+  assert.equal(existsSync(join(other, "heartbeat")), false);
+}
+test("a bounded judge renews only the owning run during a provider call and stops on completion",
+  t => exerciseHeartbeat(t, ampleBudget));
+test("a single foreground step renews only the owning run while waiting for a provider",
+  t => exerciseHeartbeat(t, []));

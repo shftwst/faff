@@ -9,19 +9,34 @@ const spec_review_results_ts_1 = require("./spec-review-results.js");
 const { parseArgs, usageError } = require("./argv");
 const { SPEC_REVIEW_LENSES } = require("./review-vocab");
 const { nextRoundNumber } = require("./spec-review-window");
-const usage = "usage: faff spec-review dispatch --dir DIR --spec FILE [--enabled-lenses CSV] [--context FILE]... [--root DIR] [--turn-budget-secs SECONDS]";
+const { readGovernanceConfig } = require("./budget");
+const { heartbeatStaleSecs } = require("./runcheck");
+const { sentryThresholds } = require("./sentry");
+const { findRoot } = require("./shared-infra");
+const { specReviewDir } = require("./spec-review-pin");
+const { DEFAULT_RENEWAL_SECS, defaultHeartbeatTick, makeLease, withHeartbeatRenewal } = require("./supervisor");
+const usage = "usage: faff spec-review dispatch --dir DIR --spec FILE [--enabled-lenses CSV | --retry-lenses CSV] [--context FILE]... [--root DIR] [--turn-budget-secs SECONDS] [--run-dir DIR]";
 const flags = {
     "--dir": { arity: 1 }, "--spec": { arity: 1 }, "--context": { arity: 1, repeatable: true },
-    "--enabled-lenses": { arity: 1 }, "--root": { arity: 1 }, "--turn-budget-secs": { arity: 1 },
+    "--enabled-lenses": { arity: 1 }, "--retry-lenses": { arity: 1 }, "--run-dir": { arity: 1 }, "--root": { arity: 1 }, "--turn-budget-secs": { arity: 1 },
 };
-async function runFanOut(args, out, seconds, supervise) {
+async function runFanOut(args, out, seconds, runDir, supervise) {
     const stdio = ["ignore", out, "inherit"];
     const handlers = new Map();
     try {
-        return await supervise({ deadlineSec: seconds ?? null, graceSec: 0, target: [process.execPath, ...args] }, {
+        const wait = () => supervise({ deadlineSec: seconds ?? null, graceSec: 0, target: [process.execPath, ...args] }, {
             spawnFn: (cmd, argv, options) => (0, node_child_process_1.spawn)(cmd, argv, { ...options, stdio }),
             onSignal: (sig, handler) => { handlers.set(sig, handler); process.on(sig, handler); },
         });
+        if (!runDir || seconds === undefined)
+            return await wait();
+        const config = readGovernanceConfig(findRoot(runDir));
+        const stall = sentryThresholds(config).stall_window_secs;
+        const producerMax = Number(config.producer_tick_max_secs);
+        const renewalSecs = Math.min(DEFAULT_RENEWAL_SECS, stall / 3, heartbeatStaleSecs() / 3, producerMax > 0 ? producerMax : DEFAULT_RENEWAL_SECS);
+        const lease = makeLease({ name: "spec-review", run_dir: runDir, deadline_secs: seconds });
+        defaultHeartbeatTick(runDir);
+        return await withHeartbeatRenewal(lease, wait, { renewalSecs });
     }
     finally {
         for (const [signal, handler] of handlers)
@@ -38,9 +53,18 @@ async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
     if (!dir || !spec || (seconds !== undefined && (!Number.isFinite(seconds) || seconds <= 0 || seconds * 1000 > 2147483647))) {
         return usageError([{ code: "bad-value", detail: "provide a directory, spec, and a valid positive budget when supplied" }], usage);
     }
-    const lenses = values["--enabled-lenses"]?.split(",").map((lens) => lens.trim()) ?? SPEC_REVIEW_LENSES;
+    const runDir = values["--run-dir"];
+    if (runDir !== undefined && (!runDir || seconds === undefined || !(0, node_fs_1.existsSync)((0, node_path_1.join)(runDir, "run-ledger.json")) ||
+        (0, node_path_1.resolve)(dir) !== (0, node_path_1.resolve)(specReviewDir((0, node_path_1.basename)((0, node_path_1.dirname)((0, node_path_1.resolve)(dir))), runDir)))) {
+        return usageError([{ code: "bad-value", detail: "--run-dir requires its own issue/spec-review directory, run ledger and a turn budget" }], usage);
+    }
+    const retry = values["--retry-lenses"];
+    if (retry !== undefined && values["--enabled-lenses"] !== undefined) {
+        return usageError([{ code: "bad-value", detail: "choose a fresh selection or a retry subset" }], usage);
+    }
+    const lenses = (retry ?? values["--enabled-lenses"])?.split(",").map((lens) => lens.trim()) ?? SPEC_REVIEW_LENSES;
     if (!(0, spec_review_results_ts_1.validLensSet)(lenses)) {
-        return usageError([{ code: "bad-value", detail: "--enabled-lenses must name a nonempty, distinct set of review lenses" }], usage);
+        return usageError([{ code: "bad-value", detail: "select a nonempty, distinct set of review lenses" }], usage);
     }
     const args = ["--dir", dir, "--spec", spec, "--lenses", lenses.join(",")];
     for (const file of values["--context"] ?? [])
@@ -59,6 +83,8 @@ async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
     catch { /* Use the ordinary no-results path. */ }
     const round = Number.isSafeInteger(descriptor?.round) && descriptor.round > 0 ? descriptor.round : nextRoundNumber(dir);
     const recordArgs = ["--dir", dir, "--round", String(round)];
+    if (retry !== undefined)
+        recordArgs.push("--receipts-only");
     const noResults = () => {
         const code = recorder([...recordArgs, "--no-results"], lenses);
         if (!code)
@@ -77,7 +103,7 @@ async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
         const fd = (0, node_fs_1.openSync)(results, "wx", 0o600);
         let outcome;
         try {
-            outcome = await runFanOut([fanOut, "--requests", descriptor.requests_path, "--strategy", descriptor.strategy], fd, seconds, supervise);
+            outcome = await runFanOut([fanOut, "--requests", descriptor.requests_path, "--strategy", descriptor.strategy], fd, seconds, runDir, supervise);
         }
         finally {
             (0, node_fs_1.closeSync)(fd);

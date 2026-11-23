@@ -573,7 +573,7 @@ Return to caller one of:
 - `parked` — see park cause in log (low confidence, contract violation, or architectural change needed)
 - `errored` — something went wrong (MCP failure, unexpected state); treated as park for purposes of the run
 
-**Self-verify before an attach-expecting return (the belt; the caller's ground-truth reconciliation is the braces regardless).** Before `refreshed` / `promoted` / `promoted-needs-review`, run `faff prepcheck --issue <ISSUE> --json`. If `state != "attached"`, do not return success: retry attach **once** (stage → post → confirm), then re-check. Still not `attached` → return `errored`. The attach check is a precondition of the *return value*, not only turn completion.
+Before returning `refreshed`, `promoted` or `promoted-needs-review`, run `"$faff" prepcheck --issue "$issue" ${FAFF_RUN_DIR:+--run-dir "$FAFF_RUN_DIR"} --json`. If `owner_matches_run` is false, return `errored` without writing. If `state` is `attached`, return the outcome. Otherwise retry attach once (stage, post, confirm) and repeat the check. Return `errored` if unresolved. The caller reconciles independently.
 
 ## Notes
 

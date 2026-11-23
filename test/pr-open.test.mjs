@@ -664,6 +664,24 @@ function validateGraft(body) {
 }
 const step9b = (inner) => `# faff-graft fixture\n\n**Step 9b: Open the PR**\n\n${inner}\n\n**Step 10: Merge-confidence gate**\n`;
 
+test("graft's PR command opens on the feature head when its caller is in the base checkout", () => {
+  const fx = cliFixture();
+  const baseCheckout = join(fx.root, "base checkout");
+  git(fx.repo, "worktree", "add", "-q", baseCheckout, "main");
+  const before = git(baseCheckout, "rev-parse", "HEAD");
+  const skill = readFileSync(join(REPO, "plugin/skills/faff-graft/SKILL.md"), "utf8");
+  const command = skill.split("**Step 9b: Open the PR")[1].match(/```bash\n([\s\S]*?)\n```/)[1];
+  const r = spawnSync("bash", ["-c", command], {
+    cwd: baseCheckout, encoding: "utf8",
+    env: { ...fx.env, faff: BIN, wt: fx.repo, run_dir: fx.runDir, issue: CLI_ISSUE, base: "main", pr_title: "T", draft: fx.draft, evidence: "" },
+  });
+  assert.equal(r.status, 0, r.stderr + r.stdout);
+  assert.equal(JSON.parse(r.stdout).token, "opened");
+  assert.equal(creates(fx).length, 1);
+  assert.equal(creates(fx)[0].origin_head, git(fx.repo, "rev-parse", "HEAD"));
+  assert.equal(git(baseCheckout, "rev-parse", "HEAD"), before);
+});
+
 test("validate-adapters: the real faff-graft Step 9b passes the re-targeted lint", () => {
   const r = spawnSync(process.execPath, [BIN, "validate-adapters"], { encoding: "utf8", cwd: REPO });
   assert.doesNotMatch(r.stdout, /FAIL {2}faff-graft \(Step 9b/);

@@ -7,10 +7,10 @@ const { DEFAULTS, DISPATCH_LANES, legacyTreeGuard, loadConfig } = require("./con
 const { resolveDispatch } = require("./dispatch");
 const { dig, findRoot } = require("./shared-infra");
 const { bundledSlotStatus, SLOT_TYPES } = require("./validate-adapters");
-const usage = "usage: faff dispatch prepare-producer <lane> [--in-context] [--root DIR]";
+const usage = "usage: faff dispatch prepare-producer <lane> [--in-context | --fresh-adversarial] [--root DIR]";
 const spec = {
     positionals: { min: 1, max: 1, name: "producer lane" },
-    flags: { "--in-context": { arity: 0 }, "--root": { arity: 1 } },
+    flags: { "--in-context": { arity: 0 }, "--fresh-adversarial": { arity: 0 }, "--root": { arity: 1 } },
 };
 function cmdPrepareProducer(args) {
     const { positionals, values, errors } = parseArgs(args, spec);
@@ -19,6 +19,10 @@ function cmdPrepareProducer(args) {
     const [lane] = positionals;
     if (!DISPATCH_LANES.includes(lane) || !Object.hasOwn(SLOT_TYPES, lane)) {
         return usageError([{ code: "invalid-value", detail: `no dispatchable producer slot ${lane}` }], usage);
+    }
+    const freshAdversarial = values["--fresh-adversarial"];
+    if (freshAdversarial && (lane !== "spec_review" || values["--in-context"])) {
+        return usageError([{ code: "invalid-value", detail: "--fresh-adversarial requires a fresh spec_review handoff" }], usage);
     }
     try {
         const root = values["--root"] || findRoot();
@@ -39,7 +43,11 @@ function cmdPrepareProducer(args) {
         if (resolved.error)
             throw new Error(resolved.error);
         const { model, effort } = resolved;
-        const transport = model.startsWith("engine:") ? "engine" : "agent";
+        let transport = model.startsWith("engine:") ? "engine" : "agent";
+        if (freshAdversarial && occupant === "faffter-dark-spec-review" && validation === "bundled" &&
+            model === "inherit" && effort === "inherit") {
+            transport = "spec-review-cli";
+        }
         console.log(JSON.stringify({ occupant, validation, transport, model, effort }));
         return 0;
     }

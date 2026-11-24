@@ -89,6 +89,17 @@ test("the bundled entry point preserves the control wire request and fallback re
   assert.match(absentBase.stdout, /^## Adversarial findings[^\n]*\nfixture paths unavailable\n/m);
   assert.match(requests.at(-1).messages[1].content, /Fixture paths: none/);
 
+  // A refused loopback connection on a configured host yields no opinion.
+  const closed = createServer();
+  await new Promise(ready => closed.listen(0, "127.0.0.1", ready));
+  const closedHost = "http://127.0.0.1:" + closed.address().port + "/v1";
+  await new Promise(done => closed.close(done));
+  writeFileSync(cfg, "adversarial:\n  host: " + closedHost + "\n  provider: openai\n  model: m\n  deadline: 2\n");
+  mkdirSync(join(dir, "run"));
+  writeFileSync(join(dir, "run/run-ledger.json"), JSON.stringify({ run_id: "r", level: "L4" }));
+  await assert.rejects(run(script, args), error => error.code === 5 || error.code === 8);
+  await assert.rejects(run(script, [...args, "--run-dir", "run"]), error => error.code === 9);
+
   const served = requests.length;
   for (const [text, expectedCode] of [["tracking:\n  tracker: none\n", 3], ["adversarial:\n  refs:\n    - unknown-backend\n", 2]]) {
     writeFileSync(cfg, text);

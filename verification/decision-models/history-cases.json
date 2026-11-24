@@ -1,0 +1,531 @@
+[
+  {
+    "id": "h75337ae2c",
+    "group": "FAFF-1399",
+    "claim": "Both graft capture sites now use the shared priority calculation.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "test/faff-1399-discovered-scope-priority.test.mjs\n  assert.equal(priority(\"blocked-by\", \"review\", { gateDefect: true }), \"high\");\n  assert.equal(priority(\"parent\", \"chain-gap\", { gateDefect: true }), \"high\");\n});\n"
+      },
+      {
+        "id": "E2",
+        "text": "test/faff-1399-discovered-scope-priority.test.mjs\ntest(\"FAFF-1399: chain-gap sub-type mapping — upstream (blocker) High, downstream (blocked-by) Medium, sub-ticket (parent) Medium, peer Low\", () => {\n  assert.equal(priority(\"blocker\", \"chain-gap\"), \"high\");\n  assert.equal(priority(\"blocked-by\", \"chain-gap\"), \"medium\");\n  assert.equal(priority(\"parent\", \"chain-gap\"), \"medium\");\n  assert.equal(priority(\"peer\", \"chain-gap\"), \"low\");\n});"
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The CLI tests show priority outputs, but they do not show the instructions at either capture site."
+  },
+  {
+    "id": "h800582231",
+    "group": "FAFF-1399",
+    "claim": "Changing the tidy instruction from --source chain-gap to a different source would cause the shown regression test to fail, assuming the old flag string is removed everywhere in the file.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "test/faff-1399-discovered-scope-priority.test.mjs\n  const tidy = readFileSync(TIDY_SKILL, \"utf8\");\n  assert.match(tidy, /--source chain-gap/, \"tidy must call the priority CLI with --source chain-gap\");\n  assert.match(tidy, /CLI failure degrades to no tracker priority \\+ no comment/, \"tidy must document its own CLI-failure-at-filing-time fallback\");"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The assertion requires the full flag and its value."
+  },
+  {
+    "id": "he57c58a28",
+    "group": "FAFF-1351",
+    "claim": "The parser accepts one bullet before the bold Punt token but leaves a line starting with two consecutive bullet prefixes unrecognized.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst LIST_ITEM_PREFIX = \"(?:[-*+]|\\\\d{1,9}[.)])\\\\s+\";"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst PUNT_LINE_RE = new RegExp(\"^\\\\s*(?:\" + LIST_ITEM_PREFIX + \")?\\\\*\\\\*Punt:\\\\*\\\\*\\\\s*(.+)$\");"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The optional prefix is matched at most once, followed immediately by the literal bold token."
+  },
+  {
+    "id": "h9c1c1d191",
+    "group": "FAFF-1351",
+    "claim": "A list bullet named **Punt:** within OUT OF SCOPE is filtered out by the item-name extractor as a reserved sublabel.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst RESERVED_SUBLABEL_SLUGS = new Set([\"why-excluded\", \"extension-point\", \"what-s-excluded\", \"whats-excluded\"]);"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\n    if (sectionLevel === null) continue;\n\n    const itemMatch = line.match(/^\\s*-\\s+\\*\\*(.+?)\\*\\*/);\n    if (!itemMatch) continue;\n    const name = itemMatch[1].replace(/[\\s.:—-]+$/, \"\");\n    const slug = headingSlug(name);\n    if (!slug || RESERVED_SUBLABEL_SLUGS.has(slug)) continue;\n    keys.add(slug);\n  }\n  return keys;"
+      },
+      {
+        "id": "E3",
+        "text": "plugin/skills/faff/bin/lib/heading-slug.js\nfunction headingSlug(text) {\n  return String(text)\n    .toLowerCase()\n    .replace(/[^a-z0-9]+/g, \"-\")\n    .replace(/^-+|-+$/g, \"\");\n}"
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "The extractor trims the colon. The slug of Punt is absent from its reserved set."
+  },
+  {
+    "id": "h6469220ee",
+    "group": "FAFF-1340",
+    "claim": "A thematic break that starts with four underscores and is followed by a word ends a wrapped Punt entry.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst THEMATIC_BREAK_RE = /^\\s*(?:(?:-\\s*){3,}|(?:\\*\\s*){3,}|(?:_\\s*){3,})/;"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\n    || opensListItem(line)                 // any list-item opener, which includes a listed marker\n    || BLOCK_QUOTE_RE.test(line)           // block quote\n    || TABLE_ROW_RE.test(line)             // table row\n    || THEMATIC_BREAK_RE.test(line);       // thematic break\n}"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The prefix expression accepts at least three underscores and does not require the end of the line. The terminator uses that expression."
+  },
+  {
+    "id": "h9db070090",
+    "group": "FAFF-1340",
+    "claim": "A continuation that starts with *italic* on a new line always terminates the current Punt entry.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst LIST_ITEM_PREFIX = \"(?:[-*+]|\\\\d{1,9}[.)])\\\\s+\";"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst PUNT_LINE_RE = new RegExp(\"^\\\\s*(?:\" + LIST_ITEM_PREFIX + \")?\\\\*\\\\*Punt:\\\\*\\\\*\\\\s*(.*)$\");"
+      },
+      {
+        "id": "E3",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst LIST_ITEM_OPENER_RE = new RegExp(\"^\\\\s*\" + LIST_ITEM_PREFIX);"
+      },
+      {
+        "id": "E4",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nfunction opensListItem(line) {\n  return LIST_ITEM_OPENER_RE.test(String(line));\n}"
+      },
+      {
+        "id": "E5",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst DECISION_MARKER_RE = /^\\s*\\*\\*(?:Chosen|Decision|Assumes):\\*\\*/;\nconst HEADING_RE = /^\\s*#+(?:\\s|$)/;\n// Any line leading with a non-empty bold token: a label (`**Rationale:**`), never a wrapped topic.\nconst BOLD_LED_RE = /^\\s*\\*\\*\\S/;\nconst FENCE_RE = /^\\s*(?:`{3,}|~{3,})/;\nconst BLOCK_QUOTE_RE = /^\\s*>/;\nconst TABLE_ROW_RE = /^\\s*\\|/;"
+      },
+      {
+        "id": "E6",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst THEMATIC_BREAK_RE = /^\\s*(?:(?:-\\s*){3,}|(?:\\*\\s*){3,}|(?:_\\s*){3,})/;"
+      },
+      {
+        "id": "E7",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nfunction endsLogicalLine(line) {\n  return /^\\s*$/.test(line)                // blank line (a whitespace-only line included)\n    || HEADING_RE.test(line)               // heading\n    || matchPuntStart(line) !== null       // next Punt, listed or not\n    || DECISION_MARKER_RE.test(line)       // Chosen / Decision / Assumes marker\n    || BOLD_LED_RE.test(line)              // bold-led label\n    || FENCE_RE.test(line)                 // code fence\n    || opensListItem(line)                 // any list-item opener, which includes a listed marker\n    || BLOCK_QUOTE_RE.test(line)           // block quote\n    || TABLE_ROW_RE.test(line)             // table row\n    || THEMATIC_BREAK_RE.test(line);       // thematic break\n}"
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "A single asterisk followed directly by a letter is neither a list-item opener, a bold token, nor a break."
+  },
+  {
+    "id": "ha5a7c7145",
+    "group": "FAFF-1340",
+    "claim": "A continuation consisting entirely of three equals signs triggers the logical-line terminator used for a wrapped entry.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst LIST_ITEM_PREFIX = \"(?:[-*+]|\\\\d{1,9}[.)])\\\\s+\";"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst PUNT_LINE_RE = new RegExp(\"^\\\\s*(?:\" + LIST_ITEM_PREFIX + \")?\\\\*\\\\*Punt:\\\\*\\\\*\\\\s*(.*)$\");"
+      },
+      {
+        "id": "E3",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst LIST_ITEM_OPENER_RE = new RegExp(\"^\\\\s*\" + LIST_ITEM_PREFIX);"
+      },
+      {
+        "id": "E4",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nfunction opensListItem(line) {\n  return LIST_ITEM_OPENER_RE.test(String(line));\n}"
+      },
+      {
+        "id": "E5",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst DECISION_MARKER_RE = /^\\s*\\*\\*(?:Chosen|Decision|Assumes):\\*\\*/;\nconst HEADING_RE = /^\\s*#+(?:\\s|$)/;\n// Any line leading with a non-empty bold token: a label (`**Rationale:**`), never a wrapped topic.\nconst BOLD_LED_RE = /^\\s*\\*\\*\\S/;\nconst FENCE_RE = /^\\s*(?:`{3,}|~{3,})/;\nconst BLOCK_QUOTE_RE = /^\\s*>/;\nconst TABLE_ROW_RE = /^\\s*\\|/;"
+      },
+      {
+        "id": "E6",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst THEMATIC_BREAK_RE = /^\\s*(?:(?:-\\s*){3,}|(?:\\*\\s*){3,}|(?:_\\s*){3,})/;"
+      },
+      {
+        "id": "E7",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nfunction endsLogicalLine(line) {\n  return /^\\s*$/.test(line)                // blank line (a whitespace-only line included)\n    || HEADING_RE.test(line)               // heading\n    || matchPuntStart(line) !== null       // next Punt, listed or not\n    || DECISION_MARKER_RE.test(line)       // Chosen / Decision / Assumes marker\n    || BOLD_LED_RE.test(line)              // bold-led label\n    || FENCE_RE.test(line)                 // code fence\n    || opensListItem(line)                 // any list-item opener, which includes a listed marker\n    || BLOCK_QUOTE_RE.test(line)           // block quote\n    || TABLE_ROW_RE.test(line)             // table row\n    || THEMATIC_BREAK_RE.test(line);       // thematic break\n}"
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "No terminator matches a line of equals signs. In particular equals is absent from the break-character set."
+  },
+  {
+    "id": "h1e36d3760",
+    "group": "FAFF-1340",
+    "claim": "Renaming the list-prefix constant everywhere in this module, while preserving parser behavior, breaks the shown source test.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "test/punt-scan.test.mjs\n  const src = fs.readFileSync(path.resolve(\n    path.dirname(fileURLToPath(import.meta.url)),\n    \"..\", \"plugin\", \"skills\", \"faff\", \"bin\", \"lib\", \"punt-scan.js\",\n  ), \"utf8\");\n  // The ordered-marker digit run is written once: in LIST_ITEM_PREFIX.\n  assert.equal(src.split(\"\\\\\\\\d{1,9}\").length - 1, 1);\n  assert.equal(src.split(\"const LIST_ITEM_PREFIX\").length - 1, 1);"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The source test counts instances of the declaration spelling."
+  },
+  {
+    "id": "h6150724a8",
+    "group": "FAFF-1340",
+    "claim": "The project-wide differential run found no changes to the number of eligible entries across the entire spec collection.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "test/punt-scan.test.mjs\ntest(\"punt-scan.js holds exactly one rule for what opens a list item\", () => {\n  const src = fs.readFileSync(path.resolve(\n    path.dirname(fileURLToPath(import.meta.url)),\n    \"..\", \"plugin\", \"skills\", \"faff\", \"bin\", \"lib\", \"punt-scan.js\",\n  ), \"utf8\");\n  // The ordered-marker digit run is written once: in LIST_ITEM_PREFIX.\n  assert.equal(src.split(\"\\\\\\\\d{1,9}\").length - 1, 1);\n  assert.equal(src.split(\"const LIST_ITEM_PREFIX\").length - 1, 1);\n});"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/punt-scan.js\nconst THEMATIC_BREAK_RE = /^\\s*(?:(?:-\\s*){3,}|(?:\\*\\s*){3,}|(?:_\\s*){3,})/;"
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The small source regression addresses syntax. No corpus-run results or before-and-after counts are provided."
+  },
+  {
+    "id": "h593123e1e",
+    "group": "FAFF-1395",
+    "claim": "Adding a field inside an existing discriminator mapping takes the same recursive path in this classifier as adding a field inside properties.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/evidence.js\n  for (const key of Object.keys(head)) {\n    if (!SUBSET_KEYWORDS.has(key) && !ANNOTATION_KEYWORDS.has(key)) reasons.push(`${at}: keyword \"${key}\" is outside the supported subset`);\n  }\n  const keys = new Set([...Object.keys(base), ...Object.keys(head)].filter((k) => !ANNOTATION_KEYWORDS.has(k)));\n  for (const key of keys) {\n    if (!(key in head)) { reasons.push(`${at}: keyword \"${key}\" removed`); continue; }\n    if (!(key in base)) { reasons.push(`${at}: keyword \"${key}\" added`); continue; }\n    const b = base[key];\n    const h = head[key];\n    if (key === \"properties\" && isObject(b) && isObject(h)) {\n      for (const name of new Set([...Object.keys(b), ...Object.keys(h)])) {\n        const where = [...segs, \"properties\", name];\n        if (name in b && name in h) walkSchemaChange(b[name], h[name], where, reasons);\n        else if (name in b) reasons.push(`${pointerOf(where)}: property removed`);\n        else if (base.additionalProperties !== false) reasons.push(`${pointerOf(where)}: property added where additionalProperties is not false`);\n        else if (Array.isArray(head.required) && head.required.includes(name)) reasons.push(`${pointerOf(where)}: new property is required`);\n        else if (!closedSubschema(h[name])) reasons.push(`${pointerOf(where)}: new property is not closed`);\n      }\n    } else if ((key === \"items\" || key === \"additionalProperties\") && isObject(b) && isObject(h)) {\n      walkSchemaChange(b, h, [...segs, key], reasons);\n    } else if (!deepEqual(b, h)) {\n      reasons.push(`${pointerOf([...segs, key])}: ${key} changed`);\n    }\n  }"
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "Only properties, items and additionalProperties receive recursive handling here. The different discriminator object takes the generic difference branch."
+  },
+  {
+    "id": "haf7248ef7",
+    "group": "FAFF-1395",
+    "claim": "Given identical evidence records except for top-level faff_version, the changed-path comparison receives equal input objects.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/evidence.js\nconst stripVersion = (doc) => {\n  if (!isObject(doc)) return doc;\n  const { schema_version: _ignored, faff_version: _stamp, ...rest } = doc;\n  return rest;\n};"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/evidence.js\n  const changed = changedPaths(stripVersion(rawBefore), stripVersion(rawAfter), [], []);"
+      }
+    ],
+    "expected": "supported",
+    "basis": "Both faff_version and schema_version are removed prior to the comparison."
+  },
+  {
+    "id": "h726d5ad62",
+    "group": "FAFF-1395",
+    "claim": "Both downstream readers accept a custody or merge record carrying the additional faff_version field.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "test/faff-1395-faff-version.test.mjs\n  const runEvent = readJson(path.join(BUNDLE, \"schema\", \"run-event.schema.json\"));\n  assert.ok(JSON.stringify(runEvent).includes(JSON.stringify({ type: \"string\", description: FRAGMENT_DESCRIPTION })));\n  const runStart = readJson(path.join(BUNDLE, \"schema\", \"events\", \"run-start.schema.json\"));\n  assert.deepEqual(runStart.properties.data.properties.faff_version, { type: \"string\", description: FRAGMENT_DESCRIPTION });"
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The supplied assertion concerns a schema property on a run-start event. Neither reader nor its acceptance behavior is present."
+  },
+  {
+    "id": "h1fac6ccd8",
+    "group": "FAFF-1395",
+    "claim": "The L2 genesis call site documents the exact single-key data shape used in interactive mode.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/run-ledger.js\n  // Emit the genesis run-start onto the events chain via the shared FAFF-966 helper (never a\n  // hand-duplicated emit). The L2 mint passes no `level`, so its genesis data is exactly\n  // { faff_version } (FAFF-1395; see the assertion in run-ledger-init-interactive.test.mjs).\n  emitGenesisRunStart(runDir);"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The immediately preceding lines explicitly name the no-level shape."
+  },
+  {
+    "id": "h80495f65b",
+    "group": "FAFF-1306",
+    "claim": "On a schema refusal in plain-text mode, the mint prints the normal run banner before its error line.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/lights-out.js\n  const emitMintRefuse = (code, msg) => {\n    if (json) process.stdout.write(JSON.stringify({ proceed: false, level: \"L4\", error: msg }) + \"\\n\");\n    else process.stderr.write(msg + \"\\n\");\n    return code;\n  };"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/lights-out.js\n  try {\n    try { mintWriteRes = mutateLedgerUnderLock(runDir, () => ledger); }\n    catch (e) {\n      if (isLedgerSchemaError(e)) return emitMintRefuse(1, `faff lights-out: ${e.message} — no ledger minted`);\n      return emitMintRefuse(3, `faff lights-out: could not write ${ledgerPath}${e && e.code === \"LEDGER_LOCKED\" ? \" (lock contention/abort)\" : `: ${e && e.message}`} — no ledger minted`);"
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "The schema branch directly returns the helper. Its plain-text branch writes just msg and a newline."
+  },
+  {
+    "id": "hd48c2c461",
+    "group": "FAFF-1306",
+    "claim": "The ordinary mint path has loaded the run-ledger module before the finally clause can use that same module for cleanup.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/lights-out.js\n  const { resolveMintBaseSha, MINT_MARKER_KEY } = require(\"./run-ledger\");\n  let mintBaseSha = null;\n  try { mintBaseSha = resolveMintBaseSha(root); } catch { /* stays null — the reconcile faults on THIS run, never the mint */ }"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/lights-out.js\n    landed = true;\n  } finally {\n    // Lazy require: same no-cycle guarantee as resolveMintBaseSha above.\n    if (!landed) require(\"./run-ledger\").discardUnmintedRunDir(runDir, \"lights-out\");\n  }"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The earlier require uses the same module identifier as the cleanup."
+  },
+  {
+    "id": "h337b273f5",
+    "group": "FAFF-1333",
+    "claim": "The multi-issue test includes a deliberately invalid second issue while asking the command to mint only the first issue.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/commissaire.ts\n      const multiRun = seedRun(\"RUN-MULTI\", [runStart(\"RUN-MULTI\"), issueRow(\"RUN-MULTI\", 1, \"FAFF-A\"), badIssueRow(\"RUN-MULTI\", 2, \"FAFF-B\")], { schema_version: 1, run_id: \"RUN-MULTI\", admitted: [\"FAFF-A\", \"FAFF-B\"], outcomes: { \"FAFF-A\": \"shipped\", \"FAFF-B\": \"shipped\" } });\n      const rm = run([\"--run-dir\", multiRun, \"--unit-id\", \"FAFF-A\", \"--dest\", path.join(tmp, \"multi-out\", \"FAFF-A\")]);\n      if (rm.status !== 0) fail(`audit anchor: conforming multi-issue anchor should mint exit 0 (FAFF-A scoped, FAFF-B's invalid row scoped out), got ${rm.status}: ${rm.stderr}`);"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The seed gives the other issue a badIssueRow, selects FAFF-A, and requires exit zero."
+  },
+  {
+    "id": "he7a8a38c5",
+    "group": "FAFF-1333",
+    "claim": "Within the audit-anchor command, a schema refusal can be distinguished by exit status from a no-events outcome.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/commissaire.ts\n      process.stderr.write(`faff commissaire audit anchor: ${result.message}\\n`);\n      return result.code === \"no-events\" ? 3 : 2;\n    }\n    const { checkAnchorDir, sanitiseDisplay } = require(\"./evidence\"); // lazy — keeps the module load graph unchanged\n    const check = checkAnchorDir(inner, {}); // validate the ISSUE-named dir, never the tmp root\n    if (auditAnchorRefuses(check.status)) {\n      for (const line of auditAnchorRefusalLines(check, issue, destPath, sanitiseDisplay)) process.stderr.write(line + \"\\n\");\n      return 4; // NEW — schema refusal, distinct from usage (2) and no-events (3)"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The no-events branch returns 3 and the schema refusal branch returns 4."
+  },
+  {
+    "id": "hac52e68e1",
+    "group": "FAFF-1293",
+    "claim": "The golden fixture names QA as a required objecting lens and does not list any optional objecting lens.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "eval/cases/refutation-spec-017.json\n  \"oracle\": {\n    \"lens_bounds\": {\n      \"must_object\": [\n        \"QA\"\n      ]\n    }\n  },"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The complete lens_bounds JSON object has only the must_object property."
+  },
+  {
+    "id": "hc38b43a55",
+    "group": "FAFF-1293",
+    "claim": "If the QA lens text in the review-bench copy changes by one character while the canonical file stays the same, the comparison in this test detects it.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "test/review-bench-lens-parity.test.mjs\nconst KIT = \"eval/review-bench\";\nconst CANON_SPEC = \"plugin/skills/faffter-dark-spec-review\";\nconst CANON_CODE = \"plugin/skills/faffter-dark-adversarial-review/SKILL.md\";\nconst SPEC_LENSES = [\"architectural\", \"infosec\", \"methodology\", \"qa\"];\n\nconst read = (p) => readFileSync(p, \"utf8\");"
+      },
+      {
+        "id": "E2",
+        "text": "test/review-bench-lens-parity.test.mjs\n  for (const lens of SPEC_LENSES) {\n    const copy = read(`${KIT}/lenses/refute-${lens}.md`);\n    const canon = read(`${CANON_SPEC}/refute-${lens}.md`);\n    assert.equal(\n      copy,\n      canon,\n      `review-bench lens copy drifted from canonical: refute-${lens}.md\\n` +\n        `  refresh: cp ${CANON_SPEC}/refute-${lens}.md ${KIT}/lenses/refute-${lens}.md\\n` +"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The loop includes qa, reads both files and asserts equal complete strings."
+  },
+  {
+    "id": "h916936c8c",
+    "group": "FAFF-1404",
+    "claim": "When the saved spec matches and a later unrelated commit has advanced the branch, this path reports the latest commit touching that spec.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/spec-commit.js\n  if (existing.paths.length) {\n    const blobs = existing.paths.map((p) => ({ p, blob: headBlob(worktree, p, deps) }));\n    const differing = blobs.find((b) => !b.blob || !b.blob.equals(builder));\n    if (differing) return result(issue, \"needs-judgement\", { reason: \"committed-spec-differs\", path: differing.p, paths: existing.paths });\n    const first = existing.paths[0];\n    const log = deps.git(worktree, [\"log\", \"-1\", \"--format=%H\", \"--\", first]);\n    const commit = log.status === 0 ? log.stdout.toString(\"utf8\").trim() : \"\";\n    if (!deps.exists(recordPath(runDir, issue))) {\n      const rec = record({ path: first, commit });\n      return result(issue, \"already-committed\", { path: first, commit, source_check: rec.source_check });\n    }\n    return result(issue, \"already-committed\", { path: first, commit });\n  }"
+      }
+    ],
+    "expected": "supported",
+    "basis": "Both return paths use the commit from git log filtered by the matched file."
+  },
+  {
+    "id": "h48ca49811",
+    "group": "FAFF-1404",
+    "claim": "For a newly written spec whose target directory is absent, this branch creates the parent directory before writing the builder bytes.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/spec-commit.js\n  const abs = path.join(worktree, rel);\n  let created = false;\n  if (deps.exists(abs)) {\n    if (!deps.readBytes(abs).equals(builder)) return result(issue, \"needs-judgement\", { reason: \"uncommitted-file-at-path\", path: rel });\n  } else {\n    deps.mkdirp(path.dirname(abs));\n    deps.writeBytes(abs, builder);\n    created = true;\n  }"
+      }
+    ],
+    "expected": "supported",
+    "basis": "mkdirp precedes writeBytes in the missing-target branch."
+  },
+  {
+    "id": "h6887240b9",
+    "group": "FAFF-1404",
+    "claim": "An exception thrown through the command dispatcher by runSpecCommit is converted into an errored token with an unexpected reason.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/spec-commit.js\n  let res;\n  try { res = isCommit ? runSpecCommit({ ...base, title, prepRoot: values[\"--prep-root\"] || null }, d) : runSpecVerify(base, d); } catch (e) { res = errored(issue, `unexpected: ${e && e.message ? e.message : e}`); }\n  emit(res, !!values[\"--json\"], verb);\n  if (res.token === \"errored\") return 2;\n  return res.token === \"mismatch\" ? 1 : 0;"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The catch branch assigns errored(issue, unexpected...) before rendering."
+  },
+  {
+    "id": "he3376c2ea",
+    "group": "FAFF-1404",
+    "claim": "If git add returns a nonzero status, the command labels that error as a staging failure and skips git commit.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/spec-commit.js\n  const subject = commitSubject(deps.commitScheme(worktree), issue, collapseTitle(title));\n  const add = deps.git(worktree, [\"add\", \"--\", rel]);\n  const commit = add.status === 0 ? deps.git(worktree, [\"commit\", \"-m\", subject, \"--\", rel]) : add;\n  const failedStep = add.status === 0 ? \"git-commit-failed\" : \"git-add-failed\";\n  if (commit.status !== 0) {\n    deps.git(worktree, [\"reset\", \"-q\", \"--\", rel]);\n    if (created) { try { deps.unlink(abs); } catch { /* already gone */ } }\n    const line = commit.stderr.split(\"\\n\").find((l) => l.trim()) || \"\";\n    return errored(issue, `${failedStep} (exit ${commit.status})${line ? `: ${line.trim()}` : \"\"}`);\n  }"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The add result determines both whether to call commit and which failedStep is returned."
+  },
+  {
+    "id": "h95e486962",
+    "group": "FAFF-1404",
+    "claim": "If withholding content requires changing the decoded text of a non-UTF-8 spec, spec commit refuses a lossy conversion.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/spec-commit.js\nfunction builderBytes(sourceBuf) {\n  const text = sourceBuf.toString(\"utf8\");\n  const split = dodSplit(text, \"builder\").text;\n  if (split === text) return sourceBuf;\n  if (!Buffer.from(text, \"utf8\").equals(sourceBuf)) throw new Error(\"spec is not valid UTF-8, so withholding scenarios would alter its bytes\");\n  return Buffer.from(split, \"utf8\");\n}"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/spec-commit.js\n  try { source = deps.readBytes(specPath); } catch (e) { return errored(issue, `spec-unreadable: ${e.code || e.message}`); }\n  let builder;\n  try { builder = builderBytes(source); } catch { return errored(issue, \"builder-split-failed\"); }\n  const builderHash = sha256(builder);"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The changed-text path checks round-trip byte equality and throws. Its caller converts this to builder-split-failed."
+  },
+  {
+    "id": "h8d130bda4",
+    "group": "FAFF-1404",
+    "claim": "The test exercises ambiguity with two files already committed and no run-directory record.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "test/spec-commit.test.mjs\n  const f = fixture();\n  mkdirSync(join(f.wt, \"docs\", \"specs\"), { recursive: true });\n  writeFileSync(join(f.wt, \"docs\", \"specs\", \"2026-10-01-EX-3-a-design.md\"), builderView(f));\n  writeFileSync(join(f.wt, \"docs\", \"specs\", \"2026-10-02-EX-3-b-design.md\"), builderView(f));\n  git(f.wt, \"add\", \"-A\");\n  git(f.wt, \"commit\", \"-qm\", \"two specs\");\n  const r = verify(f, { noRunDir: true });\n  assert.equal(r.status, 2);\n  assert.equal(r.json().reason, \"ambiguous-committed-spec\");\n  assert.equal(r.json().paths.length, 2);\n});"
+      }
+    ],
+    "expected": "supported",
+    "basis": "Both files are added and committed. The verifier runs without a run directory and must return the ambiguity reason and two paths."
+  },
+  {
+    "id": "h99b4b08b3",
+    "group": "FAFF-1404",
+    "claim": "A concurrent writer cannot alter a matching spec path between the contents check and the following git commit.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/spec-commit.js\n  const abs = path.join(worktree, rel);\n  let created = false;\n  if (deps.exists(abs)) {\n    if (!deps.readBytes(abs).equals(builder)) return result(issue, \"needs-judgement\", { reason: \"uncommitted-file-at-path\", path: rel });\n  } else {\n    deps.mkdirp(path.dirname(abs));\n    deps.writeBytes(abs, builder);\n    created = true;\n  }\n\n  const subject = commitSubject(deps.commitScheme(worktree), issue, collapseTitle(title));\n  const add = deps.git(worktree, [\"add\", \"--\", rel]);\n  const commit = add.status === 0 ? deps.git(worktree, [\"commit\", \"-m\", subject, \"--\", rel]) : add;\n  const failedStep = add.status === 0 ? \"git-commit-failed\" : \"git-add-failed\";"
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The excerpt gives the local checks and the commit sequence. The worktree ownership and locking contract are missing."
+  },
+  {
+    "id": "h9aab169ef",
+    "group": "FAFF-1404",
+    "claim": "A classification exception causes holdoutsWithheld to return an unknown sentinel instead of a numeric count.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/spec-commit.js\nfunction holdoutsWithheld(sourceBuf) {\n  try { return dodClassify(sourceBuf.toString(\"utf8\")).holdout_counts.holdout; } catch { return 0; }\n}"
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "Its catch returns the integer zero."
+  },
+  {
+    "id": "hf1c24794e",
+    "group": "FAFF-1249",
+    "claim": "For every accepted request the hold number passed to the command matches the most recent persisted hold for that issue.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/build-judge-evidence.js\nfunction reopenForHold(ledger, resumed, n, holdLimit) {\n  if (n > holdLimit) {\n    process.stderr.write(`faff build-judge-evidence --assemble: --reopen-for-hold ${n} is above graft.build_review_hold_limit (${holdLimit}); no hold beyond the limit can exist, so nothing was reopened\\n`);\n    return { reopened: [], changed: false };\n  }\n  const done = Array.isArray(ledger.reopened_for_holds) ? ledger.reopened_for_holds : [];\n  if (!resumed) {\n    // A fresh pass already has a full budget for this hold; record it so a later matching call does not reopen.\n    ledger.reopened_for_holds = [n];\n    return { reopened: [], changed: true };\n  }\n  if (done.includes(n)) return { reopened: [], changed: false };"
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The checks on maximum and recorded numbers do not establish how the caller derived n from the authoritative record."
+  },
+  {
+    "id": "h403e8a32a",
+    "group": "FAFF-1249",
+    "claim": "A second resumed call using an already-recorded hold number returns without resetting attempts for any entry.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/build-judge-evidence.js\n  const done = Array.isArray(ledger.reopened_for_holds) ? ledger.reopened_for_holds : [];\n  if (!resumed) {\n    // A fresh pass already has a full budget for this hold; record it so a later matching call does not reopen.\n    ledger.reopened_for_holds = [n];\n    return { reopened: [], changed: true };\n  }\n  if (done.includes(n)) return { reopened: [], changed: false };\n  const reopened = [];\n  for (const cid of ledger.order) {\n    const e = ledger.entries[cid];\n    if (!e || e.resolution !== \"parked\" || (e.park_class !== \"outage\" && e.park_class !== \"backend-chain\")) continue;\n    const p = e.judge_progress || { phase1_attempts: 0, phase2_attempts: 0, last_exit: null, reconstruction: null };\n    p.phase2_attempts = 0;\n    if (!p.reconstruction) p.phase1_attempts = 0; // Phase 1 never succeeded; a bound reconstruction keeps its Phase 1 result"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The membership check returns before the loop that zeros attempt counters."
+  },
+  {
+    "id": "h03e675c1f",
+    "group": "FAFF-1249",
+    "claim": "A judge-stage restore inspects the contents of the judge ledger in proveStage before accepting its stage.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/resume-store.js\nfunction stageOf(issueDir) {\n  const st = lstatOrNull(path.join(issueDir, JUDGE_LEDGER));\n  return st && st.isFile() ? \"judge\" : \"dialogue\";\n}"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/resume-store.js\nfunction proveStage(dir, rec, where) {\n  if (rec.dialogue && rec.dialogue.stage === \"judge\" && stageOf(dir) !== \"judge\") {\n    refuse(`${where} judge-stage store without a judge ledger`);\n  }\n}"
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "stageOf uses only file metadata. proveStage delegates to it and never opens the file."
+  },
+  {
+    "id": "h693a4d34f",
+    "group": "FAFF-1249",
+    "claim": "If no entries qualify to reopen on a previously unseen in-range hold number, that resumed hold number remains unrecorded.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "test/build-judge-evidence.test.mjs\n    const causes = [\"f-01\", \"f-02\"].map((cid) => ledger.entries[cid].park_cause);\n    const t = trackedDeps();\n    const r = await callAssemble(tmp, br, { \"--reopen-for-hold\": \"1\" }, withHold(t));\n    assert.deepEqual(r.out.reopened, []);\n    assert.equal(t.calls.length, 0);\n    const l = readLedger(tmp);\n    assert.deepEqual([\"f-01\", \"f-02\"].map((cid) => l.entries[cid].park_cause), causes);\n    assert.ok([\"f-01\", \"f-02\"].every((cid) => l.entries[cid].resolution === \"parked\"));\n    assert.deepEqual(l.reopened_for_holds, [1], \"the hold is still recorded\");\n  });"
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "The persisted test result records 1 even though the command returned an empty reopened array."
+  },
+  {
+    "id": "h7de8a9d34",
+    "group": "FAFF-1249",
+    "claim": "The stash determines the stage of the copied ledger by examining the staged destination after making its copy.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/resume-store.js\n  return underLock(storeRoot, issue, (lock) => {\n    const prior = readHoldRecord(dst, issue);\n    const priorHolds = prior && prior.dialogue ? prior.dialogue.hold_count : 0;\n    copyCarriedSet(src, lock.stage);\n    if (lstatOrNull(path.join(dst, PREP_HOLD))) copyEntry(path.join(dst, PREP_HOLD), path.join(lock.stage, PREP_HOLD));\n    const record = {\n      schema_version: 1,\n      issue,\n      cause,\n      stashed_at: new Date().toISOString(),\n      carried: listFiles(lock.stage).filter((p) => p !== HOLD_RECORD && p !== LOCK_FILE),"
+      },
+      {
+        "id": "E2",
+        "text": "plugin/skills/faff/bin/lib/resume-store.js\n    if (n > 1) {\n      record.dialogue = {\n        hold_count: priorHolds + (cause === \"build-review-dialogue\" ? 1 : 0),\n        next_round: n,\n        fix_rounds_used: fixRoundsUsed,\n        rebuttal_rounds_used: rebuttalRoundsUsed,\n        stage: stageOf(src),\n      };"
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "The copy uses lock.stage as target, but the record computes stageOf(src)."
+  },
+  {
+    "id": "h01aa4badd",
+    "group": "FAFF-1249",
+    "claim": "On a fresh pass with an in-range hold number, the helper records that number without reopening any cases.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "plugin/skills/faff/bin/lib/build-judge-evidence.js\nfunction reopenForHold(ledger, resumed, n, holdLimit) {\n  if (n > holdLimit) {\n    process.stderr.write(`faff build-judge-evidence --assemble: --reopen-for-hold ${n} is above graft.build_review_hold_limit (${holdLimit}); no hold beyond the limit can exist, so nothing was reopened\\n`);\n    return { reopened: [], changed: false };\n  }\n  const done = Array.isArray(ledger.reopened_for_holds) ? ledger.reopened_for_holds : [];\n  if (!resumed) {\n    // A fresh pass already has a full budget for this hold; record it so a later matching call does not reopen.\n    ledger.reopened_for_holds = [n];\n    return { reopened: [], changed: true };\n  }\n  if (done.includes(n)) return { reopened: [], changed: false };"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The fresh branch writes [n] and returns an empty list before it visits ledger entries."
+  }
+]

@@ -1,0 +1,515 @@
+{
+  "h75337ae2c": {
+    "commit": "e373de2ecd3ab2047e6fc5b624b9cdb25b21af01",
+    "excerpts": [
+      {
+        "path": "test/faff-1399-discovered-scope-priority.test.mjs",
+        "first": 39,
+        "last": 42,
+        "blob": "85081ee6f4c68bd4847f9ef91a8c8bba5f663082"
+      },
+      {
+        "path": "test/faff-1399-discovered-scope-priority.test.mjs",
+        "first": 83,
+        "last": 88,
+        "blob": "85081ee6f4c68bd4847f9ef91a8c8bba5f663082"
+      }
+    ]
+  },
+  "h800582231": {
+    "commit": "e373de2ecd3ab2047e6fc5b624b9cdb25b21af01",
+    "excerpts": [
+      {
+        "path": "test/faff-1399-discovered-scope-priority.test.mjs",
+        "first": 128,
+        "last": 130,
+        "blob": "85081ee6f4c68bd4847f9ef91a8c8bba5f663082"
+      }
+    ]
+  },
+  "he57c58a28": {
+    "commit": "8bcd56116e7742bc913fb203c222c8e9e5c470a3",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 29,
+        "last": 29,
+        "blob": "fb52ba8a927df05cc87247110866b429b0ea428e"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 32,
+        "last": 32,
+        "blob": "fb52ba8a927df05cc87247110866b429b0ea428e"
+      }
+    ]
+  },
+  "h9c1c1d191": {
+    "commit": "8bcd56116e7742bc913fb203c222c8e9e5c470a3",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 39,
+        "last": 39,
+        "blob": "fb52ba8a927df05cc87247110866b429b0ea428e"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 60,
+        "last": 69,
+        "blob": "fb52ba8a927df05cc87247110866b429b0ea428e"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/heading-slug.js",
+        "first": 36,
+        "last": 41,
+        "blob": "dc10ff1adb3d4e2354049e548982654e27a654b1"
+      }
+    ]
+  },
+  "h6469220ee": {
+    "commit": "281e4abf96e40cb364c9dd6caed0ee1c3bb456ed",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 112,
+        "last": 112,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 126,
+        "last": 130,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      }
+    ]
+  },
+  "h9db070090": {
+    "commit": "281e4abf96e40cb364c9dd6caed0ee1c3bb456ed",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 29,
+        "last": 29,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 33,
+        "last": 33,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 35,
+        "last": 35,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 96,
+        "last": 98,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 102,
+        "last": 108,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 112,
+        "last": 112,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 119,
+        "last": 130,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      }
+    ]
+  },
+  "ha5a7c7145": {
+    "commit": "281e4abf96e40cb364c9dd6caed0ee1c3bb456ed",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 29,
+        "last": 29,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 33,
+        "last": 33,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 35,
+        "last": 35,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 96,
+        "last": 98,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 102,
+        "last": 108,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 112,
+        "last": 112,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 119,
+        "last": 130,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      }
+    ]
+  },
+  "h1e36d3760": {
+    "commit": "281e4abf96e40cb364c9dd6caed0ee1c3bb456ed",
+    "excerpts": [
+      {
+        "path": "test/punt-scan.test.mjs",
+        "first": 250,
+        "last": 256,
+        "blob": "06b983a64a297471126775155cf24e903f9b39a7"
+      }
+    ]
+  },
+  "h6150724a8": {
+    "commit": "281e4abf96e40cb364c9dd6caed0ee1c3bb456ed",
+    "excerpts": [
+      {
+        "path": "test/punt-scan.test.mjs",
+        "first": 249,
+        "last": 257,
+        "blob": "06b983a64a297471126775155cf24e903f9b39a7"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/punt-scan.js",
+        "first": 112,
+        "last": 112,
+        "blob": "eec3767af89db69ed61fe61b98c4116561f6b47a"
+      }
+    ]
+  },
+  "h593123e1e": {
+    "commit": "3f496e05d1b7905bc8d921d2d037f055f29a5206",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/evidence.js",
+        "first": 357,
+        "last": 380,
+        "blob": "a6b2b2109521a7bddd70b5034148faea175e847f"
+      }
+    ]
+  },
+  "haf7248ef7": {
+    "commit": "3f496e05d1b7905bc8d921d2d037f055f29a5206",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/evidence.js",
+        "first": 256,
+        "last": 260,
+        "blob": "a6b2b2109521a7bddd70b5034148faea175e847f"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/evidence.js",
+        "first": 299,
+        "last": 299,
+        "blob": "a6b2b2109521a7bddd70b5034148faea175e847f"
+      }
+    ]
+  },
+  "h726d5ad62": {
+    "commit": "3f496e05d1b7905bc8d921d2d037f055f29a5206",
+    "excerpts": [
+      {
+        "path": "test/faff-1395-faff-version.test.mjs",
+        "first": 376,
+        "last": 379,
+        "blob": "f7dd27f440f677880653f42394a440cd6769a8d2"
+      }
+    ]
+  },
+  "h1fac6ccd8": {
+    "commit": "3f496e05d1b7905bc8d921d2d037f055f29a5206",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/run-ledger.js",
+        "first": 385,
+        "last": 388,
+        "blob": "ef505eb8bee790d2b937dc010d78b7450db6a9bb"
+      }
+    ]
+  },
+  "h80495f65b": {
+    "commit": "291af234bd164d945332c67b68ad9861d237451b",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/lights-out.js",
+        "first": 1201,
+        "last": 1205,
+        "blob": "2c9f13b185fa3cfa96ff1152fd5d25cc9a133d43"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/lights-out.js",
+        "first": 1217,
+        "last": 1221,
+        "blob": "2c9f13b185fa3cfa96ff1152fd5d25cc9a133d43"
+      }
+    ]
+  },
+  "hd48c2c461": {
+    "commit": "291af234bd164d945332c67b68ad9861d237451b",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/lights-out.js",
+        "first": 1155,
+        "last": 1157,
+        "blob": "2c9f13b185fa3cfa96ff1152fd5d25cc9a133d43"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/lights-out.js",
+        "first": 1226,
+        "last": 1230,
+        "blob": "2c9f13b185fa3cfa96ff1152fd5d25cc9a133d43"
+      }
+    ]
+  },
+  "h337b273f5": {
+    "commit": "7c2961c4b8de8d28f08fa6863e3fefa1cb3a14aa",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/commissaire.ts",
+        "first": 1759,
+        "last": 1761,
+        "blob": "a7c5db8fc201e0bc1b73da8d6e2553fb90865ebd"
+      }
+    ]
+  },
+  "he7a8a38c5": {
+    "commit": "7c2961c4b8de8d28f08fa6863e3fefa1cb3a14aa",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/commissaire.ts",
+        "first": 618,
+        "last": 625,
+        "blob": "a7c5db8fc201e0bc1b73da8d6e2553fb90865ebd"
+      }
+    ]
+  },
+  "hac52e68e1": {
+    "commit": "5f0263e7a5260c08ef30bdd9b0c9cda0712a90ae",
+    "excerpts": [
+      {
+        "path": "eval/cases/refutation-spec-017.json",
+        "first": 8,
+        "last": 14,
+        "blob": "5bdce48a1def8d5d9be082b9c19092eb656d242c"
+      }
+    ]
+  },
+  "hc38b43a55": {
+    "commit": "5f0263e7a5260c08ef30bdd9b0c9cda0712a90ae",
+    "excerpts": [
+      {
+        "path": "test/review-bench-lens-parity.test.mjs",
+        "first": 14,
+        "last": 19,
+        "blob": "78d6a59570fe5c104bdf7758449925aaf8c8b8a6"
+      },
+      {
+        "path": "test/review-bench-lens-parity.test.mjs",
+        "first": 22,
+        "last": 29,
+        "blob": "78d6a59570fe5c104bdf7758449925aaf8c8b8a6"
+      }
+    ]
+  },
+  "h916936c8c": {
+    "commit": "b7883697d81dc5fe6ca66cd35e32db02780fdc46",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/spec-commit.js",
+        "first": 184,
+        "last": 196,
+        "blob": "6521f09d8c26a095d724c60eaa6e28ff38cf57d7"
+      }
+    ]
+  },
+  "h48ca49811": {
+    "commit": "b7883697d81dc5fe6ca66cd35e32db02780fdc46",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/spec-commit.js",
+        "first": 198,
+        "last": 206,
+        "blob": "6521f09d8c26a095d724c60eaa6e28ff38cf57d7"
+      }
+    ]
+  },
+  "h6887240b9": {
+    "commit": "b7883697d81dc5fe6ca66cd35e32db02780fdc46",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/spec-commit.js",
+        "first": 283,
+        "last": 287,
+        "blob": "6521f09d8c26a095d724c60eaa6e28ff38cf57d7"
+      }
+    ]
+  },
+  "he3376c2ea": {
+    "commit": "b7883697d81dc5fe6ca66cd35e32db02780fdc46",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/spec-commit.js",
+        "first": 208,
+        "last": 217,
+        "blob": "6521f09d8c26a095d724c60eaa6e28ff38cf57d7"
+      }
+    ]
+  },
+  "h95e486962": {
+    "commit": "b7883697d81dc5fe6ca66cd35e32db02780fdc46",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/spec-commit.js",
+        "first": 53,
+        "last": 59,
+        "blob": "6521f09d8c26a095d724c60eaa6e28ff38cf57d7"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/spec-commit.js",
+        "first": 160,
+        "last": 163,
+        "blob": "6521f09d8c26a095d724c60eaa6e28ff38cf57d7"
+      }
+    ]
+  },
+  "h8d130bda4": {
+    "commit": "b7883697d81dc5fe6ca66cd35e32db02780fdc46",
+    "excerpts": [
+      {
+        "path": "test/spec-commit.test.mjs",
+        "first": 161,
+        "last": 171,
+        "blob": "e4f8b1466c2182a9f4261d569315ee87a477877f"
+      }
+    ]
+  },
+  "h99b4b08b3": {
+    "commit": "b7883697d81dc5fe6ca66cd35e32db02780fdc46",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/spec-commit.js",
+        "first": 198,
+        "last": 211,
+        "blob": "6521f09d8c26a095d724c60eaa6e28ff38cf57d7"
+      }
+    ]
+  },
+  "h9aab169ef": {
+    "commit": "b7883697d81dc5fe6ca66cd35e32db02780fdc46",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/spec-commit.js",
+        "first": 61,
+        "last": 63,
+        "blob": "6521f09d8c26a095d724c60eaa6e28ff38cf57d7"
+      }
+    ]
+  },
+  "hf1c24794e": {
+    "commit": "0e391419ff24db591875836aeb6d8328dd25fbca",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+        "first": 664,
+        "last": 675,
+        "blob": "87cf116e9d6638d6811716b1d84cdb63feec6cfe"
+      }
+    ]
+  },
+  "h403e8a32a": {
+    "commit": "0e391419ff24db591875836aeb6d8328dd25fbca",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+        "first": 669,
+        "last": 682,
+        "blob": "87cf116e9d6638d6811716b1d84cdb63feec6cfe"
+      }
+    ]
+  },
+  "h03e675c1f": {
+    "commit": "0e391419ff24db591875836aeb6d8328dd25fbca",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/resume-store.js",
+        "first": 183,
+        "last": 186,
+        "blob": "ba6e4fbb99ad4ee21f786667cb693b4758b64464"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/resume-store.js",
+        "first": 293,
+        "last": 297,
+        "blob": "ba6e4fbb99ad4ee21f786667cb693b4758b64464"
+      }
+    ]
+  },
+  "h693a4d34f": {
+    "commit": "0e391419ff24db591875836aeb6d8328dd25fbca",
+    "excerpts": [
+      {
+        "path": "test/build-judge-evidence.test.mjs",
+        "first": 1672,
+        "last": 1681,
+        "blob": "3d740a014f50ca793bc28ba9a556826708973ba1"
+      }
+    ]
+  },
+  "h7de8a9d34": {
+    "commit": "0e391419ff24db591875836aeb6d8328dd25fbca",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/resume-store.js",
+        "first": 231,
+        "last": 241,
+        "blob": "ba6e4fbb99ad4ee21f786667cb693b4758b64464"
+      },
+      {
+        "path": "plugin/skills/faff/bin/lib/resume-store.js",
+        "first": 243,
+        "last": 250,
+        "blob": "ba6e4fbb99ad4ee21f786667cb693b4758b64464"
+      }
+    ]
+  },
+  "h01aa4badd": {
+    "commit": "0e391419ff24db591875836aeb6d8328dd25fbca",
+    "excerpts": [
+      {
+        "path": "plugin/skills/faff/bin/lib/build-judge-evidence.js",
+        "first": 664,
+        "last": 675,
+        "blob": "87cf116e9d6638d6811716b1d84cdb63feec6cfe"
+      }
+    ]
+  }
+}

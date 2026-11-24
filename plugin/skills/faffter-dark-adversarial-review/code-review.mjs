@@ -3,6 +3,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { ledgerMandatory, mandatoryRemap } from "./review-call.mjs";
 import argv from "../faff/bin/lib/argv.js";
 import config from "../faff/bin/lib/config.js";
 import backends from "../faff/bin/lib/adversarial-backends.js";
@@ -86,7 +87,10 @@ export async function runCodeReview(args, runBounded) {
     child.push("--system", system);
     for (const file of values["--context"] || []) child.push("--context", file);
     child.push("--diff", values["--diff"]);
-    return await runBounded(["--deadline", options.deadline, "--", ...child]);
+    const mandatory = ledgerMandatory(values["--run-dir"] ?? process.env.FAFF_RUN_DIR);
+    const exit = await runBounded(["--deadline", options.deadline, "--", ...child]);
+    // A process-group timeout can arrive after the transport's own mandatory remap.
+    return mandatoryRemap(exit, mandatory);
   } finally {
     rmSync(tmp, { recursive: true, force: true });
   }

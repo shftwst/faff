@@ -1,13 +1,14 @@
 // Exercise the installed Phase 2 entry point against a local provider and a real trusted base ref.
 import assert from "node:assert/strict";
-import { execFile, execFileSync } from "node:child_process";
+import { execFile, execFileSync, spawn } from "node:child_process";
 import { createServer } from "node:http";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
 import { promisify } from "node:util";
-import { codeReviewOptions } from "../../plugin/skills/faffter-dark-adversarial-review/code-review.mjs";
+import { mapOutcomeExit, runKillable } from "../../plugin/skills/faff/bin/lib/killable-spawn.mjs";
+import { codeReviewOptions, runCodeReview } from "../../plugin/skills/faffter-dark-adversarial-review/code-review.mjs";
 
 const exec = promisify(execFile);
 const skill = resolve(import.meta.dirname, "../../plugin/skills/faffter-dark-adversarial-review");
@@ -99,6 +100,24 @@ test("the bundled entry point preserves the control wire request and fallback re
   writeFileSync(join(dir, "run/run-ledger.json"), JSON.stringify({ run_id: "r", level: "L4" }));
   await assert.rejects(run(script, args), error => error.code === 5 || error.code === 8);
   await assert.rejects(run(script, [...args, "--run-dir", "run"]), error => error.code === 9);
+
+  const previousDir = process.cwd();
+  try {
+    process.chdir(dir);
+    const hardKill = async () => {
+      const result = await runKillable({ deadlineSec: 0.15, graceSec: 0.05,
+        target: [process.execPath, "-e", "setTimeout(() => {}, 10000)"] }, { spawnFn: spawn });
+      assert.equal(result.status, "killed-deadline");
+      return mapOutcomeExit(result);
+    };
+    mkdirSync("advisory");
+    writeFileSync("advisory/run-ledger.json", JSON.stringify({ level: "L3" }));
+    assert.equal(await runCodeReview([...args.slice(1), "--run-dir", "advisory"], hardKill), 8);
+    assert.equal(await runCodeReview([...args.slice(1), "--run-dir", "run"], hardKill), 9);
+    assert.equal(await runCodeReview([...args.slice(1), "--run-dir", "run"], async () => 7), 7);
+  } finally {
+    process.chdir(previousDir);
+  }
 
   const served = requests.length;
   for (const [text, expectedCode] of [["tracking:\n  tracker: none\n", 3], ["adversarial:\n  refs:\n    - unknown-backend\n", 2]]) {

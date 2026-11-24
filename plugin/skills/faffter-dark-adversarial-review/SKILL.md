@@ -110,7 +110,7 @@ The helper owns classification and precedence. A configuration/structural fault 
 | 5 | Configured-host availability/transport exhaustion | Interactive: `pass` plus skip finding. Autonomous: loud skip and `adversarial_outcome:"chain-outage-skipped"` |
 | 6 | Unconfigured/default host unavailable, legacy helper path | `needs-human`; the wrapper reports an unset host before dispatch (exit 3) |
 | 7 | Authentication failure or missing configured key variable | `needs-human`; do not retry broken credentials |
-| 8 | Advisory chain deadline or wrapper hard kill | `pass` plus loud `phase2: skipped-deadline`; no chain-outage annotation |
+| 8 | Advisory deadline (including a wrapper hard kill) | `pass` plus loud `phase2: skipped-deadline`; no chain-outage annotation |
 | 9 | Mandatory review obtained no opinion | `unavailable`, outage finding with location and action, `adversarial_outcome:"mandatory-chain-outage"`; graft parks before opening a PR |
 | 10 | Substantive non-findings garble, per-backend class | The chain advances; an exhaustion containing only garble/availability maps to 5, handled as that skip |
 | 11 | Empty/whitespace or recognised provider refusal | `needs-human`, naming the structural inability; never an availability skip, including at L4 |
@@ -130,13 +130,13 @@ Interactive exit 5 has a plain skip finding and no outage field. Deadline exit 8
 
 L4 requires the adversarial occupant through dial coherence. The helper derives mandatory review from an L4 ledger supplied by `--run-dir` or ambient `FAFF_RUN_DIR`; explicit `--lights-out` also forces it. These are OR-composed. Missing run context, a non-L4 ledger and no override remain advisory. Never drop a forwarded run directory because the separate `lights_out` boolean disagrees.
 
-For mandatory review the helper maps no-opinion exhaustion (5, 12 or 8) to 9. Structural faults, including 2/4/6/7/11, retain their own needs-human class. Exit 9 is the orchestrator-observed availability failure: return `unavailable`, with an actionable outage finding and the forensics annotation above. Never self-declare unavailability merely because the model dislikes the task. Graft parks the terminal non-pass before PR creation; the merge floor also refuses it.
+For mandatory review, the helper and wrapper map no-opinion exhaustion (5, 12 or 8) to 9. Structural faults, including 2/4/6/7/11, retain their own needs-human class. Exit 9 is the orchestrator-observed availability failure: return `unavailable`, with an actionable outage finding and the forensics annotation above. Never self-declare unavailability merely because the model dislikes the task. Graft parks the terminal non-pass before PR creation; the merge floor also refuses it.
 
 ### Review-progress checkpoint (autonomous resume)
 
 For autonomous review with a run directory and issue, use `faff review-progress write "$run_dir" <ISSUE>`. After Phase 1 passes, add `--phase1-pass --diff-hash "$cur_hash"`. Honour graft's diff-validated Phase-2 resume hint. Interactive calls and non-passing Phase 1 skip writes.
 
-Every Phase-2 write adds `--expect-diff "$cur_hash" --phase2 STATUS`. Record `in_flight` immediately before the helper, `complete --findings <path>` on exit 0, `skipped_deadline` on advisory exit 8, and `skipped_unreachable` on an availability/rate-limit pass+skip. On a changed checkpoint (exit 3), return control to graft for reconciliation. Needs-human and unavailable returns, including exit 9, leave Phase 2 unfinished.
+Every Phase-2 write adds `--expect-diff "$cur_hash" --phase2 STATUS`. Record `in_flight` immediately before the helper, `complete --findings <path>` on exit 0 with raw findings saved to a fresh per-attempt file, `skipped_deadline` on advisory exit 8, and `skipped_unreachable` on an availability/rate-limit pass+skip. On a changed checkpoint (exit 3), return control to graft for reconciliation. Needs-human and unavailable returns, including exit 9, leave Phase 2 unfinished.
 
 ## Output to faff-graft
 

@@ -18,10 +18,10 @@ const {
 } = require("./config");
 
 const DISPATCH_SPEC = {
-  flags: { "--selftest": { arity: 0 }, "--tier": { arity: 1 }, "--confidence": { arity: 1 }, "--root": { arity: 1 } },
+  flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--tier": { arity: 1 }, "--confidence": { arity: 1 }, "--root": { arity: 1 } },
   positionals: { min: 0, max: 2, name: "verb lane" },
 };
-const DISPATCH_USAGE = "usage: faff dispatch resolve <lane> [--tier <tier>] [--confidence <conf>] [--root DIR]\n       faff dispatch prepare-build --executor sequential|parallel [--root DIR] < unit.json\n       faff dispatch verify-member --run-dir DIR --issue ID --return JSON|null < held-manifest\n       faff dispatch prepare-producer <lane> [--in-context | --fresh-adversarial | --shared-spec-files] [--root DIR]";
+const DISPATCH_USAGE = "usage: faff dispatch resolve <lane> [--tier <tier>] [--confidence <conf>] [--json] [--root DIR]\n       faff dispatch prepare-build --executor sequential|parallel [--root DIR] < unit.json\n       faff dispatch verify-member --run-dir DIR --issue ID --return JSON|null < held-manifest\n       faff dispatch prepare-producer <lane> [--in-context | --fresh-adversarial | --shared-spec-files] [--root DIR]";
 
 function isEmpty(v) {
   return v === null || v === undefined || v === "";

@@ -119,6 +119,12 @@ test("faff version prints the bare release and exits 0", () => {
   assert.equal(r.stdout, `${RELEASE}\n`);
 });
 
+test("the top-level --version flag uses the version command and its argument validation", () => {
+  for (const flags of [[], ["--json"], ["--unexpected"]]) {
+    assert.deepEqual(runCli(["--version", ...flags]), runCli(["version", ...flags]));
+  }
+});
+
 test("faff version --json prints version and source", () => {
   const r = runCli(["version", "--json"]);
   assert.equal(r.code, 0);

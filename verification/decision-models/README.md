@@ -37,6 +37,14 @@ Each invocation of `run` requests one decision per case. A full paired run on th
 
 ## Use another model
 
+For a model served by OpenRouter Decisions, set `OPENROUTER_API_KEY` and use its canonical model ID. The adapter passes the same evidence and three choices to the hosted model. Its receipt records the winning probability where supplied, native token counts and reported USD cost. Models that return only a choice receive a direct accuracy score and always escalate in the confidence simulation. Choose another model from the [decision catalog](https://openrouter.ai/api/v1/models?output_modalities=decisions).
+
+```sh
+python3 suite.py run --packets runs/frozen/packets.json --out runs/jev-openrouter.json \
+  --provider openrouter-decisions --model typesafe/jev-1.14-20261014
+python3 suite.py compare --key runs/frozen/key.json --a runs/jev-openrouter.json --b runs/opus.json
+```
+
 For an LLM with a Chat Completions endpoint, use the included adapter. Run the command from this directory and replace the endpoint and exact model ID with those served by your provider. For an authenticated endpoint, set `DECISION_CHAT_API_KEY` in the environment. The CLI accepts an argument vector encoded as JSON and runs the adapter in a fresh temporary directory.
 
 ```sh

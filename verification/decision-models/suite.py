@@ -308,7 +308,7 @@ def main(argv=None):
     execute = commands.add_parser("run", help="collect one arm, resuming completed cases")
     execute.add_argument("--packets", required=True, type=Path)
     execute.add_argument("--out", required=True, type=Path)
-    execute.add_argument("--provider", choices=["jev", "opus", "external"], required=True)
+    execute.add_argument("--provider", choices=["jev", "opus", "openrouter-decisions", "external"], required=True)
     execute.add_argument("--model", required=True)
     execute.add_argument("--command", help="external executable and arguments as a JSON array")
     execute.add_argument("--adapter-revision", help="pin a custom backend or configuration revision for this run")

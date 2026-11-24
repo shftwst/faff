@@ -4,17 +4,13 @@
 
 ### Workable vs terminal states
 
-`faff next` owns `TERMINAL_STATUSES = ["done","cancelled","duplicate"]` and derived `WORKABLE_STATUSES` (`bin/lib/next.js`, both `module.exports`ed). Terminal means no further work; workable statuses are `backlog`, `todo`, `in-progress`, `in-review`. Unlike the post-fetch **Ignore cancelled and archived** filter, this full partition includes Done and lets callers constrain queries to workable states.
+Only beep-boop's unscoped queue queries select workable states (`backlog`, `todo`, `in-progress`, `in-review`). `faff next` treats `done`, `cancelled` and `duplicate` as terminal. WTF, map and tidy also fetch terminal work. Apply **Ignore cancelled and archived** after fetching.
 
-**Per-tracker mapping** (category-driven first, name-based fallback — the same shape as *What counts as cancelled*):
-
-| Tracker | Workable | Terminal | Constrain the query by |
-|---|---|---|---|
-| **Linear** | `stateCategory` ∈ {`backlog`, `unstarted`, `started`} | {`completed`, `canceled`} | pass the wanted state/category to `list_issues`'s `state` param; set `includeArchived: false` |
-| **GitHub Issues** | `state = open` | `state = closed` (Done = closed-completed; cancelled = closed + `state_reason = not_planned`) | fetch `state = open` only |
-| **Jira / other via MCP** | non-terminal status category | `done`/`completed` + cancellation category | category filter if exposed, else name-based fallback against the state names |
-
-**Shared vocabulary, not a shared constraint.** Any caller may *name* this partition; the decision to **constrain a fetch to the workable side** is `/faff-beep-boop`-local (its no-issue-set query sites — see its SKILL.md). The read skills (`/faff-wtf`, `/faff-map`, `/faff-tidy`) legitimately need terminal issues and are never constrained by it.
+| Tracker | Workable query |
+|---|---|
+| Linear | Pass the wanted state/category to `list_issues`'s `state` (`backlog`, `unstarted`, `started`) with `includeArchived: false`. Completed and canceled are terminal. |
+| GitHub Issues | Fetch `state = open`. Closed-completed is Done. Closed with `state_reason = not_planned` is cancelled. |
+| Jira / other MCP | Select non-terminal categories when available. Otherwise use state names to exclude done/completed and cancellation states. |
 
 
 ### Autonomous Mode Contract
@@ -46,7 +42,7 @@ An unexecuted migration, CI workflow, infrastructure declaration or dependency c
 
 **After merge**, log failed branch/worktree, directory, status or label cleanup as human follow-ups in the final summary. Skip the failed cleanup and continue the queue.
 
-**Entry preflights (autonomous only).** Run `faff run preflight` once before minting the build queue. It reads the container, host socket, GitHub credential and default-branch effective rules. Log each finding and surface it in `/faff-wtf`. Exit 0 continues. Exit 3, a config/command failure or an unreadable result stops before work, with the reported cause. The `autonomous.require_container`, `require_branch_protection` and `require_github_auth` knobs default to `warn`. Indeterminate auth and host sockets only warn here. `faff lights-out` owns its stricter floor. Interactive work skips these probes.
+**Entry preflights (autonomous only).** Run `faff run preflight` once before minting the build queue. Log each finding and surface it in `/faff-wtf`. Continue on exit 0 with a readable result. On refusal, command/config error or unreadable result, stop before work with the reported cause. Interactive work skips these probes. `faff lights-out` applies its stricter floor.
 
 Follow each skill's **Autonomous Mode** section. Tidy auto-archives merged/cancelled items and reparents obvious orphans. Log other proposals for review. WTF returns the ready list without a focus recommendation. Map returns its read-only roadmap, dependency joins, gates and risks.
 
@@ -74,11 +70,10 @@ Each accepting skill **documents its per-level response** in its `SKILL.md`. The
 | Punt markers | Park (no resolve-attempt) | Resolve-attempt with conservative thresholds | Resolve-attempt with widened thresholds | Resolve all Punts — pick the most defensible answer, document, proceed. No Punt parks. |
 | `gap-blocked` verdict | Park | Resolve-attempt per verdict rules | Proceed if gap can be worked around | Proceed — file the gap ticket and continue regardless |
 | `circular-blocked` verdict | Park | Resolve-attempt (unambiguous break-edge only) | Accept most plausible break-edge | Break the cycle at any plausible edge, document, proceed |
-| Chain-gap auto-create | Never (surface only) | Only when methodology configured | Even without methodology, if remainder is identifiable | Always — every identifiable gap gets a ticket |
-| Execution-discovered auto-create | Never (surface only) | Only when methodology configured | Even without methodology, if the item is concrete | Always — every concrete discovered item gets a ticket |
-| Outward / new-root auto-create | **Never** | **Never** | **Never** | **Never (hard floor)** |
+| Chain-gap auto-create / Execution-discovered auto-create | Surface only | Identifiable gap / concrete item with opinionated methodology | Identifiable gap / concrete item even without methodology | File every identifiable gap / concrete item |
+| Outward / new-root auto-create | Never | Never | Never | Never (hard floor) |
 
-The Execution-discovered row gates **bottom-up source (b)** — concrete out-of-scope work faff-graft recorded while building (see **Agent Lanes**). It mirrors the chain-gap row: the orchestrator (faff-beep-boop) files `concrete` items per this dial; `vague` items only ever surface, at every level. Dedup against existing open tickets before filing. The **Outward / new-root** row is the scope-containment floor — see the matching hard-floor bullet below.
+Graft records execution-discovered work. The orchestrator surfaces vague items at every appetite and deduplicates concrete proposals against open tickets before filing. Apply the outward floor below first.
 
 The methodology slot's per-level response lives in the configured methodology skill. The review slot's per-level response lives in the configured review skill — note that review quality never loosens at any level (see the hard floor below).
 
@@ -103,8 +98,7 @@ At L4 (`full`), validate the `faff-contract:l4-topology-envelope` block against 
 - **User-explicit "ask first" rules** in the `slots` config, in CLAUDE.md, or in spec comments override appetite. The dial doesn't punch through explicit instructions.
 - **Cancellation / deletion** of issues or workstreams. No appetite level autonomously cancels or deletes. `full` adds scope (splits, merges, new tickets) but never removes it.
 - **ADR supersession.** Only `faff adr admit` returning `admit` permits automatic supersession of a loop-authored ADR. Graft Step 3b applies the drift challenge, thrash limit, self-supersede and loop-over-human guards. Human and legacy ADRs (missing provenance) are propose-only. Record the proposal for `/faff-wtf` and run `faff adr supersede` on human confirmation. Appetite only grades how prominently the digest shows a refusal.
-- **Outward / new-root creation.** Before the appetite gate, beep-boop filing and tidy chain-gap auto-fill check `faff contain` against the mandate. Record `outward-new-root` and surface it for interactive creation, including fast-track requests. The only exception is same-team/repo Backlog self-intake with `containment.self_hosting_intake: true` (default off). Only `faff self-intake` exit 0 reclassifies to `outward-self-intake` from committed config. Exit 2 or 3 leaves the floor in force. Cross-team/repo work always goes to the human.
-  Pass `--record <run-id>` at both containment checks. The agent supplies the ancestry. `faff audit` can replay the recorded input and verdict, but a fabricated chain can still pass.
+- **Outward / new-root creation.** Beep-boop and autonomous tidy use `faff discovered-scope-plan` with fresh tracker ancestry for the mandate (beep-boop, **Containment at the filing chokepoint**). Pass `--record <run-id>` in a run so both checks can be replayed. Surface `outward-new-root` for human creation, including fast-track requests. Only an `outward-self-intake` filing proposal permits same-team/repo Backlog self-intake under committed `containment.self_hosting_intake: true` (default off). Cross-team/repo work goes to the human. Audit replays the supplied ancestry. Its accuracy depends on the caller.
 - **Review runs and gates.** `full` does not skip or weaken the review. If it fails, the pipeline iterates or parks — never overrides.
 - **Spec quality.** Front-loaded prep still aims for `confidence: high`. `full` resolves more aggressively past the spec gate but doesn't lower the bar for what constitutes a good spec.
 
@@ -112,14 +106,14 @@ At L4 (`full`), validate the `faff-contract:l4-topology-envelope` block against 
 
 **Calibration.** Record high-appetite decisions in `.faff/calibration/appetite-decisions/<issue-id>.md`, using the existing calibration-log shape. If `appetite: high` raises wrong-inference or post-merge-revert rates, the next `/faff-tidy` calibration-signal pass surfaces the pattern and recommends `medium` for affected work areas. Humans review run-wide decisions rather than approve each inline.
 
-**Switching appetite.** Set `appetite:` in `.faff/config.yaml` (a top-level key); takes effect on the next faff invocation. No per-issue overrides — global per project. To force escalation on a single decision regardless of appetite, use the existing Punt mechanism in the spec; explicit Punts are non-negotiable. **Level-scoped:** appetite is level-scoped, not a single global dial — at **L4** (a live `faff lights-out` run) it resolves to `full` unconditionally through the single resolution channel (`faff config get appetite`, backed by `resolveAppetite`: env `FAFF_APPETITE` → the active-L4 run's ledger, live only → config `appetite` → the baked default); config `appetite` stays authoritative for L1–L3, and the hard floor below is unaffected — `full` at L4 still means maximum agency within the floor, not "no floor."
+**Switching appetite.** Read the effective level with `faff config get appetite`. A valid `FAFF_APPETITE` takes precedence. Otherwise a live L4 run supplies `full`, then project config or its default applies. Project changes take effect next invocation with no per-issue override. For a single decision, use an explicit Punt to flag escalation. The hard floor applies at every level.
 
 
 ### Resolve-attempt before park
 
 Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` verdicts (see **Automation-routing verdict (fixed)**), autonomous mode runs a **resolve-attempt**: a bounded inference step that tries to derive the answer from local context (codebase, spec surroundings, prior commits, related tracker comments). `repeat-parked` does **not** get one — the pattern itself signals that a human needs to act.
 
-**Decisions-register consult (`needs-decision-first` only — first move, before the table).** Extract the Punt topic and run `faff decisions match --punt "<topic>"` for a deterministic lookup against committed, human-authored `docs/decisions.md` (absent file → clean no-match, never an error). One confident match cites human-ratified precedent: implement its `chosen` value, write the register-hit audit comment below, and skip the table. This governance-doc lookup does **not** consume the file-read budget. No match or an ambiguous multi-match (two or more equal matches) falls through to bounded inference. Autonomous mode only **consumes** the register, never writes it (faff-prep owns capture).
+**Decisions register (first, only for `needs-decision-first`).** Run `faff decisions match --punt "<topic>" --json`. A hit supplies the human precedent's `id`, `chosen` and `rationale`. Apply it, post the register citation below and skip inference. On `{"match":null}` (including a missing register or ambiguous match) use the table. Surface an unreadable register as an error. This lookup costs no file-read allowance. Prep owns capture. Autonomous mode only reads the register.
 
 **Per-verdict resolve rules:**
 
@@ -131,15 +125,13 @@ Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` v
 
 **Boundedness + appetite.** The attempt reads at most **3 files outside the spec's named scope** at `medium` appetite, **5** at `high` (default); beyond the budget, treat as park. At `high` each row's "Proceed if" widens — a single *defensible* answer suffices where `medium` needs a single *clear* one (architectural calls still escalate); at `low`, resolve-attempt does not run at all — every flagged verdict parks.
 
-**Audit trail.** A proceeding resolve-attempt **always writes a tracker comment** in this format:
+**Audit trail.** Every proceeding attempt posts a tracker comment with the Punt, evidence, choice and closing invitation:
 
-> _Faff autonomous resolve-attempt:_ The spec flagged this as `Punt: cron vs queue-driven send` but the codebase uses cron in every other scheduled-job site (`src/jobs/*`). Proceeding with cron. **If this is wrong, comment on this PR before merge and faff will re-park.**
+> _Faff autonomous resolve-attempt:_ Punt: <topic>. <specific local evidence>. Proceeding with <choice>. **If this is wrong, comment on this PR before merge and faff will re-park.**
 
-A register-driven proceed writes the citation variant instead — naming the matched entry + chosen value rather than narrating an inference:
+For a register hit, use _Faff autonomous resolve-attempt (decisions register):_ and cite the entry ID, `Chosen: <chosen>` and its rationale as evidence.
 
-> _Faff autonomous resolve-attempt (decisions register):_ The spec flagged this as `Punt: pino vs winston`. The committed decisions register entry `logging-library` records `Chosen: pino` (Rationale: pino is the house structured-JSON logger). Proceeding per that human-ratified precedent. **If this is wrong, comment on this PR before merge and faff will re-park.**
-
-The PR can be flipped back to draft if the call was wrong; the merge-confidence gate is the backstop. **Scope:** resolve-attempt bypasses no safety boundary: side-effects-outside-PR-flow and destructive operations still park unconditionally. It applies only to the three verdicts above. Register consult adds no verdict and pre-empts only the **first** park; `repeat-parked` still gets no resolve-attempt.
+The PR may return to draft on correction. Apply the merge-confidence gate. Destructive operations and side effects outside PR flow still park. A register hit resolves only the first park. `repeat-parked` goes to a human.
 
 ### Control-label provisioning — `faff label` (the mechanical op)
 

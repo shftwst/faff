@@ -74,7 +74,7 @@ const REPORTED = " _(reported)_";
 // --- The facts file (§3). format 2; every field optional. ---
 const FACTS_TOP_KEYS = ["format", "tracker", "run"];
 const FACTS_TRACKER_KEYS = ["titles", "sibling_end_states", "superseded_delivered", "supersession_ticket_states"];
-const FACTS_RUN_KEYS = ["gloss", "methodology_findings", "verdicts", "resolve_attempts", "park_records", "reasons", "inferred_deps", "discovered_scope", "follow_ups", "prep_summary", "tidy_log", "waves"];
+const FACTS_RUN_KEYS = ["gloss", "methodology_findings", "verdicts", "resolve_attempts", "park_records", "reasons", "inferred_deps", "discovered_scope", "follow_ups", "prep_summary", "tidy_log", "waves", "claimed_by_peer"];
 function readFacts(factsPath) {
     if (factsPath === null)
         return { facts: {}, note: "⚠ could not read facts: no facts file given", unknownKeys: [] };
@@ -411,6 +411,32 @@ function renderRunSummary(input, deps) {
     L.push(`- fire-and-forget: ${ff === undefined ? "?" : String(ff)}${REPORTED}`);
     L.push(`- likely-fire: ${lf === undefined ? "?" : String(lf)}${REPORTED}`);
     L.push(`(admitted: ${Array.isArray(admitted) ? admitted.length : 0} total)`);
+    const declined = field(ledger, "declined");
+    const outcomeById = field(ledger, "outcomes");
+    const recordedPeers = keysOf(declined).filter((id) => field(field(declined, id), "reason") === "claimed-by-peer");
+    const reportedPeers = field(run, "claimed_by_peer");
+    const peerIds = new Set([...idsWith("claimed-by-peer"), ...recordedPeers,
+        ...(isStringArray(reportedPeers) ? reportedPeers : [])]);
+    const peers = [...peerIds].filter((id) => {
+        if (!id.trim())
+            return false;
+        const outcome = field(outcomeById, id);
+        if (outcome !== undefined)
+            return outcome === "claimed-by-peer";
+        if (arr(admitted).includes(id))
+            return false;
+        const decline = field(declined, id);
+        return decline === undefined || field(decline, "reason") === "claimed-by-peer";
+    }).sort();
+    if (peers.length) {
+        L.push("");
+        L.push(`## Claimed by peer: ${peers.length}`);
+        for (const id of peers) {
+            const title = titleOf(id);
+            const fromFacts = field(declined, id) === undefined && field(outcomeById, id) === undefined;
+            L.push(label(`- ${factText(id)}${title.text}`, title.reported || fromFacts));
+        }
+    }
     // A7: routed out, by class.
     const routedOut = field(verdicts, "routed_out");
     const routedClasses = keysOf(routedOut).filter((k) => arr(field(routedOut, k)).length > 0);

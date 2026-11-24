@@ -705,3 +705,39 @@ test("a bounded graft handoff returns partial progress without verifying or clas
   assert.equal(r.json().action, undefined);
   assert.equal(r.json().spec, undefined);
 });
+
+test("spec verify --criteria classifies only bytes that matched both HEAD and the worktree", () => {
+  const f = fixture();
+  const { path } = commit(f).json();
+  const args = ["spec", "verify", "--issue", "EX-3", "--worktree", f.wt, "--spec", f.specFile, "--criteria"];
+  const expected = cli(["dod", "classify", "--issue", "EX-3", "--spec", join(f.wt, path), "--json"]).json().criteria;
+  const matched = cli(args);
+  assert.equal(matched.status, 0, matched.stderr);
+  assert.deepEqual(matched.json(), { ...verify(f).json(), criteria: expected.filter(row => row.source === "done") });
+  assert.doesNotMatch(matched.stdout, /withheld scenario/);
+  assert.equal(commit(f, { extra: ["--criteria"] }).status, 2);
+
+  writeFileSync(join(f.wt, path), "changed");
+  const changed = cli([...args, "--run-dir", f.rd]);
+  assert.equal(changed.status, 1);
+  assert.deepEqual(changed.json(), verify(f).json());
+  const missing = cli(["spec", "verify", "--issue", "EX-3", "--worktree", f.wt, "--spec", join(f.root, "absent"), "--criteria"]);
+  assert.equal(missing.status, 2);
+  assert.equal(missing.json().criteria, undefined);
+});
+
+test("the same graft command resumes an incomplete ladder and returns verified DONE criteria", () => {
+  const f = fixture({ config: "gates:\n  run_budget_secs: 3\n" });
+  commit(f);
+  writeFileSync(join(f.wt, "package.json"), JSON.stringify({ scripts: { lint: "sleep 2", test: "sleep 2" } }));
+  const first = verifyBuild(f);
+  assert.equal(first.status, 3, first.stderr);
+  assert.equal(first.json().units_done, 1);
+  assert.equal(first.json().spec, undefined);
+  const second = verifyBuild(f);
+  assert.equal(second.status, 0, second.stdout + second.stderr);
+  assert.equal(second.json().gate.resumed.calls, 2);
+  assert.equal(second.json().gate.resumed.discarded, undefined);
+  assert.equal(second.json().action, "verify-criteria");
+  assert.deepEqual(second.json().spec.criteria.map(row => row.ac_id), ["ex-3#done:1", "ex-3#done:2"]);
+});

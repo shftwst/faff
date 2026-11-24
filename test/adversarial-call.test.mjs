@@ -2271,7 +2271,7 @@ test("FAFF-882 code-review command contract: --context is the touched files, nev
   // Non-empty guard: both the --context positive and the negative below pass vacuously on "", so a
   // renamed heading would turn this test green for the wrong reason without this assertion.
   assert.ok(section.length > 0, "LLM provider integration section not found — heading renamed?");
-  assert.match(section, /--system\s+<review-lens-file>/);
+  assert.match(section, /review-spawn\.mjs" code-review --base/);
   assert.match(section, /--diff\s+<git-diff-file>/);
   assert.match(section, /--context\s+<each file the diff touches>/);
   assert.doesNotMatch(section, /--context\s+plugin\/skills\/faff\/SKILL\.md/);

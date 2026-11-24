@@ -79,6 +79,7 @@ const GATE_FAMILY_PATTERNS = [
   // foreground run for that rare shape; never lets an actual `node .../review-call.mjs` invocation
   // through backgrounded — the failure mode this fence exists for.
   /(^|[^\w])node\b[^\n]*review-call\.mjs\b/,
+  /(^|[^\w])node\b[^\n]*review-spawn\.mjs["']?\s+code-review\b/,
   // faff adversarial-backends — the FAFF-465 backend-assembly companion invoked immediately before the
   // review call. Requires a `faff`-referencing token immediately before "adversarial-backends" (mirrors
   // the "faff gates run" anchor above — an un-anchored bare-word match risks colliding with an unrelated

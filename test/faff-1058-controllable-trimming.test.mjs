@@ -15,7 +15,7 @@ import { readFileSync, writeFileSync, mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+import { codeReviewOptions } from "../plugin/skills/faffter-dark-adversarial-review/code-review.mjs";
 import {
   trimContextFiles, assembleUserMessage, estimateTokens, main, EXIT,
   PRIMARY_SKIP_SIGNAL, DEFAULT_WINDOW_SAFETY,
@@ -220,30 +220,12 @@ test("FAFF-1058: --no-trim with every backend over-window fails closed at exit 2
 });
 
 // ============================================================================================
-// D2 dispatch semantics, the SKILL.md shell toggle: only the literal "false" turns trimming off.
-// ============================================================================================
-
-test("FAFF-1058: a non-boolean adversarial.code_review.trim value leaves trimming on (shell semantics)", () => {
-  // Replicates the SKILL.md code-review dispatch's toggle logic exactly:
-  //   [ -z "$trim" ] && trim=true; no_trim_flag=""; [ "$trim" = "false" ] && no_trim_flag="--no-trim"
-  const script = `
-for trim in "yes" "0" "FALSE" "true" "" "false"; do
-  t="$trim"
-  [ -z "$t" ] && t=true
-  no_trim_flag=""
-  [ "$t" = "false" ] && no_trim_flag="--no-trim"
-  echo "[$trim]=>[$no_trim_flag]"
-done
-`;
-  const r = spawnSync("bash", ["-c", script], { encoding: "utf8" });
-  assert.equal(r.status, 0, r.stderr);
-  const lines = r.stdout.trim().split("\n");
-  assert.deepEqual(lines, [
-    "[yes]=>[]",
-    "[0]=>[]",
-    "[FALSE]=>[]",
-    "[true]=>[]",
-    "[]=>[]",
-    "[false]=>[--no-trim]",
-  ], "only the literal lowercase 'false' passes --no-trim; every other value (and unset) stays on");
+// Only an explicit code-review override disables trimming.
+test("FAFF-1058: a non-boolean trim value leaves trimming on", () => {
+  for (const trim of ["yes", "0", "FALSE", "true", "", undefined]) {
+    assert.equal(codeReviewOptions({ adversarial: { trim: false, code_review: { trim } } }).noTrim, false);
+  }
+  for (const trim of [false, "false"]) {
+    assert.equal(codeReviewOptions({ adversarial: { code_review: { trim } } }).noTrim, true);
+  }
 });

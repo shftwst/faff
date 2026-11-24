@@ -900,7 +900,8 @@ test("FAFF-669 instructionFor mirrors buildEvalPrompt's verdict-revert branch", 
 // both checks in a row. `end` is the paired `*_END` const name, or `null` for the sole
 // extractSectionToEnd loader (loadAdrDriftProse — no end anchor to guard). `endCount` is the expected
 // number of times `end`'s value occurs in the after-start window; omitted rows default to 1.
-const DRIVER_SRC = readFileSync(new URL("cli-driver.mjs", EVAL_DIR), "utf8");
+const DRIVER_SRC = readFileSync(new URL("cli-driver.mjs", EVAL_DIR), "utf8") + "\n" +
+  readFileSync(join(DEFAULT_PLUGIN_DIR, "skills/faffter-dark-adversarial-review/code-review.mjs"), "utf8");
 const ANCHOR_REGISTRY = {
   TIDY_RUBRIC_START: { skill: "faff-tidy", end: "TIDY_RUBRIC_END" },
   SYNTH_GLOSS_START: { skill: "faffidavit-rendering", end: "SYNTH_GLOSS_END" },

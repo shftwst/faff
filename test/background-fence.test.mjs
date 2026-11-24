@@ -46,6 +46,14 @@ test("the bundled graft verification runs only in the foreground", () => {
   assert.equal(runHook({ tool_name: "Bash", tool_input: { command } }).code, 0);
 });
 
+test("the code-review wrapper runs only in the foreground", () => {
+  const command = 'node "${CLAUDE_PLUGIN_ROOT}/skills/faffter-dark-adversarial-review/review-spawn.mjs" code-review --base origin/main --diff file';
+  for (const tool_name of ["Bash", "Monitor"]) {
+    assert.equal(runHook({ tool_name, tool_input: { command, run_in_background: true } }).code, 2);
+  }
+  assert.equal(runHook({ tool_name: "Bash", tool_input: { command } }).code, 0);
+});
+
 test("denies npm test / npx vitest / pytest / cargo test / go test, backgrounded", () => {
   for (const command of ["npm test", "npx vitest run", "pytest -x", "cargo test", "go test ./..."]) {
     const r = runHook({ tool_name: "Bash", tool_input: { command, run_in_background: true } });

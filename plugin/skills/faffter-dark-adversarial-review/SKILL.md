@@ -86,10 +86,10 @@ The helpers own transport, preflight, retries, streaming, context-window checks,
 
 ### Backend call
 
-Run the installed wrapper in the foreground from the review worktree. Use graft's fetched diff base, or the same fetched default base for standalone review.
+Run the wrapper from this skill's resolved installation directory (`$review_skill_dir`), in the foreground with the review worktree as the current directory. Use graft's fetched diff base, or the same fetched default base for standalone review.
 
 ```bash
-node "${CLAUDE_PLUGIN_ROOT:-$HOME/.claude}/skills/faffter-dark-adversarial-review/review-spawn.mjs" code-review --base "$remote_base" --diff <git-diff-file> --context <each file the diff touches>
+node "$review_skill_dir/review-spawn.mjs" code-review --base "$remote_base" --diff <git-diff-file> --context <each file the diff touches>
 ```
 
 Forward `--run-dir "$run_dir"` whenever supplied at L3 or L4. Include any forwarded builder-facing spec and Phase-1 context with `--review-context FILE`, and round 2 onward's verbatim prior block with `--prior-file FILE`. The wrapper appends these as data to the installed brief, resolves the code-review chain and budgets, and passes fixture prefixes from the committed base. Failed prefix resolution continues uncapped and marks the findings. The helper derives mandatory status from the ledger. Unset (exit 3) or malformed configuration (exit 2) returns `needs-human` before provider dispatch.

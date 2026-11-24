@@ -107,6 +107,16 @@ test("dispatch resolve returns a settable effort for all eight lanes", () => {
   }
 });
 
+test("dispatch resolve accepts an explicit JSON format and preserves lane validation", () => {
+  withConfig("dispatch:\n  build:\n    model: haiku\n    effort: medium\n", (dir) => {
+    for (const args of [["build", "--tier", "small", "--confidence", "high"], ["spec"], ["spec", "--tier", "small"]]) {
+      const original = cli(dir, "dispatch", "resolve", ...args);
+      assert.deepEqual(cli(dir, "dispatch", "resolve", ...args, "--json"), original);
+    }
+    assert.equal(cli(dir, "dispatch", "resolve", "build", "--jsno").code, 2);
+  });
+});
+
 test("dispatch resolve refuses --tier/--confidence off the build lane, eval and unknown lanes (exit 2)", () => {
   withConfig(undefined, (dir) => {
     for (const args of [["spec", "--tier", "complex"], ["adr", "--confidence", "high"], ["eval"], ["bogus"], []]) {

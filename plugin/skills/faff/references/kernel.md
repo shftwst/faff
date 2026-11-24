@@ -97,22 +97,16 @@ Spec, review, gates and ship (including custom producers or fused wrappers) emit
 
 ### Model & effort selection (`dispatch:` — per-lane)
 
-Slots choose occupants. Model selection needs a capable transport: an Agent subagent, an out-of-session helper such as `review-call.mjs`, a spawned `claude -p` or a direct engine. Inline Skill calls inherit the session model.
+Use the model and effort returned by the producer or build handoff, or by `faff dispatch resolve <lane>`, per **Dispatch rule**. Only high/medium confidence routes to build. Supply known build tier and confidence and let the CLI apply defaults. It validates the whole dispatch tree. On exit 2 report its diagnostic and stop.
 
-| Setting | Consumer |
+| Lane | Where selection applies |
 |---|---|
-| `dispatch.build` | Concurrency's `dispatch prepare-build` or graft Step 7's `dispatch resolve build`. |
-| `dispatch.prep_explore` | Prep exploration and clean-context verification. |
-| `dispatch.spec`, `spec_review`, `methodology`, `intake`, `architecture`, `adr` | Interactive producers in prep/jot/graft and tidy/plot/map/wtf. ADR runs at graft Step 4b. Only methodology/intake can use `engine:<name>` from `engines` via `engine call`. |
-| `eval.model`, `eval.effort` | Independent eval settings. Pin the driver's `claude -p` to `claude-sonnet-4-6` by default, override via `run-evals --model`. Record resolved model in output and baseline metadata. Never inherit account defaults for bulk eval. |
+| `build` | Concurrency’s build handoff or top-level graft Step 7. |
+| `prep_explore` | Prep exploration and clean-context verification. |
+| `spec`, `spec_review`, `methodology`, `intake`, `architecture`, `adr` | Producer dispatch, including ADR at graft Step 4b. Only methodology and intake support `engine:<name>`. |
+| Eval | Independent `eval.model` / `eval.effort`. Pin the driver’s `claude -p` to `claude-sonnet-4-6` by default, override via `run-evals --model`. Record the resolved model in results and baseline metadata. |
 
-Inline graft review/ship and beep-boop's direct methodology `build-queue`/`pick-ordering` stay session-pinned. Each dispatch command validates the whole tree. Unset model/effort inherit.
-
-- Build model precedence: `by_tier.<tier>`, `by_tier.default`, `by_confidence.<conf>`, `by_confidence.default`, `dispatch.build.model`, `inherit`. Without a known tier skip both tier steps. Only high/medium confidence route to build. Missing/unknown confidence uses its default.
-- Build effort precedence: `by_tier.<tier>`, `by_tier.default`, `dispatch.build.effort`, `inherit`. Even without a known tier, the tier default can apply. Confidence never selects effort.
-- Model tokens: `sonnet`, `opus`, `haiku`, `fable`, `inherit` or a permitted engine reference. Effort tokens: `inherit`, `low`, `medium`, `high`, `xhigh`, `max`. Invalid tokens anywhere, unknown lanes/fields or legacy top-level `models`/`effort` fail with exit 2 and the correct dispatch key.
-- Reject unknown engine names, missing required provider/model/host, Anthropic providers and disallowed lanes. Report unreachable or mis-served engines by name. No fallback chain or silent session fallback.
-- `engine call` applies effort or refuses unsupported effort. Agent has no effort parameter: record non-inherited effort as unapplied per **Dispatch rule**. `config resolved` exposes configured dispatch values. Adversarial backends (including judge tuning) and eval settings resolve independently.
+Inline Skill calls inherit the session model, including graft review/ship and beep-boop’s direct methodology `build-queue`/`pick-ordering`. The **Dispatch rule** covers Agent model selection, logging unapplied effort, engine failure and unsupported effort. Report an unreachable or mis-served engine by name and stop. Adversarial backends and judge tuning resolve independently. Inspect configured dispatch values with `faff config resolved`.
 
 ## Agent Lanes
 

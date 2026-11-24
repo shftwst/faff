@@ -366,7 +366,8 @@ per-subcommand flags and behavior.
 `;
 
 function main(argv) {
-  const [sub, ...rest] = argv;
+  const [command, ...rest] = argv;
+  const sub = command === "--version" ? "version" : command;
   if (!sub) { process.stderr.write(USAGE); return 2; }
   if (sub === "-h" || sub === "--help" || sub === "help") { process.stdout.write(USAGE); return 0; }
   const handler = COMMANDS[sub];

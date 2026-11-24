@@ -263,16 +263,22 @@ function resolveBranch(args: EnsureArgs, deps: Deps, warnings: string[]): string
     warnings.push(`conventions get branch_naming failed (exit ${String(get.status)}); using issue-slug`);
     scheme = "issue-slug";
   }
-  const issueSlug = `${args.issue}-${args.slug}`;
+  return selectIssueBranch(args.issue, args.slug, args.trackerBranch, scheme,
+    (name) => deps.git(["check-ref-format", "--branch", name], args.root).status === 0, warnings);
+}
+
+function selectIssueBranch(issue: string, slug: string, trackerBranch: string | null, scheme: string,
+                           validRef: (name: string) => boolean, warnings: string[]): string {
+  const issueSlug = `${issue}-${slug}`;
   let branch = issueSlug;
   if (scheme === "slash-scoped") branch = `feature/${issueSlug}`;
-  else if (scheme === "tracker-hint" && args.trackerBranch !== null) {
-    const hint = args.trackerBranch;
-    const valid = deps.git(["check-ref-format", "--branch", hint], args.root).status === 0;
-    if (valid && worktreePrune.tokenMatch(hint, args.issue)) branch = hint;
+  else if (scheme === "tracker-hint" && trackerBranch !== null) {
+    const hint = trackerBranch;
+    const valid = validRef(hint);
+    if (valid && worktreePrune.tokenMatch(hint, issue)) branch = hint;
     else warnings.push(`tracker branch hint ${JSON.stringify(hint)} ${valid ? "does not carry the issue id" : "is not a valid branch name"}; using ${issueSlug}`);
   }
-  if (deps.git(["check-ref-format", "--branch", branch], args.root).status !== 0) {
+  if (!validRef(branch)) {
     throw new EnsureUsageError(`branch name ${JSON.stringify(branch)} fails git check-ref-format --branch`);
   }
   return branch;
@@ -812,4 +818,4 @@ function cmdWorktree(args: string[]): number {
   return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: ensure or checkpoint" }], `${ENSURE_USAGE}\n${CHECKPOINT_USAGE}`);
 }
 
-module.exports = { cmdWorktree, cmdWorktreeEnsure, cmdWorktreeCheckpoint, ensure, realDeps, provisionerPath, ENSURE_USAGE, GRAFT_SKILL_DIR };
+module.exports = { selectIssueBranch, cmdWorktree, cmdWorktreeEnsure, cmdWorktreeCheckpoint, ensure, realDeps, provisionerPath, ENSURE_USAGE, GRAFT_SKILL_DIR };

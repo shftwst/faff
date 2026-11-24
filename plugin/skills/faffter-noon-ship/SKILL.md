@@ -28,17 +28,11 @@ The gateway's fixed delivery-outcome contract governs **every** `ship` producer:
 
 The default delivers by merging, nothing more:
 
-1. **Delivery-precondition check (ship-time backstop).** Immediately before merge, re-run a cheap **read-only** probe of its mechanical preconditions. Graft probes them pre-build; recheck conditions that changed during the build or needed the real diff:
-   - **push** — can we push to the remote for this branch? (`git push --dry-run`)
-   - **token-scope** — if the diff touches `.github/workflows/*`, does the token carry the `workflow` scope? (`gh auth status`)
-   - **merge-method** — is the intended merge method (squash) enabled on the repo? (`gh api repos/{owner}/{repo}` merge flags)
+1. **Delivery-precondition check (ship-time backstop).** From the feature checkout run `faff pr preflight --branch "$branch"` for the PR head branch. It rechecks push / merge-method immediately before merge. Correct usage errors (exit 2) and retry. On `git-only` skip to step 2. On `clear` or `indeterminate`, check the real diff:
+   - **token-scope** — if it touches `.github/workflows/*`, does the token carry the required workflow permission? (`gh auth status`)
    - **actions-policy** — does the change rely on something org/repo Actions policy forbids (e.g. an Actions-created PR)?
 
-   On a block, report `not-ready:precondition:<kind> — <detail>; remedy: <remedy>` and append one `faff-contract:delivery-outcome` fence with `{"outcome":"not-ready","reason":"<reported reason>","corroborated":false}`. Stop: **do not attempt the merge**. This is the default's **only** deferral path; its deploy-readiness tier remains a no-op pass with no deploy environment. Surface the specific mechanical blocker and one-time remedy.
-
-   An *indeterminate* probe (network/`gh` outage) is **not** a confirmed block — proceed to the merge attempt instead; a genuine outage there maps to the failure outcome, never a phantom success.
-
-   **Git-only mode (no pushable remote, the same detection graft's Step 10 already made):** every probe in this step is remote/token/forge-shaped, so all four are **no-ops** — there is no remote to be not-ready against. The default never emits `not-ready:precondition:*` in this mode; proceed straight to step 2.
+   On exit 1 (`blocked`) use its `cause`; for a confirmed diff-triggered block form `not-ready:precondition:<kind> — <detail>; remedy: <remedy>`. Report the reason and emit one `faff-contract:delivery-outcome` fence with `{"outcome":"not-ready","reason":"<reported reason>","corroborated":false}`. Stop before merge. If a probe is indeterminate (e.g. a network outage), proceed to the merge attempt; an outage there yields failure.
 2. **Readiness (no-op pass).** The default has no deploy environment to gate on, so its deploy-readiness tier always passes. (This is the tier that exists *for* producers with real deploy preconditions: deploy window, env health, migration ordering, flag state — distinct from the mechanical delivery preconditions in step 1.)
 3. **Merge — through `faff merge-gate`, never a raw `gh pr merge`.** The **sole sanctioned merge path** is the mechanical interlock: `faff merge-gate --pr <n> --issue <ID> --run-dir <dir> --level <level> --execute --merge-args "--squash --delete-branch" --json` (graft passes `pr`/`issue`/`run-dir`/`level`, one of the four autonomy levels). merge-gate re-verifies the integrity floor from the persisted artifacts + observes CI itself on the PR head sha, and runs `gh pr merge` **only** on `merge-ok` — so the default producer no longer calls `gh pr merge` directly. Squash keeps one-PR-per-issue history linear; `--delete-branch` removes the *remote* branch only. A different merge method is a `--merge-args` swap within the closed allowlist (`--merge`/`--rebase`/…). exit 0 = `merge-ok` (merged), 1 = `refuse` (floor not met at merge time — e.g. CI went red, stale head sha), 2 = fail-loud.
 

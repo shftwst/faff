@@ -1933,6 +1933,7 @@ export function parseArgs(argv) {
     else if (k === "--system") a.system = argv[++i];
     else if (k === "--diff") a.diff = argv[++i];
     else if (k === "--context") a.context.push(argv[++i]);
+    else if (k === "--fixture-paths-unavailable") a.fixturePathsUnavailable = true;
     else if (k === "--fixture-path") { const prefix = normaliseFixturePrefix(argv[++i] ?? ""); if (prefix) a.fixturePaths.push(prefix); }   // repeatable; enables the fixture-data severity cap (findings mode only)
     else if (k === "--max-tokens") a.numPredict = Number(argv[++i]);
     else if (k === "--timeout") a.timeoutMs = Number(argv[++i]) * 1000;
@@ -2808,6 +2809,11 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
       const notice = `NOTE: primary reviewer ${res.primarySkipped.primary} was skipped; served by chain[${res.primarySkipped.servedIndex}] — ${res.primarySkipped.reason}.`;
       if (hdr === -1) lines.unshift(notice, "");
       else lines.splice(hdr + 1, 0, "", notice);
+      finalContent = lines.join("\n");
+    }
+    if (a.fixturePathsUnavailable) {
+      const lines = finalContent.split("\n");
+      lines.splice(findHeaderLineIdx(lines) + 1, 0, "fixture paths unavailable");
       finalContent = lines.join("\n");
     }
     process.stdout.write((finalContent || "").trim() + "\n");

@@ -88,10 +88,10 @@ const COMMIT_SPEC = {
   },
 };
 const VERIFY_SPEC = {
-  flags: { "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--worktree": { arity: 1 }, "--run-dir": { arity: 1 }, "--json": { arity: 0 } },
+  flags: { "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--worktree": { arity: 1 }, "--run-dir": { arity: 1 }, "--criteria": { arity: 0 }, "--json": { arity: 0 } },
 };
 const COMMIT_USAGE = "usage: faff spec commit --issue ID --title TEXT --spec FILE --worktree DIR --run-dir DIR [--prep-root DIR] [--json]";
-const VERIFY_USAGE = "usage: faff spec verify --issue ID --spec FILE --worktree DIR [--run-dir DIR] [--json]";
+const VERIFY_USAGE = "usage: faff spec verify --issue ID --spec FILE --worktree DIR [--run-dir DIR] [--criteria] [--json]";
 const SPEC_USAGE = `${COMMIT_USAGE}\n       ${VERIFY_USAGE}\n       faff spec --selftest`;
 
 // ---------------------------------------------------------------------------
@@ -367,9 +367,9 @@ function cmdSpec(args: string[], deps?: SpecDeps): number {
   const d = deps || defaultDeps();
   const base = { issue, specPath: values["--spec"], worktree: values["--worktree"], runDir: values["--run-dir"] || null };
   let res;
-  try { res = isCommit ? runSpecCommit({ ...base, title, prepRoot: values["--prep-root"] || null }, d) : runSpecVerify(base, d); } catch (e) { res = errored(issue, `unexpected: ${e && get(e, "message") ? get(e, "message") : e}`); }
+  try { res = isCommit ? runSpecCommit({ ...base, title, prepRoot: values["--prep-root"] || null }, d) : runSpecVerify({ ...base, includeCriteria: !!values["--criteria"] }, d); } catch (e) { res = errored(issue, `unexpected: ${e && get(e, "message") ? get(e, "message") : e}`); }
   for (const w of res.warnings || []) console.error(`spec ${verb} ${issue}: warning: ${w}`);
-  emit(res, !!values["--json"], verb);
+  emit(res, !!(values["--json"] || values["--criteria"]), verb);
   if (res.token === "errored") return 2;
   return res.token === "mismatch" ? 1 : 0;
 }

@@ -66,6 +66,21 @@ test("scenario: a shipped id flagged by both annotations renders only under post
   assert.ok(!inSection("Shipped (adversarial review skipped"));
 });
 
+test("peer claims render once, outside admissions, with unrecorded observations labelled", () => {
+  const fx = buildRun({
+    admitted: ["ADMITTED"],
+    outcomes: { LEGACY: "claimed-by-peer", MOVED: "routed-out", ADMITTED: "parked" },
+    ledger: { declined: { PEER: { reason: "claimed-by-peer" }, MOVED: { reason: "claimed-by-peer" }, OTHER: { reason: "routed-out" } } },
+  });
+  const out = render(fx, F({ claimed_by_peer: ["PEER", "LEGACY", "REPORTED", "REPORTED", "ADMITTED", "MOVED", "OTHER"] }));
+  assert.deepEqual(out.split("## Claimed by peer: 3\n")[1].split("\n\n")[0].split("\n"), [
+    "- LEGACY", "- PEER", "- REPORTED _(reported)_",
+  ]);
+  assert.match(out, /\(admitted: 3 total\)/);
+  assert.match(out, /## Parked: 1/);
+  assert.doesNotMatch(render(buildRun({}), F()), /## Claimed by peer/);
+});
+
 test("scenario: superseded cites the delivering ids", () => {
   const fx = buildRun({ admitted: ["Y"], outcomes: { Y: "superseded" }, files: { "Y/supersession.json": { issue: "Y", superseded_by: ["W"] } } });
   const out = render(fx, F());

@@ -62,7 +62,7 @@
     "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
     "bin/lib/run-open.ts": "ce538c68a6de316a5d5372c8fe9ec52ea6a25802cbcca2a0e06810569ae0a337",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
-    "bin/lib/run-summary.ts": "44da1368fd3120e0781245fa80a5913b758b4d11bbb0445db5926a2392fe70d2",
+    "bin/lib/run-summary.ts": "0174f139c548ee4409d917a00a6d1983465864a518cea47f789559542af5cc66",
     "bin/lib/run-trigger.ts": "d7810195ea6ed69e075295988d1270943b6c49679f1f0ef121e8105e4c3c4b74",
     "bin/lib/run-wave-consult.ts": "064a7466a9a3122de476d2c2853f97321c72bd5f2236db9be6d7743685864436",
     "bin/lib/run-wave-mode.ts": "9df58361c9c5421eac5a042f0b0b7fb32b6659bc48c03443ed8e25d76c587a57",
@@ -128,7 +128,7 @@
     "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
     "bin/lib/run-open.js": "68f9978aadb0cbaad1887be23443e2667ed1678b12c4403e9cd518c5686a553c",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
-    "bin/lib/run-summary.js": "7aecd152564efaeb618eb4ea075462f940f65aab0554da2281f08fc911a186c0",
+    "bin/lib/run-summary.js": "bcfa5af1d571385ecbf0f075fcebb8e750b78df36ecd2dc1e0d680f41574bdc7",
     "bin/lib/run-trigger.js": "192f5952f1615633edad3dd934d6f4ea4782482ffc96ed3784395070afcfa7b6",
     "bin/lib/run-wave-consult.js": "b247fb77dc668c4b3dfdccbd43e19d914c4e8cec31f75794eef8782d70053862",
     "bin/lib/run-wave-mode.js": "bf89b7015f4cbfc3a4288a4ff3a6d3a6b7d8d942f5bd2988320365e6f07bee23",
@@ -144,5 +144,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "6df0799c8e47a9f9df0247171998110044ab0dc1e4a17e4f963d6d9fbaf21b2c"
   },
-  "output_digest": "a5e7c36998bdb456ca998832ebf40c50956da2ff5f1b392231aeb9f3de8fe0c8"
+  "output_digest": "99305c675e878e405ce5f2e54e77a8c089d4949e0235e1fa21a7fe9c478025f4"
 }

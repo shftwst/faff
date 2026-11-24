@@ -511,7 +511,7 @@ Every touched issue has exactly one outcome bucket. The command renders these sp
 - **Errored**
 - **Routed out (not built):** passed spec-gating but verdict was neither `fire-and-forget` nor `likely-fire`; never entered the build pass.
 - **Unreached (budget hit):** only when a set budget dimension (`until` / `max_attempts` / `tokens` / `cost`) breached with build-ready work undispatched. On tokens/cost breaches surface `tokens_source` (`transcript` / `estimate`) to distinguish metered and estimated figures. See `## Budget flags`.
-- **Claimed by peer** — a peer orchestrator holds it (built by another live run); **not** a deferral and **not** a park, and it never entered this run's `admitted` array, so it does not affect `runcheck`.
+- **Claimed by peer:** a live peer holds the issue outside this run's admissions, parks and budget deferrals. If recording the decline failed, pass the observed ID in `run.claimed_by_peer`.
 
 Never invent an outcome bucket that disguises a capacity park. Banned bucket headings: "Deferred", "Queued for next run", "Saved for later", "Not dispatched this conversation", "Build queue ready for next pass". Informational sections (Discovered scope, Resolve-attempts, Inferred build-order deps, Human follow-ups) remain allowed; they do not re-home outcomes.
 

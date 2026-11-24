@@ -174,6 +174,22 @@ test("review, worktree checkpoint, and worktree ensure share one remote-based di
   }
 });
 
+test("a diff with no merge base stops before producing a review handoff", () => {
+  const fx = setupFixture("trunk");
+  try {
+    git(fx.work, "checkout", "-q", "--orphan", "unrelated");
+    commitFile(fx.work, "unrelated.txt", "different history", "unrelated root");
+    const res = spawnSync("bash", ["-c", REVIEW_BLOCK + '\nprintf "handoff %s\\n" "$cur_hash"'], { cwd: fx.work, encoding: "utf8", env: {
+      ...process.env, graft_skill_dir: GRAFT_SKILL_DIR, diff_file: path.join(fx.parent, "review.diff"),
+      GIT_TERMINAL_PROMPT: "0",
+    } });
+    assert.notEqual(res.status, 0);
+    assert.doesNotMatch(res.stdout, /handoff/);
+  } finally {
+    rmParent(fx.parent);
+  }
+});
+
 // Direct coverage of the shared base resolver.
 const HELPER = path.join(GRAFT_SKILL_DIR, "remote-diff-base.sh");
 

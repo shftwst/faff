@@ -38,12 +38,12 @@ const ISSUE_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const PR_OPEN_SPEC = {
     flags: {
         "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--base": { arity: 1 }, "--title": { arity: 1 },
-        "--body-file": { arity: 1 }, "--spec-review-evidence": { arity: 1 }, "--json": { arity: 0 },
+        "--body-file": { arity: 1 }, "--append-ac-checklist": { arity: 0 }, "--spec-review-evidence": { arity: 1 }, "--json": { arity: 0 },
     },
 };
 const HUMAN_ONLY_ACS = "human-only-acs.json";
 const LEVELS = ["L1", "L2", "L3", "L4"];
-const PR_OPEN_USAGE = "usage: faff pr open --run-dir DIR --issue ID --base BRANCH --title T --body-file FILE [--spec-review-evidence FILE] [--json]";
+const PR_OPEN_USAGE = "usage: faff pr open --run-dir DIR --issue ID --base BRANCH --title T --body-file FILE [--append-ac-checklist] [--spec-review-evidence FILE] [--json]";
 // --- Helpers ---------------------------------------------------------------------------------------
 function isRecord(v) {
     return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -224,6 +224,9 @@ function runPrOpen(opts, deps) {
     const remotes = deps.git(["remote"]);
     if (remotes.status === 0 && remotes.stdout.trim() === "")
         return done({ token: "no-op", exit: 0, cause: "git-only (no remote): no PR to open" });
+    if (opts.appendAcChecklist && /^ {0,3}##[ \t]+Acceptance Criteria[ \t#]*$/im.test(draft)) {
+        return done({ token: "refused", exit: 1, cause: "body-unsafe", blockers: ["omit the Acceptance Criteria section when using --append-ac-checklist"] });
+    }
     // 3. Branch check.
     const branchR = deps.git(["rev-parse", "--abbrev-ref", "HEAD"]);
     const branch = branchR.status === 0 ? branchR.stdout.trim() : "";
@@ -254,11 +257,10 @@ function runPrOpen(opts, deps) {
     }
     // 7-18 own the safe-body temp file; the finally deletes it on every path that created it.
     let safeFile = null;
-    try {
-        // 7. Sanitize, then check the exact bytes that will ship.
+    function prepareBody(body) {
         let safeBytes = null;
         try {
-            safeFile = deps.writeTemp(deps.sanitize(draft, issue));
+            safeFile = deps.writeTemp(deps.sanitize(body, issue));
             safeBytes = deps.readFile(safeFile);
         }
         catch (e) {
@@ -275,6 +277,13 @@ function runPrOpen(opts, deps) {
         }
         if (!checked.ok)
             return done({ token: "refused", exit: 1, cause: "body-unsafe", blockers: [`pr-body check: ${JSON.stringify(checked.violations)}`] });
+        return null;
+    }
+    try {
+        // Check the supplied draft before touching the anchor.
+        const draftRefusal = prepareBody(draft);
+        if (draftRefusal)
+            return draftRefusal;
         // 8. The existing PR, before anything outward.
         const list = deps.gh(["pr", "list", "--head", branch, "--state", "open", "--json", "number,url,baseRefName,headRefOid"]);
         const prs = list.status === 0 ? parseOpenPrs(list.stdout) : null;
@@ -347,6 +356,25 @@ function runPrOpen(opts, deps) {
         else if (staged.status !== 0) {
             return errored(`commit failure: git diff --cached exited ${String(staged.status)}: ${firstLine(staged.stderr)}`);
         }
+        if (opts.appendAcChecklist && existing === null) {
+            // Use the blob from the anchor commit. A concurrent run-dir write or a hook
+            // that edited the worktree after committing cannot change what the PR displays.
+            const blob = deps.git(["show", `HEAD:${dest}ac-checklist.json`]);
+            if (blob.status !== 0)
+                return errored("cannot read the committed acceptance checklist");
+            try {
+                const evidence = require("./evidence");
+                const rendered = evidence.renderAcChecklistDocument(JSON.parse(blob.stdout), issue);
+                if ("refused" in rendered)
+                    return done({ token: "refused", exit: 1, cause: "ac-checklist-invalid", blockers: rendered.refused });
+                const bodyRefusal = prepareBody(`${draft.trimEnd()}\n\n${rendered.block}`);
+                if (bodyRefusal)
+                    return bodyRefusal;
+            }
+            catch (e) {
+                return errored(`cannot render the committed acceptance checklist: ${e instanceof Error ? e.message : String(e)}`);
+            }
+        }
         // 12. Push, bracketed on a governed run.
         const pushEffect = JSON.stringify([{ kind: "push", target: branch, reversible: true }]);
         if (governed) {
@@ -395,6 +423,8 @@ function runPrOpen(opts, deps) {
             }
         }
         // 16. Open.
+        if (safeFile === null)
+            return errored("missing checked PR body");
         const create = deps.faff(["pr-create", "--run-dir", runDir, "--issue", issue, "--base", base, "--body-file", safeFile, "--title", title, "--json"], null, DEFAULT_TIMEOUT_MS);
         const created = lastJson(create.stdout);
         const createdVerdict = isRecord(created) ? created["verdict"] : null;
@@ -506,6 +536,7 @@ function cmdPrOpen(args) {
         base: get("--base"),
         title: get("--title"),
         bodyFile: get("--body-file"),
+        appendAcChecklist: parsed.values["--append-ac-checklist"] === true,
         specReviewEvidence: str(parsed.values["--spec-review-evidence"]),
     };
     return emit(json, runPrOpen(opts, defaultDeps(process.cwd())));

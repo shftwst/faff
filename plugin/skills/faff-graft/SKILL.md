@@ -286,18 +286,14 @@ For each AC in the spec:
 
 Reuse Step 7.5's **full suite + lint** UNIT/LINT results as the local regression backstop before CI; passing per-AC tests alone is insufficient. If Step 7.5 was advisory-only at L1–L2 and per-AC tests were added afterward, re-run `faff gates run` so UNIT covers them.
 
-The PR description's `## Acceptance Criteria` block is printed by `faff evidence render ac-checklist` from the written anchor. Never hand-write it.
-
 - **Source.** Use each verified DONE row's `text` and qualified `ac_id`, in order.
 - **Verify and note.** Tick each AC as its verification passes, with a one-line `verified` note (test result, or command + observed result). An AC that cannot be auto-verified (visual, subjective, auth-required) stays unticked with `"Needs human verification: <reason>"`. A classify row with `human_only` is never ticked by the builder and is recorded with `{ "kind": "human" }`; an unattended merge skips only those rows, so any other unverified AC still blocks it.
 - **Record methods.** `verifications` lists each method used: `{ "kind": "test", "locator": "<file>::<test title>" }` (repo-relative file, the test's own title), `{ "kind": "command", "locator": "<exact command>" }`, or `{ "kind": "human" }` (no locator).
 - **Secrets.** A `command` locator names a secret by environment variable (`$TOKEN`), never by value. It is committed in the anchor and published in the PR body.
 
-**Persist the AC result as a floor artifact, then render it.** Build `{ "all_verified": <bool>, "criteria": [ { "ac": <the criterion's `text`>, "verified": <the note>, "passed": <`true` only when auto-verified>, "ac_id": <its `ac_id`>, "verifications": [ … ] } ] }`, with `ac` and `verified` on one line and `all_verified` = every criterion `passed`. For a **zero-AC issue** omit the `criteria` key (never `[]`).
+**Persist the AC result.** Build `{ "all_verified": <bool>, "criteria": [ { "ac": <the criterion's `text`>, "verified": <the note>, "passed": <`true` only when auto-verified>, "ac_id": <its `ac_id`>, "verifications": [ … ] } ] }`, with `ac` and `verified` on one line and `all_verified` = every criterion `passed`. For a **zero-AC issue** omit the `criteria` key (never `[]`).
 
-1. Pipe it to `faff evidence write ac-checklist --run-dir "$run_dir" --issue <ISSUE>`, the sole writer of `<run-dir>/<ISSUE>/ac-checklist.json`. It stamps `schema_version`, fixes the key order and refuses (exit 1, nothing written) a disagreeing `all_verified`, a missing, malformed or mismatched `ac_id`, or a rule-breaking method. A non-zero exit leaves no file; never hand-write a fallback.
-2. Run `faff evidence render ac-checklist --run-dir "$run_dir" --issue <ISSUE>` and place its output in the PR body unchanged.
-3. If the writer refused, the PR body's `## Acceptance Criteria` section is one line saying the checklist was refused and why. Write no list.
+Pipe it to `faff evidence write ac-checklist --run-dir "$run_dir" --issue <ISSUE>`, the sole writer of `<run-dir>/<ISSUE>/ac-checklist.json`. It stamps the schema version and checks IDs, methods and agreement with `all_verified`. On refusal, keep the reason for Step 9b. Never write a fallback artifact.
 
 The anchor is the artifact `faff merge-gate` re-reads at merge; a missing/unreadable/malformed file is fail-closed to not-verified. (Evidence class per gateway → **Run-artifact write authority**: under a dispatched autonomous lane it must ultimately be written by the trusted side; today's in-lane write is the sanctioned rung-0 posture until the mandated relocation follow-up lands, and interactive top-level graft writes it directly regardless.)
 
@@ -409,12 +405,12 @@ This step runs in **both** interactive and autonomous modes.
 Reached **only** when Step 9 returned `pass`: the single PR-creation point, the same in both modes. **Git-only mode: no-op** — no remote to open a PR against, so this step composes no PR body and runs nothing; proceed straight to Step 10.
 
 1. **Evidence.** Save the newest issue comment beginning `## Spec-review evidence`, else the Step 4 committed spec, at an absolute `$evidence` path. Leave it unset if neither exists.
-2. **Draft and title.** Write the complete body, including the Step 8 AC checklist, to an absolute `$draft` path. Resolve `$pr_title` using `faff conventions get pr_title` and the build change; the anchor chore is the eventual head.
+2. **Draft and title.** Write the PR prose to an absolute `$draft` path. The command appends the Acceptance Criteria from the committed anchor before checking the full body. If the Step 8 writer refused, omit `--append-ac-checklist` and include only the refusal reason under `## Acceptance Criteria`. Resolve `$pr_title` using `faff conventions get pr_title` and the build change; the anchor chore is the eventual head.
 3. **Open from the feature worktree**, then delete the draft:
 
 ```bash
 (cd -- "$wt" && "$faff" pr open --run-dir "$run_dir" --issue "$issue" --base "$base" --title "$pr_title" \
-  --body-file "$draft" ${evidence:+--spec-review-evidence "$evidence"} --json)
+  --body-file "$draft" --append-ac-checklist ${evidence:+--spec-review-evidence "$evidence"} --json)
 ```
 
 It refuses unless the review verdict is `pass`, runs the governed-run check, writes `spec-review-verdict.json`, sanitizes and checks the body (Linear auto-transitions every tracker identifier a PR body carries, so only the target keeps one), then mints, commits and pushes the anchor, publishes the recovery bundle, drives the governed pr-create grant and opens a regular PR through the `pr-create` chokepoint. The anchor precedes the PR, so a crash never strands a review-passed PR whose head lacks it, and CI fires first at PR open. Route on `token`: (the same call writes `human-only-acs.json` from the captured spec, the set an unattended merge may skip)

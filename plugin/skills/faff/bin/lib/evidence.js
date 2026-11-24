@@ -990,6 +990,10 @@ function renderAcChecklist(runDir, issue) {
   try { doc = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) {
     return { refused: [e && e.code === "ENOENT" ? "ac-checklist.json is missing" : "ac-checklist.json is unreadable"] };
   }
+  return renderAcChecklistDocument(doc, issue);
+}
+
+function renderAcChecklistDocument(doc, issue) {
   const violations = [...validateAgainstSchema(doc, schemaFor("ac-checklist.json")).map(tidy)];
   if (violations.length === 0) violations.push(...acChecklistWriterViolations(doc, issue));
   if (violations.length > 0) return { refused: violations };
@@ -1737,6 +1741,6 @@ module.exports = {
   anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evaluateRunDirEventsSchema, evidenceSelftest, exitCodeFor,
   recordReviewRound, writeCollatedReviewVerdict,
   guardWriterPaths, introducedViolations, logRecordChecker, evidenceDocumentFiles, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
-  renderAcChecklist, resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,
+  renderAcChecklist, renderAcChecklistDocument, resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,
   writeSpecReviewVerdict, writeSpecReviewVerdictTo, placeSpecReviewEvidence, writeTerminalReviewVerdict, writeHumanOnlyAcs,
 };

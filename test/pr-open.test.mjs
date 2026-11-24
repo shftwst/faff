@@ -548,7 +548,7 @@ function cliFixture({ review = "pass", remote = true, emptyEvents = false } = {}
   const env = cleanEnv({ PATH: `${ghDir}${delimiter}${process.env.PATH}`, STUB_GH_CONFIG: cfgFile });
   const calls = () => (existsSync(log) ? readFileSync(log, "utf8").split("\n").filter(Boolean).map((l) => JSON.parse(l)) : []);
   const originHead = () => (remote ? git(root, "--git-dir", bare, "rev-parse", "refs/heads/b") : null);
-  const open = () => runCli(["pr", "open", "--run-dir", runDir, "--issue", CLI_ISSUE, "--base", "main", "--title", "T", "--body-file", draft, "--json"], { cwd: repo, env });
+  const open = (...args) => runCli(["pr", "open", ...args, "--run-dir", runDir, "--issue", CLI_ISSUE, "--base", "main", "--title", "T", "--body-file", draft, "--json"], { cwd: repo, env });
   return { root, repo, bare, runDir, draft, env, calls, originHead, open, setPrList };
 }
 const creates = (fx) => fx.calls().filter((c) => c.args[0] === "pr" && c.args[1] === "create");
@@ -571,6 +571,61 @@ test("CLI-level: opens the PR at the pushed, anchor-carrying head with a sanitiz
   assert.doesNotMatch(create.body, /\bTT-2\b/);
   assert.equal((create.body.match(/\bTT-1\b/g) || []).length, 1);
   assert.match(create.body, /Closes TT-1\n$/);
+});
+
+test("appends the sanitized canonical checklist from the pushed commit even if the hook changes the live evidence", () => {
+  const fx = cliFixture();
+  const path = join(fx.runDir, CLI_ISSUE, "ac-checklist.json");
+  const doc = { schema_version: 1, all_verified: false, criteria: [
+    { ac: "Exercise TT-2 input", verified: "Green on the second run", passed: true, ac_id: "tt-1#ac-1", verifications: [{ kind: "command", locator: "npm test" }] },
+    { ac: "Visual alignment", verified: "Needs human verification: inspect on device", passed: false, ac_id: "tt-1#ac-2", verifications: [{ kind: "human" }] },
+  ] };
+  writeFileSync(path, JSON.stringify(doc));
+  const hook = join(fx.repo, ".git", "hooks", "post-commit");
+  writeFileSync(hook, `#!/bin/sh\nprintf '%s' '{"schema_version":1,"all_verified":true}' > "${path}"\n`);
+  chmodSync(hook, 0o755);
+  const canonical = runCli(["evidence", "render", "ac-checklist", "--run-dir", fx.runDir, "--issue", CLI_ISSUE], { cwd: fx.repo, env: fx.env });
+  assert.equal(canonical.code, 0, canonical.stderr);
+  const r = fx.open("--append-ac-checklist");
+  assert.equal(r.code, 0, r.stderr + r.stdout);
+  const [created] = creates(fx);
+  const anchored = git(fx.repo, "show", `${created.origin_head}:.faff/anchors/${basename(fx.runDir)}/${CLI_ISSUE}/ac-checklist.json`);
+  assert.deepEqual(JSON.parse(anchored), doc);
+  assert.notDeepEqual(JSON.parse(readFileSync(path, "utf8")), doc);
+  const { sanitizePrBody } = require("../plugin/skills/faff/bin/lib/pr-body.js");
+  assert.equal(created.body, sanitizePrBody(readFileSync(fx.draft, "utf8").trimEnd() + "\n\n" + canonical.stdout, CLI_ISSUE));
+});
+
+test("explicit checklist mode refuses a duplicate heading before publication and a retry with prose alone works", () => {
+  const fx = cliFixture();
+  const before = fx.originHead();
+  writeFileSync(fx.draft, "## Acceptance Criteria\n- [x] stale result\n");
+  const blocked = fx.open("--append-ac-checklist");
+  assert.equal(JSON.parse(blocked.stdout).cause, "body-unsafe");
+  assert.equal(fx.originHead(), before);
+  assert.equal(creates(fx).length, 0);
+  writeFileSync(fx.draft, "Summary.\n");
+  writeFileSync(join(fx.runDir, CLI_ISSUE, "ac-checklist.json"), JSON.stringify({ schema_version: 1, all_verified: true }));
+  const r = fx.open("--append-ac-checklist");
+  assert.equal(r.code, 0, r.stderr + r.stdout);
+  assert.match(creates(fx)[0].body, /## Acceptance Criteria\nNo acceptance criteria\./);
+});
+
+test("a draft reporting a refused writer can open without displaying an older checklist", () => {
+  const fx = cliFixture();
+  writeFileSync(fx.draft, "Summary.\n\n## Acceptance Criteria\nChecklist refused: missing criterion ID.\n");
+  const r = fx.open();
+  assert.equal(r.code, 0, r.stderr + r.stdout);
+  const body = creates(fx)[0].body;
+  assert.match(body, /Checklist refused: missing criterion ID/);
+  assert.doesNotMatch(body, /- \[|No acceptance criteria/);
+});
+
+test("an invalid committed checklist cannot reach push or PR creation", () => {
+  const { r, calls } = run({ resp: { show: ok(JSON.stringify({ schema_version: 1, all_verified: false, criteria: [] })) } }, { appendAcChecklist: true });
+  assert.equal(r.cause, "ac-checklist-invalid");
+  assert.ok(r.blockers.length);
+  assert.deepEqual(noneOf(calls, ["push", "pr-create"]), []);
 });
 
 test("CLI-level: a fail review verdict refuses before anything outward", () => {
@@ -679,6 +734,7 @@ test("graft's PR command opens on the feature head when its caller is in the bas
   assert.equal(JSON.parse(r.stdout).token, "opened");
   assert.equal(creates(fx).length, 1);
   assert.equal(creates(fx)[0].origin_head, git(fx.repo, "rev-parse", "HEAD"));
+  assert.match(creates(fx)[0].body, /## Acceptance Criteria/);
   assert.equal(git(baseCheckout, "rev-parse", "HEAD"), before);
 });
 

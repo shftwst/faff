@@ -11,6 +11,8 @@
 // that parks or holds sooner.
 // ===========================================================================
 
+import { prepareApprovedAttachment, type Attachment } from "./reviewed-attachment.ts";
+
 const fs: FsApi = require("node:fs");
 const path: PathApi = require("node:path");
 
@@ -145,6 +147,7 @@ type RoundResult = {
   level: Level;
   retain: string | null;
   warnings: string[];
+  attachment?: Attachment;
 };
 
 function objectionsOf(rec: unknown): unknown[] {
@@ -458,6 +461,7 @@ type RoundOpts = {
   appetite: string | null;
   retryLimit: number | null;
   root: string;
+  reviewedSha?: string;
 };
 
 // The one injectable seam: window governance, so a test can reach the record-missing branch that
@@ -545,6 +549,9 @@ function runRound(o: RoundOpts, deps: RoundDeps = realDeps()): RoundResult {
       attempt: d.attempt, retry_limit: d.retry_limit, cap: d.cap, churn: d.churn, convergence: d.convergence,
       governance, summary: summarise(objections), level, retain: d.retain, warnings,
     };
+    if (d.action === "approve" && o.reviewedSha) {
+      result.attachment = prepareApprovedAttachment(o, result, o.reviewedSha, records);
+    }
     writeJsonAtomic(path.join(o.dir, SIDECAR.decision(n)), result);
     return result;
   };
@@ -627,6 +634,7 @@ const ROUND_SPEC = {
     "--issue": { arity: 1 },
     "--dir": { arity: 1 },
     "--verdict-file": { arity: 1 },
+    "--prepare-attachment": { arity: 1 },
     "--mode": { arity: 1, enum: ["interactive", "autonomous"] },
     "--occupant": { arity: 1, enum: ["adversarial", "single-pass"] },
     "--served": { arity: 1, enum: ["any", "none"] },
@@ -643,7 +651,7 @@ const ROUND_SPEC = {
 const ROUND_USAGE = [
   "usage: faff spec-review round --issue <ID> --dir <scratch> --verdict-file <file|-> --mode interactive|autonomous",
   "                              --occupant adversarial|single-pass [--served any|none] [--run-dir <dir>] [--appetite low|medium|high|full]",
-  "                              [--retry-limit N] [--root <dir>] [--json]",
+  "                              [--retry-limit N] [--root <dir>] [--prepare-attachment <reviewed-stage-sha256>] [--json]",
   "       faff spec-review round --open-window --dir <scratch> [--json]",
   "       faff spec-review round --mark-ratified <n> --comment-id <id> --dir <scratch> --mode interactive [--json]",
 ].join("\n");
@@ -662,6 +670,10 @@ function cmdSpecReviewRound(argv: string[]): number {
   const dir = str(values["--dir"]);
   if (dir === undefined || dir === "") return argvApi.usageError([{ code: "missing-required", detail: "--dir <scratch> is required" }], ROUND_USAGE);
   try {
+    const reviewedSha = str(values["--prepare-attachment"]);
+    if (reviewedSha !== undefined && (!/^[0-9a-f]{64}$/.test(reviewedSha) || !json || values["--open-window"] || values["--mark-ratified"] !== undefined)) {
+      throw new RoundFault("--prepare-attachment requires a reviewed stage SHA-256 and a normal JSON round");
+    }
     if (values["--open-window"] === true) {
       refuseUnderRun("--open-window", namedRunDir(values["--run-dir"]));
       const r = openWindow(dir);
@@ -696,7 +708,7 @@ function cmdSpecReviewRound(argv: string[]): number {
     }
     const retryRaw = str(values["--retry-limit"]);
     const result = runRound({
-      issue, dir, verdictText, mode, occupant, served,
+      issue, dir, verdictText, mode, occupant, served, ...(reviewedSha ? { reviewedSha } : {}),
       runDir: namedRunDir(values["--run-dir"]),
       appetite: str(values["--appetite"]) ?? null,
       retryLimit: retryRaw === undefined ? null : parseLimit(retryRaw, "--retry-limit"),

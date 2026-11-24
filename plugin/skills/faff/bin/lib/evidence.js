@@ -737,12 +737,12 @@ function realpathOrNull(p) {
 // WriterFault (exit 2) before anything is read or written: the issue id must be a bare token, the run
 // dir must resolve inside <root>/.faff/runs/ for the working checkout or its main checkout (graft runs
 // in a linked worktree whose run dir may sit in either), and the issue directory must stay inside it.
-function guardWriterPaths(runDir, issue) {
+function guardWriterPaths(runDir, issue, repoRoot) {
   if (typeof issue !== "string" || !ISSUE_ID_RE.test(issue) || issue.includes("..")) throw new WriterFault("--issue is not a valid issue id");
   if (typeof runDir !== "string" || runDir === "") throw new WriterFault("--run-dir is required");
   const realRunDir = realpathOrNull(runDir);
   if (realRunDir === null || !fs.statSync(realRunDir).isDirectory()) throw new WriterFault("--run-dir is not a directory");
-  const root = findRoot();
+  const root = repoRoot ?? findRoot();
   const roots = [root];
   const main = mainWorktreeRoot(root);
   if (main && path.resolve(main) !== path.resolve(root)) roots.push(main);
@@ -843,8 +843,7 @@ function writeSpecReviewVerdictTo(issueDir, text, secrets) {
 // interactive `.faff/spec-review/<ISSUE>` (target is the scratch dir itself) and run `<runDir>/<ISSUE>/spec-review`
 // (target is the per-issue dir, reached through the unchanged guardWriterPaths). A test pins the duplication.
 // Throws WriterFault with nothing written.
-function placeSpecReviewEvidence(scratchDir) {
-  const root = findRoot();
+function placeSpecReviewEvidence(scratchDir, root = findRoot()) {
   const real = typeof scratchDir === "string" && scratchDir !== "" ? realpathOrNull(path.isAbsolute(scratchDir) ? scratchDir : path.join(root, scratchDir)) : null;
   if (real === null || !fs.statSync(real).isDirectory()) throw new WriterFault("--dir is not a directory");
   const roots = [root];
@@ -865,7 +864,7 @@ function placeSpecReviewEvidence(scratchDir) {
   if (path.basename(real) === "spec-review") {
     const issueDir = path.dirname(real);
     const issue = path.basename(issueDir);
-    return { issue, target_dir: guardWriterPaths(path.dirname(issueDir), issue), mode: "run" };
+    return { issue, target_dir: guardWriterPaths(path.dirname(issueDir), issue, root), mode: "run" };
   }
   throw new WriterFault("--dir is neither <run-dir>/<ISSUE>/spec-review nor .faff/spec-review/<ISSUE>");
 }

@@ -40,6 +40,7 @@ type StageMarker = {
   issue: string; spec_produced: true; attached: boolean; mode: string; ts: string; owner: Owner;
   harness: string; model: string; faff_version: string;
   spec_sha256?: string; body_path?: string; attached_at?: string; admissibility?: Admissibility;
+  reviewed_attachment?: { prepared_sha256: string; staged_sha256: string; confidence: string; build_tier: string; admissibility_line: string };
 };
 // A marker as read back from disk: any JSON object carrying `spec_produced: true`.
 type StoredMarker = { [k: string]: unknown };
@@ -54,6 +55,7 @@ function prop(v: unknown, k: string): unknown {
 }
 
 type PrepDeps = {
+  withMarkerLock?<T>(issue: string, work: () => T): T;
   readText(p: string): string;
   readBytes(p: string): Buffer;
   writeText(p: string, t: string): void;
@@ -72,7 +74,7 @@ type PrepDeps = {
 
 type StageOpts = {
   issue: string; specPath: string; mode: string; gitOnly: boolean; gateHistory: number | null;
-  extractionPath: string | null; fresh?: boolean; root: string;
+  extractionPath: string | null; fresh?: boolean; reviewed?: boolean; root: string;
 };
 
 const ISSUE_RE = /^[A-Za-z][A-Za-z0-9]*-[0-9]+$/;
@@ -84,14 +86,14 @@ const TRACKER_NAMES: { [k: string]: string } = { linear: "Linear", github: "GitH
 const ATTACH_SPEC = {
   flags: {
     "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--mode": { arity: 1 }, "--git-only": { arity: 0 },
-    "--fresh": { arity: 0 }, "--gate-history": { arity: 1 }, "--extraction": { arity: 1 }, "--confirm": { arity: 0 },
-    "--comment-id": { arity: 1 }, "--park": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 },
+    "--reviewed": { arity: 0 }, "--fresh": { arity: 0 }, "--gate-history": { arity: 1 }, "--extraction": { arity: 1 }, "--confirm": { arity: 0 },
+    "--reviewed-spec": { arity: 1 }, "--comment-id": { arity: 1 }, "--park": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 },
   },
   positionals: { min: 0, max: 0 },
 };
 const ATTACH_USAGE = [
-  "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--git-only] [--fresh] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
-  "       faff prep attach --issue ID --confirm --comment-id ID [--root DIR] [--json]",
+  "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--git-only] [--reviewed] [--fresh] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
+  "       faff prep attach --issue ID --confirm --comment-id ID [--reviewed-spec FILE] [--root DIR] [--json]",
   "       faff prep attach --issue ID --park [--root DIR] [--json]",
 ].join("\n");
 
@@ -301,6 +303,15 @@ function stage(opts: StageOpts, deps: PrepDeps): PrepResult {
 
   const mp = markerPath(root, issue);
   const existing = deps.readJson(mp);
+  const preparedSha = opts.reviewed ? sha256(source) : null;
+  if (opts.reviewed) {
+    try {
+      const { checkReviewedStage } = require("./reviewed-attachment");
+      const next = checkReviewedStage(root, issue, specPath, source, gitOnly, existing, deps.env.FAFF_SESSION_ID || "", deps.env.FAFF_RUN_DIR);
+      if (next.action === "attached") return result(issue, "attached", { ...next.details, spec_sha256: sha256(source) });
+      if (next.action === "reconcile") return result(issue, "needs-judgement", { ...next.details, reason: "reconcile-tracker-post", body_path: path.resolve(specPath), spec_sha256: sha256(source) });
+    } catch (e) { return errored(issue, "stale-reviewed-attachment: " + (e instanceof Error ? e.message : String(e))); }
+  }
   if (gitOnly && existing && prop(existing, "disposition") === "parked") return result(issue, "needs-judgement", { reason: "git-only-marker-parked" });
 
   const id = deps.identity();
@@ -386,6 +397,7 @@ function stage(opts: StageOpts, deps: PrepDeps): PrepResult {
   const digest = sha256(Buffer.from(text, "utf8"));
   const bodyPath = path.resolve(specPath);
   marker.spec_sha256 = digest;
+  if (preparedSha) marker.reviewed_attachment = { prepared_sha256: preparedSha, staged_sha256: digest, ...common, admissibility_line: adm.line };
   marker.body_path = bodyPath;
   marker.admissibility = adm.admissibility;
   if (gitOnly) {
@@ -403,13 +415,22 @@ function readStagedMarker(root: string, issue: string, deps: PrepDeps): StoredMa
   return isRecord(m) && m.spec_produced === true ? m : null;
 }
 
-function confirm(opts: { issue: string; commentId: string; root: string }, deps: PrepDeps): PrepResult {
+function confirm(opts: { issue: string; commentId: string; root: string; reviewedPath?: string }, deps: PrepDeps): PrepResult {
   const { issue, commentId, root } = opts;
   const m = readStagedMarker(root, issue, deps);
   if (!m) return errored(issue, "no-staged-spec");
   let body: Buffer | null;
   try { body = typeof m.body_path === "string" ? deps.readBytes(m.body_path) : null; } catch { body = null; }
   if (!body || typeof m.spec_sha256 !== "string" || sha256(body) !== m.spec_sha256) return errored(issue, "spec-changed-since-stage");
+  if (opts.reviewedPath || m.reviewed_attachment) {
+    if (!opts.reviewedPath || path.resolve(opts.reviewedPath) !== m.body_path || m.mode !== "tracker") return errored(issue, "stale-reviewed-attachment: expected tracker body");
+    try {
+      const { checkReviewedStage } = require("./reviewed-attachment");
+      const state = checkReviewedStage(root, issue, opts.reviewedPath, body.toString("utf8"), false, m, deps.env.FAFF_SESSION_ID || "", deps.env.FAFF_RUN_DIR);
+      if (state.action === "attached" && m.comment_id === commentId) return result(issue, "attached", { spec_sha256: m.spec_sha256 });
+      if (state.action !== "reconcile") return errored(issue, "stale-reviewed-attachment: expected pending tracker post");
+    } catch (e) { return errored(issue, "stale-reviewed-attachment: " + (e instanceof Error ? e.message : String(e))); }
+  }
   const next = { ...m, attached: true, comment_id: commentId, attached_at: deps.now() };
   try { deps.writeJsonAtomic(markerPath(root, issue), next); } catch (e) { return errored(issue, `marker-unwritable: ${prop(e, "code") || prop(e, "message")}`); }
   return result(issue, "attached", { spec_sha256: m.spec_sha256 });
@@ -435,6 +456,11 @@ function atomicWrite(p: string, data: string): void {
 
 function defaultDeps(root: string): PrepDeps {
   return {
+    withMarkerLock: (issue, work) => {
+      const file = markerPath(root, issue);
+      fs.mkdirSync(path.dirname(file), { recursive: true });
+      return require("./fs-lock").withFileLock(file + ".lock", work);
+    },
     readText: (p) => fs.readFileSync(p, "utf8"),
     readBytes: (p) => fs.readFileSync(p),
     writeText: (p, t) => fs.writeFileSync(p, t),
@@ -478,8 +504,9 @@ function cmdPrep(args: string[], depsOverride?: PrepDeps): number {
   if (!ISSUE_RE.test(issue)) return bad(`--issue must match ${ISSUE_RE.source}`, "--issue");
   const modes = ["--spec", "--confirm", "--park"].filter((f) => values[f] !== undefined);
   if (modes.length !== 1) return bad("exactly one of --spec, --confirm and --park is required");
-  const stageOnly = ["--mode", "--git-only", "--fresh", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
+  const stageOnly = ["--mode", "--git-only", "--reviewed", "--fresh", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
   if (modes[0] !== "--spec" && stageOnly.length) return bad(`${stageOnly.join(", ")} only apply with --spec`);
+  if (values["--reviewed-spec"] !== undefined && (modes[0] !== "--confirm" || !values["--reviewed-spec"])) return bad("--reviewed-spec FILE requires --confirm", "--reviewed-spec");
   if (modes[0] !== "--confirm" && values["--comment-id"] !== undefined) return bad("--comment-id only applies with --confirm", "--comment-id");
 
   let gateHistory: number | null = null;
@@ -494,13 +521,15 @@ function cmdPrep(args: string[], depsOverride?: PrepDeps): number {
 
   const root = path.resolve(values["--root"] || findRoot());
   const deps = depsOverride || defaultDeps(root);
-  let res: PrepResult;
-  try {
+  const apply = (): PrepResult => {
     if (modes[0] === "--spec") {
-      res = stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], fresh: !!values["--fresh"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
-    } else if (modes[0] === "--confirm") res = confirm({ issue, commentId: values["--comment-id"], root }, deps);
-    else res = park({ issue, root }, deps);
-  } catch (e) { res = errored(issue, `unexpected: ${e && prop(e, "message") ? prop(e, "message") : e}`); }
+      return stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], fresh: !!values["--fresh"], reviewed: !!values["--reviewed"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
+    }
+    if (modes[0] === "--confirm") return confirm({ issue, commentId: values["--comment-id"], reviewedPath: values["--reviewed-spec"], root }, deps);
+    return park({ issue, root }, deps);
+  };
+  let res: PrepResult;
+  try { res = deps.withMarkerLock ? deps.withMarkerLock(issue, apply) : apply(); } catch (e) { res = errored(issue, `unexpected: ${e && prop(e, "message") ? prop(e, "message") : e}`); }
   emit(res, !!values["--json"]);
   return res.token === "errored" ? 2 : 0;
 }

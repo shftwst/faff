@@ -581,9 +581,10 @@ test("--selftest reports PASS in-process (both commands)", () => {
 
 // --- Prep scratch directory and swap-reset wiring. ---
 
-test("prep SKILL resolves the scratch dir via `spec-review-dir` and hands it to `spec-review round`", () => {
+test("prep takes its prepared scratch directory into the round; carry-check can resolve it before review", () => {
   const body = readFileSync(PREP_SKILL, "utf8");
-  assert.match(body, /spec-review-dir --issue/, "prep resolves the scratch dir");
+  assert.match(body, /scratch_dir.*prep-context/, "prep reuses the directory freshly resolved by context preparation");
+  assert.match(body, /spec-review-dir --issue/, "carry-check resolves its directory before a review may be necessary");
   assert.match(body, /"\$faff" spec-review round --issue <ISSUE-XX> --dir "\$scratch"/, "the round call records and reads under the resolved dir");
   assert.doesNotMatch(body, /faff spec-review-convergence --dir/, "convergence is read inside the round call, never beside it");
   assert.doesNotMatch(body, /faff spec-review-convergence --dir <the run's spec-review dir>/, "no stale hardcoded-dir wording");

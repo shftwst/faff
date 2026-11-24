@@ -370,6 +370,11 @@ function verdictBlocks(text) {
     return blocks;
 }
 const realDeps = () => ({ govern: windowApi.govern });
+// Hold only across short local receipt/decision writes, never a provider wait.
+function withRoundLock(dir, fn) {
+    fs.mkdirSync(dir, { recursive: true });
+    return require("./fs-lock").withFileLock(path.join(dir, "spec-review-round.lock"), fn);
+}
 function runRound(o, deps = realDeps()) {
     try {
         fs.mkdirSync(o.dir, { recursive: true });
@@ -459,6 +464,8 @@ function runRound(o, deps = realDeps()) {
         if (d.action === "approve" && o.reviewedSha) {
             result.attachment = (0, reviewed_attachment_ts_1.prepareApprovedAttachment)(o, result, o.reviewedSha, records);
         }
+        if (o.retryEntries)
+            result.retry_entries = o.retryEntries;
         writeJsonAtomic(path.join(o.dir, SIDECAR.decision(n)), result);
         return result;
     };
@@ -620,13 +627,13 @@ function cmdSpecReviewRound(argv) {
             throw new RoundFault(`--verdict-file unreadable: ${errText(e)}`);
         }
         const retryRaw = str(values["--retry-limit"]);
-        const result = runRound({
+        const result = withRoundLock(dir, () => runRound({
             issue, dir, verdictText, mode, occupant, served, ...(reviewedSha ? { reviewedSha } : {}),
             runDir: namedRunDir(values["--run-dir"]),
             appetite: str(values["--appetite"]) ?? null,
             retryLimit: retryRaw === undefined ? null : parseLimit(retryRaw, "--retry-limit"),
             root: str(values["--root"]) ?? sharedInfra.findRoot(),
-        });
+        }));
         process.stdout.write(json ? `${JSON.stringify(result)}\n` : `${result.action} round ${result.round}${result.cause === null ? "" : `: ${result.cause}`}\n`);
         return 0;
     }
@@ -638,4 +645,4 @@ function cmdSpecReviewRound(argv) {
         return emitFault(json, `unexpected: ${errText(e)}`);
     }
 }
-module.exports = { cmdSpecReviewRound, isProbeFailure, decideRound, runRound, realDeps, namedRunDir, outageAttempt, outagedLenses, verdictBlocks, summarise, readLevel, configValue, parseLimit, RoundFault, ROUND_USAGE, CAUSE };
+module.exports = { cmdSpecReviewRound, isProbeFailure, decideRound, runRound, withRoundLock, realDeps, namedRunDir, outageAttempt, outagedLenses, verdictBlocks, summarise, readLevel, configValue, parseLimit, RoundFault, ROUND_USAGE, CAUSE };

@@ -148,6 +148,7 @@ type RoundResult = {
   retain: string | null;
   warnings: string[];
   attachment?: Attachment;
+  retry_entries?: string;
 };
 
 function objectionsOf(rec: unknown): unknown[] {
@@ -454,6 +455,7 @@ type RoundOpts = {
   issue: string;
   dir: string;
   verdictText: string;
+  retryEntries?: string;
   mode: Mode;
   occupant: "adversarial" | "single-pass";
   served: "any" | "none" | null;
@@ -468,6 +470,12 @@ type RoundOpts = {
 // the real `govern` (which writes its record on every path) never takes.
 type RoundDeps = { govern: (dir: string, n: number, servedness: string) => GovernResult };
 const realDeps = (): RoundDeps => ({ govern: windowApi.govern });
+
+// Hold only across short local receipt/decision writes, never a provider wait.
+function withRoundLock<T>(dir: string, fn: () => T): T {
+  fs.mkdirSync(dir, { recursive: true });
+  return require("./fs-lock").withFileLock(path.join(dir, "spec-review-round.lock"), fn);
+}
 
 function runRound(o: RoundOpts, deps: RoundDeps = realDeps()): RoundResult {
   try {
@@ -552,6 +560,7 @@ function runRound(o: RoundOpts, deps: RoundDeps = realDeps()): RoundResult {
     if (d.action === "approve" && o.reviewedSha) {
       result.attachment = prepareApprovedAttachment(o, result, o.reviewedSha, records);
     }
+    if (o.retryEntries) result.retry_entries = o.retryEntries;
     writeJsonAtomic(path.join(o.dir, SIDECAR.decision(n)), result);
     return result;
   };
@@ -707,13 +716,13 @@ function cmdSpecReviewRound(argv: string[]): number {
       throw new RoundFault(`--verdict-file unreadable: ${errText(e)}`);
     }
     const retryRaw = str(values["--retry-limit"]);
-    const result = runRound({
+    const result = withRoundLock(dir, () => runRound({
       issue, dir, verdictText, mode, occupant, served, ...(reviewedSha ? { reviewedSha } : {}),
       runDir: namedRunDir(values["--run-dir"]),
       appetite: str(values["--appetite"]) ?? null,
       retryLimit: retryRaw === undefined ? null : parseLimit(retryRaw, "--retry-limit"),
       root: str(values["--root"]) ?? sharedInfra.findRoot(),
-    });
+    }));
     process.stdout.write(json ? `${JSON.stringify(result)}\n` : `${result.action} round ${result.round}${result.cause === null ? "" : `: ${result.cause}`}\n`);
     return 0;
   } catch (e) {
@@ -723,4 +732,4 @@ function cmdSpecReviewRound(argv: string[]): number {
   }
 }
 
-module.exports = { cmdSpecReviewRound, isProbeFailure, decideRound, runRound, realDeps, namedRunDir, outageAttempt, outagedLenses, verdictBlocks, summarise, readLevel, configValue, parseLimit, RoundFault, ROUND_USAGE, CAUSE };
+module.exports = { cmdSpecReviewRound, isProbeFailure, decideRound, runRound, withRoundLock, realDeps, namedRunDir, outageAttempt, outagedLenses, verdictBlocks, summarise, readLevel, configValue, parseLimit, RoundFault, ROUND_USAGE, CAUSE };

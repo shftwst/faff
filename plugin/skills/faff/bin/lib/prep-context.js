@@ -17,7 +17,8 @@ function prepareContext(input) {
     }
     const root = path.resolve(input.root);
     const runDir = input.runDir ? path.resolve(root, input.runDir) : null;
-    const scratch = path.resolve(root, pin.specReviewDir(input.issue, runDir));
+    const named = pin.specReviewDir(input.issue, input.runDir);
+    const scratch = path.resolve(root, named);
     const file = path.join(scratch, 'ratified-scope.md');
     const stderr = path.join(scratch, 'ratified-scope.stderr');
     try {
@@ -88,6 +89,8 @@ function prepareContext(input) {
         }
         else
             result.status = 'absent';
+        // Preserve the directory spelling in lens prompts when called from the project.
+        result.scratch_dir = path.resolve(named) === scratch ? named : scratch;
     }
     catch (error) {
         result.diagnostic = error instanceof Error ? error.message : 'context preparation failed';

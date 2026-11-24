@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cmdPrepareRequests = cmdPrepareRequests;
 // === region:factory — prepare independent spec-review lens requests ===
+const node_crypto_1 = require("node:crypto");
 const node_fs_1 = require("node:fs");
 const node_os_1 = require("node:os");
 const node_path_1 = require("node:path");
@@ -12,11 +13,11 @@ const { dig, findRoot } = require("./shared-infra");
 const { resolvePinChain } = require("./spec-review-pin");
 const { filterEligible, readReputation, reportEligibleFilter } = require("./spec-review-reputation");
 const { nextRoundNumber } = require("./spec-review-window");
-const usage = "usage: faff spec-review prepare-requests --dir DIR --spec FILE [--lenses CSV] [--context FILE]... [--root DIR]";
+const usage = "usage: faff spec-review prepare-requests --dir DIR --spec FILE [--snapshot-spec] [--lenses CSV] [--context FILE]... [--root DIR]";
 const argumentsSpec = {
     positionals: { min: 0, max: 0 },
     flags: {
-        "--dir": { arity: 1 }, "--spec": { arity: 1 }, "--lenses": { arity: 1 },
+        "--snapshot-spec": { arity: 0 }, "--dir": { arity: 1 }, "--spec": { arity: 1 }, "--lenses": { arity: 1 },
         "--context": { arity: 1, repeatable: true }, "--root": { arity: 1 },
     },
 };
@@ -103,13 +104,30 @@ function cmdPrepareRequests(argv, systemDir, buildLensRequests) {
         scratch = (0, node_fs_1.mkdtempSync)((0, node_path_1.join)((0, node_os_1.tmpdir)(), "faff-spec-review-"));
         const backends_path = (0, node_path_1.join)(scratch, "backends.json");
         const requests_path = (0, node_path_1.join)(scratch, "requests.json");
+        let specPath = diffPath;
+        let spec_sha256;
+        if (values["--snapshot-spec"]) {
+            let bytes;
+            try {
+                bytes = (0, node_fs_1.readFileSync)(diffPath);
+            }
+            catch {
+                (0, node_fs_1.rmSync)(scratch, { recursive: true, force: true });
+                warn("cannot read the staged spec for review");
+                process.stdout.write(JSON.stringify({ round, spec_unreadable: true }) + "\n");
+                return 2;
+            }
+            specPath = (0, node_path_1.join)(scratch, "reviewed-spec.md");
+            (0, node_fs_1.writeFileSync)(specPath, bytes, { mode: 0o400, flag: "wx" });
+            spec_sha256 = (0, node_crypto_1.createHash)("sha256").update(bytes).digest("hex");
+        }
         const requests = buildLensRequests({
             lenses, backendsJson: backends_path, timeout, maxTokens, deadline, systemDir,
-            contextPaths, diffPath, rawDir: `${dir}/raw`, round,
+            contextPaths, diffPath: specPath, rawDir: `${dir}/raw`, round,
         });
         (0, node_fs_1.writeFileSync)(backends_path, JSON.stringify(chain) + "\n", { mode: 0o600 });
         (0, node_fs_1.writeFileSync)(requests_path, JSON.stringify(requests) + "\n", { mode: 0o600 });
-        process.stdout.write(JSON.stringify({ round, strategy, backends_path, requests_path }) + "\n");
+        process.stdout.write(JSON.stringify({ round, strategy, backends_path, requests_path, spec_sha256 }) + "\n");
         return 0;
     }
     catch (error) {

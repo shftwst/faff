@@ -89,7 +89,7 @@ function captureServed(dir, round, rows, file, tools) {
 function validLensSet(lenses) {
     return lenses.length > 0 && new Set(lenses).size === lenses.length && lenses.every(lens => SPEC_REVIEW_LENSES.includes(lens));
 }
-function cmdRecordResults(argv, tools, retainVotes, enabledLenses) {
+function cmdRecordResults(argv, tools, retainVotes, enabledLenses, consume) {
     const { values, errors } = parseArgs(argv, argumentSpec);
     if (errors.length)
         return usageError(errors, usage);
@@ -151,7 +151,10 @@ function cmdRecordResults(argv, tools, retainVotes, enabledLenses) {
                 process.stderr.write(message + "\n");
             process.stderr.write("spec-review: served " + served.length + "/" + lenses.length + " lenses\n");
         }
-        process.stdout.write(output);
+        if (consume)
+            consume(output, served.length);
+        else
+            process.stdout.write(output);
         return 0;
     }
     catch (error) {

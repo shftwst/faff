@@ -298,7 +298,7 @@ function checkCalibrated(kind, entry, baseline, floor, warnSet) {
 // not here — this param is not consulted by the procedure below, kept for interface parity). A
 // calibrated claim with no readable frontier baseline is a harness-can't-run condition (exit 2),
 // distinct from a claim that reads fine but misses the floor (a lint FAIL, exit 1, via `failed`).
-function c3CalibrationFloor(seamReg, root, _casesPresent) {
+function c3CalibrationFloor(seamReg, root, _casesPresent, reportFailure = console.log) {
   const calibratedKinds = Object.entries(seamReg.kinds)
     .filter(([, entry]) => entry.status === "calibrated")
     .map(([kind]) => kind);
@@ -307,20 +307,20 @@ function c3CalibrationFloor(seamReg, root, _casesPresent) {
   const frontierPath = path.join(root, "eval", "baselines", "frontier.json");
   let baseline;
   if (!fs.existsSync(frontierPath)) {
-    console.log(`FAIL  eval/baselines/frontier.json (calibration floor)`);
-    console.log(`        ✗ eval/baselines/frontier.json not found (${frontierPath}) — a calibrated kind is claimed but the frontier baseline can't be read (FAFF-616 C3)`);
+    reportFailure(`FAIL  eval/baselines/frontier.json (calibration floor)`);
+    reportFailure(`        ✗ eval/baselines/frontier.json not found (${frontierPath}) — a calibrated kind is claimed but the frontier baseline can't be read (FAFF-616 C3)`);
     return { failed: true, exit2: true };
   }
   try {
     baseline = JSON.parse(fs.readFileSync(frontierPath, "utf8"));
   } catch (e) {
-    console.log(`FAIL  eval/baselines/frontier.json (calibration floor)`);
-    console.log(`        ✗ eval/baselines/frontier.json malformed JSON: ${e.message} — a calibrated kind is claimed but the frontier baseline can't be read (FAFF-616 C3)`);
+    reportFailure(`FAIL  eval/baselines/frontier.json (calibration floor)`);
+    reportFailure(`        ✗ eval/baselines/frontier.json malformed JSON: ${e.message} — a calibrated kind is claimed but the frontier baseline can't be read (FAFF-616 C3)`);
     return { failed: true, exit2: true };
   }
   if (!baseline || typeof baseline.per_kind !== "object" || baseline.per_kind === null) {
-    console.log(`FAIL  eval/baselines/frontier.json (calibration floor)`);
-    console.log(`        ✗ eval/baselines/frontier.json missing the \`per_kind\` map — a calibrated kind is claimed but the frontier baseline can't be read (FAFF-616 C3)`);
+    reportFailure(`FAIL  eval/baselines/frontier.json (calibration floor)`);
+    reportFailure(`        ✗ eval/baselines/frontier.json missing the \`per_kind\` map — a calibrated kind is claimed but the frontier baseline can't be read (FAFF-616 C3)`);
     return { failed: true, exit2: true };
   }
 
@@ -333,8 +333,8 @@ function c3CalibrationFloor(seamReg, root, _casesPresent) {
     const result = checkCalibrated(kind, seamReg.kinds[kind], baseline, floor, warnSet);
     if (!result.ok) {
       failed = true;
-      console.log(`FAIL  eval/baselines/frontier.json:${kind} (calibration floor)`);
-      console.log(`        ✗ ${result.reason}`);
+      reportFailure(`FAIL  eval/baselines/frontier.json:${kind} (calibration floor)`);
+      reportFailure(`        ✗ ${result.reason}`);
     }
   }
   return { failed, exit2: false };
@@ -716,29 +716,29 @@ function cmdIsBundled(args) {
 // A hung planner fails this lint by name instead of stalling every caller's spawn.
 const PLANNER_TIMEOUT_MS = 60_000;
 
-function lintGatewayManifest(root) {
+function lintGatewayManifest(root, reportFailure = console.log) {
   const plannerPath = path.join(root, "eval", "prefix-planner.mjs");
   if (!fs.existsSync(plannerPath)) return { failed: false, exit2: false };
   try {
     execFileSync(process.execPath, [plannerPath, "--check-manifest", "--json"], { encoding: "utf8", timeout: PLANNER_TIMEOUT_MS, killSignal: "SIGKILL" });
   } catch (err) {
     if (err.status === 2) {
-      console.log(`FAIL  eval/baselines/gateway-usage.json (gateway-usage manifest)`);
-      console.log(`        ✗ manifest missing or unparseable — the CI lint cannot read the declared block→consumer matrix (FAFF-963: exit 2)`);
+      reportFailure(`FAIL  eval/baselines/gateway-usage.json (gateway-usage manifest)`);
+      reportFailure(`        ✗ manifest missing or unparseable — the CI lint cannot read the declared block→consumer matrix (FAFF-963: exit 2)`);
       return { failed: true, exit2: true };
     }
     if (err.status === 1) {
       let parsed = null;
       try { parsed = JSON.parse(err.stdout || ""); } catch { parsed = null; }
-      console.log(`FAIL  eval/baselines/gateway-usage.json (gateway-usage manifest)`);
+      reportFailure(`FAIL  eval/baselines/gateway-usage.json (gateway-usage manifest)`);
       const violations = parsed ? [...(parsed.structural || []), ...(parsed.reference || [])] : [];
-      if (violations.length) for (const v of violations) console.log(`        ✗ ${v}`);
-      else console.log(`        ✗ ${(err.stdout || err.message || "").trim()}`);
+      if (violations.length) for (const v of violations) reportFailure(`        ✗ ${v}`);
+      else reportFailure(`        ✗ ${(err.stdout || err.message || "").trim()}`);
       return { failed: true, exit2: false };
     }
     // Any other exit is an unexpected harness fault, not a content FAIL.
-    console.log(`FAIL  eval/baselines/gateway-usage.json (gateway-usage manifest)`);
-    console.log(`        ✗ prefix-planner --check-manifest failed unexpectedly: ${err.message}`);
+    reportFailure(`FAIL  eval/baselines/gateway-usage.json (gateway-usage manifest)`);
+    reportFailure(`        ✗ prefix-planner --check-manifest failed unexpectedly: ${err.message}`);
     return { failed: true, exit2: true };
   }
   console.log(`pass  gateway-usage manifest`);
@@ -1156,6 +1156,23 @@ function cmdValidateAdapters(args) {
                    fs.existsSync(path.join(skillsDir, d, "SKILL.md")))
     .sort();
 
+  const failures = [];
+  const inputs = { args, skillsDir, root, requireBaseline: values["--skills-dir"] === undefined };
+  let status;
+  try {
+    status = lintBundledSkills(present, inputs, (line) => failures.push(line));
+  } finally {
+    for (const line of failures) console.log(line);
+  }
+  if (status !== 2) {
+    const linted = present.filter((name) => !SKIP.has(name)).length;
+    console.log("");
+    console.log(`RESULT: ${status === 0 ? "PASS" : "FAIL"} (${linted} slot skills linted)`);
+  }
+  return status;
+}
+
+function lintBundledSkills(present, { args, skillsDir, root, requireBaseline }, reportFailure) {
   let failed = false;
   const uncovered = [];
   for (const name of present) {
@@ -1164,8 +1181,8 @@ function cmdValidateAdapters(args) {
       const skiptext = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
       if (hasUserInvocableFalse(skiptext)) {
         failed = true;
-        console.log(`FAIL  ${name} (user-facing dev tool)`);
-        console.log(`        ✗ must NOT carry user-invocable: false (it is directly user-invocable)`);
+        reportFailure(`FAIL  ${name} (user-facing dev tool)`);
+        reportFailure(`        ✗ must NOT carry user-invocable: false (it is directly user-invocable)`);
       }
       continue;
     }
@@ -1185,8 +1202,8 @@ function cmdValidateAdapters(args) {
     const bad = results.filter(([ok]) => !ok).map(([, label]) => label);
     if (bad.length) {
       failed = true;
-      console.log(`FAIL  ${name} (${meta.type})`);
-      for (const label of bad) console.log(`        ✗ ${label}`);
+      reportFailure(`FAIL  ${name} (${meta.type})`);
+      for (const label of bad) reportFailure(`        ✗ ${label}`);
     } else {
       console.log(`pass  ${name} (${meta.type}) — ${results.length} checks`);
     }
@@ -1199,8 +1216,8 @@ function cmdValidateAdapters(args) {
     const text = fs.readFileSync(path.join(skillsDir, name, "SKILL.md"), "utf8");
     if (hasUserInvocableFalse(text)) {
       failed = true;
-      console.log(`FAIL  ${name} (user command)`);
-      console.log(`        ✗ must NOT carry user-invocable: false (it is a user / command)`);
+      reportFailure(`FAIL  ${name} (user command)`);
+      reportFailure(`        ✗ must NOT carry user-invocable: false (it is a user / command)`);
     }
     // FAFF-54: every faff-* user command emits human-facing output, so its SKILL.md
     // must reference routing that output through the configured renderer. Presence
@@ -1211,8 +1228,8 @@ function cmdValidateAdapters(args) {
     // itself emits no adaptor-routed output.
     if (name !== "faff" && !RENDERING_REF.test(text)) {
       failed = true;
-      console.log(`FAIL  ${name} (rendering pass)`);
-      console.log(`        ✗ no rendering-pass reference — a faff-* command emits human-facing output and must route it through the configured renderer (gateway → Rendering, Universal-routing rule) (FAFF-54)`);
+      reportFailure(`FAIL  ${name} (rendering pass)`);
+      reportFailure(`        ✗ no rendering-pass reference — a faff-* command emits human-facing output and must route it through the configured renderer (gateway → Rendering, Universal-routing rule) (FAFF-54)`);
     }
     // FAFF-491/530/884: the turn-survival posture must be PRESENT in the skills that
     // carry it — faff-graft's build phase (Steps 7–9b) and, per FAFF-884, faff-beep-boop's
@@ -1230,8 +1247,8 @@ function cmdValidateAdapters(args) {
       const missing = anchors.filter((p) => !lower.includes(p));
       if (missing.length) {
         failed = true;
-        console.log(`FAIL  ${name} (turn-survival posture)`);
-        console.log(`        ✗ missing turn-survival anchor phrase(s): ${missing.map((p) => JSON.stringify(p)).join(", ")} (case-insensitive; ANCHOR_PHRASES[${name}])`);
+        reportFailure(`FAIL  ${name} (turn-survival posture)`);
+        reportFailure(`        ✗ missing turn-survival anchor phrase(s): ${missing.map((p) => JSON.stringify(p)).join(", ")} (case-insensitive; ANCHOR_PHRASES[${name}])`);
       }
     }
   }
@@ -1246,8 +1263,8 @@ function cmdValidateAdapters(args) {
       const m = line.match(HANDREAD);
       if (m) {
         failed = true;
-        console.log(`FAIL  ${name} (config access)`);
-        console.log(`        ✗ hand-reads the rc file ("${m[0].trim()}") — resolve config via \`faff config\`, never read the config file directly (FAFF-50)`);
+        reportFailure(`FAIL  ${name} (config access)`);
+        reportFailure(`        ✗ hand-reads the rc file ("${m[0].trim()}") — resolve config via \`faff config\`, never read the config file directly (FAFF-50)`);
         break;
       }
     }
@@ -1273,9 +1290,9 @@ function cmdValidateAdapters(args) {
       const bad = targets.find(isInstallModeLiteral);
       if (bad) {
         failed = true;
-        console.log(`FAIL  ${name} (delegation conformance)`);
-        console.log(`        ✗ line ${i + 1}: hardcoded install-mode literal "${bad}" at a Skill-tool delegation site —`);
-        console.log(`          name the sibling by its canonical name and resolve per gateway → Sibling-skill invocation (FAFF-164/172)`);
+        reportFailure(`FAIL  ${name} (delegation conformance)`);
+        reportFailure(`        ✗ line ${i + 1}: hardcoded install-mode literal "${bad}" at a Skill-tool delegation site —`);
+        reportFailure(`          name the sibling by its canonical name and resolve per gateway → Sibling-skill invocation (FAFF-164/172)`);
       }
     }
   }
@@ -1301,16 +1318,16 @@ function cmdValidateAdapters(args) {
       const m = line.match(GET_WITH_D);
       if (m && registryKeys.has(m[1])) {
         failed = true;
-        console.log(`FAIL  ${name} (prose default)`);
-        console.log(`        ✗ line ${i + 1}: redundant \`-d\` on registry key "${m[1]}" — the registry owns the default; drop the -d (drift vector) (FAFF-191)`);
+        reportFailure(`FAIL  ${name} (prose default)`);
+        reportFailure(`        ✗ line ${i + 1}: redundant \`-d\` on registry key "${m[1]}" — the registry owns the default; drop the -d (drift vector) (FAFF-191)`);
       }
       if (DISPATCH_ANCHOR.test(line)) {
         const tokens = [...line.matchAll(/`([^`]+)`/g)].map((t) => t[1]);
         const bad = tokens.find((t) => slotDefaults.has(t));
         if (bad) {
           failed = true;
-          console.log(`FAIL  ${name} (prose default)`);
-          console.log(`        ✗ line ${i + 1}: dispatch site names bundled default "${bad}" — route through \`faff config get slots.<x>\` and name no default (FAFF-191)`);
+          reportFailure(`FAIL  ${name} (prose default)`);
+          reportFailure(`        ✗ line ${i + 1}: dispatch site names bundled default "${bad}" — route through \`faff config get slots.<x>\` and name no default (FAFF-191)`);
         }
       }
     }
@@ -1340,8 +1357,8 @@ function cmdValidateAdapters(args) {
     });
     if (hits.length) {
       failed = true;
-      console.log(`FAIL  ${rel === "SKILL.md" ? name : `${name}/${rel}`} (removed dispatch key)`);
-      for (const h of hits) console.log(`        ✗ ${h}`);
+      reportFailure(`FAIL  ${rel === "SKILL.md" ? name : `${name}/${rel}`} (removed dispatch key)`);
+      for (const h of hits) reportFailure(`        ✗ ${h}`);
     }
   }
   // FAFF-1207: commissaire `--issue` guard. Reuses the FAFF-1198 dispatchProseFiles set (every SKILL.md
@@ -1352,8 +1369,8 @@ function cmdValidateAdapters(args) {
     const findings = lintCommissaireUnitId(fs.readFileSync(file, "utf8"));
     if (findings.length) {
       failed = true;
-      console.log(`FAIL  ${rel === "SKILL.md" ? name : `${name}/${rel}`} (commissaire --issue)`);
-      for (const f of findings) console.log(`        ✗ ${f}`);
+      reportFailure(`FAIL  ${rel === "SKILL.md" ? name : `${name}/${rel}`} (commissaire --issue)`);
+      for (const f of findings) reportFailure(`        ✗ ${f}`);
     }
   }
   // FAFF-598: inline-enum-restatement lint — a skill hand-restating a lintable fixed-contract enum's
@@ -1364,8 +1381,8 @@ function cmdValidateAdapters(args) {
     const findings = lintInlineEnumRestatement(text);
     if (findings.length) {
       failed = true;
-      console.log(`FAIL  ${name} (inline enum restatement)`);
-      for (const f of findings) console.log(`        ✗ ${f}`);
+      reportFailure(`FAIL  ${name} (inline enum restatement)`);
+      for (const f of findings) reportFailure(`        ✗ ${f}`);
     }
   }
 
@@ -1374,8 +1391,8 @@ function cmdValidateAdapters(args) {
     const voiceFindings = lintVoicePointer(args, skillsDir, allSkills);
     if (voiceFindings.length) {
       failed = true;
-      console.log(`FAIL  voice-pointer (FAFF-678)`);
-      for (const f of voiceFindings) console.log(`        ✗ ${f}`);
+      reportFailure(`FAIL  voice-pointer (FAFF-678)`);
+      for (const f of voiceFindings) reportFailure(`        ✗ ${f}`);
     }
   }
 
@@ -1398,8 +1415,8 @@ function cmdValidateAdapters(args) {
     const cap = SKILL_LINE_BASELINE[name] || SKILL_LINE_CAP;
     if (lines.length > cap) {
       failed = true;
-      console.log(`FAIL  ${name} (line cap)`);
-      console.log(`        ✗ SKILL.md is ${lines.length} lines (cap ${cap}) — split or lean it (FAFF-120 charter)`);
+      reportFailure(`FAIL  ${name} (line cap)`);
+      reportFailure(`        ✗ SKILL.md is ${lines.length} lines (cap ${cap}) — split or lean it (FAFF-120 charter)`);
     } else if (Object.prototype.hasOwnProperty.call(SKILL_LINE_BASELINE, name) && lines.length < cap) {
       console.log(`RATCHET  ${name} — now ${lines.length} lines, below baseline ${cap}; lower the baseline to lock the reduction (FAFF-120)`);
     }
@@ -1411,13 +1428,13 @@ function cmdValidateAdapters(args) {
       const step9b = checkStep9bPrOpen(text);
       if (!step9b.scoped) {
         failed = true;
-        console.log(`FAIL  ${name} (Step 9b PR open)`);
-        console.log(`        ✗ faff-graft must carry a bounded Step 9b section (the \`**Step 9b:\` … \`**Step 10:\` headings around the \`faff pr open\` call); none found — a renamed or renumbered heading silently disables this guard (FAFF-1004)`);
+        reportFailure(`FAIL  ${name} (Step 9b PR open)`);
+        reportFailure(`        ✗ faff-graft must carry a bounded Step 9b section (the \`**Step 9b:\` … \`**Step 10:\` headings around the \`faff pr open\` call); none found — a renamed or renumbered heading silently disables this guard (FAFF-1004)`);
       } else if (!step9b.ok) {
         failed = true;
-        console.log(`FAIL  ${name} (Step 9b PR open)`);
-        if (!step9b.invokesPrOpen) console.log(`        ✗ Step 9b must open the PR with \`faff pr open\`, which owns the anchor-before-PR order and the anchor commit (FAFF-1416)`);
-        for (const h of step9b.hits) console.log(`        ✗ Step 9b invokes \`${h.name}\` directly (span: ${h.span}); \`faff pr open\` runs it, in order (FAFF-1416)`);
+        reportFailure(`FAIL  ${name} (Step 9b PR open)`);
+        if (!step9b.invokesPrOpen) reportFailure(`        ✗ Step 9b must open the PR with \`faff pr open\`, which owns the anchor-before-PR order and the anchor commit (FAFF-1416)`);
+        for (const h of step9b.hits) reportFailure(`        ✗ Step 9b invokes \`${h.name}\` directly (span: ${h.span}); \`faff pr open\` runs it, in order (FAFF-1416)`);
       }
     }
 
@@ -1430,8 +1447,8 @@ function cmdValidateAdapters(args) {
       const stray = STRAY_TRANSCRIPT.test(line) ? "transcript run-id" : (STRAY_RETRO.test(line) ? "retrospective war-story phrase" : null);
       if (stray) {
         failed = true;
-        console.log(`FAIL  ${name} (stray marker)`);
-        console.log(`        ✗ line ${i + 1}: ${stray} — state the rule forward; war-stories belong in git history / ADRs / design, not the prompt (FAFF-120 charter)`);
+        reportFailure(`FAIL  ${name} (stray marker)`);
+        reportFailure(`        ✗ line ${i + 1}: ${stray} — state the rule forward; war-stories belong in git history / ADRs / design, not the prompt (FAFF-120 charter)`);
       }
 
       // FAFF-584: heading collection — pools into `headings` for the anchor-resolution pass below,
@@ -1454,8 +1471,8 @@ function cmdValidateAdapters(args) {
         if (words > PARA_WORD_CAP) {
           if (isProseLine(line)) {
             failed = true;
-            console.log(`FAIL  ${name} (paragraph)`);
-            console.log(`        ✗ line ${i + 1}: ${words}-word paragraph (cap ${PARA_WORD_CAP}) — break it into bullets (FAFF-120 charter)`);
+            reportFailure(`FAIL  ${name} (paragraph)`);
+            reportFailure(`        ✗ line ${i + 1}: ${words}-word paragraph (cap ${PARA_WORD_CAP}) — break it into bullets (FAFF-120 charter)`);
           } else {
             // selected only via the bold-lead-bullet branch of isParagraphLine — advisory, not a hard
             // FAIL (15 pre-existing over-cap bullets would red-CI the tree on landing; FAFF-584 §3).
@@ -1477,8 +1494,11 @@ function cmdValidateAdapters(args) {
   // FAFF-1442: per-file byte ratchet over every SKILL.md and references/*.md, on top of the line caps
   // above (which stay unchanged). A missing baseline fails on the bundled tree (no --skills-dir) and
   // only skips with an INFO line for an explicit skills dir.
-  const prose = require("./prose-size").proseRatchet(skillsDir, values["--skills-dir"] === undefined);
-  for (const line of prose.lines) console.log(line);
+  const prose = require("./prose-size").proseRatchet(skillsDir, requireBaseline);
+  for (const line of prose.lines) {
+    if (line.startsWith("FAIL  ") || line.startsWith("        ✗")) reportFailure(line);
+    else console.log(line);
+  }
   if (prose.failed) failed = true;
   // cross-file duplicated-block report (single-source it per FAFF-115)
   const reportedDup = new Set();
@@ -1488,9 +1508,9 @@ function cmdValidateAdapters(args) {
     if (reportedDup.has(sig)) continue; // one report per offending file set
     reportedDup.add(sig);
     failed = true;
-    console.log(`FAIL  ${[...names].sort().join(", ")} (duplicated block)`);
-    console.log(`        ✗ ${DUP_BLOCK_WINDOW}+ identical lines shared across skills — give shared prose one home (gateway) and reference it, never copy (FAFF-120/115)`);
-    console.log(`          first line: "${key.split("\n")[0].slice(0, 70)}"`);
+    reportFailure(`FAIL  ${[...names].sort().join(", ")} (duplicated block)`);
+    reportFailure(`        ✗ ${DUP_BLOCK_WINDOW}+ identical lines shared across skills — give shared prose one home (gateway) and reference it, never copy (FAFF-120/115)`);
+    reportFailure(`          first line: "${key.split("\n")[0].slice(0, 70)}"`);
   }
   // FAFF-607: pool the gateway kernel + reference headings into the anchor set, so an anchor whose
   // target section moved from the monolith into faff/references/*.md still resolves. Also retain the
@@ -1547,8 +1567,8 @@ function cmdValidateAdapters(args) {
       const klen = fs.readFileSync(kernelPath, "utf8").split("\n").length;
       if (klen > KERNEL_LINE_BASELINE) {
         failed = true;
-        console.log(`FAIL  faff/references/kernel.md (kernel line cap)`);
-        console.log(`        ✗ kernel is ${klen} lines (cap ${KERNEL_LINE_BASELINE}) — the kernel is the split's lean target; move prose to a lane reference, never grow the cap (FAFF-607)`);
+        reportFailure(`FAIL  faff/references/kernel.md (kernel line cap)`);
+        reportFailure(`        ✗ kernel is ${klen} lines (cap ${KERNEL_LINE_BASELINE}) — the kernel is the split's lean target; move prose to a lane reference, never grow the cap (FAFF-607)`);
       } else if (klen < KERNEL_LINE_BASELINE) {
         console.log(`RATCHET  faff/references/kernel.md — now ${klen} lines, below baseline ${KERNEL_LINE_BASELINE}; lower KERNEL_LINE_BASELINE to lock the reduction (FAFF-607)`);
       }
@@ -1563,16 +1583,16 @@ function cmdValidateAdapters(args) {
       const readers = allSkills.filter((n) => namedRefs(skillText.get(n)).has(rf));
       if (readers.length === 0) {
         failed = true;
-        console.log(`FAIL  faff/references/${rf} (orphan reference)`);
-        console.log(`        ✗ Read by no skill — fold it into the kernel or delete it (FAFF-607)`);
+        reportFailure(`FAIL  faff/references/${rf} (orphan reference)`);
+        reportFailure(`        ✗ Read by no skill — fold it into the kernel or delete it (FAFF-607)`);
       }
     }
     for (const name of allSkills) {
       for (const rf of namedRefs(skillText.get(name))) {
         if (rf !== "kernel.md" && !refFiles.includes(rf)) {
           failed = true;
-          console.log(`FAIL  ${name} (missing reference)`);
-          console.log(`        ✗ Reads faff/references/${rf} which does not exist (FAFF-607)`);
+          reportFailure(`FAIL  ${name} (missing reference)`);
+          reportFailure(`        ✗ Reads faff/references/${rf} which does not exist (FAFF-607)`);
         }
       }
     }
@@ -1611,8 +1631,8 @@ function cmdValidateAdapters(args) {
           const missing = [...needed].filter((rf) => !declared.has(rf));
           if (missing.length) {
             failed = true;
-            console.log(`FAIL  ${name} (under-read)`);
-            console.log(`        ✗ consumes gateway block(s) placed in ${missing.sort().join(", ")} (per gateway-usage.json) but its load-line does not Read them — add them (FAFF-607)`);
+            reportFailure(`FAIL  ${name} (under-read)`);
+            reportFailure(`        ✗ consumes gateway block(s) placed in ${missing.sort().join(", ")} (per gateway-usage.json) but its load-line does not Read them — add them (FAFF-607)`);
           }
         }
       }
@@ -1631,8 +1651,8 @@ function cmdValidateAdapters(args) {
       // FAFF-281: a missing/malformed registry (with an eval/ harness present) is a structural/harness
       // error, not a lint failure — fail loud with exit 2 (the "harness can't run" code, as for an
       // absent skills dir / uncovered slot skill), distinct from a content FAIL (exit 1).
-      console.log(`FAIL  eval/seam-registry.json (seam registry)`);
-      console.log(`        ✗ ${seamErr} — both consumers fail loud on a missing/malformed registry (FAFF-280/281: exit 2)`);
+      reportFailure(`FAIL  eval/seam-registry.json (seam registry)`);
+      reportFailure(`        ✗ ${seamErr} — both consumers fail loud on a missing/malformed registry (FAFF-280/281: exit 2)`);
       return 2;
     } else if (seamReg) {
       for (const name of allSkills) {
@@ -1641,8 +1661,8 @@ function cmdValidateAdapters(args) {
           .filter(([ok]) => !ok).map(([, label]) => label);
         if (bad.length) {
           failed = true;
-          console.log(`FAIL  ${name} (judgement seam)`);
-          for (const label of bad) console.log(`        ✗ ${label}`);
+          reportFailure(`FAIL  ${name} (judgement seam)`);
+          for (const label of bad) reportFailure(`        ✗ ${label}`);
         }
       }
 
@@ -1662,8 +1682,8 @@ function cmdValidateAdapters(args) {
         if (readJudgementSeam(fs.readFileSync(skillFile, "utf8")) !== null) continue; // declared — reconcile owns it
         if (surfaces.has(name)) {
           failed = true;
-          console.log(`FAIL  ${name} (eval coverage)`);
-          console.log(`        ✗ registry surface with no \`judgement_seam:\` declaration — the registry attributes a grader KIND to it; declare its seam KIND(s) (FAFF-281 C1)`);
+          reportFailure(`FAIL  ${name} (eval coverage)`);
+          reportFailure(`        ✗ registry surface with no \`judgement_seam:\` declaration — the registry attributes a grader KIND to it; declare its seam KIND(s) (FAFF-281 C1)`);
         } else {
           console.log(`UNDECLARED  ${name} — REGISTRY slot skill, no judgement_seam key and no registry row yet (advisory; flips to FAIL when its backfill ticket registers a row)`);
         }
@@ -1677,8 +1697,8 @@ function cmdValidateAdapters(args) {
         // either, so the FAIL condition widens from {covered} to {covered, calibrated}.
         if (entry.status === "covered" || entry.status === "calibrated") {
           failed = true;
-          console.log(`FAIL  eval/cases/${kind} (eval coverage)`);
-          console.log(`        ✗ kind \`${kind}\` is registry-status \`${entry.status}\` but has 0 cases in eval/cases/ (FAFF-281 C2)`);
+          reportFailure(`FAIL  eval/cases/${kind} (eval coverage)`);
+          reportFailure(`        ✗ kind \`${kind}\` is registry-status \`${entry.status}\` but has 0 cases in eval/cases/ (FAFF-281 C2)`);
         } else if (entry.status === "designed") {
           console.log(`NEEDS-CASES  ${kind} (surface ${entry.surface}) — registry-status \`designed\`, 0 cases yet (advisory)`);
         }
@@ -1689,7 +1709,7 @@ function cmdValidateAdapters(args) {
       // same shared root. A missing/malformed frontier.json while a calibrated claim exists is
       // fail-loud (exit 2, harness-can't-run); a claim that reads fine but misses the floor is a
       // lint FAIL (exit 1, folded into `failed` below).
-      const c3 = c3CalibrationFloor(seamReg, usedRoot, casesPresent);
+      const c3 = c3CalibrationFloor(seamReg, usedRoot, casesPresent, reportFailure);
       if (c3.exit2) return 2;
       if (c3.failed) failed = true;
     }
@@ -1698,7 +1718,7 @@ function cmdValidateAdapters(args) {
   // FAFF-963: gateway-usage manifest lint (structural + reference). Runs after the seam block, off the
   // same shared root. Fail-loud (exit 2) on a missing/unparseable manifest; violations fold into `failed`.
   {
-    const m = lintGatewayManifest(root);
+    const m = lintGatewayManifest(root, reportFailure);
     if (m.exit2) return 2;
     if (m.failed) failed = true;
   }
@@ -1715,13 +1735,13 @@ function cmdValidateAdapters(args) {
       kernels = deriveCaptureKernels(libDir);
       inProcess = deriveInProcessCapture(libDir);
     } catch (e) {
-      console.log(`FAIL  capture-wiring (kernel-set derivation)`);
-      console.log(`        ✗ could not read the captureDecision kernel set from ${libDir}: ${e && e.message} — fail-closed, never a pass (FAFF-1009: exit 2)`);
+      reportFailure(`FAIL  capture-wiring (kernel-set derivation)`);
+      reportFailure(`        ✗ could not read the captureDecision kernel set from ${libDir}: ${e && e.message} — fail-closed, never a pass (FAFF-1009: exit 2)`);
       return 2;
     }
     if (kernels.length === 0) {
-      console.log(`FAIL  capture-wiring (kernel-set derivation)`);
-      console.log(`        ✗ no captureDecision kernels derived from ${libDir} — the brace-aware match found nothing; fail-closed rather than vacuously pass (FAFF-1009: exit 2)`);
+      reportFailure(`FAIL  capture-wiring (kernel-set derivation)`);
+      reportFailure(`        ✗ no captureDecision kernels derived from ${libDir} — the brace-aware match found nothing; fail-closed rather than vacuously pass (FAFF-1009: exit 2)`);
       return 2;
     }
     // FAFF-1434 / FAFF-1418: kernels a real in-process capturing invocation wires, minus any a skill also
@@ -1731,9 +1751,9 @@ function cmdValidateAdapters(args) {
     const driven = inProcessDriven(skillsDir, [...routed].sort());
     if (driven.length) {
       failed = true;
-      console.log(`FAIL  capture-wiring (in-process route, FAFF-1434)`);
+      reportFailure(`FAIL  capture-wiring (in-process route, FAFF-1434)`);
       for (const { kernel, skill } of driven) {
-        console.log(`        ✗ kernel "${kernel}" is covered by \`${commandOf(routes.get(kernel).verb)}\`'s in-process route but ${skill}/SKILL.md also drives it with its own \`decide --kernel ${kernel} --export\`; the route covers only kernels no skill drives, so drop it from IN_PROCESS_CAPTURE's covers`);
+        reportFailure(`        ✗ kernel "${kernel}" is covered by \`${commandOf(routes.get(kernel).verb)}\`'s in-process route but ${skill}/SKILL.md also drives it with its own \`decide --kernel ${kernel} --export\`; the route covers only kernels no skill drives, so drop it from IN_PROCESS_CAPTURE's covers`);
       }
     }
     const inProcessWired = new Set([...routed].filter((k) => !driven.some((d) => d.kernel === k)));
@@ -1758,9 +1778,9 @@ function cmdValidateAdapters(args) {
     const unwired = captureWiringUnwired(skillsDir, kernels, inProcessWired);
     if (unwired.length) {
       failed = true;
-      console.log(`FAIL  capture-wiring (FAFF-1009)`);
+      reportFailure(`FAIL  capture-wiring (FAFF-1009)`);
       for (const k of unwired) {
-        console.log(`        ✗ kernel "${k}" mints a base in-kernel but no SKILL.md states its \`decide --kernel ${k} --export\` runs before the \`faff ${k}\` consult — either same-line ("before ... consult" / "before ... faff ${k}") or as a distinct driver line preceding the consult within ${CAPTURE_WIRING_WINDOW} lines — so its base reads an empty correlation_id and grades nothing (FAFF-1009/FAFF-1014).${routeHint(k)}`);
+        reportFailure(`        ✗ kernel "${k}" mints a base in-kernel but no SKILL.md states its \`decide --kernel ${k} --export\` runs before the \`faff ${k}\` consult — either same-line ("before ... consult" / "before ... faff ${k}") or as a distinct driver line preceding the consult within ${CAPTURE_WIRING_WINDOW} lines — so its base reads an empty correlation_id and grades nothing (FAFF-1009/FAFF-1014).${routeHint(k)}`);
       }
     } else {
       console.log(`pass  capture-wiring — all ${kernels.length} captureDecision kernels have an adjacent \`decide --export\` (FAFF-1009)${viaNote(captureWiringUnwired(skillsDir, kernels))}`);
@@ -1768,9 +1788,9 @@ function cmdValidateAdapters(args) {
     const apart = captureSameCommandUnwired(skillsDir, kernels, inProcessWired);
     if (apart.length) {
       failed = true;
-      console.log(`FAIL  capture-same-command (FAFF-1394)`);
+      reportFailure(`FAIL  capture-same-command (FAFF-1394)`);
       for (const k of apart) {
-        console.log(`        ✗ kernel "${k}": no SKILL.md runs its driver and its consult in one command, \`eval "$(faff decision-capture decide … --kernel ${k} … --export)" && faff ${k} …\`. Each tool call is a fresh shell, so an export in one call never reaches a consult in the next and the base reads an empty correlation_id.${routeHint(k)}`);
+        reportFailure(`        ✗ kernel "${k}": no SKILL.md runs its driver and its consult in one command, \`eval "$(faff decision-capture decide … --kernel ${k} … --export)" && faff ${k} …\`. Each tool call is a fresh shell, so an export in one call never reaches a consult in the next and the base reads an empty correlation_id.${routeHint(k)}`);
       }
     } else {
       console.log(`pass  capture-same-command — all ${kernels.length} captureDecision kernels run \`decide --export\` and the consult in one command (FAFF-1394)${viaNote(captureSameCommandUnwired(skillsDir, kernels))}`);
@@ -1783,13 +1803,10 @@ function cmdValidateAdapters(args) {
   if (uncovered.length) {
     console.log("");
     for (const n of uncovered) {
-      console.log(`UNCOVERED  ${n} — a shipped slot skill with no registered checks; add it to validate-adapters`);
+      reportFailure(`UNCOVERED  ${n} — a shipped slot skill with no registered checks; add it to validate-adapters`);
     }
     return 2;
   }
-  console.log("");
-  const linted = present.filter((n) => !SKIP.has(n)).length;
-  console.log(`RESULT: ${failed ? "FAIL" : "PASS"} (${linted} slot skills linted)`);
   return failed ? 1 : 0;
 }
 

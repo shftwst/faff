@@ -35,6 +35,24 @@ function runOnFixtures(fixtures) {
 const runOne = (body, name = "zz-charter-fixture") => runOnFixtures({ [name]: body });
 const has = (r, category) => new RegExp(`\\(${category}\\)`).test(r.stdout);
 
+test("bundled lint retains each failure and its cause together at the end of a noisy report", () => {
+  const r = runOnFixtures({
+    first: "This widened definition fixes a real failure in the queue.\n",
+    second: "Calibrated against run 2026-06-12 of the suite.\n",
+  });
+  assert.equal(r.status, 1);
+  const lines = r.stdout.trimEnd().split("\n");
+  const start = lines.findIndex((line) => line.startsWith("FAIL  "));
+  assert.ok(start > lines.findLastIndex((line) => line.startsWith("WARN  ")));
+  const problems = lines.slice(start).filter(Boolean);
+  assert.equal(problems.filter((line) => line === "FAIL  first (stray marker)").length, 1);
+  assert.equal(problems.filter((line) => line === "FAIL  second (stray marker)").length, 1);
+  for (const [i, line] of problems.entries()) {
+    if (line.startsWith("FAIL  ")) assert.match(problems[i + 1], /^ +✗ /);
+  }
+  assert.match(problems.at(-1), /^RESULT: FAIL /);
+});
+
 test("flags a SKILL.md over the line cap", () => {
   const body = Array.from({ length: 601 }, (_, i) => `line ${i}`).join("\n");
   const r = runOne(body);

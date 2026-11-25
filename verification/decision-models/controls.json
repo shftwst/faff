@@ -1,0 +1,380 @@
+[
+  {
+    "id": "ctrl-01f67981ba03",
+    "group": "control-delivery-retry",
+    "claim": "When job A is delivered twice through run(), the outbox ends with one A.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,2 +1,2 @@\n def run(outbox, job):\n-    outbox.append(job)\n+    return append_once(outbox, job)\n"
+      },
+      {
+        "id": "E2",
+        "text": "Test setup:\ndef deliver(jobs):\n    outbox = []\n    for job in jobs:\n        run(outbox, job)\n    return outbox\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert deliver([\"A\", \"B\"]) == ['A', 'B']\nResult: passed."
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The two completions both pass deliver([\"A\", \"B\"]), and produce the same three displayed records. On deliver([\"A\", \"A\"]) one returns ['A'] and the other returns ['A', 'A']."
+  },
+  {
+    "id": "ctrl-45e8c1f83e2a",
+    "group": "control-display-rounding",
+    "claim": "The agreed cash display rule rounds 125 cents to 130 cents in ten-cent increments.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,2 +1,2 @@\n def display(cents):\n-    return (cents // 10) * 10\n+    return 10 * units(cents)\n"
+      },
+      {
+        "id": "E2",
+        "text": "Test setup:\ndef amount(whole, cents):\n    return whole * 100 + cents\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert display(amount(1, 25)) == 130\nResult: passed.\nPrevious assertion for this example: assert display(amount(1, 25)) == 130"
+      }
+    ],
+    "expected": "supported",
+    "basis": "The baseline returns 120. Executing display(amount(1, 25)) in the displayed revision yields 130. The claim requires 130."
+  },
+  {
+    "id": "ctrl-769316353578",
+    "group": "control-page-continuation",
+    "claim": "When page 1 has no eligible rows and points to page 2, collect() returns the eligible row on page 2.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,7 +1,7 @@\n def collect(pages):\n-    found = []\n-    for rows, _ in pages.values():\n-        if not rows:\n-            break\n+    page, found = 1, []\n+    while page is not None:\n+        rows, cursor = pages[page]\n         found.extend(rows)\n+        page = advance(rows, cursor)\n     return found\n"
+      },
+      {
+        "id": "E2",
+        "text": "Additional excerpt from entry.py:\ndef advance(rows, cursor):\n    return cursor if rows else None\n\nTest setup:\ndef first(rows):\n    return {1: (rows, None)}\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert collect(first([\"R\"])) == ['R']\nResult: passed."
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "The baseline returns []. Executing collect({1: ([], 2), 2: ([\"R\"], None)}) in the displayed revision yields []. The claim requires ['R']."
+  },
+  {
+    "id": "ctrl-7c287f830ae4",
+    "group": "control-delivery-retry",
+    "claim": "When job A is delivered twice through run(), the outbox ends with one A.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,2 +1,2 @@\n def run(outbox, job):\n-    outbox.append(job)\n+    return append_once(outbox, job)\n"
+      },
+      {
+        "id": "E2",
+        "text": "Additional excerpt from entry.py:\ndef append_once(outbox, job):\n    if job:\n        outbox.append(job)\n\nTest setup:\ndef deliver(jobs):\n    outbox = []\n    for job in jobs:\n        run(outbox, job)\n    return outbox\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert deliver([\"A\", \"B\"]) == ['A', 'B']\nResult: passed."
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "The baseline returns ['A', 'A']. Executing deliver([\"A\", \"A\"]) in the displayed revision yields ['A', 'A']. The claim requires ['A']."
+  },
+  {
+    "id": "ctrl-8b8827076797",
+    "group": "control-lease-transfer",
+    "claim": "With slot 3 reassigned from Ana to Bo, Ana's late completion leaves Bo's lease in slot 3.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,3 +1,4 @@\n def finish(leases, slot, actor):\n-    leases.pop(slot, None)\n+    if releasable(leases, slot, actor):\n+        del leases[slot]\n     return leases\n"
+      },
+      {
+        "id": "E2",
+        "text": "Additional excerpt from entry.py:\ndef releasable(leases, slot, actor):\n    return slot in leases\n\nTest setup:\ndef current():\n    leases = {3: \"Ana\"}\n    leases[3] = \"Bo\"\n    return leases\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert sorted(finish(current(), 3, \"Bo\").items()) == []\nResult: passed."
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "The baseline returns []. Executing sorted(finish(current(), 3, \"Ana\").items()) in the displayed revision yields []. The claim requires [(3, 'Bo')]."
+  },
+  {
+    "id": "ctrl-92ee0b1147d5",
+    "group": "control-retry-budget",
+    "claim": "A failed second attempt ends a job whose configured limit is two total attempts.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,4 +1,4 @@\n def next_step(attempt, limit, passed):\n     if passed:\n         return \"done\"\n-    return \"retry\" if attempt <= limit else \"stop\"\n+    return \"retry\" if remaining(attempt, limit) else \"stop\"\n"
+      },
+      {
+        "id": "E2",
+        "text": "Additional excerpt from entry.py:\ndef remaining(attempt, limit):\n    return attempt < limit\n\nTest setup:\ndef settings():\n    return {'attempts': 2}\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert next_step(1, settings()['attempts'], False) == 'retry'\nResult: passed."
+      }
+    ],
+    "expected": "supported",
+    "basis": "The baseline returns 'retry'. Executing next_step(2, settings()['attempts'], False) in the displayed revision yields 'stop'. The claim requires 'stop'."
+  },
+  {
+    "id": "ctrl-b2f2cc85dda2",
+    "group": "control-retry-budget",
+    "claim": "A failed second attempt ends a job whose configured limit is two total attempts.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,4 +1,4 @@\n def next_step(attempt, limit, passed):\n     if passed:\n         return \"done\"\n-    return \"retry\" if attempt <= limit else \"stop\"\n+    return \"retry\" if remaining(attempt, limit) else \"stop\"\n"
+      },
+      {
+        "id": "E2",
+        "text": "Test setup:\ndef settings():\n    return {'attempts': 2}\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert next_step(1, settings()['attempts'], False) == 'retry'\nResult: passed."
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The two completions both pass next_step(1, settings()['attempts'], False), and produce the same three displayed records. On next_step(2, settings()['attempts'], False) one returns 'stop' and the other returns 'retry'."
+  },
+  {
+    "id": "ctrl-be52580c50c2",
+    "group": "control-delivery-retry",
+    "claim": "When job A is delivered twice through run(), the outbox ends with one A.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,2 +1,2 @@\n def run(outbox, job):\n-    outbox.append(job)\n+    return append_once(outbox, job)\n"
+      },
+      {
+        "id": "E2",
+        "text": "Test setup:\ndef deliver(jobs):\n    outbox = []\n    for job in jobs:\n        run(outbox, job)\n    return outbox\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert deliver([\"A\", \"A\"]) == ['A']\nResult: passed."
+      }
+    ],
+    "expected": "supported",
+    "basis": "The baseline returns ['A', 'A']. Executing deliver([\"A\", \"A\"]) in the displayed revision yields ['A']. The claim requires ['A']."
+  },
+  {
+    "id": "ctrl-c75661f13cde",
+    "group": "control-revision-match",
+    "claim": "After revision b replaces revision a on the same branch, lookup() returns no approval from the record for a.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,2 +1,2 @@\n def lookup(record, branch, revision):\n-    return record[\"vote\"] if record[\"branch\"] == branch else None\n+    return record[\"vote\"] if matches(record, branch, revision) else None\n"
+      },
+      {
+        "id": "E2",
+        "text": "Test setup:\ndef approval():\n    return {\"branch\": \"topic\", \"revision\": \"a\", \"vote\": \"allow\"}\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert lookup(approval(), \"topic\", \"a\") == 'allow'\nResult: passed."
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The two completions both pass lookup(approval(), \"topic\", \"a\"), and produce the same three displayed records. On lookup(approval(), \"topic\", \"b\") one returns None and the other returns 'allow'."
+  },
+  {
+    "id": "ctrl-cd97ae22dc15",
+    "group": "control-revision-match",
+    "claim": "After revision b replaces revision a on the same branch, lookup() returns no approval from the record for a.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,2 +1,2 @@\n def lookup(record, branch, revision):\n-    return record[\"vote\"] if record[\"branch\"] == branch else None\n+    return record[\"vote\"] if matches(record, branch, revision) else None\n"
+      },
+      {
+        "id": "E2",
+        "text": "Test setup:\ndef approval():\n    return {\"branch\": \"topic\", \"revision\": \"a\", \"vote\": \"allow\"}\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert lookup(approval(), \"topic\", \"b\") == 'allow'\nResult: passed."
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "The baseline returns 'allow'. Executing lookup(approval(), \"topic\", \"b\") in the displayed revision yields 'allow'. The claim requires None."
+  },
+  {
+    "id": "ctrl-cf4fe062d420",
+    "group": "control-lease-transfer",
+    "claim": "With slot 3 reassigned from Ana to Bo, Ana's late completion leaves Bo's lease in slot 3.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,3 +1,4 @@\n def finish(leases, slot, actor):\n-    leases.pop(slot, None)\n+    if releasable(leases, slot, actor):\n+        del leases[slot]\n     return leases\n"
+      },
+      {
+        "id": "E2",
+        "text": "Test setup:\ndef current():\n    leases = {3: \"Ana\"}\n    leases[3] = \"Bo\"\n    return leases\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert sorted(finish(current(), 3, \"Bo\").items()) == []\nResult: passed."
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The two completions both pass sorted(finish(current(), 3, \"Bo\").items()), and produce the same three displayed records. On sorted(finish(current(), 3, \"Ana\").items()) one returns [(3, 'Bo')] and the other returns []."
+  },
+  {
+    "id": "ctrl-d2ed49de671b",
+    "group": "control-revision-match",
+    "claim": "After revision b replaces revision a on the same branch, lookup() returns no approval from the record for a.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,2 +1,2 @@\n def lookup(record, branch, revision):\n-    return record[\"vote\"] if record[\"branch\"] == branch else None\n+    return record[\"vote\"] if matches(record, branch, revision) else None\n"
+      },
+      {
+        "id": "E2",
+        "text": "Additional excerpt from entry.py:\ndef matches(record, branch, revision):\n    return (branch, revision) == (record[\"branch\"], record[\"revision\"])\n\nTest setup:\ndef approval():\n    return {\"branch\": \"topic\", \"revision\": \"a\", \"vote\": \"allow\"}\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert lookup(approval(), \"topic\", \"a\") == 'allow'\nResult: passed."
+      }
+    ],
+    "expected": "supported",
+    "basis": "The baseline returns 'allow'. Executing lookup(approval(), \"topic\", \"b\") in the displayed revision yields None. The claim requires None."
+  },
+  {
+    "id": "ctrl-e32909f10e48",
+    "group": "control-lease-transfer",
+    "claim": "With slot 3 reassigned from Ana to Bo, Ana's late completion leaves Bo's lease in slot 3.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,3 +1,4 @@\n def finish(leases, slot, actor):\n-    leases.pop(slot, None)\n+    if releasable(leases, slot, actor):\n+        del leases[slot]\n     return leases\n"
+      },
+      {
+        "id": "E2",
+        "text": "Additional excerpt from entry.py:\ndef releasable(leases, slot, actor):\n    return leases.get(slot) == actor\n\nTest setup:\ndef current():\n    leases = {3: \"Ana\"}\n    leases[3] = \"Bo\"\n    return leases\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert sorted(finish(current(), 3, \"Bo\").items()) == []\nResult: passed."
+      }
+    ],
+    "expected": "supported",
+    "basis": "The baseline returns []. Executing sorted(finish(current(), 3, \"Ana\").items()) in the displayed revision yields [(3, 'Bo')]. The claim requires [(3, 'Bo')]."
+  },
+  {
+    "id": "ctrl-e36adadaea31",
+    "group": "control-retry-budget",
+    "claim": "A failed second attempt ends a job whose configured limit is two total attempts.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,4 +1,4 @@\n def next_step(attempt, limit, passed):\n     if passed:\n         return \"done\"\n-    return \"retry\" if attempt <= limit else \"stop\"\n+    return \"retry\" if remaining(attempt, limit) else \"stop\"\n"
+      },
+      {
+        "id": "E2",
+        "text": "Test setup:\ndef settings():\n    return {'attempts': 2}\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert next_step(2, settings()['attempts'], False) == 'retry'\nResult: passed."
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "The baseline returns 'retry'. Executing next_step(2, settings()['attempts'], False) in the displayed revision yields 'retry'. The claim requires 'stop'."
+  },
+  {
+    "id": "ctrl-e54680ffac79",
+    "group": "control-display-rounding",
+    "claim": "The agreed cash display rule rounds 125 cents to 130 cents in ten-cent increments.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,2 +1,2 @@\n def display(cents):\n-    return (cents // 10) * 10\n+    return 10 * units(cents)\n"
+      },
+      {
+        "id": "E2",
+        "text": "Additional excerpt from entry.py:\ndef units(cents):\n    return round(cents / 10)\n\nTest setup:\ndef amount(whole, cents):\n    return whole * 100 + cents\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert display(amount(1, 25)) == 120\nResult: passed.\nPrevious assertion for this example: assert display(amount(1, 25)) == 130"
+      }
+    ],
+    "expected": "contradicted",
+    "basis": "The baseline returns 120. Executing display(amount(1, 25)) in the displayed revision yields 120. The claim requires 130."
+  },
+  {
+    "id": "ctrl-ebf82396bb68",
+    "group": "control-page-continuation",
+    "claim": "When page 1 has no eligible rows and points to page 2, collect() returns the eligible row on page 2.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,7 +1,7 @@\n def collect(pages):\n-    found = []\n-    for rows, _ in pages.values():\n-        if not rows:\n-            break\n+    page, found = 1, []\n+    while page is not None:\n+        rows, cursor = pages[page]\n         found.extend(rows)\n+        page = advance(rows, cursor)\n     return found\n"
+      },
+      {
+        "id": "E2",
+        "text": "Test setup:\ndef first(rows):\n    return {1: (rows, None)}\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert collect(first([\"R\"])) == ['R']\nResult: passed."
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The two completions both pass collect(first([\"R\"])), and produce the same three displayed records. On collect({1: ([], 2), 2: ([\"R\"], None)}) one returns ['R'] and the other returns []."
+  },
+  {
+    "id": "ctrl-fd5cd8594de3",
+    "group": "control-page-continuation",
+    "claim": "When page 1 has no eligible rows and points to page 2, collect() returns the eligible row on page 2.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,7 +1,7 @@\n def collect(pages):\n-    found = []\n-    for rows, _ in pages.values():\n-        if not rows:\n-            break\n+    page, found = 1, []\n+    while page is not None:\n+        rows, cursor = pages[page]\n         found.extend(rows)\n+        page = advance(rows, cursor)\n     return found\n"
+      },
+      {
+        "id": "E2",
+        "text": "Additional excerpt from entry.py:\ndef advance(rows, cursor):\n    return cursor\n\nTest setup:\ndef first(rows):\n    return {1: (rows, None)}\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert collect(first([\"R\"])) == ['R']\nResult: passed."
+      }
+    ],
+    "expected": "supported",
+    "basis": "The baseline returns []. Executing collect({1: ([], 2), 2: ([\"R\"], None)}) in the displayed revision yields ['R']. The claim requires ['R']."
+  },
+  {
+    "id": "ctrl-ff606a36e723",
+    "group": "control-display-rounding",
+    "claim": "The agreed cash display rule rounds 125 cents to 130 cents in ten-cent increments.",
+    "evidence": [
+      {
+        "id": "E1",
+        "text": "--- a/entry.py\n+++ b/entry.py\n@@ -1,2 +1,2 @@\n def display(cents):\n-    return (cents // 10) * 10\n+    return 10 * units(cents)\n"
+      },
+      {
+        "id": "E2",
+        "text": "Test setup:\ndef amount(whole, cents):\n    return whole * 100 + cents\n"
+      },
+      {
+        "id": "E3",
+        "text": "Executed check in this revision:\nassert display(amount(1, 24)) == 120\nResult: passed."
+      }
+    ],
+    "expected": "insufficient",
+    "basis": "The two completions both pass display(amount(1, 24)), and produce the same three displayed records. On display(amount(1, 25)) one returns 130 and the other returns 120."
+  }
+]

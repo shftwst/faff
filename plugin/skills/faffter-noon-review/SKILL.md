@@ -2,18 +2,20 @@
 name: faffter-noon-review
 description: "Default review slot via faff-graft: senior-engineer diff review for acceptance coverage, bugs, scope and human judgement; return a review verdict."
 user-invocable: false
+context: fork
+background: false
 judgement_seam: verdict-revert, verdict-build, finding-identity
 ---
 
 # faffter-noon-review
 
-Default `review` slot when none is configured. Faff-graft invokes this senior-engineer review at Step 9, after build and passing local tests, before opening the PR, in interactive and autonomous modes. The gateway owns the fixed verdict contract and envelope (`faff contract review-verdict --describe`); this producer owns the five passes and finding-to-verdict judgement.
+Default `review` slot for graft Step 9 in both modes, after local tests pass and before PR open. The gateway owns the fixed verdict contract and envelope (`faff contract review-verdict --describe`); this producer owns the five passes and finding-to-verdict judgement.
 
 Faff-graft opens Step 9b's PR only after `pass`. It accumulates per-pass findings in `.faff/logs` and posts the final verdict as one tracker-issue comment. Return findings; do not post per-pass comments. Iteration, PR creation and parking belong to the caller.
 
 ## Input
 
-The caller supplies:
+Review the supplied evidence from $ARGUMENTS.
 
 - Full diff: `git diff main...HEAD`.
 - Spec committed under `docs/specs/` on the feature branch.

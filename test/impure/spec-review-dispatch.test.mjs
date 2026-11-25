@@ -121,6 +121,21 @@ for (const [lenses, expected] of [
   });
 }
 
+test("a completed four-lens rejection survives a lingering fan-out handle", async t => {
+  const claim = "A".repeat(128 * 1024);
+  const f = await fixture(t, false, () => "### major: Missing acceptance check\n- claim: " + claim);
+  const preload = join(f.root, "lingering-handle.cjs");
+  writeFileSync(preload, 'if (require("node:path").basename(process.argv[1] || "") === "fan-out.mjs") setInterval(() => {}, 60000);');
+  f.env.NODE_OPTIONS = [f.env.NODE_OPTIONS, '--require "' + preload + '"'].filter(Boolean).join(" ");
+  const result = await f.call("--turn-budget-secs", "8");
+  assert.equal(f.requests.length, 4);
+  assert.equal(result.code, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout.split("\n")[1]).verdict, "reject-approach");
+  for (const lens of ["architectural", "infosec", "methodology", "QA"]) {
+    assert.ok(readFileSync(join(f.root, "pin", "round-1-" + lens + ".md"), "utf8").includes(claim));
+  }
+});
+
 test("healthy slow transport hands back without a verdict or pin, then resumes on the same round", async t => {
   const f = await fixture(t, false, async () => {
     await delay(1600);

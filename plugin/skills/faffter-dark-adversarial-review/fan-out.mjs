@@ -31,7 +31,7 @@ export const REVIEW_CALL_PATH = pathJoin(HERE, "review-call.mjs");
 // FAFF-990: import the transport's exported truncation marker as the SINGLE SOURCE OF TRUTH. The
 // shared import is what makes a rename on either side a CI failure (the fan-out drift test), never a
 // silent revert to config-fault/park in production.
-import { TRUNCATION_SIGNAL, PRIMARY_SKIP_SIGNAL } from "./review-call.mjs";
+import { armExitBackstop, TRUNCATION_SIGNAL, PRIMARY_SKIP_SIGNAL } from "./review-call.mjs";
 
 // PURE: did the child's stderr carry the truncation marker? A LINE-ANCHORED EQUALITY — some trimmed
 // stderr line must equal TRUNCATION_SIGNAL exactly — never a substring scan of the whole blob. Every
@@ -312,5 +312,9 @@ export function entrypoint_href(argv1) {
 }
 
 if (import.meta.url === entrypoint_href(process.argv[1])) {
-  main(process.argv.slice(2)).then((code) => { process.exitCode = code; });
+  main(process.argv.slice(2)).then((code) => {
+    process.exitCode = code;
+    // All children have closed. Flush the result before a lingering handle costs the caller a retry.
+    if (code === 0) armExitBackstop(code, { label: "fan-out" });
+  });
 }

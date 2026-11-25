@@ -1,5 +1,6 @@
 // === region:factory — prepare independent spec-review lens requests ===
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readFileSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -11,11 +12,11 @@ const { resolvePinChain } = require("./spec-review-pin");
 const { filterEligible, readReputation, reportEligibleFilter } = require("./spec-review-reputation");
 const { nextRoundNumber } = require("./spec-review-window");
 
-const usage = "usage: faff spec-review prepare-requests --dir DIR --spec FILE [--lenses CSV] [--context FILE]... [--root DIR]";
+const usage = "usage: faff spec-review prepare-requests --dir DIR --spec FILE [--snapshot-spec] [--lenses CSV] [--context FILE]... [--root DIR]";
 const argumentsSpec = {
   positionals: { min: 0, max: 0 },
   flags: {
-    "--dir": { arity: 1 }, "--spec": { arity: 1 }, "--lenses": { arity: 1 },
+    "--snapshot-spec": { arity: 0 }, "--dir": { arity: 1 }, "--spec": { arity: 1 }, "--lenses": { arity: 1 },
     "--context": { arity: 1, repeatable: true }, "--root": { arity: 1 },
   },
 };
@@ -118,13 +119,29 @@ export function cmdPrepareRequests(argv: string[], systemDir: string, buildLensR
     scratch = mkdtempSync(join(tmpdir(), "faff-spec-review-"));
     const backends_path = join(scratch, "backends.json");
     const requests_path = join(scratch, "requests.json");
+    let specPath = diffPath;
+    let spec_sha256: string | undefined;
+    if (values["--snapshot-spec"]) {
+      let bytes: Buffer;
+      try {
+        bytes = readFileSync(diffPath);
+      } catch {
+        rmSync(scratch, { recursive: true, force: true });
+        warn("cannot read the staged spec for review");
+        process.stdout.write(JSON.stringify({ round, spec_unreadable: true }) + "\n");
+        return 2;
+      }
+      specPath = join(scratch, "reviewed-spec.md");
+      writeFileSync(specPath, bytes, { mode: 0o400, flag: "wx" });
+      spec_sha256 = createHash("sha256").update(bytes).digest("hex");
+    }
     const requests = buildLensRequests({
       lenses, backendsJson: backends_path, timeout, maxTokens, deadline, systemDir,
-      contextPaths, diffPath, rawDir: `${dir}/raw`, round,
+      contextPaths, diffPath: specPath, rawDir: `${dir}/raw`, round,
     });
     writeFileSync(backends_path, JSON.stringify(chain) + "\n", { mode: 0o600 });
     writeFileSync(requests_path, JSON.stringify(requests) + "\n", { mode: 0o600 });
-    process.stdout.write(JSON.stringify({ round, strategy, backends_path, requests_path }) + "\n");
+    process.stdout.write(JSON.stringify({ round, strategy, backends_path, requests_path, spec_sha256 }) + "\n");
     return 0;
   } catch (error) {
     if (scratch) rmSync(scratch, { recursive: true, force: true });

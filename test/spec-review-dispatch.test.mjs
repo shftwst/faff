@@ -40,3 +40,30 @@ test("dispatch records configuration faults and refuses invalid selections, part
     verdict: "needs-human", objections: [{ lens: "QA", severity: "blocker" }],
   });
 });
+
+test("recording a fresh unserved review keeps the ordinary park and requires its own bounded issue", t => {
+  const root = mkdtempSync(join(tmpdir(), "faff-record-review-"));
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const dir = join(root, ".faff", "spec-review", "ABC-1");
+  writeFileSync(join(root, ".faffrc.yaml"), "adversarial:\n  backends: []\n");
+  const env = { ...process.env };
+  delete env.FAFF_RUN_DIR;
+  const call = (...flags) => runCli(["spec-review", "dispatch", "--dir", dir, "--spec", "draft.md",
+    "--root", root, "--record-round", "interactive", ...flags], { cwd: root, env });
+  for (const flags of [["--turn-budget-secs", "10"], ["--issue", "ABC-2", "--turn-budget-secs", "10"],
+    ["--issue", "ABC-1", "--turn-budget-secs", "10", "--retry-lenses", "QA"]]) {
+    assert.equal(call(...flags).code, 2);
+    assert.ok(!existsSync(dir));
+  }
+  writeFileSync(join(root, ".faffrc.yaml"), "prep:\n  spec_review_turn_budget_secs: false\n");
+  assert.equal(call("--issue", "ABC-1").code, 2);
+  assert.ok(!existsSync(dir));
+  writeFileSync(join(root, ".faffrc.yaml"), "adversarial:\n  backends: []\n");
+  const result = call("--issue", "ABC-1");
+  assert.equal(result.code, 0, result.stderr);
+  const decision = JSON.parse(result.stdout);
+  assert.equal(decision.action, "park");
+  assert.equal(decision.verdict, "needs-human");
+  assert.deepEqual(decision, JSON.parse(readFileSync(join(dir, "decision-1.json"))));
+  assert.equal(existsSync(join(dir, "served-1.json")), false);
+});

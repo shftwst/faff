@@ -13,11 +13,16 @@ const { nextRoundNumber } = require("./spec-review-window");
 const { readGovernanceConfig } = require("./budget");
 const { heartbeatStaleSecs } = require("./runcheck");
 const { sentryThresholds } = require("./sentry");
-const { findRoot } = require("./shared-infra");
+const { dig, findRoot } = require("./shared-infra");
+const { DEFAULTS, fmt, loadConfig } = require("./config");
 const { specReviewDir } = require("./spec-review-pin");
+const { cmdInflightcheck } = require("./inflightcheck");
+const { runRound, withRoundLock } = require("./spec-review-round");
 const { DEFAULT_RENEWAL_SECS, defaultHeartbeatTick, makeLease, withHeartbeatRenewal } = require("./supervisor");
-const usage = "usage: faff spec-review dispatch --dir DIR --spec FILE [--enabled-lenses CSV | --retry-lenses CSV] [--context FILE]... [--root DIR] [--turn-budget-secs SECONDS] [--run-dir DIR]";
+const usage = "usage: faff spec-review dispatch --dir DIR --spec FILE [--enabled-lenses CSV | --retry-lenses CSV] [--context FILE]... [--root DIR] [--turn-budget-secs SECONDS] [--run-dir DIR] [--record-round interactive|autonomous --issue ID [--prepare-attachment SHA256]]";
 const flags = {
+    "--prepare-attachment": { arity: 1 },
+    "--record-round": { arity: 1, enum: ["interactive", "autonomous"] }, "--issue": { arity: 1 },
     "--dir": { arity: 1 }, "--spec": { arity: 1 }, "--context": { arity: 1, repeatable: true },
     "--enabled-lenses": { arity: 1 }, "--retry-lenses": { arity: 1 }, "--run-dir": { arity: 1 }, "--root": { arity: 1 }, "--turn-budget-secs": { arity: 1 },
 };
@@ -53,10 +58,20 @@ async function runFanOut(args, out, seconds, runDir, supervise) {
 async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
     const { values, errors } = parseArgs(argv, { flags, positionals: { min: 0, max: 0 } });
     const dir = values["--dir"], spec = values["--spec"];
-    const budget = values["--turn-budget-secs"];
-    const seconds = budget === undefined ? undefined : Number(budget);
     if (errors.length)
         return usageError(errors, usage);
+    const mode = values["--record-round"];
+    const reviewedSha = values["--prepare-attachment"];
+    if (reviewedSha !== undefined && (!mode || !/^[0-9a-f]{64}$/.test(reviewedSha))) {
+        return usageError([{ code: "bad-value", detail: "--prepare-attachment needs --record-round and a staged SHA-256" }], usage);
+    }
+    let budget = values["--turn-budget-secs"];
+    if (mode && budget === undefined) {
+        const key = "prep.spec_review_turn_budget_secs";
+        const [config] = loadConfig(values["--root"] ?? findRoot());
+        budget = fmt(dig(config, key) ?? DEFAULTS[key]);
+    }
+    const seconds = budget === undefined ? undefined : Number(budget);
     if (!dir || !spec || (seconds !== undefined && (!Number.isFinite(seconds) || seconds <= 0 || seconds * 1000 > 2147483647))) {
         return usageError([{ code: "bad-value", detail: "provide a directory, spec, and a valid positive budget when supplied" }], usage);
     }
@@ -78,6 +93,47 @@ async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
         args.push("--context", file);
     if (values["--root"])
         args.push("--root", values["--root"]);
+    if (reviewedSha)
+        args.push("--snapshot-spec");
+    const issue = values["--issue"];
+    if (mode === undefined && issue === undefined) {
+        return dispatchBatch(args, dir, lenses, seconds, runDir, retry !== undefined, faff, fanOut, supervise, (_round, recordArgs, retainVotes) => recorder(recordArgs, lenses, retainVotes));
+    }
+    const root = values["--root"] ?? findRoot();
+    if (!mode || typeof issue !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(issue) ||
+        retry !== undefined || seconds === undefined || (!runDir && process.env.FAFF_RUN_DIR) ||
+        (0, node_path_1.resolve)(dir) !== (runDir ? (0, node_path_1.resolve)(specReviewDir(issue, runDir)) : (0, node_path_1.resolve)(root, specReviewDir(issue)))) {
+        return usageError([{ code: "bad-value", detail: "--record-round requires a fresh bounded selection, its --issue and its spec-review directory; pass the exact --run-dir under a run" }], usage);
+    }
+    // A prep dispatch for the same issue can already have its own marker in this owner's scope.
+    const marker = ["--root", root, "--key", `spec-review.${issue}.${process.pid}`];
+    const owner = runDir ? { ...process.env, FAFF_RUN_DIR: runDir } : process.env;
+    const opened = cmdInflightcheck(["--open", ...marker, "--describe", "spec-review"], owner);
+    if (opened !== 0)
+        return opened;
+    try {
+        const finish = (round, recordArgs, retainVotes) => withRoundLock(dir, () => {
+            if (nextRoundNumber(dir) !== round) {
+                process.stderr.write(`spec-review dispatch: another caller advanced round ${round}; this batch was not recorded\n`);
+                return 2;
+            }
+            let retryFile;
+            const saveVotes = retainVotes && ((entries) => { retryFile = retainVotes(entries); });
+            return recorder(recordArgs, lenses, saveVotes, (verdictText, served) => {
+                const decision = runRound({
+                    issue, dir, verdictText, mode, occupant: "adversarial", served: served ? "any" : "none",
+                    runDir: runDir ?? null, root, appetite: null, retryLimit: null, retryEntries: retryFile, reviewedSha,
+                });
+                process.stdout.write(JSON.stringify(decision) + "\n");
+            });
+        });
+        return await dispatchBatch(args, dir, lenses, seconds, runDir, false, faff, fanOut, supervise, finish, reviewedSha);
+    }
+    finally {
+        cmdInflightcheck(["--close", ...marker], owner);
+    }
+}
+async function dispatchBatch(args, dir, lenses, seconds, runDir, retry, faff, fanOut, supervise, finish, reviewedSha) {
     const prepared = (0, node_child_process_1.spawnSync)(process.execPath, [faff, "spec-review", "prepare-requests", ...args], {
         encoding: "utf8", stdio: ["ignore", "pipe", "inherit"],
     });
@@ -88,12 +144,14 @@ async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
         descriptor = JSON.parse(prepared.stdout);
     }
     catch { /* Use the ordinary no-results path. */ }
+    if (reviewedSha && descriptor?.spec_unreadable)
+        return 2;
     const round = Number.isSafeInteger(descriptor?.round) && descriptor.round > 0 ? descriptor.round : nextRoundNumber(dir);
     const recordArgs = ["--dir", dir, "--round", String(round)];
-    if (retry !== undefined)
+    if (retry)
         recordArgs.push("--receipts-only");
     const noResults = () => {
-        const code = recorder([...recordArgs, "--no-results"], lenses);
+        const code = finish(round, [...recordArgs, "--no-results"]);
         if (!code)
             process.stderr.write(`spec-review: served 0/${lenses.length} lenses\n`);
         return code;
@@ -103,6 +161,11 @@ async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
         return noResults();
     // prepare-requests owns this private scratch directory. Both handoff files survive a recording failure.
     const scratch = (0, node_path_1.dirname)(descriptor.requests_path);
+    if (reviewedSha && descriptor.spec_sha256 !== reviewedSha) {
+        (0, node_fs_1.rmSync)(scratch, { recursive: true, force: true });
+        process.stderr.write("spec-review dispatch: spec changed since the reviewed stage; restage before dispatch\n");
+        return 2;
+    }
     const results = (0, node_path_1.join)(scratch, "results.json");
     let keep = true;
     try {
@@ -122,11 +185,12 @@ async function cmdDispatch(argv, faff, fanOut, supervise, recorder) {
         const complete = outcome.status === "exited" && outcome.innerExit === 0;
         if (complete && (0, node_fs_1.readFileSync)(results, "utf8").trim().length > 0) {
             let savedVotes = false;
-            const status = recorder([...recordArgs, "--results", results, "--backends-json", descriptor.backends_path, "--strategy", descriptor.strategy], lenses, entries => {
+            const status = finish(round, [...recordArgs, "--results", results, "--backends-json", descriptor.backends_path, "--strategy", descriptor.strategy], entries => {
                 const votes = (0, node_path_1.join)(scratch, "retry-entries.json");
                 (0, node_fs_1.writeFileSync)(votes, JSON.stringify(entries) + "\n", { flag: "wx", mode: 0o600 });
                 savedVotes = true;
                 process.stderr.write("spec-review dispatch: carry prior lens entries from " + votes + "\n");
+                return votes;
             });
             keep = status !== 0 || savedVotes;
             return status;

@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import * as fs from 'node:fs';
-import { join, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
@@ -89,6 +89,7 @@ test('real CLI assembles without a container every round and removes stale conte
   fs.rmSync(register);
   run = call(input);
   assert.equal(run.status, 3); assert.equal(JSON.parse(run.stdout).status, 'absent'); assert.equal(fs.existsSync(file), false);
+  assert.equal(JSON.parse(run.stdout).scratch_dir, dirname(file));
 });
 test('unreadable register removes stale context and returns needs-human without folding', t => {
   const input = fixture(t);
@@ -128,6 +129,7 @@ test('run ledger container and PRD are reread while source files remain unchange
   const before = fs.readFileSync(ledger, 'utf8');
   const result = prepareContext(input);
   assert.equal(result.file, join(input.runDir, input.issue, 'spec-review/ratified-scope.md'));
+  assert.equal(result.scratch_dir, dirname(result.file));
   assert.match(fs.readFileSync(result.file, 'utf8'), /No replication/);
   assert.equal(fs.readFileSync(ledger, 'utf8'), before);
   fs.writeFileSync(ledger, '{}');
@@ -233,4 +235,17 @@ test('explicit run-directory endpoint rejects symlink redirection but supports a
   const accepted = call(input);
   assert.equal(accepted.status, 0, accepted.stderr);
   assert.equal(JSON.parse(accepted.stdout).file, join(outside, input.issue, 'spec-review/ratified-scope.md'));
+});
+
+test('prep-context returns the same scratch spelling as spec-review-dir for direct provider context', t => {
+  const input = fixture(t);
+  for (const run of [[], ['--run-dir', '.faff/runs/relative-owner']]) {
+    const invoke = args => spawnSync(process.execPath, [bin, ...args], { cwd: input.root, input: '[]', encoding: 'utf8',
+      env: { ...process.env, FAFF_RUN_DIR: '' } });
+    const ordinary = invoke(['spec-review-dir', '--issue', input.issue, ...run]);
+    const prepared = invoke(['prep-context', '--issue', input.issue, ...run, '--root', input.root, '--resolutions-file', '-']);
+    assert.equal(ordinary.status, 0, ordinary.stderr);
+    assert.equal(prepared.status, 3, prepared.stderr);
+    assert.equal(JSON.parse(prepared.stdout).scratch_dir, ordinary.stdout.trim());
+  }
 });

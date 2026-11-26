@@ -2844,6 +2844,7 @@ export async function main(argv, { runReviewFn = runReview, checkFn = realCheck 
 export const EXIT_BACKSTOP_GRACE_MS = 2000;
 export function armExitBackstop(code, {
   graceMs = EXIT_BACKSTOP_GRACE_MS,
+  label = "review-call",
   write = (s) => process.stderr.write(s),
   exit = (c) => process.exit(c),
   flush = (cb) => process.stdout.write("", cb),
@@ -2852,7 +2853,7 @@ export function armExitBackstop(code, {
   const t = setTimeout(() => {
     let kinds;
     try { kinds = activeResources().join(", "); } catch { kinds = ""; }
-    write(`review-call: process still alive ${graceMs}ms after main returned exit ${code}; leaked handle(s): ${kinds || "unknown"}; forcing exit ${code} (FAFF-1239)\n`);
+    write(`${label}: process still alive ${graceMs}ms after main returned exit ${code}; leaked handle(s): ${kinds || "unknown"}; forcing exit ${code} (FAFF-1239)\n`);
     flush(() => exit(code));
   }, graceMs);
   t.unref();

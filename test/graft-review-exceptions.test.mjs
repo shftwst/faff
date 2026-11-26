@@ -23,7 +23,7 @@ test("critical, unavailable and incomplete rounds share a procedure, while clean
   assert.match(procedure, /build-judge-evidence --assemble/);
   assert.match(procedure, /resume-store prepare-hold/);
   assert.doesNotMatch(review, /build-review-round record|build-judge-evidence --assemble|resume-store prepare-hold/);
-  assert.match(review, /round ordinal.*next_round/);
+  assert.match(review, /For Phase-2 criticals retain round 1 or the resumed `next_round`/);
   assert.match(review, /Remote-backed review diff/);
   assert.match(review, /evidence record-review-round/);
   assert.match(review, /Clearing a hold[\s\S]*?build-claim release --issue/);

@@ -1,6 +1,8 @@
 // === region:factory — select convergence mode for a concrete run ===
 const { parseArgs, usageError } = require("./argv");
-const { findRoot, readLedger } = require("./shared-infra");
+const fs: typeof import("node:fs") = require("node:fs");
+const path: typeof import("node:path") = require("node:path");
+const { mainWorktreeRoot, writeOwnerOnlyJson, findRoot, readLedger } = require("./shared-infra");
 const { loadConfig } = require("./config");
 const { resolveConvergence } = require("./config-resolve");
 
@@ -28,10 +30,44 @@ export function cmdWaveMode(args: string[]): number {
     const fold = ledger.level === "L4" || Boolean(values["--converge"]) ||
       (!values["--no-converge"] && resolveConvergence(loadConfig(values["--root"] || findRoot())[0], {}) !== "false");
     const consult = fold || Boolean(values["--git-only"]);
+    writeOwnerOnlyJson(path.join(values["--run-dir"], "wave-mode.json"), { run_id: path.basename(path.resolve(values["--run-dir"])), fold });
     console.log(JSON.stringify({ fold, consult }));
     return 0;
   } catch (error) {
     process.stderr.write("faff run wave-mode: " + (error instanceof Error ? error.message : String(error)) + "\n");
     return 2;
+  }
+}
+
+// Only a tracker-acknowledged contained create from this run can supplement its labels.
+// Legacy events also counted deferred/self-intake filings, so their mere presence is insufficient.
+export function discoveredInWave(root: string, dir?: string): Set<string> {
+  const found = new Set<string>();
+  if (!dir) return found;
+  try {
+    const actual = fs.realpathSync(dir);
+    const parent = path.dirname(actual);
+    const localRuns = path.join(fs.realpathSync(root), ".faff", "runs");
+    if (parent !== localRuns) {
+      const main = mainWorktreeRoot(root);
+      if (!main || parent !== path.join(fs.realpathSync(main), ".faff", "runs")) return found;
+    }
+    const run = path.basename(actual);
+    const mode = JSON.parse(fs.readFileSync(path.join(actual, "wave-mode.json"), "utf8"));
+    const ledger = readLedger(actual);
+    if (mode.run_id !== run || mode.fold !== true || ledger.run_id !== run || ledger.stop_reason) return found;
+    const lines = fs.readFileSync(path.join(actual, "events.jsonl"), "utf8").trim().split("\n");
+    let started = false;
+    for (const line of lines) {
+      const event = JSON.parse(line);
+      if (event.run_id !== run || event.type === "run-end") return new Set();
+      if (event.phase !== "run") continue;
+      if (event.type === "run-start") started = true;
+      if (started && event.type === "discovered-scope-filed" && event.data?.source === "contained"
+          && typeof event.issue === "string") found.add(event.issue);
+    }
+    return found;
+  } catch {
+    return new Set();
   }
 }

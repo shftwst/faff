@@ -41,7 +41,7 @@ faff next --status <S> --spec none|low|medium|high [--not-eligible] [--parked] [
 ```
 
 - Map live status to `backlog|todo|in-progress|in-review|done|cancelled|duplicate`. Use the retained **Spec discovery** confidence or `none`.
-- Add `--not-eligible` when `faff eligible` returns false for the fresh labels (`--held` is its deprecated alias). Add `--parked` for the park label and `--awaiting-spec-review` for the review-outage label. Park wins over outage. An outage returns to prep before considering confidence.
+- Add `--not-eligible` when `faff eligible --issue "$issue"` returns false (`--held` is its deprecated alias). Add `--parked` for the park label and `--awaiting-spec-review` for the review-outage label. Park wins over outage. An outage returns to prep before considering confidence.
 - Add `--blocked` only for a live external blocker. Use the batch's `blocked` IDs where supported, otherwise resolve blocker states live. Queue members are serialised by conflict analysis.
 
 Use `{next,reason}` at this decision point. For crank-up proposals or the On-hold report, `--if-eligible` previews an ineligible issue's route and marks it `would_be_eligible:true`. Terminal states still win. The flag grants no eligibility and has no effect on eligible issues.

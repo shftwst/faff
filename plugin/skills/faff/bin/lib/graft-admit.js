@@ -10,6 +10,7 @@
 // nothing. Any input it cannot establish exits 2, and callers refuse before a worktree exists.
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
+const run_wave_mode_1 = require("./run-wave-mode");
 const fs = require("node:fs");
 const path = require("node:path");
 const nextApi = require("./next");
@@ -187,9 +188,10 @@ function admit(opts) {
     const awaitingSpecReview = labelSet.has(roleName("awaiting-spec-review"));
     const trackerPresent = facts.tracker.mode === "tracker";
     const normLabels = eligibleApi.normalizeEligibilityLabels(facts.labels, prefix, automateName);
-    const eligible = eligibleApi.automationEligible(normLabels, "opt-in", trackerPresent);
+    const labelled = eligibleApi.automationEligible(normLabels, "opt-in", trackerPresent);
+    const eligible = labelled || (!interactive && (0, run_wave_mode_1.discoveredInWave)(root, opts.runDir).has(facts.issue));
     out.kernels.eligible = { eligible };
-    cap.base("eligible", { labels: normLabels, automationDefault: "opt-in", trackerPresent }, { eligible });
+    cap.base("eligible", { labels: normLabels, automationDefault: "opt-in", trackerPresent }, { eligible: labelled });
     // 3. next, always consulted. Terminal statuses win, as nextStep itself orders them.
     const nextInput = {
         status: facts.status,
@@ -373,7 +375,7 @@ function cmdGraftAdmit(args) {
         || (envRunDir !== undefined && envRunDir !== "" ? path.basename(envRunDir.replace(/[\\/]+$/, "")) : "");
     let out;
     try {
-        out = admit({ mode, facts, specText, sessionId, run, wave: str(values["--wave"]), now, root, env: process.env });
+        out = admit({ mode, facts, specText, sessionId, run, runDir: runArg, wave: str(values["--wave"]), now, root, env: process.env });
     }
     catch (e) {
         // Fail closed: an input the command could not establish (AdmitFailure) and any unexpected fault

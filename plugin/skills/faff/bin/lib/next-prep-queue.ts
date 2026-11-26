@@ -36,7 +36,7 @@ function prepQueue(input: unknown, prefix: string, names: Record<string, string>
     throw new Error("expected complete:true and an ordered issues array");
   }
   const ids = new Set<string>();
-  const prep: string[] = [];
+  const candidates = new Map<string, { id: string; needsPrep: boolean; blockers: string[] }>();
   const name = (role: string) => names[role] ?? `${prefix}-${role}`;
   const automate = name("automate");
   const parked = name("parked");
@@ -45,6 +45,7 @@ function prepQueue(input: unknown, prefix: string, names: Record<string, string>
     if (!object(row) || typeof row.id !== "string" || row.id === "" || row.id !== row.id.trim() ||
         typeof row.status !== "string" || typeof row.spec !== "string" ||
         !strings(row.labels) || typeof row.blocked !== "boolean" ||
+        (row.open_blockers !== undefined && (!strings(row.open_blockers) || row.blocked !== (row.open_blockers.length > 0))) ||
         (row.awaiting_spec_review !== undefined && typeof row.awaiting_spec_review !== "boolean")) {
       throw new Error(`issues[${index}] has missing or invalid routing facts`);
     }
@@ -54,19 +55,35 @@ function prepQueue(input: unknown, prefix: string, names: Record<string, string>
 
     const normal = eligible.normalizeEligibilityLabels(row.labels, prefix, automate);
     const [step, reason] = nextStep({
-      status: row.status, spec: row.spec, blocked: row.blocked,
+      status: row.status, spec: row.spec, blocked: false,
       eligible: eligible.automationEligible(normal, "opt-in", true) || discovered.has(row.id),
       parked: row.labels.includes(parked), ifEligible: false,
       awaitingSpecReview: row.labels.includes(awaitingReview) || row.awaiting_spec_review === true,
     });
     if (step === "error") throw new Error(`issues[${index}]: ${reason}`);
 
-    // The scope is the prep pass's unstarted and explicitly nominated stale Todo work.
-    if (step === "prep" && !row.blocked && (row.status === "backlog" || row.status === "todo")) {
-      prep.push(row.id);
-    }
+    if (row.status !== "backlog" && row.status !== "todo") continue;
+    if (step !== "prep" && !(step === "graft" && row.status === "todo")) continue;
+    if (row.blocked && !strings(row.open_blockers)) continue;
+    candidates.set(key, {
+      id: row.id, needsPrep: step === "prep",
+      blockers: strings(row.open_blockers) ? row.open_blockers.map(id => id.toLowerCase()) : [],
+    });
   }
-  return prep;
+
+  // Only chains rooted in runnable work can enter the wave. Cycles and
+  // dependencies on missing or ineligible candidates stay outside it.
+  const reachable = new Set<string>();
+  let previousSize: number;
+  do {
+    previousSize = reachable.size;
+    for (const [key, row] of candidates) {
+      if (!reachable.has(key) && row.blockers.every(id => reachable.has(id))) reachable.add(key);
+    }
+  } while (reachable.size !== previousSize);
+  return Array.from(candidates.entries())
+    .filter(([key, row]) => reachable.has(key) && row.needsPrep)
+    .map(([, row]) => row.id);
 }
 
 const usage = "usage: faff next prep-queue [--root DIR] [--run-dir DIR] < facts.json";

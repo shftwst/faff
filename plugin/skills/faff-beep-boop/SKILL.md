@@ -147,9 +147,9 @@ Invoke the `faff-tidy` skill via the Skill tool (resolve per gateway → **Sibli
 
 ### 2. Prep queue build
 
-Gather live Backlog/pre-Todo candidates and Todo issues tidy flagged for stale or superseded specs. Query by workable category (Linear backlog, `includeArchived: false`; GitHub open) and omit cancelled, archived and explicitly blocked work. Treat stale and superseded specs as missing for this queue.
+Gather live Backlog/pre-Todo work, stale or superseded Todo specs (treat as missing), and specced Todo prerequisites. Exclude cancelled and archived issues (Linear backlog, `includeArchived: false`; GitHub open). Include all open blocker IDs.
 
-Send ordered `{complete:true,issues:[{id,status,spec,labels,blocked,awaiting_spec_review?}]}` to `faff next prep-queue` on stdin. Use the shared **Next-step transition** tokens and live labels and blockers. Dispatch the returned `prep` IDs. In git-only mode take `awaiting_spec_review` from `faff prepcheck --issue <id> --json`. On a batch error with complete observations, log it and use the per-issue transition.
+Send ordered `{complete:true,issues:[{id,status,spec,labels,blocked,open_blockers,awaiting_spec_review?}]}` to `faff next prep-queue` on stdin with live labels and **Next-step transition** tokens. Dispatch the returned `prep` IDs. In git-only mode take `awaiting_spec_review` from `faff prepcheck --issue <id> --json`. On a batch error with complete observations, log it and use the per-issue transition for unblocked candidates only.
 
 Prep and graft still enforce eligibility. An issue skipped here never enters `admitted`.
 

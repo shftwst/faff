@@ -19,3 +19,11 @@ Run the fixture/scorer tests or re-score an existing run without starting Claude
 python3 -m unittest discover -s test/beep-boop-e2e
 python3 test/beep-boop-e2e/wave_outcome.py parallel /path/to/run
 ```
+
+Each live run saves a compact `responses.jsonl` timeline. Timestamps are observations at the stream reader. One response may have multiple content records. The analyzer deduplicates by model message ID, links workers by dispatch ID, and keeps unknown or mixed ticket attribution explicit. The terminal session receipt is the authoritative run-level usage total.
+
+```sh
+python3 test/beep-boop-e2e/analyze_responses.py /path/to/release /path/to/candidate
+```
+
+Adjacent responses in the same tool category are leads for inspection. Combining calls requires checking data dependencies, freshness, authority and failure behaviour.

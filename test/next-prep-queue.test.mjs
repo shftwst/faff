@@ -116,3 +116,16 @@ test("the normal prep queue uses the batch and retains its per-issue fallback", 
   assert.match(queue, /Dispatch the returned `prep` IDs/);
   assert.match(queue, /On a batch error with complete observations.+per-issue transition/);
 });
+
+test("wave prep includes reachable dependents and respects every external blocker", t => {
+  const blocked = (id, ...ids) => issue(id, { blocked: true, open_blockers: ids });
+  const result = cli(fixture(t), args, snapshot([
+    blocked("KIT-18", "KIT-17"), blocked("KIT-19", "KIT-20"),
+    issue("KIT-20", { labels: [] }), issue("KIT-17"),
+    blocked("KIT-22", "KIT-18", "KIT-19"), blocked("KIT-23", "KIT-24"),
+    blocked("KIT-24", "KIT-23"), blocked("KIT-25", "outside"),
+    blocked("KIT-26", "KIT-18", "KIT-27"), issue("KIT-27", { status: "todo", spec: "high" }),
+  ]));
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout).prep, ["KIT-18", "KIT-17", "KIT-26"]);
+});

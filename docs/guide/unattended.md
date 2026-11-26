@@ -18,13 +18,13 @@ The first time you run `/faff-beep-boop` on a fresh backlog, it can look like no
 
 An **automation-eligible** ticket is one the *autonomous* pipeline (`/faff-beep-boop`) may auto-spec, auto-promote, and auto-build. (Your read and planning skills — `/faff-wtf`, `/faff-map`, `/faff-tidy` — are never gated by this; they always see everything.)
 
-Eligibility ships **fail-safe `opt-in`**: nothing is eligible until a human explicitly opts a ticket in. A human steers the backlog with one tracker label:
+Use the tracker label to opt existing backlog tickets into autonomous work.
 
 | Signal | Effect |
 |---|---|
-| `faff-automate` label | **Crank up** — this ticket may be picked up by the autonomous pipeline. Removing it *cranks down*. The sole eligibility signal: absent ⇒ not eligible. |
+| `faff-automate` label | **Crank up** — this ticket may be picked up by the autonomous pipeline. Removing it *cranks down*. |
 
-One opt-in model everywhere — tracker and git-only mode alike. So on a fresh backlog with no labels yet, *nothing* is eligible — which is why the first run skips everything.
+A converging run can also prep and build contained work it discovers and files. The filing receipt grants eligibility only in that run, including for non-blocking follow-ups. Live dependencies determine when each build can start. The receipt expires at run close. With `--no-converge` at L3, newly filed work waits for ordinary backlog opt-in.
 
 **The label is tracker-owned — you toggle it, not faff.** You add or remove `faff-automate` in your tracker's UI. faff's own label CLI *refuses* to write it in either direction; the most it will do is advise you which way to toggle. That refusal is deliberate: it makes `faff-automate` present ⟹ **a human set it directly**, true by construction. That by-construction human intent is exactly the provenance L3's trust rests on (see the trust premise below).
 

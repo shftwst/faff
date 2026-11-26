@@ -167,7 +167,7 @@ if __name__=='__main__':
     revision = git(args.snapshot, "rev-parse", "--verify", "--end-of-options", args.ref+"^{commit}")
     with tempfile.TemporaryDirectory(prefix="wave-snapshot-") as temp:
         snapshot = Path(temp)/"source"
-        subprocess.run(["git","clone","--quiet","--no-checkout","--local","--",
+        subprocess.run(["git","clone","--quiet","--no-checkout","--no-hardlinks","--",
                         str(args.snapshot.resolve()),str(snapshot)],check=True)
         git(snapshot,"checkout","--quiet","--detach",revision)
         sys.exit(arm(snapshot,output.resolve(),args.model,args.mode))

@@ -9,6 +9,7 @@
 // nothing. Any input it cannot establish exits 2, and callers refuse before a worktree exists.
 // ===========================================================================
 
+import { discoveredInWave } from "./run-wave-mode";
 const fs: FsApi = require("node:fs");
 const path: PathApi = require("node:path");
 
@@ -133,6 +134,7 @@ export interface AdmitOptions {
   specText: string | null;
   sessionId: string;
   run: string | null;
+  runDir?: string | undefined;
   wave: string | undefined;
   now: string;
   root: string;
@@ -281,9 +283,10 @@ function admit(opts: AdmitOptions): AdmitOutput {
   const awaitingSpecReview = labelSet.has(roleName("awaiting-spec-review"));
   const trackerPresent = facts.tracker.mode === "tracker";
   const normLabels = eligibleApi.normalizeEligibilityLabels(facts.labels, prefix, automateName);
-  const eligible = eligibleApi.automationEligible(normLabels, "opt-in", trackerPresent);
+  const labelled = eligibleApi.automationEligible(normLabels, "opt-in", trackerPresent);
+  const eligible = labelled || (!interactive && discoveredInWave(root, opts.runDir).has(facts.issue));
   out.kernels.eligible = { eligible };
-  cap.base("eligible", { labels: normLabels, automationDefault: "opt-in", trackerPresent }, { eligible });
+  cap.base("eligible", { labels: normLabels, automationDefault: "opt-in", trackerPresent }, { eligible: labelled });
 
   // 3. next, always consulted. Terminal statuses win, as nextStep itself orders them.
   const nextInput: NextInput = {
@@ -446,7 +449,7 @@ function cmdGraftAdmit(args: string[]): number {
 
   let out: AdmitOutput;
   try {
-    out = admit({ mode, facts, specText, sessionId, run, wave: str(values["--wave"]), now, root, env: process.env });
+    out = admit({ mode, facts, specText, sessionId, run, runDir: runArg, wave: str(values["--wave"]), now, root, env: process.env });
   } catch (e) {
     // Fail closed: an input the command could not establish (AdmitFailure) and any unexpected fault
     // (a corrupt config read, a git error) both refuse with exit 2 and a structured reason.

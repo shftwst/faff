@@ -4,7 +4,7 @@
 
 ### Automation eligibility
 
-Autonomous spec, refresh, promotion and build require a human opt-in on each ticket. Use the verdict from `faff eligible` with one `--label "<name>"` per observed issue label. Read stdout (`true` or `false`). Both verdicts exit 0. Only the configured `automate` role counts (default `faff-automate`). Status, other labels and legacy `automation_default` settings grant no permission. Git-only tickets without labels are ineligible and have no tracker status moves.
+Use `faff eligible --issue "$issue"` with the fresh labels (one `--label` per name) and the current FAFF_RUN_DIR. It prints true for the configured automate label or a contained ticket filed by this converging run. Both verdicts exit 0. The filing receipt expires at run-end. Git-only tickets have no tracker status moves.
 
 - In autonomous prep/tidy, skip spec, refresh and promotion on `false`. When consulting `faff next` directly, pass `--not-eligible` for its `skip-ineligible` route. Autonomous `faff graft admit` already checks eligibility before build. Beep-boop may filter early. Queue skips stay out of the ledger's `admitted` array.
 - Explicit interactive `/faff-prep` and `/faff-graft` proceed through the usual gates. Note when the ticket is ineligible and leave its opt-in unchanged.

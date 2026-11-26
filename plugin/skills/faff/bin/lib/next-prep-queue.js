@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 // === region:factory — apply the existing eligibility and next kernels to a scoped prep batch ===
+const run_wave_mode_1 = require("./run-wave-mode");
 const argv = require("./argv");
 const { findRoot } = require("./shared-infra");
 const { readStdinCapped, VALIDATE_MAX_BYTES } = require("./ratified-scope");
@@ -12,7 +13,7 @@ function object(value) {
 function strings(value) {
     return Array.isArray(value) && value.every((label) => typeof label === "string");
 }
-function prepQueue(input, prefix, names, nextStep) {
+function prepQueue(input, prefix, names, nextStep, discovered) {
     if (!object(input) || input.complete !== true || !Array.isArray(input.issues)) {
         throw new Error("expected complete:true and an ordered issues array");
     }
@@ -36,7 +37,7 @@ function prepQueue(input, prefix, names, nextStep) {
         const normal = eligible.normalizeEligibilityLabels(row.labels, prefix, automate);
         const [step, reason] = nextStep({
             status: row.status, spec: row.spec, blocked: row.blocked,
-            eligible: eligible.automationEligible(normal, "opt-in", true),
+            eligible: eligible.automationEligible(normal, "opt-in", true) || discovered.has(row.id),
             parked: row.labels.includes(parked), ifEligible: false,
             awaitingSpecReview: row.labels.includes(awaitingReview) || row.awaiting_spec_review === true,
         });
@@ -49,8 +50,8 @@ function prepQueue(input, prefix, names, nextStep) {
     }
     return prep;
 }
-const usage = "usage: faff next prep-queue [--root DIR] < facts.json";
-const spec = { flags: { "--root": { arity: 1 } }, positionals: { min: 0, max: 0 } };
+const usage = "usage: faff next prep-queue [--root DIR] [--run-dir DIR] < facts.json";
+const spec = { flags: { "--root": { arity: 1 }, "--run-dir": { arity: 1 } }, positionals: { min: 0, max: 0 } };
 function cmdPrepQueue(args, nextStep) {
     const { values, errors } = argv.parseArgs(args, spec);
     if (errors.length)
@@ -66,7 +67,7 @@ function cmdPrepQueue(args, nextStep) {
         if (raw.over)
             throw new Error("facts exceed one MiB");
         const input = JSON.parse(raw.text);
-        process.stdout.write(JSON.stringify({ prep: prepQueue(input, prefix.prefix, labels.names, nextStep) }) + "\n");
+        process.stdout.write(JSON.stringify({ prep: prepQueue(input, prefix.prefix, labels.names, nextStep, (0, run_wave_mode_1.discoveredInWave)(root, values["--run-dir"] ?? process.env.FAFF_RUN_DIR)) }) + "\n");
         return 0;
     }
     catch (error) {

@@ -137,9 +137,11 @@ const ELIGIBLE_SPEC = {
     "--default": { arity: 1 }, // retained for signature/decision-capture faithfulness; no longer affects the verdict (FAFF-1097)
     "--tracker": { arity: 1 }, // retained for signature/decision-capture faithfulness; no longer affects the verdict (FAFF-1097)
     "--root": { arity: 1 },
+    "--issue": { arity: 1 },
+    "--run-dir": { arity: 1 },
   },
 };
-const ELIGIBLE_USAGE = "usage: faff eligible [--label L]... [--default VALUE] [--tracker present|absent] [--root DIR]";
+const ELIGIBLE_USAGE = "usage: faff eligible [--label L]... [--default VALUE] [--tracker present|absent] [--root DIR] [--issue ID] [--run-dir DIR]";
 
 function cmdEligible(args) {
   if (args.includes("--selftest")) return eligibleSelftest();
@@ -165,7 +167,9 @@ function cmdEligible(args) {
   if (resolvedNames.error) { process.stderr.write(resolvedNames.error + "\n"); return 2; }
   const normLabels = normalizeEligibilityLabels(labels, resolvedPrefix.prefix, resolvedNames.names.automate);
   const verdict = automationEligible(normLabels, def, trackerPresent);
-  console.log(String(verdict));
+  const issue = values["--issue"];
+  const dir = values["--run-dir"] || process.env.FAFF_RUN_DIR;
+  console.log(String(verdict || Boolean(issue && require("./run-wave-mode").discoveredInWave(root, dir).has(issue))));
   // FAFF-956: deterministic in-kernel decision-capture — best-effort, flag-guarded,
   // authority-inert. normalised_inputs uses the registry's canonical keys
   // (labels/automationDefault/trackerPresent) — `labels` here is the POST-normalisation

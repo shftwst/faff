@@ -499,3 +499,38 @@ test("eligible capture parity: graft admit's eligible base record has the same i
   assert.deepEqual(mine.data.verdict, theirs.data.verdict);
   assert.equal(mine.data.kernel_version, theirs.data.kernel_version);
 });
+
+test("converging run admits its contained discoveries through prep and graft until run-end", () => {
+  const {root, runDir} = scratch({git:true});
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({run_id: RUN_ID, level:"L3"}));
+  const issue = "FAFF-901";
+  const ctx = {FAFF_RUN_DIR:runDir};
+  const labelled = () => cli(root, ["eligible", "--issue", issue], ctx).out;
+  const mode = flag => cli(root, ["run","wave-mode","--run-dir",runDir,flag]);
+  const append = (type, id, source) => {
+    const event = {phase:"run",type,issue:id,data:{source}};
+    const r = cli(root, ["events","append","--run",RUN_ID,"--root",root], {}, JSON.stringify(event));
+    assert.equal(r.code, 0, r.err);
+  };
+  const batch = blocked => JSON.parse(cli(root, ["next","prep-queue"], ctx, JSON.stringify({
+    complete:true, issues:[{id:issue, status:"backlog",spec:"none",labels:[],blocked}]
+  })).out).prep;
+  assert.equal(mode("--converge").code,0);
+  append("discovered-scope-filed",issue,"outward-self-intake");
+  append("discovered-scope-filed","FAFF-902","contained");
+  assert.equal(labelled(),"false");
+  append("discovered-scope-filed",issue,"contained");
+  assert.equal(labelled(),"true");
+  assert.deepEqual(batch(false),[issue]);
+  assert.deepEqual(batch(true),[]);
+  assert.equal(admit(root,"autonomous",facts({labels:[]})).json.disposition,"proceed");
+  assert.notEqual(admit(root,"autonomous",facts({labels:[],externally_blocked:true})).json.disposition,"proceed");
+  assert.equal(cli(root,["eligible","--issue",issue]).out,"false");
+  assert.equal(cli(root,["eligible","--issue",issue,"--run-dir",join(root,"other")],ctx).out,"false");
+  assert.equal(mode("--no-converge").code,0);
+  assert.equal(labelled(),"false");
+  assert.equal(mode("--converge").code,0);
+  const close=cli(root,["events","append","--run",RUN_ID,"--root",root],{},JSON.stringify({phase:"run",type:"run-end"}));
+  assert.equal(close.code,0,close.err);
+  assert.equal(labelled(),"false");
+});

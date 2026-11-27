@@ -402,7 +402,7 @@ Record concrete, separable out-of-scope review findings as discovered scope (see
 
 **Git-only mode: no-op**; this step composes no PR body and skips to Step 10.
 
-1. **Evidence.** `$spec` is the Step 4 committed path. Save the newest `## Spec-review evidence` comment at absolute `$evidence` if present; otherwise unset it.
+1. **Evidence.** Use Step 4’s committed path as `$spec` when known. Save the newest `## Spec-review evidence` comment to absolute `$evidence` if present.
 2. **Draft and title.** Write the PR prose to an absolute `$draft` path. The command appends the Acceptance Criteria from the committed anchor before checking the full body. If the Step 8 writer refused, omit `--append-ac-checklist` and include only the refusal reason under `## Acceptance Criteria`. Set `$subject` to the imperative build change and `$prefix` to its conventional type and optional scope (e.g. `fix(cache)`).
 3. **Open from the feature worktree**, then delete the draft:
 ```bash
@@ -410,7 +410,7 @@ Record concrete, separable out-of-scope review findings as discovered scope (see
 scheme=$("$faff" conventions get pr_title) || exit $?
 case "$scheme" in conventional) pr_title="$prefix: $subject";; bare-imperative) pr_title=$subject;; *) exit 2;; esac
 "$faff" pr open --run-dir "$run_dir" --issue "$issue" --base "${base#origin/}" --title "$pr_title" \
-  --body-file "$draft" --append-ac-checklist --spec-review-fallback "$spec" ${evidence:+--spec-review-evidence "$evidence"} --json)
+  --body-file "$draft" --append-ac-checklist ${spec:+--spec-review-fallback "$spec"} ${evidence:+--spec-review-evidence "$evidence"} --json)
 ```
 
 It refuses unless the review verdict is `pass`, checks governance, writes available `spec-review-verdict.json`, sanitizes and checks the body (Linear auto-transitions every tracker identifier a PR body carries, so only the target keeps one), then mints, commits and pushes the anchor, publishes its recovery bundle, uses the governed grant and opens a regular PR through the `pr-create` chokepoint. The anchor precedes the PR, so a crash never strands a review-passed PR whose head lacks it, and CI fires first at PR open. Route on `token`: (the same call writes `human-only-acs.json` from the captured spec, the set an unattended merge may skip)

@@ -405,7 +405,7 @@ If no ledger resolves, the hook stays silent. A foreign running owner with a fre
 
 Emit the transitions below even under `logging: essential`. Pipe `{phase, type, issue?, data?}` JSON to `faff events append --run <run-id>`. The CLI serialises concurrent writers to `.faff/runs/<run-id>/events.jsonl` and supplies the envelope. Order by `seq`. Stick to the listed boundaries and the data keys in `verification/evidence/v0.3/schema/events/<type>.schema.json`; unknown keys are dropped and named in `data.dropped_keys`.
 
-**Run start.** The run-dir mint (`faff run-ledger init-self-drain` or `mintLightsOut`) appends `run-start` atomically. Skip that row when emitting events.
+**CLI-owned rows.** The run-dir mint emits `run-start`. `faff run checkpoint` owns `budget-checkpoint` and `sentry-checkpoint`; `faff run close` (or a fail-closed governance admit in `run open`) owns `run-end`. Let those commands emit and tag their rows once.
 
 | Transition | `phase` / `type` | `--tokens`? |
 |---|---|---|

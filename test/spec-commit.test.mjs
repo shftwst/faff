@@ -666,6 +666,8 @@ test("graft refuses a changed spec and preserves mismatch and missing-runner pri
   const rel = commit(f).json().path;
   const empty = verifyBuild(f);
   assert.equal(empty.status, 1, empty.stderr);
+  assert.equal(empty.json().gate.receipt.signal, "pass");
+  assert.equal(empty.json().action, "needs-human");
   assert.equal(empty.json().reason, "no-ac-runner");
   assert.equal(empty.json().spec.token, "verified");
   assert.equal(empty.json().spec.criteria, undefined);

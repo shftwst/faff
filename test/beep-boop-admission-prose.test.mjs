@@ -36,7 +36,7 @@ for (const [name, text] of [["step 4", STEP4], ["explicit-list mode", EXPLICIT]]
 }
 
 test("step 4 passes a run dir and no wave, so each call mints a fresh consult id and writes its own captures", () => {
-  assert.match(STEP4, /faff graft admit --mode autonomous --facts - --spec-file "\$run_dir\/<ISSUE>\/admit-spec\.md" --run-dir "\$run_dir" --json`/);
+  assert.match(STEP4, /faff graft admit --mode autonomous --facts - --run-dir "\$run_dir" --json`/);
   // An explicit --wave skips the consult counter, so the first call, the final call and graft's own
   // Step 2 call would all mint the same id and only one would grade (FAFF-1394).
   assert.doesNotMatch(STEP4, /graft admit[^`]*--wave/);
@@ -59,10 +59,10 @@ test("step 4 carries the final-call rule", () => {
   assert.match(STEP4, /\*\*The final call \(the last gate\)\.\*\*[^\n]*immediately before the append to `admitted`, with nothing in between\. Only its `proceed` with status not `in-review` admits/);
 });
 
-test("step 4 checks the issue key and replaces the spec file before every call", () => {
+test("step 4 checks the issue key and includes the current spec before every call", () => {
   assert.ok(STEP4.includes("`^[A-Za-z][A-Za-z0-9]*-[0-9]+$`"), "issue-key shape");
   assert.ok(STEP4.includes("`admit-errored:issue-key`"), "issue-key route-out");
-  assert.match(STEP4, /Delete the previous `admit-spec\.md`/);
+  assert.ok(STEP4.includes("current text into `spec.text`"));
 });
 
 test("cross-executor landing requires the shared store before restoring a ledger", () => {

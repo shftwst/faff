@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.45.0",
+  "issue": "FAFF-1486",
+  "build": {
+    "status": "complete",
+    "diff_hash": "3b5404fc7e047c0c684a4227e47297c875fcd7ac51cc1a5036cc042ac59e5a25",
+    "branch": "FAFF-1486-preserve-convergence-decision-on-close",
+    "pushed_at": "2026-11-27T02:25:30.946Z"
+  },
+  "updated_at": "2026-11-27T02:25:30.946Z"
+}

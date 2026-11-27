@@ -29,8 +29,8 @@
     "bin/lib/governor-admin.ts": "e8acab0a5166c8138265c9cd514f86269ca932a80be746e963588e863946bc02",
     "bin/lib/governor-install.ts": "964bcf08fbe828afbe96da644db691aebfaa8c31c9b2d4ccde36ecce1be7e7d7",
     "bin/lib/governor.ts": "bb31286dd65cd94f7a0d551f570edffe90c102b83418fe7012cfc5a0800cc153",
-    "bin/lib/graft-admit.ts": "6eb4230a8ce2b39f2fe314708a041d32e718b2b9c82900abfed0d392a509c0f6",
-    "bin/lib/graft-verify-build.ts": "aa4bc8970fc7fd1dcf2e58aaa51e1580997ebe694d61ea32d9d28449add849fe",
+    "bin/lib/graft-admit.ts": "d18e957d63df6b59a8becb3acee0e3f77ae50b83c842d534698b534381c1f60d",
+    "bin/lib/graft-verify-build.ts": "f190dedb0232ab2648e808466731a0b71643206d399b31f2ab6eeaad02bbdeb4",
     "bin/lib/holdout-handoff.ts": "88291638304c069bb602219f53cc882c0e83287486ad33c0c813654f0692d87e",
     "bin/lib/human-only-acs.ts": "a133dd350629f28fc564768c589dd56099fd3a80e4e6335c9b2f44700859e990",
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
@@ -69,7 +69,7 @@
     "bin/lib/run-wave-mode.ts": "49631f329c03e5c5c2a0db3925397a45e059c25ad146d301b7b4d62c51bc8e7b",
     "bin/lib/run.ts": "43e47a2c4e6f82028f8843a51e2e97323ccf38ac22d7102b15ec53fc9a3158fe",
     "bin/lib/slot-authoring.ts": "8204bcc6316d905fbc58c595862cd2247ce01fe1152a3edeb271c33e3adec95e",
-    "bin/lib/spec-commit.ts": "ff43d45c1f8153abd723cdac9495188ac86a234433171f407d2ec5ff894cc0cd",
+    "bin/lib/spec-commit.ts": "91ab3b81406bad62bf06f646c6e8db3974e45f4dff5c3ef7399eac6756f56a49",
     "bin/lib/spec-judge-sequence.ts": "aa4ab94142bef27d14d0a37fa6197a11aa58490044a7d468e88423afdb7a51e6",
     "bin/lib/spec-review-dispatch.ts": "29169b8c8ca217216cdc5fdc9e2877b9664a21a54033c52c615e3748edf525cd",
     "bin/lib/spec-review-hold.ts": "538479bf72ec1d3f63b6894fdaa462b7a40d0c07d44cb2d45a57a38cced91790",
@@ -96,8 +96,8 @@
     "bin/lib/governor-admin.js": "fc92a97038713648e89fba10f9a33545c218c85353cc571905bc472c346160ee",
     "bin/lib/governor-install.js": "3798f447ba92c5660b89a7e90c2cfff0043257159b2a5023bb5b002328a8a12c",
     "bin/lib/governor.js": "d542bac2eda6dc17ec66d586a96b6e7a957d93d5a1f53f4b3e1bcd171599d78c",
-    "bin/lib/graft-admit.js": "35789663b62b9c78a955bdbc1fad6af4d653ad503c6bbb1e564851fbe9ec4d00",
-    "bin/lib/graft-verify-build.js": "1d87e4a793a0e30a2d3f66daaa17b9d39d9f0d98c586e3118fc0e25f22dc4ab2",
+    "bin/lib/graft-admit.js": "8ad3c00eb24579b6ea03fb3208e1bd800395285b92bacd72f3190283f23f1149",
+    "bin/lib/graft-verify-build.js": "ee01cd8171f0710348e9f8049378b1d630832911dbf47c75b6ebf50ca75c1398",
     "bin/lib/holdout-handoff.js": "9b6c0d6b5a15c92c24bb60bdf4c1194fd2b6533ae93bc71d171d9a5b89b50b49",
     "bin/lib/human-only-acs.js": "3972c683d4f34c9c9da60aff42ec903e64216fe05c8cc882b781cd3764b8c622",
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
@@ -136,7 +136,7 @@
     "bin/lib/run-wave-mode.js": "3539e289379164e056320991607cb67c9399afb29951e6188dd6edb1e3dd6373",
     "bin/lib/run.js": "c67e9c8037e1e069770370270f5f717ed5caab3720a76455d5e110f9d6854e55",
     "bin/lib/slot-authoring.js": "d977e73afef4a74bcb5c67d16ea081bb894c51331e548f6717525c5fc857eee5",
-    "bin/lib/spec-commit.js": "43db53253ac96ebe3a3f9b90a804697e1098328cfdf895ae8a1e7aabf2998616",
+    "bin/lib/spec-commit.js": "cdfe156b56cc7ead61cc8162cba3fca58cba1e4a46969b77f5490f2c5530cba6",
     "bin/lib/spec-judge-sequence.js": "9568699a5403e775775c09e88ed1d673b5873759d04b62417cb53c0783451063",
     "bin/lib/spec-review-dispatch.js": "60d78f77e5999c46bc53a034ecf9cbc0d8e0f3f4955e900482cf30e351476cb6",
     "bin/lib/spec-review-hold.js": "1e3ab668ca1acbb249470c5dfd12f4d0d46c8b530a0fb9443bb79b26baa58f8d",
@@ -146,5 +146,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "0e60a82a0ab9b5862b3e2ea206f104e7b9dff3c439dd0daa6835f94732df0886"
+  "output_digest": "5bd9a1fa09bf4ced64238fcbb0371cbf5661a2a0a05c8d14d1592a5ce764e131"
 }

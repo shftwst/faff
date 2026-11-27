@@ -322,7 +322,7 @@ function runSpecVerify(opts, deps) {
     if (!opts.includeCriteria)
         return result(issue, "verified", { path: rel });
     const { criteria } = dodClassify(expected.toString("utf8"), { issue });
-    return result(issue, "verified", { path: rel, criteria: criteria.filter((row) => row.source === "done") });
+    return result(issue, "verified", { path: rel, builder_sha256: sha256(expected), criteria: criteria.filter((row) => row.source === "done") });
 }
 // ---------------------------------------------------------------------------
 // CLI.

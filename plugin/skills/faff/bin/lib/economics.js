@@ -1196,7 +1196,7 @@ const { parseArgs, usageError } = require("./argv");
 const ECONOMICS_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 },
   "--root": { arity: 1 }, "--run-dir": { arity: 1 }, "--session-id": { arity: 1 },
-  "--refresh": { arity: 0 }, "--by": { arity: 1 }, // enum validated by the handler against BY_AXES (fail-loud, exit 2)
+  "--details": { arity: 0 }, "--refresh": { arity: 0 }, "--by": { arity: 1 }, // enum validated by the handler against BY_AXES (fail-loud, exit 2)
 } };
 
 function cmdEconomics(args) {
@@ -1226,6 +1226,7 @@ function cmdEconomics(args) {
     return 2;
   }
 
+  if (get("--details") && byAxis !== "requests") return usageError([{code:"usage",detail:"--details requires --by requests"}], "faff economics --by requests --details");
   if (get("--refresh") && byAxis !== "requests") return usageError([{code:"usage",detail:"--refresh requires --by requests"}], "faff economics --by requests --refresh");
   if (byAxis === "requests" && sessionIdFlag && !get("--refresh")) return usageError([{code:"usage",detail:"--session-id requires --refresh for request metrics"}], "faff economics --by requests --refresh");
 
@@ -1246,7 +1247,7 @@ function cmdEconomics(args) {
   if (byAxis === "requests") {
     const { captureRunRequests, requestReport } = require("./run-request-store");
     if (get("--refresh") && !captureRunRequests(runDir, root, sessionIdFlag, true)) return 2;
-    try { console.log(JSON.stringify(requestReport(runDir, ledger))); }
+    try { console.log(JSON.stringify(requestReport(runDir, ledger, !!get("--details")))); }
     catch { process.stderr.write("faff economics: unreadable request metrics\n"); return 2; }
     return 0;
   }

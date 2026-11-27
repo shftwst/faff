@@ -34,6 +34,9 @@ test("economics retains scoped native responses from two owner epochs after thei
   assert.equal(saved.turns,null);
   assert.equal(saved.transcript_turn_ids,2);
   assert.equal(saved.by_role.parent,3);
+  assert.equal(saved.records,undefined);
+  assert.equal(query("--details").records.length,3);
+  assert.equal(saved.usage_by_model.fixture.cache_read,9);
   assert.equal(saved.observed_requests_per_shipped_issue,3);
   assert.deepEqual(query("--refresh"),saved);
   rmSync(base,{recursive:true});

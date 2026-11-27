@@ -91,7 +91,7 @@ export function captureRunRequests(runDir: string, root: string, sessionId?: str
   }
 }
 
-export function requestReport(dir: string, ledger: {outcomes?: Record<string,string>; budget?: {sessions?: unknown[]}}) {
+export function requestReport(dir: string, ledger: {outcomes?: Record<string,string>; budget?: {sessions?: unknown[]}}, details = false) {
   const store = readStore(dir);
   const epochs = Object.values(store?.epochs ?? {});
   const expected = Math.max(1,ledger.budget?.sessions?.length ?? 0);
@@ -113,13 +113,28 @@ export function requestReport(dir: string, ledger: {outcomes?: Record<string,str
     const complete = any && rows.every(row => row.usage[field] !== null);
     return [field, complete ? rows.reduce((sum,row) => sum + (row.usage[field] ?? 0),0) : null];
   }));
+  const parentByWave = new Map<string, number>();
+  const modelUsage = new Map<string, RequestObservation["usage"]>();
+  for (const row of rows) {
+    if (row.role === "parent") {
+      const wave = String(row.wave ?? "unattributed");
+      parentByWave.set(wave, (parentByWave.get(wave) ?? 0) + 1);
+    }
+    const model = row.model ?? "unattributed";
+    const total = modelUsage.get(model);
+    if (!total) modelUsage.set(model, {...row.usage});
+    else for (const key of tokenClasses) {
+      const value = row.usage[key];
+      total[key] = total[key] === null || value === null ? null : total[key] + value;
+    }
+  }
   const engine = require("./budget").readEngineSpend(dir);
   return {separate_engine_spend: {records:engine.records, engines:engine.engines, tokens:engine.totals}, run_id: path.basename(dir), source:"owned-claude-transcripts", status: !any ? "unavailable" : epochs.length < expected || engine.records || engine.malformed || epochs.some(e => e.status !== "observed") ? "partial" : "observed",
     requests, usage, turns: sdk.turns, sdk_turns: sdk, transcript_turn_ids: transcriptTurns, shipped, observed_requests_per_shipped_issue: requests !== null && shipped ? requests/shipped : null,
     by_role: counts(r => r.role), by_issue: counts(r => r.issue), by_phase: counts(r => r.phase), by_wave: counts(r => r.wave),
     by_model: counts(r => r.model), verification_to_handoff_by_issue: countsSelected(rows),
     epochs: epochs.map(({records,...epoch}) => ({...epoch, observed_requests:epoch.last_observed_until ? records.length : null})),
-    expected_epochs:expected, records:rows };
+    expected_epochs:expected, parent_by_wave:Object.fromEntries(parentByWave), usage_by_model:Object.fromEntries(modelUsage), ...(details ? {records:rows} : {}) };
 }
 function countsSelected(rows: RequestObservation[]) {
   const counts = new Map<string,number>();

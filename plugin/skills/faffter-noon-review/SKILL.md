@@ -15,9 +15,9 @@ Faff-graft opens Step 9b's PR only after `pass`. It accumulates per-pass finding
 
 ## Input
 
-Review the supplied evidence from $ARGUMENTS.
+Use $ARGUMENTS.
 
-- Full diff: `git diff main...HEAD`.
+- Full diff from graft's supplied file.
 - Spec committed under `docs/specs/` on the feature branch.
 - Test pass/fail results and coverage when available.
 - Step-8 AC checklist: auto-verified criteria and explicit human-verification flags.

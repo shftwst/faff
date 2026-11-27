@@ -91,10 +91,12 @@ function prepQueue(input: unknown, prefix: string, names: Record<string, string>
     const seen = new Set<string>();
     const prerequisites: string[] = [];
     while (pending.length) {
-      const id = pending.pop()!;
+      const id = pending.pop();
+      if (id === undefined) break;
       if (seen.has(id)) continue;
       seen.add(id);
-      const blocker = candidates.get(id)!;
+      const blocker = candidates.get(id);
+      if (!blocker) throw new Error("unresolved prerequisite " + id);
       if (blocker.needsPrep) prerequisites.push(blocker.id);
       else for (const upstream of blocker.blockers) pending.push(upstream);
     }

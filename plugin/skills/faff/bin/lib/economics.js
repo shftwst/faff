@@ -954,7 +954,7 @@ function selectPhaseWindow(usableWindows, ts) {
   return best;
 }
 
-// A turn is one assistant record. Assistant records carry `type:"assistant"` or
+// The legacy phase breakdown counts assistant transcript rows in its turns field. Assistant records carry `type:"assistant"` or
 // `message.role:"assistant"`; the common transcript shape omits both but carries
 // `message.usage` (only assistant messages do), so a usage-bearing untyped record
 // counts too. A tool_result (user) record — no usage, no assistant marker — is not a turn.
@@ -1009,6 +1009,7 @@ function economicsPhaseBreakdown(fileRecords, windows, priceMap, dominant, topLi
   const topLine = (typeof topLineTotal === "number") ? topLineTotal : null;
   return {
     axis: "phase",
+    turn_basis: "assistant-transcript-rows",
     source: "transcript",
     priced_at_model: pricedAtModel,
     cost_basis: "estimate",     // every row priced at one inferred dominant model
@@ -1127,9 +1128,9 @@ function renderEconomicsBreakdown(bd) {
     const cov = rc.coverage_pct == null ? "n/a" : `${rc.coverage_pct}%`;
     lines.push(`# economics --by phase — explore(child)/synthesis(parent)/build split via events.jsonl windows (FAFF-500)`);
     lines.push(`  cost priced at ${bd.priced_at_model || "—"} (ESTIMATE — one dominant model)  ·  coverage of top-line: ${cov}  ·  windows_found=${rc.windows_found}`);
-    lines.push(`  ${"phase".padEnd(15)} ${"turns".padStart(7)} ${"tools".padStart(7)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`);
+    lines.push(`  ${"phase".padEnd(15)} ${"asst_rows".padStart(9)} ${"tools".padStart(7)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`);
     for (const r of bd.rows) {
-      lines.push(`  ${String(r.key).padEnd(15)} ${String(r.turns).padStart(7)} ${String(r.tool_calls).padStart(7)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M((r.cache_write_5m || 0) + (r.cache_write_1h || 0)).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
+      lines.push(`  ${String(r.key).padEnd(15)} ${String(r.turns).padStart(9)} ${String(r.tool_calls).padStart(7)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M((r.cache_write_5m || 0) + (r.cache_write_1h || 0)).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
     }
     const mal = rc.events_malformed ? `  events_malformed=${rc.events_malformed}` : "";
     lines.push(`  grand_total=${rc.grand_total}  top_line_total=${rc.top_line_total}  reconciles=${rc.reconciles}${mal}`);

@@ -360,6 +360,10 @@ function writeReviewProgress(args, get, readExisting, file, issue) {
     process.stderr.write("faff review-progress write --expect-diff requires a hash and a Phase-2 transition\n");
     return 2;
   }
+  const attempt = get("--attempt");
+  if (args.includes("--attempt") && (!guarded || !/^phase2-[a-zA-Z0-9]+$/.test(attempt || ""))) {
+    process.stderr.write("faff review-progress: an attempt requires a guarded Phase-2 write and valid attempt ID\n"); return 2;
+  }
   let rec;
   if (args.includes("--phase1-pass")) {
     const diffHash = get("--diff-hash");
@@ -388,6 +392,16 @@ function writeReviewProgress(args, get, readExisting, file, issue) {
       process.stderr.write("faff review-progress write --phase2 complete requires --findings <path>\n"); return 2;
     }
     rec = reviewProgressApplyPhase2(existing, status, findings, get("--attempts"), nowIso);
+    if (attempt) {
+      const start = status === "in_flight";
+      const eligible = start ? reviewResume(existing, issue, expected).action === "phase2"
+        : existing.phase2?.status === "in_flight" && existing.phase2.attempt === attempt;
+      if (!eligible) {
+        process.stderr.write("faff review-progress: Phase-2 attempt superseded or already settled\n"); return 3;
+      }
+    }
+    if (attempt && status === "in_flight") rec.phase2.attempt = attempt;
+    else delete rec.phase2.attempt;
     rec.issue = rec.issue || issue;
   } else if (args.includes("--outage-retry")) {
     // FAFF-403: standalone increment form (combinable with nothing else) — requires an existing

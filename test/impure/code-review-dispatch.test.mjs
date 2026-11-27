@@ -1,8 +1,9 @@
 // Exercise the installed Phase 2 entry point against a local provider and a real trusted base ref.
 import assert from "node:assert/strict";
+import {createHash} from "node:crypto";
 import { execFile, execFileSync, spawn } from "node:child_process";
 import { createServer } from "node:http";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { test } from "node:test";
@@ -28,6 +29,7 @@ test("the bundled entry point preserves the control wire request and fallback re
   const dir = mkdtempSync(join(tmpdir(), "faff-code-review-test-"));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   const requests = [];
+  let duringReview = () => {};
   const server = createServer(async (req, res) => {
     if (req.method === "GET") {
       res.setHeader("content-type", "application/json");
@@ -36,6 +38,7 @@ test("the bundled entry point preserves the control wire request and fallback re
     let text = "";
     for await (const part of req) text += part;
     requests.push(JSON.parse(text));
+    duringReview();
     res.writeHead(200, { "content-type": "text/event-stream" });
     res.end("data: " + JSON.stringify({ choices: [{ delta: { content: "### observation: no findings" }, finish_reason: "stop" }] }) + "\n\ndata: [DONE]\n\n");
   });
@@ -90,6 +93,46 @@ test("the bundled entry point preserves the control wire request and fallback re
   assert.match(absentBase.stdout, /^## Adversarial findings[^\n]*\nfixture paths unavailable\n/m);
   assert.match(requests.at(-1).messages[1].content, /Fixture paths: none/);
 
+  // Autonomous entry uses the same wire payload and forwards raw findings. Only
+  // an accepted, current attempt may publish a terminal checkpoint.
+  const rd = join(dir, "autonomous");
+  const issue = "FAFF-13";
+  const hash = createHash("sha256").update(readFileSync(join(dir, "review.diff"))).digest("hex");
+  const checkpoint = join(rd, issue, "review-progress.json");
+  const snapshot = () => JSON.parse(readFileSync(checkpoint));
+  const pass = h => execFileSync(process.execPath, [cli, "review-progress", "write", rd, issue,
+    "--phase1-pass", "--diff-hash", h], { cwd: dir });
+  const guardedArgs = [...args, "--run-dir", rd, "--checkpoint-issue", issue];
+  pass(hash);
+  duringReview = () => assert.equal(snapshot().phase2.status, "in_flight");
+  const guarded = await run(script, guardedArgs);
+  duringReview = () => {};
+  assert.equal(guarded.stdout, control.stdout);
+  assert.deepEqual(requests.at(-1), requests[0]);
+  assert.equal(snapshot().phase2.status, "complete");
+  const savedFile = snapshot().phase2.findings_ref;
+  assert.equal(readFileSync(savedFile, "utf8"), guarded.stdout);
+  assert.equal(statSync(savedFile).mode & 0o777, 0o600);
+  const beforeRetry = requests.length;
+  await assert.rejects(run(script, guardedArgs), e => e.code === 13);
+  assert.equal(requests.length, beforeRetry);
+  assert.equal(snapshot().phase2.findings_ref, savedFile);
+
+  // Missing findings can restart. Changing the pass before completion refuses
+  // the late result and removes only that attempt's private files.
+  rmSync(savedFile);
+  duringReview = () => pass("replaced");
+  await assert.rejects(run(script, guardedArgs), e => e.code === 13 && e.stdout === "");
+  duringReview = () => {};
+  assert.equal(snapshot().phase1.diff_hash, "replaced");
+  assert.equal(snapshot().phase2.status, "pending");
+  assert.equal(readdirSync(join(rd, issue)).filter(name => name.startsWith("phase2-")).length, 1);
+  const afterStale = requests.length;
+  await assert.rejects(run(script, guardedArgs), e => e.code === 13);
+  assert.equal(requests.length, afterStale);
+  await assert.rejects(run(script, [...args, "--checkpoint-issue", issue]), e => e.code === 2);
+  await assert.rejects(run(script, [...args, "--run-dir", rd, "--checkpoint-issue", "../bad"]), e => e.code === 2);
+
   // A refused loopback connection on a configured host yields no opinion.
   const closed = createServer();
   await new Promise(ready => closed.listen(0, "127.0.0.1", ready));
@@ -115,6 +158,17 @@ test("the bundled entry point preserves the control wire request and fallback re
     assert.equal(await runCodeReview([...args.slice(1), "--run-dir", "advisory"], hardKill), 8);
     assert.equal(await runCodeReview([...args.slice(1), "--run-dir", "run"], hardKill), 9);
     assert.equal(await runCodeReview([...args.slice(1), "--run-dir", "run"], async () => 7), 7);
+    for (const [level, providerExit, expectedExit, status] of [
+      ["L3",5,5,"skipped_unreachable"], ["L3",12,12,"skipped_unreachable"], ["L3",8,8,"skipped_deadline"],
+      ["L4",8,9,"in_flight"], ["L4",12,9,"in_flight"], ["L3",7,7,"in_flight"],
+    ]) {
+      pass("reset");
+      pass(hash);
+      writeFileSync(join(rd,"run-ledger.json"), JSON.stringify({level}));
+      assert.equal(await runCodeReview(guardedArgs.slice(1), async () => providerExit), expectedExit);
+      assert.equal(snapshot().phase2.status, status);
+    }
+
   } finally {
     process.chdir(previousDir);
   }

@@ -134,9 +134,7 @@ For mandatory review, the helper and wrapper map no-opinion exhaustion (5, 12 or
 
 ### Review-progress checkpoint (autonomous resume)
 
-For autonomous review with a run directory and issue, use `faff review-progress write "$run_dir" <ISSUE>`. After Phase 1 passes, add `--phase1-pass --diff-hash "$cur_hash"`. Honour graft's diff-validated Phase-2 resume hint. Interactive calls and non-passing Phase 1 skip writes.
-
-Every Phase-2 write adds `--expect-diff "$cur_hash" --phase2 STATUS`. Record `in_flight` immediately before the helper, `complete --findings <path>` on exit 0 with raw findings saved to a fresh per-attempt file, `skipped_deadline` on advisory exit 8, and `skipped_unreachable` on an availability/rate-limit pass+skip. On a changed checkpoint (exit 3), return control to graft for reconciliation. Needs-human and unavailable returns, including exit 9, leave Phase 2 unfinished.
+For autonomous reviews with both run directory and issue, after Phase 1 passes record `faff review-progress write "$run_dir" <ISSUE> --phase1-pass --diff-hash "$cur_hash"`. On a diff-validated Phase-2 resume, reuse that pass. For either path, add `--checkpoint-issue <ISSUE> --run-dir "$run_dir"` to the foreground wrapper. It guards the captured diff, records the in-flight attempt, saves successful raw findings or an advisory skip, and leaves mandatory outages unfinished. Wrapper exit 13 returns to graft to reconcile a changed checkpoint before interpreting any verdict. Interactive reviews or missing checkpoint context use the ordinary wrapper. Non-passing Phase 1 skips Phase 2.
 
 ## Output to faff-graft
 

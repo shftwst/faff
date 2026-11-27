@@ -11,7 +11,9 @@ const BODY = readFileSync(SKILL_MD, "utf8");
 
 test("the occupant uses bounded dispatch for the selected lenses and for outage retries", () => {
   const backend = BODY.split("## Backend call")[1].split("## Output")[0];
-  assert.match(backend, /spec-review dispatch/);
+  assert.match(backend, /foreground Bash with `timeout: 600000` for `"\$faff" spec-review dispatch/);
+  const prep = readFileSync(join(HERE, "..", "plugin", "skills", "faff-prep", "SKILL.md"), "utf8");
+  assert.match(prep, /foreground Bash call with `timeout: 600000` for `"\$faff" spec-review dispatch --record-round/);
   for (const flag of ["--enabled-lenses", "--retry-lenses", "--turn-budget-secs", "--run-dir"]) {
     assert.ok(backend.includes(flag), flag);
   }

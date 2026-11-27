@@ -1234,6 +1234,16 @@ function cmdEconomics(args) {
   // Resolve the run dir (explicit --run-dir, else $FAFF_RUN_DIR, else latest) —
   // the same resolution `budget check` uses.
   let runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
+  if (runDir && byAxis === "requests" && !fs.existsSync(path.join(runDir, "run-ledger.json")) && fs.existsSync(path.join(runDir, "prep-request-metrics.json"))) {
+    if (get("--refresh")) { process.stderr.write("faff economics: standalone prep receipts close at disposition\n"); return 2; }
+    try {
+      const receipt = JSON.parse(fs.readFileSync(path.join(runDir, "prep-request-metrics.json"), "utf8"));
+      if (receipt.kind !== "standalone-prep-attach") throw Error("invalid prep receipt");
+      if (!get("--details")) delete receipt.records;
+      console.log(JSON.stringify(receipt));
+      return 0;
+    } catch { process.stderr.write("faff economics: unreadable prep request metrics\n"); return 2; }
+  }
   if (runDir && !fs.existsSync(path.join(runDir, "run-ledger.json"))) {
     if (byAxis === "requests") { process.stderr.write("faff economics: run ledger missing\n"); return 2; }
     runDir = null;

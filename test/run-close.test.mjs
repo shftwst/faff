@@ -421,10 +421,189 @@ test("run dir outside root: a run dir not under the resolved root exits 2", () =
   assert.match(r.reason, /is not/);
 });
 
+// --- FAFF-1486: the wave record's canonical token (run-stop-reason.ts) ---
+
+const stopReason = require("../plugin/skills/faff/bin/lib/run-stop-reason.js");
+const SHIPPED = { admitted: ["A"], outcomes: { A: "shipped" } };
+
+function waveRecord(fx, wave, over = {}, ledger = undefined) {
+  const dir = join(fx.runDir, `wave-${wave}`);
+  mkdirSync(dir, { recursive: true });
+  const verdict = over.verdict ?? "run-complete";
+  const reason = over.reason ?? "drained";
+  const digest = ledger === undefined ? stopReason.ledgerDigest(readLedger(fx)) : stopReason.ledgerDigest(ledger);
+  const rec = { run_id: RUN_ID, wave, verdict, reason, stop_reason: stopReason.stopReasonFor(verdict, reason), ledger_digest: digest, correlation_id: "c", ...over };
+  writeFileSync(join(dir, "run-done.json"), typeof over.raw === "string" ? over.raw : JSON.stringify(rec));
+  return dir;
+}
+function settle(fx, wave, over, tokenArg = "queue-drained", closeOver = {}) {
+  waveRecord(fx, wave, over);
+  const deps = fakeDeps();
+  const r = close(fx, deps, { stopReason: tokenArg, ...closeOver });
+  return { r, deps };
+}
+
+test("wave record: a fresh terminal drain turns queue-drained into converged/both-dry in the ledger, run-end event and result", () => {
+  const fx = makeRun(SHIPPED);
+  const { r, deps } = settle(fx, 2, {});
+  assert.equal(r.code, 0);
+  assert.equal(r.result.stop_reason, "converged/both-dry");
+  assert.equal(r.result.stop_reason_adopted, true);
+  assert.deepEqual(r.result.faults, []);
+  assert.equal(readLedger(fx).stop_reason, "converged/both-dry");
+  assert.equal(JSON.parse(called(deps, "events append")[0].input).data.stop_reason, "converged/both-dry");
+  const out = capture(() => rcl.cmdRunClose(["--run-dir", fx.runDir, "--stop-reason", "queue-drained", "--root", fx.root], fakeDeps()));
+  assert.match(out.out, /closed as converged\/both-dry \(adopted from the wave record; argument was queue-drained\)/);
+});
+
+test("wave record: no records leaves queue-drained untouched with no fault", () => {
+  const fx = makeRun(SHIPPED);
+  const r = close(fx, fakeDeps());
+  assert.equal(r.result.stop_reason, "queue-drained");
+  assert.equal(r.result.stop_reason_adopted, false);
+  assert.deepEqual(r.result.faults, []);
+});
+
+test("wave record: specific tokens pass through a terminal record", () => {
+  for (const token of ["budget-hit(tokens)", "budget-escalated(cost)", "sentry-abort", "governance-admit-failed", "converged/both-dry"]) {
+    const fx = makeRun(SHIPPED);
+    const { r } = settle(fx, 1, {}, token);
+    assert.equal(r.code, 0, token);
+    assert.equal(r.result.stop_reason, token);
+    assert.equal(r.result.stop_reason_adopted, false);
+    assert.equal(readLedger(fx).stop_reason, token);
+  }
+});
+
+test("wave record: a latest continue leaves generic tokens alone, even over an older terminal record", () => {
+  for (const token of ["queue-drained", "all-remaining-parked"]) {
+    const fx = makeRun(SHIPPED);
+    waveRecord(fx, 1, {});
+    const { r } = settle(fx, 2, { verdict: "continue", reason: "work-remaining" }, token);
+    assert.equal(r.result.stop_reason, token);
+    assert.equal(r.result.stop_reason_adopted, false);
+    assert.deepEqual(r.result.faults, []);
+  }
+});
+
+test("wave record: a malformed or mismatched latest record falls back with wave-record-unreadable, even over an older terminal record", () => {
+  for (const over of [{ raw: "{" }, { run_id: "other-run" }, { wave: 7 }, { verdict: 3 }]) {
+    const fx = makeRun(SHIPPED);
+    waveRecord(fx, 1, {});
+    const { r } = settle(fx, 2, over);
+    assert.equal(r.code, 0);
+    assert.equal(r.result.stop_reason, "queue-drained");
+    assert.equal(r.result.stop_reason_adopted, false);
+    assert.deepEqual(r.result.faults, ["wave-record-unreadable"]);
+  }
+});
+
+test("wave record: a latest wave directory with no run-done.json falls back with wave-record-missing", () => {
+  const fx = makeRun(SHIPPED);
+  waveRecord(fx, 1, {});
+  mkdirSync(join(fx.runDir, "wave-2"));
+  const r = close(fx, fakeDeps());
+  assert.equal(r.code, 0);
+  assert.equal(r.result.stop_reason, "queue-drained");
+  assert.deepEqual(r.result.faults, ["wave-record-missing"]);
+});
+
+test("wave record: converged/both-dry against a fresh continue or a different token is kept and flagged", () => {
+  for (const over of [{ verdict: "continue", reason: "work-remaining" }, { verdict: "escalate", reason: "budget-escalated(cost)" }]) {
+    const fx = makeRun(SHIPPED);
+    const { r } = settle(fx, 1, over, "converged/both-dry");
+    assert.equal(r.code, 0);
+    assert.equal(r.result.stop_reason, "converged/both-dry");
+    assert.equal(r.result.stop_reason_adopted, false);
+    assert.deepEqual(r.result.faults, ["close-contradicts-wave-record"]);
+  }
+  const fx = makeRun(SHIPPED);
+  assert.deepEqual(settle(fx, 1, {}, "converged/both-dry").r.result.faults, []);
+});
+
+test("wave record: a record made stale by a ledger change, or with a null digest, is never adopted", () => {
+  for (const over of [{ verdict: "escalate", reason: "non-convergence" }, {}]) {
+    const fx = makeRun({ admitted: ["A", "B"], outcomes: { A: "shipped" } });
+    waveRecord(fx, 1, over, { admitted: ["A"], outcomes: { A: "shipped" } });
+    const ledger = readLedger(fx);
+    writeFileSync(join(fx.runDir, "run-ledger.json"), JSON.stringify({ ...ledger, outcomes: { A: "shipped", B: "shipped" } }));
+    const r = close(fx, fakeDeps());
+    assert.equal(r.code, 0);
+    assert.equal(r.result.stop_reason, "queue-drained");
+    assert.deepEqual(r.result.faults, ["wave-record-stale"]);
+  }
+  const fx = makeRun(SHIPPED);
+  const { r } = settle(fx, 1, { ledger_digest: null });
+  assert.deepEqual(r.result.faults, ["wave-record-stale"]);
+  const fx2 = makeRun({ admitted: ["A"], outcomes: { A: "parked" } });
+  waveRecord(fx2, 1, {});
+  const l = readLedger(fx2);
+  writeFileSync(join(fx2.runDir, "run-ledger.json"), JSON.stringify({ ...l, outcomes: { A: "shipped" } }));
+  assert.deepEqual(close(fx2, fakeDeps()).result.faults, ["wave-record-stale"]);
+});
+
+test("wave record: a fresh specific record is adopted over either generic token", () => {
+  for (const [over, token] of [[{ verdict: "run-complete", reason: "budget-hit(tokens)" }, "budget-hit(tokens)"], [{ verdict: "escalate", reason: "non-convergence" }, "non-convergence"]]) {
+    for (const arg of ["queue-drained", "all-remaining-parked"]) {
+      const fx = makeRun(SHIPPED);
+      const { r } = settle(fx, 3, over, arg);
+      assert.equal(r.result.stop_reason, token);
+      assert.equal(r.result.stop_reason_adopted, true);
+      assert.equal(readLedger(fx).stop_reason, token);
+    }
+  }
+});
+
+test("wave record: a stored stop_reason that differs from the mapping is never adopted", () => {
+  const fx = makeRun(SHIPPED);
+  const { r } = settle(fx, 1, { stop_reason: "budget-hit(tokens)" });
+  assert.equal(r.result.stop_reason, "queue-drained");
+  assert.equal(r.result.stop_reason_adopted, false);
+  assert.deepEqual(r.result.faults, ["wave-record-inconsistent"]);
+  const fx2 = makeRun(SHIPPED);
+  assert.deepEqual(settle(fx2, 1, { verdict: "continue", reason: "work-remaining", stop_reason: "converged/both-dry" }).r.result.faults, ["wave-record-inconsistent"]);
+});
+
+test("wave record: a second close with queue-drained after an adopted close is idempotent", () => {
+  const fx = makeRun(SHIPPED);
+  assert.equal(settle(fx, 1, {}).r.code, 0);
+  const before = readFileSync(join(fx.runDir, "run-ledger.json"), "utf8");
+  const again = close(fx, fakeDeps());
+  assert.equal(again.code, 0);
+  assert.equal(again.result.stop_reason, "converged/both-dry");
+  assert.equal(readFileSync(join(fx.runDir, "run-ledger.json"), "utf8"), before);
+});
+
+test("wave record: an unknown argument still exits 2 before any record is read", () => {
+  const fx = makeRun(SHIPPED);
+  waveRecord(fx, 1, {});
+  const r = close(fx, fakeDeps(), { stopReason: "queue-drianed" });
+  assert.equal(r.code, 2);
+  assert.equal(r.result.stop_reason_adopted, false);
+});
+
+test("run-stop-reason mapping: every table row, null for continue, unlisted pairs and invalid tokens", () => {
+  const rows = [["run-complete", "drained", "converged/both-dry"], ["run-complete", "all-parked", "converged/both-dry"], ["run-complete", "value-inflection", "converged/both-dry"],
+    ["run-complete", "budget-hit(tokens,cost)", "budget-hit(tokens,cost)"], ["escalate", "budget-escalated(until,max_attempts,window)", "budget-escalated(until,max_attempts,window)"],
+    ["escalate", "non-convergence", "non-convergence"], ["escalate", "product-incomplete", "product-incomplete"]];
+  for (const [v, r, want] of rows) assert.equal(stopReason.stopReasonFor(v, r), want, `${v} ${r}`);
+  for (const r of ["work-remaining", "undispatched-ledger", "budget-narrow(tokens)", "drained"]) assert.equal(stopReason.stopReasonFor("continue", r), null, r);
+  for (const [v, r] of [["run-complete", "non-convergence"], ["escalate", "drained"], ["run-complete", "budget-hit(dollars)"], ["escalate", "budget-escalated()"], ["bogus", "drained"]]) assert.equal(stopReason.stopReasonFor(v, r), null, `${v} ${r}`);
+});
+
+test("run-stop-reason digest: key order is irrelevant; the admitted list and outcomes decide it; other fields do not", () => {
+  const d = stopReason.ledgerDigest({ admitted: ["A"], outcomes: { A: "shipped", B: "parked" } });
+  assert.match(d, /^[0-9a-f]{64}$/);
+  assert.equal(stopReason.ledgerDigest({ outcomes: { B: "parked", A: "shipped" }, admitted: ["A"], owner: { status: "done" } }), d);
+  assert.notEqual(stopReason.ledgerDigest({ admitted: ["A", "C"], outcomes: { A: "shipped", B: "parked" } }), d);
+  assert.notEqual(stopReason.ledgerDigest({ admitted: ["A"], outcomes: { A: "parked", B: "parked" } }), d);
+  assert.equal(stopReason.ledgerDigest(null), null);
+});
+
 // --- The verb: output on each exit ---
 
 test("--json field values: the whole CloseResult on 0, 3 and 2", () => {
-  const keys = ["abort_exempt", "closed", "faults", "owner_status", "steps", "undispatched"];
+  const keys = ["abort_exempt", "closed", "faults", "owner_status", "steps", "stop_reason", "stop_reason_adopted", "undispatched"];
   const fx0 = makeRun();
   const r0 = capture(() => rcl.cmdRunClose(["--run-dir", fx0.runDir, "--stop-reason", "queue-drained", "--root", fx0.root, "--json"], fakeDeps()));
   assert.equal(r0.code, 0);
@@ -432,6 +611,8 @@ test("--json field values: the whole CloseResult on 0, 3 and 2", () => {
   assert.deepEqual(Object.keys(o0).sort(), keys);
   assert.equal(o0.closed, true);
   assert.equal(o0.owner_status, "done");
+  assert.equal(o0.stop_reason, "queue-drained");
+  assert.equal(o0.stop_reason_adopted, false);
   const fx3 = makeRun({ admitted: ["A"], outcomes: {} });
   const r3 = capture(() => rcl.cmdRunClose(["--run-dir", fx3.runDir, "--stop-reason", "queue-drained", "--root", fx3.root, "--json"], fakeDeps()));
   assert.equal(r3.code, 3);

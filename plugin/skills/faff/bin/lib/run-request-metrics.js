@@ -241,6 +241,8 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
     const standaloneIssue = standalone && allowed.has(standalone) ? standalone : null;
     const candidates = new Map();
     const dispatches = new Map();
+    const issued = new Map();
+    const returns = new Map();
     const verifications = new Map();
     const handoffs = new Map();
     function mark(table, issue, ms) {
@@ -279,6 +281,15 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
                 // A structured receipt is evidence of a successful verification. A command invocation alone is not.
                 if (row.type === "user")
                     for (const b of blocks) {
+                        if (b.type === "tool_result" && typeof b.tool_use_id === "string" && ms >= lo && ms < hi) {
+                            const content = b.content;
+                            const bytes = typeof content === "string" ? Buffer.byteLength(content) : Array.isArray(content)
+                                ? content.reduce((n, item) => {
+                                    const text = obj(item).text;
+                                    return n + (typeof text === "string" ? Buffer.byteLength(text) : 0);
+                                }, 0) : null;
+                            returns.set(b.tool_use_id, { at: new Date(ms).toISOString(), bytes, error: b.is_error === true });
+                        }
                         if (b.type !== "tool_result" || b.is_error || typeof b.tool_use_id !== "string" || !verifyTools.has(b.tool_use_id))
                             continue;
                         const payload = typeof b.content === "string" ? b.content : obj(Array.isArray(b.content) && b.content.length === 1 ? b.content[0] : null).text;
@@ -339,6 +350,9 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
                         continue;
                     const input = obj(b.input);
                     if (ms >= lo && (b.name === "Agent" || b.name === "Task") && typeof b.id === "string") {
+                        const calls = issued.get(id) ?? new Set();
+                        calls.add(b.id);
+                        issued.set(id, calls);
                         rememberDispatch(dispatches, b.id, input.description, parentId, allowed);
                     }
                     for (const key of [input.issue, input.id, input.issueId]) {
@@ -370,6 +384,16 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
             (handoffs.get(w.issue) ?? []).some(h => h >= r.ms && h <= w.end)));
         const row = { id: hash(r.id), at: new Date(r.ms).toISOString(), role: r.role, model: r.model,
             issue, wave, phase, verification_to_handoff: interval || null, turn_id: r.turn, usage: r.usage };
+        const dispatch = sole(r.launches);
+        if (dispatch)
+            row.worker_dispatch_id = hash(sessionId + "\0" + dispatch);
+        const calls = issued.get(r.id);
+        if (calls)
+            row.worker_handoffs = [...calls].map(call => {
+                const result = returns.get(call);
+                return { dispatch_id: hash(sessionId + "\0" + call), returned_at: result?.at ?? null,
+                    returned_text_bytes: result?.bytes ?? null, is_error: result?.error ?? null };
+            });
         records.push(row);
         if (row.role === "parent")
             coverage.parent_responses++;

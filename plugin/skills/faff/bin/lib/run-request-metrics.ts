@@ -21,7 +21,15 @@ type Usage = Record<TokenClass, number | null>;
 type Role = "parent" | "worker";
 type Phase = "prep" | "build";
 
+export interface WorkerHandoff {
+  dispatch_id: string;
+  returned_at: string | null;
+  returned_text_bytes: number | null;
+  is_error: boolean | null;
+}
 export interface RequestObservation {
+  worker_dispatch_id?: string;
+  worker_handoffs?: WorkerHandoff[];
   id: string;
   at: string;
   role: Role;
@@ -228,6 +236,8 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
   const standaloneIssue = standalone && allowed.has(standalone) ? standalone : null;
   const candidates = new Map<string, Candidate>();
   const dispatches = new Map<string, Dispatch>();
+  const issued = new Map<string, Set<string>>();
+  const returns = new Map<string, { at: string; bytes: number | null; error: boolean }>();
   const verifications = new Map<string, number[]>();
   const handoffs = new Map<string, number[]>();
   function mark(table: Map<string, number[]>, issue: unknown, ms: number) {
@@ -251,6 +261,15 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
         const blocks = Array.isArray(msg.content) ? msg.content.map(obj) : [];
         // A structured receipt is evidence of a successful verification. A command invocation alone is not.
         if (row.type === "user") for (const b of blocks) {
+          if (b.type === "tool_result" && typeof b.tool_use_id === "string" && ms >= lo && ms < hi) {
+            const content = b.content;
+            const bytes = typeof content === "string" ? Buffer.byteLength(content) : Array.isArray(content)
+              ? content.reduce((n: number, item: unknown) => {
+                const text = obj(item).text;
+                return n + (typeof text === "string" ? Buffer.byteLength(text) : 0);
+              }, 0) : null;
+            returns.set(b.tool_use_id, {at: new Date(ms).toISOString(), bytes, error: b.is_error === true});
+          }
           if (b.type !== "tool_result" || b.is_error || typeof b.tool_use_id !== "string" || !verifyTools.has(b.tool_use_id)) continue;
           const payload = typeof b.content === "string" ? b.content : obj(Array.isArray(b.content) && b.content.length === 1 ? b.content[0] : null).text;
           if (typeof payload !== "string") continue;
@@ -292,6 +311,9 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
           if (b.type !== "tool_use") continue;
           const input = obj(b.input);
           if (ms >= lo && (b.name === "Agent" || b.name === "Task") && typeof b.id === "string") {
+            const calls = issued.get(id) ?? new Set<string>();
+            calls.add(b.id);
+            issued.set(id, calls);
             rememberDispatch(dispatches, b.id, input.description, parentId, allowed);
           }
           for (const key of [input.issue, input.id, input.issueId]) {
@@ -316,6 +338,14 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
       (handoffs.get(w.issue) ?? []).some(h => h >= r.ms && h <= w.end)));
     const row: RequestObservation = { id: hash(r.id), at: new Date(r.ms).toISOString(), role: r.role, model: r.model,
       issue, wave, phase, verification_to_handoff: interval || null, turn_id: r.turn, usage: r.usage };
+    const dispatch = sole(r.launches);
+    if (dispatch) row.worker_dispatch_id = hash(sessionId + "\0" + dispatch);
+    const calls = issued.get(r.id);
+    if (calls) row.worker_handoffs = [...calls].map(call => {
+      const result = returns.get(call);
+      return {dispatch_id: hash(sessionId + "\0" + call), returned_at: result?.at ?? null,
+        returned_text_bytes: result?.bytes ?? null, is_error: result?.error ?? null};
+    });
     records.push(row);
     if (row.role === "parent") coverage.parent_responses++; else coverage.worker_responses++;
     if ([r.usage.input,r.usage.output,r.usage.cache_read,r.usage.cache_write].every(v => v !== null)) coverage.responses_with_usage++;

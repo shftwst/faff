@@ -3,14 +3,14 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { sdkTurnReceipts } from "./run-sdk-turns";
 import { randomUUID } from "node:crypto";
-import { collectRunRequestMetrics, type RequestObservation } from "./run-request-metrics";
+import { collectRunRequestMetrics, type RequestObservation, type WorkerHandoff } from "./run-request-metrics";
 
 const { withFileLock } = require("./fs-lock");
 const { readLeafNoFollow } = require("./leaf-read");
 const filename = "run-request-metrics.json";
 type Observation = ReturnType<typeof collectRunRequestMetrics>;
 type Epoch = { since: string; until: string; last_observed_until: string | null;
-  status: Observation["status"]; warnings: string[]; records: RequestObservation[] };
+  handoffs_scanned?: boolean; status: Observation["status"]; warnings: string[]; records: RequestObservation[] };
 const tokenClasses: (keyof RequestObservation["usage"])[] =
   ["input", "output", "cache_read", "cache_write", "cache_write_5m", "cache_write_1h"];
 type Store = { schema: 1; epochs: Record<string, Epoch> };
@@ -40,9 +40,17 @@ function combine(previous: Epoch | undefined, next: Epoch): Epoch {
     if (!old) { rows.set(row.id, row); continue; }
     const usage = {...row.usage};
     for (const field of tokenClasses) usage[field] ??= old.usage[field];
-    rows.set(row.id,{...row, usage, turn_id: row.turn_id ?? old.turn_id});
+    const merged = {...old, ...row, usage, turn_id: row.turn_id ?? old.turn_id};
+    if (old.worker_handoffs) {
+      const calls = new Map(old.worker_handoffs.map(h => [h.dispatch_id, h]));
+      for (const h of row.worker_handoffs ?? []) {
+        if (h.returned_at || !calls.get(h.dispatch_id)?.returned_at) calls.set(h.dispatch_id, h);
+      }
+      merged.worker_handoffs = [...calls.values()];
+    }
+    rows.set(row.id, merged);
   }
-  return { ...newer, records: [...rows.values()], last_observed_until: newer.last_observed_until ?? older.last_observed_until,
+  return { ...newer, handoffs_scanned: Boolean(older.handoffs_scanned || newer.handoffs_scanned), records: [...rows.values()], last_observed_until: newer.last_observed_until ?? older.last_observed_until,
     status: newer.status === "unavailable" && older.last_observed_until ? "partial" : newer.status };
 }
 
@@ -70,7 +78,7 @@ export function captureRunRequests(runDir: string, root: string, sessionId?: str
           (!refresh && process.env.CLAUDE_CODE_SESSION_ID) || ledger.owner?.session_id));
         const report = collectRunRequestMetrics({runDir, root, sessionId: id || null, since: since ?? "", until: until ?? ""});
         updated[String(i)] = { since: since ?? "", until: until ?? "", last_observed_until: report.requests === null ? null : until,
-          status: report.status, warnings: report.warnings, records: report.records };
+          handoffs_scanned: report.requests !== null, status: report.status, warnings: report.warnings, records: report.records };
       }
       since = stamp(span.closed_at);
     }
@@ -128,9 +136,20 @@ export function requestReport(dir: string, ledger: {outcomes?: Record<string,str
       total[key] = total[key] === null || value === null ? null : total[key] + value;
     }
   }
+  const calls = new Map<string, WorkerHandoff>();
+  for (const row of rows) for (const call of row.worker_handoffs ?? []) calls.set(call.dispatch_id, call);
+  const handoffs = [...calls.values()];
+  const measured = handoffs.filter(call => call.returned_text_bytes !== null);
+  const workerHandoffs = epochs.some(e => e.handoffs_scanned) || handoffs.length ? {
+    observed_dispatches: handoffs.length,
+    observed_returns: handoffs.filter(call => call.returned_at).length,
+    sized_returns: measured.length,
+    observed_return_text_bytes: measured.reduce((n, call) => n + (call.returned_text_bytes ?? 0), 0),
+    scanned_epochs: epochs.filter(e => e.handoffs_scanned).length,
+  } : null;
   const engine = require("./budget").readEngineSpend(dir);
   return {separate_engine_spend: {records:engine.records, engines:engine.engines, tokens:engine.totals}, run_id: path.basename(dir), source:"owned-claude-transcripts", status: !any ? "unavailable" : epochs.length < expected || engine.records || engine.malformed || epochs.some(e => e.status !== "observed") ? "partial" : "observed",
-    requests, usage, turns: sdk.turns, sdk_turns: sdk, transcript_turn_ids: transcriptTurns, shipped, observed_requests_per_shipped_issue: requests !== null && shipped ? requests/shipped : null,
+    requests, usage, worker_handoffs: workerHandoffs, turns: sdk.turns, sdk_turns: sdk, transcript_turn_ids: transcriptTurns, shipped, observed_requests_per_shipped_issue: requests !== null && shipped ? requests/shipped : null,
     by_role: counts(r => r.role), by_issue: counts(r => r.issue), by_phase: counts(r => r.phase), by_wave: counts(r => r.wave),
     by_model: counts(r => r.model), verification_to_handoff_by_issue: countsSelected(rows),
     epochs: epochs.map(({records,...epoch}) => ({...epoch, observed_requests:epoch.last_observed_until ? records.length : null})),

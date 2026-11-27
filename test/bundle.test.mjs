@@ -883,6 +883,30 @@ function localClaimRepo(label) {
 const buildOwnerArg = (sid, machineId = "M-test", heartbeating = true, hbAgeMs = 0) =>
   ({ status: "running", epoch: 1, session_id: sid, pid: 1, started_at: new Date().toISOString(), last_heartbeat: new Date(Date.now() - hbAgeMs).toISOString(), machine_id: machineId, heartbeating });
 
+test("dispatcher release requires the returned lease and its dispatched owner", t => {
+  const root = localClaimRepo("release-dispatched");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const issue = "FAFF-1";
+  const store = buildClaimStore(root);
+  const release = (sha, session) => {
+    const r = runCli(["build-claim", "release", "--issue", issue, "--sha", sha, "--session-id", session, "--json"], { cwd: root });
+    assert.equal(r.code, 0, r.stderr);
+    return JSON.parse(r.stdout);
+  };
+  const first = store.acquire({ issue }, buildOwnerArg("owner"));
+  assert.ok(first.acquired);
+  assert.equal(release(first.sha, "other").reason, "different-session");
+  assert.equal(store.readHolder({ issue }).sha, first.sha);
+  assert.equal(release(first.sha, "owner").released, true);
+  const later = store.acquire({ issue }, buildOwnerArg("owner"));
+  assert.ok(later.acquired);
+  assert.notEqual(first.sha, later.sha);
+  assert.equal(release(first.sha, "owner").reason, "superseded");
+  assert.equal(store.readHolder({ issue }).sha, later.sha);
+  assert.equal(release(later.sha, "owner").released, true);
+  assert.equal(release(later.sha, "owner").reason, "missing");
+});
+
 test("FAFF-1064 buildClaimStore: under bundle_store: local it selects the on-box local transport and acquires with NO origin remote", () => {
   const root = localClaimRepo("select");
   try {

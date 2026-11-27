@@ -2484,6 +2484,18 @@ function cmdBuildClaim(args) {
   if (sub === "release") {
     const sha = values["--sha"];
     if (!sha) { process.stderr.write("build-claim release: --sha <SHA> is required\n"); return 2; }
+    // A dispatcher has its own session ID and a lease returned by a worker.
+    // Validate both against the same ref, then CAS-delete only the returned SHA.
+    if (values["--session-id"] !== undefined) {
+      const session = values["--session-id"];
+      if (!session.trim()) { process.stderr.write("build-claim release: expected a nonempty --session-id\n"); return 2; }
+      const holder = store.readHolder(identity);
+      let reason;
+      if (holder.status !== "ok") reason = holder.status;
+      else if (holder.sha !== sha) reason = "superseded";
+      else if (holder.claim?.owner?.session_id !== session) reason = "different-session";
+      if (reason) return out({ action: "release", issue, released: false, reason, summary: `build-claim release no-op ${issue}: ${reason}` }, 0);
+    }
     const r = store.release(identity, sha);
     // Best-effort housekeeping: a superseded/missing no-op is benign, a store_unavailable is
     // transient — either way the next drain's reclaim backstops it, so NEVER halt the pipeline.

@@ -28,13 +28,10 @@ Identity lives in the **body**, not tracker metadata: the tracker exposes no nat
 
 ### Producer slots vs adaptor slots (what to swap, when)
 
-The `spec` / `review` / `ship` producers declare contract data in a `faff-contract:<name>` block. Consumers (`faff-prep`, `faff-graft` Step 9 / Step 10) locate it, `JSON.parse` it and call `faff contract <name>` directly. These three have no paired `spec_adaptor` / `review_adaptor` / `ship_adaptor`; only the two adaptor slots below remain.
+Swap a producer to change how work is done. `spec`, `review` and `ship` return their native output plus a `faff-contract:<name>` block. Prep and graft (Steps 9 and 10) parse it with `JSON.parse` and run `faff contract <name>`. These slots have no paired adaptor. Wrap a replacement that cannot emit the standard block via **`faffter-dark-authoring-adaptors`**. Only an absent block falls back to model extraction from prose.
 
-- **Producer slots** (`intake`, `spec`, `review`, `ship`) do the work and emit native output plus `faff-contract:<name>` (`intake` instead emits a documented brief with no contract). Swap one to change how the work is done. It must emit the same block, parsed without translation; if its native tool cannot, wrap it via **`faffter-dark-authoring-adaptors`** to emit the block. Only absent-block prose extraction remains an LLM seam, for a producer that emits nothing.
-- **Adaptor slots** (`routing_adaptor`, `rendering_adaptor`) translate and validate. `routing_adaptor` assigns a computed verdict with no producer-authored artifact; `rendering_adaptor` is human-facing with no fixed internal contract. Swap translation/house style; the fixed internal contract stays unchanged.
-
-**Rule of thumb for a slot swap:** change the **producer** to change behaviour. A producer whose output the consumer can't parse from the standard `faff-contract:<name>` block is **wrapped via the fused wrapper**, not handed a bespoke adaptor slot. `intake` and `concurrency` have no contract pairing — `intake` emits a brief directly (see `faffter-noon-intake`), `concurrency` drives faff's own graft, which already speaks faff's vocabulary. The `methodology` slot is a named-output lens governed by its own contract (see **The `methodology` slot**).
-
+- `routing_adaptor` assigns a verdict without a producer artifact. `rendering_adaptor` controls human-facing form and has no fixed internal contract. Swapping either preserves the fixed workflow vocabulary.
+- `intake` returns the documented brief directly (see `faffter-noon-intake`). `concurrency` runs graft and uses its vocabulary. Neither needs a paired adaptor. `methodology` answers its named outputs (see **The `methodology` slot**).
 
 ### Fixture data in review
 

@@ -287,6 +287,8 @@ function econIsCompactBoundary(rec) {
   if (rec.isCompactSummary === true) return true;
   return typeof rec.subtype === "string" && rec.subtype === "compact_boundary";
 }
+// File ownership is collector metadata. Never serialize host paths into reports.
+const transcriptSources = new WeakMap();
 function econToLightRecord(rec, idx) {
   const sessionId = (rec && typeof rec.sessionId === "string" && rec.sessionId) || "unknown-session";
   const isSidechain = !!(rec && rec.isSidechain);
@@ -305,7 +307,7 @@ function econToLightRecord(rec, idx) {
   }
   return {
     idx,
-    lineage: sessionId + "::" + (isSidechain ? "side" : "main"),
+    lineage: JSON.stringify([sessionId, transcriptSources.get(rec) ?? null, rec?.parent_tool_use_id ?? null, isSidechain]),
     uuid: (rec && typeof rec.uuid === "string" && rec.uuid) || null,
     parentUuid: (rec && typeof rec.parentUuid === "string" && rec.parentUuid) || null,
     timestamp: (rec && typeof rec.timestamp === "string" && rec.timestamp) || null,
@@ -1063,6 +1065,7 @@ function readRunTranscriptRecords(cwd, env, runStartMs) {
       if (!s) continue;
       let rec;
       try { rec = JSON.parse(s); } catch { continue; }
+      if (rec && typeof rec === "object") transcriptSources.set(rec, f);
       records.push(rec);
     }
   }

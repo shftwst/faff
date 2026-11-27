@@ -396,20 +396,20 @@ A clean single-pass build still uses this one-comment shape (verdict + "resolved
 - **`needs-human`** → surface on the tracker issue as needs-human (the one-comment shape above) and park per the shared protocol **without opening a PR**. This is a **no-PR human handoff** — distinct from the `pr-open-for-human` return, which is reserved for the post-PR causes (CI-red / delivery `not-ready`/`failed`) that operate on an already-opened PR. See **Return values** in Autonomous Mode for the split.
 - **`unavailable`** — no review verdict could be produced (a mandatory review-chain outage) — run **Review dialogue, judge and holds** above: autonomous + a resumable checkpoint + under the retry bound → **retry-later** (hold + release claim, **no PR**, no `review-verdict.json`); otherwise → the same **`needs-human`** park as above (surface on the tracker issue, park per the shared protocol, **without opening a PR**).
 
-If the review names concrete, separable **out-of-scope** work — not a fixable defect in this diff — record it as discovered scope (see below) rather than looping on it. `fail` is for fixable items; out-of-this-PR follow-ups are discovered scope, not a review failure.
-
-This step runs in **both** interactive and autonomous modes.
+Record concrete, separable out-of-scope review findings as discovered scope (see below). Reserve `fail` for defects to fix in this diff.
 
 **Step 9b: Open the PR (after review `pass` — identical interactive + autonomous)**
 
-After Step 9 returns `pass`, open the PR here. **Git-only mode: no-op** — no remote to open a PR against, so this step composes no PR body and runs nothing; proceed straight to Step 10.
+**Git-only mode: no-op**; this step composes no PR body and skips to Step 10.
 
 1. **Evidence.** Save the newest issue comment beginning `## Spec-review evidence`, else the Step 4 committed spec, at an absolute `$evidence` path. Leave it unset if neither exists.
-2. **Draft and title.** Write the PR prose to an absolute `$draft` path. The command appends the Acceptance Criteria from the committed anchor before checking the full body. If the Step 8 writer refused, omit `--append-ac-checklist` and include only the refusal reason under `## Acceptance Criteria`. Resolve `$pr_title` using `faff conventions get pr_title` and the build change; the anchor chore is the eventual head.
+2. **Draft and title.** Write the PR prose to an absolute `$draft` path. The command appends the Acceptance Criteria from the committed anchor before checking the full body. If the Step 8 writer refused, omit `--append-ac-checklist` and include only the refusal reason under `## Acceptance Criteria`. Set `$subject` to the imperative build change and `$prefix` to its conventional type and optional scope (e.g. `fix(cache)`).
 3. **Open from the feature worktree**, then delete the draft:
-
 ```bash
-(cd -- "$wt" && "$faff" pr open --run-dir "$run_dir" --issue "$issue" --base "${base#origin/}" --title "$pr_title" \
+(cd -- "$wt" || exit 1
+scheme=$("$faff" conventions get pr_title) || exit $?
+case "$scheme" in conventional) pr_title="$prefix: $subject";; bare-imperative) pr_title=$subject;; *) exit 2;; esac
+"$faff" pr open --run-dir "$run_dir" --issue "$issue" --base "${base#origin/}" --title "$pr_title" \
   --body-file "$draft" --append-ac-checklist ${evidence:+--spec-review-evidence "$evidence"} --json)
 ```
 

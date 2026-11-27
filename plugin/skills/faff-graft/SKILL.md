@@ -37,7 +37,7 @@ The user may provide an issue identifier, OR invoke with no arguments.
 
 **Step 0: Create step-by-step todos (mandatory — interactive and autonomous)**
 
-Before starting any work, use your harness's todo-tracking capability (e.g. `TodoWrite`, or `TaskCreate`/`TaskUpdate`) to create one todo per numbered step below, in order. Mark each `in_progress` when starting it and `completed` the moment it finishes. Never drop review, AC verification or another late step during the build.
+Create one visible, ordered todo per numbered step with the harness's todo-tracking tool. Batch creation with Step 1's independent issue read when supported. Wait for both before proceeding. Mark each step `in_progress` on entry and `completed` after its result. Batch status updates with independent reads when available.
 
 Minimum todo set:
 
@@ -57,7 +57,7 @@ Minimum todo set:
 - Step 10: Merge-confidence gate
 - Step 11: Post-PR checks (interactive) / auto-merge on green (autonomous)
 
-Do not collapse these into one "implement the feature" todo. Every numbered step below, especially 8 / 9 / 9b / 10, must be a discrete todo that's visibly ticked off. Skipping a step without ticking its todo is a process failure.
+Keep separate todos through AC verification, holdout, review, PR and merge. Account for each step on its applicable path.
 
 **Step 1: Get Issue Details**
 

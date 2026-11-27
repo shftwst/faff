@@ -377,3 +377,17 @@ test("FAFF-1444: init-interactive writes an integer owner.utc_offset_min, the mi
     assert.equal(ledger.owner.utc_offset_min, 330, "the CLI mint records the writing process's offset");
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
+
+test("wave member outcome preserves the run owner and leaves the metered close event to its caller", (t) => {
+  const root = mkTmp("wave-member-");
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  const runDir = mint(root, "A");
+  const args = ["run-ledger", "record-outcome", "--run-dir", runDir, "--issue", "A", "--outcome", "shipped", "--json"];
+  const wave = runCli([...args, "--wave-member"], {env: cleanEnv()});
+  assert.equal(wave.code, 0, wave.stderr);
+  assert.equal(JSON.parse(wave.stdout).owner_status, "running");
+  const ledger = JSON.parse(readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
+  assert.equal(ledger.outcomes.A, "shipped");
+  const events = readFileSync(path.join(runDir, "events.jsonl"), "utf8").trim().split("\n").map(JSON.parse);
+  assert.equal(events.filter(e => e.type === "issue-outcome").length, 0);
+});

@@ -90,6 +90,19 @@ class WaveScoring(TestCase):
         git(self.arm/"origin.git","update-ref","refs/heads/main",self.prs[-1]["headRefOid"])
         result=score(self.arm)
         self.assertTrue(result["pass"],result["details"])
+        self.assertTrue(result["assertions"]["ledger_stop_reason_agrees_with_latest_wave_record"])
+        ledger = json.loads((self.run/"run-ledger.json").read_text())
+        (self.run/"wave-1").mkdir()
+        def with_wave_record(record_reason, ledger_reason):
+            save(self.run/"wave-1"/"run-done.json", {"stop_reason": record_reason})
+            save(self.run/"run-ledger.json", {**ledger, "stop_reason": ledger_reason})
+            return score(self.arm)["assertions"]["ledger_stop_reason_agrees_with_latest_wave_record"]
+        self.assertTrue(with_wave_record("converged/both-dry", "converged/both-dry"))
+        self.assertTrue(with_wave_record("converged/both-dry", "budget-hit(tokens)"))
+        self.assertTrue(with_wave_record(None, "queue-drained"))
+        self.assertFalse(with_wave_record("converged/both-dry", "queue-drained"))
+        self.assertFalse(with_wave_record("converged/both-dry", "all-remaining-parked"))
+        save(self.run/"run-ledger.json", ledger)
         outcome_pos = next(n for n,e in enumerate(self.events) if e["issue"] == A and e["type"] == "issue-outcome")
         shipped = self.events[outcome_pos]
         enriched = {**shipped, "data": {"outcome": "shipped", "rework_turns": 0}}

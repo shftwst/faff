@@ -27,3 +27,7 @@ python3 test/beep-boop-e2e/analyze_responses.py /path/to/release /path/to/candid
 ```
 
 Adjacent responses in the same tool category are leads for inspection. Combining calls requires checking data dependencies, freshness, authority and failure behaviour.
+
+The analyzer's `request_metrics` counts unique observed model responses across parent and workers per shipped ledger issue. Parent wave windows start at the first logged prep/build start after the preceding wave checkpoint and end with the parent's wave checkpoint request. Startup, later reporting and responses between windows are counted separately. A mismatch with the recorded wave directories leaves the breakdown unavailable.
+
+For each issue the analyzer also reports direct worker responses from the first recognizable `graft verify-build` invocation through the last observed response in that dispatch, inclusive. Independent dispatch attempts appear separately and are summed per issue for the mean. This window includes review, evidence and handoff. Nested workers and subsequent parent merges are outside it. Compare completed runs alongside their workflow verdict. Missing markers and ambiguous multi-issue workers are reported as coverage gaps. Older releases can provide wave counts even when they predate the verification command.

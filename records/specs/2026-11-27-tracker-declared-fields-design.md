@@ -8,4 +8,5 @@ A connector may return an identity field automatically, accept a different field
 |---|---|---|---|
 | `for one known ID. For lists` | Keep direct known-ID lookup, bounded and paged lists, recent-first ordering and conditional expansions. | test/tracker-probe.test.mjs | kept |
 | `Earlier tool responses remain in context` | Preserve isolated reads and return the caller's required values. | test/tracker-probe.test.mjs | kept |
-| `the complete human-legible record` | The tracker remains the operator's unattended control plane and uses the existing mechanisms. | test/control-parity-tracker.test.mjs | kept |
+| `The harness supplies live connector discovery` | Discover the live connector after resolving the configured tracker. | test/tracker-probe.test.mjs | kept |
+| `For PRDs, PRDRs, ADRs and spikes` | Keep the matching config resolver and override for each document type. | test/tracker-probe.test.mjs | kept |

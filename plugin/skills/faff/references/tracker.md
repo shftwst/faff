@@ -4,7 +4,7 @@
 
 ### Tracker availability resolution
 
-On skill entry, run `faff tracker probe --json`. It returns `{pin, resolution}` from `tracking.tracker`. The harness supplies live connector discovery.
+At entry, `faff tracker probe --json` returns `{pin, resolution}` from `tracking.tracker`. Discover live connectors through the harness.
 
 | Resolution | Action |
 |---|---|
@@ -18,7 +18,7 @@ Use visible connector tools or search the harness catalogue for deferred issue/c
 
 Use `faff config spec-docs-path` for the repository-relative spec directory. Add `--create` when it must exist. `tracking.spec_docs_path` accepts a trailing slash. The default is `docs/specs/`, or `doc/specs/` when only `doc/` exists. Graft commits `YYYY-MM-DD-<issue-id>-<slug>-design.md` on the feature branch so the spec ships with the code.
 
-For PRDs, PRDRs, ADRs and spikes use the matching `faff config` resolver (`prd-docs-path`, `prdr-docs-path`, `adr-docs-path`, `spike-docs-path`). Each honours its `tracking.<kind>_docs_path` override and the same `docs/` or `doc/` rule, with subdirectories `prd/`, `prdr/`, `adr/` and `spikes/` respectively. `adr-superseded-docs-path` uses the resolved ADR directory unless `tracking.adr_superseded_docs_path` overrides it.
+Resolve PRDs, PRDRs, ADRs and spikes with `faff config` (`prd-docs-path`, `prdr-docs-path`, `adr-docs-path`, `spike-docs-path`). Each honours its `tracking.<kind>_docs_path` override and the same `docs/` or `doc/` rule, with subdirectories `prd/`, `prdr/`, `adr/` and `spikes/` respectively. `adr-superseded-docs-path` uses the resolved ADR directory unless `tracking.adr_superseded_docs_path` overrides it.
 
 ### Ignore cancelled and archived
 
@@ -54,15 +54,15 @@ At each eligibility, routing or claim gate, take the current status and labels f
 
 ### Lean tracker reads (ask for only what the step consumes)
 
-Pass a known ID in the connector's declared lookup argument. When projection is supported, select only advertised fields. Count automatically returned identity toward the required values. Use a full issue read if projection is unavailable or a gate value is missing. Limit lists to the step's needs, newest first (`createdAt` descending) for recent rows. Page as needed. Request relations, releases or customer needs only when required.
+Use the declared lookup argument for a known issue ID. Select advertised fields only; count identity returned by default. Use a full read when projection or required gate facts are missing. Limit lists to the step, newest first (`createdAt` descending) for recent rows. Page as needed. Expand relations, releases or customer needs only when required.
 
-Tool replies remain in context across turns. For isolation, fetch in a subagent or out-of-context CLI and return only what the caller needs.
+Replies persist across turns. Isolate reads in a subagent or out-of-context CLI; return only needed values.
 
 ### Tracker as the lights-out control plane
 
-In unattended runs (`/faff-beep-boop`), the tracker is the human-readable record and control plane. Use the existing markers, labels and issue states.
+During unattended runs the tracker is the complete human-visible record and control surface. Use the existing markers and gates below.
 
-**1. Externalise every marker-worthy step.** The meaningful pipeline transitions leave a tracker marker — a per-issue comment, a control label, a status move, or the once-per-run digest. Factory-created tickets join the **same** `Backlog` as all other work — no parallel hidden queue — and are picked up by the next tidy→prep pass. The canonical marker set (already left, distributed across the skills):
+**Externalise pipeline transitions.** Use a tracker comment, control label, status move or run digest. File factory-created tickets in the shared Backlog for the next tidy→prep pass.
 
 - **Spec-attach / promote** — `faff-prep` attaches the spec as a comment (with provenance stamp); promotion to Todo.
 - **Park** — park comment + `faff-parked` label, via the shared **Park protocol**.
@@ -72,11 +72,11 @@ In unattended runs (`/faff-beep-boop`), the tracker is the human-readable record
 - **Terminal disposition** — *shipped* (PR + auto-merge status move), *routed-out* (verdict gate), *errored* — surfaced via the run-summary digest.
 - **The once-per-run run-summary digest** — posted to the tracker as a status update / project comment. One digest per run, not per step.
 
-**2. Marker-worthy ≠ every action (the granularity rule — the crux).** *Marker-worthy* means the transitions/dispositions above — **not** every micro-step. **Per-micro-step markers are forbidden:** a tracker comment per file edited, per test run, per intra-build decision, or per CI poll floods the control plane and destroys the legibility this principle exists to protect. Routine intra-step progress lives in `.faff/` logs and the once-per-run digest, **never** as a tracker comment. Density is governed by the **existing** levers — `logging: full|essential`, the `appetite` dial (gates discovered/chain-gap auto-create), the vague/concrete split (vague discovered-scope is never filed), and the run digest — **not** by any new knob.
+**Marker granularity.** Record routine file edits, tests, build decisions and CI polls in `.faff/` logs and the run digest only. Respect `logging: full|essential` and the appetite gate for discovered scope and chain gaps. Never file vague discovered scope.
 
-**3. Re-read human edits each pass (the steer loop).** Every pass re-reads the ticket's current tracker state + human edits **before** acting and incorporates them — implemented by **Always pull fresh**, `faff-beep-boop`'s wave re-entry + `faff next`, `faff-tidy`'s post-spec comment scan, and `faff-prep`'s autonomous stale-refresh. The human can view or alter **any** ticket — including one the factory created — and the next pass honours the edit. This is the **Human curation is authoritative** principle (below) applied to factory-created work — this section is its externalise/steer half; that section is the obey half. No new fetch/merge mechanism is added.
+**Re-read human edits each pass.** Before acting on any ticket, including factory-created tickets, fetch its current state and incorporate human edits. Apply **Always pull fresh** at beep-boop wave re-entry (`faff next`), tidy’s post-spec scan and prep’s autonomous stale-refresh.
 
-**Lane & composition.** Markers are written by the **orchestrator** lane (`faff-beep-boop`) per **Agent Lanes** record-and-file; the implementor (`faff-graft`) records-and-returns and never writes the tracker directly; `faff-jot` stays interactive-only (its autonomous mode writes `.faff/intake/`, never the tracker). No per-issue marker is added for shipped / routed-out / errored / unreached dispositions — the PR + status move + run digest already make each legible, and §2 forbids duplicating them. This principle **composes** with **Agent Lanes**, **Always pull fresh**, **Appetite for destruction**, and the **Park protocol** — it restates none of them.
+**Agent Lanes.** Beep-boop records and files markers. Graft records and returns without tracker writes. Jot is interactive-only for tracker writes and uses `.faff/intake/` in autonomous mode. Report shipped, routed-out, errored and unreached dispositions without an extra per-issue marker.
 
 
 ### Spec discovery (where to look for an existing spec)

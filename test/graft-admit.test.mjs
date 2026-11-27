@@ -471,6 +471,17 @@ test("facts from stdin: --facts - reads the object from standard input", () => {
   assert.equal(JSON.parse(r.out).disposition, "proceed");
 });
 
+test("inline spec text receives the same grade as a file, and an explicit file stays authoritative", () => {
+  const { root } = scratch();
+  const run = (text, extra = []) => cli(root, ["graft", "admit", "--json", "--mode", "autonomous",
+    "--facts", "-", "--root", root, ...extra], {}, JSON.stringify(facts({spec: {found: true, confidence: "high", text}})));
+  assert.equal(JSON.parse(run(GOOD_SPEC).out).disposition, "proceed");
+  assert.equal(JSON.parse(run(NO_SCENARIO_SPEC).out).disposition, "inadmissible");
+  assert.equal(run(null).code, 2);
+  assert.equal(run(GOOD_SPEC, ["--spec-file", "missing.md"]).code, 2);
+  assert.equal(JSON.parse(run(NO_SCENARIO_SPEC, ["--spec-file", "spec-good.md"]).out).disposition, "proceed");
+});
+
 test("fail closed on a corrupt config: a control-label map that is not a map exits 2 with config-invalid, never a guessed label", () => {
   const { root } = scratch({ config: "tracking:\n  control_labels:\n    - parked\n" });
   const r = admit(root, "autonomous", facts());

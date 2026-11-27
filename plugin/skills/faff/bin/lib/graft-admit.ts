@@ -431,8 +431,12 @@ function cmdGraftAdmit(args: string[]): number {
   let specText: string | null = null;
   if (mode === "autonomous" && facts.spec.found) {
     const specFile = str(values["--spec-file"]);
-    specText = specFile === undefined ? null : readText(specFile);
-    if (specText === null) return fail(json, facts.issue, "spec-file-unreadable", "autonomous mode with a found spec needs a readable --spec-file");
+    if (specFile !== undefined) {
+      specText = readText(specFile);
+    } else if (isRecord(raw) && isRecord(raw.spec) && typeof raw.spec.text === "string") {
+      specText = raw.spec.text;
+    }
+    if (specText === null) return fail(json, facts.issue, "spec-file-unreadable", "autonomous mode with a found spec needs facts.spec.text or a readable --spec-file");
   }
 
   const runArg = str(values["--run-dir"]) ?? str(process.env.FAFF_RUN_DIR);

@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "6ed8ecb0c864b1067c1eeb2dda23109d7ec6151af3085f4c56f83ca909b96d1c"
+    "tsconfig.json": "b42695fc452df231c3d36adbb4b019bc5255d1c8687acbbb407171096549139e"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -59,16 +59,17 @@
     "bin/lib/reviewed-attachment.ts": "5a9648ea5959791ed26793a9f6f250f23e92819d755ac9aac54f1d81e8560394",
     "bin/lib/rule-inventory.ts": "c4cb6d85b49519c4bca68d3b30b63a603eaf0590b8d31edbd7eaffe60dff4621",
     "bin/lib/run-checkpoint.ts": "3f53c139eb03ab0a4ecbd2774746a9700337ea694938833221ae17386ab97cd1",
-    "bin/lib/run-close.ts": "c9f138cfe8afa0d42c2ccea6c39d4705bbf20cc245a09b280344a105ee5db041",
+    "bin/lib/run-close.ts": "7e86e0b5ed14fb314745992bbb03c7abea490dfeb0780a9af6fc115b848dcd02",
     "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
     "bin/lib/run-open.ts": "50f6d5fcf0248162c058c126813b483da74bfda65af9909c5bfd8a29f3d76b48",
     "bin/lib/run-request-metrics.ts": "2198168ab47ec0ddf0612b40f173182825785404c89a5b287adae7d2acff8d09",
     "bin/lib/run-request-store.ts": "3cb751dfd57919deb0ca4c8eeef625978855e51e5cbf8f568aa59b5d856740ce",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
     "bin/lib/run-sdk-turns.ts": "d9dc0761d05fc7884c06124de2ea04058dda59a1d46365e4c0dddc7498a2673b",
+    "bin/lib/run-stop-reason.ts": "90be5d4ec94d88201f46ea5a182462993818afaab2d09cc97d55dcbb2f47edca",
     "bin/lib/run-summary.ts": "0174f139c548ee4409d917a00a6d1983465864a518cea47f789559542af5cc66",
     "bin/lib/run-trigger.ts": "d7810195ea6ed69e075295988d1270943b6c49679f1f0ef121e8105e4c3c4b74",
-    "bin/lib/run-wave-consult.ts": "064a7466a9a3122de476d2c2853f97321c72bd5f2236db9be6d7743685864436",
+    "bin/lib/run-wave-consult.ts": "f361796509b03db36e9ca305842a42ae104fed6f9dc82b805c821038b49be1ab",
     "bin/lib/run-wave-mode.ts": "49631f329c03e5c5c2a0db3925397a45e059c25ad146d301b7b4d62c51bc8e7b",
     "bin/lib/run.ts": "43e47a2c4e6f82028f8843a51e2e97323ccf38ac22d7102b15ec53fc9a3158fe",
     "bin/lib/slot-authoring.ts": "8204bcc6316d905fbc58c595862cd2247ce01fe1152a3edeb271c33e3adec95e",
@@ -129,16 +130,17 @@
     "bin/lib/reviewed-attachment.js": "1a6b0c5a5cba186f8c9cff94412cbc57d6950f7fc6ed9645b5bf0441d8d0a7b4",
     "bin/lib/rule-inventory.js": "e4cc399a8b003fb062065d612f5b28b578fb14cc371611568f68b47150b9e69d",
     "bin/lib/run-checkpoint.js": "5f9a40fc4a72d70b1e9b22222cf1c49eee4793c7611fff4163a6f5bc1367b21f",
-    "bin/lib/run-close.js": "801e7c8df1b67998be48a64587b5f80d92d6010948af4ae04b7c75a2c9d6f810",
+    "bin/lib/run-close.js": "df76520b92b40bd3418c112050fbed2ede8637d2d9311178a2f965b3f3344643",
     "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
     "bin/lib/run-open.js": "3ac4200575fdbd14e286713989a09b757cb12fe02f0830ed7c9460c889ac2234",
     "bin/lib/run-request-metrics.js": "5f46e3e475f08fa1dee09c52e55eb46a90668057d9403e2858dd0254872722ed",
     "bin/lib/run-request-store.js": "fbe273892373698dbb704c2a976ba8d8266b14f0dade27402b7cc311d0b1345b",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
     "bin/lib/run-sdk-turns.js": "9d9fd643220af85c318391a7cd698a28a6d457251041771da428504719e3421b",
+    "bin/lib/run-stop-reason.js": "85a50a203706db15e69de2c7d931f1d0c66f51b201394f6cfbe82bf6cd56098d",
     "bin/lib/run-summary.js": "bcfa5af1d571385ecbf0f075fcebb8e750b78df36ecd2dc1e0d680f41574bdc7",
     "bin/lib/run-trigger.js": "192f5952f1615633edad3dd934d6f4ea4782482ffc96ed3784395070afcfa7b6",
-    "bin/lib/run-wave-consult.js": "b247fb77dc668c4b3dfdccbd43e19d914c4e8cec31f75794eef8782d70053862",
+    "bin/lib/run-wave-consult.js": "0c69102a6466d4c7add859481bc928779e3b46d3cf1d61ea11ffaedc6d40c4d7",
     "bin/lib/run-wave-mode.js": "3539e289379164e056320991607cb67c9399afb29951e6188dd6edb1e3dd6373",
     "bin/lib/run.js": "c67e9c8037e1e069770370270f5f717ed5caab3720a76455d5e110f9d6854e55",
     "bin/lib/slot-authoring.js": "d977e73afef4a74bcb5c67d16ea081bb894c51331e548f6717525c5fc857eee5",
@@ -152,5 +154,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "e1e1553097f916e2f54477e3c4f5408df7af4e44ebe6afe4cc15e1b5cad7d8a7"
+  "output_digest": "71ba9de9dca5ef9d896f6e4d5912afefe99ae5ed05692b082cb9fca6550da13f"
 }

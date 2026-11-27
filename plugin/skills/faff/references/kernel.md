@@ -199,15 +199,15 @@ faff's only role here is **assertion, not enforcement**: it detects whether that
 
 ### Unpark protocol (shared)
 
-Parking is reversible by design — the **single owner of unpark mechanics is this section**; the scattered references elsewhere (faff-tidy's stale-label removal, faff-wtf's parked-issue surfacing, faff-map's unpark-condition view, the methodology's `promotion-readiness`) all resolve to it. A parked issue carries the `faff-parked` label (or tracker equivalent) and a park comment stating what a human must resolve. It re-enters the pipeline one of two ways:
+A parked issue carries `faff-parked` (or tracker equivalent) and a comment naming the human resolution. Re-enter by invoking the skill for the cause:
 
-1. **Reason resolved → re-enter.** The unpark trigger is **always re-invoking the relevant skill on the issue**, never a separate "unpark" command. Which skill depends on the park cause:
-   - Spec-level park (open `**Punt:**`, ambiguous decision, `low`/retained-`medium` confidence) → re-run `/faff-prep` (or `/faff-prep --refresh`) once the human has answered in a comment. Prep re-rates; on `high` it promotes and clears the label.
-   - Build-level park (mid-build ambiguity flipped the PR to draft) → re-run `/faff-graft`; it resumes from `.faff/runs/<run-id>/ISSUE-XX/` + the draft PR.
-   - Structural park (`gap-blocked`, `circular-blocked`) → resolve the gap/cycle (file the missing ticket, break the edge), then the issue routes normally on the next tidy pass.
-2. **Reason no longer applies → auto-clear.** `/faff-tidy` removes the resolved `parked` label per **Control-label provisioning** without human action when the state moved on (issue now In Review/Done/Cancelled, or an In-Progress issue that `faff park-verdict` clears as `strip-ok` — never a bare In-Progress strip, since an In-Progress + `faff-parked` issue is usually a live faff mid-build park) or the park reason is now invalid (cited blocker shipped, cited punt closed by a later `Chosen:`/`Decision:` marker, or the reason matches a now-forbidden autonomous-park pattern). See faff-tidy → _Stale park label_ for the exact rules.
+- **Spec:** after the human answers an open Punt, ambiguity or low/retained-medium confidence in a comment, rerun `/faff-prep` (optionally `--refresh`). On high confidence, promote and clear the label.
+- **Build:** rerun `/faff-graft` to resume from the issue’s run artifacts and draft PR.
+- **Structural (`gap-blocked`, `circular-blocked`):** file the missing ticket or break the dependency cycle. The next tidy pass routes the issue.
 
-**The label is the contract.** Removing the `faff-parked` label (by either path) is what returns the issue to normal routing — `/faff-wtf` stops surfacing it as a blocker, and the build queue reconsiders it on the next pass. Whoever clears a park (a skill on re-entry, or tidy's auto-removal) **must** remove the label and log the unpark with its cause. A resolved park that keeps its label is a bug: it lies to every downstream surfacer. **In git-only mode there is no label** — a park lives as `disposition:"parked"` on the prep marker (Sensor/resume) and, for an admitted issue, a `parked` run-ledger outcome (Evidence); clearing it clears every surfacer the actor is authorised to write, together, then logs the unpark — never a bare strip leaving a live outcome reading `parked`, and a `reconsider:"human"`/legacy park is never auto-re-opened. Full git-only contract (the two write authorities, the input-change licence, the spec-review-resume re-entry): **gateway → The git-only Unpark contract (FAFF-993)** (park lane).
+Tidy can auto-clear per **Control-label provisioning** and its **Stale park label** rules when the issue moves to In Review/Done/Cancelled, or `faff park-verdict` returns `strip-ok` for In Progress. In Progress alone cannot clear a park. Tidy also clears an invalid reason: the cited blocker shipped, a later Chosen/Decision closed the cited Punt, or the autonomous park pattern is now forbidden.
+
+On re-entry or auto-clear, remove the parked label and log the cause so the issue returns to normal routing. In git-only mode clear every authorised park record together: the prep marker disposition and, for an admitted issue, the run-ledger outcome. Never auto-reopen a human or legacy park. Follow **The git-only Unpark contract** in `park.md` for write authority, changed inputs and spec-review resume.
 
 ### Sibling-skill invocation (install-mode portable)
 

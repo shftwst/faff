@@ -201,3 +201,24 @@ test("scopes tool results to the issuing worker and epoch and deduplicates split
   assert.deepEqual(rows.map(r=>Object.values(r.tool_outcome_bits).sort()),[[0,2],[1,3]]);
   assert.doesNotMatch(JSON.stringify(rows),/private-|shared|pending|disputed/);
 });
+
+test("attributes CLI diagnostic text only to the matched Bash request, independently of shell success", t => {
+  const f = setup(t);
+  const diagnostic = "faff: unknown-flag: unknown flag --private\nusage: faff eligible [--label L]";
+  const call = (id,name) => ({type:"tool_use",id,name,input:{}});
+  const ret = (id,content,worker=null) => ({type:"user",sessionId:"session1",timestamp:at(15),
+    parent_tool_use_id:worker,message:{content:[{type:"tool_result",tool_use_id:id,content,is_error:false}]}});
+  f.put(f.main,[
+    assistant("parent",11,[call("shared","Bash")]),
+    assistant("worker",12,[call("shared","Read")],{parent_tool_use_id:"agent"}),
+    assistant("help",13,[call("help","Bash")]),
+    assistant("missing",14,[call("operand","Bash")]),
+    ret("shared",[{type:"text",text:diagnostic}]),ret("shared",diagnostic,"agent"),
+    ret("help","usage: faff eligible [--label L]"),
+    ret("operand","faff: too-few-positionals: spec-file is required\nusage: faff punt-scan <spec-file>"),
+  ]);
+  const rows=f.report().records;
+  assert.deepEqual(rows.map(r=>r.bash_cli_usage_diagnostic),[true,false,false,true]);
+  assert.deepEqual(rows.map(r=>Object.values(r.tool_outcome_bits)),[[1],[1],[1],[1]]);
+  assert.doesNotMatch(JSON.stringify(rows),/--private|usage: faff/);
+});

@@ -47,6 +47,8 @@ function combine(previous, next) {
         for (const field of tokenClasses)
             usage[field] ??= old.usage[field];
         const merged = { ...old, ...row, usage, turn_id: row.turn_id ?? old.turn_id };
+        if (old.bash_cli_usage_diagnostic)
+            merged.bash_cli_usage_diagnostic = true;
         if (old.tool_outcome_bits && row.tool_outcome_bits) {
             const bits = { ...old.tool_outcome_bits };
             for (const [call, evidence] of Object.entries(row.tool_outcome_bits))
@@ -243,8 +245,13 @@ function requestReport(dir, ledger, details = false) {
         observed_return_text_bytes: measured.reduce((n, call) => n + (call.returned_text_bytes ?? 0), 0),
         scanned_epochs: epochs.filter(e => e.handoffs_scanned).length,
     } : null;
+    const scanned = rows.filter(row => typeof row.bash_cli_usage_diagnostic === "boolean");
+    const diagnostics = scanned.filter(row => row.bash_cli_usage_diagnostic);
     const engine = require("./budget").readEngineSpend(dir);
     return { separate_engine_spend: { records: engine.records, engines: engine.engines, tokens: engine.totals }, run_id: path.basename(dir), source: "owned-claude-transcripts", status: !any ? "unavailable" : epochs.length < expected || engine.records || engine.malformed || epochs.some(e => e.status !== "observed") ? "partial" : "observed",
+        bash_cli_usage_diagnostics: scanned.length ? { scanned_requests: scanned.length, matching_requests: diagnostics.length,
+            requests_with_cache_read_usage: diagnostics.filter(row => row.usage.cache_read !== null).length,
+            observed_cache_read_tokens: diagnostics.reduce((sum, row) => sum + (row.usage.cache_read ?? 0), 0) } : null,
         requests, usage, tool_outcomes: toolSummary(rows), build_timing: buildTiming(dir, details), worker_handoffs: workerHandoffs, turns: sdk.turns, sdk_turns: sdk, transcript_turn_ids: transcriptTurns, shipped, observed_requests_per_shipped_issue: requests !== null && shipped ? requests / shipped : null,
         by_role: counts(r => r.role), by_issue: counts(r => r.issue), by_phase: counts(r => r.phase), by_wave: counts(r => r.wave),
         by_model: counts(r => r.model), verification_to_handoff_by_issue: countsSelected(rows),

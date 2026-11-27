@@ -82,11 +82,11 @@ test("economics keeps per-call evidence across partial refreshes, includes worke
     assert.equal(r.code,0,r.stderr); return JSON.parse(r.stdout);
   };
   const put=(file,rows)=>writeFileSync(file,rows.map(r=>JSON.stringify(r)).join("\n"));
-  const use=id=>({type:"tool_use",id,name:"privateTool",input:{value:"private-input"}});
+  const use=id=>({type:"tool_use",id,name:id==="one" ? "Bash" : "privateTool",input:{value:"private-input"}});
   const request=(id,blocks,cache)=>({type:"assistant",sessionId:"sess",timestamp:at(1),
     message:{id:"msg_"+id,content:blocks,model:"fixture",usage:{cache_read_input_tokens:cache}}});
   const ret=id=>({type:"user",sessionId:"sess",timestamp:at(2),message:{content:[
-    {type:"tool_result",tool_use_id:id,is_error:true,content:"private-result"}]}});
+    {type:"tool_result",tool_use_id:id,is_error:true,content:id==="one" ? "faff: unknown-flag: private-result\nusage: faff eligible" : "private-result"}]}});
   const parent=path.join(base,"sess.jsonl"), worker=path.join(base,"agent-a.jsonl");
   put(parent,[request("p",[use("one"),use("two")],10),ret("one"),request("text",[],20)]);
   put(worker,[request("w",[use("sub")],15),ret("sub")]);
@@ -97,14 +97,16 @@ test("economics keeps per-call evidence across partial refreshes, includes worke
   put(parent,[request("p",[use("two")],10),ret("two")]);
   rmSync(worker);
   r=query("--refresh","--details");
+  assert.deepEqual(r.bash_cli_usage_diagnostics,{scanned_requests:3,matching_requests:1,requests_with_cache_read_usage:1,observed_cache_read_tokens:10});
   assert.equal(r.tool_outcomes.all_tools_failed.requests,2);
   assert.equal(r.tool_outcomes.all_tools_failed.observed_cache_read_tokens,25);
   assert.deepEqual(r.records.find(x=>x.role==="parent" && x.tool_outcomes.calls).tool_outcomes,
     {calls:2,observed_results:2,errors:2,uncertain_results:0});
   const file=path.join(dir,"run-request-metrics.json"), store=JSON.parse(readFileSync(file));
-  for(const row of store.epochs["0"].records) delete row.tool_outcome_bits;
+  for(const row of store.epochs["0"].records) { delete row.tool_outcome_bits; delete row.bash_cli_usage_diagnostic; }
   writeFileSync(file,JSON.stringify(store));
   assert.equal(query().tool_outcomes,null);
+  assert.equal(query().bash_cli_usage_diagnostics,null);
   assert.ok(query("--details").records.every(r=>r.tool_outcomes===null));
   assert.doesNotMatch(readFileSync(file,"utf8"),/privateTool|private-input|private-result/);
 });

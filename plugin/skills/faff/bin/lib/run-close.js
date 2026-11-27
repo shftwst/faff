@@ -17,6 +17,7 @@ const childProcess = require("node:child_process");
 const heartbeatApi = require("./heartbeat");
 const runcheckApi = require("./runcheck");
 const argvApi = require("./argv");
+const stopReasonApi = require("./run-stop-reason");
 const ENTRYPOINT = path.resolve(__dirname, "..", "faff");
 const STATUS_TIMEOUT_MS = 30000;
 // --- Untyped-JSON helpers. ---
@@ -57,19 +58,6 @@ function expectedOwnerOf(ledger) {
 }
 function exitDetail(r) {
     return r.status === null ? "timeout" : String(r.status);
-}
-// --- Stop tokens (§3). ---
-const PLAIN_TOKENS = ["queue-drained", "all-remaining-parked", "sentry-abort", "converged/both-dry", "non-convergence", "product-incomplete", "governance-admit-failed"];
-const BUDGET_DIMS = ["until", "max_attempts", "tokens", "cost", "window"];
-function validStopToken(token) {
-    if (PLAIN_TOKENS.includes(token))
-        return true;
-    const m = /^budget-(hit|escalated)\(([^()]+)\)$/.exec(token);
-    const list = m === null ? undefined : m[2];
-    if (list === undefined)
-        return false;
-    const dims = list.split(",");
-    return dims.every((d) => BUDGET_DIMS.includes(d));
 }
 function skippedSteps() {
     return { run_end: "skipped", owner_close: "skipped", poller_stop: "skipped", governance_probe: "skipped", conclude: "skipped", anchor_run: "skipped", anchor_commit: "skipped", bundle_publish: "skipped", judge_trail: "skipped", andon: "skipped" };
@@ -143,12 +131,14 @@ function countOutcomes(ledger, state) {
 }
 function runClose(args, deps) {
     const faults = [];
+    let effective = args.stopReason;
+    let adopted = false;
     const usage = (reason) => {
         faults.push(reason);
-        return { code: 2, result: { closed: false, undispatched: [], abort_exempt: false, owner_status: null, steps: skippedSteps(), faults }, reason };
+        return { code: 2, result: { closed: false, undispatched: [], abort_exempt: false, owner_status: null, steps: skippedSteps(), faults, stop_reason: effective, stop_reason_adopted: adopted }, reason };
     };
     // 1. The token, the root, the ledger, and a prior close with a different token.
-    if (!validStopToken(args.stopReason))
+    if (!stopReasonApi.validStopToken(args.stopReason))
         return usage(`unknown stop reason ${JSON.stringify(args.stopReason)}`);
     let ledger;
     let root;
@@ -165,8 +155,12 @@ function runClose(args, deps) {
     }
     const runId = path.basename(path.resolve(args.runDir));
     const runDir = path.join(root, ".faff", "runs", runId);
+    const resolution = stopReasonApi.resolveStopReason(runDir, args.stopReason, ledger);
+    effective = resolution.token;
+    adopted = resolution.adopted;
+    faults.push(...resolution.faults);
     const prior = str(field(ledger, "stop_reason")) ?? null;
-    if (prior !== null && prior !== args.stopReason)
+    if (prior !== null && prior !== effective)
         return usage(`run already closed as ${prior}`);
     const ownerRead = str(field(field(ledger, "owner"), "status")) ?? null;
     // 2. Completeness.
@@ -177,7 +171,7 @@ function runClose(args, deps) {
     catch (e) {
         return usage(`malformed ledger: ${errText(e)}`);
     }
-    const refuse = (undispatched) => ({ code: 3, result: { closed: false, undispatched, abort_exempt: false, owner_status: ownerRead, steps: skippedSteps(), faults }, reason: null });
+    const refuse = (undispatched) => ({ code: 3, result: { closed: false, undispatched, abort_exempt: false, owner_status: ownerRead, steps: skippedSteps(), faults, stop_reason: effective, stop_reason_adopted: adopted }, reason: null });
     if (audit.invalid_outcomes.length > 0) {
         faults.push(`invalid outcomes: ${audit.invalid_outcomes.join(", ")}`);
         return refuse(audit.undispatched);
@@ -185,7 +179,7 @@ function runClose(args, deps) {
     let abortExempt = false;
     if (audit.undispatched.length > 0) {
         const aborted = field(field(ledger, "abort"), "status") === "aborted-resumable" || ownerRead === "aborted-resumable";
-        abortExempt = args.stopReason === "sentry-abort" && aborted;
+        abortExempt = effective === "sentry-abort" && aborted;
         if (!abortExempt)
             return refuse(audit.undispatched);
     }
@@ -218,7 +212,7 @@ function runClose(args, deps) {
     };
     // 3. The run-end event, token-tagged.
     const sessionArgs = args.sessionId === null ? [] : ["--session-id", args.sessionId];
-    const runEnd = { phase: "run", type: "run-end", data: { stop_reason: args.stopReason, shipped: countOutcomes(ledger, "shipped"), parked: countOutcomes(ledger, "parked") } };
+    const runEnd = { phase: "run", type: "run-end", data: { stop_reason: effective, shipped: countOutcomes(ledger, "shipped"), parked: countOutcomes(ledger, "parked") } };
     record("run_end", faff(["events", "append", "--run", runId, "--root", root, "--tokens", ...sessionArgs], { input: JSON.stringify(runEnd) }), "run-end-append-failed");
     // 4. The owner close and stop_reason, one locked write; an aborted-resumable owner keeps its status.
     // The status is reported only once the write has landed; a refused or yielded write is a post-read
@@ -231,7 +225,7 @@ function runClose(args, deps) {
                 throw new Error("run-ledger.json is missing or not a JSON object");
             if (args.postMergeAnnotations)
                 (0, post_merge_rollup_ts_1.rollUpPostMerge)(runDir, fresh, faults);
-            Reflect.set(fresh, "stop_reason", args.stopReason);
+            Reflect.set(fresh, "stop_reason", effective);
             const owner = field(fresh, "owner");
             if (isRecord(owner)) {
                 if (field(owner, "status") !== "aborted-resumable")
@@ -250,7 +244,7 @@ function runClose(args, deps) {
         steps.owner_close = "failed:write";
         const reason = `owner close refused in ${runDir}: ${writeError}`;
         faults.push(reason);
-        return { code: 2, result: { closed: false, undispatched: [], abort_exempt: false, owner_status: null, steps, faults }, reason };
+        return { code: 2, result: { closed: false, undispatched: [], abort_exempt: false, owner_status: null, steps, faults, stop_reason: effective, stop_reason_adopted: adopted }, reason };
     }
     const ownerStatus = staged;
     steps.owner_close = "ok";
@@ -308,7 +302,7 @@ function runClose(args, deps) {
     // 8–9. The judge trail on every run, then andon (fail-open).
     record("judge_trail", faff(["judge-trail", "mint", "--run-dir", runDir]), "judge-trail-failed");
     record("andon", faff(["andon", "pump", "--run-dir", runDir]), "andon-pump-failed");
-    return { code: 0, result: { closed: true, undispatched: abortExempt ? audit.undispatched : [], abort_exempt: abortExempt, owner_status: ownerStatus, steps, faults }, reason: null };
+    return { code: 0, result: { closed: true, undispatched: abortExempt ? audit.undispatched : [], abort_exempt: abortExempt, owner_status: ownerStatus, steps, faults, stop_reason: effective, stop_reason_adopted: adopted }, reason: null };
 }
 // --- The verb. ---
 const CLOSE_SPEC = {
@@ -341,9 +335,9 @@ function cmdRunClose(argv, deps = realDeps()) {
     if (values["--json"] === true)
         process.stdout.write(`${JSON.stringify(result)}\n`);
     else if (code === 0)
-        process.stdout.write(`run close: closed as ${stopReason}${result.abort_exempt ? ` (abort exemption; undispatched: ${result.undispatched.join(", ")})` : ""}${result.faults.length ? `\n${result.faults.map((f) => `fault: ${f}`).join("\n")}` : ""}\n`);
+        process.stdout.write(`run close: closed as ${result.stop_reason}${result.stop_reason_adopted ? ` (adopted from the wave record; argument was ${stopReason})` : ""}${result.abort_exempt ? ` (abort exemption; undispatched: ${result.undispatched.join(", ")})` : ""}${result.faults.length ? `\n${result.faults.map((f) => `fault: ${f}`).join("\n")}` : ""}\n`);
     else if (code === 3)
         process.stdout.write(`run close: refused — undispatched: ${result.undispatched.join(", ") || "(none)"}${result.faults.length ? `\n${result.faults.map((f) => `fault: ${f}`).join("\n")}` : ""}\n`);
     return code;
 }
-module.exports = { cmdRunClose, runClose, realDeps, validStopToken, CLOSE_USAGE };
+module.exports = { cmdRunClose, runClose, realDeps, validStopToken: stopReasonApi.validStopToken, CLOSE_USAGE };

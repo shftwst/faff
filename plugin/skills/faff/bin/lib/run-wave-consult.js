@@ -5,9 +5,10 @@ exports.cmdWaveConsult = cmdWaveConsult;
 const fs = require("node:fs");
 const path = require("node:path");
 const { parseArgs, usageError } = require("./argv");
-const { dig, findRoot, readLedger } = require("./shared-infra");
+const { dig, findRoot, readLedger, ensureOwnerOnlyDir, writeOwnerOnlyJson } = require("./shared-infra");
 const { loadConfig } = require("./config");
 const { mutateLedgerUnderLock } = require("./heartbeat");
+const run_stop_reason_1 = require("./run-stop-reason");
 const { auditRun } = require("./runcheck");
 const { readQueueInputs, deriveQueueState } = require("./queue-state");
 const { computeRunDoneVerdict } = require("./run-done");
@@ -149,6 +150,15 @@ function cmdWaveConsult(args) {
         if (violation)
             throw new Error(violation);
         const correlation_id = capture("run-done", signals, decision, wave);
+        try {
+            const waveDir = path.join(dir, "wave-" + wave);
+            ensureOwnerOnlyDir(waveDir);
+            writeOwnerOnlyJson(path.join(waveDir, "run-done.json"), { run_id: run, wave: Number(wave), verdict: decision.verdict,
+                reason: decision.reason, stop_reason: (0, run_stop_reason_1.stopReasonFor)(decision.verdict, decision.reason), ledger_digest: (0, run_stop_reason_1.readLedgerDigest)(dir), correlation_id });
+        }
+        catch {
+            warnings.push("run-done-record-unwritable");
+        }
         console.log(JSON.stringify({ verdict: decision.verdict, reason: decision.reason, correlation_id, warnings, ...(progress && { progress }) }));
         return 0;
     }

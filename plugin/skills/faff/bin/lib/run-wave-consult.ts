@@ -2,9 +2,10 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 const { parseArgs, usageError } = require("./argv");
-const { dig, findRoot, readLedger } = require("./shared-infra");
+const { dig, findRoot, readLedger, ensureOwnerOnlyDir, writeOwnerOnlyJson } = require("./shared-infra");
 const { loadConfig } = require("./config");
 const { mutateLedgerUnderLock } = require("./heartbeat");
+import { stopReasonFor, readLedgerDigest } from "./run-stop-reason";
 const { auditRun } = require("./runcheck");
 const { readQueueInputs, deriveQueueState } = require("./queue-state");
 const { computeRunDoneVerdict } = require("./run-done");
@@ -125,6 +126,12 @@ export function cmdWaveConsult(args: string[]): number {
     const violation = schemaCheck(decision, "run-termination");
     if (violation) throw new Error(violation);
     const correlation_id = capture("run-done", signals, decision, wave);
+    try {
+      const waveDir = path.join(dir, "wave-" + wave);
+      ensureOwnerOnlyDir(waveDir);
+      writeOwnerOnlyJson(path.join(waveDir, "run-done.json"), { run_id: run, wave: Number(wave), verdict: decision.verdict,
+        reason: decision.reason, stop_reason: stopReasonFor(decision.verdict, decision.reason), ledger_digest: readLedgerDigest(dir), correlation_id });
+    } catch { warnings.push("run-done-record-unwritable"); }
     console.log(JSON.stringify({ verdict: decision.verdict, reason: decision.reason, correlation_id, warnings, ...(progress && { progress }) }));
     return 0;
   } catch (error) {

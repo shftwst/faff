@@ -147,6 +147,6 @@ test("FAFF-1399: every filing call site references the same shared priority-reas
   const beepboop = readFileSync(BEEPBOOP_SKILL, "utf8");
   const tidy = readFileSync(TIDY_SKILL, "utf8");
   assert.match(graft, /The priority-reason comment/, "faff-graft/SKILL.md must define the shared comment shape once");
-  assert.match(beepboop, /do not restate it/, "beep-boop must reference, not restate, the shared comment shape");
+  assert.match(beepboop, /priority_comment_template/, "beep-boop uses the filing planner returned comment template");
   assert.match(tidy, /do not restate it/, "tidy must reference, not restate, the shared comment shape at least once");
 });

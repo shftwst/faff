@@ -45,7 +45,12 @@ function usage() {
 export async function main(argv, { spawnFn = spawn } = {}) {
   if (argv[0] === "code-review") {
     const { runCodeReview } = await import("./code-review.mjs");
-    try { return await runCodeReview(argv.slice(1), (args) => main(args, { spawnFn })); }
+    try {
+      return await runCodeReview(argv.slice(1), (args, findingsFd) => main(args, {
+        spawnFn: findingsFd === undefined ? spawnFn : (cmd, childArgs, options) =>
+          spawnFn(cmd, childArgs, {...options, stdio: ["inherit", findingsFd, "inherit"]}),
+      }));
+    }
     catch (error) { process.stderr.write(`code-review: ${error.message}\n`); return 2; }
   }
   if (argv.includes("--selftest")) return killableSelftest();

@@ -182,3 +182,17 @@ test("write --outage-retry increments across repeated (cross-drain) calls, never
     assert.equal(JSON.parse(r.stdout).outage_retries, 3, "read round-trips the carried counter");
   } finally { rmSync(rd, { recursive: true, force: true }); }
 });
+
+test("a retried Phase-2 attempt fences a late return for the same diff", t => {
+  const rd = runDir();
+  t.after(() => rmSync(rd, {recursive:true,force:true}));
+  const write = (...args) => runCli(["review-progress","write",rd,"FAFF-1",...args]);
+  assert.equal(write("--phase1-pass","--diff-hash","abc").code,0);
+  const phase = (status,attempt) => write("--phase2",status,"--expect-diff","abc","--attempt",attempt);
+  assert.equal(phase("in_flight","phase2-A").code,0);
+  assert.equal(phase("in_flight","phase2-B").code,0);
+  assert.equal(phase("skipped_deadline","phase2-A").code,3);
+  assert.equal(phase("skipped_unreachable","phase2-B").code,0);
+  assert.equal(phase("in_flight","phase2-C").code,3);
+  assert.equal(write("--phase2","in_flight","--attempt","bad").code,2);
+});

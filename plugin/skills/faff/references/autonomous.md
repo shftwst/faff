@@ -111,19 +111,17 @@ At L4 (`full`), validate the `faff-contract:l4-topology-envelope` block against 
 
 ### Resolve-attempt before park
 
-Before parking on `needs-decision-first`, `gap-blocked`, or `circular-blocked` verdicts (see **Automation-routing verdict (fixed)**), autonomous mode runs a **resolve-attempt**: a bounded inference step that tries to derive the answer from local context (codebase, spec surroundings, prior commits, related tracker comments). `repeat-parked` does **not** get one — the pattern itself signals that a human needs to act.
+Under **Automation-routing verdict (fixed)**, try to resolve the three verdicts below from the codebase, spec, prior commits and related tracker comments before parking. Route `repeat-parked` directly to a human.
 
 **Decisions register (first, only for `needs-decision-first`).** Run `faff decisions match --punt "<topic>" --json`. A hit supplies the human precedent's `id`, `chosen` and `rationale`. Apply it, post the register citation below and skip inference. On `{"match":null}` (including a missing register or ambiguous match) use the table. Surface an unreadable register as an error. This lookup costs no file-read allowance. Prep owns capture. Autonomous mode only reads the register.
 
-**Per-verdict resolve rules:**
-
 | Verdict | Resolve-attempt | Proceed if | Park if |
 |---|---|---|---|
-| `needs-decision-first` (Punt marker) | Re-read the Punt section. Check whether the codebase already exhibits a clear convention for the alternatives offered. Check whether `Chosen:` markers elsewhere in the spec imply the answer. Check whether related shipped issues constrained the choice. | A single clear answer falls out with high confidence | Multiple defensible answers, or the choice is architectural (user-facing API, schema, security) |
-| `gap-blocked` (external dep doesn't exist) | Re-read the dependency claim. Determine whether the named dep is **load-bearing** (the work can't proceed without it) or **precautionary** (the spec mentioned it but the work can complete without). | Dep is precautionary — work can proceed; the dep can be filed as a future issue | Dep is load-bearing — actually needed for the work to compile / pass tests |
-| `circular-blocked` (in dep cycle) | Re-read each edge of the cycle. Determine whether breaking one specific edge is mechanically obvious — e.g. "A blocks B" was added defensively but A's spec doesn't actually depend on B's output. | A break-edge is unambiguous (spec doesn't load-bear on it) — proceed by serialising remaining edges as a collision group | Every edge looks load-bearing — the cycle is real and a human has to redesign |
+| `needs-decision-first` | Re-read the Punt. Check code conventions, other `Chosen:` markers and constraints from shipped issues. | One clear, high-confidence choice | Multiple defensible choices or an architectural decision (user-facing API, schema, security) |
+| `gap-blocked` | Re-read the missing dependency claim. | Work can finish without it. File the precautionary dependency as future work if needed. | The dependency is needed to compile or pass tests. |
+| `circular-blocked` | Check whether each spec actually needs the upstream output. | One edge is clearly unnecessary. Break it and serialize the remaining edges as a collision group. | All edges appear necessary. Park for human redesign. |
 
-**Boundedness + appetite.** The attempt reads at most **3 files outside the spec's named scope** at `medium` appetite, **5** at `high` (default); beyond the budget, treat as park. At `high` each row's "Proceed if" widens — a single *defensible* answer suffices where `medium` needs a single *clear* one (architectural calls still escalate); at `low`, resolve-attempt does not run at all — every flagged verdict parks.
+**Appetite limits.** Apply the build-pipeline table above. At `medium`, read at most 3 files outside the spec's named scope and require a clear answer. At `high` (default), allow 5 files and a single defensible answer; architectural choices still escalate. Park on budget exhaustion. At `low`, park without inference.
 
 **Audit trail.** Every proceeding attempt posts a tracker comment with the Punt, evidence, choice and closing invitation:
 

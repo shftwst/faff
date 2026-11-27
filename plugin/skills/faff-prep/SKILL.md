@@ -372,25 +372,25 @@ The ticket already has a spec from a previous prep session. Apply the shared **S
 - **Context** — substantive information that doesn't challenge or resolve but is worth knowing while building: a relevant link, a related discovery, a constraint to watch out for, a stakeholder note. Doesn't force re-prep but **must be surfaced** to the user (interactive) or carried into the spec annotations (autonomous refresh) so it doesn't get lost.
 - **Noise** — status pings, "+1", "any update?", unrelated chatter. Ignore.
 
-If any challenge or resolution exists, the spec is **out of date** even if the codebase hasn't moved — the conversation has. Treat this exactly like a stale-spec finding: the spec must be re-prepped (or refreshed) to incorporate the comment thread before any build can proceed. Context-only comments do not force re-prep but should be appended to the spec as an annotation block (and shown in the brief). Log each challenge / resolution / context entry with its commenter, timestamp, and a one-line summary. If folding a challenge in means closing an architecture / scope / taste decision the spec left open, that's the gateway's **Interactive park resolution (surface, don't settle)** rule again: surface the call + a recommendation, the human authors the `**Chosen:**` — the correctness carve-out covers only fact-not-taste closes (a genuine bug, a rule already written down).
+A challenge or resolution makes the spec stale even without code drift. Incorporate the thread before build. Append context-only items as spec annotations and show them in the brief. Log each substantive comment with author, timestamp and summary. For open architecture, scope or taste choices, recommend a decision and let the human author `**Chosen:**` per **Interactive park resolution (surface, don't settle)**. Prep may close a factual bug or apply an existing rule.
 
-**Step 2b: Validate freshness against the codebase** — read the spec against the current code state. Check: have dependencies shipped since this was scoped? Has the codebase changed in ways that affect the spec? Are the technical decisions still valid? If stale: flag what changed and why it needs updating.
+**Step 2b: Validate freshness against the codebase.** Check shipped dependencies, relevant code changes and whether the design decisions still hold. Flag stale assumptions and explain what needs updating.
 
 **Step 3: Brief the user** — present a concise summary:
 - What this ticket is about
 - The proposed design approach (from the spec)
 - Key technical decisions already made
-- **Comment-thread state since the spec** — list any challenges, resolutions, and context items found in Step 2a (or "none" if clean). Context items are surfaced too so the user sees them; they don't block build by themselves.
+- Challenges, resolutions and context from Step 2a, or "none".
 - Artifact state: fresh / fresh-with-context / stale-by-codebase / stale-by-discussion / both, and why
 - Estimated scope/complexity
 
-If Step 2a surfaced challenges or resolutions, the default action is **iterate** — the user shouldn't be offered `build` until the spec absorbs the thread. Context-only threads do not force iterate; the user can still pick `build` knowing the context.
+Default to **iterate** for a challenge or resolution. Withhold build until incorporated. Context alone allows build.
 
 Then offer a three-way choice (not passive text) — a surviving OFFER gate, per gateway → **Interactive next-step offer**:
 
 > "What next? (iterate / build / park)"
 
-- **iterate** — revise the spec (loop back to Step 2 of Scenario A); once the revised spec is produced and re-attached, run the **Decisions-register reconcile step** (above) before returning to this offer — a revision can change the design out from under an already-captured intent, regardless of which confidence branch the revision lands in. **Carry-check:** when Step 2a found no challenge or resolution, save the spec restored at Step 1 as `$scratch/refresh-before.md`, the revised spec as `$scratch/refresh-after.md`, and run the same `faff spec-review carry-check` gate Path 1 runs (above) — exit 0 tells the user "review carried forward: paths only" and lists the path moves; any other exit runs the Spec-review gate as today
+- **iterate**: revise from Scenario A Step 2. With no challenge or resolution, save the Step 1 spec to `$scratch/refresh-before.md` and the revision to `$scratch/refresh-after.md`. Apply Path 1's `faff spec-review carry-check`: exit 0 reports "review carried forward: paths only" and lists path moves. Otherwise run the Spec-review gate. After reattachment, run the **Decisions-register reconcile step** at every confidence level before repeating the offer.
 - **build** — invoke the `faff-graft` skill via the Skill tool on `ISSUE-XX` (only if spec is fresh)
 - **park** — stop here; apply the shared Park / Unpark protocol (tag `faff-parked`, log the cause) so `/faff-wtf`'s _Parked work_ section resurfaces it. The spec stays on the issue.
 
@@ -406,7 +406,7 @@ At any point, the user (or `/faff-graft` mid-build) can say "reprep this" or "up
 - Run the **Decisions-register reconcile step** (above) against the just-replaced spec — a reprep can obsolete an already-captured intent exactly like an iterate revision
 - Add a note: "Revised on [date] — [brief reason]"
 - If the issue was already in Todo, it stays in Todo
-- If revising closes an architecture / scope / taste decision — including unparking a `needs-human` — the gateway's **Interactive park resolution (surface, don't settle)** rule governs: surface the call and a recommendation, let the human author the `**Chosen:**`. The correctness carve-out still lets prep close a fact-not-taste item (a genuine bug, a rule already written down) itself. **Git-only unpark:** when a re-invoke on a `disposition:"parked"` git-only marker is gated open by the human's authored `**Chosen:**` closing the cited cause (or an explicit unpark), run the kernel's **git-only Unpark contract** — clear the marker's `disposition`/`park` and log the `park-reconsidered` record to this prep log (`via:"interactive-reprep"`), the inverse of the inline park write; recompute the cited config-file fingerprint and warn if it is byte-identical to park time. Write **only** the marker + this log — never an earlier dispatched run's ledger/events (Evidence class): read that run (via the marker's `owner.run_dir`) only to branch, and **refuse** — park left standing — if it is still live or its ledger is malformed. No authored resolution ⇒ the park honestly stands.
+- For architecture, scope or taste choices (including a `needs-human` unpark), recommend a decision and let the human author `**Chosen:**`. Prep may settle a factual bug or apply a written rule. **Git-only unpark:** follow the kernel's **git-only Unpark contract** for a parked marker only when a human-authored `**Chosen:**` closes the cited cause or the human explicitly unparks it. Read the earlier run via `owner.run_dir`; keep the park if its owner is live or its ledger malformed. Clear the marker's `disposition` and `park`. Log `park-reconsidered` with `via:"interactive-reprep"` in this prep log. Recompute the cited config fingerprint and warn if unchanged. Write only the marker and prep log.
 
 ## Tracker-less (git-only) mode
 

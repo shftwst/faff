@@ -144,9 +144,14 @@ function observe(input: unknown, cycles: boolean, unlock: boolean) {
 }
 
 const spec = { flags: { "--cycles": { arity: 0 }, "--unlock": { arity: 0 } }, positionals: { max: 0 } };
-const usage = "usage: faff planning-graph [--cycles] [--unlock] < facts.json";
+const usage = `usage: faff planning-graph [--cycles] [--unlock] < facts.json
+Example (--unlock): {"issues":["blocker","dependent"],"live_edges":[["dependent","blocker"]],"roots":["blocker"]}`;
 
 export function cmdPlanningGraph(args: string[]): number {
+  if (args.length === 1 && args[0] === "--help") {
+    console.log(usage);
+    return 0;
+  }
   const { values, errors } = parseArgs(args, spec);
   const cycles = values["--cycles"] === true, unlock = values["--unlock"] === true;
   if (errors.length || (!cycles && !unlock)) return usageError(errors, usage);

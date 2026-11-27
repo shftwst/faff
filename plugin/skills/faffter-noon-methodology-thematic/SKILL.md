@@ -13,7 +13,7 @@ Compose the structural floor from gateway → **The `methodology` slot** for cyc
 
 ## Core ordering rule
 
-Order by issue or ancestor priority, then unlock count, then oldest creation. Pipe the structural-floor graph plus `roots` (IDs being ranked) to `faff planning-graph --unlock`. Use its `unlock_counts` for all sequencing. Combine with `--cycles` in one call when both use the same graph.
+Rank by issue or ancestor priority, then `unlock_counts`, then oldest creation. Pipe `{issues: [active IDs], live_edges: [[issue, blocker]], roots: [ranked IDs]}` to `faff planning-graph --unlock`. Add `--cycles` when checking the same graph.
 
 ## Outputs
 

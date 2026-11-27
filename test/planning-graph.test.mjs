@@ -83,3 +83,12 @@ test("answers batched diagnostics and ordering with one graph", () => {
     ...JSON.parse(graph("--unlock", { ...facts, roots: ["a"] })),
   });
 });
+
+test("the help example counts the issue unlocked by its blocker", () => {
+  const help = invoke("--help");
+  assert.equal(help.status, 0, help.stderr);
+  const sample = help.stdout.match(/^Example \(--unlock\): (.+)$/m);
+  assert.ok(sample);
+  const result = JSON.parse(graph("--unlock", JSON.parse(sample[1])));
+  assert.deepEqual(result.unlock_counts, [["blocker", 1]]);
+});

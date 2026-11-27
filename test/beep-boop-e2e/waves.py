@@ -12,6 +12,7 @@ import tempfile
 from datetime import datetime, timezone
 
 from delivery_fixture import prepare, script, git
+from response_timeline import Timeline
 import hashlib
 
 HERE = Path(__file__).resolve().parent
@@ -119,7 +120,7 @@ def arm(snapshot,dest,model,mode):
                   '--allowedTools','Read,Write,Edit,Glob,Grep,Bash,Agent,Skill,TaskCreate,TaskUpdate,TaskList,TaskGet,mcp__qualification-tracker__*',
                   '--strict-mcp-config','--mcp-config',str(dest/'mcp.json'),'--setting-sources','user','--no-session-persistence']
             raw=Path(t)/'stream.jsonl'
-            with raw.open('w') as stdout, tempfile.TemporaryFile() as err:
+            with raw.open('w') as stdout, tempfile.TemporaryFile() as err, Timeline(raw, dest/'responses.jsonl'):
                 try:
                     p=subprocess.run(args,input=PROMPT,text=True,cwd=repo,env=env,stdout=stdout,stderr=err,timeout=7200)
                     receipt['returncode']=p.returncode

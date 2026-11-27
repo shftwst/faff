@@ -22,6 +22,12 @@ const { bundledSlotStatus } = require("./validate-adapters");
 const { resolveFaffVersion } = require("./faff-version");
 const { harnessIdentify } = require("./harness");
 const { admissibleVerdict, dodClassify, parseScenarios } = require("./admissibility");
+function prepWindow(value) {
+    return isRecord(value) && typeof value.id === "string" && /^[a-f0-9-]{36}$/.test(value.id)
+        && typeof value.since === "string" && Number.isFinite(Date.parse(value.since))
+        && typeof value.spec_path_digest === "string"
+        && (value.owner_digest === null || typeof value.owner_digest === "string");
+}
 const isRecord = (v) => typeof v === "object" && v !== null && !Array.isArray(v);
 // `v[k]` for a value of unknown shape, with JavaScript's own semantics: a primitive reads through its
 // wrapper, and null or undefined throws the TypeError the plain property read would.
@@ -297,6 +303,14 @@ function stage(opts, deps) {
         issue, spec_produced: true, attached: false, mode: gitOnly ? "git-only" : "tracker", ts: deps.now(),
         owner, harness: id.harness, model: id.model, faff_version: version,
     };
+    if (!deps.env.FAFF_RUN_DIR && !deps.env.FAFF_SESSION_ID) {
+        const sid = deps.env.CLAUDE_CODE_SESSION_ID;
+        const ownerDigest = sid ? sha256(sid) : null;
+        const specPathDigest = sha256(path.resolve(specPath));
+        const prior = isRecord(existing) && existing.attached === false && existing.disposition !== "parked" ? existing.request_window : null;
+        marker.request_window = prepWindow(prior) && prior.owner_digest === ownerDigest && prior.spec_path_digest === specPathDigest
+            ? prior : { id: crypto.randomUUID(), since: marker.ts, spec_path_digest: specPathDigest, owner_digest: ownerDigest };
+    }
     try {
         deps.writeJsonAtomic(mp, marker);
     }
@@ -423,6 +437,8 @@ function stage(opts, deps) {
         }
         marker.attached = true;
         marker.attached_at = deps.now();
+        if (marker.request_window)
+            closeWindow(marker.request_window, "attached", marker.attached_at);
     }
     try {
         deps.writeJsonAtomic(mp, marker);
@@ -468,6 +484,7 @@ function confirm(opts, deps) {
         }
     }
     const next = { ...m, attached: true, comment_id: commentId, attached_at: deps.now() };
+    closeWindow(m.request_window, "attached", next.attached_at);
     try {
         deps.writeJsonAtomic(markerPath(root, issue), next);
     }
@@ -481,6 +498,7 @@ function park(opts, deps) {
     const m = readStagedMarker(root, issue, deps);
     if (!m)
         return errored(issue, "no-staged-spec");
+    closeWindow(m.request_window, "parked", deps.now());
     try {
         deps.writeJsonAtomic(markerPath(root, issue), { ...m, disposition: "parked" });
     }
@@ -492,6 +510,43 @@ function park(opts, deps) {
 // ---------------------------------------------------------------------------
 // Impure shell: the real dependencies. Tests substitute fakes.
 // ---------------------------------------------------------------------------
+// Run under the prep marker lock. First disposition wins, including an unavailable reading.
+// This is an observed session interval. Unrelated work in that interval can be present.
+function closeWindow(window, disposition, until) {
+    if (prepWindow(window) && !window.until) {
+        window.until = until;
+        window.disposition = disposition;
+    }
+}
+function finishPrepWindow(root, res, deps) {
+    if (deps.env.FAFF_RUN_DIR || deps.env.FAFF_SESSION_ID || !["attached", "parked"].includes(res.token))
+        return;
+    const marker = readStagedMarker(root, res.issue, deps);
+    const window = marker?.request_window;
+    if (!prepWindow(window) || !window.until)
+        return;
+    const dir = path.join(root, ".faff", "prep", "requests", window.id);
+    const file = path.join(dir, "prep-request-metrics.json");
+    if (fs.existsSync(file))
+        return;
+    const sid = deps.env.CLAUDE_CODE_SESSION_ID;
+    const until = window.until;
+    const { collectRunRequestMetrics } = require("./run-request-metrics");
+    const report = collectRunRequestMetrics({ runDir: dir, root, since: window.since, until,
+        sessionId: sid && window.owner_digest === sha256(sid) ? sid : null, env: deps.env });
+    const receipt = { ...report, kind: "standalone-prep-attach", issue: res.issue, invocation_id: window.id,
+        coverage_scope: "session activity between first attach stage and disposition; pre-stage prep excluded",
+        since: window.since, until, disposition: window.disposition };
+    fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
+    const temp = file + "." + crypto.randomUUID();
+    try {
+        fs.writeFileSync(temp, JSON.stringify(receipt) + "\n", { mode: 0o600, flag: "wx" });
+        fs.renameSync(temp, file);
+    }
+    finally {
+        fs.rmSync(temp, { force: true });
+    }
+}
 function atomicWrite(p, data) {
     fs.mkdirSync(path.dirname(p), { recursive: true });
     const tmp = path.join(path.dirname(p), `.${path.basename(p)}.${process.pid}.tmp`);
@@ -599,9 +654,21 @@ function cmdPrep(args, depsOverride) {
             return confirm({ issue, commentId: values["--comment-id"], reviewedPath: values["--reviewed-spec"], root }, deps);
         return park({ issue, root }, deps);
     };
+    const withReceipt = () => {
+        const res = apply();
+        if (!depsOverride) {
+            try {
+                finishPrepWindow(root, res, deps);
+            }
+            catch {
+                process.stderr.write("faff prep: attachment request metrics could not be saved\n");
+            }
+        }
+        return res;
+    };
     let res;
     try {
-        res = deps.withMarkerLock ? deps.withMarkerLock(issue, apply) : apply();
+        res = deps.withMarkerLock ? deps.withMarkerLock(issue, withReceipt) : withReceipt();
     }
     catch (e) {
         res = errored(issue, `unexpected: ${e && prop(e, "message") ? prop(e, "message") : e}`);

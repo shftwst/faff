@@ -40,8 +40,19 @@ type StageMarker = {
   issue: string; spec_produced: true; attached: boolean; mode: string; ts: string; owner: Owner;
   harness: string; model: string; faff_version: string;
   spec_sha256?: string; body_path?: string; attached_at?: string; admissibility?: Admissibility;
+  request_window?: PrepWindow;
   reviewed_attachment?: { prepared_sha256: string; staged_sha256: string; confidence: string; build_tier: string; admissibility_line: string };
 };
+// An open marker survives readiness retries. The owner digest lets a different session dispose
+// of the spec without assigning either conversation's requests to the other.
+type PrepWindow = { id: string; since: string; spec_path_digest: string; owner_digest: string | null; until?: string; disposition?: string };
+function prepWindow(value: unknown): value is PrepWindow {
+  return isRecord(value) && typeof value.id === "string" && /^[a-f0-9-]{36}$/.test(value.id)
+    && typeof value.since === "string" && Number.isFinite(Date.parse(value.since))
+    && typeof value.spec_path_digest === "string"
+    && (value.owner_digest === null || typeof value.owner_digest === "string");
+}
+
 // A marker as read back from disk: any JSON object carrying `spec_produced: true`.
 type StoredMarker = { [k: string]: unknown };
 
@@ -324,6 +335,14 @@ function stage(opts: StageOpts, deps: PrepDeps): PrepResult {
     issue, spec_produced: true, attached: false, mode: gitOnly ? "git-only" : "tracker", ts: deps.now(),
     owner, harness: id.harness, model: id.model, faff_version: version,
   };
+  if (!deps.env.FAFF_RUN_DIR && !deps.env.FAFF_SESSION_ID) {
+    const sid = deps.env.CLAUDE_CODE_SESSION_ID;
+    const ownerDigest = sid ? sha256(sid) : null;
+    const specPathDigest = sha256(path.resolve(specPath));
+    const prior = isRecord(existing) && existing.attached === false && existing.disposition !== "parked" ? existing.request_window : null;
+    marker.request_window = prepWindow(prior) && prior.owner_digest === ownerDigest && prior.spec_path_digest === specPathDigest
+      ? prior : { id: crypto.randomUUID(), since: marker.ts, spec_path_digest: specPathDigest, owner_digest: ownerDigest };
+  }
   try { deps.writeJsonAtomic(mp, marker); } catch (e) { return errored(issue, `marker-unwritable: ${prop(e, "code") || prop(e, "message")}`); }
 
   let cfg: { producer: string; tracker: string };
@@ -404,6 +423,7 @@ function stage(opts: StageOpts, deps: PrepDeps): PrepResult {
     try { deps.writeTextAtomic(path.join(root, ".faff", "specs", `${issue}.md`), text); } catch (e) { return errored(issue, `store-unwritable: ${prop(e, "code") || prop(e, "message")}`, common); }
     marker.attached = true;
     marker.attached_at = deps.now();
+    if (marker.request_window) closeWindow(marker.request_window, "attached", marker.attached_at);
   }
   try { deps.writeJsonAtomic(mp, marker); } catch (e) { return errored(issue, `marker-unwritable: ${prop(e, "code") || prop(e, "message")}`, common); }
   if (gitOnly) return result(issue, "attached", { spec_sha256: digest, ...success });
@@ -432,6 +452,7 @@ function confirm(opts: { issue: string; commentId: string; root: string; reviewe
     } catch (e) { return errored(issue, "stale-reviewed-attachment: " + (e instanceof Error ? e.message : String(e))); }
   }
   const next = { ...m, attached: true, comment_id: commentId, attached_at: deps.now() };
+  closeWindow(m.request_window, "attached", next.attached_at);
   try { deps.writeJsonAtomic(markerPath(root, issue), next); } catch (e) { return errored(issue, `marker-unwritable: ${prop(e, "code") || prop(e, "message")}`); }
   return result(issue, "attached", { spec_sha256: m.spec_sha256 });
 }
@@ -440,6 +461,7 @@ function park(opts: { issue: string; root: string }, deps: PrepDeps): PrepResult
   const { issue, root } = opts;
   const m = readStagedMarker(root, issue, deps);
   if (!m) return errored(issue, "no-staged-spec");
+  closeWindow(m.request_window, "parked", deps.now());
   try { deps.writeJsonAtomic(markerPath(root, issue), { ...m, disposition: "parked" }); } catch (e) { return errored(issue, `marker-unwritable: ${prop(e, "code") || prop(e, "message")}`); }
   return result(issue, "parked");
 }
@@ -447,6 +469,39 @@ function park(opts: { issue: string; root: string }, deps: PrepDeps): PrepResult
 // ---------------------------------------------------------------------------
 // Impure shell: the real dependencies. Tests substitute fakes.
 // ---------------------------------------------------------------------------
+// Run under the prep marker lock. First disposition wins, including an unavailable reading.
+// This is an observed session interval. Unrelated work in that interval can be present.
+function closeWindow(window: unknown, disposition: string, until: string): void {
+  if (prepWindow(window) && !window.until) {
+    window.until = until;
+    window.disposition = disposition;
+  }
+}
+
+function finishPrepWindow(root: string, res: PrepResult, deps: PrepDeps): void {
+  if (deps.env.FAFF_RUN_DIR || deps.env.FAFF_SESSION_ID || !["attached", "parked"].includes(res.token)) return;
+  const marker = readStagedMarker(root, res.issue, deps);
+  const window = marker?.request_window;
+  if (!prepWindow(window) || !window.until) return;
+  const dir = path.join(root, ".faff", "prep", "requests", window.id);
+  const file = path.join(dir, "prep-request-metrics.json");
+  if (fs.existsSync(file)) return;
+  const sid = deps.env.CLAUDE_CODE_SESSION_ID;
+  const until = window.until;
+  const {collectRunRequestMetrics} = require("./run-request-metrics");
+  const report = collectRunRequestMetrics({runDir: dir, root, since: window.since, until,
+    sessionId: sid && window.owner_digest === sha256(sid) ? sid : null, env: deps.env});
+  const receipt = { ...report, kind: "standalone-prep-attach", issue: res.issue, invocation_id: window.id,
+    coverage_scope: "session activity between first attach stage and disposition; pre-stage prep excluded",
+    since: window.since, until, disposition: window.disposition };
+  fs.mkdirSync(dir, {recursive: true, mode: 0o700});
+  const temp = file + "." + crypto.randomUUID();
+  try {
+    fs.writeFileSync(temp, JSON.stringify(receipt) + "\n", {mode: 0o600, flag: "wx"});
+    fs.renameSync(temp, file);
+  } finally { fs.rmSync(temp, {force: true}); }
+}
+
 function atomicWrite(p: string, data: string): void {
   fs.mkdirSync(path.dirname(p), { recursive: true });
   const tmp = path.join(path.dirname(p), `.${path.basename(p)}.${process.pid}.tmp`);
@@ -528,8 +583,16 @@ function cmdPrep(args: string[], depsOverride?: PrepDeps): number {
     if (modes[0] === "--confirm") return confirm({ issue, commentId: values["--comment-id"], reviewedPath: values["--reviewed-spec"], root }, deps);
     return park({ issue, root }, deps);
   };
+  const withReceipt = (): PrepResult => {
+    const res = apply();
+    if (!depsOverride) {
+      try { finishPrepWindow(root, res, deps); }
+      catch { process.stderr.write("faff prep: attachment request metrics could not be saved\n"); }
+    }
+    return res;
+  };
   let res: PrepResult;
-  try { res = deps.withMarkerLock ? deps.withMarkerLock(issue, apply) : apply(); } catch (e) { res = errored(issue, `unexpected: ${e && prop(e, "message") ? prop(e, "message") : e}`); }
+  try { res = deps.withMarkerLock ? deps.withMarkerLock(issue, withReceipt) : withReceipt(); } catch (e) { res = errored(issue, `unexpected: ${e && prop(e, "message") ? prop(e, "message") : e}`); }
   emit(res, !!values["--json"]);
   return res.token === "errored" ? 2 : 0;
 }

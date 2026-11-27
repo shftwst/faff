@@ -103,6 +103,46 @@ test("standalone prep attachment has no run ownership or prep-start boundary to 
   assert.equal(existsSync(join(f.root, ".faff", "runs")), false);
 });
 
+test("standalone prep keeps only session activity between first stage and disposition", () => {
+  const f = fixture();
+  const env = {CLAUDE_CODE_SESSION_ID: "sid", CLAUDE_CONFIG_DIR: join(f.root, "claude")};
+  const args = ["prep", "attach", "--issue", "EX-1", "--root", f.root, "--json"];
+  const run = (extra, e = env) => cli(f.root, [...args, ...extra], e);
+  const stageArgs = ["--spec", f.specFile, "--mode", "interactive"];
+  assert.equal(run(stageArgs).json().token, "ready-to-post");
+  const w = readJson(f.marker()).request_window;
+  assert.equal(run(stageArgs).json().token, "ready-to-post");
+  assert.deepEqual(readJson(f.marker()).request_window, w);
+  const base = require("../plugin/skills/faff/bin/lib/budget.js").transcriptBaseDir(f.root, env);
+  mkdirSync(base, {recursive:true});
+  const response = (id, timestamp) => JSON.stringify({type:"assistant",sessionId:"sid",timestamp,message:{
+    role:"assistant",id:"msg_"+id,model:"claude-opus",content:[{type:"text",text:"secret prose"}],
+    usage:{input_tokens:42,output_tokens:10,cache_read_input_tokens:1,cache_creation_input_tokens:0}}});
+  writeFileSync(join(base,"sid.jsonl"), [
+    response("old",new Date(Date.parse(w.since)-1).toISOString()),
+    response("during",new Date().toISOString()),
+    response("after","2099-01-01T00:00:00Z")].join("\n"));
+  assert.equal(run(["--confirm","--comment-id","1"]).json().token, "attached");
+  const dir = join(f.root,".faff","prep","requests",w.id);
+  const query = (...flags) => cli(f.root, ["economics","--by","requests","--run-dir",dir,...flags],env);
+  assert.equal(query().json().requests, 1);
+  assert.equal(query().json().records, undefined);
+  assert.equal(query("--details").json().records.length, 1);
+  assert.doesNotMatch(query("--details").stdout,/secret prose|msg_during/);
+  const original = query().stdout;
+  assert.equal(run(["--confirm","--comment-id","1"]).json().token,"attached");
+  assert.equal(query().stdout, original);
+  assert.equal(run(stageArgs).json().token,"ready-to-post");
+  const next = readJson(f.marker()).request_window;
+  assert.notEqual(next.id,w.id);
+  assert.equal(run(["--park"], {...env, CLAUDE_CODE_SESSION_ID:"other"}).json().token,"parked");
+  const other = readJson(join(dirname(dir), next.id,"prep-request-metrics.json"));
+  assert.equal(other.requests,null);
+  assert.equal(other.disposition,"parked");
+  assert.equal(run(stageArgs,{...env,FAFF_RUN_DIR:"/managed"}).json().token,"ready-to-post");
+  assert.equal(readJson(f.marker()).request_window,undefined);
+});
+
 function reviewedBlock(confidence, selfReview) {
   return ["```faff-contract:spec-readiness", JSON.stringify({ confidence, decisions: [{ marker: "chosen" }], self_review: selfReview }), "```"].join("\n");
 }

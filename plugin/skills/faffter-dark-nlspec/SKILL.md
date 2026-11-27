@@ -232,7 +232,7 @@ confidence: high | medium | low
 ```
 
 - **high** — every decision is marked, no open questions remain, DONE mirrors body completely
-- **medium** — an open `**Punt:**` item remains that `faff punt-scan` does not report `eligible`, or the explore findings were ambiguous in places. A Punt is eligible only when it is tagged `(non-blocking)` **and** cross-referenced under OUT OF SCOPE; prose saying it does not block does not make it eligible. A spec whose only open items are eligible Punts self-rates `high`. This is a mechanical read of the scanner, not a self-certification of the tag; tag honesty is the spec-review lens's call.
+- **medium** — an open `**Punt:**` that `faff punt-scan "$spec_file"` does not report `eligible`, or the explore findings were ambiguous in places. A Punt is eligible only when it is tagged `(non-blocking)` **and** cross-referenced under OUT OF SCOPE; an unsupported tag leaves it blocking. A spec whose only open items are eligible Punts self-rates `high`. This is a mechanical read of the scanner, not a self-certification of the tag; tag honesty is the spec-review lens's call.
 - **low** — significant unknowns, architectural uncertainty, or the issue may need splitting
 
 Rate open decisions, not polish. A slip the builder can settle without making a new decision (a field missing from one example, an obvious unstated default) is fixed in the draft and does not lower the rating.

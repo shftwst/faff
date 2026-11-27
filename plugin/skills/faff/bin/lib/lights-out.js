@@ -38,7 +38,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
-const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass, utcOffsetField } = require("./budget");
+const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, currentOpenSpan, envelopeFrom, measureTokensByClass, measureTokensByModelClass, utcOffsetField } = require("./budget");
 const { unmeteredFleetEngines } = require("./backends");
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
@@ -1388,6 +1388,13 @@ function resumeLightsOut({ root, cfg, binPath, json, checkOnly, get, unreachable
     claimSha = claimResult.sha;
   }
 
+  // The native transcript of a prior epoch can vanish between runs. Capture it while
+  // its owner and time window are still installed. The new session belongs to the next epoch.
+  const priorSession = Array.isArray(ledger.budget?.sessions)
+    ? currentOpenSpan(ledger.budget.sessions)?.session_id
+    : ledger.budget?.measure_session_id;
+  if (priorSession) require("./run-request-store").captureRunRequests(runDir, root, priorSession);
+
   // Read-after-write head-confirm (FAFF-863 "the safety pin"), run immediately before STEP 5's
   // owner-state write: re-read the claim ref head and proceed only if it still points at OUR
   // claim commit. This — never the staleness verdict above — is the actual mutex: it closes the
@@ -1661,7 +1668,7 @@ function closeAndOpenBudgetSessions(ledger, runDir, root, nowIso) {
   let sessions = Array.isArray(budget.sessions) ? budget.sessions.slice() : null;
   if (!sessions) {
     sessions = [{
-      session_id: (ledger.owner && ledger.owner.session_id) || null,
+      session_id: budget.measure_session_id || (ledger.owner && ledger.owner.session_id) || null,
       baseline_by_model_class: (budget.tokens_at_start_by_model_class && typeof budget.tokens_at_start_by_model_class === "object") ? budget.tokens_at_start_by_model_class : {},
       closed_delta_by_model_class: null, closed_at: null, close_source: null,
     }];

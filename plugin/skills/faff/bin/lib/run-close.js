@@ -10,6 +10,7 @@
 // proceeds, as the prose did.
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
+const { captureRunRequests } = require("./run-request-store");
 const fs = require("node:fs");
 const path = require("node:path");
 const childProcess = require("node:child_process");
@@ -305,6 +306,7 @@ function runClose(args, deps) {
     // 8–9. The judge trail on every run, then andon (fail-open).
     record("judge_trail", faff(["judge-trail", "mint", "--run-dir", runDir]), "judge-trail-failed");
     record("andon", faff(["andon", "pump", "--run-dir", runDir]), "andon-pump-failed");
+    captureRunRequests(runDir, root, args.sessionId ?? undefined);
     return { code: 0, result: { closed: true, undispatched: abortExempt ? audit.undispatched : [], abort_exempt: abortExempt, owner_status: ownerStatus, steps, faults }, reason: null };
 }
 // --- The verb. ---

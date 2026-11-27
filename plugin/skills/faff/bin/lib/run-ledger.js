@@ -608,6 +608,7 @@ function recordOutcome(values) {
   // {written, yielded, before_sha256, after_sha256} — not the mutated ledger — so this is the
   // only place the post-mutation status is observable.
   let resultingOwnerStatus = null;
+  let standalone = false;
   // FAFF-1126: refuse an outcome for an issue not in the resolved ledger's admitted[] — an
   // outcome-for-non-admitted always violates the runcheck invariant `outcomes ⊆ admitted`, so it
   // is never legitimate. This is the caller/env-agnostic backstop for a mis-resolved run dir (a
@@ -624,6 +625,7 @@ function recordOutcome(values) {
     if (!admitted.includes(issue)) { admittedMismatch = true; return null; } // outcome for a non-admitted issue → abort
     const next = applyTerminalOutcome(fresh, issue, outcome, nowIso);
     resultingOwnerStatus = next && next.owner && next.owner.status;
+    standalone = fresh.level === INTERACTIVE_LEVEL;
     return next;
   }); } catch (e) {
     if (!isLedgerSchemaError(e)) throw e;
@@ -647,6 +649,7 @@ function recordOutcome(values) {
       process.stderr.write(`faff run-ledger record-outcome: issue-outcome close event append failed in ${runDir}: ${e && e.message} — the ledger IS written\n`);
     }
   }
+  if (standalone && resultingOwnerStatus === "done") require("./run-request-store").captureRunRequests(runDir, root);
   if (values["--json"]) {
     process.stdout.write(JSON.stringify({ recorded: true, run_id: runId, run_dir: runDir, issue, outcome, owner_status: resultingOwnerStatus, ledger_sha256_before: res.before_sha256, ledger_sha256_after: res.after_sha256 }) + "\n");
   } else {

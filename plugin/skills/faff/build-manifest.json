@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "441b4debc89e9a7baa42ee0b927ad922dda185374c0aa4c1d322a115be4d16b8"
+    "tsconfig.json": "6ed8ecb0c864b1067c1eeb2dda23109d7ec6151af3085f4c56f83ca909b96d1c"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -58,11 +58,14 @@
     "bin/lib/review-progress-resume.ts": "8d18dc02c284ed100257a60de893d2a24d706ce4e6689f8ff59ffca21651b4e9",
     "bin/lib/reviewed-attachment.ts": "5a9648ea5959791ed26793a9f6f250f23e92819d755ac9aac54f1d81e8560394",
     "bin/lib/rule-inventory.ts": "c4cb6d85b49519c4bca68d3b30b63a603eaf0590b8d31edbd7eaffe60dff4621",
-    "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
-    "bin/lib/run-close.ts": "4f6f57ee9305f04f076285af97953ba0a4c69a37c01288748fac5c38cce97fa4",
+    "bin/lib/run-checkpoint.ts": "3f53c139eb03ab0a4ecbd2774746a9700337ea694938833221ae17386ab97cd1",
+    "bin/lib/run-close.ts": "c9f138cfe8afa0d42c2ccea6c39d4705bbf20cc245a09b280344a105ee5db041",
     "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
-    "bin/lib/run-open.ts": "ce538c68a6de316a5d5372c8fe9ec52ea6a25802cbcca2a0e06810569ae0a337",
+    "bin/lib/run-open.ts": "50f6d5fcf0248162c058c126813b483da74bfda65af9909c5bfd8a29f3d76b48",
+    "bin/lib/run-request-metrics.ts": "b5f354d29c8d9e0cc39da5045cd8103b28306ef517166a25f51fb73bdad06692",
+    "bin/lib/run-request-store.ts": "af07283463b816a7e077cd483445bf739d58073d893a935de7848e48a9559b19",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
+    "bin/lib/run-sdk-turns.ts": "d9dc0761d05fc7884c06124de2ea04058dda59a1d46365e4c0dddc7498a2673b",
     "bin/lib/run-summary.ts": "0174f139c548ee4409d917a00a6d1983465864a518cea47f789559542af5cc66",
     "bin/lib/run-trigger.ts": "d7810195ea6ed69e075295988d1270943b6c49679f1f0ef121e8105e4c3c4b74",
     "bin/lib/run-wave-consult.ts": "064a7466a9a3122de476d2c2853f97321c72bd5f2236db9be6d7743685864436",
@@ -125,11 +128,14 @@
     "bin/lib/review-progress-resume.js": "e731d8670cb7a3fdfbaffa96b01c8fde7aa6967bb32239a3157439aabfde6315",
     "bin/lib/reviewed-attachment.js": "1a6b0c5a5cba186f8c9cff94412cbc57d6950f7fc6ed9645b5bf0441d8d0a7b4",
     "bin/lib/rule-inventory.js": "e4cc399a8b003fb062065d612f5b28b578fb14cc371611568f68b47150b9e69d",
-    "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
-    "bin/lib/run-close.js": "ebfdac166fd6586f0fc75ee14967babe5c5e2db68bc8672aac6931760c289ea2",
+    "bin/lib/run-checkpoint.js": "5f9a40fc4a72d70b1e9b22222cf1c49eee4793c7611fff4163a6f5bc1367b21f",
+    "bin/lib/run-close.js": "801e7c8df1b67998be48a64587b5f80d92d6010948af4ae04b7c75a2c9d6f810",
     "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
-    "bin/lib/run-open.js": "68f9978aadb0cbaad1887be23443e2667ed1678b12c4403e9cd518c5686a553c",
+    "bin/lib/run-open.js": "3ac4200575fdbd14e286713989a09b757cb12fe02f0830ed7c9460c889ac2234",
+    "bin/lib/run-request-metrics.js": "ec1ad767a1d23356c51324aa1f9697386e8ed3a507501decf776794c771c5b15",
+    "bin/lib/run-request-store.js": "780e4910c034cd63fbf8897dd4202a243279f34daaa3b567dad6a62af07eb4c8",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
+    "bin/lib/run-sdk-turns.js": "9d9fd643220af85c318391a7cd698a28a6d457251041771da428504719e3421b",
     "bin/lib/run-summary.js": "bcfa5af1d571385ecbf0f075fcebb8e750b78df36ecd2dc1e0d680f41574bdc7",
     "bin/lib/run-trigger.js": "192f5952f1615633edad3dd934d6f4ea4782482ffc96ed3784395070afcfa7b6",
     "bin/lib/run-wave-consult.js": "b247fb77dc668c4b3dfdccbd43e19d914c4e8cec31f75794eef8782d70053862",
@@ -146,5 +152,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "409f339c64a2dcda26c010a0b6f722189167a96c67dca5869938286fb2cd768e"
+  "output_digest": "2339561830b5a70defb0ceb8c9a1c2ddd5d9f05ba5993cf5d1bfa5ad8bbe78c9"
 }

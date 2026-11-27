@@ -88,6 +88,21 @@ test("stage: ready-to-post, marker open with spec_sha256 and body_path, stamp an
   assert.equal(prepcheckState(f), "open");
 });
 
+test("standalone prep attachment has no run ownership or prep-start boundary to charge a shared session", () => {
+  const f = fixture();
+  const env = { CLAUDE_CODE_SESSION_ID: "some-shared-conversation" };
+  const args = ["prep", "attach", "--issue", "EX-1", "--root", f.root, "--json"];
+  const staged = cli(f.root, [...args, "--spec", f.specFile, "--mode", "interactive"], env);
+  assert.equal(staged.status, 0, staged.stderr);
+  const confirmed = cli(f.root, [...args, "--confirm", "--comment-id", "comment-1"], env);
+  assert.equal(confirmed.status, 0, confirmed.stderr);
+  const marker = readJson(f.marker());
+  assert.equal(marker.attached, true);
+  assert.equal(marker.owner.run_dir, undefined);
+  assert.equal(marker.started_at, undefined);
+  assert.equal(existsSync(join(f.root, ".faff", "runs")), false);
+});
+
 function reviewedBlock(confidence, selfReview) {
   return ["```faff-contract:spec-readiness", JSON.stringify({ confidence, decisions: [{ marker: "chosen" }], self_review: selfReview }), "```"].join("\n");
 }

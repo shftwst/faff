@@ -1,0 +1,129 @@
+// === region:factory — durable observations of native model responses ===
+import * as fs from "node:fs";
+import * as path from "node:path";
+import { sdkTurnReceipts } from "./run-sdk-turns";
+import { randomUUID } from "node:crypto";
+import { collectRunRequestMetrics, type RequestObservation } from "./run-request-metrics";
+
+const { withFileLock } = require("./fs-lock");
+const { readLeafNoFollow } = require("./leaf-read");
+const filename = "run-request-metrics.json";
+type Observation = ReturnType<typeof collectRunRequestMetrics>;
+type Epoch = { since: string; until: string; last_observed_until: string | null;
+  status: Observation["status"]; warnings: string[]; records: RequestObservation[] };
+const tokenClasses: (keyof RequestObservation["usage"])[] =
+  ["input", "output", "cache_read", "cache_write", "cache_write_5m", "cache_write_1h"];
+type Store = { schema: 1; epochs: Record<string, Epoch> };
+function readStore(dir: string): Store | null {
+  const leaf = readLeafNoFollow(path.join(dir, filename));
+  if (leaf.kind === "absent") return null;
+  if (leaf.kind !== "regular") throw Error("invalid request metrics file");
+  const store = JSON.parse(leaf.bytes.toString("utf8"));
+  if (store?.schema !== 1 || !store.epochs || typeof store.epochs !== "object" || Array.isArray(store.epochs))
+    throw Error("invalid request metrics schema");
+  for (const e of Object.values<Epoch>(store.epochs)) {
+    if (!e || !Array.isArray(e.records) || !Array.isArray(e.warnings)) throw Error("invalid request metrics epoch");
+  }
+  return store;
+}
+
+function stamp(raw: unknown): string | null {
+  if (typeof raw !== "string" || !Number.isFinite(Date.parse(raw))) return null;
+  return new Date(Date.parse(raw)).toISOString();
+}
+function combine(previous: Epoch | undefined, next: Epoch): Epoch {
+  if (!previous) return next;
+  const [older, newer] = previous.until <= next.until ? [previous,next] : [next,previous];
+  const rows = new Map(older.records.map(row => [row.id,row]));
+  for (const row of newer.records) {
+    const old = rows.get(row.id);
+    if (!old) { rows.set(row.id, row); continue; }
+    const usage = {...row.usage};
+    for (const field of tokenClasses) usage[field] ??= old.usage[field];
+    rows.set(row.id,{...row, usage, turn_id: row.turn_id ?? old.turn_id});
+  }
+  return { ...newer, records: [...rows.values()], last_observed_until: newer.last_observed_until ?? older.last_observed_until,
+    status: newer.status === "unavailable" && older.last_observed_until ? "partial" : newer.status };
+}
+
+// Called at workflow boundaries. Measurement failure must never change delivery or ownership.
+export function captureRunRequests(runDir: string, root: string, sessionId?: string | null, refresh = false): boolean {
+  try {
+    const ledger = JSON.parse(fs.readFileSync(path.join(runDir,"run-ledger.json"),"utf8"));
+    const { events } = require("./economics").readRunEvents(runDir);
+    type Event = {type: string; ts: string};
+    const starts: Event[] = events.filter((e: Event) => e?.type === "run-start" && stamp(e.ts));
+    const ends: Event[] = events.filter((e: Event) => e?.type === "run-end" && stamp(e.ts));
+    const spans = ledger.budget?.sessions?.length ? ledger.budget.sessions : [{}];
+    let since = stamp(starts[0]?.ts) ?? (spans.length === 1 ? stamp(ledger.owner?.started_at) : null);
+    const now = new Date().toISOString();
+    const updated: Record<string, Epoch> = {};
+    for (let i = 0; i < spans.length; i++) {
+      const span = spans[i], current = i === spans.length-1;
+      const terminal = ["done","aborted","aborted-resumable","failed","escalated"].includes(ledger.owner?.status);
+      const closedAt = stamp(span.closed_at);
+      const finalEvent = ends.map(e => stamp(e.ts)).find(ts => ts && since && ts >= since && (!closedAt || ts <= closedAt));
+      const abort = ledger.owner?.status === "aborted-resumable" ? stamp(ledger.abort?.at) : null;
+      const until = finalEvent ?? closedAt ?? (current && terminal ? abort ?? stamp(ledger.owner?.last_heartbeat) : now);
+      if (current || refresh) {
+        const id = (current && sessionId) || span.session_id || (current && (ledger.budget?.measure_session_id ||
+          (!refresh && process.env.CLAUDE_CODE_SESSION_ID) || ledger.owner?.session_id));
+        const report = collectRunRequestMetrics({runDir, root, sessionId: id || null, since: since ?? "", until: until ?? ""});
+        updated[String(i)] = { since: since ?? "", until: until ?? "", last_observed_until: report.requests === null ? null : until,
+          status: report.status, warnings: report.warnings, records: report.records };
+      }
+      since = stamp(span.closed_at);
+    }
+    const file = path.join(runDir,filename);
+    withFileLock(file+".lock", () => {
+      const store = readStore(runDir) ?? {schema: 1, epochs: {}};
+      for (const [key,epoch] of Object.entries(updated)) store.epochs[key] = combine(store.epochs[key],epoch);
+      const tmp = file+"."+randomUUID();
+      try {
+        fs.writeFileSync(tmp,JSON.stringify(store)+"\n",{mode:0o600,flag:"wx"});
+        fs.renameSync(tmp,file);
+      } finally { fs.rmSync(tmp,{force:true}); }
+    });
+    return true;
+  } catch {
+    process.stderr.write("faff economics: request metrics could not be saved\n");
+    return false;
+  }
+}
+
+export function requestReport(dir: string, ledger: {outcomes?: Record<string,string>; budget?: {sessions?: unknown[]}}) {
+  const store = readStore(dir);
+  const epochs = Object.values(store?.epochs ?? {});
+  const expected = Math.max(1,ledger.budget?.sessions?.length ?? 0);
+  const any = epochs.some(e => e.last_observed_until);
+  const rows = [...new Map(epochs.flatMap(e => e.records).map(r => [r.id,r])).values()];
+  const requests = any ? rows.length : null;
+  const transcriptTurns = rows.length && rows.every(r => r.turn_id) ? new Set(rows.map(r => r.turn_id)).size : null;
+  const sdk = sdkTurnReceipts(dir,ledger);
+  const shipped = Object.values(ledger.outcomes ?? {}).filter(v => v === "shipped").length;
+  function counts(key: (row: RequestObservation) => string | number | null) {
+    const result = new Map<string,number>();
+    for (const row of rows) {
+      const k = String(key(row) ?? "unattributed");
+      result.set(k,(result.get(k) ?? 0)+1);
+    }
+    return Object.fromEntries(result);
+  }
+  const usage = Object.fromEntries(tokenClasses.map(field => {
+    const complete = any && rows.every(row => row.usage[field] !== null);
+    return [field, complete ? rows.reduce((sum,row) => sum + (row.usage[field] ?? 0),0) : null];
+  }));
+  const engine = require("./budget").readEngineSpend(dir);
+  return {separate_engine_spend: {records:engine.records, engines:engine.engines, tokens:engine.totals}, run_id: path.basename(dir), source:"owned-claude-transcripts", status: !any ? "unavailable" : epochs.length < expected || engine.records || engine.malformed || epochs.some(e => e.status !== "observed") ? "partial" : "observed",
+    requests, usage, turns: sdk.turns, sdk_turns: sdk, transcript_turn_ids: transcriptTurns, shipped, observed_requests_per_shipped_issue: requests !== null && shipped ? requests/shipped : null,
+    by_role: counts(r => r.role), by_issue: counts(r => r.issue), by_phase: counts(r => r.phase), by_wave: counts(r => r.wave),
+    by_model: counts(r => r.model), verification_to_handoff_by_issue: countsSelected(rows),
+    epochs: epochs.map(({records,...epoch}) => ({...epoch, observed_requests:epoch.last_observed_until ? records.length : null})),
+    expected_epochs:expected, records:rows };
+}
+function countsSelected(rows: RequestObservation[]) {
+  const counts = new Map<string,number>();
+  for (const r of rows) if (r.role === "worker" && r.issue && r.verification_to_handoff)
+    counts.set(r.issue,(counts.get(r.issue) ?? 0)+1);
+  return Object.fromEntries(counts);
+}

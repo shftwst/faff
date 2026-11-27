@@ -9,6 +9,7 @@
 // proceeds, as the prose did.
 // ===========================================================================
 
+const { captureRunRequests } = require("./run-request-store");
 const fs: FsApi = require("node:fs");
 const path: PathApi = require("node:path");
 const childProcess: ChildProcessApi = require("node:child_process");
@@ -355,6 +356,7 @@ function runClose(args: CloseArgs, deps: Deps): CloseOutcome {
   record("judge_trail", faff(["judge-trail", "mint", "--run-dir", runDir]), "judge-trail-failed");
   record("andon", faff(["andon", "pump", "--run-dir", runDir]), "andon-pump-failed");
 
+  captureRunRequests(runDir, root, args.sessionId ?? undefined);
   return { code: 0, result: { closed: true, undispatched: abortExempt ? audit.undispatched : [], abort_exempt: abortExempt, owner_status: ownerStatus, steps, faults }, reason: null };
 }
 

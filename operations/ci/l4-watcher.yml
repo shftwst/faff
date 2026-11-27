@@ -125,6 +125,8 @@ jobs:
           #           an open run that can't resume right now: surface it, do NOT mint a
           #           parallel run
           #       2 → terminal (done/unparseable/missing) → MINT a fresh run
+          CLAUDE_CODE_SESSION_ID=$(node -p 'require("node:crypto").randomUUID()')
+          export CLAUDE_CODE_SESSION_ID
           latest=$(ls -1dt .faff/runs/*/ 2>/dev/null | head -1 | sed 's:/*$::' || true)
           run_dir=""
           if [ -n "${latest:-}" ]; then
@@ -167,7 +169,9 @@ jobs:
           # `escalated` state the NEXT firing can resume. (Prefer `--max` over `--until`
           # here: `--until HH:MM` is an absolute wall-clock time, not a fixed-size cap, so
           # it cannot express "this segment lasts N units" independent of time-of-day.)
-          FAFF_APPETITE=full FAFF_RUN_DIR="$run_dir" claude -p "/faff-beep-boop --max 5"
+          export FAFF_RUN_DIR="$run_dir"
+          set -o pipefail
+          FAFF_APPETITE=full claude -p --session-id "$CLAUDE_CODE_SESSION_ID" --output-format json "/faff-beep-boop --max 5" | faff economics --record-claude-result
 
       # 4. RECONCILE — a segment boundary is green ("more to come"), a terminal run is
       #    scored by disposition. `lights-out --resume <id> --check` has THREE exit

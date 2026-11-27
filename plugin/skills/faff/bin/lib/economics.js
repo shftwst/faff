@@ -219,7 +219,7 @@ function attributePerIssueCosts(base, sid, ledger, price) {
 // to measure serialized size.
 // ===========================================================================
 
-const BY_AXES = ["class", "model", "mcp", "day", "effort", "phase"];
+const BY_AXES = ["class", "model", "mcp", "day", "effort", "phase", "requests"];
 
 // FAFF-415: the effort axis is rendered in fixed severity order (with a trailing
 // "(none)" bucket for token-bearing dispatches that carried no effort tag), so the
@@ -1196,10 +1196,11 @@ const { parseArgs, usageError } = require("./argv");
 const ECONOMICS_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 },
   "--root": { arity: 1 }, "--run-dir": { arity: 1 }, "--session-id": { arity: 1 },
-  "--by": { arity: 1 }, // enum validated by the handler against BY_AXES (fail-loud, exit 2)
+  "--refresh": { arity: 0 }, "--by": { arity: 1 }, // enum validated by the handler against BY_AXES (fail-loud, exit 2)
 } };
 
 function cmdEconomics(args) {
+  if (args.length === 1 && args[0] === "--record-claude-result") return require("./run-sdk-turns").recordClaudeResult();
   if (args.includes("--selftest")) return economicsSelftest();
   const { values, errors } = parseArgs(args, ECONOMICS_SPEC);
   if (errors.length) return usageError(errors, "usage: faff economics [--by model|class|issue|mcp] [--run-dir DIR] [--session-id ID] [--json] [--root DIR]");
@@ -1225,16 +1226,30 @@ function cmdEconomics(args) {
     return 2;
   }
 
+  if (get("--refresh") && byAxis !== "requests") return usageError([{code:"usage",detail:"--refresh requires --by requests"}], "faff economics --by requests --refresh");
+  if (byAxis === "requests" && sessionIdFlag && !get("--refresh")) return usageError([{code:"usage",detail:"--session-id requires --refresh for request metrics"}], "faff economics --by requests --refresh");
+
   // Resolve the run dir (explicit --run-dir, else $FAFF_RUN_DIR, else latest) —
   // the same resolution `budget check` uses.
   let runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
-  if (runDir && !fs.existsSync(path.join(runDir, "run-ledger.json"))) runDir = null;
+  if (runDir && !fs.existsSync(path.join(runDir, "run-ledger.json"))) {
+    if (byAxis === "requests") { process.stderr.write("faff economics: run ledger missing\n"); return 2; }
+    runDir = null;
+  }
   if (!runDir) runDir = latestRunDir(root);
   if (!runDir) { process.stderr.write("faff economics: no run dir (pass --run-dir DIR)\n"); return 2; }
 
   let ledger;
   try { ledger = readLedger(runDir); }
   catch { process.stderr.write(`faff economics: cannot read ${path.join(runDir, "run-ledger.json")}\n`); return 2; }
+
+  if (byAxis === "requests") {
+    const { captureRunRequests, requestReport } = require("./run-request-store");
+    if (get("--refresh") && !captureRunRequests(runDir, root, sessionIdFlag, true)) return 2;
+    try { console.log(JSON.stringify(requestReport(runDir, ledger))); }
+    catch { process.stderr.write("faff economics: unreadable request metrics\n"); return 2; }
+    return 0;
+  }
 
   const { econ, effortRun, engineSpend, measuredSource, effectiveEnv, runStartMs, measuredTotal, priceMap, closedSpend } =
     economicsCore(runDir, ledger, { root, sessionIdFlag, baseEnv: process.env, byAxis });
@@ -1613,6 +1628,13 @@ function economicsCore(runDir, ledger, { root, sessionIdFlag = null, baseEnv = p
   if (unmeteredAll.length) {
     econ.unmetered_engines = unmeteredAll.map((name) => ({ engine: name, waived: !unmetered.includes(name) }));
     econ.warnings.push(`engine(s) with telemetry: none in the fleet — ${unmeteredAll.join(", ")}; their spend is unobservable and is NOT counted in the figures above`);
+  }
+
+  if (fs.existsSync(path.join(runDir, "run-request-metrics.json"))) {
+    try {
+      const { requests, turns, status, source } = require("./run-request-store").requestReport(runDir, ledger);
+      econ.request_metrics = { requests, turns, status, source };
+    } catch { econ.warnings.push("unreadable request metrics"); }
   }
 
   return { econ, effortRun, engineSpend, measuredSource, effectiveEnv, runStartMs, measuredTotal, priceMap, closedSpend };

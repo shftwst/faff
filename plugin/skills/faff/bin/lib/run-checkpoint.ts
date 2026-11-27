@@ -10,6 +10,7 @@
 // read that fails is non-clean in the direction that keeps the kill-switch armed.
 // ===========================================================================
 
+const { captureRunRequests } = require("./run-request-store");
 const fs: FsApi = require("node:fs");
 const path: PathApi = require("node:path");
 const childProcess: ChildProcessApi = require("node:child_process");
@@ -355,6 +356,9 @@ function runCheckpoint(args: CheckpointArgs, deps: Deps): CheckpointResult {
   // 8. Andon, fail-open.
   if (faff(["andon", "pump", "--run-dir", runDir]).status !== 0) faults.push("andon-pump-failed");
 
+  if (phase === "wave" || decision.stop_reason !== null || decision.action === "fail-closed") {
+    captureRunRequests(runDir, root, args.sessionId ?? undefined);
+  }
   return {
     action: decision.action,
     stop_reason: decision.stop_reason,

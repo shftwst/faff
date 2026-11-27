@@ -74,8 +74,10 @@ faff container-check --gate
 #    bound. An operator preferring a finite value can set one comfortably above
 #    post-merge-check's worst case — see docs/guide/self-hosted-rig.md.
 FAFF_RUN_DIR=".faff/runs/run-$(date -u +%Y%m%d-%H%M%S)-l3-cron"
-export FAFF_RUN_DIR
-CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 timeout 300m claude -p "/faff-beep-boop" || true
+export FAFF_RUN_DIR FAFF_SELF_DRAIN_ID="${FAFF_RUN_DIR##*/}"
+CLAUDE_CODE_SESSION_ID=$(node -p 'require("node:crypto").randomUUID()')
+export CLAUDE_CODE_SESSION_ID
+CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 timeout 300m claude -p --session-id "$CLAUDE_CODE_SESSION_ID" --output-format json "/faff-beep-boop" | faff economics --record-claude-result || true
 
 # 2.5. AUTO-RECOVER MERGED-UNCLOSED (FAFF-797) — before the final, exit-propagating
 #    disposition below, close any run whose disposition surfaces a `merged-unclosed`

@@ -10,6 +10,7 @@
 // at exit 3 having started nothing.
 // ===========================================================================
 
+const { captureRunRequests } = require("./run-request-store");
 const fs: FsApi = require("node:fs");
 const path: PathApi = require("node:path");
 const childProcess: ChildProcessApi = require("node:child_process");
@@ -251,7 +252,8 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
       if (!runcheckApi.ownedByEnvPointer(runDir, deps.env)) return refuse("adopt refused: $FAFF_RUN_DIR does not name this run", null);
       expectedOwner = expectedOwnerOf(ledger);
     } else {
-      const mint = faff(["run-ledger", "init-self-drain", "--mode", args.mode ?? "", "--root", root]);
+      const reserved = deps.env.FAFF_SELF_DRAIN_ID;
+      const mint = faff(["run-ledger", "init-self-drain", "--mode", args.mode ?? "", "--root", root, ...(reserved ? ["--id", reserved] : [])]);
       const minted = mint.stdout.trim().split("\n").pop() ?? "";
       if (mint.status !== 0 || minted === "") {
         steps.mint = `failed:${exitDetail(mint)}`;
@@ -375,6 +377,7 @@ function runOpen(args: OpenArgs, deps: Deps): OpenOutcome {
       if (end.status !== 0) faults.push("run-end-append-failed");
       if (faff(["andon", "pump", "--run-dir", runDir]).status !== 0) faults.push("andon-pump-failed");
       hooks();
+      captureRunRequests(runDir, root, args.sessionId);
       result.governance = "fail-closed";
       result.fail_closed_cause = cause;
       steps.governance = `failed:${cause}`;

@@ -11,6 +11,7 @@
 // at exit 3 having started nothing.
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
+const { captureRunRequests } = require("./run-request-store");
 const fs = require("node:fs");
 const path = require("node:path");
 const childProcess = require("node:child_process");
@@ -181,7 +182,8 @@ function runOpen(args, deps) {
             expectedOwner = expectedOwnerOf(ledger);
         }
         else {
-            const mint = faff(["run-ledger", "init-self-drain", "--mode", args.mode ?? "", "--root", root]);
+            const reserved = deps.env.FAFF_SELF_DRAIN_ID;
+            const mint = faff(["run-ledger", "init-self-drain", "--mode", args.mode ?? "", "--root", root, ...(reserved ? ["--id", reserved] : [])]);
             const minted = mint.stdout.trim().split("\n").pop() ?? "";
             if (mint.status !== 0 || minted === "") {
                 steps.mint = `failed:${exitDetail(mint)}`;
@@ -334,6 +336,7 @@ function runOpen(args, deps) {
             if (faff(["andon", "pump", "--run-dir", runDir]).status !== 0)
                 faults.push("andon-pump-failed");
             hooks();
+            captureRunRequests(runDir, root, args.sessionId);
             result.governance = "fail-closed";
             result.fail_closed_cause = cause;
             steps.governance = `failed:${cause}`;

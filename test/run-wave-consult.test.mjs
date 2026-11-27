@@ -82,3 +82,47 @@ test("rejects mixed modes, fabricated queue facts, invalid checkpoint and ambigu
   assert.equal(call([...tracker, "--no-prd"], {outcome:"",breached:[]}).code, 2);
   assert.deepEqual(result([...tracker, "--no-prd"], null).warnings, ["budget-unavailable"]);
 });
+
+test("the admitted-work consult applies the configured backstop once per wave", t => {
+  const {root, dir, ledger, result, call} = setup(t);
+  mkdirSync(path.join(root, ".faff"), {recursive:true});
+  writeFileSync(path.join(root, ".faff", "config.yaml"), "convergence:\n  max_waves: 3\n");
+  const prior = {schema_version:1, run_id:"run-test", no_progress_waves:2, discovered_scope_filed:7};
+  writeFileSync(ledger, JSON.stringify(prior));
+  const dry = [...tracker, "--no-prd", "--admitted-work", "no"];
+  const atCap = result(dry);
+  assert.equal(atCap.reason, "non-convergence");
+  assert.equal(atCap.progress.no_progress_waves, 3);
+  assert.ok(atCap.progress.ledger_sha256_after);
+  const saved = readFileSync(ledger);
+  assert.equal(result(dry).progress.ledger_sha256_after, null);
+  assert.equal(call([...tracker, "--no-prd", "--admitted-work", "yes"]).code, 2);
+  assert.deepEqual(readFileSync(ledger), saved);
+  const later = (wave, value) => runCli(["run","wave-consult","--root",root,"--run-dir",dir,"--wave",wave,
+    "--budget",JSON.stringify(clear),...tracker,"--no-prd","--admitted-work",value], {cwd:root});
+  assert.equal(later("3","no").code, 2);
+  assert.equal(later("6","no").code, 2);
+  const reset = later("5","yes");
+  assert.equal(reset.code, 0, reset.stderr);
+  assert.equal(JSON.parse(reset.stdout).reason, "drained");
+  assert.deepEqual(JSON.parse(readFileSync(ledger)), {...prior, no_progress_waves:0, last_progress_wave:5});
+  assert.equal(later("5","yes").code, 0);
+  assert.equal(later("6","true").code, 2);
+  assert.equal(call([...dry, "--non-convergence"]).code, 2);
+});
+
+test("missing configuration uses six dry waves; invalid configuration and closed runs refuse writes", t => {
+  const {root, ledger, call, result} = setup(t);
+  const base = {schema_version:1, run_id:"run-test", no_progress_waves:5};
+  const dry = [...tracker, "--no-prd", "--admitted-work", "no"];
+  writeFileSync(ledger, JSON.stringify(base));
+  assert.equal(result(dry).reason, "non-convergence");
+  writeFileSync(ledger, JSON.stringify({...base,stop_reason:"queue-drained"}));
+  const closed = readFileSync(ledger);
+  assert.equal(call(dry).code, 2);
+  assert.deepEqual(readFileSync(ledger), closed);
+  writeFileSync(ledger, JSON.stringify(base));
+  writeFileSync(path.join(root, ".faff", "config.yaml"), "convergence:\n  max_waves: 0\n");
+  assert.equal(call(dry).code, 2);
+  assert.deepEqual(JSON.parse(readFileSync(ledger)), base);
+});

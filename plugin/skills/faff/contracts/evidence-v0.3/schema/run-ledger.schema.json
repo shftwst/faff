@@ -50,6 +50,10 @@
     "discovered_scope_filed": {
       "type": "integer"
     },
+    "last_progress_wave": {
+      "type": "integer",
+      "minimum": 1
+    },
     "no_progress_waves": {
       "type": "integer"
     },

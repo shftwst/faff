@@ -4,7 +4,7 @@
 
 ### Tracker availability resolution
 
-On skill entry, run `faff tracker probe --json`. It returns `{pin, resolution}` from `tracking.tracker`. The harness supplies live connector discovery.
+At entry, `faff tracker probe --json` returns `{pin, resolution}` from `tracking.tracker`. Discover live connectors through the harness.
 
 | Resolution | Action |
 |---|---|
@@ -18,7 +18,7 @@ Use visible connector tools or search the harness catalogue for deferred issue/c
 
 Use `faff config spec-docs-path` for the repository-relative spec directory. Add `--create` when it must exist. `tracking.spec_docs_path` accepts a trailing slash. The default is `docs/specs/`, or `doc/specs/` when only `doc/` exists. Graft commits `YYYY-MM-DD-<issue-id>-<slug>-design.md` on the feature branch so the spec ships with the code.
 
-For PRDs, PRDRs, ADRs and spikes use the matching `faff config` resolver (`prd-docs-path`, `prdr-docs-path`, `adr-docs-path`, `spike-docs-path`). Each honours its `tracking.<kind>_docs_path` override and the same `docs/` or `doc/` rule, with subdirectories `prd/`, `prdr/`, `adr/` and `spikes/` respectively. `adr-superseded-docs-path` uses the resolved ADR directory unless `tracking.adr_superseded_docs_path` overrides it.
+Resolve PRDs, PRDRs, ADRs and spikes with `faff config` (`prd-docs-path`, `prdr-docs-path`, `adr-docs-path`, `spike-docs-path`). Each honours its `tracking.<kind>_docs_path` override and the same `docs/` or `doc/` rule, with subdirectories `prd/`, `prdr/`, `adr/` and `spikes/` respectively. `adr-superseded-docs-path` uses the resolved ADR directory unless `tracking.adr_superseded_docs_path` overrides it.
 
 ### Ignore cancelled and archived
 
@@ -54,9 +54,9 @@ At each eligibility, routing or claim gate, take the current status and labels f
 
 ### Lean tracker reads (ask for only what the step consumes)
 
-Use `get_issue` for one known ID. For lists, set an explicit limit sized to the step. When only recent rows matter, request newest first (`createdAt` descending). Request relations, releases or customer needs only when the step uses them. Continue paging when the decision needs more results.
+Use the declared lookup argument for a known issue ID. Select advertised fields only; count identity returned by default. Use a full read when projection or required gate facts are missing. Limit lists to the step, newest first (`createdAt` descending) for recent rows. Page as needed. Expand relations, releases or customer needs only when required.
 
-Earlier tool responses remain in context across turns. For isolation, fetch in a subagent or out-of-context CLI and return what the caller needs.
+Replies persist across turns. Isolate reads in a subagent or out-of-context CLI; return only needed values.
 
 ### Tracker as the lights-out control plane
 

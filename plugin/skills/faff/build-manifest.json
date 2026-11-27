@@ -49,7 +49,7 @@
     "bin/lib/pr-open.ts": "cfd78060cccda1908c960d7dc15ba5e6856df46c4314406db0aadacd6d583c0c",
     "bin/lib/pr-preflight.ts": "e9719d94a3ac04f53c9578aeca8f8a2c23604c1e5f99cfde784cb1c7cfa1e39c",
     "bin/lib/prd-select.ts": "99ce451442e2f701828a17a4d882c70a75c8df15a0982f9fe8823d149a0a8c3b",
-    "bin/lib/prep-attach.ts": "18edbbcab83518b2d796be0c1613892860abcef45266cd8a8b24d11fad19eb64",
+    "bin/lib/prep-attach.ts": "4b0b65c6d18850ad00c4b44a6078d01a1b8305de7849e0d3ed521380bf606ea1",
     "bin/lib/prep-context.ts": "d35d81a624aded78aef00178ca0d45fc787d628868a0940f89e83f1d97d5b88a",
     "bin/lib/producer-auth.ts": "fcaed615b47929a0db1d307553291ac8d15aca206003cdedd5e6807fc3914272",
     "bin/lib/prose-size.ts": "a359145a4d7d807f8b97cfe4e0f84eb03f6091baeaf2fbe658016832b671e9aa",
@@ -117,7 +117,7 @@
     "bin/lib/pr-open.js": "9eccc0a726e7c10118d9736669015a84e2305a3cad3ef58c6820533e54c81c2e",
     "bin/lib/pr-preflight.js": "52723d82309fde242397e1cbec766c01c62035740bcc4c61d79eb49277d5c22e",
     "bin/lib/prd-select.js": "37514692786f35a4b87c5b603b6332b882c293414714b587494a4e2f9aa451d5",
-    "bin/lib/prep-attach.js": "4f37d43eb3a49520c237a6e9e543861c134d3ad961bb8d86764bea3b404e67f4",
+    "bin/lib/prep-attach.js": "46abee72f73135e9af762e7dac8b7dd308b6f0e49fe8fd3f95d0eb746ae9a40d",
     "bin/lib/prep-context.js": "ef676b281de3d40a193e448b3fd9acd1844ed9e8761f4657650036f0444e5eec",
     "bin/lib/producer-auth.js": "6ef8d8a93c885992b0f58c3156f1e2df96518cbedd4df95cd7e2b72fa9009baf",
     "bin/lib/prose-size.js": "df29582b5c00b007ad6dd3f135859edae851c540c2f254b5e7cf869981d5c5a7",
@@ -148,5 +148,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "8423c05fb00e8edd18596875ef235996309b7d7dce7783b86d91d1d7cd3537aa"
+  "output_digest": "edffb5cba86414b8bea90f690e40890786009fc24b378614879682e8030eecec"
 }

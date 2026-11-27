@@ -22,7 +22,7 @@ const { admissibleVerdict, dodClassify, parseScenarios } = require("./admissibil
 
 // The typed token one call prints, plus whatever the token carries.
 type PrepExtras = {
-  reason?: string; violations?: string[]; body_path?: string; spec_sha256?: string; confidence?: string; build_tier?: string;
+  reason?: string; violations?: string[]; post_body?: string; body_path?: string; spec_sha256?: string; confidence?: string; build_tier?: string;
   admissibility?: Admissibility; admissibility_line?: string;
 };
 // FAFF-1443: the lights-out admissibility result stage records on every ready-to-post or attached spec.
@@ -74,7 +74,7 @@ type PrepDeps = {
 
 type StageOpts = {
   issue: string; specPath: string; mode: string; gitOnly: boolean; gateHistory: number | null;
-  extractionPath: string | null; fresh?: boolean; reviewed?: boolean; root: string;
+  extractionPath: string | null; includeBody?: boolean; fresh?: boolean; reviewed?: boolean; root: string;
 };
 
 const ISSUE_RE = /^[A-Za-z][A-Za-z0-9]*-[0-9]+$/;
@@ -85,14 +85,14 @@ const TRACKER_NAMES: { [k: string]: string } = { linear: "Linear", github: "GitH
 
 const ATTACH_SPEC = {
   flags: {
-    "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--mode": { arity: 1 }, "--git-only": { arity: 0 },
+    "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--include-body": { arity: 0 }, "--mode": { arity: 1 }, "--git-only": { arity: 0 },
     "--reviewed": { arity: 0 }, "--fresh": { arity: 0 }, "--gate-history": { arity: 1 }, "--extraction": { arity: 1 }, "--confirm": { arity: 0 },
     "--reviewed-spec": { arity: 1 }, "--comment-id": { arity: 1 }, "--park": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 },
   },
   positionals: { min: 0, max: 0 },
 };
 const ATTACH_USAGE = [
-  "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--git-only] [--reviewed] [--fresh] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
+  "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--include-body --json] [--git-only] [--reviewed] [--fresh] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
   "       faff prep attach --issue ID --confirm --comment-id ID [--reviewed-spec FILE] [--root DIR] [--json]",
   "       faff prep attach --issue ID --park [--root DIR] [--json]",
 ].join("\n");
@@ -407,7 +407,7 @@ function stage(opts: StageOpts, deps: PrepDeps): PrepResult {
   }
   try { deps.writeJsonAtomic(mp, marker); } catch (e) { return errored(issue, `marker-unwritable: ${prop(e, "code") || prop(e, "message")}`, common); }
   if (gitOnly) return result(issue, "attached", { spec_sha256: digest, ...success });
-  return result(issue, "ready-to-post", { body_path: bodyPath, spec_sha256: digest, ...success });
+  return result(issue, "ready-to-post", { body_path: bodyPath, spec_sha256: digest, ...(opts.includeBody ? { post_body: text } : {}), ...success });
 }
 
 function readStagedMarker(root: string, issue: string, deps: PrepDeps): StoredMarker | null {
@@ -504,7 +504,8 @@ function cmdPrep(args: string[], depsOverride?: PrepDeps): number {
   if (!ISSUE_RE.test(issue)) return bad(`--issue must match ${ISSUE_RE.source}`, "--issue");
   const modes = ["--spec", "--confirm", "--park"].filter((f) => values[f] !== undefined);
   if (modes.length !== 1) return bad("exactly one of --spec, --confirm and --park is required");
-  const stageOnly = ["--mode", "--git-only", "--reviewed", "--fresh", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
+  if (values["--include-body"] && !values["--json"]) return bad("--include-body requires --json");
+  const stageOnly = ["--include-body", "--mode", "--git-only", "--reviewed", "--fresh", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
   if (modes[0] !== "--spec" && stageOnly.length) return bad(`${stageOnly.join(", ")} only apply with --spec`);
   if (values["--reviewed-spec"] !== undefined && (modes[0] !== "--confirm" || !values["--reviewed-spec"])) return bad("--reviewed-spec FILE requires --confirm", "--reviewed-spec");
   if (modes[0] !== "--confirm" && values["--comment-id"] !== undefined) return bad("--comment-id only applies with --confirm", "--comment-id");
@@ -523,7 +524,7 @@ function cmdPrep(args: string[], depsOverride?: PrepDeps): number {
   const deps = depsOverride || defaultDeps(root);
   const apply = (): PrepResult => {
     if (modes[0] === "--spec") {
-      return stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], fresh: !!values["--fresh"], reviewed: !!values["--reviewed"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
+      return stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], includeBody: !!values["--include-body"], fresh: !!values["--fresh"], reviewed: !!values["--reviewed"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
     }
     if (modes[0] === "--confirm") return confirm({ issue, commentId: values["--comment-id"], reviewedPath: values["--reviewed-spec"], root }, deps);
     return park({ issue, root }, deps);

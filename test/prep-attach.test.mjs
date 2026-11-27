@@ -608,3 +608,13 @@ test("FAFF-1443: away from a tier boundary, faff admissible and faff tier give t
   assert.deepEqual(adm(f.specFile), adm(without));
   assert.equal(cli(f.root, ["tier", f.specFile]).stdout, cli(f.root, ["tier", without]).stdout);
 });
+
+test("tracker stage can return the exact stamped bytes without a separate file read", () => {
+  const f = fixture({ text: spec({ body: ["Unicode: é and a literal backslash \\"] }) });
+  assert.equal(stage(f).json().post_body, undefined);
+  const out = stage(f, ["--include-body"]).json();
+  assert.equal(out.token, "ready-to-post");
+  assert.equal(out.post_body, readFileSync(out.body_path, "utf8"));
+  assert.equal(sha(out.post_body), out.spec_sha256);
+  assert.equal(stage(f, ["--include-body", "--git-only"]).json().post_body, undefined);
+});

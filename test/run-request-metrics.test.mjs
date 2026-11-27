@@ -153,3 +153,18 @@ test("only workers inherit an unambiguous in-window Agent or Task dispatch throu
   assert.ok(report.records.every(r => r.phase === null));
   assert.doesNotMatch(JSON.stringify(report), /private prompt|verify|OTHER-91|nested-result/);
 });
+
+test("handoffs bind a worker to its launch and measure returned UTF-8 text once", t => {
+  const f = setup(t);
+  const launch = assistant("launch", 11, [{type:"tool_use", name:"Agent", id:"private-tool-id", input:{}}]);
+  const child = assistant("child", 12, [], {parent_tool_use_id:"private-tool-id"});
+  const result = {type:"user", timestamp:at(13), message:{content:[{type:"tool_result", tool_use_id:"private-tool-id",
+    content:[{type:"text",text:"résumé"},{type:"image",data:"private-pixels"}]}]}};
+  f.put(f.main,[launch,launch,child,result,result]);
+  const report = f.report();
+  assert.equal(report.requests,2);
+  const [parent,worker] = report.records;
+  assert.deepEqual(parent.worker_handoffs,[{dispatch_id:worker.worker_dispatch_id,returned_at:at(13),returned_text_bytes:8,is_error:false}]);
+  assert.doesNotMatch(JSON.stringify(report), /résumé|private-tool-id|private-pixels/);
+  assert.equal(f.report({until:at(13)}).records[0].worker_handoffs[0].returned_at,null);
+});

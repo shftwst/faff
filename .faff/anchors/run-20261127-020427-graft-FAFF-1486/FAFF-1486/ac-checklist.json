@@ -1,0 +1,247 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.45.0",
+  "all_verified": true,
+  "criteria": [
+    {
+      "ac": "A consulted drain closed with `--stop-reason queue-drained` produces a ledger, `run-end` event and wave record that all say `converged/both-dry`.",
+      "verified": "ledger, run-end event and result all converged/both-dry",
+      "passed": true,
+      "ac_id": "faff-1486#done:1",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: a fresh terminal drain turns queue-drained into converged/both-dry in the ledger, run-end event and result"
+        }
+      ]
+    },
+    {
+      "ac": "The installed parallel and sequential E2E still assert `ledger[\"stop_reason\"] == \"converged/both-dry\"`.",
+      "verified": "wave_score.py still asserts ledger stop_reason == converged/both-dry; python unittest OK",
+      "passed": true,
+      "ac_id": "faff-1486#done:2",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/beep-boop-e2e/test_wave_score.py::existing ledger assertion retained"
+        }
+      ]
+    },
+    {
+      "ac": "`run wave-consult` writes `wave-<N>/run-done.json` with run_id, wave, verdict, reason, stop_reason, ledger_digest and correlation_id for run-complete, continue and escalate verdicts, with `decision_kernel` capture off.",
+      "verified": "record written with all fields for three verdicts",
+      "passed": true,
+      "ac_id": "faff-1486#done:3",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-wave-consult.test.mjs::a consult writes wave-N/run-done.json for run-complete, continue and escalate, with capture off"
+        }
+      ]
+    },
+    {
+      "ac": "The mapping function (module `run-stop-reason.ts`, emit committed, `faff regions check` passing) returns the table's tokens, and null for `continue` and for a reason failing `validStopToken`.",
+      "verified": "mapping rows verified; regions check PASS; emit committed",
+      "passed": true,
+      "ac_id": "faff-1486#done:4",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::run-stop-reason mapping: every table row, null for continue, unlisted pairs and invalid tokens"
+        }
+      ]
+    },
+    {
+      "ac": "The `--json` close result includes `stop_reason` and `stop_reason_adopted`.",
+      "verified": "--json result carries stop_reason and stop_reason_adopted",
+      "passed": true,
+      "ac_id": "faff-1486#done:5",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: a fresh terminal drain turns queue-drained into converged/both-dry in the ledger, run-end event and result"
+        }
+      ]
+    },
+    {
+      "ac": "A close with `--stop-reason queue-drained` on a run with no wave records closes as `queue-drained`.",
+      "verified": "queue-drained kept, no fault",
+      "passed": true,
+      "ac_id": "faff-1486#done:6",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: no records leaves queue-drained untouched with no fault"
+        }
+      ]
+    },
+    {
+      "ac": "Closes with `budget-hit(tokens)`, `budget-escalated(cost)`, `sentry-abort`, `governance-admit-failed` or `converged/both-dry` against a terminal record keep the passed token and report adopted false.",
+      "verified": "specific tokens kept, adopted false",
+      "passed": true,
+      "ac_id": "faff-1486#done:7",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: specific tokens pass through a terminal record"
+        }
+      ]
+    },
+    {
+      "ac": "A latest record with verdict `continue` leaves `queue-drained` and `all-remaining-parked` unchanged, even when an older wave record is terminal.",
+      "verified": "generic tokens unchanged",
+      "passed": true,
+      "ac_id": "faff-1486#done:8",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: a latest continue leaves generic tokens alone, even over an older terminal record"
+        }
+      ]
+    },
+    {
+      "ac": "A malformed or run_id-mismatched latest record falls back to the argument with fault `wave-record-unreadable` and exit 0.",
+      "verified": "wave-record-unreadable, exit 0",
+      "passed": true,
+      "ac_id": "faff-1486#done:9",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: a malformed or mismatched latest record falls back with wave-record-unreadable, even over an older terminal record"
+        }
+      ]
+    },
+    {
+      "ac": "A malformed latest record with an older readable terminal record still falls back to the argument with fault `wave-record-unreadable`, and the older record is not adopted.",
+      "verified": "older terminal record not adopted",
+      "passed": true,
+      "ac_id": "faff-1486#done:10",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: a malformed or mismatched latest record falls back with wave-record-unreadable, even over an older terminal record"
+        }
+      ]
+    },
+    {
+      "ac": "A latest `wave-<N>` directory with no `run-done.json` falls back to the argument with fault `wave-record-missing` and exit 0, even when an older wave holds a terminal record.",
+      "verified": "wave-record-missing, exit 0",
+      "passed": true,
+      "ac_id": "faff-1486#done:11",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: a latest wave directory with no run-done.json falls back with wave-record-missing"
+        }
+      ]
+    },
+    {
+      "ac": "A close with `converged/both-dry` against a fresh latest record whose derived token is null, or is a different token such as `budget-escalated(cost)`, keeps `converged/both-dry`, reports adopted false, adds fault `close-contradicts-wave-record` and exits 0.",
+      "verified": "kept and flagged close-contradicts-wave-record",
+      "passed": true,
+      "ac_id": "faff-1486#done:12",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: converged/both-dry against a fresh continue or a different token is kept and flagged"
+        }
+      ]
+    },
+    {
+      "ac": "A close with `queue-drained` against a terminal latest record that is not fresh (an admission, outcome or outcome state change after the consult, or a null `ledger_digest`) keeps `queue-drained`, adds fault `wave-record-stale` and exits 0, including for a stored `escalate` record.",
+      "verified": "wave-record-stale, argument kept",
+      "passed": true,
+      "ac_id": "faff-1486#done:13",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: a record made stale by a ledger change, or with a null digest, is never adopted"
+        }
+      ]
+    },
+    {
+      "ac": "A close with `queue-drained` or `all-remaining-parked` against a fresh record deriving a specific token such as `budget-hit(tokens)` or `non-convergence` adopts that token and reports adopted true.",
+      "verified": "specific token adopted over both generic arguments",
+      "passed": true,
+      "ac_id": "faff-1486#done:14",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: a fresh specific record is adopted over either generic token"
+        }
+      ]
+    },
+    {
+      "ac": "A record whose stored `stop_reason` differs from `stopReasonFor(verdict, reason)` is never adopted and adds fault `wave-record-inconsistent`.",
+      "verified": "wave-record-inconsistent, not adopted",
+      "passed": true,
+      "ac_id": "faff-1486#done:15",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: a stored stop_reason that differs from the mapping is never adopted"
+        }
+      ]
+    },
+    {
+      "ac": "A second close with `queue-drained` after an adopted close exits 0 and leaves the ledger unchanged.",
+      "verified": "second close exit 0, ledger unchanged",
+      "passed": true,
+      "ac_id": "faff-1486#done:16",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-close.test.mjs::wave record: a second close with queue-drained after an adopted close is idempotent"
+        }
+      ]
+    },
+    {
+      "ac": "An unwritable wave directory yields warning `run-done-record-unwritable` and exit 0 from `run wave-consult`.",
+      "verified": "warning and exit 0",
+      "passed": true,
+      "ac_id": "faff-1486#done:17",
+      "verifications": [
+        {
+          "kind": "test",
+          "locator": "test/run-wave-consult.test.mjs::an unwritable wave directory adds run-done-record-unwritable and keeps exit 0"
+        }
+      ]
+    },
+    {
+      "ac": "`test/run-close.test.mjs` and `test/run-wave-consult.test.mjs` cover each case above.",
+      "verified": "58 tests pass, 0 fail, covering every case",
+      "passed": true,
+      "ac_id": "faff-1486#done:18",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node --test test/run-close.test.mjs test/run-wave-consult.test.mjs test/check-no-boundary-cast.test.mjs"
+        }
+      ]
+    },
+    {
+      "ac": "`test/beep-boop-e2e/wave_score.py` also asserts that, when the latest wave record's `stop_reason` is not null, the closed ledger's `stop_reason` is not a generic fallback token (`queue-drained`, `all-remaining-parked`), so it equals the record or carries any specific close token the caller passed, and that a null record imposes no check, `test_wave_score.py` has a matching passing and failing fixture, and the committed `.js` emit and `build-manifest.json` are rebuilt.",
+      "verified": "5 tests OK; new check ledger_stop_reason_agrees_with_latest_wave_record with pass/fail fixtures; emit and build-manifest rebuilt",
+      "passed": true,
+      "ac_id": "faff-1486#done:19",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "python3 -m unittest discover -s test/beep-boop-e2e"
+        }
+      ]
+    },
+    {
+      "ac": "The beep-boop skill, `docs/guide/cli.md` rows and `faff validate-adapters` pass.",
+      "verified": "validate-adapters PASS; cli.md rows and SKILL.md updated",
+      "passed": true,
+      "ac_id": "faff-1486#done:20",
+      "verifications": [
+        {
+          "kind": "command",
+          "locator": "node plugin/skills/faff/bin/faff validate-adapters"
+        }
+      ]
+    }
+  ]
+}

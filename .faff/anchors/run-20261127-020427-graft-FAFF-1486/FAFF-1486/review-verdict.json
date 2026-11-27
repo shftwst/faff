@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "faff_version": "0.45.0",
+  "signal": "pass",
+  "rounds_total": 1,
+  "round_history": "recorded",
+  "findings": [
+    {
+      "finding_id": "test/run-close.test.mjs::adoption test references undefined token",
+      "title": "Adoption test references undefined token",
+      "location": "test/run-close.test.mjs:498",
+      "action": "None needed: token is the destructured loop variable of the enclosing for-of at line 494",
+      "location_present": true,
+      "action_present": true,
+      "severity": "major",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "refuted",
+      "refutation": "The cited snippet merges two tests; token and over are defined by the outer destructuring at test/run-close.test.mjs:494 and the test passes (58 of 58)",
+      "disposition_rationale": "Reviewed the file; the test runs and asserts the adopted token for both generic arguments",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Adoption test references undefined token",
+          "location": "test/run-close.test.mjs:498",
+          "severity": "major",
+          "disposition": "refuted"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/run-close.test.mjs::unknown-argument test name overstates what it asserts",
+      "title": "Unknown-argument test name overstates what it asserts",
+      "location": "test/run-close.test.mjs:525",
+      "action": "Rename to say a misspelled token exits 2 before any record is read",
+      "location_present": true,
+      "action_present": true,
+      "severity": "minor",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The test does drive close with an invalid token and asserts exit 2 and no writes; the name is slightly broad but the behaviour is covered",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Unknown-argument test name overstates what it asserts",
+          "location": "test/run-close.test.mjs:525",
+          "severity": "minor",
+          "disposition": "accepted-risk"
+        }
+      ]
+    },
+    {
+      "finding_id": "test/run-close.test.mjs::mapping row budget-hit passthrough undocumented in tests",
+      "title": "Mapping row budget-hit passthrough undocumented in tests",
+      "location": "test/run-close.test.mjs:200",
+      "action": null,
+      "location_present": true,
+      "action_present": false,
+      "severity": "observation",
+      "source": "adversarial",
+      "model": "openai/z-ai/glm-5.3-flash",
+      "disposition": "accepted-risk",
+      "refutation": null,
+      "disposition_rationale": "The passthrough is the spec's documented mapping table",
+      "first_round": 1,
+      "last_round": 1,
+      "occurrences": [
+        {
+          "round": 1,
+          "title": "Mapping row budget-hit passthrough undocumented in tests",
+          "location": "test/run-close.test.mjs:200",
+          "severity": "observation",
+          "disposition": "accepted-risk"
+        }
+      ]
+    }
+  ]
+}

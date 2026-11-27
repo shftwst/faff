@@ -168,7 +168,7 @@ function toolCounts(bits) {
         errors: states.filter(v => v === 2).length, uncertain_results: states.filter(v => v === 3).length };
 }
 function toolSummary(rows) {
-    const measured = rows.filter(r => r.tool_outcome_bits !== undefined);
+    const measured = rows.filter((r) => r.tool_outcome_bits !== undefined);
     if (!measured.length)
         return null;
     let calls = 0, observed = 0, errors = 0, uncertain = 0, failed = 0, withCache = 0, cache = 0;

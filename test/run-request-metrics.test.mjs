@@ -185,3 +185,19 @@ test("actual build dispatch tags bind wave to workers and their nested reviewers
   assert.equal(records[0].worker_handoffs[0].build_wave,3);
   assert.equal(records[1].worker_handoffs[0].build_wave,undefined);
 });
+
+test("scopes tool results to the issuing worker and epoch and deduplicates split native responses", t => {
+  const f = setup(t);
+  const call = id => ({type:"tool_use", id, name:"private-tool", input:{x:"private-value"}});
+  const result = (id, error, second, dispatch = null) => ({type:"user", sessionId:"session1",
+    timestamp:at(second), parent_tool_use_id:dispatch, message:{content:[
+      {type:"tool_result", tool_use_id:id, is_error:error, content:"private-return"}]}});
+  const parent = assistant("parent",11,[call("shared"),call("pending")]);
+  const worker = assistant("worker",13,[call("shared"),call("disputed")],{parent_tool_use_id:"worker"});
+  f.put(f.main,[parent,parent,worker,result("shared",true,14),result("shared",true,14),
+    result("shared",false,15,"worker"),result("disputed",true,15,"worker"),
+    result("disputed",false,16,"worker"),result("pending",true,20)]);
+  const rows = f.report().records;
+  assert.deepEqual(rows.map(r=>Object.values(r.tool_outcome_bits).sort()),[[0,2],[1,3]]);
+  assert.doesNotMatch(JSON.stringify(rows),/private-|shared|pending|disputed/);
+});

@@ -67,3 +67,44 @@ test("scheduler timings use the same issue's latest admission and explicitly rep
   assert.equal(report.observations.length,3);
   assert.equal(requestReport(dir,{}).build_timing.observations,undefined);
 });
+
+test("economics keeps per-call evidence across partial refreshes, includes worker exposure and preserves unknown legacy coverage", t => {
+  const root=mkdtempSync(path.join(tmpdir(),"request-outcomes-"));
+  t.after(()=>rmSync(root,{recursive:true,force:true}));
+  const env={...process.env,CLAUDE_CONFIG_DIR:path.join(root,"claude")};
+  const dir=path.join(root,"run"), base=budget.transcriptBaseDir(root,env);
+  mkdirSync(dir); mkdirSync(base,{recursive:true});
+  const at=n=>new Date(1e12+n*1000).toISOString();
+  const ledger={owner:{status:"done",session_id:"sess",started_at:at(0),last_heartbeat:at(9)}};
+  writeFileSync(path.join(dir,"run-ledger.json"),JSON.stringify(ledger));
+  const query=(...args)=>{
+    const r=runCli(["economics","--root",root,"--run-dir",dir,"--by","requests",...args],{cwd:root,env});
+    assert.equal(r.code,0,r.stderr); return JSON.parse(r.stdout);
+  };
+  const put=(file,rows)=>writeFileSync(file,rows.map(r=>JSON.stringify(r)).join("\n"));
+  const use=id=>({type:"tool_use",id,name:"privateTool",input:{value:"private-input"}});
+  const request=(id,blocks,cache)=>({type:"assistant",sessionId:"sess",timestamp:at(1),
+    message:{id:"msg_"+id,content:blocks,model:"fixture",usage:{cache_read_input_tokens:cache}}});
+  const ret=id=>({type:"user",sessionId:"sess",timestamp:at(2),message:{content:[
+    {type:"tool_result",tool_use_id:id,is_error:true,content:"private-result"}]}});
+  const parent=path.join(base,"sess.jsonl"), worker=path.join(base,"agent-a.jsonl");
+  put(parent,[request("p",[use("one"),use("two")],10),ret("one"),request("text",[],20)]);
+  put(worker,[request("w",[use("sub")],15),ret("sub")]);
+  let r=query("--refresh","--details");
+  assert.deepEqual(r.tool_outcomes,{measured_requests:3,unmeasured_requests:0,incomplete_tool_list_requests:0,
+    calls:3,observed_results:2,missing_results:1,errors:2,uncertain_results:0,
+    all_tools_failed:{requests:1,requests_with_cache_read_usage:1,observed_cache_read_tokens:15}});
+  put(parent,[request("p",[use("two")],10),ret("two")]);
+  rmSync(worker);
+  r=query("--refresh","--details");
+  assert.equal(r.tool_outcomes.all_tools_failed.requests,2);
+  assert.equal(r.tool_outcomes.all_tools_failed.observed_cache_read_tokens,25);
+  assert.deepEqual(r.records.find(x=>x.role==="parent" && x.tool_outcomes.calls).tool_outcomes,
+    {calls:2,observed_results:2,errors:2,uncertain_results:0});
+  const file=path.join(dir,"run-request-metrics.json"), store=JSON.parse(readFileSync(file));
+  for(const row of store.epochs["0"].records) delete row.tool_outcome_bits;
+  writeFileSync(file,JSON.stringify(store));
+  assert.equal(query().tool_outcomes,null);
+  assert.ok(query("--details").records.every(r=>r.tool_outcomes===null));
+  assert.doesNotMatch(readFileSync(file,"utf8"),/privateTool|private-input|private-result/);
+});

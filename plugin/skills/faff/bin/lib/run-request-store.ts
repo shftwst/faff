@@ -41,6 +41,11 @@ function combine(previous: Epoch | undefined, next: Epoch): Epoch {
     const usage = {...row.usage};
     for (const field of tokenClasses) usage[field] ??= old.usage[field];
     const merged = {...old, ...row, usage, turn_id: row.turn_id ?? old.turn_id};
+    if (old.tool_outcome_bits && row.tool_outcome_bits) {
+      const bits = {...old.tool_outcome_bits};
+      for (const [call, evidence] of Object.entries(row.tool_outcome_bits)) bits[call] = (bits[call] ?? 0) | evidence;
+      merged.tool_outcome_bits = bits;
+    }
     if (old.worker_handoffs) {
       const calls = new Map(old.worker_handoffs.map(h => [h.dispatch_id, h]));
       for (const h of row.worker_handoffs ?? []) {
@@ -137,6 +142,29 @@ function buildTiming(dir: string, details: boolean) {
     admission_to_start:distribution("admission_to_start"),start_to_outcome:distribution("start_to_outcome"), ...(details ? {observations} : {})};
 }
 
+function toolCounts(bits: Record<string, number>) {
+  const states = Object.values(bits);
+  return { calls: states.length, observed_results: states.filter(v => v !== 0).length,
+    errors: states.filter(v => v === 2).length, uncertain_results: states.filter(v => v === 3).length };
+}
+function toolSummary(rows: RequestObservation[]) {
+  const measured = rows.filter(r => r.tool_outcome_bits !== undefined);
+  if (!measured.length) return null;
+  let calls = 0, observed = 0, errors = 0, uncertain = 0, failed = 0, withCache = 0, cache = 0;
+  for (const row of measured) {
+    const n = toolCounts(row.tool_outcome_bits!);
+    calls += n.calls; observed += n.observed_results; errors += n.errors; uncertain += n.uncertain_results;
+    if (!row.tool_coverage_incomplete && n.calls > 0 && n.calls === n.errors) {
+      failed++;
+      if (row.usage.cache_read !== null) { withCache++; cache += row.usage.cache_read; }
+    }
+  }
+  return { measured_requests: measured.length, unmeasured_requests: rows.length - measured.length,
+    incomplete_tool_list_requests: measured.filter(r => r.tool_coverage_incomplete).length,
+    calls, observed_results: observed, missing_results: calls - observed, errors, uncertain_results: uncertain,
+    all_tools_failed: { requests: failed, requests_with_cache_read_usage: withCache, observed_cache_read_tokens: cache } };
+}
+
 export function requestReport(dir: string, ledger: {outcomes?: Record<string,string>; budget?: {sessions?: unknown[]}}, details = false) {
   const store = readStore(dir);
   const epochs = Object.values(store?.epochs ?? {});
@@ -187,11 +215,12 @@ export function requestReport(dir: string, ledger: {outcomes?: Record<string,str
   } : null;
   const engine = require("./budget").readEngineSpend(dir);
   return {separate_engine_spend: {records:engine.records, engines:engine.engines, tokens:engine.totals}, run_id: path.basename(dir), source:"owned-claude-transcripts", status: !any ? "unavailable" : epochs.length < expected || engine.records || engine.malformed || epochs.some(e => e.status !== "observed") ? "partial" : "observed",
-    requests, usage, build_timing: buildTiming(dir,details), worker_handoffs: workerHandoffs, turns: sdk.turns, sdk_turns: sdk, transcript_turn_ids: transcriptTurns, shipped, observed_requests_per_shipped_issue: requests !== null && shipped ? requests/shipped : null,
+    requests, usage, tool_outcomes: toolSummary(rows), build_timing: buildTiming(dir,details), worker_handoffs: workerHandoffs, turns: sdk.turns, sdk_turns: sdk, transcript_turn_ids: transcriptTurns, shipped, observed_requests_per_shipped_issue: requests !== null && shipped ? requests/shipped : null,
     by_role: counts(r => r.role), by_issue: counts(r => r.issue), by_phase: counts(r => r.phase), by_wave: counts(r => r.wave),
     by_model: counts(r => r.model), verification_to_handoff_by_issue: countsSelected(rows),
     epochs: epochs.map(({records,...epoch}) => ({...epoch, observed_requests:epoch.last_observed_until ? records.length : null})),
-    expected_epochs:expected, parent_by_wave:Object.fromEntries(parentByWave), usage_by_model:Object.fromEntries(modelUsage), ...(details ? {records:rows} : {}) };
+    expected_epochs:expected, parent_by_wave:Object.fromEntries(parentByWave), usage_by_model:Object.fromEntries(modelUsage), ...(details ? {records:rows.map(({tool_outcome_bits, ...row}) =>
+      ({...row, tool_outcomes: tool_outcome_bits ? toolCounts(tool_outcome_bits) : null}))} : {}) };
 }
 function countsSelected(rows: RequestObservation[]) {
   const counts = new Map<string,number>();

@@ -567,20 +567,49 @@ function transcriptBaseDir(cwd, env) {
 // lines are skipped (a partial/in-flight transcript must never crash the budget
 // check). Model id defaults to "unknown" when a record carries no message.model
 // (mirrors economics.js's existing per-model pivot rule).
-function sumTranscriptFileByModelClass(file) {
+// Run baselines, closed spans and event checkpoints must keep their original units.
+const NATIVE_RESPONSE_METER = "native-response-v1";
+
+// Claude Code can split one response into several assistant rows, each with the
+// response's cumulative usage. Bill it at the first row with its latest usage.
+// Keep every content block and lineage edge for the economics attribution axes.
+function nativeResponseId(row, meter) {
+  const msg = row?.message;
+  if (meter !== NATIVE_RESPONSE_METER || (row?.type !== "assistant" && msg?.role !== "assistant")) return null;
+  return typeof msg?.id === "string" && msg.id.startsWith("msg_") ? msg.id : null;
+}
+
+function readMeteredTranscript(file, meter, usageOnly = false) {
+  const records = [];
+  const responses = new Map();
+  let text;
+  try { text = fs.readFileSync(file, "utf8"); } catch { return records; }
+  for (const line of text.split("\n")) {
+    let row;
+    try { row = JSON.parse(line); } catch { continue; }
+    const msg = row?.message;
+    const usage = msg?.usage || row?.usage;
+    if (usageOnly && (!usage || typeof usage !== "object")) continue;
+    const id = nativeResponseId(row, meter);
+    if (id && usage && responses.has(id)) {
+      responses.get(id).message.usage = usage;
+      if (usageOnly) continue;
+      delete msg.usage;
+      delete row.usage;
+    }
+    const record = usageOnly ? { message: { model: msg?.model, usage } } : row;
+    if (id && usage && !responses.has(id)) responses.set(id, record);
+    records.push(record);
+  }
+  return records;
+}
+
+function sumTranscriptFileByModelClass(file, meter) {
   const by_class = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   const by_model = new Map();
-  let text;
-  try { text = fs.readFileSync(file, "utf8"); } catch { return { by_model, by_class }; }
-  for (const line of text.split("\n")) {
-    const s = line.trim();
-    if (!s) continue;
-    let rec;
-    try { rec = JSON.parse(s); } catch { continue; }
-    const usage = rec && rec.message && rec.message.usage ? rec.message.usage
-      : (rec && rec.usage ? rec.usage : null);
-    if (!usage || typeof usage !== "object") continue;
-    const model = (rec.message && typeof rec.message.model === "string" && rec.message.model) || "unknown";
+  for (const rec of readMeteredTranscript(file, meter, true)) {
+    const usage = rec.message.usage;
+    const model = (typeof rec.message.model === "string" && rec.message.model) || "unknown";
     if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
     const mb = by_model.get(model);
     const counts = classCountsFromUsage(usage);
@@ -597,15 +626,15 @@ function sumTranscriptFileByModelClass(file) {
 // attribution path (never a divergent private recount — the FAFF-229 guard-rail).
 // FAFF-427: now a thin derivation over `sumTranscriptFileByModelClass` — same
 // parse, byte-identical totals (parity-tested), never a second loop.
-function sumTranscriptFileByClass(file) {
-  return sumTranscriptFileByModelClass(file).by_class;
+function sumTranscriptFileByClass(file, meter) {
+  return sumTranscriptFileByModelClass(file, meter).by_class;
 }
 
 // Scalar total for a single transcript file — the sum of the four classes on the
 // same file (parity holds by construction, since the class keys are exactly
 // BUDGET_TOKEN_USAGE_KEYS mapped 1:1).
-function sumTranscriptFile(file) {
-  const c = sumTranscriptFileByClass(file);
+function sumTranscriptFile(file, meter) {
+  const c = sumTranscriptFileByClass(file, meter);
   return c.input + c.output + c.cache_write_5m + c.cache_write_1h + c.cache_read;
 }
 
@@ -689,7 +718,7 @@ function measureTokensByClass(opts) {
   if (!files) return { tokens: null, source: "estimate" };
   const acc = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   for (const f of files) {
-    const c = sumTranscriptFileByClass(f);
+    const c = sumTranscriptFileByClass(f, opts.meter);
     for (const cls of TOKEN_DELTA_CLASSES) acc[cls] += c[cls];
   }
   return { tokens: acc, source: "transcript" };
@@ -713,7 +742,7 @@ function measureTokensByModelClass(opts) {
   const totals = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   const by_model = new Map();
   for (const f of files) {
-    const { by_model: fm, by_class: fc } = sumTranscriptFileByModelClass(f);
+    const { by_model: fm, by_class: fc } = sumTranscriptFileByModelClass(f, opts.meter);
     for (const cls of TOKEN_DELTA_CLASSES) totals[cls] += fc[cls];
     for (const [model, counts] of fm) {
       if (!by_model.has(model)) by_model.set(model, { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 });
@@ -826,7 +855,7 @@ function readEngineSpend(runDir) {
 // that reads it today.
 function measureRunSpend(opts) {
   const { cwd, env, runStartMs, runDir, unmeteredEngines } = opts;
-  const transcript = measureTokensByModelClass({ cwd, env, runStartMs });
+  const transcript = measureTokensByModelClass({ cwd, env, runStartMs, meter: opts.meter });
   const engine_spend = readEngineSpend(runDir);
   const totals = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   const by_model = new Map();
@@ -1117,7 +1146,7 @@ function budgetCheckCompose({ root, runDir, ledger, flags, sessionIdFlag = null,
   // `transcript` half is exactly what `measureTokensByModelClass` returned before,
   // so the baselining below is untouched; the run-scoped `engine_spend` half needs
   // no baseline and is folded in after.
-  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, unmeteredEngines: resolveUnmetered(cfg, env.allow_unmetered) });
+  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, meter: ledger.transcript_meter, unmeteredEngines: resolveUnmetered(cfg, env.allow_unmetered) });
   const measuredFull = runSpend.transcript;
   let tokens, tokensSource;
   let tokensByModelDelta = null;   // per-model this-run delta, only populated on the transcript path
@@ -1488,7 +1517,7 @@ function cmdBudgetBaseline(args) {
   // over a drifted ambient — the field must be present even when the baseline
   // can't yet be measured. The run meters; never a crash, never a non-zero exit
   // a caller could misread as a breach.
-  const measured = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs });
+  const measured = measureTokensByModelClass({ cwd: root, env: effectiveEnv, runStartMs, meter: ledger.transcript_meter });
   const degraded = measured.source !== "transcript";
 
   // Step 7: on a transcript walk, derive the per-model map + its scalar total
@@ -2084,4 +2113,4 @@ function budgetSelftest(now = Date.now()) {
 }
 
 
-module.exports = { AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, UNKNOWN_TTL_WRITE_CLASS, appendEngineSpend, attemptsFromLedger, budgetCheckForRun, budgetSelftest, byModelClassTotal, childOwningSession, classCountsFromUsage, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, resolveUntilDeadline, routeUnknownTtlWrite, runOrigin, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch, untilToEpochAtOffset, utcOffsetField };
+module.exports = { NATIVE_RESPONSE_METER, nativeResponseId, readMeteredTranscript, AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, UNKNOWN_TTL_WRITE_CLASS, appendEngineSpend, attemptsFromLedger, budgetCheckForRun, budgetSelftest, byModelClassTotal, childOwningSession, classCountsFromUsage, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, resolveUntilDeadline, routeUnknownTtlWrite, runOrigin, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch, untilToEpochAtOffset, utcOffsetField };

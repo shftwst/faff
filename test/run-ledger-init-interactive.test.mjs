@@ -84,6 +84,7 @@ test("mint writes an honest L2 ledger + genesis chain; bare stdout is the run di
   assert.ok(runDir.includes(`graft-${ISSUE}`), "run id follows the run-…-graft-<issue> convention");
   const led = JSON.parse(readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
   assert.equal(led.level, "L2");
+  assert.equal(led.transcript_meter, "native-response-v1");
   assert.deepEqual(led.admitted, [ISSUE]);
   assert.deepEqual(led.outcomes, {});
   assert.equal(led.owner.status, "running");

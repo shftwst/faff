@@ -38,7 +38,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const { parseArgs, usageError } = require("./argv");
-const { AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass, utcOffsetField } = require("./budget");
+const { NATIVE_RESPONSE_METER, AT_CEILING_OUTCOMES, byModelClassTotal, closeSpanDeltaByModel, envelopeFrom, measureTokensByClass, measureTokensByModelClass, utcOffsetField } = require("./budget");
 const { unmeteredFleetEngines } = require("./backends");
 const { DEFAULTS, loadConfig } = require("./config");
 const { containerCheck, hostSocketProbe, realFsq } = require("./container-check");
@@ -934,7 +934,7 @@ function assembleLightsOutPreflight(root, cfg, binPath, get, unreachable, knownC
   // documented degenerate path (no run has started yet) — the session-id match alone
   // decides measurability. The SAME sample also becomes the mint-time metering record
   // below (one sample, two uses — never a second, possibly-divergent read).
-  const metering = measureTokensByClass({ cwd: root, env: process.env, runStartMs: null });
+  const metering = measureTokensByClass({ cwd: root, env: process.env, meter: NATIVE_RESPONSE_METER, runStartMs: null });
   const meteringMeasurable = metering.source === "transcript";
   const onEstimateOnlyPosture = estimateOnlyPosture(cfg);
   const tokenDependentCeiling = tokenDependentCeilingArmed(envelope);
@@ -1118,7 +1118,7 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
   // Passing the run-start instant makes mint and check select identically.
   // Absent/estimate-degraded (no resolvable transcript at mint) simply omits the
   // field — `budget check` falls back to its pro-rata degrade, never a crash.
-  const modelBaseline = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs: Date.parse(nowIso) });
+  const modelBaseline = measureTokensByModelClass({ cwd: root, env: process.env, meter: NATIVE_RESPONSE_METER, runStartMs: Date.parse(nowIso) });
   const budgetBlock = { envelope };
   if (modelBaseline.source === "transcript") {
     budgetBlock.tokens_at_start_by_model_class = Object.fromEntries(modelBaseline.by_model);
@@ -1176,6 +1176,7 @@ function mintLightsOut({ root, cfg, json, get, pf, envelope, metering, correctiv
     guardrail_claim: guardrailClaim(nowIso),
     banner: pf.banner,
     budget: budgetBlock,
+    transcript_meter: NATIVE_RESPONSE_METER,
     budget_ceiling: envelope.ceilings,
     dial_profile,
     prd_creative_licence: prdLicence.value,
@@ -1675,7 +1676,7 @@ function closeAndOpenBudgetSessions(ledger, runDir, root, nowIso) {
     // Rung 1: transcript.
     try {
       const env = open.session_id ? { ...process.env, CLAUDE_CODE_SESSION_ID: open.session_id } : process.env;
-      const m = measureTokensByModelClass({ cwd: root, env, runStartMs: Number.isFinite(priorStart) ? priorStart : null });
+      const m = measureTokensByModelClass({ cwd: root, env, meter: ledger.transcript_meter, runStartMs: Number.isFinite(priorStart) ? priorStart : null });
       if (m.source === "transcript") { closed = closeSpanDeltaByModel(open.baseline_by_model_class, m.by_model); closeSource = "transcript"; }
     } catch { /* fall through to rung 2/3 */ }
     // Rung 2: a durable budget observation (no-op in v1 — checkpoints carry no token total).
@@ -1692,7 +1693,7 @@ function closeAndOpenBudgetSessions(ledger, runDir, root, nowIso) {
   // Open the new span, baselined at the resume instant with the resuming session's sid.
   let newBaseline = {};
   try {
-    const m = measureTokensByModelClass({ cwd: root, env: process.env, runStartMs: Date.parse(nowIso) });
+    const m = measureTokensByModelClass({ cwd: root, env: process.env, meter: ledger.transcript_meter, runStartMs: Date.parse(nowIso) });
     if (m.source === "transcript") newBaseline = Object.fromEntries(m.by_model);
   } catch { /* empty baseline degrade */ }
   sessions.push({

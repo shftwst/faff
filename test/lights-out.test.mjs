@@ -12,7 +12,7 @@ import os from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
 import { loadConfig } from "../plugin/skills/faff/bin/lib/config.js";
-import { envelopeFrom, measureTokensByClass } from "../plugin/skills/faff/bin/lib/budget.js";
+import { NATIVE_RESPONSE_METER, envelopeFrom, measureTokensByClass } from "../plugin/skills/faff/bin/lib/budget.js";
 import { LIGHTS_OUT_GUARDRAIL_IDS, MAX_REMINT_ATTEMPTS, claimRunDir, cmdLightsOut, engineBoundedFromConfig, estimateOnlyPosture, guardrailClaim, guardrailReachable, lightsOutPreflight, mintAtCeiling, tokenDependentCeilingArmed } from "../plugin/skills/faff/bin/lib/lights-out.js";
 import { parseYamlSubset, sortRunDirsByMtimeDesc } from "../plugin/skills/faff/bin/lib/shared-infra.js";
 import { atomicWriteLedger } from "../plugin/skills/faff/bin/lib/heartbeat.js";
@@ -39,7 +39,7 @@ function mintFixtureLedger(root, { untilFlag, maxAttempts, sessionId, env } = {}
   const envelope = envelopeFrom(cfg, { until: untilFlag ?? null, max_attempts: maxAttempts ?? null });
   envelope.at_ceiling = mintAtCeiling(cfg);
   const meteringEnv = env || process.env;
-  const metering = measureTokensByClass({ cwd: root, env: meteringEnv, runStartMs: null });
+  const metering = measureTokensByClass({ cwd: root, env: meteringEnv, runStartMs: null, meter: NATIVE_RESPONSE_METER });
   const meteringMeasurable = metering.source === "transcript";
   const onEstimateOnlyPosture = estimateOnlyPosture(cfg);
   const tokenDependentCeiling = tokenDependentCeilingArmed(envelope);
@@ -60,6 +60,7 @@ function mintFixtureLedger(root, { untilFlag, maxAttempts, sessionId, env } = {}
   const ledger = {
     run_id: runId,
     level: "L4",
+    transcript_meter: NATIVE_RESPONSE_METER,
     armed: pf.armed, enforced: pf.enforced, rechecked: pf.rechecked,
     guardrail_claim: guardrailClaim(nowIso),
     banner: pf.banner,
@@ -586,6 +587,7 @@ test("lights-out: proceed mints an L4 run-ledger + banner + run-start event", ()
   const ledgerPath = path.join(runDir, "run-ledger.json");
   const ledger = JSON.parse(fs.readFileSync(ledgerPath, "utf8"));
   assert.equal(ledger.level, "L4");
+  assert.equal(ledger.transcript_meter, "native-response-v1");
   assert.deepEqual(ledger.armed, minted.armed);
   assert.equal(ledger.owner.status, "running");
   assert.equal(ledger.owner.session_id, "test-lo");

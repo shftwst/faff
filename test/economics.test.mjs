@@ -2065,3 +2065,67 @@ test("FAFF-1380: --session-id selects the breakdown's transcript too, not just t
     assert.equal(e.breakdown.reconciliation.grand_total, 570);
   } finally { f.cleanup(); }
 });
+
+test("split Claude response usage is billed once on new runs, retaining every tool and the legacy ledger basis", (t) => {
+  const sid = "split-response";
+  const row = (id, output, tool) => ({
+    type: "assistant",
+    message: {
+      id, model: "claude-opus-4-8",
+      usage: { cache_read_input_tokens: 100, output_tokens: output },
+      content: [{ type: "tool_use", id: tool, name: "Read", input: {} }],
+    },
+  });
+  for (const [meter, expected, turns, cacheRead] of [
+    ["native-response-v1", 212, 2, 200],
+    [undefined, 313, 3, 300],
+  ]) {
+    const f = fixture({ rc: "budget:\n  tokens: 250\n  at_ceiling: stop\n", ledger: baseLedger({ transcript_meter: meter }) });
+    t.after(f.cleanup);
+    const cfg = withRecords(f.root, f.root, sid, {
+      [`${sid}.jsonl`]: [row("msg_batch", 1, "read1"), row("msg_batch", 7, "read2"), row(undefined, 5, "read3")],
+    });
+    const env = { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid };
+    const flags = ["--root", f.root, "--run-dir", f.runDir, "--json"];
+    const budget = run(["budget", "check", ...flags], env);
+    assert.equal(budget.code, 0, budget.err);
+    assert.equal(JSON.parse(budget.out).spent.tokens, expected);
+    assert.equal(JSON.parse(budget.out).breached.includes("tokens"), expected >= 250);
+    const economics = run(["economics", ...flags, "--by", "phase"], env);
+    assert.equal(economics.code, 0, economics.err);
+    const { breakdown } = JSON.parse(economics.out);
+    assert.equal(breakdown.reconciliation.top_line_total, expected);
+    assert.equal(breakdown.reconciliation.reconciles, true);
+    assert.equal(breakdown.rows[0].turns, turns);
+    assert.equal(breakdown.rows[0].tool_calls, 3);
+    const append = spawnSync("node", [CLI, "events", "append", "--run", "run-test", "--root", f.root, "--tokens"], {
+      encoding: "utf8", env: { ...process.env, ...env },
+      input: JSON.stringify({ phase: "build", type: "issue-outcome", issue: "FAFF-1", data: { outcome: "shipped" } }),
+    });
+    assert.equal(append.status, 0, append.stderr);
+    const lastEvent = JSON.parse(readFileSync(join(f.runDir, "events.jsonl"), "utf8").trim().split("\n").at(-1));
+    assert.equal(lastEvent.data.tokens.cache_read, cacheRead);
+  }
+});
+
+test("a native-meter baseline subtracts the same units as later budget and economics reads", (t) => {
+  const ledger = baseLedger({ transcript_meter: "native-response-v1" });
+  const f = fixture({ ledger });
+  t.after(f.cleanup);
+  const sid = "meter-baseline";
+  const row = id => ({ type: "assistant", message: { id, model: "opus", usage: { input_tokens: 80 } } });
+  const source = rows => withRecords(f.root, f.root, sid, { [`${sid}.jsonl`]: rows.map(row) });
+  const cfg = source(["msg_before", "msg_before"]);
+  const env = { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid };
+  const flags = ["--run-dir", f.runDir, "--root", f.root, "--json"];
+  const baseline = run(["budget", "baseline", ...flags], env);
+  assert.equal(baseline.code, 0, baseline.err);
+  assert.equal(JSON.parse(baseline.out).tokens_at_start, 80);
+  source(["msg_before", "msg_before", "msg_after", "msg_after"]);
+  const check = run(["budget", "check", ...flags], env);
+  assert.equal(check.code, 0, check.err);
+  assert.equal(JSON.parse(check.out).spent.tokens, 80);
+  const econ = run(["economics", ...flags], env);
+  assert.equal(econ.code, 0, econ.err);
+  assert.equal(JSON.parse(econ.out).tokens_total, 80);
+});

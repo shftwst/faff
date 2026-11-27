@@ -78,6 +78,7 @@ test("mint writes an honest L3 ledger + genesis chain; bare stdout is the run di
   assert.match(path.basename(runDir), /^run-\d{8}-\d{6}-beepboop-full-[0-9a-f]{6}$/, "run id follows run-<stamp>-beepboop-<mode>-<entropy>");
   const led = JSON.parse(readFileSync(path.join(runDir, "run-ledger.json"), "utf8"));
   assert.equal(led.level, "L3");
+  assert.equal(led.transcript_meter, "native-response-v1");
   assert.deepEqual(led.admitted, [], "not issue-scoped at mint — admitted starts empty");
   assert.deepEqual(led.outcomes, {});
   assert.equal(led.owner.status, "running");

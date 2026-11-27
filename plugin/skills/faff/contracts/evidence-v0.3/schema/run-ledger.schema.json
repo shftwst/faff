@@ -23,6 +23,11 @@
     "schema": {
       "type": "integer"
     },
+    "transcript_meter": {
+      "type": "string",
+      "enum": ["native-response-v1"],
+      "description": "Accounting basis fixed at mint. Absent on historical row-metered runs."
+    },
     "level": {
       "type": "string"
     },

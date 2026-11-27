@@ -115,7 +115,7 @@ After the prose output above (the `signal:` line and `## Findings`), append **on
 | Human-judgement threshold | Conservative — lower bar for `needs-human` | Standard | Standard | Standard |
 | Review→fix→review iterations before escalation (materialized by `faff review-iteration-cap`) | 1 | 3 | 5 | 10 |
 
-The defect bar (what counts as a bug / spec-fidelity / correctness finding) does not loosen at any appetite level. The scope-strictness allowance at high/full above is a separate, narrow axis — permission to let trivial adjacent cleanups (typo fixes, import sorting) pass without flagging — not a softening of the defect bar itself. Appetite governs **persistence** — how many fix→review cycles the pipeline attempts before escalating to `needs-human`. At `low`, one failed iteration and it escalates. At `full`, it keeps trying up to 10 passes. This row is the human-readable statement of the policy; `faff review-iteration-cap --appetite <appetite>` is the runtime/machine form `faff-graft`'s Step 9 loop actually consumes (single literal source), so the two cannot silently drift.
+Use the same bug, spec-fidelity and correctness bar at every appetite. High/full permits only the adjacent cleanups above. Graft applies the fix-cycle limit from `faff review-iteration-cap --appetite <appetite>` and escalates exhausted reviews to `needs-human`.
 
 ## Rules
 

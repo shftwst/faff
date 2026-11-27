@@ -168,3 +168,20 @@ test("handoffs bind a worker to its launch and measure returned UTF-8 text once"
   assert.doesNotMatch(JSON.stringify(report), /résumé|private-tool-id|private-pixels/);
   assert.equal(f.report({until:at(13)}).records[0].worker_handoffs[0].returned_at,null);
 });
+
+test("actual build dispatch tags bind wave to workers and their nested reviewers", t => {
+  const f = setup(t);
+  const call = (id,description) => [{type:"tool_use",name:"Agent",id,input:{description}}];
+  f.put(f.main,[
+    assistant("parent",11,call("outer","PROJ-7 subagent-cluster:a faff-build-wave:3")),
+    assistant("build",12,call("inner","Review changes"),{parent_tool_use_id:"outer"}),
+    assistant("review",13,[],{parent_tool_use_id:"inner"}),
+    assistant("conflict",14,call("invalid","faff-build-wave:3 faff-build-wave:9")),
+    assistant("unknown",15,[],{parent_tool_use_id:"invalid"}),
+  ]);
+  const {records} = f.report();
+  assert.deepEqual(records.map(r=>r.wave),[null,3,3,null,null]);
+  assert.deepEqual(records.map(r=>r.enclosing_build_wave),[undefined,3,3,undefined,undefined]);
+  assert.equal(records[0].worker_handoffs[0].build_wave,3);
+  assert.equal(records[1].worker_handoffs[0].build_wave,undefined);
+});

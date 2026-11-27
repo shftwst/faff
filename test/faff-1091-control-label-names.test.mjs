@@ -199,3 +199,18 @@ test("a non-scalar control-label leaf (nested map) is rejected loud at read", ()
   assert.equal(r.code, 2);
   assert.match(r.err, /must be a scalar, not a map/);
 });
+
+test("label transition skips an already-present target and still clears conflicting labels", () => {
+  const dir = tmpRepo('  control_labels:\n    claimed: "State: Claimed"\n');
+  for (const [role, present, expected] of [
+    ["parked", ["faff-parked"], []],
+    ["stacked", ["faff-stacked", "faff-parked"], []],
+    ["claimed", ["State: Claimed", "faff-parked", "unrelated"], [{ action: "remove", label: "faff-parked" }]],
+  ]) {
+    const flags = present.flatMap(label => ["--present-label", label]);
+    const r = run(dir, "label", "transition", "FAFF-1", role, ...flags, "--root", dir);
+    assert.equal(r.code, 0, r.err);
+    const parsed = JSON.parse(r.out.replace(/```faff-contract:label-op|```/g, "").trim());
+    assert.deepEqual(parsed.ops, expected);
+  }
+});

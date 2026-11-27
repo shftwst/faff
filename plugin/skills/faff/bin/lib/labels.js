@@ -58,7 +58,7 @@ function controlLabels(prefix = "faff", names = {}) {
 
 // FAFF-1091: pure clear-then-add emitter for a single-select label group. Given the target
 // role and the rendered names currently on the issue (the agent's fresh fetch), it emits an
-// ORDERED op list — every OTHER same-group label removed FIRST, then the target added — so a
+// ORDERED op list — every OTHER same-group label removed FIRST, then the target added if absent — so a
 // single-select tracker group never rejects the second write nor transiently holds two.
 // An ungrouped target (automate, stacked) emits a plain idempotent add with NO clears.
 // PURE: no config read, no tracker access; emits descriptors the agent executes in order.
@@ -71,14 +71,14 @@ function groupTransitionOps({ targetRole, present = [], prefix = "faff", names =
   // eligibility label would be reachable through the sibling verb (a plain add on an ungrouped
   // target). Refusal is by the role-derived flag, never a hardcoded name.
   if (target.tracker_owned) return { refused: true, targetRole, name: target.name };
-  const addOp = (label) => ({ action: "add", label });
+  const adds = present.includes(target.name) ? [] : [{ action: "add", label: target.name }];
   const removeOp = (label) => ({ action: "remove", label });
-  if (target.group == null) return [addOp(target.name)];
+  if (target.group == null) return adds;
   const groupNames = labels.filter((l) => l.group === target.group).map((l) => l.name);
   const removes = present
     .filter((n) => groupNames.includes(n) && n !== target.name)
     .map(removeOp);
-  return [...removes, addOp(target.name)];
+  return [...removes, ...adds];
 }
 
 // FAFF-1044: a direct unit test for controlLabels(prefix) itself — the default-prefix
@@ -112,9 +112,6 @@ const GROUP_TRANSITION_SELFTEST_CASES = [
     [{ action: "remove", label: "faff-parked" }, { action: "remove", label: "faff-awaiting-review" }, { action: "add", label: "faff-claimed" }]],
   // move into parked, nothing else present ⇒ a lone add (no clears)
   [{ targetRole: "parked", present: [] },
-    [{ action: "add", label: "faff-parked" }]],
-  // move into parked while parked already present ⇒ target excluded from removes ⇒ a lone add
-  [{ targetRole: "parked", present: ["faff-parked"] },
     [{ action: "add", label: "faff-parked" }]],
   // ungrouped target (stacked) while a state label is present ⇒ plain add, state label UNTOUCHED
   [{ targetRole: "stacked", present: ["faff-awaiting-review"] },

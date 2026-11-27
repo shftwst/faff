@@ -54,13 +54,13 @@ At each eligibility, routing or claim gate, take the current status and labels f
 
 ### Lean tracker reads (ask for only what the step consumes)
 
-Use `get_issue` for one known ID. For lists, set an explicit limit sized to the step. When only recent rows matter, request newest first (`createdAt` descending). Request relations, releases or customer needs only when the step uses them. Continue paging when the decision needs more results.
+Pass a known ID in the connector's declared lookup argument. When projection is supported, select only advertised fields. Count automatically returned identity toward the required values. Use a full issue read if projection is unavailable or a gate value is missing. Limit lists to the step's needs, newest first (`createdAt` descending) for recent rows. Page as needed. Request relations, releases or customer needs only when required.
 
-Earlier tool responses remain in context across turns. For isolation, fetch in a subagent or out-of-context CLI and return what the caller needs.
+Tool replies remain in context across turns. For isolation, fetch in a subagent or out-of-context CLI and return only what the caller needs.
 
 ### Tracker as the lights-out control plane
 
-During unattended runs (`/faff-beep-boop`) the **tracker is the complete human-legible record, control plane, and observability surface** — never a hidden internal queue. Three obligations, all already implemented by existing machinery (this section *names* them; it adds **no** new mechanism — no `faff` subcommand, no config key, no per-step marker subsystem, no new `.faff/` artefact):
+In unattended runs (`/faff-beep-boop`), the tracker is the human-readable record and control plane. Use the existing markers, labels and issue states.
 
 **1. Externalise every marker-worthy step.** The meaningful pipeline transitions leave a tracker marker — a per-issue comment, a control label, a status move, or the once-per-run digest. Factory-created tickets join the **same** `Backlog` as all other work — no parallel hidden queue — and are picked up by the next tidy→prep pass. The canonical marker set (already left, distributed across the skills):
 

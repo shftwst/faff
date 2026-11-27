@@ -1740,7 +1740,7 @@ module.exports = {
   claimFromStdin, verifyReturn, CAPABILITIES, EVIDENCE_SPEC, SCHEMA_UNAVAILABLE_MARKER, SchemaUnavailable, WriterFault, acChecklistWriterViolations, announceSchemaUnavailable, anchoredAcChecklist,
   anchoredTerminalReview, checkAnchorDir, classifySchemaChange, cmdEvidence, eventDataKeys, evaluateRunDirEventsSchema, evidenceSelftest, exitCodeFor,
   recordReviewRound, writeCollatedReviewVerdict,
-  guardWriterPaths, introducedViolations, logRecordChecker, evidenceDocumentFiles, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
+  runWriter, guardWriterPaths, introducedViolations, logRecordChecker, evidenceDocumentFiles, manifestFileNames, noteSchemaUnavailable, preloadEvidenceSchemas,
   renderAcChecklist, renderAcChecklistDocument, resetEvidenceSchemaCache, sanitiseDisplay, validateAnchorDir, validateEvidenceDocument, writeAcChecklist, writeEvidenceFile,
   writeSpecReviewVerdict, writeSpecReviewVerdictTo, placeSpecReviewEvidence, writeTerminalReviewVerdict, writeHumanOnlyAcs,
 };

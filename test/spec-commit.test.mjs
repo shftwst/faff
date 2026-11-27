@@ -713,7 +713,7 @@ test("spec verify --criteria classifies only bytes that matched both HEAD and th
   const expected = cli(["dod", "classify", "--issue", "EX-3", "--spec", join(f.wt, path), "--json"]).json().criteria;
   const matched = cli(args);
   assert.equal(matched.status, 0, matched.stderr);
-  assert.deepEqual(matched.json(), { ...verify(f).json(), criteria: expected.filter(row => row.source === "done") });
+  assert.deepEqual(matched.json(), { ...verify(f).json(), builder_sha256: sha(readFileSync(join(f.wt, path))), criteria: expected.filter(row => row.source === "done") });
   assert.doesNotMatch(matched.stdout, /withheld scenario/);
   assert.equal(commit(f, { extra: ["--criteria"] }).status, 2);
 
@@ -740,4 +740,49 @@ test("the same graft command resumes an incomplete ladder and returns verified D
   assert.equal(second.json().gate.resumed.discarded, undefined);
   assert.equal(second.json().action, "verify-criteria");
   assert.deepEqual(second.json().spec.criteria.map(row => row.ac_id), ["ex-3#done:1", "ex-3#done:2"]);
+});
+
+test("record-criteria joins observations by ID against the exact graded builder revision", () => {
+  const f = fixture({ spec: SPEC.replace("second item must hold", "needs-human: operator approves display") });
+  f.rd = join(f.main, ".faff", "runs", "example");
+  const rel = commit(f).json().path;
+  gateRunner(f);
+  const { criteria, builder_sha256: digest } = verifyBuild(f).json().spec;
+  const first = { ac_id: criteria[0].ac_id, passed: true, verified: "exit 0", verifications: [{kind: "command", locator: "npm test"}] };
+  const second = { ac_id: criteria[1].ac_id, passed: false, verified: "Needs human verification: display", verifications: [{kind: "human"}] };
+  const record = rows => spawnSync("node", [CLI, "graft", "record-criteria", "--worktree", f.wt, "--spec", f.specFile,
+    "--issue", "EX-3", "--run-dir", f.rd, "--builder-sha", digest], {cwd:f.main, encoding:"utf8", input:JSON.stringify(rows)});
+  const ok = record([second, first]);
+  assert.equal(ok.status, 0, ok.stderr);
+  const destination = join(f.rd, "EX-3", "ac-checklist.json");
+  const before = readFileSync(destination, "utf8");
+  const full = [first, second].map((r, i) => ({ ...r, ac: criteria[i].text }));
+  const legacy = spawnSync("node", [CLI, "evidence", "write", "ac-checklist", "--issue", "EX-3", "--run-dir", f.rd],
+    {cwd:f.main, encoding:"utf8", input:JSON.stringify({all_verified:false, criteria:full})});
+  assert.equal(legacy.status, 0, legacy.stderr);
+  assert.equal(readFileSync(destination, "utf8"), before);
+  for (const bad of [[], [first], [first, first], [first, {...second, ac_id:"other-2#done:2"}],
+    [first, {...second, passed:true}], [first, {...second, verifications:first.verifications}],
+    [second, {...first, verifications:[{kind:"command", locator:""}]}]]) assert.equal(record(bad).status, 1);
+  const revised = readFileSync(f.specFile, "utf8").replace("first item must hold", "replaced criterion at the same ordinal");
+  writeFileSync(f.specFile, revised);
+  writeFileSync(join(f.wt, rel), builderView(f));
+  git(f.wt, "add", rel);
+  git(f.wt, "commit", "-qm", "replace spec consistently");
+  assert.match(record([first,second]).stderr, /graded revision/);
+  assert.equal(readFileSync(destination, "utf8"), before);
+});
+
+test("record-criteria preserves the zero-DONE writer format", () => {
+  const f = fixture({spec:"# Empty DONE set\n"});
+  f.rd = join(f.main, ".faff", "runs", "empty");
+  assert.equal(commit(f).status, 0);
+  const verified = cli(["spec","verify","--issue","EX-3","--spec",f.specFile,"--worktree",f.wt,"--criteria"]).json();
+  assert.deepEqual(verified.criteria, []);
+  const r = spawnSync("node", [CLI, "graft", "record-criteria", "--worktree", f.wt, "--spec", f.specFile,
+    "--issue", "EX-3", "--run-dir", f.rd, "--builder-sha", verified.builder_sha256], {cwd:f.main, encoding:"utf8", input:"[]"});
+  assert.equal(r.status, 0, r.stderr);
+  const doc = JSON.parse(readFileSync(join(f.rd, "EX-3", "ac-checklist.json")));
+  assert.equal(doc.all_verified, true);
+  assert.ok(!Object.hasOwn(doc, "criteria"));
 });

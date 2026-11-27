@@ -30,7 +30,8 @@ export type SpecResult = {
   commit?: string | undefined;
   source_check?: string | undefined;
   differs?: string[] | undefined;
-  criteria?: unknown[];
+  criteria?: { text: string; ac_id: string; human_only: boolean }[];
+  builder_sha256?: string;
   warnings?: string[] | undefined;
   commit_subject_scheme?: string | undefined;
 };
@@ -334,7 +335,7 @@ function runSpecVerify(opts: VerifyOptions, deps: SpecDeps): SpecResult {
   if (differs.length) return result(issue, "mismatch", { path: rel, differs });
   if (!opts.includeCriteria) return result(issue, "verified", { path: rel });
   const { criteria } = dodClassify(expected.toString("utf8"), { issue });
-  return result(issue, "verified", { path: rel, criteria: criteria.filter((row: { source: string }) => row.source === "done") });
+  return result(issue, "verified", { path: rel, builder_sha256: sha256(expected), criteria: criteria.filter((row: { source: string }) => row.source === "done") });
 }
 
 // ---------------------------------------------------------------------------

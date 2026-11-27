@@ -397,9 +397,11 @@ function cmdGraftAdmit(args) {
 function cmdGraft(args) {
     if (args[0] === "admit")
         return cmdGraftAdmit(args.slice(1));
-    const { cmdGraftVerifyBuild, VERIFY_BUILD_USAGE } = require("./graft-verify-build");
+    const { cmdRecordCriteria, cmdGraftVerifyBuild, VERIFY_BUILD_USAGE, RECORD_CRITERIA_USAGE } = require("./graft-verify-build");
+    if (args[0] === "record-criteria")
+        return cmdRecordCriteria(args.slice(1));
     if (args[0] === "verify-build")
         return cmdGraftVerifyBuild(args.slice(1));
-    return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: admit or verify-build" }], ADMIT_USAGE + "\n" + VERIFY_BUILD_USAGE);
+    return argvApi.usageError([{ code: "bad-value", detail: "expected a verb: admit, verify-build or record-criteria" }], [ADMIT_USAGE, VERIFY_BUILD_USAGE, RECORD_CRITERIA_USAGE].join("\n"));
 }
 module.exports = { cmdGraft, admit, validateFacts, AdmitFailure };

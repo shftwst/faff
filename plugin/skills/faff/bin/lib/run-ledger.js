@@ -36,7 +36,7 @@ const { parseArgs, usageError } = require("./argv");
 const { findRoot, latestRunDir } = require("./shared-infra");
 const { isLedgerSchemaError, mutateLedgerUnderLock } = require("./heartbeat");
 const { resolveFaffVersion } = require("./faff-version"); // FAFF-1395
-const { utcOffsetField } = require("./budget"); // FAFF-1444
+const { NATIVE_RESPONSE_METER, utcOffsetField } = require("./budget"); // FAFF-1444
 const { appendRecordUnderLock, appendEventRecord, computeChainHead, emitGenesisRunStart, verifyChain, verifyExitCode, EVENT_LEDGER_OUTCOMES } = require("./events");
 // FAFF-1028: lazy-resolved at mint time (not required at module top) — merge-gate.js is a much
 // heavier module (contract-defs/container-check/commissaire/gates/…) than run-ledger.js needs
@@ -102,6 +102,7 @@ function resolveMintBaseSha(root) {
 function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid, baseSha, faffVersion }) {
   return {
     run_id: runId,
+    transcript_meter: NATIVE_RESPONSE_METER,
     level: INTERACTIVE_LEVEL, // CONSTANT — never operator-settable
     admitted: [issue], // exactly the one issue this graft builds
     outcomes: {}, // EMPTY at mint — written only at the genuine terminal (graft step 6)
@@ -133,6 +134,7 @@ function buildInteractiveLedger({ runId, issue, nowIso, sessionId, pid, baseSha,
 function buildSelfDrainLedger({ runId, nowIso, sessionId, pid, baseSha, faffVersion }) {
   return {
     run_id: runId,
+    transcript_meter: NATIVE_RESPONSE_METER,
     level: SELF_DRAIN_LEVEL, // CONSTANT — never operator-settable
     admitted: [],
     outcomes: {},

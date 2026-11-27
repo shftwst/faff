@@ -1224,7 +1224,7 @@ function cmdEvents(args) {
       try { ledger0 = JSON.parse(fs.readFileSync(ledgerPath, "utf8")); } catch { ledger0 = null; }
       const ownerStart = ledger0 && ledger0.owner && ledger0.owner.started_at ? Date.parse(ledger0.owner.started_at) : null;
       const runStartMs = Number.isFinite(ownerStart) ? ownerStart : null;
-      const measured = measureTokensByClass({ cwd: root, env: effectiveEnv, runStartMs });
+      const measured = measureTokensByClass({ cwd: root, env: effectiveEnv, runStartMs, meter: ledger0?.transcript_meter });
       const base = { ...(data && typeof data === "object" && !Array.isArray(data) ? data : {}) };
       // A transcript delta is emitted ONLY if the advancing checkpoint is durably
       // persisted in the same step — persist-then-emit, atomic in effect. Otherwise

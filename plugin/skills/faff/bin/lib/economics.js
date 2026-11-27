@@ -19,7 +19,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, byModelClassTotal, childOwningSession, classCountsFromUsage, closedSessionsSpend, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
+const { nativeResponseId, readMeteredTranscript, BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, byModelClassTotal, childOwningSession, classCountsFromUsage, closedSessionsSpend, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
 const { unmeteredFleetEngines } = require("./backends");
 const { EFFORT_LEVELS } = require("./events");
 const { dig, findRoot, latestRunDir, readLedger } = require("./shared-infra");
@@ -191,7 +191,7 @@ function attributePerIssueCosts(base, sid, ledger, price) {
     try { meta = JSON.parse(fs.readFileSync(f.replace(/\.jsonl$/, ".meta.json"), "utf8")); } catch { continue; }
     const issue = economicsAttributeIssue(meta && meta.description, outcomes);
     if (!issue) continue;
-    byIssue.set(issue, (byIssue.get(issue) || 0) + sumTranscriptFile(f));
+    byIssue.set(issue, (byIssue.get(issue) || 0) + sumTranscriptFile(f, ledger.transcript_meter));
   }
   return [...byIssue.keys()].map((issue) => ({
     issue,
@@ -972,12 +972,13 @@ function econIsAssistantTurn(rec) {
 // `topLineTotal` is the raw measureTokens sum over the SAME files, so the buckets
 // reconcile to it by construction (incl. `unattributed`). Selftest-coverable like the
 // class/effort cores.
-function economicsPhaseBreakdown(fileRecords, windows, priceMap, dominant, topLineTotal, eventsMalformed) {
+function economicsPhaseBreakdown(fileRecords, windows, priceMap, dominant, topLineTotal, eventsMalformed, meter) {
   const mk = () => ({ input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0, total: 0, turns: 0, tool_calls: 0 });
   const buckets = new Map(PHASE_BUCKET_KEYS.map((k) => [k, mk()]));
   const usable = (windows || []).filter(phaseWindowUsable);
   for (const f of fileRecords) {
     const isMain = !!f.is_main;
+    const responses = new Set();
     for (const r of f.records) {
       const ts = r && typeof r.timestamp === "string" ? r.timestamp : null;
       const w = selectPhaseWindow(usable, ts);
@@ -993,7 +994,11 @@ function economicsPhaseBreakdown(fileRecords, windows, priceMap, dominant, topLi
         const counts = classCountsFromUsage(u);
         for (const cls of TOKEN_DELTA_CLASSES) { b[cls] += counts[cls]; b.total += counts[cls]; }
       }
-      if (econIsAssistantTurn(r)) b.turns += 1;
+      if (econIsAssistantTurn(r)) {
+        const id = nativeResponseId(r, meter);
+        if (!id || !responses.has(id)) b.turns += 1;
+        if (id) responses.add(id);
+      }
       const content = r && r.message && r.message.content;
       if (Array.isArray(content)) for (const block of content) if (block && block.type === "tool_use") b.tool_calls += 1;
     }
@@ -1051,53 +1056,18 @@ function readRunEvents(runDir) {
 // I/O reader — read the run's session-owned transcript records (the SAME file set
 // measureTokens sums), parse each line into a record, and return them for the pure
 // core. Degrades to source:"estimate" (empty records) exactly as measureTokens does.
-function readRunTranscriptRecords(cwd, env, runStartMs) {
-  const sid = env.CLAUDE_CODE_SESSION_ID;
-  const base = transcriptBaseDir(cwd, env);
-  const files = sessionOwnedTranscriptFiles(base, sid, runStartMs);
-  if (!files) return { records: [], source: "estimate" };
-  const records = [];
-  for (const f of files) {
-    let text;
-    try { text = fs.readFileSync(f, "utf8"); } catch { continue; }
-    for (const line of text.split("\n")) {
-      const s = line.trim();
-      if (!s) continue;
-      let rec;
-      try { rec = JSON.parse(s); } catch { continue; }
-      if (rec && typeof rec === "object") transcriptSources.set(rec, f);
-      records.push(rec);
-    }
+function readRunTranscriptRecords(cwd, env, runStartMs, meter) {
+  const byFile = readRunTranscriptRecordsByFile(cwd, env, runStartMs, meter);
+  for (const {file, records} of byFile.files) {
+    for (const rec of records) if (rec && typeof rec === "object") transcriptSources.set(rec, file);
   }
-  return { records, source: "transcript" };
+  return { records: byFile.files.flatMap(f => f.records), source: byFile.source };
 }
 
-// I/O reader — per-file-retaining sibling of readRunTranscriptRecords (FAFF-500). The
-// flat reader collapses all owned files into one array and loses origin; the phase axis
-// needs to know which records came from the parent session (files[0], is_main) vs an
-// owned child, so this walks the SAME sessionOwnedTranscriptFiles set but keeps each
-// file's records grouped with an is_main flag (true for index 0 only). Degrades to
-// source:"estimate" (empty list) exactly as readRunTranscriptRecords/measureTokens do.
-function readRunTranscriptRecordsByFile(cwd, env, runStartMs) {
-  const sid = env.CLAUDE_CODE_SESSION_ID;
-  const base = transcriptBaseDir(cwd, env);
-  const files = sessionOwnedTranscriptFiles(base, sid, runStartMs);
+function readRunTranscriptRecordsByFile(cwd, env, runStartMs, meter) {
+  const files = sessionOwnedTranscriptFiles(transcriptBaseDir(cwd, env), env.CLAUDE_CODE_SESSION_ID, runStartMs);
   if (!files) return { files: [], source: "estimate" };
-  const out = files.map((f, i) => {
-    const records = [];
-    let text = null;
-    try { text = fs.readFileSync(f, "utf8"); } catch { text = null; }
-    if (text != null) for (const line of text.split("\n")) {
-      const s = line.trim();
-      if (!s) continue;
-      let rec;
-      try { rec = JSON.parse(s); } catch { continue; }
-      records.push(rec);
-    }
-    // Keep the slot even if a read failed, so is_main indexing stays correct.
-    return { file: f, is_main: i === 0, records };
-  });
-  return { files: out, source: "transcript" };
+  return { files: files.map((file, i) => ({ file, is_main: i === 0, records: readMeteredTranscript(file, meter) })), source: "transcript" };
 }
 
 // Render a breakdown as a skimmable text table (the human default for `--by`).
@@ -1267,7 +1237,7 @@ function cmdEconomics(args) {
     } else {
       let dominant = null, topLine = null;
       if (measuredSource === "transcript") {
-        const { records } = readRunTranscriptRecords(root, effectiveEnv, runStartMs);
+        const { records } = readRunTranscriptRecords(root, effectiveEnv, runStartMs, ledger.transcript_meter);
         dominant = economicsDominantModel(records);
         topLine = measuredTotal;
       }
@@ -1284,15 +1254,15 @@ function cmdEconomics(args) {
     // `effectiveEnv` (not process.env) so a `--session-id` override selects the SAME
     // session the top-line measured against — otherwise the census and the top-line
     // could diverge under --session-id and break reconciliation (FAFF-488 parity).
-    const { files } = readRunTranscriptRecordsByFile(root, effectiveEnv, runStartMs);
+    const { files } = readRunTranscriptRecordsByFile(root, effectiveEnv, runStartMs, ledger.transcript_meter);
     const { events, malformed } = readRunEvents(runDir);
     const windows = phaseWindowsFromEvents(events);
     const flat = [];
     for (const f of files) for (const r of f.records) flat.push(r);
     const dominant = economicsDominantModel(flat);
-    bd = economicsPhaseBreakdown(files, windows, priceMap, dominant, measuredTotal, malformed);
+    bd = economicsPhaseBreakdown(files, windows, priceMap, dominant, measuredTotal, malformed, ledger.transcript_meter);
   } else {
-    const { records } = readRunTranscriptRecords(root, effectiveEnv, runStartMs);
+    const { records } = readRunTranscriptRecords(root, effectiveEnv, runStartMs, ledger.transcript_meter);
     if (byAxis === "mcp") {
       bd = economicsMcpBreakdown(records, priceMap, economicsDominantModel(records));
     } else {
@@ -1396,7 +1366,7 @@ function economicsCore(runDir, ledger, { root, sessionIdFlag = null, baseEnv = p
   // baselined at run start, the same figure budget gates on.
   // FAFF-604: the SAME combining call `budget check` makes — one owner of the
   // two-source union, so the two top lines can never drift into independent folds.
-  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, unmeteredEngines: unmeteredFleetEngines(cfg, env.allow_unmetered) });
+  const runSpend = measureRunSpend({ cwd: root, env: effectiveEnv, runStartMs, runDir, meter: ledger.transcript_meter, unmeteredEngines: unmeteredFleetEngines(cfg, env.allow_unmetered) });
   const measured = runSpend.transcript;
   const measuredSource = measured.source;
   const measuredTotal = measuredSource === "transcript"

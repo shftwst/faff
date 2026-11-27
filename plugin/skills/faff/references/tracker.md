@@ -54,7 +54,7 @@ At each eligibility, routing or claim gate, take the current status and labels f
 
 ### Lean tracker reads (ask for only what the step consumes)
 
-Use `get_issue` for one known ID. For lists, set an explicit limit sized to the step. When only recent rows matter, request newest first (`createdAt` descending). Request relations, releases or customer needs only when the step uses them. Continue paging when the decision needs more results.
+Use `get_issue` for one known ID. Where supported, limit lists to the rows needed and request newest first for recent rows. Request relations, releases or customer needs only when the step uses them. Page until the decision has all required rows.
 
 Earlier tool responses remain in context across turns. For isolation, fetch in a subagent or out-of-context CLI and return what the caller needs.
 

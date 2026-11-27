@@ -360,7 +360,7 @@ jobs:
               continue
             fi
             filelog=$(mktemp)
-            killflag=$(mktemp -u)
+            killflag="${filelog}.timeout"
 
             set +e
             node --import ./test/hermetic-env.mjs --test-reporter=tap --test-timeout=${test_timeout_ms} --test "$f" > "$filelog" 2>&1 &
@@ -368,8 +368,9 @@ jobs:
             (
               sleep "$PER_FILE_WALL_CLOCK_SECS"
               if kill -0 "$node_pid" 2>/dev/null; then
-                kill -9 "$node_pid" 2>/dev/null
+                # The waiter may stop this watchdog as soon as node exits.
                 : > "$killflag"
+                kill -9 "$node_pid" 2>/dev/null
               fi
             ) < /dev/null > /dev/null 2>&1 &
             watchdog_pid=$!
@@ -384,7 +385,7 @@ jobs:
             echo "===== ${f} ====="
             cat "$filelog"
 
-            if [ -f "$killflag" ]; then
+            if [ "$file_status" -eq 137 ] && [ -f "$killflag" ]; then
               rm -f "$killflag" "$filelog"
               echo "::error::validate-macos: ${f} exceeded the ${PER_FILE_WALL_CLOCK_SECS}s per-file wall-clock and was killed (SIGKILL) — likely hang in or before this file"
               overall_status=1
@@ -395,7 +396,7 @@ jobs:
             # "# tests N" line — node died before the runner emitted its summary), so the assignment
             # itself never trips errexit and every line below stays reachable [FAFF-1038, per file].
             summary_line=$(grep -oE '^# tests [0-9]+' "$filelog" | tail -1 || true)
-            rm -f "$filelog"
+            rm -f "$filelog" "$killflag"
             if [ -z "$summary_line" ]; then
               # No summary line at all for this file — a crash/kill/truncation, not a mass-skip.
               echo "::error::validate-macos: ${f} — node exited before the test runner emitted its summary line (no '# tests N' line in the log) — not a mass-skip; node exit status ${file_status}; see the log above"

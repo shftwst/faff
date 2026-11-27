@@ -60,6 +60,10 @@ test("the In Review plan abstains on sparse or changed tracker evidence and keep
   }
   assert.deepEqual(plan({ ...facts, review_state: null }, root), { action: "noop" });
   assert.deepEqual(plan(facts), { action: "write", state: "review-state-id", bracket: null });
+  assert.deepEqual(plan({ ...facts, review_state: { id: facts.review_state, name: "In Review" } }, root), plan(facts, root));
+  for (const review_state of [{ name: "In Review" }, { id: null }, { id: " " }]) {
+    assert.deepEqual(plan({ ...facts, review_state }, root), { action: "noop" });
+  }
   const tracker_transition = { ...facts.tracker_transition, governed: false };
   assert.deepEqual(plan({ ...facts, tracker_transition }, root), { action: "write", state: "review-state-id", bracket: null });
 });

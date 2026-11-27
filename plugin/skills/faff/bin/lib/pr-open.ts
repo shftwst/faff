@@ -588,7 +588,8 @@ const PLAN_REVIEW_SPEC = {
 
 function planInReview(facts: unknown, issue: string, runDir: string | null) {
   if (!isRecord(facts)) throw new Error("expected tracker facts");
-  const state = str(facts["review_state"]);
+  const destination = facts["review_state"];
+  const state = str(isRecord(destination) ? destination["id"] : destination);
   if (facts["live_status"] !== "In Progress" || state === null || !state.trim()) return { action: "noop" };
 
   const receipt = facts["tracker_transition"];

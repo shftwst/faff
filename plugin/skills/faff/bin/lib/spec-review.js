@@ -89,10 +89,16 @@ function makePathExists(root) {
 function cmdCarryCheck(values) {
   const fail = (code, message) => { process.stderr.write(`faff spec-review carry-check: ${message}\n`); return code; };
   if (values["--before"] == null || values["--after"] == null) return fail(2, "--before <file> and --after <file> are required");
-  let beforeText;
-  let afterText;
-  try { beforeText = fs.readFileSync(values["--before"], "utf8"); } catch (e) { return fail(2, `cannot read ${values["--before"]}: ${e.message}`); }
-  try { afterText = fs.readFileSync(values["--after"], "utf8"); } catch (e) { return fail(2, `cannot read ${values["--after"]}: ${e.message}`); }
+  const inputs = [];
+  let beforeText, afterText;
+  try {
+    for (const flag of ["--before", "--after"]) inputs.push(fs.openSync(values[flag], "r"));
+    const [before, after] = inputs.map(fd => fs.fstatSync(fd, { bigint: true }));
+    if (before.dev === after.dev && before.ino === after.ino)
+      return fail(2, "--before and --after must be independent snapshots of the spec");
+    [beforeText, afterText] = inputs.map(fd => fs.readFileSync(fd, "utf8"));
+  } catch (e) { return fail(2, `cannot read spec snapshots: ${e.message}`); }
+  finally { for (const fd of inputs) fs.closeSync(fd); }
   let root;
   try { root = values["--root"] || findRoot(); } catch (e) { return fail(2, `cannot resolve --root: ${e.message}`); }
   const pathExists = makePathExists(root);
@@ -315,65 +321,6 @@ function specReviewSelftest() {
   ok("CLI no evidence → exit 1", cliMiss.code === 1);
   const cliBadVerb = runSpecReviewForSelftest(["nope"], withEvidence);
   ok("CLI unknown verb → exit 2", cliBadVerb.code === 2);
-
-  // --- carry-check: paths-only refresh keeps its prior review ---
-  {
-    const os = require("node:os");
-    const t = fs.mkdtempSync(path.join(os.tmpdir(), "faff-carry-"));
-    try {
-      fs.mkdirSync(path.join(t, "docs", "archive", "design"), { recursive: true });
-      fs.writeFileSync(path.join(t, "docs", "archive", "design", "x.md"), "x");
-      const beforeFile = path.join(t, "before.md");
-      const afterFile = path.join(t, "after.md");
-      const before = [
-        "> Spec: faffter-dark-nlspec . 2026-10-10",
-        "",
-        "**Chosen:** see docs/design/x.md",
-        "",
-        "build-tier: standard",
-        "confidence: high",
-        "spec-review: approve",
-      ].join("\n");
-      const after = [
-        "> Spec: faffter-dark-nlspec . 2026-10-14",
-        "",
-        "**Chosen:** see docs/archive/design/x.md",
-        "",
-        "> Revised on 2026-10-14: paths refreshed",
-        "",
-        "build-tier: complex",
-        "confidence: high",
-        "spec-review: approve",
-      ].join("\n");
-      fs.writeFileSync(beforeFile, before);
-      fs.writeFileSync(afterFile, after);
-
-      const origWrite = process.stdout.write.bind(process.stdout);
-      let stdout = "";
-      process.stdout.write = (s) => { stdout += String(s); return true; };
-      let code;
-      try { code = cmdSpecReview(["carry-check", "--before", beforeFile, "--after", afterFile, "--root", t]); } finally { process.stdout.write = origWrite; }
-      ok("carry-check: verified directory move → exit 0, carry:true", code === 0 && JSON.parse(stdout).carry === true && JSON.parse(stdout).reason === "paths-only");
-
-      // No carry: the old path still exists too (unverified move).
-      fs.mkdirSync(path.join(t, "docs", "design"), { recursive: true });
-      fs.writeFileSync(path.join(t, "docs", "design", "x.md"), "x");
-      stdout = "";
-      process.stdout.write = (s) => { stdout += String(s); return true; };
-      try { code = cmdSpecReview(["carry-check", "--before", beforeFile, "--after", afterFile, "--root", t]); } finally { process.stdout.write = origWrite; }
-      ok("carry-check: both paths exist → exit 1, path-move-unverified", code === 1 && JSON.parse(stdout).reason === "path-move-unverified");
-
-      ok("carry-check without --before/--after → exit 2", cmdSpecReview(["carry-check", "--after", afterFile]) === 2 && cmdSpecReview(["carry-check", "--before", beforeFile]) === 2);
-      ok("carry-check unreadable file → exit 2, nothing printed", (() => {
-        let out = "";
-        const w = process.stdout.write.bind(process.stdout);
-        process.stdout.write = (s) => { out += String(s); return true; };
-        let c;
-        try { c = cmdSpecReview(["carry-check", "--before", path.join(t, "no-such.md"), "--after", afterFile]); } finally { process.stdout.write = w; }
-        return c === 2 && out === "";
-      })());
-    } finally { fs.rmSync(t, { recursive: true, force: true }); }
-  }
 
   // --- route: severity-aware reject-approach destination ---
   {

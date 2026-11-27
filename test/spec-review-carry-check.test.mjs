@@ -4,7 +4,7 @@
 // own behaviour is covered by test/spec-refresh-carry.test.mjs.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtempSync, mkdirSync, writeFileSync, symlinkSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, writeFileSync, linkSync, symlinkSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -211,4 +211,25 @@ test("CLI: unknown verb message now lists carry-check; usage line names it on a 
   const r = runCli(["spec-review", "nope"]);
   assert.equal(r.code, 2);
   assert.match(r.stderr, /carry-check/);
+});
+
+test("carry-check refuses a mutable spec compared with itself through any alias", () => {
+  withTmp((dir) => {
+    const original = join(dir, "original.md");
+    writeFileSync(original, BEFORE);
+    for (const [name, link] of [["hard.md", linkSync], ["sym.md", symlinkSync]]) {
+      link(original, join(dir, name));
+    }
+    const compare = target => runCli(["spec-review", "carry-check", "--before", original, "--after", target, "--root", dir]);
+    for (const name of ["original.md", "hard.md", "sym.md"]) {
+      const r = compare(join(dir, name));
+      assert.equal(r.code, 2);
+      assert.equal(r.stdout, "");
+      assert.match(r.stderr, /independent snapshots/);
+    }
+    writeFileSync(join(dir, "independent.md"), BEFORE);
+    assert.equal(JSON.parse(compare(join(dir, "independent.md")).stdout).carry, true);
+    writeFileSync(join(dir, "independent.md"), BEFORE.replace("**Chosen:**", "**Punt:**"));
+    assert.equal(compare(join(dir, "independent.md")).code, 1);
+  });
 });

@@ -21,7 +21,7 @@ test("the skill calls the planner after the live read and leaves the MCP write b
   const block = inReviewBlock(readFileSync(SKILL_MD, "utf8"));
   assert.match(block, /Re-read the live status.*through tracker MCP/);
   assert.match(block, /Governed tracker-write record/);
-  const order = ["Re-read the live status", "faff pr plan-in-review", "faff effects declare", "save_issue", "faff effects observe"];
+  const order = ["Re-read the live status", "faff pr plan-in-review", "--declare", "save_issue", "faff effects observe"];
   let previous = -1;
   for (const operation of order) {
     const at = block.indexOf(operation);
@@ -79,6 +79,28 @@ test("the In Review plan refuses a descriptor from another issue or a malformed 
     assert.equal(result.stdout, "");
   }
   assert.equal(existsSync(join(root, "declared-effects.jsonl")), false);
+});
+
+test("prepare records the governed declaration before returning the MCP state and observation inputs", t => {
+  const {root, run, facts} = fixture(t);
+  const args = ["pr", "plan-in-review", "--issue", "TEST-28", "--declare", "--run-dir", root];
+  const call = facts => run(args, JSON.stringify(facts));
+  const log = join(root, "declared-effects.jsonl");
+  assert.equal(JSON.parse(call({...facts, live_status:"Done"}).stdout).action, "noop");
+  assert.equal(JSON.parse(call({...facts, tracker_transition:{...facts.tracker_transition, governed:false}}).stdout).bracket, null);
+  assert.equal(existsSync(log), false);
+  const ready = call(facts);
+  assert.equal(ready.code, 0, ready.stderr);
+  const {state, bracket} = JSON.parse(ready.stdout);
+  assert.equal(state, "review-state-id");
+  const entries = () => readFileSync(log, "utf8").trimEnd().split("\n").map(line => JSON.parse(line));
+  assert.deepEqual(entries().map(e => e.kind_of_entry), ["declare"]);
+  assert.equal(run(["effects", "observe", ...bracket.args], JSON.stringify(bracket.payload)).code, 0);
+  assert.deepEqual(entries().map(e => e.kind_of_entry), ["declare", "observe"]);
+  const missing = run([...args.slice(0, -1), join(root,"missing")], JSON.stringify(facts));
+  assert.equal(missing.code, 0);
+  assert.equal(JSON.parse(missing.stdout).action, "write");
+  assert.match(missing.stderr, /effects declare failed/);
 });
 
 function fixture(t) {

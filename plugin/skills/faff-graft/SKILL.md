@@ -422,12 +422,9 @@ It refuses unless the review verdict is `pass`, runs the governed-run check, wri
 | `refused` with cause `body-unsafe` | Fix the draft once and re-call; refused again → park |
 | any other `refused`, `needs-human`, `errored` | Shared park protocol naming `cause`. `anchor-no-events` / `anchor-genesis-invalid` is a provisioning fault (fix what minted the run dir, never the build); `anchor-floor-incomplete` is a build-evidence defect (fix what dropped the Step 8/9 file) |
 
-**In Review transition (after PR opened or already open).** Re-read the live status and resolve the workflow's In Review-type state through tracker MCP. Pass `{live_status, review_state, tracker_transition}` to `faff pr plan-in-review --issue <ISSUE-XX>`, with the same `--run-dir` as PR open when available. Use the PR-open descriptor and the destination ID, state object with `id`, or null.
+**In Review transition (after PR opened or already open).** Re-read the live status and resolve the workflow's In Review-type state through tracker MCP. Pass `{live_status, review_state, tracker_transition}` to `faff pr plan-in-review --issue <ISSUE-XX> --declare`, with the same `--run-dir` as PR open when available. Use the PR-open descriptor and the destination ID, state object with `id`, or null.
 
-On `write`:
-1. When the governed-run check reports governed and the planner returns `bracket`, apply the **Governed tracker-write record** rule. Run `faff effects declare` with its `args` and JSON `payload`.
-2. Use tracker MCP `save_issue` with the returned `state`, including after a declaration failure.
-3. With a bracket and confirmed MCP success, run `faff effects observe` with the same inputs.
+The planner attempts the **Governed tracker-write record** declaration before returning `write`. Then use tracker MCP `save_issue` with the returned `state`, including after a declaration failure. With a `bracket` and confirmed MCP success, call `faff effects observe` with its `args` and JSON `payload`.
 
 Proceed to Step 10 on `noop` or after the attempt. Log planner, record and tracker failures and proceed.
 

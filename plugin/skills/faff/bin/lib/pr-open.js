@@ -541,9 +541,9 @@ function cmdPrOpen(args) {
     };
     return emit(json, runPrOpen(opts, defaultDeps(process.cwd())));
 }
-const PLAN_REVIEW_USAGE = "usage: faff pr plan-in-review --issue ID [--run-dir DIR] < facts.json";
+const PLAN_REVIEW_USAGE = "usage: faff pr plan-in-review --issue ID [--run-dir DIR] [--declare] < facts.json";
 const PLAN_REVIEW_SPEC = {
-    flags: { "--issue": { arity: 1 }, "--run-dir": { arity: 1 } },
+    flags: { "--issue": { arity: 1 }, "--run-dir": { arity: 1 }, "--declare": { arity: 0 } },
     positionals: { min: 0, max: 0 },
 };
 function planInReview(facts, issue, runDir) {
@@ -578,7 +578,15 @@ function cmdPlanInReview(args) {
         return argvApi.usageError([{ code: "missing-flag", detail: "--issue is required" }], PLAN_REVIEW_USAGE);
     try {
         const facts = JSON.parse(fs.readFileSync(0, "utf8"));
-        console.log(JSON.stringify(planInReview(facts, issue, str(parsed.values["--run-dir"]))));
+        const plan = planInReview(facts, issue, str(parsed.values["--run-dir"]));
+        if (parsed.values["--declare"] && plan.bracket) {
+            const { args, payload } = plan.bracket;
+            const declaration = defaultDeps(process.cwd()).faff(["effects", "declare", ...args], JSON.stringify(payload), DEFAULT_TIMEOUT_MS);
+            // This record is detective: even on failure the caller attempts the tracker write.
+            if (declaration.status !== 0)
+                process.stderr.write(`faff pr plan-in-review: effects declare failed (${declaration.status ?? "unavailable"}): ${firstLine(declaration.stderr)}\n`);
+        }
+        console.log(JSON.stringify(plan));
         return 0;
     }
     catch (error) {

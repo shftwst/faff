@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "38ba575b6b6e9ed349bf6d57cd08af46c3a6ec01666b46b1ba3183d6b0eee6c5"
+    "tsconfig.json": "b42695fc452df231c3d36adbb4b019bc5255d1c8687acbbb407171096549139e"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -58,11 +58,14 @@
     "bin/lib/review-progress-resume.ts": "8d18dc02c284ed100257a60de893d2a24d706ce4e6689f8ff59ffca21651b4e9",
     "bin/lib/reviewed-attachment.ts": "5a9648ea5959791ed26793a9f6f250f23e92819d755ac9aac54f1d81e8560394",
     "bin/lib/rule-inventory.ts": "c4cb6d85b49519c4bca68d3b30b63a603eaf0590b8d31edbd7eaffe60dff4621",
-    "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
-    "bin/lib/run-close.ts": "963dc679d3213136fff9b26983ae5b9f81bd711a1c39d302df182b5c79b29275",
+    "bin/lib/run-checkpoint.ts": "3f53c139eb03ab0a4ecbd2774746a9700337ea694938833221ae17386ab97cd1",
+    "bin/lib/run-close.ts": "7e86e0b5ed14fb314745992bbb03c7abea490dfeb0780a9af6fc115b848dcd02",
     "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
-    "bin/lib/run-open.ts": "ce538c68a6de316a5d5372c8fe9ec52ea6a25802cbcca2a0e06810569ae0a337",
+    "bin/lib/run-open.ts": "50f6d5fcf0248162c058c126813b483da74bfda65af9909c5bfd8a29f3d76b48",
+    "bin/lib/run-request-metrics.ts": "2198168ab47ec0ddf0612b40f173182825785404c89a5b287adae7d2acff8d09",
+    "bin/lib/run-request-store.ts": "3cb751dfd57919deb0ca4c8eeef625978855e51e5cbf8f568aa59b5d856740ce",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
+    "bin/lib/run-sdk-turns.ts": "d9dc0761d05fc7884c06124de2ea04058dda59a1d46365e4c0dddc7498a2673b",
     "bin/lib/run-stop-reason.ts": "90be5d4ec94d88201f46ea5a182462993818afaab2d09cc97d55dcbb2f47edca",
     "bin/lib/run-summary.ts": "0174f139c548ee4409d917a00a6d1983465864a518cea47f789559542af5cc66",
     "bin/lib/run-trigger.ts": "d7810195ea6ed69e075295988d1270943b6c49679f1f0ef121e8105e4c3c4b74",
@@ -126,11 +129,14 @@
     "bin/lib/review-progress-resume.js": "e731d8670cb7a3fdfbaffa96b01c8fde7aa6967bb32239a3157439aabfde6315",
     "bin/lib/reviewed-attachment.js": "1a6b0c5a5cba186f8c9cff94412cbc57d6950f7fc6ed9645b5bf0441d8d0a7b4",
     "bin/lib/rule-inventory.js": "e4cc399a8b003fb062065d612f5b28b578fb14cc371611568f68b47150b9e69d",
-    "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
-    "bin/lib/run-close.js": "643c79fafd925ddaf795133858b672d2dd1fed1f523e6af8030e79c0d867e253",
+    "bin/lib/run-checkpoint.js": "5f9a40fc4a72d70b1e9b22222cf1c49eee4793c7611fff4163a6f5bc1367b21f",
+    "bin/lib/run-close.js": "df76520b92b40bd3418c112050fbed2ede8637d2d9311178a2f965b3f3344643",
     "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
-    "bin/lib/run-open.js": "68f9978aadb0cbaad1887be23443e2667ed1678b12c4403e9cd518c5686a553c",
+    "bin/lib/run-open.js": "3ac4200575fdbd14e286713989a09b757cb12fe02f0830ed7c9460c889ac2234",
+    "bin/lib/run-request-metrics.js": "5f46e3e475f08fa1dee09c52e55eb46a90668057d9403e2858dd0254872722ed",
+    "bin/lib/run-request-store.js": "fbe273892373698dbb704c2a976ba8d8266b14f0dade27402b7cc311d0b1345b",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
+    "bin/lib/run-sdk-turns.js": "9d9fd643220af85c318391a7cd698a28a6d457251041771da428504719e3421b",
     "bin/lib/run-stop-reason.js": "85a50a203706db15e69de2c7d931f1d0c66f51b201394f6cfbe82bf6cd56098d",
     "bin/lib/run-summary.js": "bcfa5af1d571385ecbf0f075fcebb8e750b78df36ecd2dc1e0d680f41574bdc7",
     "bin/lib/run-trigger.js": "192f5952f1615633edad3dd934d6f4ea4782482ffc96ed3784395070afcfa7b6",
@@ -148,5 +154,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "4a0e5e404c65161d2d1568b8d039276929af6c9461a7659d23dd9f3e570e5493"
+  "output_digest": "0b72b9a0a578a9c1fe1cf6aea20b0e95006219cd3a1862d0a143d6e8e9f60aff"
 }

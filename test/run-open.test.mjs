@@ -586,9 +586,12 @@ function stopPoller(runDir) {
 
 test("real CLI: run open then run close in a temp repo with no governor", () => {
   const root = repo();
-  const r = cli(root, ["run", "open", "--mode", "full", "--root", root, "--session-id", "S", "--json"]);
+  const runId = "run-20261127-120000-l3-ci";
+  const expectedDir = join(root, ".faff", "runs", runId);
+  const r = cli(root, ["run", "open", "--mode", "full", "--root", root, "--session-id", "S", "--json"], { FAFF_RUN_DIR: expectedDir, FAFF_SELF_DRAIN_ID: runId });
   assert.equal(r.code, 0, r.err);
   const out = JSON.parse(r.out);
+  assert.equal(out.run_dir, expectedDir);
   assert.equal(out.governance, "admitted");
   assert.equal(out.steps.poller, "ok");
   const ledger = JSON.parse(readFileSync(join(out.run_dir, "run-ledger.json"), "utf8"));

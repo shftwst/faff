@@ -219,7 +219,7 @@ function attributePerIssueCosts(base, sid, ledger, price) {
 // to measure serialized size.
 // ===========================================================================
 
-const BY_AXES = ["class", "model", "mcp", "day", "effort", "phase"];
+const BY_AXES = ["class", "model", "mcp", "day", "effort", "phase", "requests"];
 
 // FAFF-415: the effort axis is rendered in fixed severity order (with a trailing
 // "(none)" bucket for token-bearing dispatches that carried no effort tag), so the
@@ -954,7 +954,7 @@ function selectPhaseWindow(usableWindows, ts) {
   return best;
 }
 
-// A turn is one assistant record. Assistant records carry `type:"assistant"` or
+// The legacy phase breakdown counts assistant transcript rows in its turns field. Assistant records carry `type:"assistant"` or
 // `message.role:"assistant"`; the common transcript shape omits both but carries
 // `message.usage` (only assistant messages do), so a usage-bearing untyped record
 // counts too. A tool_result (user) record — no usage, no assistant marker — is not a turn.
@@ -1009,6 +1009,7 @@ function economicsPhaseBreakdown(fileRecords, windows, priceMap, dominant, topLi
   const topLine = (typeof topLineTotal === "number") ? topLineTotal : null;
   return {
     axis: "phase",
+    turn_basis: "assistant-transcript-rows",
     source: "transcript",
     priced_at_model: pricedAtModel,
     cost_basis: "estimate",     // every row priced at one inferred dominant model
@@ -1127,9 +1128,9 @@ function renderEconomicsBreakdown(bd) {
     const cov = rc.coverage_pct == null ? "n/a" : `${rc.coverage_pct}%`;
     lines.push(`# economics --by phase — explore(child)/synthesis(parent)/build split via events.jsonl windows (FAFF-500)`);
     lines.push(`  cost priced at ${bd.priced_at_model || "—"} (ESTIMATE — one dominant model)  ·  coverage of top-line: ${cov}  ·  windows_found=${rc.windows_found}`);
-    lines.push(`  ${"phase".padEnd(15)} ${"turns".padStart(7)} ${"tools".padStart(7)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`);
+    lines.push(`  ${"phase".padEnd(15)} ${"asst_rows".padStart(9)} ${"tools".padStart(7)} ${"input".padStart(9)} ${"output".padStart(9)} ${"cache_wr".padStart(9)} ${"cache_rd".padStart(9)} ${"total".padStart(9)} ${"cost".padStart(10)}`);
     for (const r of bd.rows) {
-      lines.push(`  ${String(r.key).padEnd(15)} ${String(r.turns).padStart(7)} ${String(r.tool_calls).padStart(7)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M((r.cache_write_5m || 0) + (r.cache_write_1h || 0)).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
+      lines.push(`  ${String(r.key).padEnd(15)} ${String(r.turns).padStart(9)} ${String(r.tool_calls).padStart(7)} ${M(r.input).padStart(9)} ${M(r.output).padStart(9)} ${M((r.cache_write_5m || 0) + (r.cache_write_1h || 0)).padStart(9)} ${M(r.cache_read).padStart(9)} ${M(r.total).padStart(9)} ${usd(r.cost).padStart(10)}`);
     }
     const mal = rc.events_malformed ? `  events_malformed=${rc.events_malformed}` : "";
     lines.push(`  grand_total=${rc.grand_total}  top_line_total=${rc.top_line_total}  reconciles=${rc.reconciles}${mal}`);
@@ -1196,10 +1197,11 @@ const { parseArgs, usageError } = require("./argv");
 const ECONOMICS_SPEC = { flags: {
   "--selftest": { arity: 0 }, "--json": { arity: 0 },
   "--root": { arity: 1 }, "--run-dir": { arity: 1 }, "--session-id": { arity: 1 },
-  "--by": { arity: 1 }, // enum validated by the handler against BY_AXES (fail-loud, exit 2)
+  "--details": { arity: 0 }, "--refresh": { arity: 0 }, "--by": { arity: 1 }, // enum validated by the handler against BY_AXES (fail-loud, exit 2)
 } };
 
 function cmdEconomics(args) {
+  if (args.length === 1 && args[0] === "--record-claude-result") return require("./run-sdk-turns").recordClaudeResult();
   if (args.includes("--selftest")) return economicsSelftest();
   const { values, errors } = parseArgs(args, ECONOMICS_SPEC);
   if (errors.length) return usageError(errors, "usage: faff economics [--by model|class|issue|mcp] [--run-dir DIR] [--session-id ID] [--json] [--root DIR]");
@@ -1225,16 +1227,31 @@ function cmdEconomics(args) {
     return 2;
   }
 
+  if (get("--details") && byAxis !== "requests") return usageError([{code:"usage",detail:"--details requires --by requests"}], "faff economics --by requests --details");
+  if (get("--refresh") && byAxis !== "requests") return usageError([{code:"usage",detail:"--refresh requires --by requests"}], "faff economics --by requests --refresh");
+  if (byAxis === "requests" && sessionIdFlag && !get("--refresh")) return usageError([{code:"usage",detail:"--session-id requires --refresh for request metrics"}], "faff economics --by requests --refresh");
+
   // Resolve the run dir (explicit --run-dir, else $FAFF_RUN_DIR, else latest) —
   // the same resolution `budget check` uses.
   let runDir = get("--run-dir") || process.env.FAFF_RUN_DIR || null;
-  if (runDir && !fs.existsSync(path.join(runDir, "run-ledger.json"))) runDir = null;
+  if (runDir && !fs.existsSync(path.join(runDir, "run-ledger.json"))) {
+    if (byAxis === "requests") { process.stderr.write("faff economics: run ledger missing\n"); return 2; }
+    runDir = null;
+  }
   if (!runDir) runDir = latestRunDir(root);
   if (!runDir) { process.stderr.write("faff economics: no run dir (pass --run-dir DIR)\n"); return 2; }
 
   let ledger;
   try { ledger = readLedger(runDir); }
   catch { process.stderr.write(`faff economics: cannot read ${path.join(runDir, "run-ledger.json")}\n`); return 2; }
+
+  if (byAxis === "requests") {
+    const { captureRunRequests, requestReport } = require("./run-request-store");
+    if (get("--refresh") && !captureRunRequests(runDir, root, sessionIdFlag, true)) return 2;
+    try { console.log(JSON.stringify(requestReport(runDir, ledger, !!get("--details")))); }
+    catch { process.stderr.write("faff economics: unreadable request metrics\n"); return 2; }
+    return 0;
+  }
 
   const { econ, effortRun, engineSpend, measuredSource, effectiveEnv, runStartMs, measuredTotal, priceMap, closedSpend } =
     economicsCore(runDir, ledger, { root, sessionIdFlag, baseEnv: process.env, byAxis });
@@ -1613,6 +1630,13 @@ function economicsCore(runDir, ledger, { root, sessionIdFlag = null, baseEnv = p
   if (unmeteredAll.length) {
     econ.unmetered_engines = unmeteredAll.map((name) => ({ engine: name, waived: !unmetered.includes(name) }));
     econ.warnings.push(`engine(s) with telemetry: none in the fleet — ${unmeteredAll.join(", ")}; their spend is unobservable and is NOT counted in the figures above`);
+  }
+
+  if (fs.existsSync(path.join(runDir, "run-request-metrics.json"))) {
+    try {
+      const { requests, turns, status, source } = require("./run-request-store").requestReport(runDir, ledger);
+      econ.request_metrics = { requests, turns, status, source };
+    } catch { econ.warnings.push("unreadable request metrics"); }
   }
 
   return { econ, effortRun, engineSpend, measuredSource, effectiveEnv, runStartMs, measuredTotal, priceMap, closedSpend };

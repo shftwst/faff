@@ -161,8 +161,11 @@ jobs:
           # here: this is a shell wrapper, not a faff-internal path.
           FAFF_RUN_DIR=".faff/runs/run-$(date -u +%Y%m%d-%H%M%S)-l3-ci"
           echo "FAFF_RUN_DIR=$FAFF_RUN_DIR" >> "$GITHUB_ENV"
-          export FAFF_RUN_DIR
-          claude -p "/faff-beep-boop"
+          export FAFF_RUN_DIR FAFF_SELF_DRAIN_ID="${FAFF_RUN_DIR##*/}"
+          CLAUDE_CODE_SESSION_ID=$(node -p 'require("node:crypto").randomUUID()')
+          export CLAUDE_CODE_SESSION_ID
+          set -o pipefail
+          claude -p --session-id "$CLAUDE_CODE_SESSION_ID" --output-format json "/faff-beep-boop" | faff economics --record-claude-result
 
       # 2.5. AUTO-RECOVER MERGED-UNCLOSED (FAFF-797) — before the final, exit-propagating
       #    disposition step, close any run whose disposition surfaces a `merged-unclosed`

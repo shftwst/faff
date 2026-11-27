@@ -360,7 +360,7 @@ jobs:
               continue
             fi
             filelog=$(mktemp)
-            killflag=$(mktemp -u)
+            killflag=$(mktemp)
 
             set +e
             node --import ./test/hermetic-env.mjs --test-reporter=tap --test-timeout=${test_timeout_ms} --test "$f" > "$filelog" 2>&1 &
@@ -368,15 +368,16 @@ jobs:
             (
               sleep "$PER_FILE_WALL_CLOCK_SECS"
               if kill -0 "$node_pid" 2>/dev/null; then
+                # The parent can stop this watchdog as soon as SIGKILL wakes wait.
+                echo 1 > "$killflag"
                 kill -9 "$node_pid" 2>/dev/null
-                : > "$killflag"
               fi
             ) < /dev/null > /dev/null 2>&1 &
             watchdog_pid=$!
             wait "$node_pid"
             file_status=$?
             # Stop the watchdog cleanly when node finished on its own — it never fires, so no
-            # killflag is written and this file is judged on its own exit status below.
+            # timeout mark is written and this file is judged on its own exit status below.
             kill "$watchdog_pid" 2>/dev/null
             wait "$watchdog_pid" 2>/dev/null
             set -e
@@ -384,7 +385,7 @@ jobs:
             echo "===== ${f} ====="
             cat "$filelog"
 
-            if [ -f "$killflag" ]; then
+            if [ -s "$killflag" ] && [ "$file_status" -eq 137 ]; then
               rm -f "$killflag" "$filelog"
               echo "::error::validate-macos: ${f} exceeded the ${PER_FILE_WALL_CLOCK_SECS}s per-file wall-clock and was killed (SIGKILL) — likely hang in or before this file"
               overall_status=1
@@ -395,7 +396,7 @@ jobs:
             # "# tests N" line — node died before the runner emitted its summary), so the assignment
             # itself never trips errexit and every line below stays reachable [FAFF-1038, per file].
             summary_line=$(grep -oE '^# tests [0-9]+' "$filelog" | tail -1 || true)
-            rm -f "$filelog"
+            rm -f "$killflag" "$filelog"
             if [ -z "$summary_line" ]; then
               # No summary line at all for this file — a crash/kill/truncation, not a mass-skip.
               echo "::error::validate-macos: ${f} — node exited before the test runner emitted its summary line (no '# tests N' line in the log) — not a mass-skip; node exit status ${file_status}; see the log above"

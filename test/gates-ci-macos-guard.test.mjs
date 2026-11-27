@@ -203,9 +203,18 @@ test("AC3 (behavioural): a hanging file is killed after the (shortened) wall-clo
 
 // --- AC4: a pre-first-test hang names its file and fails fast (not silent, not a bare cancel) ---
 
-test("AC4: a synthetic file that hangs before emitting a subtest names itself and the step exits non-zero", () => {
+test("AC4: a synthetic file that hangs before emitting a subtest names itself and the step exits non-zero", t => {
   const files = [{ name: "silent-hang.test.mjs", hang: true }];
-  const result = run(files, { PER_FILE_WALL_CLOCK_SECS: "1" });
+  const dir = mkdtempSync(join(tmpdir(), "faff-1049-watchdog-"));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  const startup = join(dir, "delay-after-kill.sh");
+  // Make the parent wake up before the watchdog executes its next statement.
+  writeFileSync(startup, `kill() {
+    builtin kill "$@" || return $?
+    if [ "$1" = "-9" ]; then sleep 1; fi
+  }
+`);
+  const result = run(files, { PER_FILE_WALL_CLOCK_SECS: "1", BASH_ENV: startup });
   assert.notEqual(result.code, 0);
   const errorLines = annotationLines(result.stdout);
   assert.ok(

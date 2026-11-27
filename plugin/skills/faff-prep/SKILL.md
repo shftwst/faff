@@ -336,15 +336,15 @@ Use **Delegated skill output handling**. Stage with `--mode interactive --fresh`
 - If there are open questions, note them and leave the issue in backlog
 - If clean (spec-review `approve` + confidence gate), **move the issue to Todo** — it's prepped and ready to be picked up
 
-**ADR promotion.** After attach, run this non-blocking tail step. Prep writes **no** repo files; `/faff-graft` materialises the ADR on its feature branch so it ships with the code:
+**ADR promotion.** After attachment, use the spec already in context. This tail step is non-blocking.
 
-1. Resolve `mode := faff config get adr.mode` (default `offer`). If `off` → skip.
-2. **Candidates** = the spec's `**Chosen:**` decisions that are *architecturally significant* — cross-slice and durable (constrains future slices), not local. v1 does **not** auto-classify; surface only decisions the spec already frames as significant. If none → skip.
-3. **Interactive:** `surface` → list the candidates (one line each) and stop. `offer` → a human-gated y/n per candidate; keep the confirmed set.
-4. **Autonomous (appetite-gated** — gateway → **Appetite for destruction**, the same dial that gates discovered/chain-gap auto-create): `low`/`medium` → surface only (list in the prep log, promote nothing); `high`/`full` → record every significant candidate (the ADR ships in the PR, so it is reviewable + revertible — not a side-effect outside the PR flow).
-5. **Record** the confirmed promotions as a tracker comment headed `## ADR promotion intent`, listing each decision (its title + the spec section it came from). `/faff-graft` reads this and materialises the ADRs on the feature branch via `faff adr new`. Prep writes nothing to the configured ADR directory.
+1. If the spec contains no Chosen decision (including `**Chosen:**`), skip promotion immediately. Otherwise read `faff config get adr.mode` (default `offer`); `off` skips.
+2. Keep only Chosen decisions the spec already frames as architecturally significant: durable choices that constrain future slices. Skip if none remain.
+3. Interactive `surface` lists one line per candidate. Interactive `offer` asks the human about each and keeps only confirmed choices.
+4. In autonomous prep, log candidates at `low` or `medium`. At `high` or `full`, promote every candidate; each ADR ships in the reviewable PR.
+5. Post confirmed promotions in one tracker comment headed `## ADR promotion intent`, with each decision's title and spec section. Graft uses `faff adr new` on its feature branch. Prep writes no ADR files.
 
-This is the L3 "offer + write-on-confirm" rung (the write deferred to graft); L4 (require-before-admit) is a separate rung, not implemented here.
+This offer-and-confirm step is separate from L4 require-before-admit.
 
 **Step 3: Chain to build**
 

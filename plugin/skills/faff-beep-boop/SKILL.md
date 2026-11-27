@@ -403,9 +403,9 @@ If no ledger resolves, the hook stays silent. A foreign running owner with a fre
 
 ## Run-event log (observability substrate)
 
-Alongside the terminal run-ledger, the orchestrator appends an **ordered timeline** of meaningful pipeline transitions to `.faff/runs/<run-id>/events.jsonl` — the structured surface `/faff-wtf`, the morning report, and the L4 runner will *consume* (this slice only **produces** it; nothing human-facing is rendered). The ledger is the end state; the event log is *how the run unfolded*. Emit each via `echo '<payload>' | faff events append --run <run-id>` — the CLI owns the envelope (`schema`/`run_id`/`seq`/`ts`); you supply only `{phase, type, issue?, data?}`. `seq` is the **authoritative** order — `ts` is annotation, never order by it. Append-only and **lock-serialised multi-writer** (every append takes an advisory lock and mints `seq` from the log's own tail, so the orchestrator, `contain --record`, lights-out, and the detached sentry poller can all append concurrently without duplicate seq), a logging **hard-floor** (written even under `logging: essential`). Emit at these existing boundaries — meaningful transitions only, never per-file/test/CI-poll micro-actions (`faff events validate` line-checks a log; `faff events read --run <run-id> [--type T] [--issue I]` is the thin reader for consumers). `data` keys outside a type's schema are dropped with a warning and named in `data.dropped_keys`; the allowed keys per type are in `verification/evidence/v0.3/schema/events/<type>.schema.json`:
+Emit the transitions below even under `logging: essential`. Pipe `{phase, type, issue?, data?}` JSON to `faff events append --run <run-id>`. The CLI serialises concurrent writers to `.faff/runs/<run-id>/events.jsonl` and supplies the envelope. Order by `seq`. Stick to the listed boundaries and the data keys in `verification/evidence/v0.3/schema/events/<type>.schema.json`; unknown keys are dropped and named in `data.dropped_keys`.
 
-**Run start — no separate emit step.** The genesis `run-start` row below is minted ATOMICALLY by `faff run-ledger init-self-drain` (or `mintLightsOut` at L4) as part of the run-dir mint itself, per _Run ledger_ → the mint paragraph — it is no longer a standalone `echo … | faff events append` step run *after* dir+ledger init. Listed here only so the table remains the complete transition inventory; there is nothing left to do at this row.
+**CLI-owned rows.** The run-dir mint emits `run-start`. `faff run checkpoint` owns `budget-checkpoint` and `sentry-checkpoint`; `faff run close` (or a fail-closed governance admit in `run open`) owns `run-end`. Let those commands emit and tag their rows once.
 
 | Transition | `phase` / `type` | `--tokens`? |
 |---|---|---|
@@ -414,16 +414,16 @@ Alongside the terminal run-ledger, the orchestrator appends an **ordered timelin
 | Issue admitted to the build queue (step 4) | `run` / `issue-admitted` (issue) | no |
 | Prep of an issue start/finish (step 3) | `prep` / `prep-start` · `prep-done` (issue) | done: **yes**; start: no |
 | Graft subagent dispatched (step 6) | `build` / `build-start` (issue) | no |
-| Graft subagent returns its token | `build` / `issue-outcome` (issue, `data.outcome`, + `data.gate`/`data.rework_turns` on a non-clean build) | **yes** |
+| Graft subagent returns its token | `build` / `issue-outcome` (issue, `data.outcome`, quality fields below) | **yes** |
 | Discovered-scope ticket filed (steps 7 / 8.0 / 10 — the shared filing mechanism) | `run` / `discovered-scope-filed` | no |
 | Budget checkpoint | `run` / `budget-checkpoint` (`data` = `BudgetState`) | **yes** |
 | Sentry checkpoint | `run` / `sentry-checkpoint` (`data` = the `faff sentry check` payload, verbatim) | no |
 | An issue is parked | `prep`\|`build` / `park` (issue) | **yes** |
 | Orchestrator exit (any path) | `run` / `run-end` | **yes** |
 
-**Token-tagging the phase-closers.** Pass `--tokens` on the **phase-closing** emissions above (the `--tokens`? column) — `echo '<payload>' | faff events append --run <run-id> --tokens --root "$measure_root" --session-id "$session_id"` (the pinned root+session — so the measurement resolves regardless of the current cwd). The CLI then injects `data.tokens` (the four-class delta `{input, output, cache_write, cache_read}` consumed since the run's last checkpoint) and `data.tokens_source` (`transcript` when metered, `estimate` — with `tokens: null` — when no transcript is readable) into the event, and advances the ledger checkpoint. Counts-only (never prompt/response payload); `schema` stays `1` (additive under the free-form `data`). This is what lets a token-usage pivot attribute spend to a phase **by event** (prep spend = `prep-done`'s delta; build+review = `issue-outcome`'s; tidy = `tidy-done`'s; residual orchestrator = `budget-checkpoint`/`run-end`) rather than guessing from a `ts` window. Do **not** tag the phase-*opening* events — their delta is ~0 and the transcript read is pure cost.
+**Token-tagging the phase-closers.** For rows marked **yes**, append with `--tokens --root "$measure_root" --session-id "$session_id"` using the pinned root and session. The CLI measures the delta since the last checkpoint, or records `tokens: null` with source `estimate` if unmetered. Omit these flags on opening events.
 
-**Quality-tagging the issue-outcome.** On the `issue-outcome` emission, also carry two optional `data` fields so `faff quality` can report park/rework/gate-catch: `data.gate` — the quality gate that caught a **non-shipped** build (`structural` | `adversarial` | `holdout` | `ci`, read from the build's return token / `review-verdict.json` / holdout verdict), omitted on a clean ship or a non-gate park; and `data.rework_turns` — the build's count of gate-driven fix-and-re-run loops (a clean first pass is `0`). Both are single scalars (non-leak), additive under the free-form `data`; `schema` stays `1`.
+**Quality-tagging the issue-outcome.** Set `data.rework_turns` to the observed number of gate-driven fix-and-rerun loops (zero on a clean first pass). Include `data.gate` only for a non-shipped build caught by `structural`, `adversarial`, `holdout` or `ci`, using the return token, `review-verdict.json` or holdout verdict.
 
 ## Explicit-list mode
 

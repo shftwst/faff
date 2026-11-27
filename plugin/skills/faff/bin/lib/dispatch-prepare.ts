@@ -48,9 +48,14 @@ function prepareBuild(unit: unknown, executor: string, root: string | undefined,
     const c = rating(member.confidence, "confidence");
     if (c && confidences.includes(c) && (!confidence || confidences.indexOf(c) > confidences.indexOf(confidence))) confidence = c;
   }
+  const wave = unit.wave;
+  if (wave !== undefined && (typeof wave !== "number" || !Number.isSafeInteger(wave) || wave < 1)) {
+    throw new Error("wave must be a positive safe integer");
+  }
   const resolved = resolve(root, tier, confidence);
   if ("error" in resolved) throw new Error(resolved.error);
   return {
+    ...(wave === undefined ? {} : { description_tag: "faff-build-wave:" + wave }),
     dispatch: { issues: [...issues], run_id, run_dir, session_id, mode_signal: "autonomous", model: resolved.model },
     agent_parameters: { run_in_background: executor === "parallel", ...(resolved.model === "inherit" ? {} : { model: resolved.model }) },
     effort_log: resolved.effort,

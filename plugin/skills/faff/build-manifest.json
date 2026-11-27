@@ -22,7 +22,7 @@
     "bin/lib/commissaire.ts": "27772e4ee5c55615e62a001e86c4f58a918a2c28d8d03c71b982db5c48260af3",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
     "bin/lib/discovered-scope-plan.ts": "d35a35defe898fdabdc65275209fdbe2e1e139e1ddb96c3aea9f2c934ff8cb05",
-    "bin/lib/dispatch-prepare.ts": "bbdcd2d5a8b085c6119dcdc878d61bee29b6542141142fee46e00d23e1d943a0",
+    "bin/lib/dispatch-prepare.ts": "517dd77f2690aa14e3b6eea550b33392c04936d3b5b9458848e00ca0becfa939",
     "bin/lib/dispatch-producer.ts": "eb3a3ecb99348e185db77e8796ca202c0ef312006f7478294a1a03a4347c446c",
     "bin/lib/dispatch-verify.ts": "d2034ebec5743352f7f598ff1e2467e151ba69111052bbd019f1e06abcd08cf1",
     "bin/lib/gates-progress.ts": "1b6a6a24ee5c19de679f18d85defef0871e8dcaef0a140f854e19a2001fc8394",
@@ -62,7 +62,7 @@
     "bin/lib/run-close.ts": "c9f138cfe8afa0d42c2ccea6c39d4705bbf20cc245a09b280344a105ee5db041",
     "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
     "bin/lib/run-open.ts": "50f6d5fcf0248162c058c126813b483da74bfda65af9909c5bfd8a29f3d76b48",
-    "bin/lib/run-request-metrics.ts": "944d6a5d34c377c8e0c61fc6fd3e2ba0d39bba3e89ccc0bf3298e5372e3636e4",
+    "bin/lib/run-request-metrics.ts": "9c93fd104e3aae318dcab9a69fb00cd69e2a8c2a0a19a82c59e73a0413e89002",
     "bin/lib/run-request-store.ts": "c3bf3a41699df62a003ae083542da0edaa6382f4309f935df43a7489e21a02aa",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
     "bin/lib/run-sdk-turns.ts": "d9dc0761d05fc7884c06124de2ea04058dda59a1d46365e4c0dddc7498a2673b",
@@ -92,7 +92,7 @@
     "bin/lib/commissaire.js": "f07665f5da14ddcb7f18e1223dceb50407854a662f1558f0b62ff5128dc96279",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
     "bin/lib/discovered-scope-plan.js": "6ea08ef35853a48c80d6759cd42b85a3cd0711224bd4ef4831abfc78d5e74523",
-    "bin/lib/dispatch-prepare.js": "b698c1bdb0b55e0a894e054d08097271d6bdc49facd6303474bd94659717a121",
+    "bin/lib/dispatch-prepare.js": "9963c3c98e3dba1738c01d4cb9e4ae7df5b4ca0c65b846f9cb75b03181c23443",
     "bin/lib/dispatch-producer.js": "23271a7a337197852dff686ad32880e08634ca4458316f00cb3745b8e2c8eb93",
     "bin/lib/dispatch-verify.js": "566d1bd51d73263b02ae6f0c163795e1e7231723d96923f6cc5011a7d9f1e336",
     "bin/lib/gates-progress.js": "403f7af8db98e136131c60f71d9321156ab240e08556e1961d51bd52d34a3ba9",
@@ -132,7 +132,7 @@
     "bin/lib/run-close.js": "801e7c8df1b67998be48a64587b5f80d92d6010948af4ae04b7c75a2c9d6f810",
     "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
     "bin/lib/run-open.js": "3ac4200575fdbd14e286713989a09b757cb12fe02f0830ed7c9460c889ac2234",
-    "bin/lib/run-request-metrics.js": "7090fde6efc2fb8d9654201b764ffce33d397f2ea1ae04126a4c59a907c1e93b",
+    "bin/lib/run-request-metrics.js": "08206dc5b32f03535f752d73256b133cfd804fa5de64c733beaca062fc92eae9",
     "bin/lib/run-request-store.js": "25083bb214768439d8b7605e1b7ac760cf2641becc9d1b25346063d20eda50cf",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
     "bin/lib/run-sdk-turns.js": "9d9fd643220af85c318391a7cd698a28a6d457251041771da428504719e3421b",
@@ -152,5 +152,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "e5433d68d4d8e3f6a2a4453b3163226a05c7585728a366aadb46958b34bf78a2"
+  "output_digest": "7c3f735a60054abc06271d4a663141d2cd65f1d3cc54ca7da5e4dd0e9a2338d5"
 }

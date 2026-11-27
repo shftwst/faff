@@ -143,6 +143,18 @@ function dispatchedIssue(launches, dispatches) {
     }
     return null;
 }
+// A relationship to a build dispatch can span inner review or verification work.
+function buildWaveOf(launches, tagged, dispatches) {
+    let id = sole(launches);
+    const seen = new Set();
+    while (id && !seen.has(id)) {
+        seen.add(id);
+        if (tagged.has(id))
+            return tagged.get(id) ?? null;
+        id = dispatches.get(id)?.parent ?? null;
+    }
+    return null;
+}
 function boundaries(events, allowed) {
     const windows = phaseWindowsFromEvents(events);
     return windows.filter(w => allowed.has(w.issue)).map(w => ({ issue: w.issue, phase: w.phase,
@@ -241,6 +253,7 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
     const standaloneIssue = standalone && allowed.has(standalone) ? standalone : null;
     const candidates = new Map();
     const dispatches = new Map();
+    const tagged = new Map();
     const issued = new Map();
     const returns = new Map();
     const verifications = new Map();
@@ -353,6 +366,14 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
                         const calls = issued.get(id) ?? new Set();
                         calls.add(b.id);
                         issued.set(id, calls);
+                        const description = typeof input.description === "string" ? input.description : "";
+                        const tags = [...description.matchAll(/(?:^|\s)faff-build-wave:([^\s]+)/g)];
+                        if (tags.length) {
+                            const match = tags[0]?.[1] ?? "";
+                            const number = Number(match);
+                            const value = tags.length === 1 && /^[1-9][0-9]*$/.test(match) && Number.isSafeInteger(number) ? number : null;
+                            tagged.set(b.id, tagged.has(b.id) && tagged.get(b.id) !== value ? null : value);
+                        }
                         rememberDispatch(dispatches, b.id, input.description, parentId, allowed);
                     }
                     for (const key of [input.issue, input.id, input.issueId]) {
@@ -377,13 +398,16 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
         for (const w of waves)
             if (w.start <= r.ms && r.ms <= w.end)
                 r.waves.add(w.wave);
-        const wave = sole(r.waves);
+        const buildWave = buildWaveOf(r.launches, tagged, dispatches);
+        const wave = buildWave ?? sole(r.waves);
         const active = windows.filter(w => (!directIssue || w.issue === directIssue) && w.start <= r.ms && r.ms <= w.end);
         const phase = sole(new Set(active.map(w => w.phase))) ?? (directIssue && directIssue === standaloneIssue ? "build" : null);
         const interval = Boolean(issue) && active.some(w => w.issue === issue && w.phase === "build" && (verifications.get(w.issue) ?? []).some(v => v >= w.start && v <= r.ms &&
             (handoffs.get(w.issue) ?? []).some(h => h >= r.ms && h <= w.end)));
         const row = { id: hash(r.id), at: new Date(r.ms).toISOString(), role: r.role, model: r.model,
             issue, wave, phase, verification_to_handoff: interval || null, turn_id: r.turn, usage: r.usage };
+        if (buildWave !== null)
+            row.enclosing_build_wave = buildWave;
         const dispatch = sole(r.launches);
         if (dispatch)
             row.worker_dispatch_id = hash(sessionId + "\0" + dispatch);
@@ -391,7 +415,8 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
         if (calls)
             row.worker_handoffs = [...calls].map(call => {
                 const result = returns.get(call);
-                return { dispatch_id: hash(sessionId + "\0" + call), returned_at: result?.at ?? null,
+                const build = tagged.get(call);
+                return { ...(build ? { build_wave: build } : {}), dispatch_id: hash(sessionId + "\0" + call), returned_at: result?.at ?? null,
                     returned_text_bytes: result?.bytes ?? null, is_error: result?.error ?? null };
             });
         records.push(row);

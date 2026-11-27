@@ -194,3 +194,13 @@ test("both default executor paths use the CLI and the shared build worker prompt
   const kernel = readSkill("faff", "references", "kernel.md");
   assert.match(kernel, /\*\*Voice clause\.\*\*.*House voice:/);
 });
+
+test("wave tags preserve the cluster description and do not change execution options", t => {
+  const root = configRoot(t, BUILD_CONFIG);
+  const unit = inputFor([{issue:"FAFF-5"}]);
+  for (const executor of ["parallel","sequential"]) {
+    const ordinary = parseSuccess(prepare(root,executor,unit));
+    assert.deepEqual(parseSuccess(prepare(root,executor,{...unit,wave:3})), {...ordinary,description_tag:"faff-build-wave:3"});
+  }
+  for (const wave of [0,-1,1.5,"2",null]) expectRefusal(prepare(root,"parallel",{...unit,wave}),/wave/);
+});

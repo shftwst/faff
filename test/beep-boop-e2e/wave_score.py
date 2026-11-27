@@ -8,6 +8,7 @@ from pathlib import Path
 
 A, B, C, HUMAN, D = ("KIT-" + str(n) for n in range(17, 22))
 BUILT = (A, B, D)
+GENERIC_STOPS = ("queue-drained", "all-remaining-parked")
 BULK = re.compile(r"batch|bulk|array|vector|multiple counts", re.I)
 
 
@@ -214,6 +215,15 @@ def score(arm, mode="sequential"):
           sorted(ledger["admitted"]) == sorted(built) and all(ledger["outcomes"][i] == "shipped" for i in built)
           and ledger["discovered_scope_filed"] == 1 and ledger["stop_reason"] == "converged/both-dry"
           and ledger["owner"]["status"] == "done" and len(ev("run-end")) == 1)
+
+    def ledger_agrees_with_wave_record():
+        waves = sorted((d for d in run.glob("wave-*") if re.fullmatch(r"wave-\d+", d.name)),
+                       key=lambda d: int(d.name[5:]))
+        if not waves:
+            return True
+        latest = read(waves[-1] / "run-done.json", {}).get("stop_reason")
+        return latest is None or ledger["stop_reason"] not in GENERIC_STOPS
+    check("ledger_stop_reason_agrees_with_latest_wave_record", ledger_agrees_with_wave_record)
 
     def scope_recorded():
         entries = read(run / A / "discovered-scope.json", [])

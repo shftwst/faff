@@ -212,11 +212,13 @@ test("attributes CLI diagnostic text only to the matched Bash request, independe
     assistant("parent",11,[call("shared","Bash")]),
     assistant("worker",12,[call("shared","Read")],{parent_tool_use_id:"agent"}),
     assistant("help",13,[call("help","Bash")]),
+    assistant("missing",14,[call("operand","Bash")]),
     ret("shared",[{type:"text",text:diagnostic}]),ret("shared",diagnostic,"agent"),
     ret("help","usage: faff eligible [--label L]"),
+    ret("operand","faff: too-few-positionals: spec-file is required\nusage: faff punt-scan <spec-file>"),
   ]);
   const rows=f.report().records;
-  assert.deepEqual(rows.map(r=>r.bash_cli_usage_diagnostic),[true,false,false]);
-  assert.deepEqual(rows.map(r=>Object.values(r.tool_outcome_bits)),[[1],[1],[1]]);
+  assert.deepEqual(rows.map(r=>r.bash_cli_usage_diagnostic),[true,false,false,true]);
+  assert.deepEqual(rows.map(r=>Object.values(r.tool_outcome_bits)),[[1],[1],[1],[1]]);
   assert.doesNotMatch(JSON.stringify(rows),/--private|usage: faff/);
 });

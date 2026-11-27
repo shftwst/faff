@@ -60,7 +60,7 @@ interface Candidate {
 // A matching excerpt can also come from a test or a log. Record its presence only.
 function hasCliUsageDiagnostic(content: unknown): boolean {
   const matches = (text: unknown) => typeof text === "string" &&
-    /^faff: (?:unknown-flag|bad-enum|missing-value|too-many-positionals|duplicate-flag|bad-value):[^\n]*\n(?:faff: [^\n]*\n)*usage: faff [a-z][a-z0-9-]*\b/m.test(text);
+    /^faff: (?:unknown-flag|bad-enum|bad-arity|missing-value|too-few-positionals|too-many-positionals|duplicate-flag|bad-value):[^\n]*\n(?:faff: [^\n]*\n)*usage: faff [a-z][a-z0-9-]*\b/m.test(text);
   return matches(content) || (Array.isArray(content) && content.some(item => matches(obj(item).text)));
 }
 function projectedUsage(raw: unknown): Usage {

@@ -22,6 +22,7 @@ test("critical, unavailable and incomplete rounds share a procedure, while clean
   assert.match(procedure, /build-review-round record/);
   assert.match(procedure, /build-judge-evidence --assemble/);
   assert.match(procedure, /resume-store prepare-hold/);
+  assert.match(procedure, /Outage evidence stays `unavailable`.*Park and return `needs-human`/);
   assert.doesNotMatch(review, /build-review-round record|build-judge-evidence --assemble|resume-store prepare-hold/);
   assert.match(review, /For Phase-2 criticals retain round 1 or the resumed `next_round`/);
   assert.match(review, /Remote-backed review diff/);

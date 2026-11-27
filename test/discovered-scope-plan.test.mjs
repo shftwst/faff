@@ -127,3 +127,20 @@ test("help gives a usable filing example without a tracker or input", t => {
   assert.equal(planned.containment, "contained");
   assert.equal(planned.proposal.parent, "B");
 });
+
+test("only direct placement and new roots can omit ancestry, including audited plans", t => {
+  const root = repo(t);
+  const dir = join(root, ".faff", "runs", "base-cases");
+  mkdirSync(dir, { recursive: true });
+  const { ancestry, ...facts } = base;
+  const direct = { ...facts, parent: facts.mandate };
+  assert.equal(result(root, direct, "--record", "base-cases").containment, "contained");
+  assert.equal(result(root, { ...facts, parent: null }, "--record", "base-cases").action, "surface");
+  const refused = invoke(root, facts, "--record", "base-cases");
+  assert.equal(refused.status, 2);
+  assert.match(refused.stderr, /--ancestry.*required/);
+  assert.equal(invoke(root, { ...direct, ancestry: "invalid" }).status, 2);
+  const checks = readFileSync(join(dir, "events.jsonl"), "utf8").trim().split("\n")
+    .map(JSON.parse).filter(event => event.type === "containment-check");
+  assert.deepEqual(checks.map(e => [e.data.verdict, e.data.ancestry_raw]), [["contained", null], ["outward", null]]);
+});

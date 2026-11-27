@@ -15,7 +15,7 @@ Use the code-stage adversarial reviewer's independent-model transport.
 
 ## When it runs
 
-Invoked at the same spec→build-admission seam the default `spec_review` occupant wires: after the spec is produced and confidence-rated, before promote-to-build. The consumer (faff-prep) locates this producer's `faff-contract:spec-review-verdict` block, `JSON.parse`s it, pipes it to `faff contract spec-review-verdict`, and routes on the verdict. Select it in the L4 recipe:
+Prep invokes this occupant after rating the spec and before build promotion. Its round recorder validates the returned block and routes on the verdict. Select it in the L4 recipe:
 
 ```yaml
 slots:
@@ -66,7 +66,7 @@ A taste-level objection without a separately stated consequence uses `predicted_
 
 ## Output (the contract artifact)
 
-Forward the single fenced block from dispatch or the retry aggregate unchanged. The consumer pipes its JSON to `faff contract spec-review-verdict`.
+Forward the single fenced block from dispatch or the retry aggregate unchanged.
 
 ```faff-contract:spec-review-verdict
 { "verdict": "reject-approach", "objections": [ { "lens": "architectural", "severity": "blocker" } ] }

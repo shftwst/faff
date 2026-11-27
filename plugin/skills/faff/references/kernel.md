@@ -280,12 +280,12 @@ For validation, invoke `faffter-dark-authoring-adaptors` via the Skill tool, res
 
 Optional preflight, recommended before unattended runs: `faff validate-adapters --configured` (resolve executable per **Resolver**) reads config, structurally checks configured non-shipped occupants and exits non-zero on drift. It shares the bundled/foreign classification. A clean result clears structural faults only; the runtime Validate face still performs semantic checks. Consumers already load this rule, so delegating sub-skills apply it without restatement.
 **Producer contract consumption.**
-For each row below, the producer emits the named artifact block; the consumer locates it by info-string, `JSON.parse`s it and pipes the extraction to the listed command. That command is the sole source of contract data. Its `--describe` supplies canonical semantics and envelope; branch on its output. Review, spec-review, delivery and spec-readiness have no paired adaptor slots.
+Each producer emits the named block. For `faff contract`, locate the info-string, JSON-parse the body and pipe it to the command. Its `--describe` defines the contract. Prep passes the full spec-review output to the round recorder, which validates and routes it. These contracts have no paired adaptor slots.
 
 | Producer | Block info-string | Consumer and command | Absent-block handling |
 |---|---|---|---|
 | `review` | `faff-contract:review-verdict` | graft Step 9: `faff contract review-verdict` | Extract native `signal:` / `## Findings` prose into the same JSON, or use the fused wrapper. This fallback remains an LLM seam |
-| `spec_review` (default `faffter-noon-spec-review`) | `faff-contract:spec-review-verdict` | prep Spec-review gate: `faff contract spec-review-verdict` | Absent/garbled block or exit 1/2 parks as `needs-human`; exit 0 routes on verdict |
+| `spec_review` (default `faffter-noon-spec-review`) | `faff-contract:spec-review-verdict` | prep: `faff spec-review round` or `dispatch --record-round` | Follow the recorded action; absent/garbled blocks cannot approve |
 | `ship` | `faff-contract:delivery-outcome` | graft Step 10: `faff contract delivery-outcome` | Wrap a native tool that cannot emit the block with the fused wrapper |
 | `spec` | `faff-contract:spec-readiness` | prep: `faff contract spec-readiness` | Extract native prose into the same JSON, or use the fused wrapper |
 

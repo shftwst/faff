@@ -20,8 +20,7 @@ Walk exactly the selected lenses, collect objections and emit one founded verdic
 Without a selected set, run all four. The consumer owns selection; `infosec` and
 `QA` always fire at L1-L3. This occupant does not launch adversarial refuters.
 
-This producer owns reasoning and the roll-up below. The consumer runs
-`faff contract spec-review-verdict` for shape validation; do not repeat it here.
+This producer owns reasoning and roll-up. Prep validates the block when recording the round.
 
 ## Inputs
 
@@ -74,10 +73,7 @@ Where a `reject-approach` routes (prep vs plot) is the **consumer's** concern, c
 
 ## Output (the contract artifact)
 
-Emit exactly one `faff-contract:spec-review-verdict` block. The consumer locates
-and JSON-parses it, then pipes it to `faff contract spec-review-verdict`, the sole
-source of contract data and validation. Canonical semantics:
-`faff contract spec-review-verdict --describe`.
+Emit exactly one `faff-contract:spec-review-verdict` block. See `faff contract spec-review-verdict --describe` for canonical semantics.
 
 ```faff-contract:spec-review-verdict
 { "verdict": "approve", "objections": [] }

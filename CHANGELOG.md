@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.46.1](https://github.com/shftwst/faff/compare/faff--v0.46.0...faff--v0.46.1) (2026-11-27)
+
+
+### Bug Fixes
+
+* **economics:** isolate MCP cache attribution by worker ([#1384](https://github.com/shftwst/faff/issues/1384)) ([c5289db](https://github.com/shftwst/faff/commit/c5289db590db4947dbcf791ec9081bf7e65663cd))
+* **run:** keep the convergence decision when closing a beep-boop run ([#1369](https://github.com/shftwst/faff/issues/1369)) ([66f85b6](https://github.com/shftwst/faff/commit/66f85b6d7671a2dadaf4599b37cbe4e152ae6092))
+
 ## [0.46.0](https://github.com/shftwst/faff/compare/faff--v0.45.0...faff--v0.46.0) (2026-11-27)
 
 

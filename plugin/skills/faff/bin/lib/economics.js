@@ -19,7 +19,7 @@
 
 const fs = require("node:fs");
 const path = require("node:path");
-const { nativeResponseId, readMeteredTranscript, BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, byModelClassTotal, childOwningSession, classCountsFromUsage, closedSessionsSpend, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
+const { nativeResponseId, readMeteredTranscript, BUDGET_NON_ATTEMPT_OUTCOMES, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, attemptsFromLedger, byModelClassTotal, ownedChildTranscriptFiles, classCountsFromUsage, closedSessionsSpend, currentOpenSpan, economicsPriceForModel, envelopeFrom, envelopeFromLedger, measureRunSpend, readGovernanceConfig, resolveEconomicsPriceMap, sessionOwnedTranscriptFiles, sumTranscriptFile, transcriptBaseDir } = require("./budget");
 const { unmeteredFleetEngines } = require("./backends");
 const { EFFORT_LEVELS } = require("./events");
 const { dig, findRoot, latestRunDir, readLedger } = require("./shared-infra");
@@ -178,15 +178,11 @@ function computeUnitEconomics(ledger, opts) {
 // silently on a missing/unparseable meta, a description carrying no issue id, or
 // a foreign/stale id. Returns the IssueCost list (empty when nothing matched —
 // an expected, non-fatal fallback; run-level figures never depend on it).
-function attributePerIssueCosts(base, sid, ledger, price) {
+function attributePerIssueCosts(base, sid, ledger, price, runStartMs) {
   const outcomes = (ledger && ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
-  let entries = [];
-  try { entries = fs.readdirSync(base); } catch { return []; }
+  const meter = ledger?.transcript_meter;
   const byIssue = new Map();
-  for (const name of entries) {
-    if (!/^agent-.*\.jsonl$/.test(name)) continue;
-    const f = path.join(base, name);
-    if (childOwningSession(f) !== sid) continue; // this run's owned children only
+  for (const f of ownedChildTranscriptFiles(base, sid, meter ? runStartMs : null, meter)) {
     let meta;
     try { meta = JSON.parse(fs.readFileSync(f.replace(/\.jsonl$/, ".meta.json"), "utf8")); } catch { continue; }
     const issue = economicsAttributeIssue(meta && meta.description, outcomes);
@@ -1060,7 +1056,7 @@ function readRunTranscriptRecords(cwd, env, runStartMs, meter) {
 }
 
 function readRunTranscriptRecordsByFile(cwd, env, runStartMs, meter) {
-  const files = sessionOwnedTranscriptFiles(transcriptBaseDir(cwd, env), env.CLAUDE_CODE_SESSION_ID, runStartMs);
+  const files = sessionOwnedTranscriptFiles(transcriptBaseDir(cwd, env), env.CLAUDE_CODE_SESSION_ID, runStartMs, meter);
   if (!files) return { files: [], source: "estimate" };
   return { files: files.map((file, i) => ({ file, is_main: i === 0, records: readMeteredTranscript(file, meter) })), source: "transcript" };
 }
@@ -1412,7 +1408,7 @@ function economicsCore(runDir, ledger, { root, sessionIdFlag = null, baseEnv = p
   let perIssue = [];
   if (tokensSource === "transcript") {
     const sid = effectiveEnv.CLAUDE_CODE_SESSION_ID;
-    if (sid) perIssue = attributePerIssueCosts(transcriptBaseDir(root, effectiveEnv), sid, ledger, price);
+    if (sid) perIssue = attributePerIssueCosts(transcriptBaseDir(root, effectiveEnv), sid, ledger, price, runStartMs);
   }
 
   // FAFF-427: under map pricing, the top-line cost is THIS RUN's per-model spend

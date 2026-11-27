@@ -22,6 +22,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const childProcess = require("node:child_process");
+const { evidenceSection } = require("./evidence-collate");
 const argvApi = require("./argv");
 const ghApi = require("./merge-gate-gh");
 const floorApi = require("./merge-gate-floor");
@@ -38,12 +39,12 @@ const ISSUE_RE = /^[A-Za-z0-9][A-Za-z0-9._-]*$/;
 const PR_OPEN_SPEC = {
     flags: {
         "--run-dir": { arity: 1 }, "--issue": { arity: 1 }, "--base": { arity: 1 }, "--title": { arity: 1 },
-        "--body-file": { arity: 1 }, "--append-ac-checklist": { arity: 0 }, "--spec-review-evidence": { arity: 1 }, "--json": { arity: 0 },
+        "--body-file": { arity: 1 }, "--append-ac-checklist": { arity: 0 }, "--spec-review-evidence": { arity: 1 }, "--spec-review-fallback": { arity: 1 }, "--json": { arity: 0 },
     },
 };
 const HUMAN_ONLY_ACS = "human-only-acs.json";
 const LEVELS = ["L1", "L2", "L3", "L4"];
-const PR_OPEN_USAGE = "usage: faff pr open --run-dir DIR --issue ID --base BRANCH --title T --body-file FILE [--append-ac-checklist] [--spec-review-evidence FILE] [--json]";
+const PR_OPEN_USAGE = "usage: faff pr open --run-dir DIR --issue ID --base BRANCH --title T --body-file FILE [--append-ac-checklist] [--spec-review-evidence FILE] [--spec-review-fallback SPEC] [--json]";
 // --- Helpers ---------------------------------------------------------------------------------------
 function isRecord(v) {
     return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -245,11 +246,12 @@ function runPrOpen(opts, deps) {
     const runId = path.basename(runDir.replace(/[\\/]+$/, ""));
     const dest = `.faff/anchors/${runId}/${issue}/`;
     // 6. The spec-review evidence floor file (best-effort).
-    if (opts.specReviewEvidence !== null) {
-        const evidence = deps.readFile(opts.specReviewEvidence);
+    const evidenceFile = opts.specReviewEvidence ?? opts.specReviewFallback;
+    if (evidenceFile) {
+        const evidence = deps.readFile(evidenceFile);
         if (evidence === null)
-            warnings.push(`spec-review evidence ${opts.specReviewEvidence} is unreadable; no spec-review-verdict.json written`);
-        else {
+            warnings.push(`spec-review evidence ${evidenceFile} is unreadable; no spec-review-verdict.json written`);
+        else if (opts.specReviewEvidence != null || evidenceSection(evidence) !== null) {
             const w = deps.faff(["evidence", "write", "spec-review-verdict", "--run-dir", runDir, "--issue", issue], evidence, DEFAULT_TIMEOUT_MS);
             if (w.status !== 0)
                 warnings.push(`faff evidence write spec-review-verdict exited ${String(w.status)}: ${firstLine(w.stderr)}`);
@@ -538,6 +540,7 @@ function cmdPrOpen(args) {
         bodyFile: get("--body-file"),
         appendAcChecklist: parsed.values["--append-ac-checklist"] === true,
         specReviewEvidence: str(parsed.values["--spec-review-evidence"]),
+        specReviewFallback: str(parsed.values["--spec-review-fallback"]),
     };
     return emit(json, runPrOpen(opts, defaultDeps(process.cwd())));
 }

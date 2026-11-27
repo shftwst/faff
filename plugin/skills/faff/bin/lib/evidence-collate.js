@@ -281,6 +281,6 @@ function collateReviewRounds(rounds, terminalSignal, park) {
 }
 
 module.exports = {
-  EvidenceRefusal, applyDispositions, collateReviewRounds, collateSpecReviewRounds, resolvedRoundIds, conformantRound, extractSpecReviewEvidence,
+  EvidenceRefusal, evidenceSection, applyDispositions, collateReviewRounds, collateSpecReviewRounds, resolvedRoundIds, conformantRound, extractSpecReviewEvidence,
   parseSpecReviewComment, renderSpecReviewComment,
 };

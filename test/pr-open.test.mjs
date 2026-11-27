@@ -372,6 +372,26 @@ test("best-effort warnings", () => {
   assert.ok(unreadable.r.warnings.some((w) => /unreadable/.test(w)));
 });
 
+test("committed spec fallback only submits an evidence section; an explicit comment always wins", () => {
+  const files = { "spec.md": "# Spec\n", "comment.md": "malformed comment" };
+  const opts = { specReviewFallback: "spec.md" };
+  const absent = run({ files }, opts);
+  assert.equal(absent.r.token, "opened");
+  assert.deepEqual(absent.r.warnings, []);
+  assert.ok(!absent.calls.includes("evidence-write"));
+
+  files["spec.md"] += "### Spec-review evidence\r\n";
+  const malformed = run({ files, resp: { "evidence-write": exit(1, "missing fence") } }, opts);
+  assert.equal(malformed.inputs["evidence-write"], files["spec.md"]);
+  assert.match(malformed.r.warnings.join(" "), /missing fence/);
+
+  const comment = run({ files }, { ...opts, specReviewEvidence: "comment.md" });
+  assert.equal(comment.inputs["evidence-write"], files["comment.md"]);
+  const missing = run({ files }, { ...opts, specReviewEvidence: "missing.md" });
+  assert.match(missing.r.warnings.join(" "), /unreadable/);
+  assert.ok(!missing.calls.includes("evidence-write"));
+});
+
 test("temp-file cleanup", () => {
   const paths = [
     {}, { check: () => ({ ok: false, violations: [] }) }, { resp: { "pr-list": exit(1) } },

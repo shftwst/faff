@@ -129,3 +129,15 @@ test("wave prep includes reachable dependents and respects every external blocke
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(JSON.parse(result.stdout).prep, ["KIT-18", "KIT-17", "KIT-26"]);
 });
+
+test("prep plan retains waits through specced issues and admits independent roots together", t => {
+  const blocked = (id, blockers, facts = {}) => issue(id, { blocked: true, open_blockers: blockers, ...facts });
+  const result = cli(fixture(t), [...args, "--plan"], snapshot([
+    blocked("C", ["bridge"]), blocked("bridge", ["a"], { status: "todo", spec: "high" }),
+    issue("A"), issue("B"), blocked("D", ["outside"]),
+  ]));
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(JSON.parse(result.stdout), {
+    prep: ["C", "A", "B"], wait_for: { C: ["A"], A: [], B: [] },
+  });
+});

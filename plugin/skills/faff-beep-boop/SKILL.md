@@ -149,17 +149,17 @@ Invoke the `faff-tidy` skill via the Skill tool (resolve per gateway → **Sibli
 
 Gather live Backlog/pre-Todo work, stale or superseded Todo specs (treat as missing), and specced Todo prerequisites. Exclude cancelled and archived issues (Linear backlog, `includeArchived: false`; GitHub open). Include all open blocker IDs.
 
-Send ordered `{complete:true,issues:[{id,status,spec,labels,blocked,open_blockers,awaiting_spec_review?}]}` to `faff next prep-queue` on stdin with live labels and **Next-step transition** tokens. Dispatch the returned `prep` IDs. In git-only mode take `awaiting_spec_review` from `faff prepcheck --issue <id> --json`. On a batch error with complete observations, log it and use the per-issue transition for unblocked candidates only.
+Send ordered `{complete:true,issues:[{id,status,spec,labels,blocked,open_blockers,awaiting_spec_review?}]}` to `faff next prep-queue --plan` on stdin with live labels and **Next-step transition** tokens. Dispatch the returned `prep` IDs. In git-only mode take `awaiting_spec_review` from `faff prepcheck --issue <id> --json`. On a batch error with complete observations, log it and use the per-issue transition for unblocked candidates only.
 
 Prep and graft still enforce eligibility. An issue skipped here never enters `admitted`.
 
 ### 3. Prep queue drain
 
-**Foreground-to-terminal (in-flight marker).** The faff-prep dispatch is foreground-awaited — `run_in_background: false` where the harness supports it, **never** `run_in_background: true` — and the drain **never** ends a turn on a "prep agents running" progress report: it ends only with the prep queue drained or a sanctioned hold. This is the local, prep-dispatch-site instance of the orchestrator's **Turn-survival invariant** (_Isolation floor_, below), which already states this posture and the in-flight-marker obligation and binds this prep path — do not restate it here.
+Use the returned `wait_for` map. Start the first queued issue whose prep prerequisites have all reconciled as refreshed or promoted. Defer dependents of any other outcome, including a review hold. On the per-issue fallback, each unblocked candidate has no waits. Build admission still checks live blockers after the drain.
 
-Bracket each dispatch with a per-dispatch **in-flight marker** for enumeration/observability — a stranded prep is then visible to `inflightcheck` and to `faff disposition`, not only to `turncheck`'s state check, which already refuses the mid-prep turn-end — mirroring faff-prep's spec-review fan-out (`faff-prep/SKILL.md:167`): `faff inflightcheck --open --key <candidate> --describe prep` before the dispatch, and `faff inflightcheck --close --key <candidate>` after the reconcile below consumes the return.
+With tracker-backed prep and the configured parallel executor, fill up to `concurrency_max` free slots with independent issues. Dispatch one foreground Agent per issue to invoke autonomous `faff-prep` via the Skill tool, with the owning run directory and issue-specific scratch. Return only the issue, outcome and recovery artifact path. Reconcile each completion and checkpoint before refilling. If only grouped foreground returns are available, await the group. For git-only prep, other executors or a harness without isolated foreground workers, invoke the Skill sequentially.
 
-For each candidate, invoke the `faff-prep` skill via the Skill tool in autonomous mode (foreground-awaited per the posture above; open its in-flight marker first). Possible returns per `skills/faff-prep/SKILL.md` autonomous section:
+Open `faff inflightcheck --open --key <candidate> --describe prep` before each dispatch. Keep every dispatch foreground-to-terminal (`run_in_background: false`), including outstanding workers on interrupt. Never end the turn with prep agents running. Possible returns per `skills/faff-prep/SKILL.md` autonomous section:
 - `refreshed` — spec updated, issue stays in Todo (contributes to build queue)
 - `promoted` — fresh high-confidence spec, moved to Todo (contributes to build queue)
 - `promoted-needs-review` — medium-confidence spec attached (rating retained) and moved to Todo; it joins the candidate set but its verdict is `needs-decision-first`, so it routes out of the build queue and surfaces in the morning brief rather than auto-building

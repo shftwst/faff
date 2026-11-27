@@ -172,6 +172,13 @@ And the close result reports stop_reason_adopted false
 
 **Assumes:** `writeOwnerOnlyJson` from shared-infra writes a temp file beside the target and does not create directories. Validate by reading it; the writer therefore creates `wave-<N>` first with the existing owner-only directory helper in `shared-infra.js` (`ensureOwnerOnlyDir`, mode 0700), validating its name and signature before use.
 
+## Rule inventory
+
+| Prose rule | Command behaviour | Covering test | Disposition |
+|---|---|---|---|
+| `Log each wave's admissions, drain count` | Wave consult saves its decision in the wave directory. | test/run-wave-consult.test.mjs | changed: identifies the saved decision alongside the wave log |
+| `Otherwise it appends the run-end event` | Close uses a fresh terminal decision for a generic stop token. | test/run-close.test.mjs | changed: specifies which stop reason close records |
+
 ## 8. DONE
 
 ### From WHY

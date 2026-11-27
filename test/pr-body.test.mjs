@@ -180,6 +180,7 @@ test("faff-graft SKILL.md Step 9b: the git-only no-op guard precedes the faff pr
   assert.ok(gitOnlyIdx >= 0, "git-only no-op guard sentence not found in Step 9b");
   assert.ok(openIdx >= 0, "faff pr open invocation not found in Step 9b");
   assert.ok(gitOnlyIdx < openIdx, "git-only no-op guard must precede the faff pr open call");
+  assert.ok(section.includes('--base "${base#origin/}"'), "pass the forge branch name from the resolved review ref");
   assert.match(section, /--body-file/);
   assert.doesNotMatch(section, /pr-body sanitize --target/, "Step 9b no longer runs the sanitizer itself");
 });

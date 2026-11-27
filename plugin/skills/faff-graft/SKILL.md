@@ -402,14 +402,14 @@ This step runs in **both** interactive and autonomous modes.
 
 **Step 9b: Open the PR (after review `pass` — identical interactive + autonomous)**
 
-Reached **only** when Step 9 returned `pass`: the single PR-creation point, the same in both modes. **Git-only mode: no-op** — no remote to open a PR against, so this step composes no PR body and runs nothing; proceed straight to Step 10.
+After Step 9 returns `pass`, open the PR here. **Git-only mode: no-op** — no remote to open a PR against, so this step composes no PR body and runs nothing; proceed straight to Step 10.
 
 1. **Evidence.** Save the newest issue comment beginning `## Spec-review evidence`, else the Step 4 committed spec, at an absolute `$evidence` path. Leave it unset if neither exists.
 2. **Draft and title.** Write the PR prose to an absolute `$draft` path. The command appends the Acceptance Criteria from the committed anchor before checking the full body. If the Step 8 writer refused, omit `--append-ac-checklist` and include only the refusal reason under `## Acceptance Criteria`. Resolve `$pr_title` using `faff conventions get pr_title` and the build change; the anchor chore is the eventual head.
 3. **Open from the feature worktree**, then delete the draft:
 
 ```bash
-(cd -- "$wt" && "$faff" pr open --run-dir "$run_dir" --issue "$issue" --base "$base" --title "$pr_title" \
+(cd -- "$wt" && "$faff" pr open --run-dir "$run_dir" --issue "$issue" --base "${base#origin/}" --title "$pr_title" \
   --body-file "$draft" --append-ac-checklist ${evidence:+--spec-review-evidence "$evidence"} --json)
 ```
 

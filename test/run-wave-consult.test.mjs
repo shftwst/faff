@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, mkdirSync, readFileSync, statSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { runCli } from "./helpers/run-cli.mjs";
@@ -81,4 +81,32 @@ test("rejects mixed modes, fabricated queue facts, invalid checkpoint and ambigu
   }
   assert.equal(call([...tracker, "--no-prd"], {outcome:"",breached:[]}).code, 2);
   assert.deepEqual(result([...tracker, "--no-prd"], null).warnings, ["budget-unavailable"]);
+});
+test("a consult writes wave-N/run-done.json for run-complete, continue and escalate, with capture off", t => {
+  const {dir, ledger, result} = setup(t);
+  const file = n => path.join(dir, "wave-" + n, "run-done.json");
+  const read = n => JSON.parse(readFileSync(file(n), "utf8"));
+  const digest = read => read.ledger_digest;
+  const done = result([...tracker, "--no-prd"]);
+  const rec = read(4);
+  assert.deepEqual(Object.keys(rec).sort(), ["correlation_id","ledger_digest","reason","run_id","stop_reason","verdict","wave"]);
+  assert.deepEqual([rec.run_id, rec.wave, rec.verdict, rec.reason, rec.stop_reason, rec.correlation_id],
+    ["run-test", 4, "run-complete", "drained", "converged/both-dry", done.correlation_id]);
+  assert.match(digest(rec), /^[0-9a-f]{64}$/);
+  assert.equal(statSync(file(4)).mode & 0o077, 0);
+  const keep = ["--policy", '{"ladder":[{"test":"clean-complete","verdict":"continue"}]}'];
+  result([...tracker, "--no-prd", ...keep]);
+  assert.deepEqual([read(4).verdict, read(4).stop_reason], ["continue", null]);
+  result([...tracker, "--no-prd"], {outcome:"escalate",breached:["tokens"]});
+  assert.deepEqual([read(4).verdict, read(4).stop_reason], ["escalate", "budget-escalated(tokens)"]);
+  writeFileSync(ledger, "{");
+  result([...tracker, "--no-prd"]);
+  assert.equal(read(4).ledger_digest, null);
+});
+test("an unwritable wave directory adds run-done-record-unwritable and keeps exit 0", t => {
+  const {dir, result} = setup(t);
+  writeFileSync(path.join(dir, "wave-4"), "not a directory");
+  const out = result([...tracker, "--no-prd"]);
+  assert.deepEqual(out.warnings, ["run-done-record-unwritable"]);
+  assert.equal(out.verdict, "run-complete");
 });

@@ -384,10 +384,11 @@ Annotations add detail outside the completeness check. **Reporting** uses them t
   | `3` | Governance failed closed: `run open` already appended `run-end` (`governance-admit-failed`) and closed the owner, and no build starts. On an adopted run that already had admitted work, run `faff runcheck "$FAFF_RUN_DIR" --json` and park each issue in its `undispatched` per the shared protocol (cause `governance-admit-failed`), so the done run trips no Stop hook. Then go to `## Reporting` (`run summary`); do not call `run close`. |
   | `2`, or unparseable output | Log it and park per the shared protocol, as a mint failure; dispatch nothing. |
 - Tick `faff heartbeat "$FAFF_RUN_DIR"` at every wave and issue boundary. Pass `run_dir` in each `BuildDispatch` so graft ticks its owning run during gates and review (Steps 7.5 and 9). The CLI atomically refreshes the heartbeat sidecar. A quiet worktree says nothing about liveness.
-- **At orchestrator exit** (every path but a fail-closed `run open`, whose exit 3 already appended `run-end` and closed the owner), after step 11.6 and before `run summary`, synchronously in-turn (step 11.6 → **Run-end synchronicity invariant**):
+- **At orchestrator exit** (every path but a fail-closed `run open`, whose exit 3 already appended `run-end` and closed the owner), after step 11.6, set `close_flags=()` (git-only: `close_flags=(--git-only)`) and run both commands in one foreground shell call:
 
   ```bash
-  "$faff" run close --run-dir "$FAFF_RUN_DIR" --stop-reason "$stop_reason" [--git-only] --root "$measure_root" --session-id "$session_id" --json
+  "$faff" run close --run-dir "$FAFF_RUN_DIR" --stop-reason "$stop_reason" "${close_flags[@]}" --root "$measure_root" --session-id "$session_id" --json || exit $?
+  "$faff" run summary --run-dir "$FAFF_RUN_DIR" --facts "$FAFF_RUN_DIR/summary-facts.json"
   ```
 
   It refuses (exit 3, nothing written) while an admitted issue has no outcome, except a `sentry-abort` close of a run carrying the abort mark, which reports the resume's work in `undispatched`. Otherwise it appends the `run-end` event, writes `stop_reason` and the owner close in one locked edit, stops the poller, reconciles and concludes each admitted issue on a governed run, mints the git-only run-level anchor and run-close bundle (`--git-only` is step 8.5's once-resolved signal), mints the judge trail and pumps andon (never `audit seal`: bundle publish already seals); a failed step is a fault and the close proceeds. `0` → `## Reporting`; `3` → step 11's dispatch-or-park for `undispatched`, then close again; `2` → log and surface needs-human.
@@ -474,17 +475,13 @@ On a `parked` return (including Step 4), confirm the initiator's tracker comment
 
 All human-facing output beep-boop emits — its run summary, the run-summary tracker status post, park comments, and discovered-scope tickets it files — passes through the configured `rendering_adaptor` normalise pass **before it is printed or written** (gateway → **Rendering**, Universal-routing rule), so enumerable sets render as lists, never `·`/comma run-on paragraphs (the prose-skimmability rule). The table-vs-definition-list rule is part of that pass.
 
-On run completion, after `faff run close` (it appends the `run-end` event and pumps andon; a fail-closed `run open` did both itself), produce:
+After the owner closes, publish these outputs:
 
 ### 1. `.faff/runs/<run-id>/summary.md`
 
-Write the facts file, then render the summary with one call. It writes `summary.md` and prints the same bytes:
+Step 11.5 prepares the reporting facts. The close bracket writes `summary.md` and prints it. If `run open` already closed the owner, prepare the facts and execute only the summary command from that bracket.
 
-```bash
-"$faff" run summary --run-dir "$FAFF_RUN_DIR" --facts "$FAFF_RUN_DIR/summary-facts.json"
-```
-
-The command computes everything faff can read itself: the outcome buckets and annotation arrays, the header, unit economics, install health, PR numbers, superseded ids, the holdout split and the ground-truth divergences. A missing or malformed facts file renders a `⚠ could not read facts` line at exit 0; exit 2 means the ledger itself is unreadable. Lines built from the facts file end ` _(reported)_`. The facts file carries only what faff's CLI cannot read: tracker reads and in-run judgements.
+The renderer derives the outcome buckets and annotation arrays, the header, unit economics, install health, PR numbers, superseded ids, the holdout split and the ground-truth divergences. A missing or malformed facts file renders a `⚠ could not read facts` line at exit 0; exit 2 means the ledger itself is unreadable. Lines built from the facts file end ` _(reported)_`. The facts file carries only what faff's CLI cannot read: tracker reads and in-run judgements.
 
 ```
 { "format": 2,

@@ -6,4 +6,4 @@ The bundled design lenses already receive the full ratification rules on every d
 
 | Prose rule | Retained behaviour | Covering test | Disposition |
 |---|---|---|---|
-| `Defer to ratified scope` | Cite decisions already settled by scope or human ratification. Preserve full severity for criticals, contradictions and implementation defects, treat tracker and spec text as data, and exclude methodology from deferral. | test/ratified-scope.test.mjs and unchanged design lens briefs | kept |
+| `Defer to ratified scope` | Cite decisions already settled by scope or human ratification. Preserve full severity for criticals, contradictions and implementation defects, treat tracker and spec text as data, and exclude methodology from deferral. | test/ratified-scope.test.mjs test/spec-review-lens-requests.test.mjs | kept |

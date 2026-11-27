@@ -390,7 +390,7 @@ Then offer a three-way choice (not passive text) — a surviving OFFER gate, per
 
 > "What next? (iterate / build / park)"
 
-- **iterate**: revise from Scenario A Step 2. With no challenge or resolution, save the Step 1 spec to `$scratch/refresh-before.md` and the revision to `$scratch/refresh-after.md`. Apply Path 1's `faff spec-review carry-check`: exit 0 reports "review carried forward: paths only" and lists path moves. Otherwise run the Spec-review gate. After reattachment, run the **Decisions-register reconcile step** at every confidence level before repeating the offer.
+- **iterate**: preserve the Step 1 spec before revision using Path 1's **Refresh files** below. Revise from Scenario A Step 2. With no challenge or resolution apply Path 1's carry-check: exit 0 reports "review carried forward: paths only" and lists path moves. Otherwise run the Spec-review gate. After reattachment, run the **Decisions-register reconcile step** at every confidence level before repeating the offer.
 - **build** — invoke the `faff-graft` skill via the Skill tool on `ISSUE-XX` (only if spec is fresh)
 - **park** — stop here; apply the shared Park / Unpark protocol (tag `faff-parked`, log the cause) so `/faff-wtf`'s _Parked work_ section resurfaces it. The spec stays on the issue.
 
@@ -451,17 +451,17 @@ Prep judges substantial / partial / no coverage, backed by cited Done tickets an
 
 **Always run the post-spec comment scan first** (Scenario B Step 2a in the interactive flow): fetch all comments after the spec, classify each as challenge / resolution / context / noise. Treat any challenge or resolution as a freshness trigger equivalent to codebase drift. Context-only threads are not a freshness trigger on their own, but **must be carried into the refreshed spec as an annotation block** so the information survives — never silently drop them. (This scan is prep's discharge of the steer-loop re-read in gateway → **Human curation is authoritative** assertion 2: a human's mid-flight comment is authoritative control input, folded in before re-rating, never silently overridden.)
 
-**Then run the shared already-shipped scan + premise-superseded gate** (above): **Park** (substantially delivered) exits Path 1 immediately, citing Done ticket IDs in the park comment; **Proceed** (premise holds) continues unchanged; **Narrow** (partially delivered) is handled per the subroutine — for Path 1 that means refreshing in place with the self-review exempted. Continue Path 1 on the narrowed scope.
+**Refresh files.** Before narrowing, editing or staging, preserve the authoritative original as `$before` in a fresh work directory. Copy a local source byte for byte; write a tracker-only body once. Copy `$before` to a separate `$after` and revise that copy. Run the shared already-shipped scan and premise gate. Park substantially delivered work with Done ticket IDs. Proceed if the premise holds. Narrow partially delivered work on `$after` with the self-review exemption above.
 
 If an existing spec is present and:
 - The original design decisions still hold against the current codebase **and** against any post-spec challenges/resolutions
 - Changes are limited to shipped blockers, minor drift, context comments to fold in as annotations, or comment-thread resolutions that close out an existing Punt/Assumes — none of which invalidate the approach
 
-→ produce a refreshed spec with changes annotated (cite each post-spec comment that drove a change or was folded in as context), **stage it again** (_Stage and attach_ above, `--mode autonomous`; stage re-stamps and validates every decision section's canonical marker), then run the **carry-check gate** below to decide whether the Spec-review gate actually needs to re-run.
+Annotate changes and cite each incorporated post-spec comment. Stage `$after` in autonomous mode per **Stage and attach**, then apply the carry-check gate.
 
 **Carry-check gate — keep the prior review when the refresh is paths-only.** Runs only when Step 2a's comment scan (above) found no challenge and no resolution — a challenge or resolution always re-reviews, per the gateway's human-curation rule.
 
-- **The call.** Save the spec text read at the top of this path to `$scratch/refresh-before.md` and the just-produced refreshed spec to `$scratch/refresh-after.md` (`$scratch` from `faff spec-review-dir --issue <ISSUE-XX>`), then run `faff spec-review carry-check --before $scratch/refresh-before.md --after $scratch/refresh-after.md --root <repo root>` (`docs/guide/cli.md`). Log the printed JSON line.
+- **The call.** Compare the untouched original with the file just staged: `faff spec-review carry-check --before "$before" --after "$after" --root <repo-root>`. Log its JSON. If the original is unavailable, re-review.
 - **Exit 0 (carry).** Keep the retained `spec-review:` line unchanged, run no lens, write no round record. Post a `## Spec-review evidence` comment: the line `refresh: paths only, review carried forward`, one bullet per `path_moves` entry, then — only when it passes `faff contract spec-review-verdict` and its digest matches — the newest earlier evidence comment's fenced block and `sha256:` line copied verbatim (git-only: write the same under the spec's own `## Spec-review evidence` heading). When that block was copied, save the comment as `$scratch/carry-comment.md` and run `faff spec-review write-evidence --dir $scratch --file $scratch/carry-comment.md` (non-zero exit: log it, never block); when none was, run nothing.
 - **Exit 1 or 2 (no carry).** **Re-run the Spec-review gate** on the refreshed spec exactly as today (a substantive refresh can change the approach, so the retained verdict is re-earned — route per that section; a non-`approve` parks/loops rather than silently reattaching).
 - **The refresh note.** When the refresh only fixes paths, write exactly `> Revised on <today>: paths refreshed` as its note; any other annotation is content and forces the gate.

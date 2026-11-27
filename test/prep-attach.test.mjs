@@ -608,3 +608,22 @@ test("FAFF-1443: away from a tier boundary, faff admissible and faff tier give t
   assert.deepEqual(adm(f.specFile), adm(without));
   assert.equal(cli(f.root, ["tier", f.specFile]).stdout, cli(f.root, ["tier", without]).stdout);
 });
+
+test("git-only refresh compares the independent original to the file actually restaged", t => {
+  const f = fixture({ text:spec({body:["spec-review: approve"]}) });
+  t.after(() => fs.rmSync(f.root,{recursive:true,force:true}));
+  assert.equal(stage(f, ["--git-only"]).json().token, "attached");
+  const stored = join(f.root,".faff","specs","EX-1.md");
+  const before = join(f.root,"before.md");
+  fs.copyFileSync(stored,before);
+  const original = readFileSync(before,"utf8");
+  const carry = () => cli(f.root, ["spec-review","carry-check","--before",before,"--after",f.specFile,"--root",f.root]);
+  writeFileSync(f.specFile, original + "\n> Revised on 2026-11-27: paths refreshed\n");
+  assert.equal(stage(f, ["--git-only"]).json().token, "attached");
+  assert.equal(carry().status,0);
+  writeFileSync(f.specFile,original.replace("one thing.","a different design."));
+  assert.equal(stage(f, ["--git-only"]).json().token,"attached");
+  assert.equal(readFileSync(stored,"utf8"),readFileSync(f.specFile,"utf8"));
+  assert.equal(readFileSync(before,"utf8"),original);
+  assert.equal(carry().json().reason,"content-changed");
+});

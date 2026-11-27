@@ -380,3 +380,13 @@ test("the review block resolves its base through the shared resolver (FAFF-708 p
   assert.doesNotMatch(REVIEW_BLOCK, /main\.\.\.HEAD|origin\/main/);
   assert.match(REVIEW_BLOCK, /remote-diff-base\.sh/);
 });
+
+test("both reviewer occupants consume the diff captured by graft", () => {
+  const read = skill => readFileSync(path.join(GRAFT_SKILL_DIR, "..", skill, "SKILL.md"), "utf8");
+  const standard = read("faffter-noon-review");
+  const adversarial = read("faffter-dark-adversarial-review");
+  assert.match(standard, /Full diff from graft's supplied file/);
+  assert.match(adversarial, /Pass the same diff file to `faffter-noon-review`/);
+  assert.match(adversarial, /Use the captured diff file unchanged/);
+  for (const skill of [standard, adversarial]) assert.doesNotMatch(skill, /git diff main\.\.\.HEAD/);
+});

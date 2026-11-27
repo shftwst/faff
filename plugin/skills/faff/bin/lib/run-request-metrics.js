@@ -16,6 +16,12 @@ const dateMs = (s) => typeof s === "string" && /^\d{4}-\d\d-\d\dT/.test(s) ? Dat
 const issueKey = /^[A-Za-z][A-Za-z0-9]*-\d+$/;
 const modelId = /^[A-Za-z0-9][A-Za-z0-9._-]{0,126}$/;
 const classes = ["input", "output", "cache_read", "cache_write", "cache_write_5m", "cache_write_1h"];
+// A matching excerpt can also come from a test or a log. Record its presence only.
+function hasCliUsageDiagnostic(content) {
+    const matches = (text) => typeof text === "string" &&
+        /^faff: (?:unknown-flag|bad-enum|missing-value|too-many-positionals|duplicate-flag|bad-value):[^\n]*\n(?:faff: [^\n]*\n)*usage: faff [a-z][a-z0-9-]*\b/m.test(text);
+    return matches(content) || (Array.isArray(content) && content.some(item => matches(obj(item).text)));
+}
 function projectedUsage(raw) {
     const u = obj(raw), ttl = obj(u.cache_creation);
     const five = num(ttl.ephemeral_5m_input_tokens), hour = num(ttl.ephemeral_1h_input_tokens);
@@ -257,6 +263,8 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
     const toolScopes = new Map();
     const toolOwners = new Map();
     const incompleteTools = new Set();
+    const bashCalls = new Set();
+    const usageDiagnostics = new Set();
     const toolResults = new Map();
     const issued = new Map();
     const returns = new Map();
@@ -306,6 +314,8 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
                             const bits = b.is_error === true ? 2 : b.is_error === undefined || b.is_error === false ? 1 : 3;
                             toolResults.set(resultKey, (toolResults.get(resultKey) ?? 0) | bits);
                             const content = b.content;
+                            if (hasCliUsageDiagnostic(content))
+                                usageDiagnostics.add(resultKey);
                             const bytes = typeof content === "string" ? Buffer.byteLength(content) : Array.isArray(content)
                                 ? content.reduce((n, item) => {
                                     const text = obj(item).text;
@@ -377,6 +387,8 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
                         const calls = toolScopes.get(id) ?? new Map();
                         const scopes = calls.get(b.id) ?? new Set();
                         const key = JSON.stringify([scope, b.id]);
+                        if (b.name === "Bash")
+                            bashCalls.add(key);
                         if (!toolOwners.has(key))
                             toolOwners.set(key, id);
                         else if (toolOwners.get(key) !== id)
@@ -433,11 +445,15 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
         const row = { id: hash(r.id), at: new Date(r.ms).toISOString(), role: r.role, model: r.model,
             issue, wave, phase, verification_to_handoff: interval || null, turn_id: r.turn, usage: r.usage };
         row.tool_outcome_bits = {};
+        row.bash_cli_usage_diagnostic = false;
         for (const [call, scopes] of toolScopes.get(r.id) ?? []) {
             let bits = 0;
             for (const scopedCall of scopes) {
-                if (toolOwners.get(scopedCall) === r.id)
+                if (toolOwners.get(scopedCall) === r.id) {
                     bits |= toolResults.get(scopedCall) ?? 0;
+                    if (bashCalls.has(scopedCall) && usageDiagnostics.has(scopedCall))
+                        row.bash_cli_usage_diagnostic = true;
+                }
                 else
                     incompleteTools.add(r.id);
             }

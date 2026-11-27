@@ -33,6 +33,7 @@ export interface RequestObservation {
   // digests. Bits 1/2 mean observed success/error. Both bits mean uncertain.
   tool_outcome_bits?: Record<string, number>;
   tool_coverage_incomplete?: true;
+  bash_cli_usage_diagnostic?: boolean;
   enclosing_build_wave?: number;
   worker_dispatch_id?: string;
   worker_handoffs?: WorkerHandoff[];
@@ -55,6 +56,12 @@ interface PhaseWindow { issue: string; phase: Phase; start_ts: string | null; en
 interface Candidate {
   id: string; ms: number; usageAt: number; usage: Usage; role: Role; model: string | null;
   issues: Set<string>; waves: Set<number>; launches: Set<string>; turn: string | null;
+}
+// A matching excerpt can also come from a test or a log. Record its presence only.
+function hasCliUsageDiagnostic(content: unknown): boolean {
+  const matches = (text: unknown) => typeof text === "string" &&
+    /^faff: (?:unknown-flag|bad-enum|missing-value|too-many-positionals|duplicate-flag|bad-value):[^\n]*\n(?:faff: [^\n]*\n)*usage: faff [a-z][a-z0-9-]*\b/m.test(text);
+  return matches(content) || (Array.isArray(content) && content.some(item => matches(obj(item).text)));
 }
 function projectedUsage(raw: unknown): Usage {
   const u = obj(raw), ttl = obj(u.cache_creation);
@@ -258,6 +265,8 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
   const toolScopes = new Map<string, Map<string, Set<string>>>();
   const toolOwners = new Map<string, string | null>();
   const incompleteTools = new Set<string>();
+  const bashCalls = new Set<string>();
+  const usageDiagnostics = new Set<string>();
   const toolResults = new Map<string, number>();
   const issued = new Map<string, Set<string>>();
   const returns = new Map<string, { at: string; bytes: number | null; error: boolean }>();
@@ -292,6 +301,7 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
             const bits = b.is_error === true ? 2 : b.is_error === undefined || b.is_error === false ? 1 : 3;
             toolResults.set(resultKey, (toolResults.get(resultKey) ?? 0) | bits);
             const content = b.content;
+            if (hasCliUsageDiagnostic(content)) usageDiagnostics.add(resultKey);
             const bytes = typeof content === "string" ? Buffer.byteLength(content) : Array.isArray(content)
               ? content.reduce((n: number, item: unknown) => {
                 const text = obj(item).text;
@@ -343,6 +353,7 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
             const calls = toolScopes.get(id) ?? new Map<string, Set<string>>();
             const scopes = calls.get(b.id) ?? new Set<string>();
             const key = JSON.stringify([scope, b.id]);
+            if (b.name === "Bash") bashCalls.add(key);
             if (!toolOwners.has(key)) toolOwners.set(key, id);
             else if (toolOwners.get(key) !== id) toolOwners.set(key, null);
             scopes.add(key);
@@ -388,10 +399,14 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
     const row: RequestObservation = { id: hash(r.id), at: new Date(r.ms).toISOString(), role: r.role, model: r.model,
       issue, wave, phase, verification_to_handoff: interval || null, turn_id: r.turn, usage: r.usage };
     row.tool_outcome_bits = {};
+    row.bash_cli_usage_diagnostic = false;
     for (const [call, scopes] of toolScopes.get(r.id) ?? []) {
       let bits = 0;
       for (const scopedCall of scopes) {
-        if (toolOwners.get(scopedCall) === r.id) bits |= toolResults.get(scopedCall) ?? 0;
+        if (toolOwners.get(scopedCall) === r.id) {
+          bits |= toolResults.get(scopedCall) ?? 0;
+          if (bashCalls.has(scopedCall) && usageDiagnostics.has(scopedCall)) row.bash_cli_usage_diagnostic = true;
+        }
         else incompleteTools.add(r.id);
       }
       row.tool_outcome_bits[hash(r.id + "\0" + call).slice(0, 32)] = bits;

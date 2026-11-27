@@ -87,13 +87,21 @@ test("reuses the local contain and self-intake receipts without claiming a track
 
 test("structural facts must be usable before a plan is emitted", t => {
   const root = repo(t);
-  for (const facts of [
-    { ...base, ancestry: "unparsed" }, { ...base, ancestry: [{ id: "ISS-2", type: "unknown" }] },
-    { ...base, appetite: "whatever" }, { ...base, relationship_target: null },
-    { ...base, mandate: "--selftest" }, { ...base, parent: "--selftest" },
+  for (const [overrides, diagnostic] of [
+    [{ ancestry: "unparsed" }, /ancestry must be an array/],
+    [{ ancestry: [{ id: "ISS-2", type: "unknown" }] }, /--ancestry/],
+    [{ appetite: "whatever" }, /appetite must be low\|medium\|high\|full/],
+    [{ relationship_target: null }, /relationship_target must be an ID/],
+    [{ mandate: { id: "ISS-1" } }, /mandate must be an issue or container ID string/],
+    [{ mandate: "--selftest" }, /mandate must/], [{ parent: "--selftest" }, /parent must/],
+    [{ opinionated: "false" }, /opinionated must be a boolean/],
+    [{ relationship: "related" }, /relationship must be/],
+    [{ prior_containment: "unknown" }, /prior_containment must be/],
+    [{ target: "CORE" }, /target must be a/],
   ]) {
-    const reply = invoke(root, facts);
+    const reply = invoke(root, { ...base, ...overrides });
     assert.equal(reply.status, 2);
+    assert.match(reply.stderr, diagnostic);
     assert.equal(reply.stdout, "");
   }
 });
@@ -108,4 +116,14 @@ test("reads ancestry from a local facts file without changing that file", t => {
   assert.equal(reply.status, 0, reply.stderr);
   assert.equal(JSON.parse(reply.stdout).action, "may-file");
   assert.equal(readFileSync(file, "utf8"), input);
+});
+
+test("help gives a usable filing example without a tracker or input", t => {
+  const root = repo(t);
+  const reply = spawnSync(process.execPath, [cli, "discovered-scope-plan", "--help"], { cwd: root, encoding: "utf8" });
+  assert.equal(reply.status, 0, reply.stderr);
+  const example = JSON.parse(reply.stdout.trimEnd().split("\n").at(-1));
+  const planned = result(root, example);
+  assert.equal(planned.containment, "contained");
+  assert.equal(planned.proposal.parent, "B");
 });

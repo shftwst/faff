@@ -11,7 +11,7 @@ import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync, readFileSync } from "node:fs";
+import { linkSync, symlinkSync, mkdtempSync, mkdirSync, writeFileSync, rmSync, utimesSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { createRequire } from "node:module";
 
@@ -2128,4 +2128,51 @@ test("a native-meter baseline subtracts the same units as later budget and econo
   const econ = run(["economics", ...flags], env);
   assert.equal(econ.code, 0, econ.err);
   assert.equal(JSON.parse(econ.out).tokens_total, 80);
+});
+
+test("new runs meter owned native subagents, skip stale or foreign agents, and count a mirrored agent once", (t) => {
+  const sid = "nested-meter";
+  for (const [meter, expected, issueTokens] of [
+    ["native-response-v1", 85, 75],
+    [undefined, 35, 25],
+  ]) {
+    const f = fixture({ ledger: baseLedger({ transcript_meter: meter }) });
+    t.after(f.cleanup);
+    const rec = (sessionId, n) => ({ sessionId, type: "assistant", message: { id: "msg_" + n, usage: { input_tokens: n } } });
+    const cfg = withRecords(f.root, f.root, sid, { [`${sid}.jsonl`]: [rec(sid, 10)] });
+    const project = join(cfg, "projects", f.root.replace(/[/.]/g, "-"));
+    const nested = join(project, sid, "subagents");
+    mkdirSync(nested, { recursive: true });
+    const add = (dir, name, row) => {
+      const stem = join(dir, "agent-" + name);
+      writeFileSync(stem + ".jsonl", JSON.stringify(row) + "\n");
+      writeFileSync(stem + ".meta.json", JSON.stringify({ description: "Build FAFF-1" }));
+    };
+    const projectAgents = join(project, "subagents");
+    mkdirSync(projectAgents);
+    add(projectAgents, "project-native", rec(sid, 30));
+    add(projectAgents, "another-run", rec("another-session", 2000));
+    add(nested, "native", rec(sid, 20));
+    add(nested, "mirrored", rec(sid, 25));
+    add(project, "mirrored", rec(sid, 25));
+    add(nested, "foreign", rec("another-session", 1000));
+    add(nested, "stale", rec(sid, 1000));
+    utimesSync(join(nested, "agent-stale.jsonl"), new Date(0), new Date(0));
+    linkSync(join(nested, "agent-native.jsonl"), join(nested, "agent-native-copy.jsonl"));
+    symlinkSync(join(project, sid + ".jsonl"), join(nested, "agent-alias.jsonl"));
+    const env = { CLAUDE_CONFIG_DIR: cfg, CLAUDE_CODE_SESSION_ID: sid };
+    const flags = ["--run-dir", f.runDir, "--root", f.root, "--json"];
+    const check = run(["budget", "check", ...flags], env);
+    assert.equal(check.code, 0, check.err);
+    assert.equal(JSON.parse(check.out).spent.tokens, expected);
+    const econ = run(["economics", ...flags], env);
+    assert.equal(econ.code, 0, econ.err);
+    assert.equal(JSON.parse(econ.out).tokens_total, expected);
+    assert.equal(JSON.parse(econ.out).per_issue[0].tokens, issueTokens);
+    const byPhase = run(["economics", "--by", "phase", ...flags], env);
+    assert.equal(byPhase.code, 0, byPhase.err);
+    const { reconciliation } = JSON.parse(byPhase.out).breakdown;
+    assert.equal(reconciliation.reconciles, true);
+    assert.equal(reconciliation.grand_total, expected);
+  }
 });

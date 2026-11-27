@@ -677,33 +677,55 @@ function childOwningSession(file) {
 // the SINGLE file-selection resolver: `measureTokensByClass` (the budget/economics
 // scalar total) and the FAFF-410 `--by` breakdown both walk it, so the breakdown
 // reconciles to the top-line total by construction — never a divergent census.
-function sessionOwnedTranscriptFiles(base, sid, runStartMs) {
+function sessionOwnedTranscriptFiles(base, sid, runStartMs, meter) {
   const sessionFile = sid ? path.join(base, `${sid}.jsonl`) : null;
-  if (!sid || !fs.existsSync(base) || !sessionFile || !fs.existsSync(sessionFile)) return null;
-  const files = [sessionFile];
-  // Aggregate this run's child subagent transcripts — attributed by their OWNING
-  // SESSION (childOwningSession === sid), NOT by mtime. mtime is a wall-clock touch
-  // time, not an ownership signal: a prior/parallel run's child touched after this
-  // run's start would otherwise be swept in and OVER-count (FAFF-229). The
-  // `mtime >= runStartMs` comparison is kept only as a cheap PRE-FILTER (skip
-  // obviously-old files without opening them) — a same-session child necessarily
-  // post-dates run start, so the pre-filter can only skip files the session match
-  // would also reject; removing it changes speed, never the total. A child whose
-  // session is unattributable/foreign is excluded — lowering, never raising, the
-  // figure (undercount-not-overcount). The null-runStartMs degenerate path can't
-  // pre-filter; the session match alone decides (still correct).
-  let entries = [];
-  try { entries = fs.readdirSync(base); } catch { entries = []; }
-  for (const name of entries) {
-    if (!/^agent-.*\.jsonl$/.test(name)) continue;
-    const f = path.join(base, name);
-    if (runStartMs != null) {
-      let st;
-      try { st = fs.statSync(f); } catch { continue; }
-      if (st.mtimeMs < runStartMs) continue; // cheap pre-filter (NOT the attribution gate)
+  if (!sessionFile || !fs.existsSync(sessionFile)) return null;
+  return [sessionFile, ...ownedChildTranscriptFiles(base, sid, runStartMs, meter)];
+}
+
+function ownedChildTranscriptFiles(base, sid, runStartMs, meter) {
+  const native = meter === NATIVE_RESPONSE_METER;
+  const dirs = [base];
+  if (native && typeof sid === "string" && path.basename(sid) === sid && sid !== "." && sid !== "..") {
+    const projectAgents = path.join(base, "subagents");
+    try {
+      if (fs.lstatSync(projectAgents).isDirectory()) dirs.unshift(projectAgents);
+    } catch { /* Layout absent. */ }
+    const sessionDir = path.join(base, sid);
+    const agentsDir = path.join(sessionDir, "subagents");
+    try {
+      if (fs.lstatSync(sessionDir).isDirectory() && fs.lstatSync(agentsDir).isDirectory()) dirs.unshift(agentsDir);
+    } catch { /* Older Claude versions use the flat layout. */ }
+  }
+
+  const files = [];
+  const names = new Set();
+  const inodes = new Map();
+  for (const dir of dirs) {
+    let entries;
+    try { entries = fs.readdirSync(dir); } catch { continue; }
+    for (const name of entries) {
+      if (!/^agent-.*\.jsonl$/.test(name) || names.has(name)) continue;
+      const file = path.join(dir, name);
+      let stat;
+      try { stat = native ? fs.lstatSync(file) : fs.statSync(file); } catch { continue; }
+      if (!stat.isFile() || (runStartMs != null && stat.mtimeMs < runStartMs)) continue;
+      const inode = `${stat.dev}:${stat.ino}`;
+      if (native && inodes.has(inode)) {
+        // An alias can sort before the transcript with the issue-description sidecar.
+        const index = inodes.get(inode);
+        const sidecar = f => f.replace(/\.jsonl$/, ".meta.json");
+        if (!fs.existsSync(sidecar(files[index])) && fs.existsSync(sidecar(file))) files[index] = file;
+        names.add(name);
+        continue;
+      }
+      if (childOwningSession(file) !== sid) continue;
+      files.push(file);
+      if (native) {
+        names.add(name); // Prefer the canonical nested copy when both layouts expose the same agent.
+        inodes.set(inode, files.length - 1);
+      }
     }
-    if (childOwningSession(f) !== sid) continue; // attribution gate: owned by THIS run only
-    files.push(f);
   }
   return files;
 }
@@ -712,7 +734,7 @@ function measureTokensByClass(opts) {
   const { cwd, env, runStartMs } = opts;
   const sid = env.CLAUDE_CODE_SESSION_ID;
   const base = transcriptBaseDir(cwd, env);
-  const files = sessionOwnedTranscriptFiles(base, sid, runStartMs);
+  const files = sessionOwnedTranscriptFiles(base, sid, runStartMs, opts.meter);
   // Transcript unavailable (no session id, dir missing, or session file absent —
   // e.g. CLAUDE_CODE_SKIP_PROMPT_HISTORY) → estimate fallback (caller computes).
   if (!files) return { tokens: null, source: "estimate" };
@@ -737,7 +759,7 @@ function measureTokensByModelClass(opts) {
   const { cwd, env, runStartMs } = opts;
   const sid = env.CLAUDE_CODE_SESSION_ID;
   const base = transcriptBaseDir(cwd, env);
-  const files = sessionOwnedTranscriptFiles(base, sid, runStartMs);
+  const files = sessionOwnedTranscriptFiles(base, sid, runStartMs, opts.meter);
   if (!files) return { source: "estimate" };
   const totals = { input: 0, output: 0, cache_write_5m: 0, cache_write_1h: 0, cache_read: 0 };
   const by_model = new Map();
@@ -2113,4 +2135,4 @@ function budgetSelftest(now = Date.now()) {
 }
 
 
-module.exports = { NATIVE_RESPONSE_METER, nativeResponseId, readMeteredTranscript, AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, UNKNOWN_TTL_WRITE_CLASS, appendEngineSpend, attemptsFromLedger, budgetCheckForRun, budgetSelftest, byModelClassTotal, childOwningSession, classCountsFromUsage, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, resolveUntilDeadline, routeUnknownTtlWrite, runOrigin, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch, untilToEpochAtOffset, utcOffsetField };
+module.exports = { NATIVE_RESPONSE_METER, nativeResponseId, readMeteredTranscript, AT_CEILING_OUTCOMES, BUDGET_NON_ATTEMPT_OUTCOMES, BUDGET_TOKEN_USAGE_KEYS, ENGINE_SPEND_FILENAME, PRICE_PER_MTOK, TOKEN_CLASS_FROM_USAGE, TOKEN_DELTA_CLASSES, UNKNOWN_TTL_WRITE_CLASS, appendEngineSpend, attemptsFromLedger, budgetCheckForRun, budgetSelftest, byModelClassTotal, childOwningSession, classCountsFromUsage, closeSpanDeltaByModel, closedSessionsSpend, cmdBudget, cmdBudgetBaseline, computeBudgetState, conservativePriceRow, currentOpenSpan, economicsPriceForModel, engineSpendPath, envelopeFrom, envelopeFromLedger, measureRunSpend, measureTokens, measureTokensByClass, measureTokensByModelClass, parseHHMM, priceModelClassSums, readEngineSpend, readGovernanceConfig, resolveBudgetNow, resolveEconomicsPriceMap, resolveUntil, resolveUntilDeadline, routeUnknownTtlWrite, runOrigin, ownedChildTranscriptFiles, sessionOwnedTranscriptFiles, sumTranscriptFile, sumTranscriptFileByClass, sumTranscriptFileByModelClass, transcriptBaseDir, untilToEpoch, untilToEpochAtOffset, utcOffsetField };

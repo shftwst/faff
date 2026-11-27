@@ -10,7 +10,8 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import fs from "node:fs";
 import os from "node:os";
-import { runCli } from "./helpers/run-cli.mjs";
+import { spawnSync } from "node:child_process";
+import { faffBin, runCli } from "./helpers/run-cli.mjs";
 
 const require = createRequire(import.meta.url);
 const mod = require(path.resolve(
@@ -281,5 +282,22 @@ test("CLI smoke: wrapping the repro Punt leaves the JSON byte-identical; a blank
     assert.equal(out.blocking_open_count, 1);
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test("each installed consumer's file operand invokes the scanner on a spec path containing spaces", t => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "punt-scan-consumer-"));
+  t.after(() => fs.rmSync(dir, {recursive: true, force: true}));
+  const spec = path.join(dir, "draft with spaces.md");
+  fs.writeFileSync(spec, "**Punt:** Choose the retention interval.\n");
+  const skills = new URL("../plugin/skills/", import.meta.url);
+  for (const name of ["faffter-noon-spec", "faffter-dark-nlspec", "faffidavit-routing"]) {
+    const prompt = fs.readFileSync(new URL(name + "/SKILL.md", skills), "utf8");
+    const invocations = [...prompt.matchAll(/`(faff punt-scan[^`]*)`/g)].map(m => m[1]);
+    assert.deepEqual(invocations, ['faff punt-scan "$spec_file"'], name);
+    const result = spawnSync("sh", ["-c", invocations[0]], {encoding: "utf8",
+      env: {...process.env, PATH: path.dirname(faffBin) + path.delimiter + process.env.PATH, spec_file: spec}});
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).blocking_open_count, 1);
   }
 });

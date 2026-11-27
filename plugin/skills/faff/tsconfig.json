@@ -90,6 +90,7 @@
     "bin/lib/reviewed-attachment.ts",
     "bin/lib/run-request-metrics.ts",
     "bin/lib/run-request-store.ts",
-    "bin/lib/run-sdk-turns.ts"
+    "bin/lib/run-sdk-turns.ts",
+    "bin/lib/run-stop-reason.ts"
   ]
 }

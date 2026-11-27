@@ -11,7 +11,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references graft consumes: `faff/references/build.md`, `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/review.md`, `faff/references/methodology.md`, `faff/references/l4.md`, `faff/references/park.md`. graft branches on the **fixed review-verdict, spec-readiness, and delivery-outcome contracts**; it consumes the `review` / `ship` slots' `faff-contract:review-verdict` / `faff-contract:delivery-outcome` blocks and pipes them to `faff contract <name>`.
+**Load the kernel first.** Resolve these paths from the installed skills directory containing this graft skill. Batch the named Reads directly in one request where supported: `faff/references/kernel.md` first if absent this turn, then `faff/references/build.md`, `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/review.md`, `faff/references/methodology.md`, `faff/references/l4.md` and `faff/references/park.md`. Skip the routing gateway `faff/SKILL.md`. Finish clipped or failed reads and apply the kernel before acting. Graft applies the fixed review-verdict, spec-readiness and delivery-outcome contracts; validate the review and ship blocks with `faff contract <name>`.
 
 ### Worktree provisioning
 

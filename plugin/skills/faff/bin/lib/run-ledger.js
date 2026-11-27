@@ -161,7 +161,7 @@ function buildSelfDrainLedger({ runId, nowIso, sessionId, pid, baseSha, faffVers
 // exactly as it was — never invented, never overwritten to something other than "done".
 // Single-sourced here so the terminal shape is testable and graft prose never hand-edits the
 // ledger (the anti-pattern the spec forbids). Mutates a copy-in-place object under the lock.
-function applyTerminalOutcome(ledger, issue, outcome, nowIso) {
+function applyTerminalOutcome(ledger, issue, outcome, nowIso, waveMember = false) {
   if (!ledger || typeof ledger !== "object") return ledger;
   ledger.outcomes = (ledger.outcomes && typeof ledger.outcomes === "object") ? ledger.outcomes : {};
   ledger.outcomes[issue] = outcome;
@@ -176,7 +176,8 @@ function applyTerminalOutcome(ledger, issue, outcome, nowIso) {
   // recorded (caught by adversarial review, FAFF-1024).
   const undispatched = admitted.filter((i) => !Object.hasOwn(ledger.outcomes, i));
   const drained = undispatched.length === 0;
-  if (drained) {
+  // A wave can drain before the run admits more work. Its owner closes at run close.
+  if (drained && !waveMember) {
     ledger.owner.status = "done"; // last outcome / queue complete — never invented otherwise
   }
   ledger.owner.last_heartbeat = nowIso; // ALWAYS — proof of life, draining or not
@@ -228,6 +229,7 @@ function utcStamp(nowIso) {
 const RUN_LEDGER_SPEC = {
   flags: {
     "--issue": { arity: 1 },
+    "--wave-member": { arity: 0 },
     "--outcome": { arity: 1, enum: [...EVENT_LEDGER_OUTCOMES] },
     "--sut-env-stood": { arity: 1, enum: ["true", "false"] },
     "--reason": { arity: 1 },
@@ -260,7 +262,7 @@ const RUN_LEDGER_SURFACE = {
   },
 };
 
-const USAGE = "usage: faff run-ledger <init-interactive --issue <ISSUE-ID> [--root DIR] [--id RUN-ID] | init-self-drain [--mode MODE] [--id RUN-ID] [--root DIR] | record-outcome --issue <ISSUE-ID> --outcome <TERMINAL> [--run-dir DIR] | capture-capability --issue <ISSUE-ID> --sut-env-stood <true|false> [--run-dir DIR] | record-declined --issue <ISSUE-ID> --reason <TEXT> --observed-at <ISO> [--run-dir DIR]> [--json] [--selftest]";
+const USAGE = "usage: faff run-ledger <init-interactive --issue <ISSUE-ID> [--root DIR] [--id RUN-ID] | init-self-drain [--mode MODE] [--id RUN-ID] [--root DIR] | record-outcome --issue <ISSUE-ID> --outcome <TERMINAL> [--wave-member] [--run-dir DIR] | capture-capability --issue <ISSUE-ID> --sut-env-stood <true|false> [--run-dir DIR] | record-declined --issue <ISSUE-ID> --reason <TEXT> --observed-at <ISO> [--run-dir DIR]> [--json] [--selftest]";
 
 function cmdRunLedger(args) {
   if (args.includes("--selftest")) return runLedgerSelftest();
@@ -268,6 +270,10 @@ function cmdRunLedger(args) {
   if (errors.length) return usageError(errors, USAGE);
 
   const sub = positionals[0];
+  if (values["--wave-member"] && sub !== "record-outcome") {
+    process.stderr.write("faff run-ledger: --wave-member requires record-outcome\n");
+    return 2;
+  }
   if (sub === "init-interactive") return initInteractive(values);
   if (sub === "init-self-drain") return initSelfDrain(values);
   if (sub === "record-outcome") return recordOutcome(values);
@@ -622,7 +628,7 @@ function recordOutcome(values) {
     if (typeof fresh.run_id === "string") runId = fresh.run_id;
     const admitted = Array.isArray(fresh.admitted) ? fresh.admitted : [];
     if (!admitted.includes(issue)) { admittedMismatch = true; return null; } // outcome for a non-admitted issue → abort
-    const next = applyTerminalOutcome(fresh, issue, outcome, nowIso);
+    const next = applyTerminalOutcome(fresh, issue, outcome, nowIso, values["--wave-member"] === true);
     resultingOwnerStatus = next && next.owner && next.owner.status;
     return next;
   }); } catch (e) {
@@ -640,7 +646,8 @@ function recordOutcome(values) {
   }
   // On the shipped path, append the issue-outcome close event (CLI-computed hash). Best-effort:
   // a chain-append fault never unwinds the durable ledger write above (surfaced, not fatal).
-  if (outcome === "shipped") {
+  // The wave executor emits its own token-metered issue-outcome event.
+  if (outcome === "shipped" && !values["--wave-member"]) {
     try {
       appendEventRecord(runDir, runId, { phase: "build", type: "issue-outcome", issue, data: { outcome } }, nowIso);
     } catch (e) {

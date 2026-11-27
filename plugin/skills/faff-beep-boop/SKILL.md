@@ -346,9 +346,9 @@ The orchestrator maintains `.faff/runs/<run-id>/run-ledger.json`. For direct edi
 echo '{"phase":"run","type":"ledger-write"}' | faff events append --run <run-id>
 ```
 
-**Admissions and outcomes.** Append each build admission (`fire-and-forget` or `likely-fire`) after step 4's final gate, including explicit lists and step 8.4 wave re-entry. Record each terminal outcome as soon as known. Step 11 and the Stop hook require every admitted ID to have a bare terminal string in `outcomes`. An admitted ID without one is undispatched. An object there is malformed (exit 2). Put optional free-form per-issue detail under `outcome_details[issue]`.
+**Admissions and outcomes.** Append each build admission (`fire-and-forget` or `likely-fire`) after step 4's final gate, including explicit lists and step 8.4 wave re-entry. For admitted work, run `faff run-ledger record-outcome --wave-member --run-dir "$run_dir" --issue "$issue" --outcome "$bucket"` at terminal return. This records the bare outcome and preserves the owner through later waves. Put optional detail in `outcome_details[issue]`.
 
-For reconciled graft returns, use the gateway concurrency contract's `faff run return-map --outcome TOKEN` result. Record its terminal `bucket` and append the ID to its `annotation` array when named. Complete a merge handoff before recording. Pre-admission returns have no terminal bucket. Resolve an admission contradiction or unknown token before writing. Keep the existing issue-outcome event path.
+For reconciled graft returns, use the gateway concurrency contract's `faff run return-map --outcome TOKEN` result. Record its terminal `bucket` and append the ID to its `annotation` array when named. Complete a merge handoff before recording. Pre-admission returns have no terminal bucket. Resolve an admission contradiction or unknown token before writing. Emit the metered issue-outcome event below.
 
 | Other ledger input | What to record |
 |---|---|

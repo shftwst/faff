@@ -40,7 +40,7 @@ export interface RequestMetricsOptions {
 interface PhaseWindow { issue: string; phase: Phase; start_ts: string | null; end_ts: string | null }
 interface Candidate {
   id: string; ms: number; usageAt: number; usage: Usage; role: Role; model: string | null;
-  issues: Set<string>; waves: Set<number>; turn: string | null;
+  issues: Set<string>; waves: Set<number>; launches: Set<string>; turn: string | null;
 }
 function projectedUsage(raw: unknown): Usage {
   const u = obj(raw), ttl = obj(u.cache_creation);
@@ -123,6 +123,30 @@ function descriptionFacts(value: unknown, allowed: Set<string>) {
   return { issues, waves };
 }
 
+// Keep only a whitelisted issue and the invocation link, never the description or prompt.
+// A dispatch naming several issues or a foreign key cannot establish a single work item.
+interface Dispatch { issue: string | null; parent: string | null; blocked: boolean }
+function rememberDispatch(dispatches: Map<string, Dispatch>, id: string, description: unknown, parent: string | null, allowed: Set<string>) {
+  const keys = new Set(typeof description === "string" ? description.match(/\b[A-Za-z][A-Za-z0-9]*-\d+\b/g) ?? [] : []);
+  const key = sole(keys);
+  const issue = key && allowed.has(key) ? key : null;
+  const old = dispatches.get(id);
+  const blocked = (keys.size > 0 && !issue) || Boolean(old && (old.blocked || old.issue !== issue || old.parent !== parent));
+  dispatches.set(id, { issue, parent, blocked });
+}
+function dispatchedIssue(launches: Set<string>, dispatches: Map<string, Dispatch>): string | null {
+  let id = sole(launches);
+  const seen = new Set<string>();
+  while (id && !seen.has(id)) {
+    seen.add(id);
+    const dispatch = dispatches.get(id);
+    if (!dispatch || dispatch.blocked) return null;
+    if (dispatch.issue) return dispatch.issue;
+    id = dispatch.parent;
+  }
+  return null;
+}
+
 function boundaries(events: unknown[], allowed: Set<string>) {
   const windows: PhaseWindow[] = phaseWindowsFromEvents(events);
   return windows.filter(w => allowed.has(w.issue)).map(w => ({ issue: w.issue, phase: w.phase,
@@ -203,6 +227,7 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
   const standalone = /-graft-([A-Za-z][A-Za-z0-9]*-\d+)$/.exec(path.basename(runDir))?.[1];
   const standaloneIssue = standalone && allowed.has(standalone) ? standalone : null;
   const candidates = new Map<string, Candidate>();
+  const dispatches = new Map<string, Dispatch>();
   const verifications = new Map<string, number[]>();
   const handoffs = new Map<string, number[]>();
   function mark(table: Map<string, number[]>, issue: unknown, ms: number) {
@@ -213,7 +238,8 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
   for (const [idx, file] of files.entries()) {
     try {
       if (idx && typeof budget.ownedChildTranscriptFiles !== "function" && owner(file) !== sessionId) continue;
-      const hints = idx ? descriptionFacts(metadata(file.replace(/\.jsonl$/, ".meta.json")).description, allowed) : descriptionFacts(null, allowed);
+      const sidecar = idx ? metadata(file.replace(/\.jsonl$/, ".meta.json")) : {};
+      const hints = descriptionFacts(sidecar.description, allowed);
       const verifyTools = new Set<string>();
       for (const line of lines(file)) {
         if (line === null) { warnings.add("oversize-transcript-row"); continue; }
@@ -243,8 +269,11 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
         if (ms >= hi) continue;
         const role = idx > 0 || row.isSidechain === true || typeof row.parent_tool_use_id === "string" ? "worker" : "parent";
         const r: Candidate = candidates.get(id) ?? { id, ms, usageAt: -Infinity, usage: projectedUsage(null), role, model: null,
-          issues: new Set<string>(), waves: new Set<number>(), turn: null };
+          issues: new Set<string>(), waves: new Set<number>(), launches: new Set<string>(), turn: null };
         candidates.set(id, r);
+        const parentId = typeof row.parent_tool_use_id === "string" ? row.parent_tool_use_id
+          : typeof sidecar.toolUseId === "string" ? sidecar.toolUseId : null;
+        if (parentId && role === "worker") r.launches.add(parentId);
         r.ms = Math.min(r.ms, ms);
         if (role === "worker") r.role = role;
         if (typeof msg.model === "string" && modelId.test(msg.model)) r.model = msg.model;
@@ -262,6 +291,9 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
           }
           if (b.type !== "tool_use") continue;
           const input = obj(b.input);
+          if (ms >= lo && (b.name === "Agent" || b.name === "Task") && typeof b.id === "string") {
+            rememberDispatch(dispatches, b.id, input.description, parentId, allowed);
+          }
           for (const key of [input.issue, input.id, input.issueId]) {
             if (typeof key === "string" && allowed.has(key)) r.issues.add(key);
           }
@@ -274,12 +306,13 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
     } catch { warnings.add(idx ? "unreadable-worker-transcript" : "unreadable-parent-transcript"); }
   }
   for (const r of [...candidates.values()].filter(r => r.ms >= lo && r.ms < hi).sort((a,b) => a.ms-b.ms || a.id.localeCompare(b.id))) {
-    const issue = r.issues.size ? sole(r.issues) : standaloneIssue;
+    const directIssue = r.issues.size ? sole(r.issues) : standaloneIssue;
+    const issue = r.role === "worker" && !r.issues.size && !directIssue ? dispatchedIssue(r.launches, dispatches) : directIssue;
     for (const w of waves) if (w.start <= r.ms && r.ms <= w.end) r.waves.add(w.wave);
     const wave = sole(r.waves);
-    const active = windows.filter(w => (!issue || w.issue === issue) && w.start <= r.ms && r.ms <= w.end);
-    const phase: Phase | null = sole(new Set(active.map(w => w.phase))) ?? (issue && issue === standaloneIssue ? "build" : null);
-    const interval = Boolean(issue) && active.some(w => w.phase === "build" && (verifications.get(w.issue) ?? []).some(v => v >= w.start && v <= r.ms &&
+    const active = windows.filter(w => (!directIssue || w.issue === directIssue) && w.start <= r.ms && r.ms <= w.end);
+    const phase: Phase | null = sole(new Set(active.map(w => w.phase))) ?? (directIssue && directIssue === standaloneIssue ? "build" : null);
+    const interval = Boolean(issue) && active.some(w => w.issue === issue && w.phase === "build" && (verifications.get(w.issue) ?? []).some(v => v >= w.start && v <= r.ms &&
       (handoffs.get(w.issue) ?? []).some(h => h >= r.ms && h <= w.end)));
     const row: RequestObservation = { id: hash(r.id), at: new Date(r.ms).toISOString(), role: r.role, model: r.model,
       issue, wave, phase, verification_to_handoff: interval || null, turn_id: r.turn, usage: r.usage };

@@ -120,3 +120,36 @@ test("standalone graft resolves its one issue while synthetic assistant error ro
   assert.equal(r.records[0].issue,"PROJ-7");
   assert.equal(r.records[0].phase,"build");
 });
+
+test("only workers inherit an unambiguous in-window Agent or Task dispatch through its invocation ID", t => {
+  const f = setup(t);
+  const dispatch = (id, description, name = "Agent") => ({
+    type: "tool_use", name, id, input: { description, prompt: "private prompt PROJ-8" },
+  });
+  const worker = (id, sec, launch, tools = []) => assistant(id, sec, tools, {parent_tool_use_id: launch});
+  f.put(f.main, [
+    assistant("early", 9, [dispatch("outside", "PROJ-8")]),
+    assistant("root", 10, [dispatch("a", "build PROJ-7"), dispatch("b", "review PROJ-8", "Task")]),
+    worker("member", 11, "a", [
+      dispatch("nested", "verify"),
+      dispatch("foreign", "review OTHER-91"),
+      dispatch("multiple", "compare PROJ-7 and PROJ-8"),
+    ]),
+    worker("nested-result", 12, "nested"),
+    worker("sibling", 13, "b"),
+    worker("foreign-result", 14, "foreign"),
+    worker("multiple-result", 15, "multiple"),
+    worker("outside-result", 16, "outside"),
+    worker("missing", 17, "unknown"),
+    assistant("repeat", 18, [dispatch("ambiguous", "PROJ-7"), dispatch("ambiguous", "PROJ-8")]),
+    worker("conflict", 19, "ambiguous"),
+  ]);
+  const file = path.join(f.dir, "session1/subagents/agent-known.jsonl");
+  f.put(file.replace(".jsonl", ".meta.json"), [{toolUseId:"a"}]);
+  f.put(file, [assistant("native", 17)]);
+  const report = f.report();
+  assert.deepEqual(report.records.map(r => r.issue), [null,"PROJ-7","PROJ-7","PROJ-8",null,null,null,null,"PROJ-7",null,null]);
+  assert.equal(report.requests, 11);
+  assert.ok(report.records.every(r => r.phase === null));
+  assert.doesNotMatch(JSON.stringify(report), /private prompt|verify|OTHER-91|nested-result/);
+});

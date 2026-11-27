@@ -121,6 +121,28 @@ function descriptionFacts(value, allowed) {
     }
     return { issues, waves };
 }
+function rememberDispatch(dispatches, id, description, parent, allowed) {
+    const keys = new Set(typeof description === "string" ? description.match(/\b[A-Za-z][A-Za-z0-9]*-\d+\b/g) ?? [] : []);
+    const key = sole(keys);
+    const issue = key && allowed.has(key) ? key : null;
+    const old = dispatches.get(id);
+    const blocked = (keys.size > 0 && !issue) || Boolean(old && (old.blocked || old.issue !== issue || old.parent !== parent));
+    dispatches.set(id, { issue, parent, blocked });
+}
+function dispatchedIssue(launches, dispatches) {
+    let id = sole(launches);
+    const seen = new Set();
+    while (id && !seen.has(id)) {
+        seen.add(id);
+        const dispatch = dispatches.get(id);
+        if (!dispatch || dispatch.blocked)
+            return null;
+        if (dispatch.issue)
+            return dispatch.issue;
+        id = dispatch.parent;
+    }
+    return null;
+}
 function boundaries(events, allowed) {
     const windows = phaseWindowsFromEvents(events);
     return windows.filter(w => allowed.has(w.issue)).map(w => ({ issue: w.issue, phase: w.phase,
@@ -218,6 +240,7 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
     const standalone = /-graft-([A-Za-z][A-Za-z0-9]*-\d+)$/.exec(path.basename(runDir))?.[1];
     const standaloneIssue = standalone && allowed.has(standalone) ? standalone : null;
     const candidates = new Map();
+    const dispatches = new Map();
     const verifications = new Map();
     const handoffs = new Map();
     function mark(table, issue, ms) {
@@ -231,7 +254,8 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
         try {
             if (idx && typeof budget.ownedChildTranscriptFiles !== "function" && owner(file) !== sessionId)
                 continue;
-            const hints = idx ? descriptionFacts(metadata(file.replace(/\.jsonl$/, ".meta.json")).description, allowed) : descriptionFacts(null, allowed);
+            const sidecar = idx ? metadata(file.replace(/\.jsonl$/, ".meta.json")) : {};
+            const hints = descriptionFacts(sidecar.description, allowed);
             const verifyTools = new Set();
             for (const line of lines(file)) {
                 if (line === null) {
@@ -280,8 +304,12 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
                     continue;
                 const role = idx > 0 || row.isSidechain === true || typeof row.parent_tool_use_id === "string" ? "worker" : "parent";
                 const r = candidates.get(id) ?? { id, ms, usageAt: -Infinity, usage: projectedUsage(null), role, model: null,
-                    issues: new Set(), waves: new Set(), turn: null };
+                    issues: new Set(), waves: new Set(), launches: new Set(), turn: null };
                 candidates.set(id, r);
+                const parentId = typeof row.parent_tool_use_id === "string" ? row.parent_tool_use_id
+                    : typeof sidecar.toolUseId === "string" ? sidecar.toolUseId : null;
+                if (parentId && role === "worker")
+                    r.launches.add(parentId);
                 r.ms = Math.min(r.ms, ms);
                 if (role === "worker")
                     r.role = role;
@@ -310,6 +338,9 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
                     if (b.type !== "tool_use")
                         continue;
                     const input = obj(b.input);
+                    if (ms >= lo && (b.name === "Agent" || b.name === "Task") && typeof b.id === "string") {
+                        rememberDispatch(dispatches, b.id, input.description, parentId, allowed);
+                    }
                     for (const key of [input.issue, input.id, input.issueId]) {
                         if (typeof key === "string" && allowed.has(key))
                             r.issues.add(key);
@@ -327,14 +358,15 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
         }
     }
     for (const r of [...candidates.values()].filter(r => r.ms >= lo && r.ms < hi).sort((a, b) => a.ms - b.ms || a.id.localeCompare(b.id))) {
-        const issue = r.issues.size ? sole(r.issues) : standaloneIssue;
+        const directIssue = r.issues.size ? sole(r.issues) : standaloneIssue;
+        const issue = r.role === "worker" && !r.issues.size && !directIssue ? dispatchedIssue(r.launches, dispatches) : directIssue;
         for (const w of waves)
             if (w.start <= r.ms && r.ms <= w.end)
                 r.waves.add(w.wave);
         const wave = sole(r.waves);
-        const active = windows.filter(w => (!issue || w.issue === issue) && w.start <= r.ms && r.ms <= w.end);
-        const phase = sole(new Set(active.map(w => w.phase))) ?? (issue && issue === standaloneIssue ? "build" : null);
-        const interval = Boolean(issue) && active.some(w => w.phase === "build" && (verifications.get(w.issue) ?? []).some(v => v >= w.start && v <= r.ms &&
+        const active = windows.filter(w => (!directIssue || w.issue === directIssue) && w.start <= r.ms && r.ms <= w.end);
+        const phase = sole(new Set(active.map(w => w.phase))) ?? (directIssue && directIssue === standaloneIssue ? "build" : null);
+        const interval = Boolean(issue) && active.some(w => w.issue === issue && w.phase === "build" && (verifications.get(w.issue) ?? []).some(v => v >= w.start && v <= r.ms &&
             (handoffs.get(w.issue) ?? []).some(h => h >= r.ms && h <= w.end)));
         const row = { id: hash(r.id), at: new Date(r.ms).toISOString(), role: r.role, model: r.model,
             issue, wave, phase, verification_to_handoff: interval || null, turn_id: r.turn, usage: r.usage };

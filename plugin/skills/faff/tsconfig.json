@@ -50,6 +50,7 @@
     "bin/lib/prose-size.ts",
     "bin/lib/rule-inventory.ts",
     "bin/lib/run-open.ts",
+    "bin/lib/post-merge-rollup.ts",
     "bin/lib/run-close.ts",
     "bin/lib/pr-open.ts",
     "bin/lib/pr-preflight.ts",

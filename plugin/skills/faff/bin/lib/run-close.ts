@@ -9,6 +9,8 @@
 // proceeds, as the prose did.
 // ===========================================================================
 
+import { rollUpPostMerge } from "./post-merge-rollup.ts";
+
 const fs: FsApi = require("node:fs");
 const path: PathApi = require("node:path");
 const childProcess: ChildProcessApi = require("node:child_process");
@@ -198,6 +200,7 @@ interface CloseArgs {
   runDir: string;
   stopReason: string;
   gitOnly: boolean;
+  postMergeAnnotations?: boolean;
   root: string | null;
   sessionId: string | null;
 }
@@ -285,6 +288,7 @@ function runClose(args: CloseArgs, deps: Deps): CloseOutcome {
   try {
     const res = deps.mutateLedger(runDir, (fresh) => {
       if (!isRecord(fresh)) throw new Error("run-ledger.json is missing or not a JSON object");
+      if (args.postMergeAnnotations) rollUpPostMerge(runDir, fresh, faults);
       Reflect.set(fresh, "stop_reason", args.stopReason);
       const owner = field(fresh, "owner");
       if (isRecord(owner)) {
@@ -365,12 +369,13 @@ const CLOSE_SPEC = {
     "--run-dir": { arity: 1 },
     "--stop-reason": { arity: 1 },
     "--git-only": { arity: 0 },
+    "--post-merge-annotations": { arity: 0 },
     "--root": { arity: 1 },
     "--session-id": { arity: 1 },
     "--json": { arity: 0 },
   },
 };
-const CLOSE_USAGE = "usage: faff run close --run-dir DIR --stop-reason TOKEN [--git-only] [--root DIR] [--session-id ID] [--json]";
+const CLOSE_USAGE = "usage: faff run close --run-dir DIR --stop-reason TOKEN [--git-only] [--post-merge-annotations] [--root DIR] [--session-id ID] [--json]";
 
 function cmdRunClose(argv: string[], deps: Deps = realDeps()): number {
   const { values, errors } = argvApi.parseArgs(argv, CLOSE_SPEC);
@@ -379,7 +384,8 @@ function cmdRunClose(argv: string[], deps: Deps = realDeps()): number {
   const stopReason = str(values["--stop-reason"]);
   if (runDir === undefined || runDir === "") return argvApi.usageError([{ code: "missing-required", detail: "--run-dir DIR is required" }], CLOSE_USAGE);
   if (stopReason === undefined || stopReason === "") return argvApi.usageError([{ code: "missing-required", detail: "--stop-reason TOKEN is required" }], CLOSE_USAGE);
-  const outcome = runClose({ runDir, stopReason, gitOnly: values["--git-only"] === true, root: str(values["--root"]) ?? null, sessionId: str(values["--session-id"]) ?? null }, deps);
+  const outcome = runClose({ runDir, stopReason, gitOnly: values["--git-only"] === true,
+    postMergeAnnotations: values["--post-merge-annotations"] === true, root: str(values["--root"]) ?? null, sessionId: str(values["--session-id"]) ?? null }, deps);
   const { code, result } = outcome;
   if (outcome.reason !== null) process.stderr.write(`faff run close: ${outcome.reason}\n`);
   if (values["--json"] === true) process.stdout.write(`${JSON.stringify(result)}\n`);

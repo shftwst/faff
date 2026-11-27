@@ -5,6 +5,7 @@
 // into code. An unknown or missing verb exits 2 with the registered verbs.
 // ===========================================================================
 
+import { cmdTiming } from "./run-timing";
 import { cmdWaveMode } from "./run-wave-mode";
 
 import { cmdWaveConsult } from "./run-wave-consult";
@@ -35,6 +36,8 @@ const returnMap: { cmdRunReturnMap(args: string[]): number } = require("./run-re
 const { cmdRunEntryPreflight }: { cmdRunEntryPreflight(args: string[]): number } = require("./run-entry-preflight");
 
 const VERBS: { [verb: string]: (args: string[]) => number } = {
+  timing: args => cmdTiming(args),
+  "wait-ready": args => cmdTiming(args, true),
   summary: (args) => runSummary.cmdRunSummary(args),
   checkpoint: (args) => runCheckpoint.cmdRunCheckpoint(args),
   open: (args) => runOpen.cmdRunOpen(args),

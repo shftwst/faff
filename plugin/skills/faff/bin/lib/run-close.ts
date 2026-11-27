@@ -17,6 +17,7 @@ interface FsApi {
   readFileSync(file: string, encoding: "utf8"): string;
   realpathSync(file: string): string;
 }
+import { saveTiming } from "./run-timing";
 interface PathApi {
   join(...parts: string[]): string;
   basename(p: string): string;
@@ -380,6 +381,10 @@ function cmdRunClose(argv: string[], deps: Deps = realDeps()): number {
   if (stopReason === undefined || stopReason === "") return argvApi.usageError([{ code: "missing-required", detail: "--stop-reason TOKEN is required" }], CLOSE_USAGE);
   const outcome = runClose({ runDir, stopReason, gitOnly: values["--git-only"] === true, root: str(values["--root"]) ?? null, sessionId: str(values["--session-id"]) ?? null }, deps);
   const { code, result } = outcome;
+  if (code === 0 && result.closed) {
+    try { saveTiming(runDir); }
+    catch (err) { process.stderr.write("faff run close: timing report unavailable: " + errText(err) + "\n"); }
+  }
   if (outcome.reason !== null) process.stderr.write(`faff run close: ${outcome.reason}\n`);
   if (values["--json"] === true) process.stdout.write(`${JSON.stringify(result)}\n`);
   else if (code === 0) process.stdout.write(`run close: closed as ${result.stop_reason}${result.stop_reason_adopted ? ` (adopted from the wave record; argument was ${stopReason})` : ""}${result.abort_exempt ? ` (abort exemption; undispatched: ${result.undispatched.join(", ")})` : ""}${result.faults.length ? `\n${result.faults.map((f) => `fault: ${f}`).join("\n")}` : ""}\n`);

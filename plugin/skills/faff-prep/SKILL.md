@@ -16,7 +16,7 @@ Faff-prep is an **orchestrator**: it owns tracker lifecycle and codebase explora
 
 ## Configuration
 
-**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references prep consumes: `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/review.md`, `faff/references/park.md`. prep gates on the **fixed spec-readiness contract**; its `spec` slot inherits the gateway ambiently.
+**Load the kernel first.** From the installed skills directory, batch these Reads where supported: `faff/references/kernel.md` first if absent this turn, then `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/review.md` and `faff/references/park.md`. Skip `faff/SKILL.md`. Finish clipped or failed reads before applying the **fixed spec-readiness contract**. The `spec` slot inherits the gateway ambiently.
 
 ### Spec slot (always delegated)
 

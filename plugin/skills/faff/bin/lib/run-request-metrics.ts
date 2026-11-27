@@ -29,6 +29,10 @@ export interface WorkerHandoff {
   is_error: boolean | null;
 }
 export interface RequestObservation {
+  // Per-call evidence for idempotent partial refreshes. Keys are truncated SHA-256
+  // digests. Bits 1/2 mean observed success/error. Both bits mean uncertain.
+  tool_outcome_bits?: Record<string, number>;
+  tool_coverage_incomplete?: true;
   enclosing_build_wave?: number;
   worker_dispatch_id?: string;
   worker_handoffs?: WorkerHandoff[];
@@ -251,6 +255,10 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
   const candidates = new Map<string, Candidate>();
   const dispatches = new Map<string, Dispatch>();
   const tagged = new Map<string, number | null>();
+  const toolScopes = new Map<string, Map<string, Set<string>>>();
+  const toolOwners = new Map<string, string | null>();
+  const incompleteTools = new Set<string>();
+  const toolResults = new Map<string, number>();
   const issued = new Map<string, Set<string>>();
   const returns = new Map<string, { at: string; bytes: number | null; error: boolean }>();
   const verifications = new Map<string, number[]>();
@@ -274,9 +282,15 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
         if ([row.sessionId, row.session_id].some(id => typeof id === "string" && id !== sessionId)) continue;
         const msg = obj(row.message), ms = dateMs(row.timestamp);
         const blocks = Array.isArray(msg.content) ? msg.content.map(obj) : [];
+        // A stream can interleave parent and worker results. Disk child transcripts
+        // also have a distinct scope when their stream parent ID is absent.
+        const scope = JSON.stringify([idx, row.parent_tool_use_id ?? null]);
         // A structured receipt is evidence of a successful verification. A command invocation alone is not.
         if (row.type === "user") for (const b of blocks) {
           if (b.type === "tool_result" && typeof b.tool_use_id === "string" && ms >= lo && ms < hi) {
+            const resultKey = JSON.stringify([scope, b.tool_use_id]);
+            const bits = b.is_error === true ? 2 : b.is_error === undefined || b.is_error === false ? 1 : 3;
+            toolResults.set(resultKey, (toolResults.get(resultKey) ?? 0) | bits);
             const content = b.content;
             const bytes = typeof content === "string" ? Buffer.byteLength(content) : Array.isArray(content)
               ? content.reduce((n: number, item: unknown) => {
@@ -316,6 +330,7 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
         if (usage && ms >= r.usageAt && ms < hi) { r.usage = projectedUsage(usage); r.usageAt = ms; }
         for (const key of hints.issues) r.issues.add(key);
         for (const n of hints.waves) r.waves.add(n);
+        if (!Array.isArray(msg.content) && typeof msg.content !== "string") incompleteTools.add(id);
         for (const b of blocks) {
           if (b.type === "text" && role === "worker" && typeof b.text === "string" && b.text.trimStart().startsWith("{")) {
             try {
@@ -324,6 +339,16 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
             } catch { /* prose cannot establish a handoff */ }
           }
           if (b.type !== "tool_use") continue;
+          if (typeof b.id === "string" && b.id.length) {
+            const calls = toolScopes.get(id) ?? new Map<string, Set<string>>();
+            const scopes = calls.get(b.id) ?? new Set<string>();
+            const key = JSON.stringify([scope, b.id]);
+            if (!toolOwners.has(key)) toolOwners.set(key, id);
+            else if (toolOwners.get(key) !== id) toolOwners.set(key, null);
+            scopes.add(key);
+            calls.set(b.id, scopes);
+            toolScopes.set(id, calls);
+          } else incompleteTools.add(id);
           const input = obj(b.input);
           if (ms >= lo && (b.name === "Agent" || b.name === "Task") && typeof b.id === "string") {
             const calls = issued.get(id) ?? new Set<string>();
@@ -362,6 +387,16 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
       (handoffs.get(w.issue) ?? []).some(h => h >= r.ms && h <= w.end)));
     const row: RequestObservation = { id: hash(r.id), at: new Date(r.ms).toISOString(), role: r.role, model: r.model,
       issue, wave, phase, verification_to_handoff: interval || null, turn_id: r.turn, usage: r.usage };
+    row.tool_outcome_bits = {};
+    for (const [call, scopes] of toolScopes.get(r.id) ?? []) {
+      let bits = 0;
+      for (const scopedCall of scopes) {
+        if (toolOwners.get(scopedCall) === r.id) bits |= toolResults.get(scopedCall) ?? 0;
+        else incompleteTools.add(r.id);
+      }
+      row.tool_outcome_bits[hash(r.id + "\0" + call).slice(0, 32)] = bits;
+    }
+    if (incompleteTools.has(r.id)) row.tool_coverage_incomplete = true;
     if (buildWave !== null) row.enclosing_build_wave = buildWave;
     const dispatch = sole(r.launches);
     if (dispatch) row.worker_dispatch_id = hash(sessionId + "\0" + dispatch);

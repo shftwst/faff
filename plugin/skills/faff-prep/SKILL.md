@@ -126,7 +126,7 @@ The command collapses newlines and scrubs secrets/directive sentences from track
   --occupant <adversarial|single-pass> [--served any|none] [--run-dir "$FAFF_RUN_DIR"] [--prepare-attachment "$spec_sha256"] --json
 ```
 
-Pass the saved digest only for that confirmed source. With either transport, follow `action` from `decision-<n>.json` and copy every warning to `prep.md`. The round owns routing, previous-round churn in the window, the on-disk appetite cap and convergence. A governance fault or missing `governance-<n>.json` uses `window_start := n` for convergence.
+Pass the saved digest only for that confirmed source. With either transport, follow `action` from `decision-<n>.json`. Copy every `warnings` line into `prep.md`. The round routes, checks churn against the previous round in the window, counts the appetite cap from disk and applies the convergence yield. A governance fault or missing `governance-<n>.json` uses `window_start := n` for convergence.
 
 | `action` | Autonomous | Interactive |
 |---|---|---|

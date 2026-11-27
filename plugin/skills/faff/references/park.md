@@ -10,9 +10,7 @@ An agent may close a factual error such as a disproven measurement or violation 
 
 ### Park protocol (shared)
 
-Every faff skill that can park work follows the same protocol:
-
-1. **Preserve WIP and flip the PR to draft, only when they already exist.** Commit WIP with a clear message when a branch/worktree exists for this unit of work, and flip an existing PR to draft. A pre-build park — e.g. a `needs-decision-first` whose resolve-attempt fails before any build started — has neither, so both steps are skipped rather than manufacturing a branch, worktree, or PR.
+1. Commit WIP with a clear message on this issue's existing branch or worktree. Flip an existing PR to draft. A pre-build park with neither skips both steps.
 2. Run `faff park prepare` on `{issue_id,root_cause_class,timestamp,reconsider,cited_input?}`. Use the routing adaptor's class (failed `needs-decision-first` uses `punt-not-closed`). Keep the returned fact and full reasoning in the existing `.faff/logs/…` log and in the per-issue park log for a run. Reuse that fact and timestamp on retries and rediscovery. A new park after unpark gets a new fact and timestamp.
 3. Run `faff park finalize` on `{record,comment,label,park_records?,backstop?}`, using fresh tracker MCP observations tied to this transition. Historical comments and markers only confirm their own park. Use `confirmed`, `missing` (verified absent), or `unknown`; treat an uncertain write as `unknown` until the tracker establishes its result. In git-only mode use `marker` instead of `comment` and `label` and confirm the authorized local park evidence.
    - `comment`: post the cause, attempts and human action needed. The reason line names the decision and owner, e.g. **Park reason:** unresolved Punt — `<short decision topic from the spec's Punt line>` (`decides: <owner>`); put recovery detail in the run summary. Apply the same one-line rule to gap and cycle parks.
@@ -20,7 +18,7 @@ Every faff skill that can park work follows the same protocol:
    - After each MCP effect, confirm the result and rerun finalization. `reconcile` re-reads the named effect before any retry. `already-recorded` ends recovery for that transition. `backstop:true` reserves comment creation for the initiator.
 4. On `record`, the orchestrator keeps the returned ordered `park_records`. A worker returns its completed fact; the orchestrator alone folds it and renders one `faff-parks` fence at run end (even when empty).
 
-**Interactive mode — the recovery offer (per gateway → *Interactive next-step offer*):** the terminal line names the exact re-invoke command per park cause — spec-level → `/faff-prep <issue>`, build-level → `/faff-graft <issue>` (resume from the draft PR), structural (`gap-blocked`/`circular-blocked`) → resolve the gap/cycle and the next `/faff-tidy` re-routes it — plus the later route "or see it again anytime via `/faff-wtf` → Parked work." **Autonomous mode:** emit **no** offer (the no-prompt invariant); just return control.
+**Interactive recovery offer.** End with the command for this park: `/faff-prep <issue>` for specs, `/faff-graft <issue>` for builds (resume from the draft PR if one exists), or resolve the structural gap/cycle and reroute via `/faff-tidy`. Include the later route via `/faff-wtf` → Parked work. Autonomous parks return control without an offer.
 
 ### Reconsider classification and the park-versus-hold boundary (FAFF-992)
 

@@ -131,19 +131,17 @@ These rules apply to every faff sub-skill. Sub-skills point at this section rath
 
 ### Ordering & judgement delegation (the orchestration layer holds no opinion)
 
-**The orchestration layer owns no rule or opinion about importance, value, priority, size, risk, or work ordering.** Every place a faff sub-skill ranks, sequences, sizes, or value-/risk-weights work — faff-tidy's Ready / On-hold / Stuck-in-prep buckets, faff-wtf's Coming Up / Today's Focus / Ready / value-chains / On-hold / build-queue independents, faff-map's horizons, faff-beep-boop's build-queue ordering — **obtains that judgement from the configured `methodology` slot's relevant named output and renders what it returns.** No sub-skill states an ordering, a "priority is king" rule, a risk tiering, or a sizing rule of its own. There is nothing here for a configured methodology to contradict; the methodology *provides* it. This is the sharp edge of the *configurable, not opinionated* tenet.
+Use the configured `methodology` slot for importance, priority, value, size, risk and ordering in tidy, wtf, map and beep-boop. Render its judgement. Orchestrators may report graph facts (cycles, blockers, direct and transitive unlock counts). The methodology decides how those facts affect order.
 
-**Named output per context:**
+| Judgement | Methodology output |
+|---|---|
+| Sequence issues, including Ready, Today's Focus, independent builds, On-hold issues and value-chain heads | `pick-ordering` |
+| Form the build queue | `build-queue` |
+| Size or reshape a ticket | `ticket-shaping` |
+| Assess an issue | `issue-critique` |
+| Select a crank-up batch | `crank-up-set` |
 
-1. **Sequencing — "what order to take these issues"** (Ready, Today's Focus, build-queue independents, the On-hold list, value-chain heads) → the methodology's **`pick-ordering`**. It is the general "order this set of issues" answer — including sets that are not themselves pickup-able (e.g. the not-eligible On-hold list).
-2. **Build queue** → `build-queue`; **sizing / right-sizing** → `ticket-shaping`; **per-issue lens** → `issue-critique`; **crank-up batches** → `crank-up-set`.
-
-**The slot always resolves.** Unset → `faffter-noon-methodology-thematic`, which owns the zero-config baseline (priority + chainable unlock value, and "never reorders by value/risk"). So zero-config ordering is **unchanged** — the opinion simply lives on the methodology side, never in the orchestration skill. (Priority can live on the issue or any **ancestor**; the thematic default inherits from the nearest ancestor that has a value and weights up a `CLAUDE.md`-flagged workstream — but that logic is the *methodology's*, surfaced via `pick-ordering`, not an orchestration-layer rule.)
-
-**Objective graph facts are not opinions.** Reading the dependency graph and counting direct + transitive dependents (unlock value), detecting cycles, or noting `blocks N` / `blocked by N` are facts the orchestration layer may read and render. *Ordering by* them is an opinion and comes from the methodology.
-
-**Dependency-direction note (grounding).** Value and risk are **inputs** assessed on the work itself; priority is the **derived** signal produced by weighing them (WSJF / cost-of-delay). A missing priority never blocks assessing value or risk — it is their output, not their precondition.
-
+The default slot, `faffter-noon-methodology-thematic`, orders by priority and chainable unlock value. It inherits the nearest ancestor priority when the issue has none and weights workstreams flagged in `CLAUDE.md`. It never reorders by value/risk. Assess value and risk even when priority is missing. They inform derived priority (WSJF / cost-of-delay).
 
 ### Always pull fresh (never act on stale tracker state)
 

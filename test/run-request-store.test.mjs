@@ -45,3 +45,25 @@ test("economics retains scoped native responses from two owner epochs after thei
   assert.equal(query().requests,3);
   assert.doesNotMatch(readFileSync(path.join(runDir,"run-request-metrics.json"),"utf8"),/fixture-private|same-local-turn|msg_first/);
 });
+
+test("scheduler timings use the same issue's latest admission and explicitly report incomplete attempts", async t => {
+  const {requestReport} = await import("../plugin/skills/faff/bin/lib/run-request-store.js");
+  const dir=mkdtempSync(path.join(tmpdir(),"build-timing-"));
+  t.after(()=>rmSync(dir,{recursive:true,force:true}));
+  const timeline=[
+    ["issue-admitted","A-1",0],["issue-admitted","B-2",1],["build-start","B-2",4],
+    ["build-start","A-1",5],["build-start","A-1",6],["issue-outcome","A-1",16],
+    ["issue-admitted","C-3",20],["issue-outcome","C-3",21],["build-start","C-3",22],
+  ];
+  writeFileSync(path.join(dir,"events.jsonl"),timeline.map(([type,issue,s],seq)=>JSON.stringify({
+    seq,type,issue,ts:new Date(1e12+s*1000).toISOString()
+  })).join("\n"));
+  const report = requestReport(dir,{},true).build_timing;
+  assert.equal(report.starts,4);
+  assert.equal(report.open_starts,2);
+  assert.equal(report.restarts_without_outcome,1);
+  assert.deepEqual(report.admission_to_start,{count:2,median_seconds:4,max_seconds:5});
+  assert.deepEqual(report.start_to_outcome,{count:1,median_seconds:10,max_seconds:10});
+  assert.equal(report.observations.length,3);
+  assert.equal(requestReport(dir,{}).build_timing.observations,undefined);
+});

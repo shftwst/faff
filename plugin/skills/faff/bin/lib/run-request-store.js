@@ -108,6 +108,54 @@ function captureRunRequests(runDir, root, sessionId, refresh = false) {
         return false;
     }
 }
+// Admission can precede readiness. Report recorded elapsed time and keep the wait cause unknown.
+function buildTiming(dir, details) {
+    const { events, malformed } = require("./economics").readRunEvents(dir);
+    const admitted = new Map();
+    const running = new Map();
+    const observations = [];
+    let starts = 0, restarts = 0, reversed = 0;
+    for (const e of events) {
+        if (!e || typeof e.issue !== "string" || !/^[A-Za-z][A-Za-z0-9]*-\d+$/.test(e.issue))
+            continue;
+        const at = stamp(e.ts);
+        if (!at)
+            continue;
+        const ms = Date.parse(at);
+        if (e.type === "issue-admitted") {
+            admitted.set(e.issue, ms);
+            continue;
+        }
+        if (e.type !== "build-start" && e.type !== "issue-outcome")
+            continue;
+        const launch = e.type === "build-start";
+        const pending = launch ? admitted : running;
+        const from = pending.get(e.issue);
+        pending.delete(e.issue);
+        if (from !== undefined) {
+            if (ms < from)
+                reversed++;
+            else
+                observations.push({ issue: e.issue, at, kind: launch ? "admission_to_start" : "start_to_outcome", seconds: (ms - from) / 1000 });
+        }
+        if (launch) {
+            starts++;
+            if (running.has(e.issue))
+                restarts++;
+            running.set(e.issue, ms);
+        }
+        else
+            admitted.delete(e.issue);
+    }
+    function distribution(kind) {
+        const values = observations.filter(o => o.kind === kind).map(o => o.seconds).sort((a, b) => a - b);
+        const n = values.length;
+        return { count: n, median_seconds: n ? ((values[Math.floor((n - 1) / 2)] ?? 0) + (values[Math.floor(n / 2)] ?? 0)) / 2 : null,
+            max_seconds: values.at(-1) ?? null };
+    }
+    return { starts, restarts_without_outcome: restarts, open_starts: running.size, reversed_timestamps: reversed, malformed_event_lines: malformed,
+        admission_to_start: distribution("admission_to_start"), start_to_outcome: distribution("start_to_outcome"), ...(details ? { observations } : {}) };
+}
 function requestReport(dir, ledger, details = false) {
     const store = readStore(dir);
     const epochs = Object.values(store?.epochs ?? {});
@@ -162,7 +210,7 @@ function requestReport(dir, ledger, details = false) {
     } : null;
     const engine = require("./budget").readEngineSpend(dir);
     return { separate_engine_spend: { records: engine.records, engines: engine.engines, tokens: engine.totals }, run_id: path.basename(dir), source: "owned-claude-transcripts", status: !any ? "unavailable" : epochs.length < expected || engine.records || engine.malformed || epochs.some(e => e.status !== "observed") ? "partial" : "observed",
-        requests, usage, worker_handoffs: workerHandoffs, turns: sdk.turns, sdk_turns: sdk, transcript_turn_ids: transcriptTurns, shipped, observed_requests_per_shipped_issue: requests !== null && shipped ? requests / shipped : null,
+        requests, usage, build_timing: buildTiming(dir, details), worker_handoffs: workerHandoffs, turns: sdk.turns, sdk_turns: sdk, transcript_turn_ids: transcriptTurns, shipped, observed_requests_per_shipped_issue: requests !== null && shipped ? requests / shipped : null,
         by_role: counts(r => r.role), by_issue: counts(r => r.issue), by_phase: counts(r => r.phase), by_wave: counts(r => r.wave),
         by_model: counts(r => r.model), verification_to_handoff_by_issue: countsSelected(rows),
         epochs: epochs.map(({ records, ...epoch }) => ({ ...epoch, observed_requests: epoch.last_observed_until ? records.length : null })),

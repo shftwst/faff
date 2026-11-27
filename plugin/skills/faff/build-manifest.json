@@ -63,7 +63,7 @@
     "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
     "bin/lib/run-open.ts": "50f6d5fcf0248162c058c126813b483da74bfda65af9909c5bfd8a29f3d76b48",
     "bin/lib/run-request-metrics.ts": "9c93fd104e3aae318dcab9a69fb00cd69e2a8c2a0a19a82c59e73a0413e89002",
-    "bin/lib/run-request-store.ts": "c3bf3a41699df62a003ae083542da0edaa6382f4309f935df43a7489e21a02aa",
+    "bin/lib/run-request-store.ts": "9f6766c106667eefae9c027d1086744597fd3844b200dc8aff950efec0d9471c",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
     "bin/lib/run-sdk-turns.ts": "d9dc0761d05fc7884c06124de2ea04058dda59a1d46365e4c0dddc7498a2673b",
     "bin/lib/run-summary.ts": "0174f139c548ee4409d917a00a6d1983465864a518cea47f789559542af5cc66",
@@ -133,7 +133,7 @@
     "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
     "bin/lib/run-open.js": "3ac4200575fdbd14e286713989a09b757cb12fe02f0830ed7c9460c889ac2234",
     "bin/lib/run-request-metrics.js": "08206dc5b32f03535f752d73256b133cfd804fa5de64c733beaca062fc92eae9",
-    "bin/lib/run-request-store.js": "25083bb214768439d8b7605e1b7ac760cf2641becc9d1b25346063d20eda50cf",
+    "bin/lib/run-request-store.js": "c22137921ad92c809dbed136a47949a9cadcc9e23cacb55c4a055beb38fa742a",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
     "bin/lib/run-sdk-turns.js": "9d9fd643220af85c318391a7cd698a28a6d457251041771da428504719e3421b",
     "bin/lib/run-summary.js": "bcfa5af1d571385ecbf0f075fcebb8e750b78df36ecd2dc1e0d680f41574bdc7",
@@ -152,5 +152,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "7c3f735a60054abc06271d4a663141d2cd65f1d3cc54ca7da5e4dd0e9a2338d5"
+  "output_digest": "a3e1c03e3cc64a5682033e64843a05f4ddefe741f2d0f583869be1b41c57a125"
 }

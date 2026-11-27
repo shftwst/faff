@@ -10,7 +10,7 @@ The top-down planner: recurse an **application-scale** discovery brief into a ro
 
 ## Configuration
 
-**Load the kernel first.** Entered directly or chained from `/faff-jot`; if `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references plot consumes: `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/create.md`, `faff/references/park.md`. plot leans on **Agent Lanes**, the `methodology` `ticket-shaping` contract (the `shape-level` input), and the `appetite` dial; its `intake` / `methodology` slots inherit the gateway ambiently.
+**Load the kernel first.** From the installed skills directory, batch these Reads where supported: `faff/references/kernel.md` first if absent this turn, then `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/methodology.md`, `faff/references/create.md` and `faff/references/park.md`. Skip `faff/SKILL.md`. Finish clipped or failed reads before acting. Direct entry and entry from `/faff-jot` use **Agent Lanes**, the `methodology` `ticket-shaping` contract with its `shape-level` input, and `appetite`. The `intake` and `methodology` slots inherit the gateway ambiently.
 
 **Methodology transport.** Request `ticket-shaping` per altitude and `prdr-author` per project. A later edit gets its own node-scoped dispatch. Follow **Transport (per-output dispatch grain)** in `faff/references/methodology.md`.
 

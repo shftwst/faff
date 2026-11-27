@@ -14,7 +14,7 @@ Pull the live tracker state, synthesise an outcome → workstream → chain → 
 
 ## Configuration
 
-**Load the kernel first.** If `faff/references/kernel.md` isn't in context this turn, Read it now — it holds the shared rules + fixed contracts faff applies. Do **not** Read `faff/SKILL.md` (the bare-`/faff` routing gateway — a specific-skill entry never needs it). Then Read the lane references map consumes: `faff/references/tracker.md`, `faff/references/methodology.md` — map is interactive-only and never Reads `faff/references/autonomous.md`. The `methodology` slot map delegates to inherits the gateway ambiently.
+**Load the kernel first.** From the installed skills directory, batch these Reads where supported: `faff/references/kernel.md` first if absent this turn, then `faff/references/tracker.md` and `faff/references/methodology.md`. Skip `faff/SKILL.md`. Finish clipped or failed reads before acting. Map is interactive-only. Skip `faff/references/autonomous.md`. Its `methodology` slot inherits the gateway ambiently.
 
 **Resolve tracker availability first (gateway → Tracker availability resolution).** map reads the whole roadmap from the tracker, so before treating the tracker as absent it honours a `tracking.tracker` pin and discovers the connector — never inferring git-only from an immediately-invisible tool list under a deferred-tool harness — resolving the mode once for the pass.
 

@@ -31,7 +31,7 @@ function plan(facts: unknown, audit: string[]) {
   const target = facts.target ?? { team: null, repo: null };
   if (!id(mandate)) throw new Error("mandate must be an issue or container ID string");
   if (parent !== null && !id(parent)) throw new Error("parent must be an ID string or null for a root");
-  if (!Array.isArray(ancestry)) throw new Error("ancestry must be an array of tracker ancestry entries");
+  if (ancestry !== undefined && !Array.isArray(ancestry)) throw new Error("ancestry must be an array of tracker ancestry entries");
   if (typeof appetite !== "string" || !appetites.includes(appetite)) throw new Error("appetite must be " + appetites.join("|"));
   if (typeof opinionated !== "boolean") throw new Error("opinionated must be a boolean");
   if (typeof relationship !== "string" || !relationships.includes(relationship)) throw new Error("relationship must be " + relationships.join("|"));
@@ -44,8 +44,9 @@ function plan(facts: unknown, audit: string[]) {
   if (!record(target)) throw new Error("target must be a {team, repo} object when supplied");
 
   const placement = parent === null ? ["--root"] : ["--parent", parent];
+  const graph = ancestry === undefined ? [] : ["--ancestry", JSON.stringify(ancestry)];
   const captureOnly = () => {};
-  const result = cmdContain([mandate, ...placement, "--ancestry", JSON.stringify(ancestry), ...audit, "--json"], captureOnly);
+  const result = cmdContain([mandate, ...placement, ...graph, ...audit, "--json"], captureOnly);
   if (result !== 0 && result !== 3) throw new Error("containment check failed");
   let self = false;
   if (result === 3) {

@@ -42,7 +42,7 @@
     "bin/lib/land.ts": "b4c79d62812ac0013ba6c774b720fa4448451b712b8828a66c154616e71f5fa5",
     "bin/lib/merge-authorize.ts": "159bd25af72d30d005a887cda7d8980f7d5030398022c0d9f8371a066c13bd61",
     "bin/lib/merge-delivery-receipt.ts": "44212d861e6d495c0b6167079880d1bfb666e1acb5ac759849df95ccf629fd7b",
-    "bin/lib/next-prep-queue.ts": "64f35e152dcd3d2f245272a8533e6902ae5d84f24e74ace796a9810f43adbde4",
+    "bin/lib/next-prep-queue.ts": "6d89c15f0c3dfc5071afdf9c4ade3845c9b9b8d53cb0568ee851ba68cdecf73f",
     "bin/lib/park-finalize.ts": "72a906237ad66ae2f5661c1308f8a015408f409912603bbc741cedd6f073bfd3",
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/planning-graph.ts": "39d02bc552783d4d3b33473f2b355e94798d56eb90deb89d85330c6351e5d529",
@@ -110,7 +110,7 @@
     "bin/lib/land.js": "6722f3b6b1cc15cccdd58ca3555c59846604c950351ab96944cc7f340868226c",
     "bin/lib/merge-authorize.js": "9b08489832b8d35e025e52f17fe94476bfb400210065048b29facd04d3db582f",
     "bin/lib/merge-delivery-receipt.js": "a7946efb13f1b4a5b1b9a162dad94becc948b741c61b002ac15d269c2a4eaefd",
-    "bin/lib/next-prep-queue.js": "9dbd8e11b9fdcba155907a0ba1c1882893af2ee56f45177395097ca15db88145",
+    "bin/lib/next-prep-queue.js": "8c42bebcf332070662aecb7ddc01e7c6d1a15193f0de7adbe93a9d5cd3097b4d",
     "bin/lib/park-finalize.js": "8f0b5524416dc7ff7461effbf42d86643354b2d58e4d6255ff6e1938bc955bf0",
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/planning-graph.js": "718b5eeb1e4eae6717136227905cde9663297f47a087398b593b2c3aa7ba70c1",
@@ -148,5 +148,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "4a0e5e404c65161d2d1568b8d039276929af6c9461a7659d23dd9f3e570e5493"
+  "output_digest": "8423c05fb00e8edd18596875ef235996309b7d7dce7783b86d91d1d7cd3537aa"
 }

@@ -31,7 +31,7 @@ function strings(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((label) => typeof label === "string");
 }
 
-function prepQueue(input: unknown, prefix: string, names: Record<string, string>, nextStep: NextStep, discovered: Set<string>): string[] {
+function prepQueue(input: unknown, prefix: string, names: Record<string, string>, nextStep: NextStep, discovered: Set<string>, plan: boolean) {
   if (!object(input) || input.complete !== true || !Array.isArray(input.issues)) {
     throw new Error("expected complete:true and an ordered issues array");
   }
@@ -81,13 +81,32 @@ function prepQueue(input: unknown, prefix: string, names: Record<string, string>
       if (!reachable.has(key) && row.blockers.every(id => reachable.has(id))) reachable.add(key);
     }
   } while (reachable.size !== previousSize);
-  return Array.from(candidates.entries())
-    .filter(([key, row]) => reachable.has(key) && row.needsPrep)
-    .map(([, row]) => row.id);
+  const members = Array.from(candidates.entries()).filter(([key, row]) => reachable.has(key) && row.needsPrep);
+  const prep = members.map(([, row]) => row.id);
+  if (!plan) return { prep };
+
+  // A specced intermediate still carries its upstream prep dependencies.
+  const waits = members.map(([, row]) => {
+    const pending = [...row.blockers];
+    const seen = new Set<string>();
+    const prerequisites: string[] = [];
+    while (pending.length) {
+      const id = pending.pop();
+      if (id === undefined) break;
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const blocker = candidates.get(id);
+      if (!blocker) throw new Error("unresolved prerequisite " + id);
+      if (blocker.needsPrep) prerequisites.push(blocker.id);
+      else for (const upstream of blocker.blockers) pending.push(upstream);
+    }
+    return [row.id, prerequisites];
+  });
+  return { prep, wait_for: Object.fromEntries(waits) };
 }
 
-const usage = "usage: faff next prep-queue [--root DIR] [--run-dir DIR] < facts.json";
-const spec = { flags: { "--root": { arity: 1 }, "--run-dir": { arity: 1 } }, positionals: { min: 0, max: 0 } };
+const usage = "usage: faff next prep-queue [--plan] [--root DIR] [--run-dir DIR] < facts.json";
+const spec = { flags: { "--plan": { arity: 0 }, "--root": { arity: 1 }, "--run-dir": { arity: 1 } }, positionals: { min: 0, max: 0 } };
 
 function cmdPrepQueue(args: string[], nextStep: NextStep): number {
   const { values, errors } = argv.parseArgs(args, spec);
@@ -102,7 +121,7 @@ function cmdPrepQueue(args: string[], nextStep: NextStep): number {
     const raw = readStdinCapped(VALIDATE_MAX_BYTES);
     if (raw.over) throw new Error("facts exceed one MiB");
     const input: unknown = JSON.parse(raw.text);
-    process.stdout.write(JSON.stringify({ prep: prepQueue(input, prefix.prefix, labels.names, nextStep, discoveredInWave(root, values["--run-dir"] ?? process.env.FAFF_RUN_DIR)) }) + "\n");
+    process.stdout.write(JSON.stringify(prepQueue(input, prefix.prefix, labels.names, nextStep, discoveredInWave(root, values["--run-dir"] ?? process.env.FAFF_RUN_DIR), Boolean(values["--plan"]))) + "\n");
     return 0;
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error);

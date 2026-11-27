@@ -20,6 +20,19 @@ const appetites = ["low", "medium", "high", "full"];
 const relationships = ["blocker", "blocked-by", "peer", "none", "parent"];
 const priorContainments = ["contained", "outward-new-root", "outward-self-intake"];
 
+// Filing uses the tier saved at discovery. The filing skill supplies the case-specific prose.
+function priorityFields(tier: unknown) {
+  if (tier === undefined || tier === "absent") return {};
+  const values = { high: 2, medium: 3, low: 4 };
+  if (tier !== "high" && tier !== "medium" && tier !== "low") throw new Error("priority must be high|medium|low|absent");
+  const label = tier.charAt(0).toUpperCase() + tier.slice(1);
+  return { priority: values[tier], priority_comment_template: [
+    "*Agent-written via <filing skill>.*", "", `**Priority: ${label}**`, "",
+    "- **Found:** <what the pass found>", "- **Rule:** <matched condition>",
+    "- **Changes it:** <what would move this to another tier>",
+  ].join("\n") };
+}
+
 function plan(facts: unknown, audit: string[]) {
   if (!record(facts)) throw new Error("expected a filing facts object");
   if (facts.confidence === "vague") return { action: "surface", containment: null, reason: "vague" };
@@ -43,6 +56,7 @@ function plan(facts: unknown, audit: string[]) {
   }
   if (!record(target)) throw new Error("target must be a {team, repo} object when supplied");
 
+  const priority = priorityFields(facts.priority);
   const placement = parent === null ? ["--root"] : ["--parent", parent];
   const graph = ancestry === undefined ? [] : ["--ancestry", JSON.stringify(ancestry)];
   const captureOnly = () => {};
@@ -68,6 +82,7 @@ function plan(facts: unknown, audit: string[]) {
     action: "may-file", containment, reason: "appetite-allows",
     proposal: {
       mandate, relationship, relationship_target: link, status: "Backlog",
+      ...priority,
       intake: { via: "jot", initiated: "autonomous" },
       ...(self ? { destination: "self-intake", omit_automation_label: true } : { parent }),
     },

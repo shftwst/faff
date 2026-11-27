@@ -21,7 +21,7 @@
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
     "bin/lib/commissaire.ts": "27772e4ee5c55615e62a001e86c4f58a918a2c28d8d03c71b982db5c48260af3",
     "bin/lib/decision-policy.ts": "bdae9ebbaf8b55c1434c6d5e2e19f1e242e73399cd1a470a823faadc2a5edc85",
-    "bin/lib/discovered-scope-plan.ts": "f84a2eed88a01b7ec0d6b0d14319ab6122fd3a6d4b95b881ee7540bbed2ee5c8",
+    "bin/lib/discovered-scope-plan.ts": "a992a466ae17f4f54a3e990e90206d072950a1e5682ed99fab403da4f48efaa1",
     "bin/lib/dispatch-prepare.ts": "bbdcd2d5a8b085c6119dcdc878d61bee29b6542141142fee46e00d23e1d943a0",
     "bin/lib/dispatch-producer.ts": "eb3a3ecb99348e185db77e8796ca202c0ef312006f7478294a1a03a4347c446c",
     "bin/lib/dispatch-verify.ts": "d2034ebec5743352f7f598ff1e2467e151ba69111052bbd019f1e06abcd08cf1",
@@ -89,7 +89,7 @@
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
     "bin/lib/commissaire.js": "f07665f5da14ddcb7f18e1223dceb50407854a662f1558f0b62ff5128dc96279",
     "bin/lib/decision-policy.js": "f734a0f4a670ebd738bf476e0b5c9c9f6a44c59c1dafca1c5d31c3bb33a43095",
-    "bin/lib/discovered-scope-plan.js": "bb28a571cca8890fccd111df24002081de31c7198bc3abde768aa7ef6e4c212e",
+    "bin/lib/discovered-scope-plan.js": "100746087b3fe592c5be198188a598de904b266dc8af9815d9753e4d1bfc60f4",
     "bin/lib/dispatch-prepare.js": "b698c1bdb0b55e0a894e054d08097271d6bdc49facd6303474bd94659717a121",
     "bin/lib/dispatch-producer.js": "23271a7a337197852dff686ad32880e08634ca4458316f00cb3745b8e2c8eb93",
     "bin/lib/dispatch-verify.js": "566d1bd51d73263b02ae6f0c163795e1e7231723d96923f6cc5011a7d9f1e336",
@@ -148,5 +148,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "24b513755c0ac29b21682e22f937e6c8685017e1e4efd51f33ecedf7c3fcca2a"
+  "output_digest": "910bd3713951b62276529380f64053f60941c7ccad0fe9e1facc289887d2cb4a"
 }

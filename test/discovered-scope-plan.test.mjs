@@ -144,3 +144,19 @@ test("only direct placement and new roots can omit ancestry, including audited p
     .map(JSON.parse).filter(event => event.type === "containment-check");
   assert.deepEqual(checks.map(e => [e.data.verdict, e.data.ancestry_raw]), [["contained", null], ["outward", null]]);
 });
+
+test("filing uses the captured tier and returns a write-once comment template on a may-file plan", t => {
+  const root = repo(t);
+  for (const [tier, label, number] of [["high","High",2], ["medium","Medium",3], ["low","Low",4]]) {
+    const {proposal} = result(root, {...base, priority:tier});
+    assert.equal(proposal.priority, number);
+    assert.deepEqual(proposal.priority_comment_template.split("\n"), [
+      "*Agent-written via <filing skill>.*", "", `**Priority: ${label}**`, "",
+      "- **Found:** <what the pass found>", "- **Rule:** <matched condition>",
+      "- **Changes it:** <what would move this to another tier>",
+    ]);
+  }
+  assert.deepEqual(result(root, {...base, priority:"absent"}), result(root, base));
+  assert.equal(result(root, {...base, appetite:"low", priority:"high"}).proposal, undefined);
+  assert.equal(invoke(root, {...base, priority:"urgent"}).status, 2);
+});

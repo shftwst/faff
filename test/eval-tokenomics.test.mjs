@@ -164,3 +164,27 @@ test("FAFF-1199: claude-fable-5-2 and claude-haiku-5-5 have rates with their own
   assert.deepEqual(RATES["claude-fable-5-2"], { in: 8, out: 40, read_mult: 0.025 });
   assert.deepEqual(RATES["claude-haiku-5-5"], { in: 0.1, out: 0.5, read_mult: 0.1 });
 });
+
+test("native and SDK worker contexts stay separate in cache-gap estimates", () => {
+  const row = (id, seconds, model, extra) => JSON.stringify({
+    type: "assistant", timestamp: new Date(seconds * 1000).toISOString(),
+    message: { id, model, usage: { input_tokens: 1 } }, ...extra,
+  });
+  const calls = parseTranscript([
+    row("a", 0, "opus", { sessionId: "native" }),
+    row("b", 120, "opus", { sessionId: "native", agentId: "child" }),
+    row("c", 240, "opus", { session_id: "sdk" }),
+    row("d", 260, "opus", { session_id: "sdk", parent_tool_use_id: "dispatch" }),
+    row("e", 280, "sonnet", { sessionId: "native" }),
+    row("f", 420, "opus", { sessionId: "native" }),
+    row("g", 480, "opus", { sessionId: "native", agentId: "child" }),
+    row("h", 490, "opus", { sessionId: "native", isSidechain: true }),
+    row("i", 500, "opus", {}),
+  ].join("\n"));
+  const risk = ttlRisk(calls, 300);
+  assert.equal(risk.gaps, 2);
+  assert.equal(risk.expiries, 2);
+  assert.equal(risk.max_gap_s, 420);
+  assert.equal(risk.unattributed_timed_calls, 2);
+  assert.equal(calls[1].subagent, true);
+});

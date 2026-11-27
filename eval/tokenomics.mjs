@@ -70,7 +70,12 @@ export function parseTranscript(text) {
     const cc = u.cache_creation || {};
     let call = agg.get(rid);
     if (!call) {
-      call = { rid, model: msg.model || "unknown", cr: 0, cw: 0, cw1h: 0, cw5m: 0, in: 0, out: 0, subagent: !!o.parent_tool_use_id, session: o.session_id || "?", ts: o.timestamp ? Date.parse(o.timestamp) : null };
+      const worker = o.agentId || o.parent_tool_use_id || null;
+      call = {
+        rid, model: msg.model || "unknown", cr: 0, cw: 0, cw1h: 0, cw5m: 0, in: 0, out: 0,
+        subagent: !!worker || o.isSidechain === true, worker, session: o.sessionId || o.session_id || "?",
+        ts: o.timestamp ? Date.parse(o.timestamp) : null,
+      };
       agg.set(rid, call);
       order.push(rid);
     } else if (o.timestamp) {
@@ -312,15 +317,23 @@ export function benchmarkLatency(calls, opts, profiles) {
 }
 
 // --- TTL — the cache-survival lens (PURE) -----------------------------------------------------
-// A cached prefix stays alive only if it is re-read within the TTL. Group calls by session, sort by
-// timestamp, and count the gaps between successive calls that exceed a candidate TTL — each such gap
-// is a cache expiry that forces a cold re-prefill on the next call. This makes the 5m-vs-1h TTL
-// choice (and the writes-5m-ttl strategy's "hit rate held" caveat) data-driven instead of assumed.
+// Estimate gaps within each session, worker and model. Other traffic may still
+// warm shared prefixes; an interval over the TTL is exposure, not a proven miss.
 export function ttlRisk(calls, ttlSeconds) {
-  const bySess = {};
-  for (const c of calls) if (c.ts != null) (bySess[c.session] ||= []).push(c.ts);
+  const contexts = new Map();
+  let unattributed = 0;
+  for (const call of calls) {
+    if (!Number.isFinite(call.ts)) continue;
+    if (!call.session || call.session === "?" || (call.subagent && !call.worker)) {
+      unattributed++;
+      continue;
+    }
+    const key = JSON.stringify([call.session, call.worker ?? null, call.model ?? null]);
+    if (!contexts.has(key)) contexts.set(key, []);
+    contexts.get(key).push(call.ts);
+  }
   const gaps = [];
-  for (const ts of Object.values(bySess)) {
+  for (const ts of contexts.values()) {
     ts.sort((a, b) => a - b);
     for (let i = 1; i < ts.length; i++) gaps.push((ts[i] - ts[i - 1]) / 1000);
   }
@@ -332,7 +345,8 @@ export function ttlRisk(calls, ttlSeconds) {
     gaps: n,
     median_gap_s: n ? round(gaps[Math.floor(n / 2)]) : 0,
     max_gap_s: n ? round(gaps[n - 1]) : 0,
-    expiries: expired, // cache timeouts → cold re-prefills at this TTL
+    unattributed_timed_calls: unattributed,
+    expiries: expired,
     expiry_pct: n ? round((100 * expired) / n) : 0,
   };
 }
@@ -444,7 +458,7 @@ function printLatency(l, outputSuspect) {
   console.log(`  ratio = local wall / frontier wall. Local is viable where the ratio stays near 1; the uncached column is the local cache-miss risk.`);
   if (l.ttl) {
     console.log(`\n  cache survival, TTL model (hosted / ephemeral cache): inter-call gaps vs TTL — each expiry forces a cold re-prefill:`);
-    for (const t of l.ttl) console.log(`     ${secs(t.ttl_seconds).padStart(5)} TTL: ${t.expiries} of ${t.gaps} gaps expire (${t.expiry_pct}%)  [median gap ${secs(t.median_gap_s)}, max ${secs(t.max_gap_s)}]`);
+    for (const t of l.ttl) console.log(`     ${secs(t.ttl_seconds).padStart(5)} TTL: ${t.expiries} of ${t.gaps} same-context gaps exceed TTL (${t.expiry_pct}%)  [median gap ${secs(t.median_gap_s)}, max ${secs(t.max_gap_s)}; ${t.unattributed_timed_calls} unattributed timed calls]`);
     console.log(`     (vLLM/SGLang evict LRU by KV capacity, not TTL — see the KV lens with --kv)`);
   }
 }

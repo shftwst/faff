@@ -371,7 +371,7 @@ function mutateLedgerUnderLock(runDir, mutate, expectedOwner, opts) {
         `(writer epoch ${expectedOwner.epoch ?? 0}/${expectedOwner.session_id ?? "?"}, on-disk epoch ${(fresh.owner && fresh.owner.epoch) ?? 0}/${(fresh.owner && fresh.owner.session_id) ?? "?"}) — a newer resume owns this run\n`);
       return { written: false, yielded: true, before_sha256: beforeSha256, after_sha256: null };
     }
-    const next = mutate(fresh);
+    const next = mutate(fresh, { beforeSha256 });
     if (next === null || next === undefined) return { written: false, yielded: false, before_sha256: beforeSha256, after_sha256: null };
     // FAFF-930 leg 1 of the L4-ratification gate — write-once / refuse-overwrite guard on `level`.
     // The mint (`faff lights-out`) establishes `level`; every subsequent locked write may keep it
@@ -729,7 +729,7 @@ function heartbeatSelftest() {
 
 
 module.exports = {
-  atomicWriteLedger, atomicWriteSingleValueFile, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest,
+  redactLedgerDocument, atomicWriteLedger, atomicWriteSingleValueFile, cmdHeartbeat, effectiveHeartbeatIso, heartbeatSelftest,
   isLedgerSchemaError, isValidIssueId, ledgerLockPath, memberHeartbeatFileName, mutateLedgerUnderLock, overlayHeartbeat, ownerEpochFenceStale, readHeartbeatFile,
   readMemberHeartbeatFile, resolveHeartbeatRunDir, withLedgerLock, writeHeartbeatFile, writeMemberHeartbeatFile,
 };

@@ -61,7 +61,7 @@ const SKILL_LINE_CAP = 600;                       // per-file SKILL.md line cap 
 // contain a SKILL.md, so a references file is never line-capped by it). Growth FAILs; a shrink below
 // baseline prints a non-failing RATCHET advisory — lower it to lock the reduction, exactly like
 // SKILL_LINE_BASELINE. The bare-/faff faff/SKILL.md baseline drops from 1170 to its post-split size.
-const KERNEL_LINE_BASELINE = 340;
+const KERNEL_LINE_BASELINE = 338;
 const SKILL_LINE_BASELINE = { faff: 62, "faff-beep-boop": 570, "faff-graft": 554, "faff-prep": 521 };
 // FAFF-884: the turn-survival anchor-phrase lint, generalised from the hard-coded
 // `name === "faff-graft"` branch to a data-driven PER-SKILL map. Each skill anchors

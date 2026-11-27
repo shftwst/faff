@@ -89,7 +89,8 @@ function owner(file) {
         if (!line)
             continue;
         try {
-            const sid = obj(JSON.parse(line)).sessionId;
+            const row = obj(JSON.parse(line));
+            const sid = row.sessionId ?? row.session_id;
             if (typeof sid === "string" && sid)
                 return sid;
         }
@@ -247,7 +248,7 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
                     warnings.add("malformed-transcript-row");
                     continue;
                 }
-                if (typeof row.sessionId === "string" && row.sessionId !== sessionId)
+                if ([row.sessionId, row.session_id].some(id => typeof id === "string" && id !== sessionId))
                     continue;
                 const msg = obj(row.message), ms = dateMs(row.timestamp);
                 const blocks = Array.isArray(msg.content) ? msg.content.map(obj) : [];

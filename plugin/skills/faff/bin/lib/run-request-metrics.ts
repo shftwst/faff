@@ -98,7 +98,8 @@ function owner(file: string): string | null {
   for (const line of lines(file)) {
     if (!line) continue;
     try {
-      const sid = obj(JSON.parse(line)).sessionId;
+      const row = obj(JSON.parse(line));
+      const sid = row.sessionId ?? row.session_id;
       if (typeof sid === "string" && sid) return sid;
     } catch { /* old children can start with a partial line */ }
   }
@@ -219,7 +220,7 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
         if (!line.trim()) continue;
         let row: Obj;
         try { row = obj(JSON.parse(line)); } catch { warnings.add("malformed-transcript-row"); continue; }
-        if (typeof row.sessionId === "string" && row.sessionId !== sessionId) continue;
+        if ([row.sessionId, row.session_id].some(id => typeof id === "string" && id !== sessionId)) continue;
         const msg = obj(row.message), ms = dateMs(row.timestamp);
         const blocks = Array.isArray(msg.content) ? msg.content.map(obj) : [];
         // A structured receipt is evidence of a successful verification. A command invocation alone is not.

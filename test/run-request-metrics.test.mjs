@@ -34,7 +34,7 @@ test("unique native responses across parent, nested and legacy workers retain la
   changed.message.usage.output_tokens = 25;
   changed.timestamp = at(13);
   changed.message.content = [{type:"text",text:"private fixture text"}];
-  f.put(f.main,[assistant("before",9),d,changed,assistant("end",20),assistant("wrong",16,[],{sessionId:"other"})]);
+  f.put(f.main,[assistant("before",9),d,changed,assistant("end",20),assistant("wrong",16,[],{sessionId:"other"}),assistant("sdk-wrong",15,[],{sessionId:undefined,session_id:"other"})]);
   const a = path.join(f.dir,"session1/subagents/agent-A.jsonl"), b = path.join(f.dir,"subagents/agent-B.jsonl");
   f.put(a,[assistant("worker",15),d]);
   f.put(b,[assistant("second",17)]);

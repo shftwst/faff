@@ -62,7 +62,7 @@
     "bin/lib/run-close.ts": "c9f138cfe8afa0d42c2ccea6c39d4705bbf20cc245a09b280344a105ee5db041",
     "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
     "bin/lib/run-open.ts": "50f6d5fcf0248162c058c126813b483da74bfda65af9909c5bfd8a29f3d76b48",
-    "bin/lib/run-request-metrics.ts": "b5f354d29c8d9e0cc39da5045cd8103b28306ef517166a25f51fb73bdad06692",
+    "bin/lib/run-request-metrics.ts": "484769cbae6b8538c33e2a53f382ae99b5973d7707824acaa02e4c8074b12913",
     "bin/lib/run-request-store.ts": "3cb751dfd57919deb0ca4c8eeef625978855e51e5cbf8f568aa59b5d856740ce",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
     "bin/lib/run-sdk-turns.ts": "d9dc0761d05fc7884c06124de2ea04058dda59a1d46365e4c0dddc7498a2673b",
@@ -132,7 +132,7 @@
     "bin/lib/run-close.js": "801e7c8df1b67998be48a64587b5f80d92d6010948af4ae04b7c75a2c9d6f810",
     "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
     "bin/lib/run-open.js": "3ac4200575fdbd14e286713989a09b757cb12fe02f0830ed7c9460c889ac2234",
-    "bin/lib/run-request-metrics.js": "ec1ad767a1d23356c51324aa1f9697386e8ed3a507501decf776794c771c5b15",
+    "bin/lib/run-request-metrics.js": "7a41ddc0a0da3138392940f7279d77c5910f6741d0a480505a14e1946ffb354b",
     "bin/lib/run-request-store.js": "fbe273892373698dbb704c2a976ba8d8266b14f0dade27402b7cc311d0b1345b",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
     "bin/lib/run-sdk-turns.js": "9d9fd643220af85c318391a7cd698a28a6d457251041771da428504719e3421b",
@@ -152,5 +152,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "535ebee778c6308c7d7dd342f8057ecc48d9c7298e9c78d8d31989f5eba5e797"
+  "output_digest": "f0227a34f52a3db167e40c2522fdaf87f9548fa24d5ea37a5cbe7dc3b9a496bf"
 }

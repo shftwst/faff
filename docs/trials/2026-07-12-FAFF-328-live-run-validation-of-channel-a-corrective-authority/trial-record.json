@@ -1,0 +1,25 @@
+{
+  "$comment": "TrialRecord scaffold for FAFF-328 (spec section 3, RECORD TrialRecord). Unfilled — the trial has not run. Fill this file in place during the trial's Record step (runbook.md section 5) and commit it with the trial's own PR.",
+  "run_id": null,
+  "trial_issue": null,
+  "seeding": {
+    "method": null,
+    "thresholds_overridden": false,
+    "overrides": {}
+  },
+  "checkpoints": [
+    { "id": 1, "name": "Trip routing", "predicted": "A genuine fix-review-thrash trip returns intervention `correct` (not `pause`) under asserted authority", "observed": null, "pass": null, "evidence": null },
+    { "id": 2, "name": "Resumable abort", "predicted": "The implicated unit aborts resumably; the ledger stays coherent (aborted-resumable shape)", "observed": null, "pass": null, "evidence": null },
+    { "id": 3, "name": "Cited authoring", "predicted": "`faff corrective author` writes the artifact under <run-dir>/corrective/ citing the triggering verdict; corrective-authored event appended", "observed": null, "pass": null, "evidence": null },
+    { "id": 4, "name": "Gated consumption", "predicted": "`faff corrective check` returns trusted + the folded constraint set under asserted integrity", "observed": null, "pass": null, "evidence": null },
+    { "id": 5, "name": "Constraint delivery", "predicted": "The narrowed constraints reach the re-dispatched unit's BuildDispatch.constraints", "observed": null, "pass": null, "evidence": null },
+    { "id": 6, "name": "Mandate honoured", "predicted": "The re-dispatched build respects the constraint (forbidden surface untouched / descope honoured / tightened threshold applied)", "observed": null, "pass": null, "evidence": null },
+    { "id": 7, "name": "Clean resume", "predicted": "The run proceeds to a terminal state; no dispatch spin; faff runcheck passes", "observed": null, "pass": null, "evidence": null },
+    { "id": 8, "name": "Audit trail", "predicted": "Both corrective events carry the citation; the cumulative per-issue input set is reviewable", "observed": null, "pass": null, "evidence": null },
+    { "id": 9, "name": "Abort supremacy (opportunistic)", "predicted": "If an abort-class signal co-trips, abort wins", "observed": null, "pass": null, "evidence": null, "required": false }
+  ],
+  "defects_filed": [],
+  "verdict": null,
+  "narrowing": null,
+  "authored_at": null
+}

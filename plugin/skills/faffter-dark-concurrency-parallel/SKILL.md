@@ -81,7 +81,7 @@ Each PR lands against the `main` it was re-validated against while builds remain
 N dispatches share one run-grain member set. Obligation 5 owns the one-chain-per-orchestrator rule, write sequence and Class A/B closing treatment; this section only places the wave's chain boundaries. The orchestrator is every bracketed member's writer (ledger sole writer, `corrective/` orchestrator-side CLI, `events.jsonl` sole appender), so "everything since the last baseline I did not write is tamper" is exact.
 
 - **Wave start** (before the first dispatch): snapshot → hold baseline B0 in context — this is where the chain opens.
-- **On each subagent return**, use the held baseline in the obligation-6 `faff dispatch verify-member` call before consuming that member’s token. A run-scoped failure starts the halt-and-drain below.
+- **On each subagent return**, use the held baseline in the obligation-6 `faff dispatch verify-member --record` call before consuming that member’s token. A run-scoped failure starts the halt-and-drain below.
 - **On each orchestrator own-write to a byte-exact member** (ledger outcome record, park writes, corrective ops): the gateway's mandatory re-baseline sequence, unchanged — verify → write → post-write check → re-snapshot → intended-content check.
 - **Poll-loop `sentry-checkpoint` event appends:** no re-baseline — `events.jsonl` is prefix-preserving, so appends verify clean against any older baseline.
 - **Wave end** (all units terminal): final verify, then discard the baseline — this is where the chain closes.
@@ -90,7 +90,7 @@ N dispatches share one run-grain member set. Obligation 5 owns the one-chain-per
 
 ## Per-issue evidence verify (obligation 6 — placement here)
 
-For `scope: member`, park only that member on failure. Siblings keep running and the wave keeps launching. On agreement, append any returned `evidence_persisted` through the re-baseline sequence before reconciling the token (obligation 6).
+For `scope: member`, park only that member on failure. Siblings keep running and the wave keeps launching. On agreement, hold the returned baseline before reconciling the token.
 
 ## Merge above the cut (obligation 7 — placement here)
 

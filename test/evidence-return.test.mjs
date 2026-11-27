@@ -595,3 +595,69 @@ test("a legitimately absent member return agrees without adding a ledger entry",
   assert.equal(result.code, 0);
   assert.equal(line(result).evidence_persisted, null);
 });
+
+function recordingFixture(t) {
+  const f = fixture(t, { ledger: { admitted: [ISSUE], outcomes: {}, owner: { status: "running" } } });
+  const events = join(f.runDir, "events.jsonl");
+  require("../plugin/skills/faff/bin/lib/events").emitGenesisRunStart(f.runDir, { level: "L3" });
+  const held = JSON.parse(runCli(["integrity-digest", "snapshot", "--run-dir", f.runDir, "--events"], { cwd: f.root }).stdout);
+  const record = (input = goodClaim(), manifest = held) => runCli(["dispatch", "verify-member", "--record", "--run-dir", f.runDir, "--issue", ISSUE, "--return", input], { cwd: f.root, input: JSON.stringify(manifest) });
+  return { ...f, events, held, record, ledgerPath: join(f.runDir, "run-ledger.json") };
+}
+
+test("record verified evidence once, including retries after a lost response or ledger-event interruption", t => {
+  const f = recordingFixture(t);
+  const beforeEvents = readFileSync(f.events);
+  const first = f.record();
+  assert.equal(first.code, 0, first.stdout + first.stderr);
+  assert.equal(f.against().code, 0);
+  const after = snapshot(f.runDir);
+  for (const manifest of [f.held, line(first).baseline]) {
+    const retry = f.record(goodClaim(), manifest);
+    assert.equal(retry.code, 0, retry.stdout);
+    assert.deepEqual(line(retry).baseline, line(first).baseline);
+    assert.deepEqual(snapshot(f.runDir), after);
+  }
+  writeFileSync(f.events, beforeEvents);
+  assert.equal(f.record().code, 0);
+  const records = readFileSync(f.events, "utf8").trim().split("\n").map(JSON.parse);
+  assert.equal(records.filter(x => x.type === "ledger-write").length, 1);
+  assert.equal(records.at(-1).data.ledger_sha256, sha(readFileSync(f.ledgerPath)));
+  assert.equal(JSON.parse(readFileSync(f.ledgerPath)).evidence_persisted.length, 1);
+});
+
+test("record refuses an evidence mismatch, unrelated ledger change or corrupted recovery copy", t => {
+  const f = recordingFixture(t);
+  const before = snapshot(f.runDir);
+  assert.equal(f.record("null").code, 1);
+  assert.deepEqual(snapshot(f.runDir), before);
+  assert.equal(f.record().code, 0);
+  const written = readFileSync(f.ledgerPath);
+  writeFileSync(f.ledgerPath, Buffer.concat([written, Buffer.from(" ")]));
+  const changed = snapshot(f.runDir);
+  assert.equal(line(f.record()).scope, "run");
+  assert.deepEqual(snapshot(f.runDir), changed);
+  writeFileSync(f.ledgerPath, written);
+  writeFileSync(join(f.runDir, ".verified-return-before"), "{}");
+  assert.equal(f.record().code, 2);
+});
+
+test("concurrent duplicate record calls produce one ledger write and one evidence row", async t => {
+  const f = recordingFixture(t);
+  const { spawn } = await import("node:child_process");
+  const cli = join(import.meta.dirname, "..", "plugin", "skills", "faff", "bin", "faff");
+  function start() {
+    return new Promise((resolve, reject) => {
+      const proc = spawn(process.execPath, [cli, "dispatch", "verify-member", "--record", "--run-dir", f.runDir, "--issue", ISSUE, "--return", goodClaim()], { cwd: f.root });
+      let output = "";
+      proc.stdout.on("data", b => { output += b; });
+      proc.on("error", reject);
+      proc.on("close", code => code === 0 ? resolve(JSON.parse(output).baseline) : reject(new Error(output)));
+      proc.stdin.end(JSON.stringify(f.held));
+    });
+  }
+  const [a,b] = await Promise.all([start(), start()]);
+  assert.deepEqual(a,b);
+  assert.equal(JSON.parse(readFileSync(f.ledgerPath)).evidence_persisted.length, 1);
+  assert.equal(readFileSync(f.events, "utf8").trim().split("\n").map(JSON.parse).filter(e => e.type === "ledger-write").length, 1);
+});

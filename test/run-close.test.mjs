@@ -114,6 +114,58 @@ test("refusal: undispatched admitted issues and invalid outcomes exit 3 and leav
   assert.deepEqual(close(fx, fakeDeps()).result.undispatched, ["B"]);
 });
 
+test("close collects shipped verification flags once and preserves legacy annotations", () => {
+  const outcomes = { A: "shipped", B: "shipped", C: "shipped", D: "superseded", E: "shipped", F: "shipped" };
+  const prior = { issue: "F", command: "old test", pr: 5, merge_sha: null, note: "historical" };
+  const fx = makeRun({ admitted: Object.keys(outcomes), outcomes, post_merge_verification_failures: [prior] });
+  function artifact(issue, verdict, command) {
+    mkdirSync(join(fx.runDir, issue));
+    writeFileSync(join(fx.runDir, issue, "post-merge-verification.json"), JSON.stringify({
+      issue, verdict, command, basis: "recorded by checker", merge_sha: "abc", pr: 12,
+    }));
+  }
+  artifact("A", "verified-fail", "npm test");
+  artifact("B", "unverified", null);
+  artifact("C", "verified-ok", "npm test");
+  artifact("D", "verified-fail", "skip superseded");
+  const legacy = close(fx, fakeDeps());
+  assert.equal(legacy.code, 0);
+  assert.deepEqual(readLedger(fx).post_merge_verification_failures, [prior]);
+  const first = close(fx, fakeDeps(), { postMergeAnnotations: true });
+  assert.equal(first.code, 0);
+  assert.deepEqual(first.result.faults, []);
+  assert.deepEqual(readLedger(fx).post_merge_verification_failures, [prior, { issue: "A", pr: 12, merge_sha: "abc", command: "npm test" }]);
+  assert.deepEqual(readLedger(fx).post_merge_verification_unverified, ["B"]);
+  assert.deepEqual(readLedger(fx).outcomes, outcomes);
+  const before = readLedger(fx);
+  assert.equal(close(fx, fakeDeps(), { postMergeAnnotations: true }).code, 0);
+  assert.deepEqual(readLedger(fx), before);
+});
+
+test("an invalid or misattributed artifact is reported as unverified without blocking close", () => {
+  const fx = makeRun({ admitted: ["A", "B"], outcomes: { A: "shipped", B: "shipped" } });
+  for (const [issue, contents] of [["A", "damaged"], ["B", JSON.stringify({ issue: "other", verdict: "verified-ok" })]]) {
+    mkdirSync(join(fx.runDir, issue));
+    writeFileSync(join(fx.runDir, issue, "post-merge-verification.json"), contents);
+  }
+  const result = capture(() => rcl.cmdRunClose(["--run-dir", fx.runDir, "--stop-reason", "queue-drained", "--root", fx.root, "--post-merge-annotations", "--json"], fakeDeps()));
+  assert.equal(result.code, 0);
+  assert.equal(JSON.parse(result.out).faults.filter(fault => fault.startsWith("post-merge verification ")).length, 2);
+  assert.deepEqual(readLedger(fx).post_merge_verification_unverified, ["A", "B"]);
+});
+
+test("a legacy verified failure lacking command text stays a regression", () => {
+  const issue = "FAFF-472";
+  const fx = makeRun({ admitted: [issue], outcomes: { [issue]: "shipped" } });
+  mkdirSync(join(fx.runDir, issue));
+  const record = { issue, command_class: "node-test", merge_sha: "fb5e4327", pr: 643, verdict: "verified-fail" };
+  writeFileSync(join(fx.runDir, issue, "post-merge-verification.json"), JSON.stringify(record));
+  const result = close(fx, fakeDeps(), { postMergeAnnotations: true });
+  assert.deepEqual(result.result.faults, [`post-merge verification ${issue}: incomplete failure evidence`]);
+  assert.deepEqual(readLedger(fx).post_merge_verification_failures, [{ issue, merge_sha: record.merge_sha, pr: 643 }]);
+  assert.equal(readLedger(fx).post_merge_verification_unverified, undefined);
+});
+
 test("abort exemption: a sentry-abort close of a run with the abort mark closes, reports undispatched and leaves outcomes untouched", () => {
   const aborted = { admitted: ["A", "B"], outcomes: { A: "shipped" }, abort: { status: "aborted-resumable" }, owner: { status: "aborted-resumable" } };
   const fx = makeRun(aborted);

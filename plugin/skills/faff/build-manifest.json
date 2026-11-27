@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "38ba575b6b6e9ed349bf6d57cd08af46c3a6ec01666b46b1ba3183d6b0eee6c5"
+    "tsconfig.json": "0e3fd6016afd7fd9c3d60d00f70d5ca9cb7fe6043eef699d7d19b32700d28fd4"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -46,6 +46,7 @@
     "bin/lib/park-finalize.ts": "72a906237ad66ae2f5661c1308f8a015408f409912603bbc741cedd6f073bfd3",
     "bin/lib/peer-cred.ts": "cae4373dd609abe1198786cbb4099792e128d9e1cded88b69d0ebfbee534ab95",
     "bin/lib/planning-graph.ts": "39d02bc552783d4d3b33473f2b355e94798d56eb90deb89d85330c6351e5d529",
+    "bin/lib/post-merge-rollup.ts": "2158f9c0f9a6ea3ebf6f01971929b9850f78692cb8979c130404fd23740f1ac5",
     "bin/lib/pr-open.ts": "cfd78060cccda1908c960d7dc15ba5e6856df46c4314406db0aadacd6d583c0c",
     "bin/lib/pr-preflight.ts": "e9719d94a3ac04f53c9578aeca8f8a2c23604c1e5f99cfde784cb1c7cfa1e39c",
     "bin/lib/prd-select.ts": "99ce451442e2f701828a17a4d882c70a75c8df15a0982f9fe8823d149a0a8c3b",
@@ -59,7 +60,7 @@
     "bin/lib/reviewed-attachment.ts": "5a9648ea5959791ed26793a9f6f250f23e92819d755ac9aac54f1d81e8560394",
     "bin/lib/rule-inventory.ts": "c4cb6d85b49519c4bca68d3b30b63a603eaf0590b8d31edbd7eaffe60dff4621",
     "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
-    "bin/lib/run-close.ts": "963dc679d3213136fff9b26983ae5b9f81bd711a1c39d302df182b5c79b29275",
+    "bin/lib/run-close.ts": "21bdb21128e404faf73ce9f26f359f679c05e99c162fb3c19095e4567bc751e6",
     "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
     "bin/lib/run-open.ts": "ce538c68a6de316a5d5372c8fe9ec52ea6a25802cbcca2a0e06810569ae0a337",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
@@ -114,6 +115,7 @@
     "bin/lib/park-finalize.js": "8f0b5524416dc7ff7461effbf42d86643354b2d58e4d6255ff6e1938bc955bf0",
     "bin/lib/peer-cred.js": "ff6a21e82bfa839e2aa234687e37b7267fa164d49a58ff41ea6986b50ea536de",
     "bin/lib/planning-graph.js": "718b5eeb1e4eae6717136227905cde9663297f47a087398b593b2c3aa7ba70c1",
+    "bin/lib/post-merge-rollup.js": "7cc114caa8fe22595aef12ea4cdad9c291fd8ab99d219c2ec70f50f411c5ee54",
     "bin/lib/pr-open.js": "9eccc0a726e7c10118d9736669015a84e2305a3cad3ef58c6820533e54c81c2e",
     "bin/lib/pr-preflight.js": "52723d82309fde242397e1cbec766c01c62035740bcc4c61d79eb49277d5c22e",
     "bin/lib/prd-select.js": "37514692786f35a4b87c5b603b6332b882c293414714b587494a4e2f9aa451d5",
@@ -127,7 +129,7 @@
     "bin/lib/reviewed-attachment.js": "1a6b0c5a5cba186f8c9cff94412cbc57d6950f7fc6ed9645b5bf0441d8d0a7b4",
     "bin/lib/rule-inventory.js": "e4cc399a8b003fb062065d612f5b28b578fb14cc371611568f68b47150b9e69d",
     "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
-    "bin/lib/run-close.js": "643c79fafd925ddaf795133858b672d2dd1fed1f523e6af8030e79c0d867e253",
+    "bin/lib/run-close.js": "a24795ffa4a38ad1de664915eabe84703fae92bf6b92be7a93b2515d132277d2",
     "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
     "bin/lib/run-open.js": "68f9978aadb0cbaad1887be23443e2667ed1678b12c4403e9cd518c5686a553c",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
@@ -148,5 +150,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "4a0e5e404c65161d2d1568b8d039276929af6c9461a7659d23dd9f3e570e5493"
+  "output_digest": "f37d0439fb9edda98a2f76186f663cb2dc42fa1fbad76ff7ed59508ece9a04dc"
 }

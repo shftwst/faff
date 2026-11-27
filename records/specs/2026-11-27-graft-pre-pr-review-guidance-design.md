@@ -14,3 +14,5 @@ The Step 9 table and the autonomous summary both describe pre-PR review. The tab
 | `surface on the tracker issue` | Park before PR open and return the human handoff. | test/graft-pre-pr-review-guidance.test.mjs | kept |
 | `run **Review dialogue, judge and holds**` | Route unavailable review through Step 9's bounded hold or park. | test/review-hold.test.mjs | kept |
 | `exactly as canonical Step 9b defines it` | Use the shared PR-opening procedure on pass. Git-only skips to Step 10. | test/pr-open.test.mjs | kept |
+| `Provider outage is availability` | Use the outage hold cause and interactive park while preserving critical judgement. | test/review-hold.test.mjs | kept |
+| `write the review verdict via` | Copy the receipt signal into evidence and use the human tracker disposition for the park. | test/graft-review-exceptions.test.mjs | kept |

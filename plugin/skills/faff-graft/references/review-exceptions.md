@@ -12,12 +12,12 @@ Step 9 supplies the remote-backed diff and the common terminal claim and label c
 
 **Chunked judge calls.** Run each `--assemble` as its own foreground Bash call with `timeout: 600000`; it stops inside `graft.build_judge_call_budget_secs` (default 540) with its ledger persisted and exits `3` (incomplete). While it exits `3` and its printed `attempts_remaining` is lower than the previous call's (the first exit `3` always re-invokes), tick `faff heartbeat "$run_dir" --unit <issue>` and re-invoke it with the same arguments; on any other exit, or when `attempts_remaining` did not fall, stop looping and run `--admit`, whose fail-closed exit on an unresolved case parks.
 
-**The `unavailable` disposition.** Provider outage is availability. Run **Prepare a build review hold** below with cause `review-outage`. Interactive review takes its `park` route. A standing or judge-upheld critical uses `needs-human`.
+**The `unavailable` disposition.** Use **Prepare a build review hold** with cause `review-outage`; interactive review parks. A standing or judge-upheld critical uses `needs-human`.
 
 **The `built-but-not-admitted` hold.** When an autonomous review or judge runs out of turn budget mid-dialogue, run **Prepare a build review hold** with cause `build-review-dialogue`.
 
 **Prepare a build review hold.** Run `faff resume-store prepare-hold --run-dir "$run_dir" --issue <ISSUE> --store-root "$repo/.faff/resume" --cause <cause> --mode <interactive|autonomous>`. Add `--resumed` on Step 3's store-resumed path and both `--fix-rounds-used <n> --rebuttal-rounds-used <n>` if the build has dialogue rounds. If the response was lost, repeat the identical call for this run and issue to recover the receipt before any tracker effects. Exit 4: wait briefly and repeat the same call once. A confirmed other non-zero exit or a second exit 4 takes the corresponding `needs-human` park.
 
 - **`hold`**: no PR or terminal review verdict. Apply `faff label transition <ISSUE> <role> --present-label <each current state label>`, using the returned role. It clears the claim breadcrumb. Release the Step-5 claim via the lease-matched `faff build-claim release --issue <ISSUE> --sha <sha>` best-effort, release `In Progress → Todo` as the claim-holder, and post `notice`. Return `token`; the ledger uses `parked` plus the appropriate pending annotation.
-- **`park`**: write the review verdict via `faff evidence write review-verdict --park <signal> --run-dir "$run_dir" --issue <ISSUE>`. Park `needs-human` with `reason` and follow terminal cleanup when `clear_store` is true. Return `needs-human`.
+- **`park`**: use the receipt's `signal` for `faff evidence write review-verdict --park <signal> --run-dir "$run_dir" --issue <ISSUE>`. Outage evidence stays `unavailable`. Park and return `needs-human`; clean up when `clear_store` is true and report `reason`.
 - **`stale`**: log the stale hold and return `errored`. Leave the current store, tracker state and claim untouched.

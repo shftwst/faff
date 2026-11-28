@@ -2,7 +2,9 @@
 const argv = require("./argv");
 const fs: typeof import("node:fs") = require("node:fs");
 const path: typeof import("node:path") = require("node:path");
-const { findRoot }: { findRoot(): string } = require("./shared-infra");
+const { findRoot, readLedger, writeOwnerOnlyJson }: {
+  findRoot(): string; readLedger(dir: string): unknown; writeOwnerOnlyJson(target: string, value: object): void;
+} = require("./shared-infra");
 const writer: {
   isSafeHoldoutKey(key: unknown): key is string;
   resolveContained(base: string, relative: string): string | null;
@@ -47,6 +49,53 @@ export function cmdHoldoutCriteria(args: string[], classify: Classify): number {
 
 type ResolveRunDir = (root: string, runDir: string) => string | null;
 type Boundary = (runDir: string) => { dispatch: "absent" | "indeterminate" | "dispatched"; cage: boolean };
+
+const offerUsage = "usage: faff holdout offer --spec FILE --issue ID --run-dir DIR --mode interactive|autonomous [--holdout] [--answer yes|no]";
+export const HOLDOUT_OFFER_SPEC = { flags: {
+  "--spec": { arity: 1 }, "--issue": { arity: 1 }, "--run-dir": { arity: 1 }, "--mode": { arity: 1 },
+  "--holdout": { arity: 0 }, "--answer": { arity: 1 },
+} };
+
+export function cmdHoldoutOffer(args: string[], classify: Classify, resolveRunDir: ResolveRunDir): number {
+  const { values, errors } = argv.parseArgs(args, HOLDOUT_OFFER_SPEC);
+  const { "--issue": issue, "--spec": spec, "--mode": mode, "--answer": answer, "--run-dir": dir } = values;
+  if (errors.length || !writer.isSafeHoldoutKey(issue) || !spec || spec === "-" || !dir ||
+      !["autonomous", "interactive"].includes(mode) ||
+      (answer !== undefined && (mode !== "interactive" || !["yes", "no"].includes(answer)))) {
+    return argv.usageError(errors, offerUsage);
+  }
+  try {
+    const root = findRoot();
+    const runDir = resolveRunDir(root, dir);
+    if (!runDir) throw new Error("unavailable run");
+    const ledger = readLedger(runDir);
+    if (!ledger || typeof ledger !== "object" || !("level" in ledger)) throw new Error("unavailable ledger");
+    const file = writer.resolveContained(runDir, path.join(issue, "holdout-offer.json"));
+    if (!file) throw new Error("unavailable marker");
+    const { judged_count, integration_count, delegated_count } = classify(fs.readFileSync(spec, "utf8"));
+    const counts = { judged_count, integration_count, delegated_count };
+    const posture = require("./config-resolve").verificationPosture(ledger, require("./config-core").loadConfig(root)[0], values);
+    const attended = mode === "interactive";
+    let decision: "accept" | "decline" | "auto" | "skip" = "skip";
+    if (judged_count > 0) {
+      if (!attended) decision = posture.unattended ? "auto" : "skip";
+      else if (answer !== undefined) decision = answer === "yes" ? "accept" : "decline";
+      else if (posture.legs.holdout) decision = "accept";
+      else {
+        process.stdout.write(JSON.stringify({ action: "ask", ...counts }) + "\n");
+        return 0;
+      }
+    }
+    const marker = { decision, attended, ...counts, decided_at: new Date().toISOString() };
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    writeOwnerOnlyJson(file, marker);
+    process.stdout.write(JSON.stringify({ action: "recorded", ...marker }) + "\n");
+    return 0;
+  } catch {
+    process.stderr.write("faff holdout offer: could not read the full spec and run, or write the offer marker\n");
+    return 2;
+  }
+}
 
 const receiptUsage = "usage: faff holdout receipt --key KEY --run-dir DIR --writer-exit CODE [--caged] [--root DIR]";
 export const HOLDOUT_RECEIPT_SPEC = { flags: {

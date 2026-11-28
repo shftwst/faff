@@ -1,13 +1,14 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.HOLDOUT_RECEIPT_SPEC = exports.HOLDOUT_CRITERIA_SPEC = void 0;
+exports.HOLDOUT_RECEIPT_SPEC = exports.HOLDOUT_OFFER_SPEC = exports.HOLDOUT_CRITERIA_SPEC = void 0;
 exports.cmdHoldoutCriteria = cmdHoldoutCriteria;
+exports.cmdHoldoutOffer = cmdHoldoutOffer;
 exports.cmdHoldoutReceipt = cmdHoldoutReceipt;
 // === region:factory — project evaluator criteria and read the writer's existing receipt ===
 const argv = require("./argv");
 const fs = require("node:fs");
 const path = require("node:path");
-const { findRoot } = require("./shared-infra");
+const { findRoot, readLedger, writeOwnerOnlyJson } = require("./shared-infra");
 const writer = require("./holdout-record");
 const contract = require("./contract-defs-evidence");
 const criteriaUsage = "usage: faff holdout criteria --spec FILE [--counts]";
@@ -34,6 +35,58 @@ function cmdHoldoutCriteria(args, classify) {
     }
     catch {
         process.stderr.write("faff holdout criteria: could not read or classify the full spec\n");
+        return 2;
+    }
+}
+const offerUsage = "usage: faff holdout offer --spec FILE --issue ID --run-dir DIR --mode interactive|autonomous [--holdout] [--answer yes|no]";
+exports.HOLDOUT_OFFER_SPEC = { flags: {
+        "--spec": { arity: 1 }, "--issue": { arity: 1 }, "--run-dir": { arity: 1 }, "--mode": { arity: 1 },
+        "--holdout": { arity: 0 }, "--answer": { arity: 1 },
+    } };
+function cmdHoldoutOffer(args, classify, resolveRunDir) {
+    const { values, errors } = argv.parseArgs(args, exports.HOLDOUT_OFFER_SPEC);
+    const { "--issue": issue, "--spec": spec, "--mode": mode, "--answer": answer, "--run-dir": dir } = values;
+    if (errors.length || !writer.isSafeHoldoutKey(issue) || !spec || spec === "-" || !dir ||
+        !["autonomous", "interactive"].includes(mode) ||
+        (answer !== undefined && (mode !== "interactive" || !["yes", "no"].includes(answer)))) {
+        return argv.usageError(errors, offerUsage);
+    }
+    try {
+        const root = findRoot();
+        const runDir = resolveRunDir(root, dir);
+        if (!runDir)
+            throw new Error("unavailable run");
+        const ledger = readLedger(runDir);
+        if (!ledger || typeof ledger !== "object" || !("level" in ledger))
+            throw new Error("unavailable ledger");
+        const file = writer.resolveContained(runDir, path.join(issue, "holdout-offer.json"));
+        if (!file)
+            throw new Error("unavailable marker");
+        const { judged_count, integration_count, delegated_count } = classify(fs.readFileSync(spec, "utf8"));
+        const counts = { judged_count, integration_count, delegated_count };
+        const posture = require("./config-resolve").verificationPosture(ledger, require("./config-core").loadConfig(root)[0], values);
+        const attended = mode === "interactive";
+        let decision = "skip";
+        if (judged_count > 0) {
+            if (!attended)
+                decision = posture.unattended ? "auto" : "skip";
+            else if (answer !== undefined)
+                decision = answer === "yes" ? "accept" : "decline";
+            else if (posture.legs.holdout)
+                decision = "accept";
+            else {
+                process.stdout.write(JSON.stringify({ action: "ask", ...counts }) + "\n");
+                return 0;
+            }
+        }
+        const marker = { decision, attended, ...counts, decided_at: new Date().toISOString() };
+        fs.mkdirSync(path.dirname(file), { recursive: true });
+        writeOwnerOnlyJson(file, marker);
+        process.stdout.write(JSON.stringify({ action: "recorded", ...marker }) + "\n");
+        return 0;
+    }
+    catch {
+        process.stderr.write("faff holdout offer: could not read the full spec and run, or write the offer marker\n");
         return 2;
     }
 }

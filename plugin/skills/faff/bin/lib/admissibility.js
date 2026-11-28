@@ -7,7 +7,7 @@ const path = require("node:path");
 const { parseArgs, requireFlags, usageError } = require("./argv");
 const { findRoot, mainWorktreeRoot } = require("./shared-infra");
 const { buildHoldoutRecord, holdoutRecordSelftest, isSafeHoldoutKey, resolveContained, writeHoldoutRecord } = require("./holdout-record");
-const { HOLDOUT_CRITERIA_SPEC, HOLDOUT_RECEIPT_SPEC, cmdHoldoutCriteria, cmdHoldoutReceipt } = require("./holdout-handoff");
+const { HOLDOUT_CRITERIA_SPEC, HOLDOUT_OFFER_SPEC, HOLDOUT_RECEIPT_SPEC, cmdHoldoutCriteria, cmdHoldoutOffer, cmdHoldoutReceipt } = require("./holdout-handoff");
 const ADMISSIBLE_SPEC = { flags: { "--selftest": { arity: 0 }, "--lights-out": { arity: 0 }, "--author-diagnostics": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "arg" } };
 const DOD_CLASSIFY_SPEC = { flags: { "--selftest": { arity: 0 }, "--json": { arity: 0 }, "--spec": { arity: 1 }, "--issue": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
 const DOD_SPLIT_SPEC = { flags: { "--view": { arity: 1 }, "--spec": { arity: 1 } }, positionals: { min: 0, max: null, name: "verb" } };
@@ -28,11 +28,12 @@ const DOD_SURFACE = {
 };
 const HOLDOUT_SURFACE = {
   kind: "subcommand_dispatch",
-  spec: [HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, HOLDOUT_RECORD_SPEC, HOLDOUT_CRITERIA_SPEC, HOLDOUT_RECEIPT_SPEC],
+  spec: [HOLDOUT_VERDICTS_SPEC, HOLDOUT_VERDICT_SPEC, HOLDOUT_RECORD_SPEC, HOLDOUT_CRITERIA_SPEC, HOLDOUT_OFFER_SPEC, HOLDOUT_RECEIPT_SPEC],
   subcommands: {
     verdicts: { required_flags: ["--association"] },
     verdict: { required_flags: ["--issue"] },
     record: { required_flags: ["--issue", "--spec"] },
+    offer: { required_flags: ["--spec", "--issue", "--run-dir", "--mode"] },
     criteria: { required_flags: ["--spec"] },
     receipt: { required_flags: ["--key", "--run-dir", "--writer-exit"] },
   },
@@ -1390,6 +1391,7 @@ function dodSelftest() {
 // `{prdr-id: value}` map keyed by the supplied issue→PRDR association. Pure: filesystem read of --dir +
 // args only (no tracker/network/LLM) — parity with `dod classify` / `prdr coverage`.
 function cmdHoldout(args) {
+  if (args[0] === "offer") return cmdHoldoutOffer(args.slice(1), dodClassify, holdoutRunDirContained);
   if (args[0] === "criteria") return cmdHoldoutCriteria(args.slice(1), dodClassify);
   if (args[0] === "receipt") return cmdHoldoutReceipt(args.slice(1), holdoutRunDirContained, require("./merge-gate-floor").readLaneBoundaryFacts);
   if (args.includes("--selftest")) return holdoutVerdictsSelftest();

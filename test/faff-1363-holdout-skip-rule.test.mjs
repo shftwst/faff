@@ -1,4 +1,4 @@
-// FAFF-1363 — graft's holdout_offer (Step 6) and holdout_run (Step 8c) in faff-graft/SKILL.md must skip
+// FAFF-1363 — graft's holdout_run (Step 8c) in faff-graft/SKILL.md must skip
 // the code-blind holdout whenever judged_count == 0, regardless of integration_count. The old rule
 // required BOTH judged_count == 0 AND integration_count == 0, so an integration-tier-only spec
 // (judged_count 0, integration_count > 0) still ran the holdout and mis-aggregated to needs-human
@@ -19,7 +19,7 @@ const SKILL = join(REPO, "plugin", "skills", "faff-graft", "SKILL.md");
 
 const run = (args, input) => spawnSync(process.execPath, [BIN, ...args], { encoding: "utf8", input });
 
-// Extract a fenced ``` ... ``` block whose first line contains `marker` (e.g. "PROCEDURE holdout_offer").
+// Extract a fenced ``` ... ``` block whose first line contains `marker` (e.g. "PROCEDURE holdout_run").
 function extractProcedure(text, marker) {
   const lines = text.split("\n");
   const startIdx = lines.findIndex((l) => l.includes(marker));
@@ -41,14 +41,6 @@ test("FAFF-1363: faff-graft/SKILL.md no longer states the old two-count skip rul
   const text = readFileSync(SKILL, "utf8");
   assert.doesNotMatch(text, /judged_count == 0 AND integration_count == 0/, "the old buggy conjunct must not survive anywhere in faff-graft/SKILL.md");
   assert.doesNotMatch(text, /judged_count==0 AND integration_count==0/, "the old buggy invariant comment must not survive anywhere in faff-graft/SKILL.md");
-});
-
-test("FAFF-1363: Step 6 holdout_offer skips on judged_count == 0 alone", () => {
-  const block = extractProcedure(readFileSync(SKILL, "utf8"), "PROCEDURE holdout_offer");
-  const skipLine = block.split("\n").find((l) => l.includes("decision: skip"));
-  assert.ok(skipLine, "holdout_offer must have a line producing decision: skip");
-  assert.match(skipLine, /judged_count == 0/);
-  assert.doesNotMatch(skipLine, /AND integration_count/, "the skip condition must not require integration_count too — the trailing comment may still name it for context");
 });
 
 test("FAFF-1363: Step 8c holdout_run — the SOLE live skip gate — skips on judged_count == 0 alone", () => {

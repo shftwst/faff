@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -59,6 +59,66 @@ test("criteria preserves exact canonical running-stack inputs and emits the exis
     judged_count: original.judged_count, integration_count: original.integration_count, delegated_count: original.delegated_count,
   });
   assert.equal(cli(f.root, ["holdout", "criteria", "--spec", join(f.root, "missing.md")]).status, 2);
+});
+
+function offer(f, mode, ...args) {
+  return cli(f.root, ["holdout", "offer", "--spec", f.spec, "--issue", f.key, "--run-dir", f.runDir, "--mode", mode, ...args]);
+}
+
+test("offer follows the live autonomous posture, counts the full spec and writes intent alone", t => {
+  const f = fixture(t);
+  const marker = join(f.runDir, f.key, "holdout-offer.json");
+  const counts = checked(cli(f.root, ["holdout", "criteria", "--spec", f.spec, "--counts"]));
+  assert.ok(counts.judged_count > 0);
+  for (const [level, unattended, decision] of [["L3", false, "skip"], ["L4", false, "auto"], ["L3", true, "auto"]]) {
+    writeFileSync(join(f.root, ".faffrc.yaml"), `autonomous:\n  unattended: ${unattended}\nverification:\n  holdout: true\n`);
+    writeFileSync(join(f.runDir, "run-ledger.json"), JSON.stringify({ level }));
+    const { action, decided_at, ...record } = checked(offer(f, "autonomous", "--holdout"));
+    assert.equal(action, "recorded");
+    assert.equal(new Date(decided_at).toISOString(), decided_at);
+    assert.deepEqual(record, { decision, attended: false, ...counts });
+    assert.deepEqual(JSON.parse(readFileSync(marker)), { ...record, decided_at });
+    assert.equal(existsSync(f.runFile), false);
+    assert.equal(existsSync(f.storeFile), false);
+  }
+});
+
+test("attended offer asks for consent or accepts an existing explicit posture", t => {
+  const f = fixture(t);
+  writeFileSync(join(f.runDir, "run-ledger.json"), JSON.stringify({ level: "L2" }));
+  const marker = join(f.runDir, f.key, "holdout-offer.json");
+  assert.equal(checked(offer(f, "interactive")).action, "ask");
+  assert.equal(existsSync(marker), false);
+  for (const [args, decision] of [[["--answer", "yes"], "accept"], [["--answer", "no"], "decline"], [["--holdout"], "accept"]]) {
+    assert.equal(checked(offer(f, "interactive", ...args)).decision, decision);
+    assert.equal(JSON.parse(readFileSync(marker)).attended, true);
+  }
+  writeFileSync(join(f.root, ".faffrc.yaml"), "verification:\n  holdout: true\n");
+  assert.equal(checked(offer(f, "interactive")).decision, "accept");
+  assert.equal(checked(offer(f, "interactive", "--answer", "no")).decision, "decline");
+});
+
+test("integration-only offer always skips, including unattended and pre-accepted attended runs", t => {
+  const f = fixture(t, "## Scenarios\n\n```integration\nGiven a\nWhen b\nThen c\n```\n");
+  for (const [level, mode] of [["L4", "autonomous"], ["L2", "interactive"]]) {
+    writeFileSync(join(f.runDir, "run-ledger.json"), JSON.stringify({ level }));
+    const receipt = checked(offer(f, mode, "--holdout"));
+    assert.equal(receipt.judged_count, 0);
+    assert.ok(receipt.integration_count > 0);
+    assert.equal(receipt.decision, "skip");
+  }
+});
+
+test("offer rejects missing run or spec, invalid routing and autonomous consent", t => {
+  const f = fixture(t);
+  assert.equal(offer(f, "interactive").status, 2);
+  writeFileSync(join(f.runDir, "run-ledger.json"), JSON.stringify({ level: "L3" }));
+  for (const [args, mode, flags] of [
+    [{ key: "../other" }, "autonomous", []], [{ runDir: f.root }, "autonomous", []],
+    [{ spec: join(f.root, "missing") }, "autonomous", []], [{}, "invalid", []],
+    [{}, "autonomous", ["--answer", "yes"]], [{}, "interactive", ["--answer", "maybe"]],
+  ]) assert.equal(offer({ ...f, ...args }, mode, ...flags).status, 2);
+  assert.equal(existsSync(join(f.runDir, f.key, "holdout-offer.json")), false);
 });
 
 const receiptArgs = (f, status = 0) => ["holdout", "receipt", "--key", f.key, "--run-dir", f.runDir, "--writer-exit", String(status)];

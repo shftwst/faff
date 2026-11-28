@@ -21,7 +21,7 @@ function recordSha(dir, issue, pr) {
         raw = (0, node_fs_1.readFileSync)(mergeRecordPath(dir, issue), "utf8");
     }
     catch (e) {
-        if (e.code === "ENOENT")
+        if (e instanceof Error && "code" in e && e.code === "ENOENT")
             return null;
         throw e;
     }

@@ -16,7 +16,7 @@
     "bin/lib/adr-promotion.ts": "555808b190c81e670d79feca4b842f593d8ae1eee3908b7f57da5927801bebf0",
     "bin/lib/build-queue-partition.ts": "90d0d46ca6183ce3ceedac2807a89529a025625936f38fa27ca0e6c0698416bc",
     "bin/lib/build-review-round.ts": "e5ec3754726c95eadbcb39c58845adfd0167473ac7082b3a70874773fc2d2e6e",
-    "bin/lib/builtin-landing.ts": "40f056a261a548aa64456e904b7610777c9d7e4bf126df906e3779da1b1311bd",
+    "bin/lib/builtin-landing.ts": "6225f5d1167bf2b6a6a57fc3f5c54964ab5e760c99b0ced8973441a77828f6dd",
     "bin/lib/commissaire-governor-client.ts": "90e01905816c4e12ea1a24eab1ed9b6d6e6106c29bb322e3988ca50b6604604b",
     "bin/lib/commissaire-trust.ts": "c2d4bffa2f153db70746395cf708195cc11ba0aa51b5ccc25e9f181c08555a65",
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
@@ -85,7 +85,7 @@
     "bin/lib/adr-promotion.js": "453e6ab3a018e2f2e72a8170dac761985dda2726864c20529d2fce2d62c9c8d4",
     "bin/lib/build-queue-partition.js": "ad4128e8032bb6642ca6765a750e82825521ea8d8e22ca8e9895b088774c2e9e",
     "bin/lib/build-review-round.js": "e57dcc12d48907f3417ba3d44d272cefe9e07235251fe1e64b38cdcc42680831",
-    "bin/lib/builtin-landing.js": "7b8d2b0983651883a749ce9171072df8e23e0b7dc2fb135d6cc2239503f6243f",
+    "bin/lib/builtin-landing.js": "74231dc332f842de839d624a19c5f6a171b3a98ab582295abbd6f28656e7d943",
     "bin/lib/commissaire-governor-client.js": "9e14c9ebe762d860b0249f853dd308a4abc3ef9d3e92a416d1ad8decd44d0885",
     "bin/lib/commissaire-trust.js": "c69b5fb8ffb57c7195bc795b1aeb6a77c90e3145457a5b6b78da94589c197572",
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
@@ -150,5 +150,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "98afba23677d9348263ec4307c4e691238c3461b0429fd630b11c3d749dcf890"
+  "output_digest": "b110cfa4575905847d43e606649e289c49ab7ff3983a5f7ed591ac28dfa02ebc"
 }

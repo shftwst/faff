@@ -20,7 +20,7 @@ function error(stage: string, detail: string, status = 2): Result {
 function recordSha(dir: string, issue: string, pr: string | null): string | null {
   let raw: string;
   try { raw = readFileSync(mergeRecordPath(dir, issue), "utf8"); }
-  catch (e) { if ((e as NodeJS.ErrnoException).code === "ENOENT") return null; throw e; }
+  catch (e) { if (e instanceof Error && "code" in e && e.code === "ENOENT") return null; throw e; }
   const r = JSON.parse(raw);
   if (r?.merged !== true || r.pr !== Number(pr) || typeof r.head_sha !== "string" || !/^[a-f0-9]{40,64}$/i.test(r.head_sha)) {
     throw new Error("invalid merge record for requested target");

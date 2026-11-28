@@ -55,11 +55,12 @@ case "$1" in
   pr)
     case "$2" in
       view)
-        if [ "$*" = "pr view 1 --json state" ] && [ -n "$STUB_POST_STATE" ]; then
+        state="$STUB_PR_STATE"
+        if [ -e "$STUB_MERGE_SENTINEL" ]; then
           [ "$STUB_POST_STATE" = "unavailable" ] && exit 1
-          printf '{"state":"%s"}' "$STUB_POST_STATE"; exit 0
+          state="\${STUB_POST_STATE:-MERGED}"
         fi
-        printf '{"headRefOid":"%s","headRefName":"%s","state":"%s","url":"https://example.test/pr/1"}' "$STUB_SHA" "\${STUB_HEAD_REF_NAME:-stub-head-branch}" "$STUB_PR_STATE"; exit 0 ;;
+        printf '{"number":1,"baseRefName":"main","mergeCommit":{"oid":"%s"},"headRefOid":"%s","headRefName":"%s","state":"%s","url":"https://example.test/%s/pull/1"}' "\${STUB_LANDING_OID:-}" "$STUB_SHA" "\${STUB_HEAD_REF_NAME:-stub-head-branch}" "$state" "$STUB_REPO"; exit 0 ;;
       checks) printf '[]'; exit 0 ;;
       merge)
         printf '%s' "$*" > "$STUB_MERGE_SENTINEL"
@@ -213,12 +214,25 @@ test("check-only on a refuse floor → exit 1, verdict refuse, merge sentinel AB
 test("execute on a merge-ok floor → exit 0, merged:true, merge sentinel PRESENT", () => {
   const runDir = seedRunDir("merge-ok");
   const { env, sentinel } = stubGhEnv();
+  env.STUB_LANDING_OID = "c".repeat(40);
   const { code, stdout } = runCli(baseArgs(runDir), { env, cwd: runDir });
   assert.equal(code, 0);
   const out = JSON.parse(stdout);
   assert.equal(out.verdict, "merge-ok");
+  const record = JSON.parse(readFileSync(join(runDir, ISSUE, "merge-record.json"), "utf8"));
+  assert.deepEqual(record.landing, { repo: REPO, base: "main", sha: env.STUB_LANDING_OID, issue: ISSUE, run_id: basename(runDir) });
   assert.equal(out.merged, true);
   assert.equal(existsSync(sentinel), true, "execute on a passing floor must spawn gh pr merge");
+});
+
+test("landed identity requires a matching merged PR, repository, reviewed head and base", async () => {
+  const { landedCommit } = await import("../plugin/skills/faff/bin/lib/merge-gate.js");
+  const head = "a".repeat(40), sha = "b".repeat(40);
+  const data = { state: "MERGED", url: "https://github.com/o/r/pull/4", number: 4, mergeCommit: {oid: sha}, headRefOid: head, baseRefName: "main" };
+  assert.deepEqual(landedCommit(data, "o/r", 4, head, "main"), {repo: "o/r", base: "main", sha});
+  for (const mismatch of [{state: "OPEN"}, {url: "https://github.com/other/repo/pull/4"}, {number: 5}, {headRefOid: sha}, {baseRefName: "next"}, {mergeCommit: null}]) {
+    assert.equal(landedCommit({ ...data, ...mismatch }, "o/r", 4, head, "main"), null);
+  }
 });
 
 test("delivery receipt preserves the observed state from the actual merge-gate retry read", () => {

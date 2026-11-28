@@ -523,3 +523,42 @@ test("a broken/tampered declared-effects.jsonl chain is a genuine, non-clean fau
   assert.match(out.fault, /chain/);
   assert.equal(out.any_escape, false, "a chain fault never itself sets any_escape — the checkpoint treats reconciled:false as non-clean separately");
 });
+
+test("only adjacent attributable commits share a landing segment", async () => {
+  const { partitionSegments } = await import("../plugin/skills/faff/bin/lib/effects-reconcile.js");
+  const subjects = ["feat(FAFF-1): one", "feat(FAFF-1): two", "repair", "maintenance", "feat(FAFF-2): three"];
+  const segments = partitionSegments(subjects.map((subject, i) => ({ subject, sha: String(i) })));
+  assert.deepEqual(segments.map(s => [s.issue, s.commits.length, s.tip.sha]), [
+    ["FAFF-1", 2, "1"], [null, 1, "2"], [null, 1, "3"], ["FAFF-2", 1, "4"]
+  ]);
+});
+
+test("a squash receipt covers exactly its corroborated landed object", () => {
+  const { dir, git } = gitRepo();
+  const base = git("rev-parse", "HEAD").trim();
+  const issue = "KIT-18", run = "run-squash", runDir = join(dir, ".faff", "runs", run);
+  mkdirSync(join(runDir, issue), { recursive: true });
+  writeFileSync(join(runDir, "run-ledger.json"), JSON.stringify({ admitted: [issue], base_sha: base, base_sha_required: true }));
+  git("commit", "--allow-empty", "-qm", "unrelated keyless change");
+  const unknown = git("rev-parse", "HEAD").trim();
+  git("commit", "--allow-empty", "-qm", "add retry predicate");
+  const landed = git("rev-parse", "HEAD").trim();
+  const receipt = { pr: 4, head_sha: "b".repeat(40), merged: true, landing: { issue, run_id: run, repo: "fixture/timer-kit", base: "main", sha: landed } };
+  const record = join(runDir, issue, "merge-record.json");
+  const scan = () => {
+    const out = runCli(["effects", "reconcile-merges", "--run-dir", runDir, "--json"], { cwd: dir });
+    assert.equal(out.code, 0, out.stderr);
+    return JSON.parse(out.stdout).uncovered.map(u => u.commit);
+  };
+  writeFileSync(record, JSON.stringify(receipt));
+  assert.deepEqual(scan(), [unknown, landed], "an uncorroborated receipt cannot cover the squash");
+  appendFileSync(join(runDir, "declared-effects.jsonl"), JSON.stringify({ schema: 2, kind_of_entry: "observe", issue, step: "merge", effect: { kind: "merge", target: "main" } }) + "\n");
+  assert.deepEqual(scan(), [unknown], "the adjacent unattributable commit remains visible");
+  for (const mismatch of [{ base: "other" }, { issue: "KIT-1" }, { run_id: "older" }]) {
+    writeFileSync(record, JSON.stringify({ ...receipt, landing: { ...receipt.landing, ...mismatch } }));
+    assert.deepEqual(scan(), [unknown, landed]);
+  }
+  delete receipt.landing;
+  writeFileSync(record, JSON.stringify(receipt));
+  assert.deepEqual(scan(), [unknown, landed], "legacy records provide no evidence for a different squash SHA");
+});

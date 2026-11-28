@@ -33,7 +33,7 @@ function cmdWaveMode(args) {
         const fold = ledger.level === "L4" || Boolean(values["--converge"]) ||
             (!values["--no-converge"] && resolveConvergence(loadConfig(values["--root"] || findRoot())[0], {}) !== "false");
         const consult = fold || Boolean(values["--git-only"]);
-        writeOwnerOnlyJson(path.join(values["--run-dir"], "wave-mode.json"), { run_id: path.basename(path.resolve(values["--run-dir"])), fold });
+        writeOwnerOnlyJson(path.join(values["--run-dir"], "wave-mode.json"), { run_id: path.basename(path.resolve(values["--run-dir"])), fold, consult });
         console.log(JSON.stringify({ fold, consult }));
         return 0;
     }

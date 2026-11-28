@@ -446,6 +446,32 @@ test("wave record: a malformed or mismatched latest record falls back with wave-
   }
 });
 
+test("a skipped consult permits a wave log without a decision record only for generic stops", () => {
+  const fx = makeRun(SHIPPED);
+  mkdirSync(join(fx.runDir, "wave-1"));
+  writeFileSync(join(fx.runDir, "wave-mode.json"), JSON.stringify({run_id: RUN_ID, fold: false, consult: false}));
+  for (const token of ["queue-drained", "all-remaining-parked"]) {
+    assert.deepEqual(stopReason.resolveStopReason(fx.runDir, token, readLedger(fx)), {token, adopted: false, faults: []});
+  }
+  assert.deepEqual(stopReason.resolveStopReason(fx.runDir, "converged/both-dry", readLedger(fx)).faults, ["wave-record-missing"]);
+  waveRecord(fx, 1, {raw: "broken"});
+  assert.deepEqual(close(fx, fakeDeps()).result.faults, ["wave-record-unreadable"]);
+});
+
+test("git-only, legacy and invalid mode evidence retain missing wave diagnostics", () => {
+  const fx = makeRun(SHIPPED);
+  mkdirSync(join(fx.runDir, "wave-1"));
+  for (const mode of [
+    {run_id: RUN_ID, fold: false, consult: true},
+    {run_id: RUN_ID, fold: false},
+    {run_id: "different-run", fold: false, consult: false},
+    {run_id: RUN_ID, fold: true, consult: false},
+  ]) {
+    writeFileSync(join(fx.runDir, "wave-mode.json"), JSON.stringify(mode));
+    assert.deepEqual(stopReason.resolveStopReason(fx.runDir, "queue-drained", readLedger(fx)).faults, ["wave-record-missing"]);
+  }
+});
+
 test("wave record: a latest wave directory with no run-done.json falls back with wave-record-missing", () => {
   const fx = makeRun(SHIPPED);
   waveRecord(fx, 1, {});

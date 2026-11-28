@@ -10,7 +10,7 @@ import { fileURLToPath } from "node:url";
 const { buildPreflightReport } = createRequire(import.meta.url)("../plugin/skills/faff/bin/lib/run-entry-preflight.js");
 const cli = fileURLToPath(new URL("../plugin/skills/faff/bin/faff", import.meta.url));
 
-function fixture(t, config, probes) {
+function fixture(t, config, probes, flags = []) {
   const root = mkdtempSync(join(tmpdir(), "faff-entry-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const init = spawnSync("git", ["init", "-q", root], { encoding: "utf8" });
@@ -32,7 +32,7 @@ function fixture(t, config, probes) {
     "esac",
   ].join("\n") + "\n");
   chmodSync(gh, 0o755);
-  const result = spawnSync(process.execPath, [cli, "run", "preflight"], {
+  const result = spawnSync(process.execPath, [cli, "run", "preflight", ...flags], {
     cwd: root, encoding: "utf8", env: { ...process.env, container: "podman", PATH: bin + delimiter + process.env.PATH,
       GH_TOKEN: "fixture-token-should-not-leak", FAFF_TEST_PREFLIGHT_LOG: log },
   });
@@ -105,4 +105,15 @@ test("malformed config fails before probing or minting", t => {
   assert.equal(result.stdout, "");
   assert.match(result.stderr, /faff run preflight:/);
   assert.deepEqual(calls(), []);
+});
+
+test("explicit JSON keeps the same probes, policy and output on pass and block", t => {
+  for (const config of ["{}", "autonomous:\n  require_github_auth: block\n"]) {
+    const probes = { auth: "echo 'HTTP 401' >&2; exit 1", branch: requiredRules };
+    const implicit = fixture(t, config, probes);
+    const explicit = fixture(t, config, probes, ["--json"]);
+    assert.equal(explicit.result.status, implicit.result.status);
+    assert.equal(explicit.result.stdout, implicit.result.stdout);
+    assert.deepEqual(explicit.calls(), implicit.calls());
+  }
 });

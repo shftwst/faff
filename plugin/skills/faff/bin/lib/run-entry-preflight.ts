@@ -57,8 +57,8 @@ function field(data: unknown, key: string): unknown {
   return typeof data === "object" && data !== null ? Reflect.get(data, key) : undefined;
 }
 
-const usage = "usage: faff run preflight [--repo OWNER/REPO] [--branch NAME]";
-const spec = { flags: { "--repo": { arity: 1 }, "--branch": { arity: 1 } }, positionals: { max: 0 } };
+const usage = "usage: faff run preflight [--json] [--repo OWNER/REPO] [--branch NAME]";
+const spec = { flags: { "--json": { arity: 0 }, "--repo": { arity: 1 }, "--branch": { arity: 1 } }, positionals: { max: 0 } };
 
 export function cmdRunEntryPreflight(args: string[]): number {
   const { values, errors } = parseArgs(args, spec);

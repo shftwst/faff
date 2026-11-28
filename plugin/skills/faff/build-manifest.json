@@ -60,7 +60,7 @@
     "bin/lib/rule-inventory.ts": "c4cb6d85b49519c4bca68d3b30b63a603eaf0590b8d31edbd7eaffe60dff4621",
     "bin/lib/run-checkpoint.ts": "9bee010306fced736b573cd2b7f377b08a1be140d1c9fa7ff3ca07405162ea98",
     "bin/lib/run-close.ts": "963dc679d3213136fff9b26983ae5b9f81bd711a1c39d302df182b5c79b29275",
-    "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
+    "bin/lib/run-entry-preflight.ts": "8d3d710defd1b1df27fa0e709c43db9f24aa5cae9f775f9014317802a8de7d0f",
     "bin/lib/run-open.ts": "ce538c68a6de316a5d5372c8fe9ec52ea6a25802cbcca2a0e06810569ae0a337",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
     "bin/lib/run-stop-reason.ts": "90be5d4ec94d88201f46ea5a182462993818afaab2d09cc97d55dcbb2f47edca",
@@ -128,7 +128,7 @@
     "bin/lib/rule-inventory.js": "e4cc399a8b003fb062065d612f5b28b578fb14cc371611568f68b47150b9e69d",
     "bin/lib/run-checkpoint.js": "55718b976a814ef789c62578a60c3aa44bd1e72de37f04aec242b4166700de35",
     "bin/lib/run-close.js": "643c79fafd925ddaf795133858b672d2dd1fed1f523e6af8030e79c0d867e253",
-    "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
+    "bin/lib/run-entry-preflight.js": "9ccb5dfda03aa0e58be496b3d32a7ea4ed6bcd26f14f0baa330b2adb4cdf1e06",
     "bin/lib/run-open.js": "68f9978aadb0cbaad1887be23443e2667ed1678b12c4403e9cd518c5686a553c",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
     "bin/lib/run-stop-reason.js": "85a50a203706db15e69de2c7d931f1d0c66f51b201394f6cfbe82bf6cd56098d",
@@ -148,5 +148,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "4a0e5e404c65161d2d1568b8d039276929af6c9461a7659d23dd9f3e570e5493"
+  "output_digest": "5ec5c176484ec760e6c6de7036ec0d8fd8952aa26fa014f08a0b8539591c4605"
 }

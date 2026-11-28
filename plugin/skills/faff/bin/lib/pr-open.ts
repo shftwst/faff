@@ -590,7 +590,9 @@ function planInReview(facts: unknown, issue: string, runDir: string | null) {
   if (!isRecord(facts)) throw new Error("expected tracker facts");
   const destination = facts["review_state"];
   const state = str(isRecord(destination) ? destination["id"] : destination);
-  if (facts["live_status"] !== "In Progress" || state === null || !state.trim()) return { action: "noop" };
+  const live = facts["live_status"];
+  const liveName = isRecord(live) && (live["type"] === undefined || live["type"] === "started") ? live["name"] : live;
+  if (liveName !== "In Progress" || state === null || !state.trim()) return { action: "noop" };
 
   const receipt = facts["tracker_transition"];
   if (!isRecord(receipt) || typeof receipt["governed"] !== "boolean" || receipt["to"] !== "In Review") {

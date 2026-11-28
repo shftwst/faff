@@ -280,7 +280,7 @@ test("the set of modules calling mutateLedgerUnderLock equals the inventory", ()
     .filter((f) => codeLines(f).some((l) => /\bmutateLedgerUnderLock\(/.test(l.code)))
     .map((f) => path.basename(f, ".js"))
     .sort();
-  assert.deepEqual(callers, ["budget", "bundle-recover", "events", "lights-out", "park-reconsider", "resumecheck", "run-close", "run-ledger", "run-open", "run-record-prd", "sentry"]);
+  assert.deepEqual(callers, ["budget", "bundle-recover", "events", "graft-admit", "lights-out", "park-reconsider", "resumecheck", "run-close", "run-ledger", "run-open", "run-record-prd", "sentry"]);
 });
 
 test("no non-selftest code writes run-ledger.json except the serialiser and the bundle-recover restore", () => {

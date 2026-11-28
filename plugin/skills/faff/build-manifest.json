@@ -29,7 +29,7 @@
     "bin/lib/governor-admin.ts": "e8acab0a5166c8138265c9cd514f86269ca932a80be746e963588e863946bc02",
     "bin/lib/governor-install.ts": "964bcf08fbe828afbe96da644db691aebfaa8c31c9b2d4ccde36ecce1be7e7d7",
     "bin/lib/governor.ts": "bb31286dd65cd94f7a0d551f570edffe90c102b83418fe7012cfc5a0800cc153",
-    "bin/lib/graft-admit.ts": "6eb4230a8ce2b39f2fe314708a041d32e718b2b9c82900abfed0d392a509c0f6",
+    "bin/lib/graft-admit.ts": "02bf744ef963666d038371e5e0459d7307060e1be5d6377ad9041715ddf868a5",
     "bin/lib/graft-verify-build.ts": "aa4bc8970fc7fd1dcf2e58aaa51e1580997ebe694d61ea32d9d28449add849fe",
     "bin/lib/holdout-handoff.ts": "88291638304c069bb602219f53cc882c0e83287486ad33c0c813654f0692d87e",
     "bin/lib/human-only-acs.ts": "a133dd350629f28fc564768c589dd56099fd3a80e4e6335c9b2f44700859e990",
@@ -97,7 +97,7 @@
     "bin/lib/governor-admin.js": "fc92a97038713648e89fba10f9a33545c218c85353cc571905bc472c346160ee",
     "bin/lib/governor-install.js": "3798f447ba92c5660b89a7e90c2cfff0043257159b2a5023bb5b002328a8a12c",
     "bin/lib/governor.js": "d542bac2eda6dc17ec66d586a96b6e7a957d93d5a1f53f4b3e1bcd171599d78c",
-    "bin/lib/graft-admit.js": "35789663b62b9c78a955bdbc1fad6af4d653ad503c6bbb1e564851fbe9ec4d00",
+    "bin/lib/graft-admit.js": "2f281a6ace146e9d8ea49110caf81b3f2a52b4807b305b03bf1ac81c0b600158",
     "bin/lib/graft-verify-build.js": "1d87e4a793a0e30a2d3f66daaa17b9d39d9f0d98c586e3118fc0e25f22dc4ab2",
     "bin/lib/holdout-handoff.js": "9b6c0d6b5a15c92c24bb60bdf4c1194fd2b6533ae93bc71d171d9a5b89b50b49",
     "bin/lib/human-only-acs.js": "3972c683d4f34c9c9da60aff42ec903e64216fe05c8cc882b781cd3764b8c622",
@@ -148,5 +148,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "4a0e5e404c65161d2d1568b8d039276929af6c9461a7659d23dd9f3e570e5493"
+  "output_digest": "383ade5a87500dda13521cbe2a0434341080cd3c1431c6e51b3e3929667b4ec7"
 }

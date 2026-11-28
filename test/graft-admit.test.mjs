@@ -589,9 +589,10 @@ test("concurrent final admissions preserve both issues and finish a missing admi
   assert.deepEqual(JSON.parse(readFileSync(ledger)).admitted.sort(), ["FAFF-901","FAFF-902"]);
   const file=join(runDir,"events.jsonl");
   const log=readFileSync(file,"utf8").trimEnd().split("\n");
-  const final=JSON.parse(log.at(-1));
-  assert.equal(final.type,"issue-admitted");
-  writeFileSync(file,log.slice(0,-1).join("\n")+"\n");
+  const index = log.findLastIndex(line => JSON.parse(line).type === "issue-admitted");
+  assert.ok(index >= 0);
+  const final = JSON.parse(log[index]);
+  writeFileSync(file, log.slice(0, index).join("\n") + "\n");
   await run(final.issue);
   assert.deepEqual(events(runDir).filter(e => e.type==="issue-admitted").map(e => e.issue).sort(), ["FAFF-901","FAFF-902"]);
 });

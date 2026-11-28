@@ -12,6 +12,7 @@
 // that parks or holds sooner.
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
+const prep_attach_ts_1 = require("./prep-attach.js");
 const reviewed_attachment_ts_1 = require("./reviewed-attachment.js");
 const fs = require("node:fs");
 const path = require("node:path");
@@ -467,6 +468,11 @@ function runRound(o, deps = realDeps()) {
         if (o.retryEntries)
             result.retry_entries = o.retryEntries;
         writeJsonAtomic(path.join(o.dir, SIDECAR.decision(n)), result);
+        if (result.attachment?.status === "prepared") {
+            const staged = (0, prep_attach_ts_1.stageOnApproval)(o.root, o.issue, result.attachment.spec_path, result.attachment.mode === "git-only");
+            if (staged !== undefined)
+                result.staged_attachment = staged;
+        }
         return result;
     };
     const parkEarly = (verdict, objections, cause) => {

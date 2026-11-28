@@ -53,6 +53,16 @@ test("a fresh In Progress issue produces the same governed declaration and obser
   assert.equal(JSON.parse(check.stdout).any_escape, false);
 });
 
+test("the planner accepts a live In Progress state object through the same guarded transition", t => {
+  const { root, plan, facts } = fixture(t);
+  for (const live_status of [{ name: "In Progress" }, { name: "In Progress", id: "state123", type: "started" }]) {
+    assert.deepEqual(plan({ ...facts, live_status }, root), plan(facts, root));
+  }
+  for (const live_status of [{ type: "started" }, { id: "In Progress" }, { name: "Done", type: "started" }, { name: "In Progress", type: "completed" }, { name: "In progress" }]) {
+    assert.deepEqual(plan({ ...facts, live_status }, root), { action: "noop" });
+  }
+});
+
 test("the In Review plan abstains on sparse or changed tracker evidence and keeps ungoverned writes unbracketed", t => {
   const { root, plan, facts } = fixture(t);
   for (const live_status of [null, "Todo", "Backlog", "In Review", "Done", "Cancelled", "Blocked"]) {

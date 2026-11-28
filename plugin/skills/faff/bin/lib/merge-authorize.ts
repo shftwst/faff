@@ -277,6 +277,7 @@ function emit(json: boolean, sub: string, governed: boolean, inputs: Inputs | nu
 }
 
 function cmdMerge(args: string[]): number {
+  if (args[0] === "land-default") return require("./builtin-landing").cmdBuiltinLanding(args.slice(1));
   const parsed = argv.parseArgs(args, MERGE_SPEC);
   if (parsed.errors.length) return argv.usageError(parsed.errors, USAGE);
   const get = (f: string): string | null => str(parsed.values[f]);
@@ -320,4 +321,25 @@ function cmdMerge(args: string[]): number {
   }
 }
 
-module.exports = { cmdMerge, deriveGrantInputs, grantRecordsInputs, producerRecordCovers };
+// Confirm a replay against the live target and its signed authorization before
+// recording an observation. A local merge record alone cannot identify the base.
+function checkLandingReplay(runDir: string, issue: string, pr: string | null, base: string | null, branch: string | null, recordSha: string | null): boolean {
+  const cwd = process.cwd();
+  const target = pr === null ? resolveLocalTarget(base, branch, cwd) : resolvePrTarget(pr, true, cwd);
+  if (!target.merged && recordSha === null) return false;
+  if (!target.merged || target.headSha !== recordSha) {
+    throw new Error("merge record and live target disagree or receipt missing; reconcile before continuing");
+  }
+  if (effects.runIsGoverned(runDir)) {
+    const inputs = deriveInputs(runDir, issue, target, cwd);
+    const entries = ledgerEntries(runDir);
+    for (const effect of effectSet(target, pr !== null)) {
+      if (coveringGrantSeq(runDir, issue, effect, target, inputs, entries) === null) {
+        throw new Error("cannot establish the covering grant for " + effect.kind);
+      }
+    }
+  }
+  return true;
+}
+
+module.exports = { checkLandingReplay, cmdMerge, deriveGrantInputs, grantRecordsInputs, producerRecordCovers };

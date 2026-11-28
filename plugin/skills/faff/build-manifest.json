@@ -6,7 +6,7 @@
     "integrity": "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="
   },
   "config": {
-    "tsconfig.json": "38ba575b6b6e9ed349bf6d57cd08af46c3a6ec01666b46b1ba3183d6b0eee6c5"
+    "tsconfig.json": "5554e9b5e2a6e8f68510b03338e32f50d930107ce476f113bcb734960a2eca45"
   },
   "lock": {
     "package-lock.json": "b64bb7ba6298d47694b5700301c5fbec5aec2d5ce8351937d1cda8873fc5697a",
@@ -16,6 +16,7 @@
     "bin/lib/adr-promotion.ts": "555808b190c81e670d79feca4b842f593d8ae1eee3908b7f57da5927801bebf0",
     "bin/lib/build-queue-partition.ts": "90d0d46ca6183ce3ceedac2807a89529a025625936f38fa27ca0e6c0698416bc",
     "bin/lib/build-review-round.ts": "e5ec3754726c95eadbcb39c58845adfd0167473ac7082b3a70874773fc2d2e6e",
+    "bin/lib/builtin-landing.ts": "6225f5d1167bf2b6a6a57fc3f5c54964ab5e760c99b0ced8973441a77828f6dd",
     "bin/lib/commissaire-governor-client.ts": "90e01905816c4e12ea1a24eab1ed9b6d6e6106c29bb322e3988ca50b6604604b",
     "bin/lib/commissaire-trust.ts": "c2d4bffa2f153db70746395cf708195cc11ba0aa51b5ccc25e9f181c08555a65",
     "bin/lib/commissaire-verify.ts": "acd14993082da3d214eda5fc69b604e0bdb5ce654de2733d0e25876e64756114",
@@ -40,7 +41,7 @@
     "bin/lib/land-fix-attempt.ts": "e54b372aae76971d2b802947ede682d9a0a62890cebbce4bb67f593cccbe2038",
     "bin/lib/land-watch.ts": "28847c32635a3b58b8a91f0fc50282606ca19a389cf9f17b0e64804cdc5172b8",
     "bin/lib/land.ts": "b4c79d62812ac0013ba6c774b720fa4448451b712b8828a66c154616e71f5fa5",
-    "bin/lib/merge-authorize.ts": "159bd25af72d30d005a887cda7d8980f7d5030398022c0d9f8371a066c13bd61",
+    "bin/lib/merge-authorize.ts": "ac713a6416e9b89a2e13e4aa60a257399d3455b2345381e83bee91a4ecbefd46",
     "bin/lib/merge-delivery-receipt.ts": "44212d861e6d495c0b6167079880d1bfb666e1acb5ac759849df95ccf629fd7b",
     "bin/lib/next-prep-queue.ts": "64f35e152dcd3d2f245272a8533e6902ae5d84f24e74ace796a9810f43adbde4",
     "bin/lib/park-finalize.ts": "72a906237ad66ae2f5661c1308f8a015408f409912603bbc741cedd6f073bfd3",
@@ -84,6 +85,7 @@
     "bin/lib/adr-promotion.js": "453e6ab3a018e2f2e72a8170dac761985dda2726864c20529d2fce2d62c9c8d4",
     "bin/lib/build-queue-partition.js": "ad4128e8032bb6642ca6765a750e82825521ea8d8e22ca8e9895b088774c2e9e",
     "bin/lib/build-review-round.js": "e57dcc12d48907f3417ba3d44d272cefe9e07235251fe1e64b38cdcc42680831",
+    "bin/lib/builtin-landing.js": "74231dc332f842de839d624a19c5f6a171b3a98ab582295abbd6f28656e7d943",
     "bin/lib/commissaire-governor-client.js": "9e14c9ebe762d860b0249f853dd308a4abc3ef9d3e92a416d1ad8decd44d0885",
     "bin/lib/commissaire-trust.js": "c69b5fb8ffb57c7195bc795b1aeb6a77c90e3145457a5b6b78da94589c197572",
     "bin/lib/commissaire-verify.js": "18fb7d91fdf58433053a543580bb0d6225d133255a7ee53c90f1f97c512292d7",
@@ -108,7 +110,7 @@
     "bin/lib/land-fix-attempt.js": "805071f0399ca6b2c317ba4e464d1be09c1caeab630e83f2d22d319cbfeba05f",
     "bin/lib/land-watch.js": "2d48e934e77a719a29a1807c8a52e679771cace75b80735364fb02bdb3a88ca5",
     "bin/lib/land.js": "6722f3b6b1cc15cccdd58ca3555c59846604c950351ab96944cc7f340868226c",
-    "bin/lib/merge-authorize.js": "9b08489832b8d35e025e52f17fe94476bfb400210065048b29facd04d3db582f",
+    "bin/lib/merge-authorize.js": "411175c0735969e13aa384fdfa9e35656de784db2110f2673131746a36bac744",
     "bin/lib/merge-delivery-receipt.js": "a7946efb13f1b4a5b1b9a162dad94becc948b741c61b002ac15d269c2a4eaefd",
     "bin/lib/next-prep-queue.js": "9dbd8e11b9fdcba155907a0ba1c1882893af2ee56f45177395097ca15db88145",
     "bin/lib/park-finalize.js": "8f0b5524416dc7ff7461effbf42d86643354b2d58e4d6255ff6e1938bc955bf0",
@@ -148,5 +150,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "4a0e5e404c65161d2d1568b8d039276929af6c9461a7659d23dd9f3e570e5493"
+  "output_digest": "b110cfa4575905847d43e606649e289c49ab7ff3983a5f7ed591ac28dfa02ebc"
 }

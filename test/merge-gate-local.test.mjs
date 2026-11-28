@@ -103,6 +103,73 @@ test("CLI: --local on a clean no-remote repo → exit 0, merge-ok, base ref adva
   assert.deepEqual(JSON.parse(rendered.stdout.split("\n")[3]), { outcome: "shipped", reason: "", corroborated: true });
 });
 
+test("land-default lands a local branch and recovers only a matching merge receipt", () => {
+  const repo = scaffoldRepo();
+  const runDir = mkTmp("builtin-local-run-");
+  seedRunDir(runDir, ISSUE);
+  const featureSha = commitAnchor(repo, runDir);
+  const args = ["merge", "land-default", "--execute", "--local", "--base", "main", "--branch", "feature",
+    "--issue", ISSUE, "--run-dir", runDir, "--level", "L3"];
+  const recordPath = join(runDir, ISSUE, "merge-record.json");
+
+  const first = runCli(args, { cwd: repo });
+  assert.equal(first.code, 0, first.stderr + first.stdout);
+  assert.match(first.stdout, /"outcome":"shipped"/);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), featureSha);
+  const record = readFileSync(recordPath, "utf8");
+  assert.equal(JSON.parse(record).head_sha, featureSha);
+
+  const resumed = runCli(args, { cwd: repo });
+  assert.equal(resumed.code, 0, resumed.stderr + resumed.stdout);
+  assert.match(resumed.stdout, /"outcome":"shipped"/);
+  assert.equal(readFileSync(recordPath, "utf8"), record, "recovery must use the retained receipt");
+
+  writeFileSync(recordPath, JSON.stringify({ ...JSON.parse(record), head_sha: "f".repeat(40) }));
+  const mismatch = runCli(args, { cwd: repo });
+  assert.notEqual(mismatch.code, 0, mismatch.stdout);
+  assert.doesNotMatch(mismatch.stdout, /"outcome":"shipped"/);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), featureSha);
+});
+
+test("governed land-default recovers a crash between the local merge and observation", () => {
+  const repo = scaffoldRepo();
+  const initialized = runCli(["run-ledger", "init-interactive", "--issue", ISSUE], { cwd: repo });
+  assert.equal(initialized.code, 0, initialized.stderr);
+  const runDir = initialized.stdout.trim();
+  const admitted = runCli(["commissaire", "contract", "admit", "--run-dir", runDir, "--producer",
+    basename(runDir), "--contract-revision", "faff-runner-v1", "--scope", "merge"], { cwd: repo });
+  assert.equal(admitted.code, 0, admitted.stderr);
+  seedRunDir(runDir, ISSUE);
+  const head = commitAnchor(repo, runDir, { level: "L2" });
+  const target = ["--local", "--base", "main", "--branch", "feature", "--run-dir", runDir, "--issue", ISSUE];
+  const granted = runCli(["merge", "authorize", ...target], { cwd: repo });
+  assert.equal(granted.code, 0, granted.stderr);
+  const merge = runCli(["merge-gate", "--execute", "--json", "--level", "L2", ...target], { cwd: repo });
+  assert.equal(merge.code, 0, merge.stderr + merge.stdout);
+  assert.equal(git(repo, "rev-parse", "main").stdout.trim(), head);
+
+  const effectsPath = join(runDir, "declared-effects.jsonl");
+  const observations = () => readFileSync(effectsPath, "utf8").trim().split("\n").map(line => JSON.parse(line))
+    .filter(entry => entry.unit_id === ISSUE && entry.kind_of_entry === "observe" && entry.effect?.kind === "merge");
+  assert.equal(observations().length, 0);
+  const args = ["merge", "land-default", "--execute", "--level", "L2", ...target];
+  const recordPath = join(runDir, ISSUE, "merge-record.json");
+  const record = readFileSync(recordPath);
+  rmSync(recordPath);
+  const missing = runCli(args, { cwd: repo });
+  assert.notEqual(missing.code, 0, missing.stdout);
+  assert.doesNotMatch(missing.stdout, /"outcome":"shipped"/);
+  assert.equal(observations().length, 0);
+  assert.equal(existsSync(recordPath), false);
+  writeFileSync(recordPath, record);
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const resumed = runCli(args, { cwd: repo });
+    assert.equal(resumed.code, 0, resumed.stderr + resumed.stdout);
+    assert.match(resumed.stdout, /"outcome":"shipped"/);
+    assert.equal(observations().length, 1);
+  }
+});
+
 test("CLI: --local via --check-only never lands the merge (base ref unchanged)", () => {
   const repo = scaffoldRepo();
   const runDir = mkTmp("mg-local-run-");

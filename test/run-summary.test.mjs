@@ -409,7 +409,7 @@ test("PR lookup order: merge-record wins over landing-loop, which wins over the 
 
 test("local merge skips the forge and hosted fallback binds checkout and issue", () => {
   const fx = buildRun({ admitted: ["KIT-1", "KIT-2"], outcomes: { "KIT-1": "shipped", "KIT-2": "pr-open" },
-    files: { "KIT-1/merge-record.json": { pr: 0, merged: true } } });
+    files: { "KIT-1/merge-record.json": { pr: 0, merged: true }, "KIT-2/merge-record.json": { pr: 0, merged: false } } });
   const lookups = [];
   const ghJson = (args, root) => {
     lookups.push([args[3], root]);

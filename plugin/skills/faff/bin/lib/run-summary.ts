@@ -342,8 +342,9 @@ function renderRunSummary(input: RenderInput, deps: Deps): string {
   // PR numbers: merge-record.json, then landing-loop.json, then the forge.
   const forgeFailures: string[] = [];
   const prOf = (id: string): number | null => {
-    const mergedPr = num(field(readJson(path.join(runDir, id, "merge-record.json")), "pr"));
-    if (mergedPr === 0) return null; // Local merge records have no hosted PR.
+    const record = readJson(path.join(runDir, id, "merge-record.json"));
+    const mergedPr = num(field(record, "pr"));
+    if (mergedPr === 0 && field(record, "merged") === true) return null; // Local merge records have no hosted PR.
     const fromDisk = mergedPr ?? num(field(readJson(path.join(runDir, id, "landing-loop.json")), "pr"));
     if (fromDisk !== undefined && fromDisk > 0) return fromDisk;
     const r = deps.ghJson(["pr", "list", "--search", `${id} in:title`, "--state", "all", "--json", "number,headRefName"], input.root);

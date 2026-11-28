@@ -1,4 +1,5 @@
 // === region:factory — verify run custody before member evidence ===
+import { noteTiming } from "./run-timing";
 import { readFileSync } from "node:fs";
 
 const { parseArgs, usageError } = require("./argv");
@@ -42,6 +43,7 @@ export function cmdVerifyMember(args: string[]): number {
   const { values, errors } = parseArgs(args, spec);
   const dir = values["--run-dir"], issue = values["--issue"];
   if (errors.length || !dir || !issue || values["--return"] === undefined) return usageError(errors, usage);
+  const started = new Date().toISOString();
   try {
     const paths = runDifferences(dir);
     if (paths.length) {
@@ -53,6 +55,7 @@ export function cmdVerifyMember(args: string[]): number {
   }
   try {
     const issueDir = guardWriterPaths(dir, issue);
+    if (process.env.FAFF_WORKER_TIMING === "1") noteTiming(dir, issue, "member-verify-start", started);
     const claim = claimFromStdin(values["--return"], issue);
     const { verdict, park_cause, tampered_paths, evidence_persisted } = verifyReturn(issueDir, issue, claim);
     console.log(JSON.stringify({ scope: "member", issue, verdict, park_cause, tampered_paths, evidence_persisted }));

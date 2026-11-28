@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.cmdVerifyMember = cmdVerifyMember;
 // === region:factory — verify run custody before member evidence ===
+const run_timing_1 = require("./run-timing");
 const node_fs_1 = require("node:fs");
 const { parseArgs, usageError } = require("./argv");
 const { MANIFEST_VERSION, memberRels, diffAgainstManifest } = require("./integrity-digest");
@@ -40,6 +41,7 @@ function cmdVerifyMember(args) {
     const dir = values["--run-dir"], issue = values["--issue"];
     if (errors.length || !dir || !issue || values["--return"] === undefined)
         return usageError(errors, usage);
+    const started = new Date().toISOString();
     try {
         const paths = runDifferences(dir);
         if (paths.length) {
@@ -52,6 +54,8 @@ function cmdVerifyMember(args) {
     }
     try {
         const issueDir = guardWriterPaths(dir, issue);
+        if (process.env.FAFF_WORKER_TIMING === "1")
+            (0, run_timing_1.noteTiming)(dir, issue, "member-verify-start", started);
         const claim = claimFromStdin(values["--return"], issue);
         const { verdict, park_cause, tampered_paths, evidence_persisted } = verifyReturn(issueDir, issue, claim);
         console.log(JSON.stringify({ scope: "member", issue, verdict, park_cause, tampered_paths, evidence_persisted }));

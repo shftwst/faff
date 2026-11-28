@@ -13,6 +13,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const fs = require("node:fs");
 const path = require("node:path");
 const childProcess = require("node:child_process");
+const run_timing_1 = require("./run-timing");
 const heartbeatApi = require("./heartbeat");
 const runcheckApi = require("./runcheck");
 const argvApi = require("./argv");
@@ -325,6 +326,14 @@ function cmdRunClose(argv, deps = realDeps()) {
         return argvApi.usageError([{ code: "missing-required", detail: "--stop-reason TOKEN is required" }], CLOSE_USAGE);
     const outcome = runClose({ runDir, stopReason, gitOnly: values["--git-only"] === true, root: str(values["--root"]) ?? null, sessionId: str(values["--session-id"]) ?? null }, deps);
     const { code, result } = outcome;
+    if (code === 0 && result.closed) {
+        try {
+            (0, run_timing_1.saveTiming)(runDir);
+        }
+        catch (err) {
+            process.stderr.write("faff run close: timing report unavailable: " + errText(err) + "\n");
+        }
+    }
     if (outcome.reason !== null)
         process.stderr.write(`faff run close: ${outcome.reason}\n`);
     if (values["--json"] === true)

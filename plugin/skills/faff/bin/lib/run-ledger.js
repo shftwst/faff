@@ -647,6 +647,10 @@ function recordOutcome(values) {
       process.stderr.write(`faff run-ledger record-outcome: issue-outcome close event append failed in ${runDir}: ${e && e.message} — the ledger IS written\n`);
     }
   }
+  if (resultingOwnerStatus === "done") {
+    try { require("./run-timing").saveTiming(runDir); }
+    catch (e) { process.stderr.write(`faff run-ledger: timing report unavailable: ${e.message}\n`); }
+  }
   if (values["--json"]) {
     process.stdout.write(JSON.stringify({ recorded: true, run_id: runId, run_dir: runDir, issue, outcome, owner_status: resultingOwnerStatus, ledger_sha256_before: res.before_sha256, ledger_sha256_after: res.after_sha256 }) + "\n");
   } else {

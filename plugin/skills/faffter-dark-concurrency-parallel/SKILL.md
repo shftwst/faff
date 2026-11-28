@@ -18,7 +18,7 @@ concurrency_max: 4
 
 ## When it runs
 
-Invoked by `/faff-beep-boop`'s build pass as the configured `concurrency` skill. It honours the gateway → **Mechanism slots** → _The `concurrency` slot contract_: build every issue in the partition, serialise within collision groups, record every terminal outcome to the run ledger, never weaken the merge gate, bracket every graft dispatch with integrity-digest custody (obligation 5), persist + verify the returned per-issue AC/review evidence (obligation 6), and run the merge above the cut for each `pr-ready` member (obligation 7). This skill adds concurrency and the merge-safety that concurrency requires.
+The beep-boop build pass uses this parallel executor under the gateway concurrency contract. Its seven obligations cover partition completion, collision ordering, ledger outcomes, merge gates, custody, evidence and dispatcher-side merge.
 
 ## Concurrency cap
 

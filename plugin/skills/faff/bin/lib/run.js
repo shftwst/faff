@@ -6,6 +6,7 @@
 // into code. An unknown or missing verb exits 2 with the registered verbs.
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
+const run_timing_1 = require("./run-timing");
 const run_wave_mode_1 = require("./run-wave-mode");
 const run_wave_consult_1 = require("./run-wave-consult");
 const runSummary = require("./run-summary");
@@ -26,6 +27,8 @@ const VERBS = {
     preflight: cmdRunEntryPreflight,
     "wave-consult": run_wave_consult_1.cmdWaveConsult,
     "wave-mode": run_wave_mode_1.cmdWaveMode,
+    timing: args => (0, run_timing_1.cmdTiming)(args),
+    "wait-ready": args => (0, run_timing_1.cmdTiming)(args, true),
 };
 const RUN_USAGE = `usage: faff run <verb> [args...] — registered verbs: ${Object.keys(VERBS).join(", ")}`;
 function cmdRun(args) {

@@ -606,6 +606,18 @@ function cmdPrep(args, depsOverride) {
     catch (e) {
         res = errored(issue, `unexpected: ${e && prop(e, "message") ? prop(e, "message") : e}`);
     }
+    if (!depsOverride && !deps.env.FAFF_RUN_DIR && !deps.env.FAFF_SESSION_ID && ["attached", "parked"].includes(res.token)) {
+        try {
+            const marker = readStagedMarker(root, issue, deps);
+            if (typeof marker?.ts === "string") {
+                const until = res.token === "attached" && typeof marker.attached_at === "string" ? marker.attached_at : deps.now();
+                require("./run-timing").finishPrepTiming(root, issue, marker.ts, until);
+            }
+        }
+        catch {
+            process.stderr.write("faff prep: attachment timing unavailable\n");
+        }
+    }
     emit(res, !!values["--json"]);
     return res.token === "errored" ? 2 : 0;
 }

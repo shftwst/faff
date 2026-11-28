@@ -310,3 +310,29 @@ A marketplace install does not put `commissaire` on PATH; link it by hand as abo
 To roll the binary back, remove the symlink. `scripts/link-skills.sh --global --unlink` removes both `faff` and `commissaire` from `~/.local/bin` when they point into that checkout, and leaves a same-named link that points elsewhere alone; a hand-made link is removed with `rm ~/.local/bin/commissaire`. This touches only PATH. `faff commissaire …` reaches the same handler and stays available, and an installed governor runs its own copy of `bin/commissaire` by full path, so it is unaffected.
 
 It exposes the noun-verb grammar `commissaire <object> <action>` (e.g. `commissaire contract admit`, `commissaire contract status`, `commissaire effect authorize`, `commissaire audit verify`) — dispatching into the same handler `faff commissaire …` reaches, so both forms behave identically.
+
+### Run timing
+
+`faff run timing` reports on the latest run. Select an explicit run with
+`--run-dir DIR` and add `--json` for the timestamped timeline and durations
+in milliseconds. Run close saves `run-timing.json` beside the ledger.
+A standalone graft saves a snapshot when its ledger drains. A standalone prep
+saves each observed spec-stage-to-disposition window under
+`.faff/prep/timing/<id>/`. This window begins at attachment staging.
+Historical runs can be read directly from their original events.
+
+The report measures prep to first build, first build to close, and build
+attempts individually. Evidence-ready is the worker's final evidence command.
+Verification start is the parent's dispatcher command. Their difference
+includes transport and scheduling. Missing boundaries have null durations.
+When native request receipts are available, the report groups observed parent
+and worker requests and token classes by wall-clock window. Concurrent
+activity can overlap those windows. Last outcome means the recorded issue
+outcome and can occur after the forge merge.
+
+Parallel executors can await an evidence-ready hint with
+`faff run wait-ready --run-dir DIR --since DISPATCH_UTC --timeout-ms MS ISSUE...`.
+Pass outstanding issues with the same dispatch floor. An expired timeout
+returns a checkpoint wakeup. The evidence hint grants no scheduling or merge
+authority. Collect the terminal token, verify custody and evidence, then
+release the slot under the normal checkpoint rules.

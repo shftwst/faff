@@ -5,6 +5,7 @@
 // into code. An unknown or missing verb exits 2 with the registered verbs.
 // ===========================================================================
 
+import { cmdTiming } from "./run-timing";
 import { cmdWaveMode } from "./run-wave-mode";
 
 import { cmdWaveConsult } from "./run-wave-consult";
@@ -45,6 +46,8 @@ const VERBS: { [verb: string]: (args: string[]) => number } = {
   preflight: cmdRunEntryPreflight,
   "wave-consult": cmdWaveConsult,
   "wave-mode": cmdWaveMode,
+  timing: args => cmdTiming(args),
+  "wait-ready": args => cmdTiming(args, true),
 };
 
 const RUN_USAGE = `usage: faff run <verb> [args...] — registered verbs: ${Object.keys(VERBS).join(", ")}`;

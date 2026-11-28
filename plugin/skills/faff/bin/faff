@@ -375,7 +375,17 @@ function main(argv) {
     // FAFF-999: the governance-profile / strict-base-config / legacy-config-name catch
     // (FAFF-362/577/627) is extracted to shared-infra.js's runGovernedDispatch, shared
     // verbatim with the standalone `commissaire` binary — same stderr text, same exit codes.
-    return runGovernedDispatch(sub, handler, rest);
+    const timedReturn = process.env.FAFF_WORKER_TIMING === "1" && sub === "evidence" && rest[0] === "return";
+    const code = runGovernedDispatch(sub, handler, rest);
+    if (timedReturn && code === 0) {
+      const { values } = require("./lib/argv").parseArgs(rest.slice(1), {
+        flags: { "--issue": { arity: 1 }, "--run-dir": { arity: 1 } },
+      });
+      if (values["--run-dir"] && values["--issue"]) {
+        require("./lib/run-timing").noteTiming(values["--run-dir"], values["--issue"], "worker-evidence-ready", new Date().toISOString());
+      }
+    }
+    return code;
   }
   process.stderr.write(`faff: unknown subcommand '${sub}'\n\n${USAGE}`);
   return 2;

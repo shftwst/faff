@@ -17,8 +17,6 @@ const runTrigger = require("./run-trigger");
 const returnMap = require("./run-return-map");
 const { cmdRunEntryPreflight } = require("./run-entry-preflight");
 const VERBS = {
-    timing: args => (0, run_timing_1.cmdTiming)(args),
-    "wait-ready": args => (0, run_timing_1.cmdTiming)(args, true),
     summary: (args) => runSummary.cmdRunSummary(args),
     checkpoint: (args) => runCheckpoint.cmdRunCheckpoint(args),
     open: (args) => runOpen.cmdRunOpen(args),
@@ -29,6 +27,8 @@ const VERBS = {
     preflight: cmdRunEntryPreflight,
     "wave-consult": run_wave_consult_1.cmdWaveConsult,
     "wave-mode": run_wave_mode_1.cmdWaveMode,
+    timing: args => (0, run_timing_1.cmdTiming)(args),
+    "wait-ready": args => (0, run_timing_1.cmdTiming)(args, true),
 };
 const RUN_USAGE = `usage: faff run <verb> [args...] — registered verbs: ${Object.keys(VERBS).join(", ")}`;
 function cmdRun(args) {

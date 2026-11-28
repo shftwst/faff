@@ -69,7 +69,7 @@ export function finishPrepTiming(
       { flag: "wx", mode: 0o600 },
     );
   } catch (err) {
-    if ((err as NodeJS.ErrnoException).code !== "EEXIST") throw err;
+    if (!(err instanceof Error && "code" in err && err.code === "EEXIST")) throw err;
   }
   saveTiming(dir);
 }
@@ -118,6 +118,8 @@ type Receipt = {
   records?: ReceiptRow[];
 };
 
+const tokenClasses: ReadonlyArray<"input" | "output" | "cache_read" | "cache_write"> = ["input", "output", "cache_read", "cache_write"];
+
 function requestWindows(
   dir: string,
   firstPrep?: string,
@@ -161,12 +163,7 @@ function requestWindows(
             : windows.unattributed;
     window.requests++;
     if (row.role === "parent" || row.role === "worker") window[row.role]++;
-    for (const key of [
-      "input",
-      "output",
-      "cache_read",
-      "cache_write",
-    ] as const) {
+    for (const key of tokenClasses) {
       const value = row.usage?.[key];
       if (typeof value === "number") window[key] = (window[key] ?? 0) + value;
     }
@@ -388,7 +385,7 @@ export function cmdTiming(args: string[], wait = false): number {
       "faff run " +
         (wait ? "wait-ready" : "timing") +
         ": " +
-        (err as Error).message,
+        (err instanceof Error ? err.message : String(err)),
     );
     return 2;
   }

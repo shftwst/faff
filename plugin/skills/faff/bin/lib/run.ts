@@ -36,8 +36,6 @@ const returnMap: { cmdRunReturnMap(args: string[]): number } = require("./run-re
 const { cmdRunEntryPreflight }: { cmdRunEntryPreflight(args: string[]): number } = require("./run-entry-preflight");
 
 const VERBS: { [verb: string]: (args: string[]) => number } = {
-  timing: args => cmdTiming(args),
-  "wait-ready": args => cmdTiming(args, true),
   summary: (args) => runSummary.cmdRunSummary(args),
   checkpoint: (args) => runCheckpoint.cmdRunCheckpoint(args),
   open: (args) => runOpen.cmdRunOpen(args),
@@ -48,6 +46,8 @@ const VERBS: { [verb: string]: (args: string[]) => number } = {
   preflight: cmdRunEntryPreflight,
   "wave-consult": cmdWaveConsult,
   "wave-mode": cmdWaveMode,
+  timing: args => cmdTiming(args),
+  "wait-ready": args => cmdTiming(args, true),
 };
 
 const RUN_USAGE = `usage: faff run <verb> [args...] — registered verbs: ${Object.keys(VERBS).join(", ")}`;

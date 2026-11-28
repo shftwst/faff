@@ -56,7 +56,7 @@ function finishPrepTiming(root, issue, since, until) {
         fs.writeFileSync(path.join(dir, "events.jsonl"), lines.map((e) => JSON.stringify(e)).join("\n") + "\n", { flag: "wx", mode: 0o600 });
     }
     catch (err) {
-        if (err.code !== "EEXIST")
+        if (!(err instanceof Error && "code" in err && err.code === "EEXIST"))
             throw err;
     }
     saveTiming(dir);
@@ -93,6 +93,7 @@ function rows(dir, file) {
     }
     return { rows: found, skipped };
 }
+const tokenClasses = ["input", "output", "cache_read", "cache_write"];
 function requestWindows(dir, firstPrep, firstBuild, lastOutcome) {
     const prep = readLeafNoFollow(path.join(dir, "prep-request-metrics.json"));
     const store = readLeafNoFollow(path.join(dir, "run-request-metrics.json"));
@@ -135,12 +136,7 @@ function requestWindows(dir, firstPrep, firstBuild, lastOutcome) {
         window.requests++;
         if (row.role === "parent" || row.role === "worker")
             window[row.role]++;
-        for (const key of [
-            "input",
-            "output",
-            "cache_read",
-            "cache_write",
-        ]) {
+        for (const key of tokenClasses) {
             const value = row.usage?.[key];
             if (typeof value === "number")
                 window[key] = (window[key] ?? 0) + value;
@@ -327,7 +323,7 @@ function cmdTiming(args, wait = false) {
         console.error("faff run " +
             (wait ? "wait-ready" : "timing") +
             ": " +
-            err.message);
+            (err instanceof Error ? err.message : String(err)));
         return 2;
     }
 }

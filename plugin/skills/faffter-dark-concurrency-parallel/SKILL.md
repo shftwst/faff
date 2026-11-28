@@ -28,11 +28,11 @@ Read `concurrency_max` from `.faff/config.yaml` via the bundled resolver (`faff 
 
 Each in-flight build runs in its **own git worktree** at `~/.faff/worktrees/<repo>/<branch>` (default; per the gateway → **Worktree policy**, `worktree_root`-overridable — `/faff-graft` creates one per issue, never shared across concurrent builds). Never let concurrent builds write the same working tree.
 
-Dispatch one build subagent per independent issue or ordered collision chain via Agent/Task. Use background dispatch and refill slots on individual returns (step 3). Never run graft inline via the Skill tool.
+Dispatch one Agent/Task per independent issue or ordered collision chain. Refill slots on individual returns (step 3). Never run graft inline.
 
 On a Sentry corrective re-dispatch only, run `faff corrective check --run-dir <run_dir> --issue <issue>` first. A mandate of `empty` or `indeterminate` parks the unit. Attach the verified `constraints` to the returned BuildDispatch only for `disposition:"trusted"` with `mandate:"narrowed"`. Omit constraints for channel-D or absent correction.
 
-Run `faff dispatch prepare-build --executor parallel` and apply **Build worker prompt** in `faff/references/l4.md`, including its foreground-to-terminal clause. Use the prepared background Agent arguments. The worker's own steps run in the foreground.
+Run `faff dispatch prepare-build --executor parallel` and apply **Build worker prompt** in `faff/references/l4.md`, including its foreground-to-terminal clause. Set `run_in_background: true` on the Agent/Task call itself. Foreground applies inside the worker.
 
 Each autonomous graft builds, tests, reviews and waits for CI in its own worktree and context. It returns a `TerminalToken{ issue, outcome, pr }` and a separate `EvidenceReturn` per member. The executor verifies the return, reconciles it with the issue’s run artifacts and git, and records the bucket under concurrency obligation 3. A clean `pr-ready` goes through the executor's merge (obligation 7) before recording. Never use a worker transcript as evidence. Queue routing and budget outcomes are orchestrator-only. Peer claims resolve before dispatch.
 

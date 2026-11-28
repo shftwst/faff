@@ -11,7 +11,7 @@ Set you up to build. Checks the spec exists, creates a worktree, commits the spe
 
 ## Configuration
 
-**Load the kernel first.** Resolve these paths from the installed skills directory containing this graft skill. Batch the named Reads directly in one request where supported: `faff/references/kernel.md` first if absent this turn, then `faff/references/build.md`, `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/review.md`, `faff/references/methodology.md`, `faff/references/l4.md` and `faff/references/park.md`. Skip the routing gateway `faff/SKILL.md`. Finish clipped or failed reads and apply the kernel before acting. Graft applies the fixed review-verdict, spec-readiness and delivery-outcome contracts; validate the review and ship blocks with `faff contract <name>`.
+**Load the kernel first.** From this skill’s base directory, read the sibling paths below via `../`. Start with the batched Reads; list or size files only if a Read fails: `faff/references/kernel.md` first if absent this turn, then `faff/references/build.md`, `faff/references/tracker.md`, `faff/references/autonomous.md`, `faff/references/review.md`, `faff/references/methodology.md`, `faff/references/l4.md` and `faff/references/park.md`. Skip the routing gateway `faff/SKILL.md`. Finish clipped or failed reads and apply the kernel before acting. Graft applies the fixed review-verdict, spec-readiness and delivery-outcome contracts; validate the review and ship blocks with `faff contract <name>`.
 
 ### Worktree provisioning
 

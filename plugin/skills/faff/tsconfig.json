@@ -38,6 +38,7 @@
     "bin/lib/prep-attach.ts",
     "bin/lib/judge-dispositions.ts",
     "bin/lib/merge-authorize.ts",
+    "bin/lib/builtin-landing.ts",
     "bin/lib/graft-admit.ts",
     "bin/lib/graft-verify-build.ts",
     "bin/lib/gates-progress.ts",

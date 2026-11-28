@@ -754,6 +754,7 @@ test("record-criteria joins observations by ID against the exact graded builder 
     "--issue", "EX-3", "--run-dir", f.rd, "--builder-sha", digest], {cwd:f.main, encoding:"utf8", input:JSON.stringify(rows)});
   const ok = record([second, first]);
   assert.equal(ok.status, 0, ok.stderr);
+  assert.match(record([{ ...first, verified: true }, second]).stderr, /verified as a string/);
   const destination = join(f.rd, "EX-3", "ac-checklist.json");
   const before = readFileSync(destination, "utf8");
   const full = [first, second].map((r, i) => ({ ...r, ac: criteria[i].text }));

@@ -51,7 +51,7 @@ async function cmdGraftVerifyBuild(args) {
         return emit("verify-criteria", 0, { spec });
     });
 }
-exports.RECORD_CRITERIA_USAGE = "usage: faff graft record-criteria --worktree DIR --issue ID --spec FILE --run-dir DIR --builder-sha SHA256 (grade rows on stdin)";
+exports.RECORD_CRITERIA_USAGE = "usage: faff graft record-criteria --worktree DIR --issue ID --spec FILE --run-dir DIR --builder-sha SHA256 < JSON array of {ac_id, verified: string (observation), passed: boolean, verifications: [method, ...]}";
 const RECORD_SPEC = { ...SPEC, flags: { ...SPEC.flags, "--builder-sha": { arity: 1 } } };
 function cmdRecordCriteria(args) {
     const { values, errors } = argv.parseArgs(args, RECORD_SPEC);
@@ -90,7 +90,7 @@ function cmdRecordCriteria(args) {
         for (const row of rows) {
             if (!row || typeof row.ac_id !== "string" || grades.has(row.ac_id) || typeof row.passed !== "boolean" ||
                 typeof row.verified !== "string" || !Array.isArray(row.verifications) || !row.verifications.length) {
-                return { refused: ["each grade needs a unique ac_id, boolean passed, verification note and methods"] };
+                return { refused: ["each grade needs a unique ac_id, verified as a string describing the observed result, passed as a boolean, and a nonempty verifications array"] };
             }
             grades.set(row.ac_id, row);
         }

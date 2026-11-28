@@ -411,7 +411,7 @@ Alongside the terminal run-ledger, the orchestrator appends an **ordered timelin
 | Run start | `run` / `run-start` | no (delta ~0; seeds the baseline) |
 | Tidy pass returns (step 1) | `tidy` / `tidy-done` | **yes** |
 | Issue admitted to the build queue (step 4) | `run` / `issue-admitted` (issue) | no |
-| Prep of an issue start/finish (step 3) | `prep` / `prep-start` · `prep-done` (issue) | done: **yes**; start: no |
+| Prep (step 3) | `prep` / `prep-start` · `prep-done` (issue) | done: **yes**, `data.outcome` = reconciled token; start: no |
 | Graft subagent dispatched (step 6) | `build` / `build-start` (issue) | no |
 | Graft subagent returns its token | `build` / `issue-outcome` (issue, `data.outcome`, + `data.gate`/`data.rework_turns` on a non-clean build) | **yes** |
 | Discovered-scope ticket filed (steps 7 / 8.0 / 10 — the shared filing mechanism) | `run` / `discovered-scope-filed` | no |
@@ -494,7 +494,7 @@ The command computes everything faff can read itself: the outcome buckets and an
            "resolve_attempts": {"attempted", "succeeded", "failed", "proceeded_medium": [{"id", "inferred", "evidence", "pr"}]} | null,
            "park_records": [{"issue_id", "root_cause_class", "timestamp"}], "reasons": {ID: text}, "inferred_deps": {...} | null,
            "discovered_scope": {"filed": [{"from", "id", "title", "relationship"}], "deduped": N, "surfaced": [{"id", "text", "why"}]} | null,
-           "follow_ups": [text], "prep_summary": {...} | null, "tidy_log": path | null, "waves": N } }
+           "follow_ups": [text], "tidy_log": path | null, "waves": N } }
 ```
 
 `tracker.sibling_end_states` and `tracker.superseded_delivered` are the live observations step 11.5 already made for `faff reconcile`. `park_records` is the run's park accumulator (gateway → **Park protocol (shared)**); the command renders it as the `faff-parks` fence.

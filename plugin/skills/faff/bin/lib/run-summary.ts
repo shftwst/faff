@@ -305,6 +305,35 @@ class Lines {
   push(line: string): void { this.out.push(line); }
 }
 
+const prepRows: Array<[string, string]> = [
+  ["refreshed", "Refreshed"], ["promoted", "Promoted"],
+  ["promoted_needs_review", "Promoted (needs review, medium confidence)"],
+  ["parked", "Parked"], ["errored", "Errored"],
+];
+
+// A complete start/done pair counts one prep attempt, including a later re-prep.
+function completedPrepCounts(events: unknown[] | null): Map<string, number> | null {
+  const pending = new Set<string>();
+  const counts = new Map<string, number>();
+  for (const event of events ?? []) {
+    const kind = field(event, "type");
+    if (kind !== "prep-start" && kind !== "prep-done") continue;
+    const issue = str(field(event, "issue"));
+    if (!issue) return null;
+    if (kind === "prep-start") {
+      if (pending.has(issue)) return null;
+      pending.add(issue);
+      continue;
+    }
+    const outcome = str(field(field(event, "data"), "outcome"));
+    if (!pending.delete(issue) || !outcome) return null;
+    const key = outcome.replace(/-/g, "_");
+    if (!prepRows.some(([k]) => k === key) && key !== "ineligible" && key !== "re_slice_handoff") return null;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts.size && !pending.size ? counts : null;
+}
+
 function renderRunSummary(input: RenderInput, deps: Deps): string {
   const runDir = input.runDir;
   const ledger = readLedgerStrict(runDir);
@@ -780,12 +809,15 @@ function renderRunSummary(input: RenderInput, deps: Deps): string {
   // A23: prep summary and tidy, full mode only.
   if (modeOf(runId, ledger) === "full") {
     const ps = field(run, "prep_summary");
-    if (isRecord(ps)) {
+    const counts = completedPrepCounts(events);
+    if (counts || isRecord(ps)) {
+      const source = counts ? "" : REPORTED;
       L.push("");
-      L.push(`## Prep queue summary (full mode only)${REPORTED}`);
-      const prepRows: Array<[string, string]> = [["refreshed", "Refreshed"], ["promoted", "Promoted"], ["promoted_needs_review", "Promoted (needs review, medium confidence)"], ["parked", "Parked"], ["errored", "Errored"]];
+      L.push(`## Prep queue summary (full mode only)${source}`);
       for (const [k, name] of prepRows) {
-        L.push(`- ${name}: ${num(field(ps, k)) ?? 0}${REPORTED}`);
+        const value = field(ps, k);
+        const reported = isStringArray(value) ? value.length : num(value) ?? 0;
+        L.push(`- ${name}: ${counts ? counts.get(k) ?? 0 : reported}${source}`);
       }
     }
     const tidy = str(field(run, "tidy_log"));

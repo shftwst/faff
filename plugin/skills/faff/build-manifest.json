@@ -64,7 +64,7 @@
     "bin/lib/run-open.ts": "ce538c68a6de316a5d5372c8fe9ec52ea6a25802cbcca2a0e06810569ae0a337",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
     "bin/lib/run-stop-reason.ts": "90be5d4ec94d88201f46ea5a182462993818afaab2d09cc97d55dcbb2f47edca",
-    "bin/lib/run-summary.ts": "0174f139c548ee4409d917a00a6d1983465864a518cea47f789559542af5cc66",
+    "bin/lib/run-summary.ts": "1759b4ff587042ba1c795501fce56243bcdbf01babb76b621c24ecb3302a04a2",
     "bin/lib/run-trigger.ts": "d7810195ea6ed69e075295988d1270943b6c49679f1f0ef121e8105e4c3c4b74",
     "bin/lib/run-wave-consult.ts": "f361796509b03db36e9ca305842a42ae104fed6f9dc82b805c821038b49be1ab",
     "bin/lib/run-wave-mode.ts": "49631f329c03e5c5c2a0db3925397a45e059c25ad146d301b7b4d62c51bc8e7b",
@@ -132,7 +132,7 @@
     "bin/lib/run-open.js": "68f9978aadb0cbaad1887be23443e2667ed1678b12c4403e9cd518c5686a553c",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
     "bin/lib/run-stop-reason.js": "85a50a203706db15e69de2c7d931f1d0c66f51b201394f6cfbe82bf6cd56098d",
-    "bin/lib/run-summary.js": "bcfa5af1d571385ecbf0f075fcebb8e750b78df36ecd2dc1e0d680f41574bdc7",
+    "bin/lib/run-summary.js": "a489bb8ad47c09192c9636c01ca5131448ed4a6fe0338991e771ba96c2e3b971",
     "bin/lib/run-trigger.js": "192f5952f1615633edad3dd934d6f4ea4782482ffc96ed3784395070afcfa7b6",
     "bin/lib/run-wave-consult.js": "0c69102a6466d4c7add859481bc928779e3b46d3cf1d61ea11ffaedc6d40c4d7",
     "bin/lib/run-wave-mode.js": "3539e289379164e056320991607cb67c9399afb29951e6188dd6edb1e3dd6373",
@@ -148,5 +148,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "4a0e5e404c65161d2d1568b8d039276929af6c9461a7659d23dd9f3e570e5493"
+  "output_digest": "d0e7659c8f242287f59e136732a761ccacd19319333a4ef9c17ef399d39667ca"
 }

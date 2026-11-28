@@ -483,3 +483,31 @@ test("integration smoke: the CLI on the reference fixture equals the golden outs
   assert.equal(strip(r.out), strip(readFileSync(GOLDEN, "utf8")));
   assert.equal(readFileSync(join(fx.runDir, "summary.md"), "utf8"), r.out);
 });
+
+function prepFixture(events) {
+  const fx = buildRun({ mode: "full" });
+  writeFileSync(join(fx.runDir, "events.jsonl"), events.map(e => JSON.stringify(e)).join("\n") + "\n");
+  return fx;
+}
+
+test("complete prep attempts are counted from events, including re-preps", () => {
+  const start = { type: "prep-start", issue: "KIT-1" };
+  const done = outcome => ({ type: "prep-done", issue: "KIT-1", data: { outcome } });
+  const events = [start, done("promoted"), start, done("refreshed"), start, done("promoted-needs-review")];
+  const fx = prepFixture(events);
+  const text = render(fx, F({ prep_summary: { promoted: 7 } }));
+  assert.match(text, /^- Promoted: 1$/m);
+  assert.match(text, /^- Refreshed: 1$/m);
+  assert.match(text, /^- Promoted \(needs review, medium confidence\): 1$/m);
+  assert.match(render(fx, null), /^- Promoted: 1$/m);
+});
+
+test("legacy lists and incomplete or ambiguous event streams use reported counts", () => {
+  const start = { type: "prep-start", issue: "A" };
+  const done = { type: "prep-done", issue: "A", data: { outcome: "promoted" } };
+  const facts = F({ prep_summary: { promoted: ["A", "B"] } });
+  for (const events of [[], [done], [start, done, start], [start, { ...done, data: {} }], [start, start, done]]) {
+    const text = render(prepFixture(events), facts);
+    assert.match(text, /^- Promoted: 2 _\(reported\)_$/m);
+  }
+});

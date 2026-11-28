@@ -29,6 +29,7 @@ def outcome(arm, original, mode="sequential"):
         'scope_recorded_and_filed_once': all(checks[k] for k in ('build_recorded_concrete_batch_followup','run_logged_scope_filing','new_followup_created_once_linked_then_prepped')),
         'child_built_without_automation_label': bool(scope and 'faff-automate' not in scope['labels'] and not label_writes and checks['same_run_prep_then_graft_'+D] and checks['landed_tested_behavior_'+D]),
         'expected_deliveries_and_working_main':all(checks[k] for k in ('distinct_deliveries','final_main_contains_all_behavior','one_converged_reconciled_ledger','tracker_matches_shipped_outcomes')),
+        'terminal_reviews_posted':all(checks['posted_terminal_review_'+i] for i in ((A,B,D) + (EXTRAS if mode == "parallel" else ()))),
         'all_specs_and_builds_verified':all(checks[prefix+i] for i in ((A,B,D) + (EXTRAS if mode == "parallel" else ())) for prefix in ('spec_attached_before_graft_','same_run_prep_then_graft_','landed_tested_behavior_')),
         'human_blocked_work_never_built':HUMAN in issues[C].get('blockedBy',[]) and not any(times('build-start',i) for i in (C,HUMAN)) and not set((C,HUMAN)).intersection(ledger.get('admitted',[])),
     }

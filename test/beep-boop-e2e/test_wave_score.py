@@ -1,4 +1,5 @@
 """Fabricated complete receipts exercise score mechanics only; no model or plugin delivery."""
+import hashlib
 import json
 from pathlib import Path
 import tempfile
@@ -7,7 +8,7 @@ from unittest.mock import patch
 from datetime import datetime, timezone, timedelta
 
 from delivery_fixture import git
-from wave_score import A, B, C, D, HUMAN, score, posted_spec, spec_comment, stamp
+from wave_score import A, B, C, D, HUMAN, score, spec_bytes_match, posted_spec, posted_review, spec_comment, stamp
 from waves import fixture, save
 from wave_tracker import call
 
@@ -40,9 +41,18 @@ class WaveScoring(TestCase):
 
     def deliver(self, issue):
         self.event("prep-start", issue)
-        self.op("create_attachment", issueId=issue, filename="spec.md", content="Test specification")
+        spec = b"Test specification\n"
+        attachment = self.op("create_attachment", issueId=issue, filename="spec.md", content=spec.decode())
+        capture = self.repo / ".faff/graft" / issue / "captured-spec.md"
+        capture.parent.mkdir(parents=True)
+        capture.write_bytes(spec)
+        markers = self.repo / ".faff/prep"
+        markers.mkdir(parents=True, exist_ok=True)
+        save(markers/(issue+".json"), {"issue":issue, "attached":True, "comment_id":attachment["id"],
+             "spec_sha256":hashlib.sha256(spec).hexdigest()})
         self.event("prep-done", issue)
         self.event("build-start", issue)
+        self.op("create_comment", issueId=issue, body=f"<!-- faff-review-findings:{issue} -->\nReview passed. See graft.md.\n<!-- /faff-review-findings:{issue} -->")
         file = self.repo / "retry.js"
         content = file.read_text()
         if issue == A:
@@ -67,6 +77,32 @@ class WaveScoring(TestCase):
             save(self.run/issue/"merge-record.json", {"pr":self.prs[-1]["number"], "head_sha":head, "merged":True})
         self.op("update_issue", id=issue,status="Done")
         self.event("issue-outcome", issue, {"outcome":"shipped"})
+
+    def test_spec_bytes_detect_lost_final_newline(self):
+        self.deliver(A)
+        cutoff = stamp(self.tick())
+        data = json.loads(self.tracker.read_text())
+        self.assertTrue(spec_bytes_match(self.repo, data, A, cutoff))
+        data["attachments"][0]["content"] = data["attachments"][0]["content"].rstrip("\n")
+        self.assertFalse(spec_bytes_match(self.repo, data, A, cutoff))
+
+    def test_terminal_review_requires_owned_body_and_current_acknowledgement(self):
+        start = stamp(self.tick())
+        body = f"<!-- faff-review-findings:{A} -->\nReview passed.\n<!-- /faff-review-findings:{A} -->"
+        def check():
+            data = json.loads(self.tracker.read_text())
+            return posted_review(data, data["operations"], A, start, stamp(self.tick()))
+        self.op("create_comment", issueId=B, body=body)
+        comment = self.op("create_comment", issueId=A, body="```example\n"+body+"\n```")
+        self.assertFalse(check())
+        self.op("update_comment", id=comment["id"], body=body.replace("Review passed.", "Review failed after one pass."))
+        self.assertFalse(check())
+        self.op("update_comment", id=comment["id"], body=body)
+        self.assertTrue(check())
+        start = stamp(self.tick())
+        self.assertFalse(check())
+        self.op("create_comment", issueId=A, body=body)
+        self.assertFalse(check())
 
     def test_good_and_perturbed_receipts(self):
         save(self.arm/"invocation.json", {"prompts":["/faff:faff-beep-boop"],"installed":True,"terminal":True,"returncode":0})

@@ -164,9 +164,20 @@ test("handoffs bind a worker to its launch and measure returned UTF-8 text once"
   const report = f.report();
   assert.equal(report.requests,2);
   const [parent,worker] = report.records;
-  assert.deepEqual(parent.worker_handoffs,[{dispatch_id:worker.worker_dispatch_id,returned_at:at(13),returned_text_bytes:8,is_error:false}]);
+  assert.deepEqual(parent.worker_handoffs,[{requested_launch_mode:"unspecified",dispatch_id:worker.worker_dispatch_id,returned_at:at(13),returned_text_bytes:8,is_error:false}]);
   assert.doesNotMatch(JSON.stringify(report), /résumé|private-tool-id|private-pixels/);
   assert.equal(f.report({until:at(13)}).records[0].worker_handoffs[0].returned_at,null);
+});
+
+test("requested launch mode records only explicit booleans and preserves ambiguous or invalid input", t => {
+  const f = setup(t);
+  const call = (id, flag) => ({type:"tool_use",name:"Task",id,input:{run_in_background:flag}});
+  f.put(f.main,[assistant("parent",11,[call("a",true),call("b",false),call("c","private-value"),call("d",false)]),
+                assistant("parent",11,[call("d",true)])]);
+  const report = f.report();
+  assert.deepEqual(report.records[0].worker_handoffs.map(h => h.requested_launch_mode),
+                   ["background","foreground","unknown","unknown"]);
+  assert.doesNotMatch(JSON.stringify(report), /private-value/);
 });
 
 test("actual build dispatch tags bind wave to workers and their nested reviewers", t => {
@@ -184,4 +195,25 @@ test("actual build dispatch tags bind wave to workers and their nested reviewers
   assert.deepEqual(records.map(r=>r.enclosing_build_wave),[undefined,3,3,undefined,undefined]);
   assert.equal(records[0].worker_handoffs[0].build_wave,3);
   assert.equal(records[1].worker_handoffs[0].build_wave,undefined);
+});
+
+test("background launch acknowledgement and native terminal payload are distinct", t => {
+  const f = setup(t);
+  const launch = assistant("start",11,[{type:"tool_use",id:"tool-a",name:"Agent",input:{run_in_background:true}}]);
+  const ack = {type:"user",timestamp:at(12),toolUseResult:{isAsync:true,status:"async_launched",agentId:"agent-a"},
+    message:{content:[{type:"tool_result",tool_use_id:"tool-a",content:"launched; output path here"}]}};
+  const done = {type:"user",timestamp:at(15),promptSource:"system",origin:{kind:"task-notification",producer:"session-task"},
+    message:{content:"<task-notification>\n<task-id>agent-a</task-id>\n<tool-use-id>tool-a</tool-use-id>\n<status>completed</status>\n<summary>finished</summary>\n<result>résumé</result>\n<usage></usage>\n</task-notification>"}};
+  const call = () => f.report().records[0].worker_handoffs[0];
+  f.put(f.main,[launch,ack,{...done,promptSource:"user"}]);
+  assert.equal(call().background_acknowledged_at,at(12));
+  assert.equal(call().returned_at,null);
+  assert.equal(call().returned_text_bytes,null);
+  f.put(f.main,[launch,ack,{...done,message:{content:done.message.content.replace("agent-a","agent-b")}}]);
+  assert.equal(call().returned_at,null);
+  f.put(f.main,[launch,ack,done,done]);
+  assert.equal(call().returned_at,at(15));
+  assert.equal(call().returned_text_bytes,8);
+  assert.equal(call().is_error,false);
+  assert.doesNotMatch(JSON.stringify(call()),/résumé|tool-a|agent-a|output path/);
 });

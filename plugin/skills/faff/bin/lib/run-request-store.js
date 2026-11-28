@@ -50,7 +50,9 @@ function combine(previous, next) {
         if (old.worker_handoffs) {
             const calls = new Map(old.worker_handoffs.map(h => [h.dispatch_id, h]));
             for (const h of row.worker_handoffs ?? []) {
-                if (h.returned_at || !calls.get(h.dispatch_id)?.returned_at)
+                const prior = calls.get(h.dispatch_id);
+                // Older receipts counted an async launch acknowledgement as its return.
+                if (h.returned_at || !prior?.returned_at || h.background_acknowledged_at === prior.returned_at)
                     calls.set(h.dispatch_id, h);
             }
             merged.worker_handoffs = [...calls.values()];

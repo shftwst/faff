@@ -66,13 +66,8 @@ def behavior(bare, revision, issues):
         return subprocess.run(["node", "--input-type=module", "-e", code], cwd=work, capture_output=True, timeout=20).returncode == 0
 
 
-def spec_comment(body, issue):
-    """Match the staged tracker stamp and a populated acceptance section outside code fences."""
-    if not isinstance(body, str):
-        return False
-    # Keep headings and the stamp in rendered prose. A quoted sample inside a code block
-    # is not a posted spec, even if it contains a syntactically complete sample stamp.
-    lines = []
+def rendered_lines(body):
+    """Exclude fenced examples from structural tracker receipts."""
     fence = None
     for line in body.splitlines():
         mark = re.match(r"^ {0,3}(`{3,}|~{3,})", line)
@@ -83,7 +78,14 @@ def spec_comment(body, issue):
             elif candidate[0] == fence[0] and len(candidate) >= len(fence):
                 fence = None
         elif fence is None:
-            lines.append(line)
+            yield line
+
+
+def spec_comment(body, issue):
+    """Match the staged tracker stamp and a populated acceptance section outside code fences."""
+    if not isinstance(body, str):
+        return False
+    lines = list(rendered_lines(body))
     stamp_re = r"^> Spec:\s+\S+.*\bconfidence:\s*high\b.*\bFull spec on\s+.+?\s+" + re.escape(issue) + r"\.(?:\s|$)"
     if not any(re.search(stamp_re, line, re.I) for line in lines):
         return False
@@ -94,6 +96,35 @@ def spec_comment(body, issue):
         elif in_ac and re.search(r"\w+.*\s+.*\w+", line) and not re.match(r"^\s*(?:confidence:|>)", line, re.I):
             return True
     return False
+
+
+def posted_review(tracker, ops, issue, start, merged):
+    """Require a usable marker pair on the issue and an acknowledged write during this build."""
+    if start is None or merged is None:
+        return False
+    uid = tracker["issues"][issue]["id"]
+    written = {op.get("result_id"): op["arguments"].get("body") for op in ops
+               if op["tool"] in ("create_comment", "update_comment") and op.get("ok") is True
+               and (at := stamp(op.get("at"))) is not None and start <= at <= merged}
+    opening = f"<!-- faff-review-findings:{issue} -->"
+    closing = f"<!-- /faff-review-findings:{issue} -->"
+    owned = []
+    for comment in tracker["comments"]:
+        if comment["issueId"] != uid:
+            continue
+        lines = list(rendered_lines(comment["body"]))
+        markers = [(i, line.strip()) for i, line in enumerate(lines)
+                   if not line.startswith(("    ", "\t")) and re.fullmatch(r"<!-- /?faff-review-findings:[^<>]+ -->", line.strip())]
+        if markers and markers[0][1] == opening:
+            owned.append((comment, markers, lines))
+    if len(owned) != 1:
+        return False
+    comment, markers, lines = owned[0]
+    if written.get(comment["id"]) != comment["body"] or [line for _, line in markers] != [opening, closing]:
+        return False
+    region = "\n".join(lines[markers[0][0] + 1:markers[1][0]])
+    plain = region.replace("*", "").replace("`", "")
+    return re.search(r"\b(?:review|verdict)\s*(?::|[-–—])?\s*pass(?:ed)?\b", plain, re.I) is not None
 
 
 def posted_spec(tracker, ops, issue, cutoff):
@@ -255,6 +286,8 @@ def score(arm, mode="sequential"):
           min(reads(A, clear=True, tool="list_issues")) <= event_time("prep-start", A)
           and any(t < event_time("build-start", A) for t in reads(B, required_blocker=A)))
     for issue in built:
+        check("posted_terminal_review_" + issue, lambda issue=issue: posted_review(
+            tracker, ops, issue, event_time("build-start", issue), stamp(deliveries[issue].get("mergedAt"))))
         check("spec_attached_before_graft_" + issue, lambda issue=issue: posted_spec(tracker, ops, issue, event_time("build-start", issue)))
 
     def created_scope():

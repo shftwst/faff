@@ -7,7 +7,7 @@ from unittest.mock import patch
 from datetime import datetime, timezone, timedelta
 
 from delivery_fixture import git
-from wave_score import A, B, C, D, HUMAN, score, posted_spec, spec_comment, stamp
+from wave_score import A, B, C, D, HUMAN, score, posted_spec, posted_review, spec_comment, stamp
 from waves import fixture, save
 from wave_tracker import call
 
@@ -43,6 +43,7 @@ class WaveScoring(TestCase):
         self.op("create_attachment", issueId=issue, filename="spec.md", content="Test specification")
         self.event("prep-done", issue)
         self.event("build-start", issue)
+        self.op("create_comment", issueId=issue, body=f"<!-- faff-review-findings:{issue} -->\nReview passed. See graft.md.\n<!-- /faff-review-findings:{issue} -->")
         file = self.repo / "retry.js"
         content = file.read_text()
         if issue == A:
@@ -67,6 +68,24 @@ class WaveScoring(TestCase):
             save(self.run/issue/"merge-record.json", {"pr":self.prs[-1]["number"], "head_sha":head, "merged":True})
         self.op("update_issue", id=issue,status="Done")
         self.event("issue-outcome", issue, {"outcome":"shipped"})
+
+    def test_terminal_review_requires_owned_body_and_current_acknowledgement(self):
+        start = stamp(self.tick())
+        body = f"<!-- faff-review-findings:{A} -->\nReview passed.\n<!-- /faff-review-findings:{A} -->"
+        def check():
+            data = json.loads(self.tracker.read_text())
+            return posted_review(data, data["operations"], A, start, stamp(self.tick()))
+        self.op("create_comment", issueId=B, body=body)
+        comment = self.op("create_comment", issueId=A, body="```example\n"+body+"\n```")
+        self.assertFalse(check())
+        self.op("update_comment", id=comment["id"], body=body.replace("Review passed.", "Review failed after one pass."))
+        self.assertFalse(check())
+        self.op("update_comment", id=comment["id"], body=body)
+        self.assertTrue(check())
+        start = stamp(self.tick())
+        self.assertFalse(check())
+        self.op("create_comment", issueId=A, body=body)
+        self.assertFalse(check())
 
     def test_good_and_perturbed_receipts(self):
         save(self.arm/"invocation.json", {"prompts":["/faff:faff-beep-boop"],"installed":True,"terminal":True,"returncode":0})

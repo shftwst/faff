@@ -481,3 +481,33 @@ test("real CLI: a legacy-exempt run with no derailment continues at exit 0", () 
   const types = readFileSync(join(fx.runDir, "events.jsonl"), "utf8").trim().split("\n").map((line) => JSON.parse(line).type);
   assert.deepEqual(types, ["budget-checkpoint", "sentry-checkpoint"]);
 });
+
+test("uncovered merges persist bounded evidence and the effective checkpoint action", () => {
+  const sha = "a".repeat(40);
+  const raw = { commit: sha, detail: "private commit subject", target: "secret ref" };
+  const deps = fakeDeps({
+    "effects reconcile-merges": ok({ reconciled: true, any_escape: true, checked_ref: "main", checked_head: sha, uncovered: [raw, raw, raw, raw] }),
+    "sentry check": ok(CONSULT("abort", [{ signal: "forbidden-side-effect-attempt", severity: "trip" }])),
+  });
+  const result = run(budgetFx(), deps);
+  const warning = result.effects_warning;
+  assert.deepEqual(warning, { check_escape: false, merge_escape: true, unreconciled: false, uncovered_count: 4, commits: [sha, sha, sha], checked_ref: "main", checked_head: sha, action: "continue", acted: false });
+  const event = called(deps, "events append").map(c => JSON.parse(c.input)).find(e => e.type === "sentry-checkpoint");
+  assert.deepEqual(event.data.effects_warning, warning);
+  assert.deepEqual([result.action, result.acted, result.sentry_aborted], ["continue", false, false]);
+  assert.doesNotMatch(JSON.stringify(warning), /private|secret/);
+});
+
+test("effects warnings distinguish unreconciled inputs from observed escapes without copying raw diagnostics", () => {
+  const deps = fakeDeps({
+    "effects check": ok({ any_escape: true, escapes: [{ target: "sensitive-path" }] }),
+    "effects reconcile-merges": ok({ reconciled: false, fault: "private-git-error" }),
+    "sentry check": ok(CONSULT("abort", [{ signal: "forbidden-side-effect-attempt", severity: "trip" }])),
+  });
+  const result = run(makeRun({ level: "L4" }), deps);
+  assert.equal(result.effects_warning.check_escape, true);
+  assert.equal(result.effects_warning.unreconciled, true);
+  assert.equal(result.effects_warning.merge_escape, false);
+  assert.deepEqual([result.action, result.acted, result.sentry_aborted], ["abort", true, true]);
+  assert.doesNotMatch(JSON.stringify(result.effects_warning), /sensitive|private/);
+});

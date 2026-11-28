@@ -344,6 +344,14 @@ function renderRunSummary(input, deps) {
     }
     const waves = num(field(run, "waves"));
     L.push(`${sentry} · Waves: ${waves === undefined ? "?" : String(waves)}${REPORTED}`);
+    const warnings = events?.filter((event) => field(event, "type") === "sentry-checkpoint" && isRecord(field(field(event, "data"), "effects_warning"))) ?? [];
+    if (warnings.length) {
+        const data = field(warnings[warnings.length - 1], "data");
+        const { describeEffectsWarning } = require("./run-checkpoint");
+        const text = describeEffectsWarning(field(data, "effects_warning"), field(data, "intervention"));
+        if (text)
+            L.push(text + (warnings.length > 1 ? ` (latest of ${warnings.length} checkpoints with effects warnings)` : ""));
+    }
     const stop = str(field(ledger, "stop_reason"));
     L.push(`Stop reason: ${stop === undefined ? "(not recorded)" : factText(stop)}`);
     // A4: unit economics.

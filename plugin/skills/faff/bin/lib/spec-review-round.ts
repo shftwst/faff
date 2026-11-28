@@ -11,6 +11,7 @@
 // that parks or holds sooner.
 // ===========================================================================
 
+import { stageOnApproval, type PrepResult } from "./prep-attach.ts";
 import { prepareApprovedAttachment, type Attachment } from "./reviewed-attachment.ts";
 
 const fs: FsApi = require("node:fs");
@@ -148,6 +149,7 @@ type RoundResult = {
   retain: string | null;
   warnings: string[];
   attachment?: Attachment;
+  staged_attachment?: PrepResult;
   retry_entries?: string;
 };
 
@@ -562,6 +564,10 @@ function runRound(o: RoundOpts, deps: RoundDeps = realDeps()): RoundResult {
     }
     if (o.retryEntries) result.retry_entries = o.retryEntries;
     writeJsonAtomic(path.join(o.dir, SIDECAR.decision(n)), result);
+    if (result.attachment?.status === "prepared") {
+      const staged = stageOnApproval(o.root, o.issue, result.attachment.spec_path, result.attachment.mode === "git-only");
+      if (staged !== undefined) result.staged_attachment = staged;
+    }
     return result;
   };
   const parkEarly = (verdict: string | null, objections: unknown[], cause: string): RoundResult => {

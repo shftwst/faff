@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.fenceMask = fenceMask;
+exports.stageOnApproval = stageOnApproval;
 // === region:factory — prep-attach — FAFF-1406: prep stages, confirms and parks its spec attach through one command ===
 // `faff prep attach` replaces the stamp, tier, marker and readiness ritual faff-prep used to perform in
 // prose. Stage writes the `.faff/prep/<ISSUE>.json` attach-state marker before any step that can fail,
@@ -37,14 +38,14 @@ const READINESS_INFO = "faff-contract:spec-readiness";
 const TRACKER_NAMES = { linear: "Linear", github: "GitHub", jira: "Jira" };
 const ATTACH_SPEC = {
     flags: {
-        "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--include-body": { arity: 0 }, "--mode": { arity: 1 }, "--git-only": { arity: 0 },
+        "--issue": { arity: 1 }, "--spec": { arity: 1 }, "--stage-on-approval": { arity: 0 }, "--include-body": { arity: 0 }, "--mode": { arity: 1 }, "--git-only": { arity: 0 },
         "--reviewed": { arity: 0 }, "--fresh": { arity: 0 }, "--gate-history": { arity: 1 }, "--extraction": { arity: 1 }, "--confirm": { arity: 0 },
         "--reviewed-spec": { arity: 1 }, "--comment-id": { arity: 1 }, "--park": { arity: 0 }, "--root": { arity: 1 }, "--json": { arity: 0 },
     },
     positionals: { min: 0, max: 0 },
 };
 const ATTACH_USAGE = [
-    "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--include-body --json] [--git-only] [--reviewed] [--fresh] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
+    "usage: faff prep attach --issue ID --spec FILE --mode interactive|autonomous [--stage-on-approval] [--include-body --json] [--git-only] [--reviewed] [--fresh] [--gate-history N] [--extraction FILE] [--root DIR] [--json]",
     "       faff prep attach --issue ID --confirm --comment-id ID [--reviewed-spec FILE] [--root DIR] [--json]",
     "       faff prep attach --issue ID --park [--root DIR] [--json]",
 ].join("\n");
@@ -410,6 +411,9 @@ function stage(opts, deps) {
     const digest = sha256(Buffer.from(text, "utf8"));
     const bodyPath = path.resolve(specPath);
     marker.spec_sha256 = digest;
+    if (opts.stageOnApproval && !extractionPath) {
+        marker.approval_stage = { fresh: Boolean(opts.fresh), gate_history: gateHistory, include_body: Boolean(opts.includeBody), prep_mode: mode };
+    }
     if (preparedSha)
         marker.reviewed_attachment = { prepared_sha256: preparedSha, staged_sha256: digest, ...common, admissibility_line: adm.line };
     marker.body_path = bodyPath;
@@ -555,6 +559,28 @@ function emit(res, json) {
     ].filter(Boolean);
     console.log(`prep attach ${res.issue}: ${res.token}${res.reason ? `:${res.reason}` : ""}${bits.length ? ` (${bits.join("; ")})` : ""}`);
 }
+// Called after the approved decision and its proof are durable. Propagate the
+// ordinary stage token; tracker acknowledgement remains a separate operation.
+function stageOnApproval(root, issue, specPath, gitOnly) {
+    const deps = defaultDeps(root);
+    const apply = () => {
+        const marker = readStagedMarker(root, issue, deps);
+        const opts = marker?.approval_stage;
+        if (!isRecord(opts) || (opts.prep_mode !== "interactive" && opts.prep_mode !== "autonomous") ||
+            typeof opts.fresh !== "boolean" || typeof opts.include_body !== "boolean" ||
+            !(opts.gate_history === null || (typeof opts.gate_history === "number" && Number.isSafeInteger(opts.gate_history) && opts.gate_history >= 0)))
+            return undefined;
+        const { admissibility_line: _, ...result } = stage({ issue, specPath, root, reviewed: true, gitOnly, mode: opts.prep_mode,
+            fresh: opts.fresh, gateHistory: opts.gate_history, includeBody: opts.include_body, extractionPath: null }, deps);
+        return result;
+    };
+    try {
+        return deps.withMarkerLock ? deps.withMarkerLock(issue, apply) : apply();
+    }
+    catch (e) {
+        return errored(issue, `approval-stage-failed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+}
 function cmdPrep(args, depsOverride) {
     if (args[0] !== "attach")
         return usageError([{ code: "bad-value", detail: "expected the verb attach" }], ATTACH_USAGE);
@@ -572,13 +598,15 @@ function cmdPrep(args, depsOverride) {
         return bad("exactly one of --spec, --confirm and --park is required");
     if (values["--include-body"] && !values["--json"])
         return bad("--include-body requires --json");
-    const stageOnly = ["--include-body", "--mode", "--git-only", "--reviewed", "--fresh", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
+    const stageOnly = ["--stage-on-approval", "--include-body", "--mode", "--git-only", "--reviewed", "--fresh", "--gate-history", "--extraction"].filter((f) => values[f] !== undefined);
     if (modes[0] !== "--spec" && stageOnly.length)
         return bad(`${stageOnly.join(", ")} only apply with --spec`);
     if (values["--reviewed-spec"] !== undefined && (modes[0] !== "--confirm" || !values["--reviewed-spec"]))
         return bad("--reviewed-spec FILE requires --confirm", "--reviewed-spec");
     if (modes[0] !== "--confirm" && values["--comment-id"] !== undefined)
         return bad("--comment-id only applies with --confirm", "--comment-id");
+    if (values["--stage-on-approval"] && values["--reviewed"])
+        return bad("--stage-on-approval applies to the initial stage");
     let gateHistory = null;
     if (modes[0] === "--spec") {
         if (values["--mode"] !== "interactive" && values["--mode"] !== "autonomous")
@@ -595,7 +623,7 @@ function cmdPrep(args, depsOverride) {
     const deps = depsOverride || defaultDeps(root);
     const apply = () => {
         if (modes[0] === "--spec") {
-            return stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], includeBody: !!values["--include-body"], fresh: !!values["--fresh"], reviewed: !!values["--reviewed"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
+            return stage({ issue, specPath: values["--spec"], mode: values["--mode"], gitOnly: !!values["--git-only"], stageOnApproval: !!values["--stage-on-approval"], includeBody: !!values["--include-body"], fresh: !!values["--fresh"], reviewed: !!values["--reviewed"], gateHistory, extractionPath: values["--extraction"] || null, root }, deps);
         }
         if (modes[0] === "--confirm")
             return confirm({ issue, commentId: values["--comment-id"], reviewedPath: values["--reviewed-spec"], root }, deps);
@@ -613,5 +641,5 @@ function cmdPrep(args, depsOverride) {
 }
 module.exports = {
     ISSUE_RE, TOKENS, fenceMask, stampConfidence, trackerName, stampLine, applyStamp, applyTier, applyAdmissibility, readinessBlocks,
-    markerPath, stage, confirm, park, defaultDeps, cmdPrep,
+    markerPath, stage, stageOnApproval, confirm, park, defaultDeps, cmdPrep,
 };

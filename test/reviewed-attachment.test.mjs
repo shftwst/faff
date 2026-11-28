@@ -20,7 +20,7 @@ const objections = [{ lens: "architectural", severity: "minor", claim: "Keep sta
 const digest = b => createHash("sha256").update(b).digest("hex");
 const json = p => JSON.parse(readFileSync(p, "utf8"));
 
-function fixture(t, { gitOnly = false, owned = false, confirmed = true, body = spec } = {}) {
+function fixture(t, { gitOnly = false, owned = false, confirmed = true, body = spec, stageFlags = [] } = {}) {
   const root = mkdtempSync(join(tmpdir(), "faff-attachment-"));
   t.after(() => rmSync(root, { recursive: true, force: true }));
   const run = owned ? join(root, ".faff", "runs", "parent") : "";
@@ -42,7 +42,7 @@ function fixture(t, { gitOnly = false, owned = false, confirmed = true, body = s
   function stage(path, ...opts) {
     return ok(["prep", "attach", "--issue", issue, "--spec", path, "--mode", "autonomous", "--json", ...opts, ...(gitOnly ? ["--git-only"] : [])]);
   }
-  const staged = stage(file);
+  const staged = stage(file, ...stageFlags);
   if (!gitOnly && confirmed) ok(["prep", "attach", "--issue", issue, "--confirm", "--comment-id", "original-spec", "--json"]);
   function round(body = approve, extra = [], extraEnv) {
     return ok(["spec-review", "round", "--issue", issue, "--dir", dir, "--mode", "autonomous", "--verdict-file", "-",
@@ -227,4 +227,39 @@ for (const owned of [true, false]) test("explicit root can write review evidence
   const a = JSON.parse(r.stdout).attachment;
   assert.equal(a.status, "prepared", JSON.stringify(a));
   assert.ok(existsSync(a.evidence_path));
+});
+
+for (const gitOnly of [true, false]) test("an opted-in ordinary approval stages the same bytes inside the round", t => {
+  const flags = ["--gate-history", "3", "--include-body"];
+  const split = fixture(t, {gitOnly, stageFlags: flags});
+  const together = fixture(t, {gitOnly, stageFlags: [...flags, "--stage-on-approval"]});
+  const control = split.round(approve, split.flag);
+  assert.equal(control.staged_attachment, undefined);
+  const expected = split.stage(control.attachment.spec_path, "--reviewed", ...flags);
+  const decision = together.round(approve, together.flag);
+  const actual = decision.staged_attachment;
+  assert.equal(decision.action, "approve");
+  assert.equal(actual.token, gitOnly ? "attached" : "ready-to-post");
+  assert.equal(actual.spec_sha256, expected.spec_sha256);
+  assert.equal(actual.post_body, expected.post_body);
+  assert.equal(actual.build_tier, expected.build_tier);
+  assert.equal(json(together.marker).attached, gitOnly);
+  assert.deepEqual(readFileSync(decision.attachment.spec_path), readFileSync(control.attachment.spec_path));
+  assert.equal(json(join(together.dir, "decision-1.json")).staged_attachment, undefined);
+  if (!gitOnly) {
+    assert.equal(together.stage(decision.attachment.spec_path, "--reviewed").reason, "reconcile-tracker-post");
+    together.ok(["prep", "attach", "--issue", issue, "--confirm", "--comment-id", "reviewed-id", "--reviewed-spec", decision.attachment.spec_path, "--json"]);
+    assert.equal(json(together.marker).comment_id, "reviewed-id");
+  }
+  assert.equal(together.stage(decision.attachment.spec_path, "--reviewed").token, "attached");
+});
+
+test("revision and stale approvals leave the confirmed stage alone", t => {
+  const f = fixture(t, {stageFlags: ["--stage-on-approval"]});
+  const before = readFileSync(f.marker);
+  assert.equal(f.round(receipt("revise", objections), f.flag).staged_attachment, undefined);
+  const d = f.round(approve, ["--prepare-attachment", "0".repeat(64)]);
+  assert.equal(d.attachment.status, "stale");
+  assert.equal(d.staged_attachment, undefined);
+  assert.deepEqual(readFileSync(f.marker), before);
 });

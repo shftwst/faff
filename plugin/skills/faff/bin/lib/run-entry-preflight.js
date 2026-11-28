@@ -41,8 +41,8 @@ function buildPreflightReport(container, socket, auth, branch, policy) {
 function field(data, key) {
     return typeof data === "object" && data !== null ? Reflect.get(data, key) : undefined;
 }
-const usage = "usage: faff run preflight [--repo OWNER/REPO] [--branch NAME]";
-const spec = { flags: { "--repo": { arity: 1 }, "--branch": { arity: 1 } }, positionals: { max: 0 } };
+const usage = "usage: faff run preflight [--json] [--repo OWNER/REPO] [--branch NAME]";
+const spec = { flags: { "--json": { arity: 0 }, "--repo": { arity: 1 }, "--branch": { arity: 1 } }, positionals: { max: 0 } };
 function cmdRunEntryPreflight(args) {
     const { values, errors } = parseArgs(args, spec);
     if (errors.length)

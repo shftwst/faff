@@ -130,3 +130,23 @@ test("standalone attachment duration survives retries and remains scoped to the 
     report,
   );
 });
+
+test("prep without a build attributes only requests inside its observed span", (t) => {
+  const { dir, call } = fixture(t);
+  const ts = n => new Date(1700000000000 + n).toISOString();
+  const events = [[10, "prep-start"], [30, "prep-done"]].map(([n, type]) =>
+    JSON.stringify({ ts: ts(n), type, issue: "A" }));
+  writeFileSync(join(dir, "events.jsonl"), events.join("\n"));
+  const records = [9, 10, 20, 30, 31].map(n => ({
+    id: String(n), at: ts(n), role: "parent", usage: { cache_read: n },
+  }));
+  writeFileSync(join(dir, "prep-request-metrics.json"), JSON.stringify({ records }));
+  const result = call("run", "timing", "--run-dir", dir, "--json");
+  assert.equal(result.status, 0, result.stderr);
+  const { windows } = JSON.parse(result.stdout).request_windows;
+  assert.equal(windows.entry.requests, 1);
+  assert.equal(windows.prep_and_admission.requests, 3);
+  assert.equal(windows.prep_and_admission.cache_read, 60);
+  assert.equal(windows.unattributed.requests, 1);
+  assert.equal(windows.build_to_last_outcome.requests, 0);
+});

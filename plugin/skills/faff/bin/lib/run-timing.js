@@ -94,7 +94,7 @@ function rows(dir, file) {
     return { rows: found, skipped };
 }
 const tokenClasses = ["input", "output", "cache_read", "cache_write"];
-function requestWindows(dir, firstPrep, firstBuild, lastOutcome) {
+function requestWindows(dir, firstPrep, prepEnd, firstBuild, lastOutcome) {
     const prep = readLeafNoFollow(path.join(dir, "prep-request-metrics.json"));
     const store = readLeafNoFollow(path.join(dir, "run-request-metrics.json"));
     const receipts = [];
@@ -126,7 +126,7 @@ function requestWindows(dir, firstPrep, firstBuild, lastOutcome) {
             ? windows.unattributed
             : before(firstPrep)
                 ? windows.entry
-                : firstPrep && before(firstBuild)
+                : firstPrep && (before(firstBuild) || (!firstBuild && prepEnd && at <= Date.parse(prepEnd)))
                     ? windows.prep_and_admission
                     : firstBuild && at >= Date.parse(firstBuild)
                         ? lastOutcome && at > Date.parse(lastOutcome)
@@ -231,7 +231,7 @@ function timingReport(dir) {
         prep_to_build_ms: elapsed(first("prep-start"), first("build-start")),
         build_to_close_ms: elapsed(first("build-start"), runEnd),
         timeline,
-        request_windows: requestWindows(dir, first("prep-start"), first("build-start"), last("issue-outcome")),
+        request_windows: requestWindows(dir, first("prep-start"), prepEnd, first("build-start"), last("issue-outcome")),
         builds: attempts.map((a) => ({
             ...a,
             start_to_ready_ms: elapsed(a.start, a.ready),

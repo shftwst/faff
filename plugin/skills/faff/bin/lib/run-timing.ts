@@ -123,6 +123,7 @@ const tokenClasses: ReadonlyArray<"input" | "output" | "cache_read" | "cache_wri
 function requestWindows(
   dir: string,
   firstPrep?: string,
+  prepEnd?: string,
   firstBuild?: string,
   lastOutcome?: string,
 ) {
@@ -154,7 +155,7 @@ function requestWindows(
       ? windows.unattributed
       : before(firstPrep)
         ? windows.entry
-        : firstPrep && before(firstBuild)
+        : firstPrep && (before(firstBuild) || (!firstBuild && prepEnd && at <= Date.parse(prepEnd)))
           ? windows.prep_and_admission
           : firstBuild && at >= Date.parse(firstBuild)
             ? lastOutcome && at > Date.parse(lastOutcome)
@@ -273,6 +274,7 @@ export function timingReport(dir: string) {
     request_windows: requestWindows(
       dir,
       first("prep-start"),
+      prepEnd,
       first("build-start"),
       last("issue-outcome"),
     ),

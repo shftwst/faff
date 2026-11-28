@@ -303,6 +303,24 @@ const VERIFICATION_SPEC = {
   positionals: { min: 0, max: 1, name: "subcommand" },
 };
 
+function verificationPosture(ledger, cfg, values) {
+  const unattended = verificationUnattended(ledger, cfg);
+  const attended = !!ledger && !unattended;
+  const base = resolveInteractiveVerification(ledger, cfg);
+  const legs = {
+    holdout: base.holdout || (attended && !!values["--holdout"]),
+    spec_review: base.spec_review || (attended && !!values["--spec-review"]),
+    code_review: base.code_review || (attended && !!values["--code-review"]),
+  };
+  return {
+    attended,
+    unattended,
+    level: ledger ? (ledger.level || null) : null,
+    legs,
+    any: legs.holdout || legs.spec_review || legs.code_review,
+  };
+}
+
 // FAFF-1061: the mechanical consult surface for the SKILL.md call sites (faff-graft's holdout gate,
 // spec-review lens-pin, and adversarial code-review). Prose never hand-reads .faffrc (CLI-only config
 // access), so it shells `faff verification resolve --json` and branches on the per-leg booleans.
@@ -324,21 +342,8 @@ function cmdVerification(args) {
   let ledger = null;
   if (runDir) { try { ledger = readLedger(runDir); } catch { ledger = null; } }
 
-  const unattended = verificationUnattended(ledger, cfg);
-  const attended = !!ledger && !unattended;
-  const base = resolveInteractiveVerification(ledger, cfg);
-  const legs = {
-    holdout: base.holdout || (attended && !!values["--holdout"]),
-    spec_review: base.spec_review || (attended && !!values["--spec-review"]),
-    code_review: base.code_review || (attended && !!values["--code-review"]),
-  };
-  const out = {
-    attended,
-    unattended,
-    level: ledger ? (ledger.level || null) : null,
-    legs,
-    any: legs.holdout || legs.spec_review || legs.code_review,
-  };
+  const out = verificationPosture(ledger, cfg, values);
+  const { attended, unattended, legs } = out;
   if (values["--json"]) { console.log(JSON.stringify(out)); return 0; }
   if (unattended) {
     console.log("verification: unattended run — interactive verification legs do not apply (the unattended floor runs its own gate)");
@@ -417,4 +422,4 @@ function verificationSelftest() {
 }
 
 
-module.exports = { cmdVerification, verificationUnattended, GIT_HOST_ALLOWLIST, ISOLATION_LANE_VOCAB, resolveAppetite, resolveControlLabels, resolveConvergence, resolveInteractiveVerification, resolveLabelPrefix, resolveTeams, VALID_APPETITES, validateControlLabelName, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateTeams };
+module.exports = { cmdVerification, verificationPosture, verificationUnattended, GIT_HOST_ALLOWLIST, ISOLATION_LANE_VOCAB, resolveAppetite, resolveControlLabels, resolveConvergence, resolveInteractiveVerification, resolveLabelPrefix, resolveTeams, VALID_APPETITES, validateControlLabelName, validateGitHostValue, validateIsolationLane, validateLabelPrefix, validateTeams };

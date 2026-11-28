@@ -31,7 +31,7 @@
     "bin/lib/governor.ts": "bb31286dd65cd94f7a0d551f570edffe90c102b83418fe7012cfc5a0800cc153",
     "bin/lib/graft-admit.ts": "6eb4230a8ce2b39f2fe314708a041d32e718b2b9c82900abfed0d392a509c0f6",
     "bin/lib/graft-verify-build.ts": "aa4bc8970fc7fd1dcf2e58aaa51e1580997ebe694d61ea32d9d28449add849fe",
-    "bin/lib/holdout-handoff.ts": "88291638304c069bb602219f53cc882c0e83287486ad33c0c813654f0692d87e",
+    "bin/lib/holdout-handoff.ts": "2d84734c4fe43c2b0ed40fc512c9cd05d44dc3ccaa39384bb704adf921b07d22",
     "bin/lib/human-only-acs.ts": "a133dd350629f28fc564768c589dd56099fd3a80e4e6335c9b2f44700859e990",
     "bin/lib/ids.ts": "720d6b6aec20128bf7e7433407fd399610e64663f81418d418cc7f705de196d6",
     "bin/lib/issue-facts.ts": "78ba7488fa252fb1b9286a99611a491c6cbfe8ed951a42638fa3228acad42844",
@@ -99,7 +99,7 @@
     "bin/lib/governor.js": "d542bac2eda6dc17ec66d586a96b6e7a957d93d5a1f53f4b3e1bcd171599d78c",
     "bin/lib/graft-admit.js": "35789663b62b9c78a955bdbc1fad6af4d653ad503c6bbb1e564851fbe9ec4d00",
     "bin/lib/graft-verify-build.js": "1d87e4a793a0e30a2d3f66daaa17b9d39d9f0d98c586e3118fc0e25f22dc4ab2",
-    "bin/lib/holdout-handoff.js": "9b6c0d6b5a15c92c24bb60bdf4c1194fd2b6533ae93bc71d171d9a5b89b50b49",
+    "bin/lib/holdout-handoff.js": "c9baa2288c219395a570c396e72732180522bcb447d27956117a0a1287304991",
     "bin/lib/human-only-acs.js": "3972c683d4f34c9c9da60aff42ec903e64216fe05c8cc882b781cd3764b8c622",
     "bin/lib/ids.js": "ab49dd55a6a4aba4d2cfed5a9d5fa1a58da7c6da88ed4bced94085b92931fe40",
     "bin/lib/issue-facts.js": "92e9c33efbba3def4b8d2484c7d05741f98837ae23f64ed9ee467953fc102056",
@@ -148,5 +148,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "4a0e5e404c65161d2d1568b8d039276929af6c9461a7659d23dd9f3e570e5493"
+  "output_digest": "85b33502ca3b34315a712e68fb57ec6912ea75741e8e7284e71a1377d926a544"
 }

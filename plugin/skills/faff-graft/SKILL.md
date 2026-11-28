@@ -209,17 +209,13 @@ Validate the spec's freshness against the current codebase. Then present a summa
 - **review** — walk through the spec in detail before starting, then return here
 - **reprep** — something changed; invoke the `faff-prep` skill via the Skill tool in respec mode on `ISSUE-XX`
 
-**Holdout OFFER — the build-start decision (records intent, executes nothing).** Record the code-blind holdout **decision** while the operator is present; the RUN is Step 8c (nothing is built at Step 6). No env, no evaluator here.
+**Holdout OFFER (intent only).** On build, record the decision using the full spec captured from the tracker or git-only store, never the builder view:
 
-```
-PROCEDURE holdout_offer(spec_path, run_dir, issue):   # full_spec := faff dod split --view full (tracker / git-only store, NOT the worktree builder-view); verif := faff verification resolve --json
-  IF `faff holdout criteria --spec <full_spec> --counts` judged_count == 0 → marker {decision: skip}; RETURN   # includes integration-only specs
-  autonomous                    → marker {decision: verif.unattended ? auto : skip, attended:false}          # not-unattended ⇒ no human, fact false
-  attended, verif.legs.holdout  → marker {decision: accept, attended:true}                                   # standing posture on — no prompt
-  attended, else                → prompt "Run the code-blind holdout after build completes? (y/n)" → marker {decision: y?accept:decline, attended:true}
+```bash
+"$faff" holdout offer --spec "$full_spec" --issue "$issue" --run-dir "$run_dir" --mode <interactive|autonomous>
 ```
 
-Marker `<run-dir>/<issue>/holdout-offer.json` = `{ decision: accept|decline|auto|skip, attended, judged_count, integration_count, delegated_count, decided_at }` — trusted graft-written (`merge-record.json` class, no validator). Invariants: `judged_count==0 ⇒ skip` (independent of `integration_count`); `auto ⇒ attended==false`. Carries the **attended** decision only — the unattended RUN keys on the live fact at 8c, never the marker (a lost/forged marker never suppresses the guarantee); `decided_at` is audit-only.
+Forward `--holdout` for `--verify` or `--verify-holdout`. On `ask`, ask “Run the code-blind holdout after build completes? (y/n)” and repeat with the operator's `--answer yes|no`. On `recorded`, the CLI wrote `<run-dir>/<issue>/holdout-offer.json`; proceed. Correct errors before continuing. Step 8c owns execution and checks live unattended posture.
 
 **Step 7: Build**
 
@@ -469,7 +465,7 @@ When invoked autonomously (by `/faff-beep-boop`), follow the shared autonomous c
 **Build-time premise-superseded close-path.** The pre-worktree **Build-time premise-superseded gate** (Step 3, above) runs here too: on a `main`-verified, non-empty delivering-ticket set it auto-closes (no human prompt) — writes `supersession.json`, moves the issue **Done**, opens **no PR**, returns `superseded-done` (admitted work → `superseded` bucket); any uncertainty → NONE → the flow below builds normally.
 
 **Flow:**
-1. **Delivery pre-flight (before building).** For default delivery run `"$faff" pr preflight --issue "$issue" --slug "$slug"` with Step 3's slug and optional `--tracker-branch "$hint"` from Step 1. Correct usage errors (exit 2) and retry. Exit 1 (`blocked`, push or merge-method): commit nothing built, park **retry-later**, apply `faff label transition <issue> parked --present-label <each current state label>`, write its descriptor and post the returned cause + remedy. Return `parked`. On `clear` or `indeterminate`, check token-scope / actions-policy if the spec declares their surface (e.g. `.github/workflows/*`); ship rechecks the actual diff. Git-only needs no remote probe. A custom delivery toolchain uses its own read-only checks. Skip Step 6 and proceed to build (Step 7).
+1. **Delivery pre-flight (before building).** For default delivery run `"$faff" pr preflight --issue "$issue" --slug "$slug"` with Step 3's slug and optional `--tracker-branch "$hint"` from Step 1. Correct usage errors (exit 2) and retry. Exit 1 (`blocked`, push or merge-method): commit nothing built, park **retry-later**, apply `faff label transition <issue> parked --present-label <each current state label>`, write its descriptor and post the returned cause + remedy. Return `parked`. On `clear` or `indeterminate`, check token-scope / actions-policy if the spec declares their surface (e.g. `.github/workflows/*`); ship rechecks the actual diff. Git-only needs no remote probe. A custom delivery toolchain uses its own read-only checks. On clear entry run Step 6's Holdout OFFER with `--mode autonomous` alongside the next build-start actions. Continue to Step 7.
 2. During Step 7, if a decision arises that the spec doesn't resolve, run resolve-attempt first (see Resolve-attempt before park section below). If resolve-attempt proceeds, log to `.faff/runs/<run-id>/ISSUE-XX/resolve-attempt.md` and write the audit-trail tracker comment, then continue. If resolve-attempt fails, invoke the `faff-prep` skill respec. If respec is still ambiguous, park.
    - Before invoking respec, apply the gateway's "spec-closed decisions stay closed" rule (see the sibling `faff/references/autonomous.md` Autonomous Mode Contract) — parse for `Chosen:` / `Decision:` / `Punt:` markers, not topic keywords. Only invoke respec when the spec has a real punt, missing external dependency, or cost/irreversibility trigger.
 2b. After build, run **Step 7.5 (engineering gate ladder)** before AC verification, review or PR/CI. At L3 (the autonomous default) rungs are required. Fix and retry `fail`. For `needs-human`, park with no PR per the shared protocol.

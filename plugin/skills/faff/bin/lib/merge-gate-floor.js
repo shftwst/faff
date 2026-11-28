@@ -130,7 +130,7 @@ function anchorRefusal(runDir, issue, headSha, status) {
 // `ci_state:"not-observed-already-merged"` (NEVER fed to decideFloor). Success evidence
 // (merge-record.json) is written ONLY when the retrospective floor passes; a failing floor returns
 // refuse (exit 1) with the failing legs and writes NOTHING. It never spawns `gh pr merge`.
-function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity, humanOnly = null) {
+function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity, humanOnly = null, landing = null) {
   const reasons = [];
   const acFloor = readAcFloor(runDir, issue, humanOnly);
   if (!acFloor.complete) reasons.push("ACs not all verified");
@@ -144,7 +144,7 @@ function alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integri
   if (integrity.state === "violated") reasons.push("corrective-artifact integrity violated");
   if (integrity.state === "unasserted-refuse") reasons.push(`corrective-artifact integrity unasserted at ${level}`);
   if (reasons.length === 0) {
-    writeMergeRecord(runDir, issue, pr, headSha, integrity.display, undefined, undefined, undefined, acFloor.called_out);
+    writeMergeRecord(runDir, issue, pr, headSha, integrity.display, undefined, undefined, undefined, acFloor.called_out, landing);
     return emit({ verdict: "merge-ok", merged: true, blockers: [], ci_state: "not-observed-already-merged", head_sha: headSha, integrity: integrity.display, ac_called_out: acFloor.called_out, note: "already merged" }, 0);
   }
   return emit({ verdict: "refuse", merged: true, blockers: reasons, ci_state: "not-observed-already-merged", head_sha: headSha, integrity: integrity.display, ac_called_out: [], note: "already merged but merge-floor not satisfied — no success evidence written" }, 1);
@@ -204,11 +204,12 @@ function mergeRecordPath(runDir, issue) {
 // FAFF-1395: also stamps `faff_version` (the plugin release) beside harness/model. `faffVersion` is
 // injectable (tests only); the real call path resolves it via the single faff-version resolver, and an
 // unresolved version is written as "unknown", never omitted.
-function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githubActor, faffVersion, acCalledOut) {
+function writeMergeRecord(runDir, issue, pr, headSha, integrity, identity, githubActor, faffVersion, acCalledOut, landing = null) {
   try {
     const dir = path.join(runDir, issue);
     fs.mkdirSync(dir, { recursive: true });
     const record = { pr: Number(pr), head_sha: headSha, merged: true, merged_at: new Date().toISOString(), integrity: integrity || "unasserted" };
+    if (landing) record.landing = { ...landing, run_id: path.basename(path.resolve(runDir)), issue };
     let id = identity;
     if (id === undefined) {
       try { id = require("./harness").harnessIdentify(); } catch { id = null; }

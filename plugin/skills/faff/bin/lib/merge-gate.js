@@ -50,6 +50,15 @@ const { readStackAnchor, classifyDependencyGate, boundedRebaseOntoMain, dependen
 const { cmdPrCreate } = require("./merge-gate-pr-create");
 const { mergeGateSelftest } = require("./merge-gate-selftest");
 
+// Only the forge can bind the reviewed head to the resulting squash commit.
+function landedCommit(data, repo, pr, headSha, base) {
+  const oid = data?.mergeCommit?.oid;
+  if (data?.state !== "MERGED" || data.number !== Number(pr) || data.headRefOid !== headSha ||
+      !base || data.baseRefName !== base || repoSlugFromPrUrl(data.url).toLowerCase() !== repo.toLowerCase() ||
+      typeof oid !== "string" || !/^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(oid)) return null;
+  return { repo, base, sha: oid };
+}
+
 function cmdMergeGate(args) {
   if (args[0] === "delivery-receipt") return require("./merge-delivery-receipt").cmdDeliveryReceipt(args.slice(1));
   if (args.includes("--selftest")) return mergeGateSelftest();
@@ -144,7 +153,8 @@ function cmdMergeGate(args) {
   if (!repo) { process.stderr.write("faff merge-gate: cannot resolve repo slug (gh repo view failed)\n"); return 2; }
   // headRefName (FAFF-383): the branch-delete observe target, derived mechanically alongside the
   // identity fetch that already runs on every path — never a second gh call.
-  const hv = ghJson(["pr", "view", String(pr), "--json", "headRefOid,headRefName,baseRefName,state,url"]);
+  const prFields = "headRefOid,headRefName,baseRefName,state,url,number,mergeCommit";
+  const hv = ghJson(["pr", "view", String(pr), "--json", prFields]);
   if (!hv.ok || !hv.data || !hv.data.headRefOid) { process.stderr.write(`faff merge-gate: cannot establish PR identity for #${pr}: ${hv.stderr}\n`); return 2; }
   // FAFF-1212: a governed run's legs need the PR's base (and, under --delete-branch, head) ref from this
   // same response; an ungoverned run never reads them for a leg, so its handling is unchanged.
@@ -198,7 +208,7 @@ function cmdMergeGate(args) {
   // — an already-merged PR whose AC/review/(at-L4)holdout/integrity cannot be re-proven refuses (exit
   // 1) and writes no merge-record.json. Never spawns `gh pr merge` either way.
   if (hv.data.state === "MERGED") {
-    return alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity, humanOnly);
+    return alreadyMergedReconcile(emit, runDir, issue, pr, headSha, level, integrity, humanOnly, landedCommit(hv.data, repo, pr, headSha, hv.data.baseRefName));
   }
 
   // FAFF-1077: the stacked-dependency merge-order interlock. ADDITIVE — it can only push the
@@ -303,13 +313,14 @@ function cmdMergeGate(args) {
     return 2;
   }
   const m = runGh(["pr", "merge", String(pr), ...resolved.flags, "--match-head-commit", headSha], { timeout: 120000 }); // FAFF-1213
+  const sv = ghJson(["pr", "view", String(pr), "--json", prFields]);
+  const landing = sv.ok ? landedCommit(sv.data, repo, pr, headSha, hv.data.baseRefName) : null;
   if (m.status !== 0) {
     const mergeStderr = (m.stderr || "").trim();
     // FAFF-365: a non-zero `gh pr merge` exit does not by itself mean the merge failed — it can mean
     // the merge landed and a POST-merge step failed (e.g. --delete-branch). Re-read PR state (the
     // authoritative source) before concluding refuse; classifyPostMerge is the pure merged-vs-refuse
     // decision over (merge exit, re-read state).
-    const sv = ghJson(["pr", "view", String(pr), "--json", "state"]);
     const postState = (sv.ok && sv.data && typeof sv.data.state === "string") ? sv.data.state : null;
     result.post_merge_state = postState;
     const pm = classifyPostMerge({ merge_ok: false, post_state: postState, merge_stderr: mergeStderr });
@@ -317,7 +328,7 @@ function cmdMergeGate(args) {
       result.merged = true;
       result.verdict = "merge-ok";
       result.warnings = [...(result.warnings || []), pm.warning];
-      writeMergeRecord(runDir, issue, pr, headSha, integrity.display, undefined, undefined, undefined, acFloor.called_out); // FAFF-397
+      writeMergeRecord(runDir, issue, pr, headSha, integrity.display, undefined, undefined, undefined, acFloor.called_out, landing); // FAFF-397
       // FAFF-383: path (b) — the post-merge step's own success is unconfirmed (that's WHY gh
       // exited non-zero here), so observe the merge only, never branch-delete.
       // FAFF-1034: suppress the schema:2 auto-declare/observe for a merge covered by a schema:3 grant
@@ -334,7 +345,7 @@ function cmdMergeGate(args) {
   }
   result.merged = true;
   result.verdict = "merge-ok";
-  writeMergeRecord(runDir, issue, pr, headSha, integrity.display, undefined, undefined, undefined, acFloor.called_out); // FAFF-397
+  writeMergeRecord(runDir, issue, pr, headSha, integrity.display, undefined, undefined, undefined, acFloor.called_out, landing); // FAFF-397
   // FAFF-383: path (a) — the clean-success tail; branch-delete observes iff this invocation's own
   // merge-args carried --delete-branch (resolved.flags, not the raw --merge-args string).
   // FAFF-1034: suppressed for a merge covered by a schema:3 grant (single schema:3 lineage).
@@ -342,4 +353,4 @@ function cmdMergeGate(args) {
   return emit(result, 0);
 }
 
-module.exports = { MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readAcFloor, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, resolveCommissaireDecisionGrantDetail, resolvePrCreateGrantDetail, resolveBranchDeleteGrantDetail, checkLeg, makeTrustContext, hasPullRequestRule, repoSlugFromPrUrl, legCovered, andGrants, governanceRequiredSentinelPresent, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord, readRunnerGhConfig, resolveRunnerGhEnv, runGh, resolveRunnerIdentity, githubActorMatches, recordRunnerIdentity };
+module.exports = { landedCommit, MERGE_FLAG_ALLOW, MERGE_METHOD_FLAGS, resolveMergeFlags, alreadyMergedReconcile, anchorRefusal, baseCheckedOutWorktree, boundedRebaseOntoMain, branchProtectionSelftest, classifyDependencyGate, dependencyInterlock, readStackAnchor, classifyBranchProtection, extractRequiredChecks, classifyCiObservation, classifyGithubAuth, classifyHeadShaChecks, classifyMergeFailure, classifyPostMerge, cmdBranchProtectionCheck, cmdGithubAuthCheck, cmdMergeGate, cmdMergeGateLocal, cmdPrCreate, evaluateCustody, fenceHumanFlags, gatesSignalToCiState, ghJson, ghRepoSlug, githubAuthSelftest, gitRemoteEmpty, gitRun, holdoutIsFresh, landBaseFfOnly, laneBoundaryDispatchState, laneBoundaryPromisesCage, mergeEffectsFor, mergeGateSelftest, mergeRecordPath, narrowReviewUnavailableExcusable, NON_GRAFT_REMEDY_STRING, nonGraftFloorSignature, observeCi, observeMergeEffects, parseMergeArgs, readAcComplete, readAcFloor, readHoldout, readCanRun, readLedgerSutEnvStood, resolveCanRun, readCaged, resolveHoldoutLeg, readReviewVerdict, resolveAnchorLevel, resolveCommissaireDecisionGrant, resolvePrCreateGrant, resolveBranchDeleteGrant, resolveCommissaireDecisionGrantDetail, resolvePrCreateGrantDetail, resolveBranchDeleteGrantDetail, checkLeg, makeTrustContext, hasPullRequestRule, repoSlugFromPrUrl, legCovered, andGrants, governanceRequiredSentinelPresent, mergeCoveredBySchema3Grant, prCreateCoveredBySchema3Grant, resolveIntegrity, resolveLocalBase, warnUncoveredMergeObserves, writeMergeRecord, readRunnerGhConfig, resolveRunnerGhEnv, runGh, resolveRunnerIdentity, githubActorMatches, recordRunnerIdentity };

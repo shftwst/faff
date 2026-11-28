@@ -132,24 +132,15 @@ function sanitizeDetail(raw) {
   return buf.slice(0, end).toString("utf8");
 }
 
-// Partition an ORDERED (oldest-first) list of {sha, subject} first-parent commits into
-// branch-advancement SEGMENTS by contiguous GENERIC attribution: a maximal run of commits
-// extracting the same issue key (or, symmetrically, a maximal run of mutually-key-less commits)
-// forms ONE segment (spec §3 "the landing UNIT is a segment, not a single commit"). This is the
-// fallback grouping the spec's Assumption 5 sanctions when a governed landing's merge-record.json
-// carries no explicit base bound — in the common case (every commit in a governed multi-commit
-// rebase/ff-only landing mentions its own issue id, per repo convention) it already coalesces the
-// landing into one segment, which is what the coverage rule (attribution match) needs. Extraction
-// is scoped to THIS run's own tracker-prefix family (via attributeCommit/issuePrefixes) — precise
-// enough to reject ordinary technical tokens ("utf-8") while still recognising a same-family
-// CONCURRENT run's issue id, which the caller (spec §6 "Attribution scope") then excludes rather
-// than mis-reading it as unattributable. PURE.
-function partitionSegments(commits, admittedIssues) {
+// Group commits attributed to one work item. An anonymous commit is its own landing:
+// coverage of its neighbour cannot account for it. A corroborated forge receipt supplies
+// the issue for an exact landed object even when its subject contains no tracker key.
+function partitionSegments(commits, admittedIssues, landedIssues = new Map()) {
   const segments = [];
   let cur = null;
   for (const c of commits) {
-    const issue = attributeCommit(c.subject, admittedIssues);
-    if (cur && cur.issue === issue) cur.commits.push(c);
+    const issue = landedIssues.get(c.sha) ?? attributeCommit(c.subject, admittedIssues);
+    if (issue && cur && cur.issue === issue) cur.commits.push(c);
     else { cur = { issue, commits: [c] }; segments.push(cur); }
   }
   return segments.map((s) => ({ issue: s.issue, commits: s.commits, tip: s.commits[s.commits.length - 1] }));
@@ -238,20 +229,29 @@ function readDeclaredMergeEffects(runDir) {
   return out;
 }
 
-// Scan every admitted issue's merge-record.json (written by merge-gate.js on every governed
-// landing, REGARDLESS of forge uptime — merge-gate.js:~475) into a head_sha -> {issue, pr} map.
-// This is the load-bearing outage-path equivalence source (spec §3/§6): the FAFF-1012 ledger
-// auto-declaration records only `pr:<N>` (merge-gate.js:~719); merge-record.json is what still
-// carries the landing commit's sha when `gh` is down.
-function readMergeRecordsByHeadSha(runDir, admittedIssues) {
-  const out = new Map();
+// Preserve legacy head-to-PR equivalence. An additional forge-confirmed landed SHA
+// attributes the exact commit when this run also declared or observed that issue's merge.
+function readMergeRecords(runDir, admittedIssues, branch, declaredMerge) {
+  const { effectTargetMatches } = require("./effects");
+  const heads = new Map();
+  const landedIssues = new Map();
   for (const issue of admittedIssues) {
     const rec = readJsonSafe(mergeRecordPathLocal(runDir, issue));
     if (rec && typeof rec.head_sha === "string" && rec.head_sha) {
-      out.set(rec.head_sha, { issue, pr: rec.pr != null ? Number(rec.pr) : null });
+      heads.set(rec.head_sha, { issue, pr: rec.pr != null ? Number(rec.pr) : null });
+      if (rec.merged === true && Number.isSafeInteger(rec.pr) && rec.pr > 0 &&
+          rec.landing?.base === branch && rec.landing.issue === issue &&
+          rec.landing.run_id === path.basename(path.resolve(runDir)) && typeof rec.landing.repo === "string" &&
+          /^[\w.-]+\/[\w.-]+$/.test(rec.landing.repo) &&
+          /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(rec.head_sha) &&
+          /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(rec.landing.sha) &&
+          declaredMerge.some(d => d.issue === issue &&
+            [branch, `pr:${rec.pr}`, `commit:${rec.landing.sha}`].some(target => effectTargetMatches(d.target, target)))) {
+        landedIssues.set(rec.landing.sha, issue.toUpperCase());
+      }
     }
   }
-  return out;
+  return { heads, landedIssues };
 }
 
 // `git log --first-parent --reverse` over base..head, OLDEST FIRST — the raw advancement set
@@ -357,7 +357,9 @@ function reconcileMerges({ root, runDir, issueFilter }) {
   // belong to", independent of which one issue this call happens to report on) so the
   // classification below can tell a same-family concurrent run's landing apart from a genuinely
   // key-less one, without false-extracting an ordinary technical token as a fake issue id.
-  const rawSegments = partitionSegments(fp.commits, admittedAll);
+  const declaredMerge = readDeclaredMergeEffects(runDir);
+  const { heads, landedIssues } = readMergeRecords(runDir, admittedAll, branch, declaredMerge);
+  const rawSegments = partitionSegments(fp.commits, admittedAll, landedIssues);
 
   // segment_base for each segment is the previous segment's tip (or the overall base for the
   // first) — computed over the FULL ordered sequence, before any --issue/scope filtering, so it
@@ -400,13 +402,10 @@ function reconcileMerges({ root, runDir, issueFilter }) {
       ? segmentsWithBase
       : segmentsWithBase.filter((s) => s.issue === null || admittedUpper.has(s.issue));
 
-  const mergeRecords = readMergeRecordsByHeadSha(runDir, admittedAll);
-  const declaredMerge = readDeclaredMergeEffects(runDir);
-
   const uncovered = [];
   for (const seg of inScope) {
     const subjectPr = extractPrNumberFromSubject(seg.tip.subject);
-    const mrEntry = mergeRecords.get(seg.tip.sha) || null;
+    const mrEntry = heads.get(seg.tip.sha) || null;
     const resolvedPr = subjectPr != null ? subjectPr : (mrEntry && mrEntry.pr != null ? mrEntry.pr : null);
     const candidateTargets = new Set([`commit:${seg.tip.sha}`]);
     if (resolvedPr != null) candidateTargets.add(`pr:${resolvedPr}`);
@@ -428,12 +427,8 @@ function reconcileMerges({ root, runDir, issueFilter }) {
     uncovered,
     any_escape: uncovered.length > 0,
     fault: null,
-    // Interim scope decision (documented, not a defect): this slice performs NO live forge
-    // (`gh`) query at all — the pr:<N> equivalence resolves from the commit subject (free,
-    // network-independent) or merge-record.json.head_sha (spec §6), which together already
-    // satisfy "the kill-switch is never coupled to forge uptime" without depending on `gh` ever
-    // succeeding. forge_enriched is therefore always false; this is informational only and never
-    // sets `any_escape`/`forbidden` on its own (spec §4/§6).
+    // Reconciliation itself uses local history and saved receipts, including any forge identity
+    // captured by merge-gate. It makes no network request and can run during a forge outage.
     forge_enriched: false,
     legacy_exempt: false,
   };
@@ -458,7 +453,7 @@ What this does NOT catch (accepted limits, documented -- not defects to engineer
     making the merge un-performable off-ledger at all) closes this trust gap; this ticket ships
     DETECTION ONLY, never prevention.
   - Limit A (integrity residual) -- base_sha, the post-feature mint marker (run-ledger.json), and
-    merge-record.json.head_sha are trusted reconcile inputs OUTSIDE the FAFF-621 declared-effects
+    merge-record.json head and landed object identities are trusted reconcile inputs OUTSIDE the FAFF-621 declared-effects
     hash chain. An actor with ledger write can strip the marker, advance the anchor, or forge a
     merge-record to spoof coverage.
   - Limit A (history-rewrite residual) -- this is a git-history-based detector: an actor with
@@ -581,21 +576,6 @@ function effectsReconcileSelftest() {
     const out = sanitizeDetail(multibyte);
     if (Buffer.from(out, "utf8").length > 200) fail("sanitizeDetail: truncation never exceeds the 200-byte bound");
     if (Buffer.byteLength(out.slice(-1), "utf8") !== Buffer.byteLength("é", "utf8")) fail("sanitizeDetail: truncation never splits a multibyte codepoint");
-  }
-
-  // --- partitionSegments ---
-  {
-    const commits = [
-      { sha: "a1", subject: "feat(FAFF-1): step one" },
-      { sha: "a2", subject: "feat(FAFF-1): step two" },
-      { sha: "b1", subject: "chore: direct-git, no issue key" },
-      { sha: "c1", subject: "feat(FAFF-2): other issue" },
-    ];
-    const segs = partitionSegments(commits);
-    if (segs.length !== 3) fail(`partitionSegments: expected 3 contiguous segments, got ${segs.length}`);
-    if (segs[0].issue !== "FAFF-1" || segs[0].commits.length !== 2) fail("partitionSegments: FAFF-1's two commits form one segment");
-    if (segs[1].issue !== null || segs[1].tip.sha !== "b1") fail("partitionSegments: the unattributable commit forms its own issue:null segment");
-    if (segs[2].issue !== "FAFF-2") fail("partitionSegments: a different issue starts a new segment");
   }
 
   // --- segmentCovered ---

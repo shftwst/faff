@@ -164,9 +164,20 @@ test("handoffs bind a worker to its launch and measure returned UTF-8 text once"
   const report = f.report();
   assert.equal(report.requests,2);
   const [parent,worker] = report.records;
-  assert.deepEqual(parent.worker_handoffs,[{dispatch_id:worker.worker_dispatch_id,returned_at:at(13),returned_text_bytes:8,is_error:false}]);
+  assert.deepEqual(parent.worker_handoffs,[{requested_launch_mode:"unspecified",dispatch_id:worker.worker_dispatch_id,returned_at:at(13),returned_text_bytes:8,is_error:false}]);
   assert.doesNotMatch(JSON.stringify(report), /résumé|private-tool-id|private-pixels/);
   assert.equal(f.report({until:at(13)}).records[0].worker_handoffs[0].returned_at,null);
+});
+
+test("requested launch mode records only explicit booleans and preserves ambiguous or invalid input", t => {
+  const f = setup(t);
+  const call = (id, flag) => ({type:"tool_use",name:"Task",id,input:{run_in_background:flag}});
+  f.put(f.main,[assistant("parent",11,[call("a",true),call("b",false),call("c","private-value"),call("d",false)]),
+                assistant("parent",11,[call("d",true)])]);
+  const report = f.report();
+  assert.deepEqual(report.records[0].worker_handoffs.map(h => h.requested_launch_mode),
+                   ["background","foreground","unknown","unknown"]);
+  assert.doesNotMatch(JSON.stringify(report), /private-value/);
 });
 
 test("actual build dispatch tags bind wave to workers and their nested reviewers", t => {

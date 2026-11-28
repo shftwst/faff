@@ -121,13 +121,16 @@ function descriptionFacts(value, allowed) {
     }
     return { issues, waves };
 }
-function rememberDispatch(dispatches, id, description, parent, allowed) {
+function rememberDispatch(dispatches, id, input, parent, allowed) {
+    const description = input.description;
     const keys = new Set(typeof description === "string" ? description.match(/\b[A-Za-z][A-Za-z0-9]*-\d+\b/g) ?? [] : []);
     const key = sole(keys);
     const issue = key && allowed.has(key) ? key : null;
     const old = dispatches.get(id);
     const blocked = (keys.size > 0 && !issue) || Boolean(old && (old.blocked || old.issue !== issue || old.parent !== parent));
-    dispatches.set(id, { issue, parent, blocked });
+    const flag = input.run_in_background;
+    const mode = flag === true ? "background" : flag === false ? "foreground" : flag === undefined ? "unspecified" : "unknown";
+    dispatches.set(id, { issue, parent, blocked, mode: old && old.mode !== mode ? "unknown" : mode });
 }
 function dispatchedIssue(launches, dispatches) {
     let id = sole(launches);
@@ -374,7 +377,7 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
                             const value = tags.length === 1 && /^[1-9][0-9]*$/.test(match) && Number.isSafeInteger(number) ? number : null;
                             tagged.set(b.id, tagged.has(b.id) && tagged.get(b.id) !== value ? null : value);
                         }
-                        rememberDispatch(dispatches, b.id, input.description, parentId, allowed);
+                        rememberDispatch(dispatches, b.id, input, parentId, allowed);
                     }
                     for (const key of [input.issue, input.id, input.issueId]) {
                         if (typeof key === "string" && allowed.has(key))
@@ -416,7 +419,7 @@ function collectRunRequestMetrics({ runDir, root, sessionId, env = process.env, 
             row.worker_handoffs = [...calls].map(call => {
                 const result = returns.get(call);
                 const build = tagged.get(call);
-                return { ...(build ? { build_wave: build } : {}), dispatch_id: hash(sessionId + "\0" + call), returned_at: result?.at ?? null,
+                return { requested_launch_mode: dispatches.get(call)?.mode ?? "unknown", ...(build ? { build_wave: build } : {}), dispatch_id: hash(sessionId + "\0" + call), returned_at: result?.at ?? null,
                     returned_text_bytes: result?.bytes ?? null, is_error: result?.error ?? null };
             });
         records.push(row);

@@ -56,7 +56,8 @@ function prepareBuild(unit, executor, root, resolve) {
     if ("error" in resolved)
         throw new Error(resolved.error);
     return {
-        dispatch: { issues: [...issues], run_id, run_dir, session_id, mode_signal: "autonomous", model: resolved.model },
+        dispatch: { issues: [...issues], run_id, run_dir, session_id, mode_signal: "autonomous", model: resolved.model,
+            pr_ready_return: "Per issue, return build_claim_sha beside EvidenceReturn: the lease SHA acquired at Step 5, or null if unavailable." },
         agent_parameters: { run_in_background: executor === "parallel", ...(resolved.model === "inherit" ? {} : { model: resolved.model }) },
         effort_log: resolved.effort,
     };

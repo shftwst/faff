@@ -35,6 +35,7 @@ const run = {
   run_dir: "/tmp/work space/checkout/.faff/runs/run-42",
   session_id: "session-9",
 };
+const leaseReturn = "Per issue, return build_claim_sha beside EvidenceReturn: the lease SHA acquired at Step 5, or null if unavailable.";
 const inputFor = (members) => ({ members, ...run });
 
 function configRoot(t, config) {
@@ -87,6 +88,7 @@ test("parallel and sequential prepare the same ordered build unit with their own
         ...run,
         mode_signal: "autonomous",
         model: resolved.model,
+        pr_ready_return: leaseReturn,
       },
       agent_parameters: { run_in_background: executor === "parallel", model: resolved.model },
       effort_log: resolved.effort,
@@ -120,7 +122,7 @@ test("inherit omits the Agent model parameter in both launch modes", (t) => {
   for (const executor of ["sequential", "parallel"]) {
     const result = parseSuccess(prepare(root, executor, inputFor([{ issue: "FAFF-1" }])));
     assert.deepEqual(result, {
-      dispatch: { issues: ["FAFF-1"], ...run, mode_signal: "autonomous", model: resolved.model },
+      dispatch: { issues: ["FAFF-1"], ...run, mode_signal: "autonomous", model: resolved.model, pr_ready_return: leaseReturn },
       agent_parameters: { run_in_background: executor === "parallel" },
       effort_log: resolved.effort,
     });

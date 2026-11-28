@@ -1,4 +1,5 @@
 """Score an installed tracker-mode beep-boop run from local service receipts and Git objects."""
+import hashlib
 import json
 import re
 import subprocess
@@ -146,6 +147,34 @@ def posted_spec(tracker, ops, issue, cutoff):
     return any(spec_comment(body, issue) for body in versions.values())
 
 
+def spec_bytes_match(repo, tracker, issue, cutoff):
+    """Bind staged and captured bytes to the acknowledged tracker object before build."""
+    if cutoff is None:
+        return False
+    marker = read(repo / ".faff/prep" / (issue + ".json"), {})
+    captured = (repo / ".faff/graft" / issue / "captured-spec.md").read_bytes()
+    if not captured or marker.get("attached") is not True or marker.get("issue") != issue:
+        return False
+    if hashlib.sha256(captured).hexdigest() != marker.get("spec_sha256"):
+        return False
+    uid = tracker["issues"][issue]["id"]
+    rid = marker.get("comment_id")
+    if not rid:
+        return False
+    writes = [op for op in tracker["operations"] if op.get("ok") is True
+              and op.get("result_id") == rid and op["tool"] in ("create_comment", "update_comment", "create_attachment")
+              and (ts := stamp(op.get("at"))) is not None and ts <= cutoff]
+    if not writes:
+        return False
+    last = max(writes, key=lambda op: stamp(op["at"]))
+    attachment = last["tool"] == "create_attachment"
+    field = "content" if attachment else "body"
+    body = last["arguments"].get(field)
+    return (isinstance(body, str) and captured == body.encode()
+            and any(v.get("id") == rid and v.get("issueId") == uid and v.get(field) == body
+                    for v in tracker["attachments" if attachment else "comments"]))
+
+
 def score(arm, mode="sequential"):
     built = BUILT + (EXTRAS if mode == "parallel" else ())
     arm = Path(arm)
@@ -288,6 +317,8 @@ def score(arm, mode="sequential"):
     for issue in built:
         check("posted_terminal_review_" + issue, lambda issue=issue: posted_review(
             tracker, ops, issue, event_time("build-start", issue), stamp(deliveries[issue].get("mergedAt"))))
+        check("spec_bytes_match_" + issue, lambda issue=issue: spec_bytes_match(
+            arm / "repo", tracker, issue, event_time("build-start", issue)))
         check("spec_attached_before_graft_" + issue, lambda issue=issue: posted_spec(tracker, ops, issue, event_time("build-start", issue)))
 
     def created_scope():

@@ -407,6 +407,21 @@ test("PR lookup order: merge-record wins over landing-loop, which wins over the 
   assert.ok(out.includes("- C (PR #88)"));
 });
 
+test("local merge skips the forge and hosted fallback binds checkout and issue", () => {
+  const fx = buildRun({ admitted: ["KIT-1", "KIT-2"], outcomes: { "KIT-1": "shipped", "KIT-2": "pr-open" },
+    files: { "KIT-1/merge-record.json": { pr: 0, merged: true } } });
+  const lookups = [];
+  const ghJson = (args, root) => {
+    lookups.push([args[3], root]);
+    return { ok: true, data: [{ number: 20, headRefName: "kit-20-fix" },
+      { number: 2, headRefName: "KIT-2-fix" }], stderr: "" };
+  };
+  const out = render(fx, F(), { ghJson });
+  assert.deepEqual(lookups, [["KIT-2 in:title", fx.root]]);
+  assert.ok(lines(out).includes("- KIT-1"));
+  assert.ok(lines(out).includes("- KIT-2 (PR #2)"));
+});
+
 test("doctor in-process: the real install-health path renders doctor's own RESULT text when unclean", () => {
   const fx = buildRun({});
   const real = rs.realDeps();

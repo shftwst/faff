@@ -97,6 +97,17 @@ function latestWaveDir(runDir) {
     catch { /* an unreadable run dir has no wave records */ }
     return latest;
 }
+// Older mode files only recorded fold. A git-only run consults even with fold off.
+function skipsWaveConsult(runDir) {
+    try {
+        const mode = JSON.parse(fs.readFileSync(path.join(runDir, "wave-mode.json"), "utf8"));
+        return isRecord(mode) && mode.run_id === path.basename(path.resolve(runDir)) &&
+            mode.fold === false && mode.consult === false;
+    }
+    catch {
+        return false;
+    }
+}
 function resolveStopReason(runDir, arg, ledger) {
     const keep = (...faults) => ({ token: arg, adopted: false, faults });
     const generic = GENERIC_TOKENS.includes(arg);
@@ -111,6 +122,8 @@ function resolveStopReason(runDir, arg, ledger) {
     }
     catch (e) {
         const missing = e instanceof Error && "code" in e && e.code === "ENOENT";
+        if (missing && generic && skipsWaveConsult(runDir))
+            return keep();
         return keep(missing ? "wave-record-missing" : "wave-record-unreadable");
     }
     const rec = parseWaveRecord(text, path.basename(path.resolve(runDir)), latest.wave);

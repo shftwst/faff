@@ -32,7 +32,7 @@ test("wave mode preserves CLI precedence and the git-only termination floor", t 
     assert.deepEqual(JSON.parse(result.stdout), {fold, consult});
     assert.deepEqual(readFileSync(ledger), before);
     assert.deepEqual(readdirSync(run).sort(), ["run-ledger.json", "wave-mode.json"]);
-    assert.deepEqual(JSON.parse(readFileSync(path.join(run, "wave-mode.json"))), {run_id: "run-test", fold});
+    assert.deepEqual(JSON.parse(readFileSync(path.join(run, "wave-mode.json"))), {run_id: "run-test", fold, consult});
     if (consult) {
       const gate = runCli(["run-done", "--json", "--queue-empty", "--ledger-clean", "--prd-coverage", '{"satisfied":false}']);
       assert.equal(gate.code, 0, gate.stderr);

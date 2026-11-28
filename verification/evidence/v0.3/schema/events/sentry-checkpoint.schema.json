@@ -672,6 +672,57 @@
         "forbidden_side_effect": {
           "type": "boolean",
           "description": "Read by sentry.js evalForbiddenSideEffect on any event: the effects-to-sentry bridge an orchestrator writes on an escape."
+        },
+        "effects_warning": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "check_escape": {
+              "type": "boolean"
+            },
+            "merge_escape": {
+              "type": "boolean"
+            },
+            "unreconciled": {
+              "type": "boolean"
+            },
+            "uncovered_count": {
+              "type": "integer"
+            },
+            "commits": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$"
+              }
+            },
+            "checked_ref": {
+              "type": "string",
+              "enum": [
+                "main",
+                "master"
+              ]
+            },
+            "checked_head": {
+              "type": "string",
+              "pattern": "^([a-f0-9]{40}|[a-f0-9]{64})$"
+            },
+            "action": {
+              "type": "string",
+              "enum": [
+                "continue",
+                "narrow",
+                "park-issues",
+                "stop",
+                "escalate",
+                "abort",
+                "fail-closed"
+              ]
+            },
+            "acted": {
+              "type": "boolean"
+            }
+          }
         }
       }
     }

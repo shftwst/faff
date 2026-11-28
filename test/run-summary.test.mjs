@@ -483,3 +483,16 @@ test("integration smoke: the CLI on the reference fixture equals the golden outs
   assert.equal(strip(r.out), strip(readFileSync(GOLDEN, "utf8")));
   assert.equal(readFileSync(join(fx.runDir, "summary.md"), "utf8"), r.out);
 });
+
+test("summary explains the last effects warning and decision using bounded safe fields", () => {
+  const warning = { merge_escape: true, uncovered_count: 1, commits: ["d".repeat(40)], checked_ref: "main", checked_head: "a".repeat(40), action: "continue", acted: false };
+  const data = { intervention: "abort", tripped: true, effects_warning: warning };
+  const fx = buildRun({ events: [
+    { ts: "2026-01-01T01:00:00.000Z", type: "sentry-checkpoint", data },
+    { ts: "2026-01-01T02:00:00.000Z", type: "sentry-checkpoint", data },
+  ] });
+  const out = render(fx, F());
+  assert.match(out, /1 uncovered segment.*dddddddddddd.*local main at aaaaaaaaaaaa.*Checkpoint action: continue \(abort advisory\).*latest of 2/);
+
+  assert.equal((out.match(/Effects warning:/g) || []).length, 1);
+});

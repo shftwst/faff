@@ -40,6 +40,31 @@ function parseJsonObject(text) {
         return undefined;
     }
 }
+function isOid(v) {
+    return typeof v === "string" && /^(?:[a-f0-9]{40}|[a-f0-9]{64})$/.test(v);
+}
+// Also used by run summary for retained events. Treat their fields as untrusted.
+function describeEffectsWarning(warning, intervention) {
+    const reasons = [];
+    if (field(warning, "check_escape") === true)
+        reasons.push("effects check found an undeclared effect");
+    if (field(warning, "merge_escape") === true) {
+        const count = field(warning, "uncovered_count");
+        const commits = field(warning, "commits");
+        const sample = Array.isArray(commits) ? commits.slice(0, 3).filter(isOid).map((sha) => sha.slice(0, 12)) : [];
+        reasons.push(`merge reconciliation found ${typeof count === "number" && Number.isSafeInteger(count) && count > 0 ? count : "one or more"} uncovered segment${count === 1 ? "" : "s"}${sample.length ? " at " + sample.join(", ") : ""}`);
+    }
+    if (field(warning, "unreconciled") === true)
+        reasons.push("merge reconciliation could not complete");
+    if (!reasons.length)
+        return null;
+    const ref = field(warning, "checked_ref"), head = field(warning, "checked_head");
+    const action = field(warning, "action");
+    const checked = (ref === "main" || ref === "master") && isOid(head) ? ` (local ${ref} at ${head.slice(0, 12)})` : "";
+    const route = typeof action === "string" && ACTIONS.includes(action) ? `. Checkpoint action: ${action}` : "";
+    const advice = field(warning, "acted") === false && typeof intervention === "string" && INTERVENTIONS.includes(intervention) && intervention !== "continue" ? ` (${intervention} advisory)` : "";
+    return `Effects warning: ${reasons.join("; ")}${checked}${route}${advice}.`;
+}
 function errText(e) {
     return e instanceof Error ? e.message : String(e);
 }
@@ -267,10 +292,26 @@ function runCheckpoint(args, deps) {
     const forbidden = checkEscape || recEscape || recNotReconciled;
     // 5. The consult, and its events on a completed consult only.
     const consult = readConsult(faff(["sentry", "check", "--json", "--run-dir", runDir, ...(forbidden ? ["--forbidden-side-effect"] : [])]));
+    // Decide before logging so the event records the same routing that the caller receives.
+    const phase = args.phase;
+    const decision = decideCheckpoint({ phase, level, acts_abort: actsAbort, acts_pause: actsPause, budget, consult });
+    // The compact diagnostic stores identifiers and closed-vocabulary facts only. A
+    // commit subject, effect target or subprocess error can contain private content.
+    const uncovered = field(rec, "uncovered");
+    const commits = Array.isArray(uncovered) ? uncovered.slice(0, 3).map((v) => field(v, "commit")).filter(isOid) : [];
+    const ref = field(rec, "checked_ref");
+    const head = field(rec, "checked_head");
+    const evidence = forbidden ? { effects_warning: {
+            check_escape: checkEscape, merge_escape: recEscape, unreconciled: recNotReconciled,
+            uncovered_count: Array.isArray(uncovered) ? uncovered.length : 0, commits,
+            ...(ref === "main" || ref === "master" ? { checked_ref: ref } : {}),
+            ...(isOid(head) ? { checked_head: head } : {}),
+            action: decision.action, acted: decision.acted,
+        } } : {};
     if (consult === null)
         faults.push("sentry-consult-failed");
     else {
-        const a = faff(["events", "append", "--run", runId, "--root", root], JSON.stringify({ phase: "run", type: "sentry-checkpoint", data: consult.payload }));
+        const a = faff(["events", "append", "--run", runId, "--root", root], JSON.stringify({ phase: "run", type: "sentry-checkpoint", data: { ...consult.payload, ...evidence } }));
         if (a.status !== 0)
             faults.push("sentry-checkpoint-append-failed");
         if (consult.tripped) {
@@ -279,9 +320,6 @@ function runCheckpoint(args, deps) {
                 faults.push("sentry-trip-append-failed");
         }
     }
-    // 6. Decide.
-    const phase = args.phase;
-    const decision = decideCheckpoint({ phase, level, acts_abort: actsAbort, acts_pause: actsPause, budget, consult });
     // 7. The abort mark. The action stands whether or not the CLI could record it.
     let sentryAborted = false;
     if (decision.abort_required) {
@@ -300,6 +338,7 @@ function runCheckpoint(args, deps) {
         budget: budget === null ? null : budget.state,
         budget_in_scope: budgetInScope(phase, budget),
         forbidden,
+        ...evidence,
         intervention: consult === null ? null : consult.intervention,
         verdicts: consult === null ? [] : consult.verdicts,
         acted: decision.acted,
@@ -351,8 +390,11 @@ function cmdRunCheckpoint(argv, deps = realDeps()) {
         process.stdout.write(`${JSON.stringify(result)}\n`);
     else {
         const lines = [`checkpoint: ${result.action}${result.stop_reason === null ? "" : ` ${result.stop_reason}`}`, ...result.faults.map((f) => `fault: ${f}`)];
+        const warning = describeEffectsWarning(result.effects_warning, result.intervention);
+        if (warning)
+            lines.push(warning);
         process.stdout.write(`${lines.join("\n")}\n`);
     }
     return exitFor(result.action);
 }
-module.exports = { cmdRunCheckpoint, decideCheckpoint, runCheckpoint, realDeps, namedIssues, ACTIONS, CHECKPOINT_USAGE };
+module.exports = { describeEffectsWarning, cmdRunCheckpoint, decideCheckpoint, runCheckpoint, realDeps, namedIssues, ACTIONS, CHECKPOINT_USAGE };

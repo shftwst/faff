@@ -427,6 +427,7 @@ function reconcileMerges({ root, runDir, issueFilter }) {
     reconciled: true,
     uncovered,
     any_escape: uncovered.length > 0,
+    ...(uncovered.length ? { checked_ref: branch, checked_head: head } : {}),
     fault: null,
     // Interim scope decision (documented, not a defect): this slice performs NO live forge
     // (`gh`) query at all — the pr:<N> equivalence resolves from the commit subject (free,

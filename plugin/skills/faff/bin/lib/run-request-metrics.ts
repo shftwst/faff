@@ -25,6 +25,7 @@ type LaunchMode = "foreground" | "background" | "unspecified" | "unknown";
 
 export interface WorkerHandoff {
   requested_launch_mode?: LaunchMode;
+  background_acknowledged_at?: string;
   dispatch_id: string;
   build_wave?: number;
   returned_at: string | null;
@@ -259,6 +260,8 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
   const tagged = new Map<string, number | null>();
   const issued = new Map<string, Set<string>>();
   const returns = new Map<string, { at: string; bytes: number | null; error: boolean }>();
+  const backgroundLaunches = new Map<string, { at: string; agent: string }>();
+  const notifications = new Map<string, { agent: string; at: string; bytes: number | null; error: boolean }>();
   const verifications = new Map<string, number[]>();
   const handoffs = new Map<string, number[]>();
   function mark(table: Map<string, number[]>, issue: unknown, ms: number) {
@@ -280,9 +283,28 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
         if ([row.sessionId, row.session_id].some(id => typeof id === "string" && id !== sessionId)) continue;
         const msg = obj(row.message), ms = dateMs(row.timestamp);
         const blocks = Array.isArray(msg.content) ? msg.content.map(obj) : [];
+        // Claude persists background completion separately from its immediate launch acknowledgement.
+        const origin = obj(row.origin);
+        if (row.type === "user" && row.promptSource === "system" && origin.kind === "task-notification" &&
+            origin.producer === "session-task" && ms >= lo && ms < hi && typeof msg.content === "string") {
+          const header = /^<task-notification>\n<task-id>([\w-]+)<\/task-id>\n<tool-use-id>([\w-]+)<\/tool-use-id>\n(?:<output-file>[^\n]*<\/output-file>\n)?<status>(completed|failed|stopped)<\/status>\n/.exec(msg.content);
+          if (header?.[1] && header[2]) {
+            const body = /\n<result>([\s\S]*)<\/result>\n(?:<usage>[^\n]*<\/usage>\n)?<\/task-notification>\s*$/.exec(msg.content.slice(header[0].length));
+            const at = new Date(ms).toISOString();
+            const previous = notifications.get(header[2]);
+            if (!previous || at > previous.at) notifications.set(header[2], {agent:header[1], at,
+              bytes:body?.[1] !== undefined ? Buffer.byteLength(body[1]) : null, error:header[3] !== "completed"});
+          }
+        }
         // A structured receipt is evidence of a successful verification. A command invocation alone is not.
         if (row.type === "user") for (const b of blocks) {
           if (b.type === "tool_result" && typeof b.tool_use_id === "string" && ms >= lo && ms < hi) {
+            const receipt = obj(row.toolUseResult);
+            if (receipt.isAsync === true && receipt.status === "async_launched" && typeof receipt.agentId === "string" &&
+                blocks.filter(block => block.type === "tool_result").length === 1) {
+              backgroundLaunches.set(b.tool_use_id, {at:new Date(ms).toISOString(), agent:receipt.agentId});
+              continue;
+            }
             const content = b.content;
             const bytes = typeof content === "string" ? Buffer.byteLength(content) : Array.isArray(content)
               ? content.reduce((n: number, item: unknown) => {
@@ -373,9 +395,11 @@ export function collectRunRequestMetrics({ runDir, root, sessionId, env = proces
     if (dispatch) row.worker_dispatch_id = hash(sessionId + "\0" + dispatch);
     const calls = issued.get(r.id);
     if (calls) row.worker_handoffs = [...calls].map(call => {
-      const result = returns.get(call);
+      const launch = backgroundLaunches.get(call);
+      const done = notifications.get(call);
+      const result = launch ? (done && done.agent === launch.agent && done.at >= launch.at ? done : undefined) : returns.get(call);
       const build = tagged.get(call);
-      return {requested_launch_mode: dispatches.get(call)?.mode ?? "unknown", ...(build ? {build_wave: build} : {}), dispatch_id: hash(sessionId + "\0" + call), returned_at: result?.at ?? null,
+      return {...(launch ? {background_acknowledged_at:launch.at} : {}), requested_launch_mode: dispatches.get(call)?.mode ?? "unknown", ...(build ? {build_wave: build} : {}), dispatch_id: hash(sessionId + "\0" + call), returned_at: result?.at ?? null,
         returned_text_bytes: result?.bytes ?? null, is_error: result?.error ?? null};
     });
     records.push(row);

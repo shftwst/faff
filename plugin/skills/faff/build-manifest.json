@@ -62,8 +62,8 @@
     "bin/lib/run-close.ts": "7e86e0b5ed14fb314745992bbb03c7abea490dfeb0780a9af6fc115b848dcd02",
     "bin/lib/run-entry-preflight.ts": "915b78ce751173682a0643337459d9186d2bc4a4f95bf715580b64171e44042b",
     "bin/lib/run-open.ts": "50f6d5fcf0248162c058c126813b483da74bfda65af9909c5bfd8a29f3d76b48",
-    "bin/lib/run-request-metrics.ts": "4ca17ed783035f54043c124b99dea59302bf5e5dc34e1f6a8ec5ce27fe924d57",
-    "bin/lib/run-request-store.ts": "9f6766c106667eefae9c027d1086744597fd3844b200dc8aff950efec0d9471c",
+    "bin/lib/run-request-metrics.ts": "848512df40b74723ca28970a6ceb360d7fd8e33d0dc989fa92a152682dd3e387",
+    "bin/lib/run-request-store.ts": "21e7999535eb90c4f4f7e1f6c00edb1399fa5779ab196deba2e9986b475ca97b",
     "bin/lib/run-return-map.ts": "1352d201369738f29fe6ce5cf35534efece9694dae2436199240ed90e894a723",
     "bin/lib/run-sdk-turns.ts": "d9dc0761d05fc7884c06124de2ea04058dda59a1d46365e4c0dddc7498a2673b",
     "bin/lib/run-stop-reason.ts": "90be5d4ec94d88201f46ea5a182462993818afaab2d09cc97d55dcbb2f47edca",
@@ -133,8 +133,8 @@
     "bin/lib/run-close.js": "df76520b92b40bd3418c112050fbed2ede8637d2d9311178a2f965b3f3344643",
     "bin/lib/run-entry-preflight.js": "d7f03d0544049b0dece3c417e6f2562925f644e9f8aaf2caba5ae3a443c2040e",
     "bin/lib/run-open.js": "3ac4200575fdbd14e286713989a09b757cb12fe02f0830ed7c9460c889ac2234",
-    "bin/lib/run-request-metrics.js": "848b4ce1aaebbcf506446015ab78a3714b2732d051283c58c101c0a2a8e7f1f2",
-    "bin/lib/run-request-store.js": "c22137921ad92c809dbed136a47949a9cadcc9e23cacb55c4a055beb38fa742a",
+    "bin/lib/run-request-metrics.js": "10d544d4e9f4256c2035ba91c0475bfddc2d28d63d65147615c1b1b6bb3c1acc",
+    "bin/lib/run-request-store.js": "9f459760603aaada283f8d1209cf71b77cc0c2a4bd473ccc5dbfe8497efabbd4",
     "bin/lib/run-return-map.js": "5d3e9b9b555879700e744df4d4cde5ac7abfda5a55cd6b88426007e4ac18ac48",
     "bin/lib/run-sdk-turns.js": "9d9fd643220af85c318391a7cd698a28a6d457251041771da428504719e3421b",
     "bin/lib/run-stop-reason.js": "85a50a203706db15e69de2c7d931f1d0c66f51b201394f6cfbe82bf6cd56098d",
@@ -154,5 +154,5 @@
     "bin/lib/ticket-template-fields.js": "cad41dea75d4ff0ade0a9e85a703f6a6380b401fe95c1e000ed9bc7b8d0b4958",
     "bin/lib/worktree-ensure.js": "66efe82b83d3ea65e3070b0215f61c3657c54bcf2df86de1ce3a414a56c8e03b"
   },
-  "output_digest": "0d620af246f5882aaa95c03b700d235b0573024e18b0f965f5cf3c89dfcc7c7f"
+  "output_digest": "9fa99142ad3a3d875e9dccd4dd57571e2bd1a83a142a757acfd9ac1c8851fb83"
 }

@@ -56,7 +56,7 @@ test("a proceed with status in-review goes to the endgame landing check, never a
 });
 
 test("step 4 carries the final-call rule", () => {
-  assert.match(STEP4, /\*\*The final call \(the last gate\)\.\*\*[^\n]*immediately before the append to `admitted`, with nothing in between\. Only its `proceed` with status not `in-review` admits/);
+  assert.match(STEP4, /\*\*The final call \(the last gate\)\.\*\*[^\n]*--record-admitted[^\n]*Only a successful `proceed` outside `in-review` records the admission and its event/);
 });
 
 test("step 4 checks the issue key and replaces the spec file before every call", () => {

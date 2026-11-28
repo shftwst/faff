@@ -4,7 +4,7 @@
 // causes and the decision-capture marker table are pinned through the shipped entrypoint.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, dirname } from "node:path";
@@ -533,4 +533,65 @@ test("converging run admits its contained discoveries through prep and graft unt
   const close=cli(root,["events","append","--run",RUN_ID,"--root",root],{},JSON.stringify({phase:"run",type:"run-end"}));
   assert.equal(close.code,0,close.err);
   assert.equal(labelled(),"false");
+});
+
+test("explicit final admission records one ledger fold and event across retries", () => {
+  const {root, runDir} = scratch();
+  const file = join(runDir, "run-ledger.json");
+  writeFileSync(file, JSON.stringify({run_id: RUN_ID, level:"L3", admitted:[], outcomes:{}, owner:{status:"running"}}));
+  const final = () => admit(root, "autonomous", facts(), {extra:["--record-admitted"]});
+  assert.equal(admit(root, "autonomous", facts()).json.disposition, "proceed");
+  assert.deepEqual(JSON.parse(readFileSync(file)).admitted, []);
+  for (let i=0; i<2; i++) {
+    const r=final();
+    assert.equal(r.code, 0, r.err + r.out);
+    assert.equal(r.json.disposition, "proceed");
+  }
+  assert.deepEqual(JSON.parse(readFileSync(file)).admitted, ["FAFF-901"]);
+  assert.equal(events(runDir).filter(e => e.type==="issue-admitted").length, 1);
+  assert.equal(events(runDir).filter(e => e.type==="ledger-write").length, 1);
+});
+
+test("recording requires an eligible autonomous final call on an open run", () => {
+  const {root, runDir} = scratch();
+  const file = join(runDir, "run-ledger.json");
+  writeFileSync(file, JSON.stringify({run_id:RUN_ID,level:"L3",admitted:[],outcomes:{},owner:{status:"running"}}));
+  const opts = {extra:["--record-admitted"]};
+  assert.equal(admit(root,"interactive",facts(),opts).code, 2);
+  assert.equal(admit(root,"autonomous",facts(),{...opts,runDir:false}).code, 2);
+  for (const f of [facts({externally_blocked:true}), facts({status:"in-review"})]) {
+    admit(root,"autonomous",f,opts);
+    assert.deepEqual(JSON.parse(readFileSync(file)).admitted, []);
+  }
+  cli(root,["events","append","--run",RUN_ID,"--root",root],{},JSON.stringify({phase:"run",type:"run-end"}));
+  assert.equal(admit(root,"autonomous",facts(),opts).code, 2);
+  assert.deepEqual(JSON.parse(readFileSync(file)).admitted, []);
+});
+
+test("concurrent final admissions preserve both issues and finish a missing admission event once", async () => {
+  const {root, runDir} = scratch();
+  const ledger = join(runDir, "run-ledger.json");
+  writeFileSync(ledger, JSON.stringify({run_id:RUN_ID,level:"L3",admitted:[],outcomes:{},owner:{status:"running"}}));
+  function run(issue) {
+    const f = join(root, issue + ".json");
+    writeFileSync(f, JSON.stringify(facts({issue})));
+    const child = spawn(process.execPath, [CLI,"graft","admit","--mode","autonomous","--facts",f,
+      "--spec-file",join(root,"spec-good.md"),"--run-dir",runDir,"--root",root,"--json","--record-admitted"], {cwd:root});
+    let diagnostic = "";
+    child.stdout.on("data", b => diagnostic += b);
+    child.stderr.on("data", b => diagnostic += b);
+    return new Promise((resolve,reject) => {
+      child.once("error",reject);
+      child.once("close", status => status === 0 ? resolve() : reject(new Error(diagnostic)));
+    });
+  }
+  await Promise.all([run("FAFF-901"),run("FAFF-902"),run("FAFF-901")]);
+  assert.deepEqual(JSON.parse(readFileSync(ledger)).admitted.sort(), ["FAFF-901","FAFF-902"]);
+  const file=join(runDir,"events.jsonl");
+  const log=readFileSync(file,"utf8").trimEnd().split("\n");
+  const final=JSON.parse(log.at(-1));
+  assert.equal(final.type,"issue-admitted");
+  writeFileSync(file,log.slice(0,-1).join("\n")+"\n");
+  await run(final.issue);
+  assert.deepEqual(events(runDir).filter(e => e.type==="issue-admitted").map(e => e.issue).sort(), ["FAFF-901","FAFF-902"]);
 });

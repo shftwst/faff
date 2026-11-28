@@ -6,7 +6,7 @@
 // returns one disposition. The agent reads the issue once and passes a facts object; this command
 // reads no tracker. It calls the existing kernels in-process (nextStep, automationEligible,
 // intakeVerdict, admissibleVerdict, claimVerdict) and the build-claim store's read, re-implementing
-// none of them. Read-only: its only writes are best-effort decision-capture records, which gate
+// none of them. Without --record-admitted its only writes are best-effort decision-capture records, which gate
 // nothing. Any input it cannot establish exits 2, and callers refuse before a worktree exists.
 // ===========================================================================
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -293,8 +293,52 @@ function admit(opts) {
     return finish("proceed", "build-eligible");
 }
 // --- The command layer. ---
+// The first lock commits the admission with its normal ledger fold. The
+// second serializes idempotent event completion, including a retry after interruption.
+function recordAdmission(runDir, runId, issue) {
+    const { mutateLedgerUnderLock, withLedgerLock } = require("./heartbeat");
+    const { appendEventRecord, walkPhysicalChain } = require("./events");
+    const { join } = require("node:path");
+    const { readFileSync } = require("node:fs");
+    const { createHash } = require("node:crypto");
+    function readChain() {
+        const chain = walkPhysicalChain(readFileSync(join(runDir, "events.jsonl")));
+        if (chain.status !== "verified" || chain.torn_tail || chain.records[0]?.run_id !== runId) {
+            throw new Error("final admission requires an intact event chain for this run");
+        }
+        if (chain.records.some((r) => r.type === "run-end"))
+            throw new Error("run already ended");
+        return chain.records;
+    }
+    mutateLedgerUnderLock(runDir, (ledger) => {
+        if (!isRecord(ledger) || ledger.run_id !== runId || !isStringArray(ledger.admitted)) {
+            throw new Error("missing or malformed admission ledger");
+        }
+        readChain();
+        if (ledger.admitted.includes(issue))
+            return null;
+        if (ledger.stop_reason || (isRecord(ledger.owner) && ledger.owner.status === "aborted-resumable"))
+            throw new Error("run stopped");
+        ledger.admitted.push(issue);
+        return ledger;
+    });
+    withLedgerLock(runDir, () => {
+        const records = readChain();
+        const raw = readFileSync(join(runDir, "run-ledger.json"));
+        const ledger = JSON.parse(raw.toString("utf8"));
+        const fold = records.findLast((r) => r.type === "ledger-write");
+        if (!Array.isArray(ledger.admitted) || !ledger.admitted.includes(issue) ||
+            fold?.data?.ledger_sha256 !== createHash("sha256").update(raw).digest("hex")) {
+            throw new Error("ledger fold does not confirm the admission; reconcile before dispatch");
+        }
+        if (!records.some((r) => r.type === "issue-admitted" && r.issue === issue)) {
+            appendEventRecord(runDir, runId, { phase: "run", type: "issue-admitted", issue });
+        }
+    });
+}
 const ADMIT_SPEC = {
     flags: {
+        "--record-admitted": { arity: 0 },
         "--mode": { arity: 1, enum: ["interactive", "autonomous"] },
         "--facts": { arity: 1 },
         "--spec-file": { arity: 1 },
@@ -306,7 +350,7 @@ const ADMIT_SPEC = {
         "--json": { arity: 0 },
     },
 };
-const ADMIT_USAGE = "usage: faff graft admit --mode interactive|autonomous --facts <file|-> [--spec-file <path>] [--session-id <S>] [--run-dir <dir>] [--wave <N>] [--now <ISO>] [--root DIR] [--json]";
+const ADMIT_USAGE = "usage: faff graft admit --mode interactive|autonomous --facts <file|-> [--spec-file <path>] [--session-id <S>] [--run-dir <dir>] [--wave <N>] [--record-admitted] [--now <ISO>] [--root DIR] [--json]";
 const str = (v) => (typeof v === "string" ? v : undefined);
 function fail(json, issue, reason, detail) {
     process.stderr.write(`faff graft admit: ${reason} — ${detail}\n`);
@@ -360,6 +404,9 @@ function cmdGraftAdmit(args) {
     }
     const runArg = str(values["--run-dir"]) ?? str(process.env.FAFF_RUN_DIR);
     const run = runArg !== undefined && runArg !== "" ? path.basename(runArg.replace(/[\\/]+$/, "")) : null;
+    const record = values["--record-admitted"] === true;
+    if (record && (mode !== "autonomous" || !str(values["--run-dir"])))
+        return fail(json, facts.issue, "usage", "--record-admitted requires autonomous mode and an explicit --run-dir");
     let root;
     try {
         root = str(values["--root"]) ?? sharedInfra.findRoot();
@@ -376,6 +423,9 @@ function cmdGraftAdmit(args) {
     let out;
     try {
         out = admit({ mode, facts, specText, sessionId, run, runDir: runArg, wave: str(values["--wave"]), now, root, env: process.env });
+        if (record && runArg && run && out.disposition === "proceed" && facts.status !== "in-review") {
+            recordAdmission(runArg, run, facts.issue);
+        }
     }
     catch (e) {
         // Fail closed: an input the command could not establish (AdmitFailure) and any unexpected fault
